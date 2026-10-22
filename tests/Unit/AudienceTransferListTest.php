@@ -44,6 +44,25 @@ class AudienceTransferListTest extends TestCase {
 		$this->assertSame( '#ccc', $flat[3]['color'], 'An audience without a colour gets the neutral one.' );
 	}
 
+	public function test_member_counts_reach_the_whole_subtree_counting_each_person_once(): void {
+		$grandchild = (object) array( 'id' => '3', 'name' => 'Class 3A', 'children' => array() );
+		$child      = (object) array( 'id' => '2', 'name' => 'School', 'children' => array( $grandchild ) );
+		$root       = (object) array( 'id' => '1', 'name' => 'Region', 'children' => array( $child ) );
+		$other      = (object) array( 'id' => '4', 'name' => 'Other', 'children' => array() );
+
+		$flat = AudienceTransferList::with_member_counts(
+			AudienceTransferList::flatten( array( $root, $other ) ),
+			array(
+				1 => array( 10 ),
+				2 => array( 10, 20 ),
+				3 => array( 20, 30 ),
+			)
+		);
+
+		$this->assertSame( array( 3, 3, 2, 0 ), array_column( $flat, 'members' ), 'A person in a parent and a child is counted once; an empty audience reads 0.' );
+		$this->assertSame( array( 1, 2, 3, 4 ), array_column( $flat, 'id' ), 'The order the picker shows is kept.' );
+	}
+
 	/**
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
@@ -57,7 +76,10 @@ class AudienceTransferListTest extends TestCase {
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
 			->shouldReceive( 'get_hierarchical' )->twice()->with( 'active' )
-			->andReturn( array( (object) array( 'id' => '5', 'name' => 'A', 'color' => '#abc', 'children' => array() ) ) );
+			->andReturn( array( (object) array( 'id' => '5', 'name' => 'A', 'color' => '#abc', 'children' => array() ) ) )
+			->getMock()
+			->shouldReceive( 'get_member_ids_by_audience' )->twice()
+			->andReturn( array( 5 => array( 10, 11 ) ) );
 
 		ob_start();
 		AudienceTransferList::render( array( '5', 5, '0' ), 'rule[audience_ids][]', false );
@@ -66,6 +88,7 @@ class AudienceTransferListTest extends TestCase {
 		$this->assertStringContainsString( 'data-field-name="rule[audience_ids][]"', $html );
 		$this->assertStringContainsString( 'data-selected="[5]"', $html, 'Duplicates and non-ids are dropped.' );
 		$this->assertStringContainsString( '&quot;id&quot;:5', $html );
+		$this->assertStringContainsString( '&quot;members&quot;:2', $html, 'Each audience carries the people it reaches.' );
 		$this->assertStringNotContainsString( 'data-required', $html, 'An optional picker lets the form submit empty.' );
 		// The four moves are the family's icon-only buttons (#1904), each named
 		// by its label and still carrying the hook the script binds.

@@ -27,6 +27,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: a booking can cover a range of days** (#1946). A booking takes an end date and a time mode: `daily` repeats the same hours each day, `span` runs from the start time on the first day to the end time on the last. Every day is checked for conflicts and for rules, and a clash on any day refuses the whole booking. Holidays inside the range refuse it unless the operator skips them, and skipped days are recorded. A single-day booking is unchanged.
 - **Audience Calendars: every display reads a range** (#1946). A booking that covers several days shows on each of them in the calendar, with both dates in the admin list, the user dashboard and the booking e-mails, a `.ics` that repeats the booked hours for a daily range, the booking CSV (new `End Date` column) and the privacy export. Single-day bookings are unchanged.
 - **Audience Calendars: the booking form takes a range** (#1946). The booking form has an optional end date, the hours on each day (the same every day, or from the start time on the first day to the end time on the last) and a "Skip blocked days" switch. A clash on any day lists the days already taken. The booking guide describes ranges, and the readmes list them.
+- Audiences: the audience picker of the Date Messages rule and the reregistration campaign shows beside each audience how many people it reaches, sub-audiences included and each person once (#1998).
 
 ### Fixed
 

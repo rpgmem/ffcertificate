@@ -263,6 +263,25 @@ describe('audience transfer list', () => {
 		expect(seen[seen.length - 1]).toEqual([2]);
 	});
 
+	it('shows how many people each audience reaches, in both columns', async () => {
+		mountTransfer({
+			audiences: [
+				{ id: 1, name: 'Group A', color: '#aaa', members: 12 },
+				{ id: 2, name: 'Group B', color: '#bbb', members: 0 },
+				{ id: 3, name: 'Group C', color: '#ccc' },
+			],
+			selected: [1],
+		});
+		await reload();
+
+		expect(window.$('.ffc-transfer-selected [data-id="1"] .ffc-transfer-count').text()).toBe('(12)');
+		expect(window.$('.ffc-transfer-available [data-id="2"] .ffc-transfer-count').text()).toBe('(0)');
+		expect(window.$('[data-id="3"] .ffc-transfer-count').length).toBe(0);
+		// The filter still matches the name alone.
+		window.$('.ffc-transfer-search').val('12').trigger('input');
+		expect(window.$('.ffc-transfer-available .ffc-transfer-item').length).toBe(0);
+	});
+
 	it('ignores malformed data attributes', async () => {
 		document.body.innerHTML = '<form><div class="ffc-transfer-list" data-audiences="{oops" data-selected="nope"><div class="ffc-transfer-available"><div class="ffc-transfer-items"></div></div><div class="ffc-transfer-selected"><div class="ffc-transfer-items"></div></div><div class="ffc-transfer-hidden-inputs"></div></div></form>';
 		await reload();
