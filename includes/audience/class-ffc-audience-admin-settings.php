@@ -364,10 +364,14 @@ class AudienceAdminSettings {
 
 		// Delete global holiday (GET).
 		if ( isset( $_GET['ffc_action'] ) && 'delete_global_holiday' === $_GET['ffc_action'] ) {
-			$index = \FreeFormCertificate\Core\RequestInput::get_get_int( 'holiday_index', -1 );
+			// The holiday is named by its date, which is unique: the screen
+			// lists the holidays sorted and the option keeps them in the
+			// order they were added, so a position named the wrong day (#2010).
+			$date = RequestInput::get_get_string( 'holiday_date' );
 
-			if ( ! isset( $_GET['ffc_global_holiday_nonce'] ) ||
-				! wp_verify_nonce( RequestInput::get_get_string( 'ffc_global_holiday_nonce' ), 'delete_global_holiday_' . $index ) ) {
+			if ( 1 !== preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ||
+				! isset( $_GET['ffc_global_holiday_nonce'] ) ||
+				! wp_verify_nonce( RequestInput::get_get_string( 'ffc_global_holiday_nonce' ), 'delete_global_holiday_' . $date ) ) {
 				return;
 			}
 
@@ -376,9 +380,14 @@ class AudienceAdminSettings {
 			}
 
 			$holidays = get_option( 'ffc_global_holidays', array() );
-			if ( isset( $holidays[ $index ] ) ) {
-				array_splice( $holidays, $index, 1 );
-				update_option( 'ffc_global_holidays', $holidays );
+			$kept     = array_values(
+				array_filter(
+					is_array( $holidays ) ? $holidays : array(),
+					static fn( $h ): bool => ! is_array( $h ) || ( $h['date'] ?? null ) !== $date
+				)
+			);
+			if ( count( $kept ) !== count( (array) $holidays ) ) {
+				update_option( 'ffc_global_holidays', $kept );
 			}
 
 			wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=general&message=holiday_deleted' ) );

@@ -47,6 +47,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Audiences: a confirmed override no longer fails, because the earlier booking is now cancelled whole in the same transaction. Every conflict check reads the hours a span actually takes on each day, and the form's check covers every day of a range. The dashboard keeps a running range as upcoming and exports all its days. A span's hours now read per day on every screen and e-mail. The schema heal is recorded only once its columns exist (#2001).
 - **Date Messages announcements are scheduled, refused and cleaned up consistently.** Their events are listed in Scheduled Tasks and unscheduled with the module, on deactivation, on uninstall and when the rule is deleted; arming a send by save or list toggle needs the send capability, and the toggle now schedules it; history and summary count forced sends and name the announcement trigger (#2002).
 - **Certificate models keep their page colour, and a refused save says so** (#2003). Save as model, Load model and Duplicate carry the background colour with the image; a save refused for a missing required tag reads "The form was not saved", without WordPress's "Post updated"; the preview's error message is translated.
+- **Deleting a global holiday removes that holiday** (#2010). Scheduling → Settings → General listed the holidays by date and deleted by position in the stored order, so a list added out of order lost a different day; the holiday is now named by its date.
 
 ### Changed
 
