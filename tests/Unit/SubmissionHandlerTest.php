@@ -252,6 +252,18 @@ class SubmissionHandlerTest extends TestCase {
 		$this->assertGreaterThan( time() - 10, $captured['submission_date'] );
 	}
 
+	public function test_process_submission_records_no_ip_when_asked_not_to(): void {
+		$captured = null;
+		$this->mockRepo->shouldReceive( 'insert' )->once()->withArgs( function( $data ) use ( &$captured ) { $captured = $data; return true; } )->andReturn( 10 );
+
+		$data = array( 'name' => 'Dora', 'email' => 'dora@test.com' );
+		$this->handler->process_submission( 1, 'Form', $data, 'dora@test.com', array(), array(), array( 'record_ip' => false ) );
+
+		$this->assertIsArray( $captured );
+		$this->assertArrayHasKey( 'user_ip_encrypted', $captured );
+		$this->assertNull( $captured['user_ip_encrypted'] );
+	}
+
 	public function test_process_submission_encrypts_email_when_configured(): void {
 		$captured = null;
 		$this->mockRepo->shouldReceive( 'insert' )

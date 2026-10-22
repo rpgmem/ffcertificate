@@ -99,6 +99,44 @@ class BulkIssuePlannerTest extends TestCase {
 		);
 	}
 
+	public function test_required_fields_leave_out_the_identifiers_and_optional_fields(): void {
+		$fields = array(
+			array( 'name' => 'name', 'required' => true ),
+			array( 'name' => 'course', 'required' => true ),
+			array( 'name' => 'notes' ),
+			array( 'type' => 'heading' ),
+		);
+
+		$this->assertSame( array( 'course' ), BulkIssuePlanner::required_fields( $fields, false ) );
+	}
+
+	public function test_a_score_from_the_file_leaves_out_the_scored_questions(): void {
+		$question = array(
+			'type'        => 'text',
+			'name'        => 'q1',
+			'required'    => true,
+			'quiz_scored' => '1',
+			'quiz_text'   => 'answered',
+			'quiz_points' => '2',
+		);
+
+		$this->assertSame( array( 'q1' ), BulkIssuePlanner::required_fields( array( $question ), false ) );
+		$this->assertSame( array(), BulkIssuePlanner::required_fields( array( $question ), true ) );
+	}
+
+	public function test_a_row_that_leaves_a_required_field_empty_is_skipped_in_the_preview(): void {
+		$rows = array(
+			array( 'Ana', '111.444.777-35', 'ana@example.test', '' ),
+			array( 'Bia', '529.982.247-25', 'bia@example.test', 'Python' ),
+		);
+
+		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::HEADER, array( 'mode' => BulkIssuePlanner::DATE_NOW, 'date' => '', 'column' => '' ), false, array( 'mode' => BulkIssuePlanner::SCORE_NONE, 'column' => '', 'max' => 0, 'pass' => 0 ), array( 'course' ) );
+
+		$this->assertSame( array( array( 'line' => 2, 'reason' => BulkIssuePlanner::SKIP_MISSING_REQUIRED ) ), $plan['skipped'] );
+		$this->assertCount( 1, $plan['issue'] );
+		$this->assertSame( BulkIssuePlanner::SKIP_MISSING_REQUIRED, \FreeFormCertificate\Submissions\BulkIssueRunner::SKIP_MISSING_REQUIRED, 'the preview and the issue report the same reason' );
+	}
+
 	public function test_a_valid_row_is_issued_with_its_digits_and_carried_fields(): void {
 		$rows = array(
 			array( 'Ana', '111.444.777-35', 'ana@example.test', 'Python' ),

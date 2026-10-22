@@ -24218,8 +24218,8 @@ msgid "Issuing certificates in bulk"
 msgstr "Emitir certificados em lote"
 
 #: includes/settings/views/documentation/feature-certificates.php
-msgid "When the participants are already known — an attendance sheet, a course roster — open the form in the form editor and use its Bulk issue tab, the last one, which appears only to users who hold the Issue certificates in bulk capability. Download the CSV template for the form, upload your file (up to 2 MB) and map each column to a form field. Name, CPF/RF and e-mail are required, and the fields marked * must be mapped. The preview then says how many certificates would be issued and how many rows would be skipped, with the reason for each skipped row. Nothing is issued until you confirm, and the certificates are issued in batches with a progress indicator."
-msgstr "Quando os participantes já são conhecidos — uma lista de presença, uma lista de turma — abra o formulário no editor de formulários e use a aba Emitir em lote, a última, que aparece apenas para quem tem a capacidade Emitir certificados em lote. Baixe o modelo CSV do formulário, envie o seu arquivo (até 2 MB) e associe cada coluna a um campo do formulário. Nome, CPF/RF e e-mail são obrigatórios, e os campos marcados com * precisam estar associados. A prévia informa quantos certificados seriam emitidos e quantas linhas seriam ignoradas, com o motivo de cada uma. Nada é emitido até você confirmar, e os certificados são emitidos em lotes com indicador de progresso."
+msgid "When the participants are already known — an attendance sheet, a course roster — open the form in the form editor and use its Bulk issue tab, the last one, which appears only to users who hold the Issue certificates in bulk capability. Download the CSV template for the form, upload your file (up to 2 MB) and map each column to a form field. Name, CPF/RF and e-mail are required, the fields marked * must be mapped, and a row that leaves one of them empty is skipped. The preview then says how many certificates would be issued and how many rows would be skipped, with the reason for each skipped row. Nothing is issued until you confirm, and the certificates are issued in batches with a progress indicator."
+msgstr "Quando os participantes já são conhecidos — uma lista de presença, uma lista de turma — abra o formulário no editor de formulários e use a aba Emitir em lote, a última, que aparece apenas para quem tem a capacidade Emitir certificados em lote. Baixe o modelo CSV do formulário, envie o seu arquivo (até 2 MB) e associe cada coluna a um campo do formulário. Nome, CPF/RF e e-mail são obrigatórios, os campos marcados com * precisam estar associados, e uma linha que deixa algum deles vazio é ignorada. A prévia informa quantos certificados seriam emitidos e quantas linhas seriam ignoradas, com o motivo de cada uma. Nada é emitido até você confirmar, e os certificados são emitidos em lotes com indicador de progresso."
 
 #: includes/settings/views/documentation/feature-certificates.php
 msgid "On a quiz form the tab also asks for the score of each participant: take the points from a column of the file, which must not exceed the maximum and must reach the passing score, or issue every certificate with a zero score, in which case the passing score does not apply and the preview warns you first. The issue date is the day each certificate is issued, one date you choose for all of them, or a column of the file. Choose whether to send the magic-link e-mail as each certificate is issued or not at all; a link that was not sent can be sent later from the submissions list with Send link by e-mail."
@@ -27472,8 +27472,8 @@ msgid "Not in this file"
 msgstr "Não está neste arquivo"
 
 #: includes/admin/class-ffc-bulk-issue-page.php
-msgid "Fields marked * are required. The file has to be uploaded again on this step."
-msgstr "Os campos marcados com * são obrigatórios. Nesta etapa o arquivo precisa ser enviado novamente."
+msgid "Fields marked * are required: a line that leaves one empty is skipped. The file has to be uploaded again on this step."
+msgstr "Os campos marcados com * são obrigatórios: uma linha que deixa algum vazio é ignorada. Nesta etapa o arquivo precisa ser enviado novamente."
 
 #: includes/admin/class-ffc-bulk-issue-page.php
 #, php-format
@@ -27613,8 +27613,8 @@ msgid "Bulk issue"
 msgstr "Emitir em lote"
 
 #: includes/admin/class-ffc-bulk-issue-page.php
-msgid "Issue certificates for a list of participants from a CSV file, without each of them submitting the form. Download the template, upload the file, map its columns and check the preview. Nothing is issued yet."
-msgstr "Emita certificados para uma lista de participantes a partir de um arquivo CSV, sem que cada um envie o formulário. Baixe o modelo, envie o arquivo, associe as colunas e confira a pré-visualização. Nada é emitido ainda."
+msgid "Issue certificates for a list of participants from a CSV file, without each of them submitting the form. Download the template, upload the file, map its columns, check the preview and issue."
+msgstr "Emita certificados para uma lista de participantes a partir de um arquivo CSV, sem que cada um envie o formulário. Baixe o modelo, envie o arquivo, associe as colunas, confira a pré-visualização e emita."
 
 #: includes/settings/views/documentation/submissions-list.php
 msgid "Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped, the issue date and the link e-mail are chosen and every row is previewed. Confirm to issue the certificates in batches, with progress."
@@ -27818,3 +27818,11 @@ msgstr "Isto cancela a reserva de %s."
 #: includes/audience/class-ffc-audience-booking-rules.php
 msgid "This booking covers %1$d days (%2$s). Cancelling it cancels every one of them."
 msgstr "Esta reserva cobre %1$d dias (%2$s). Cancelá-la cancela todos eles."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "A field the form requires is empty"
+msgstr "Um campo obrigatório do formulário está vazio"
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "This submission is in the trash, so its link is not sent."
+msgstr "Esta submissão está na lixeira, por isso o link não é enviado."

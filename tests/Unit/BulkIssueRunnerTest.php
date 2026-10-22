@@ -315,6 +315,61 @@ class BulkIssueRunnerTest extends TestCase {
 		$this->assertSame( 1, BulkIssueRunner::purge_expired( $now ) );
 	}
 
+	public function test_an_issued_line_records_no_ip_of_the_operator(): void {
+		$this->seed_pending_rows( array( $this->row( 11, 'Ana' ) ) );
+		$this->handler->shouldReceive( 'process_submission' )
+			->once()
+			->with( Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any(), Mockery::on( static fn( array $options ): bool => false === $options['record_ip'] ) )
+			->andReturn( 91 );
+
+		$this->expect_row_update( 11, BulkIssueRepository::ROW_ISSUED );
+		$this->expect_job_finished();
+
+		$this->assertSame( 1, ( $this->runner() )->process_batch( self::JOB_ID ) );
+	}
+
+	public function test_a_line_another_batch_claimed_is_not_issued_and_the_batch_ends_the_job(): void {
+		global $wpdb;
+		$this->seed_pending_rows( array( $this->row( 11, 'Ana' ) ) );
+		// The claim matches no row: another batch already took the line.
+		$wpdb->shouldReceive( 'query' )->andReturn( 0 );
+		$this->handler->shouldNotReceive( 'process_submission' );
+
+		$this->expect_job_finished();
+
+		$this->assertSame( 0, ( $this->runner() )->process_batch( self::JOB_ID ) );
+	}
+
+	public function test_a_scored_line_is_not_asked_for_the_answers_of_the_scored_questions(): void {
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( int $post_id, string $key ) {
+				return '_ffc_form_fields' === $key
+					? array(
+						array(
+							'name'     => 'unit',
+							'required' => true,
+						),
+						array(
+							'type'        => 'text',
+							'name'        => 'q1',
+							'required'    => true,
+							'quiz_scored' => '1',
+							'quiz_text'   => 'answered',
+							'quiz_points' => '2',
+						),
+					)
+					: array();
+			}
+		);
+		$this->seed_pending_rows( array( $this->row( 11, 'Ana', 'cpf', 'North', null, false, array( 'score' => 2, 'max' => 2, 'percent' => 100 ) ) ) );
+		$this->handler->shouldReceive( 'process_submission' )->once()->andReturn( 91 );
+
+		$this->expect_row_update( 11, BulkIssueRepository::ROW_ISSUED );
+		$this->expect_job_finished();
+
+		$this->assertSame( 1, ( $this->runner() )->process_batch( self::JOB_ID ) );
+	}
+
 	/**
 	 * @return BulkIssueRunner
 	 */

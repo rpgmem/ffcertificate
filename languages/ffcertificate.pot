@@ -24135,7 +24135,7 @@ msgid "Issuing certificates in bulk"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-certificates.php
-msgid "When the participants are already known — an attendance sheet, a course roster — open the form in the form editor and use its Bulk issue tab, the last one, which appears only to users who hold the Issue certificates in bulk capability. Download the CSV template for the form, upload your file (up to 2 MB) and map each column to a form field. Name, CPF/RF and e-mail are required, and the fields marked * must be mapped. The preview then says how many certificates would be issued and how many rows would be skipped, with the reason for each skipped row. Nothing is issued until you confirm, and the certificates are issued in batches with a progress indicator."
+msgid "When the participants are already known — an attendance sheet, a course roster — open the form in the form editor and use its Bulk issue tab, the last one, which appears only to users who hold the Issue certificates in bulk capability. Download the CSV template for the form, upload your file (up to 2 MB) and map each column to a form field. Name, CPF/RF and e-mail are required, the fields marked * must be mapped, and a row that leaves one of them empty is skipped. The preview then says how many certificates would be issued and how many rows would be skipped, with the reason for each skipped row. Nothing is issued until you confirm, and the certificates are issued in batches with a progress indicator."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-certificates.php
@@ -27389,7 +27389,7 @@ msgid "Not in this file"
 msgstr ""
 
 #: includes/admin/class-ffc-bulk-issue-page.php
-msgid "Fields marked * are required. The file has to be uploaded again on this step."
+msgid "Fields marked * are required: a line that leaves one empty is skipped. The file has to be uploaded again on this step."
 msgstr ""
 
 #: includes/admin/class-ffc-bulk-issue-page.php
@@ -27530,7 +27530,7 @@ msgid "Bulk issue"
 msgstr ""
 
 #: includes/admin/class-ffc-bulk-issue-page.php
-msgid "Issue certificates for a list of participants from a CSV file, without each of them submitting the form. Download the template, upload the file, map its columns and check the preview. Nothing is issued yet."
+msgid "Issue certificates for a list of participants from a CSV file, without each of them submitting the form. Download the template, upload the file, map its columns, check the preview and issue."
 msgstr ""
 
 #: includes/settings/views/documentation/submissions-list.php
@@ -27734,4 +27734,12 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-booking-rules.php
 msgid "This booking covers %1$d days (%2$s). Cancelling it cancels every one of them."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "A field the form requires is empty"
+msgstr ""
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "This submission is in the trash, so its link is not sent."
 msgstr ""

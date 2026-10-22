@@ -36,8 +36,9 @@
 			body.append( 'ffc_bulk_file', file.files[ 0 ] );
 		}
 
-		// Columns and the issue-date choice the server showed on the previous step travel back with the file.
-		result.querySelectorAll( 'select[name^="ffc_map["], [name^="ffc_issue_"]' ).forEach( function ( field ) {
+		// Columns and the issue choices the server showed on the previous step travel back with the file:
+		// as selects on the mapping step, as hidden fields on the preview.
+		result.querySelectorAll( '[name^="ffc_map["], [name^="ffc_issue_"]' ).forEach( function ( field ) {
 			body.append( field.name, field.value );
 		} );
 
