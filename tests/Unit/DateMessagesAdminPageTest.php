@@ -544,12 +544,15 @@ class DateMessagesAdminPageTest extends TestCase {
 			'name'     => 'Schools',
 			'children' => array( $child, 'not a node' ),
 		);
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )->shouldReceive( 'get_hierarchical' )->with( 'active' )->andReturn( array( $parent ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
+			->shouldReceive( 'get_hierarchical' )->with( 'active' )->andReturn( array( $parent ) )
+			->shouldReceive( 'get_members' )->andReturnUsing( static fn( int $id ): array => 1 === $id ? array( 10, 11, 12 ) : array( 10 ) );
 
+		// Each label carries the reach of its audience, sub-audiences included.
 		$this->assertSame(
 			array(
-				1 => 'Schools',
-				2 => '— Teachers',
+				1 => 'Schools (3)',
+				2 => '— Teachers (1)',
 			),
 			DateMessagesAdminPage::audience_options()
 		);
@@ -918,6 +921,7 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->reader->shouldReceive( 'all' )->andReturn( array( $this->filter_rule( 7, array( 1 ) ) ) );
 		$audiences = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		$audiences->shouldReceive( 'get_hierarchical' )->andReturn( array( (object) array( 'id' => 1, 'name' => 'Schools' ) ) );
+		$audiences->shouldReceive( 'get_members' )->andReturn( array( 42 ) );
 		$audiences->shouldReceive( 'get_user_audiences' )->with( 42 )->andReturn( array( (object) array( 'id' => 1, 'name' => 'Schools' ) ) );
 		$preview = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RecipientPreview' );
 		$preview->shouldReceive( 'collect' )->once()->with(

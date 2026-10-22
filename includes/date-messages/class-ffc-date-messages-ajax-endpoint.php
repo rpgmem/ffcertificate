@@ -116,6 +116,11 @@ final class DateMessagesAjaxEndpoint {
 
 		$from = DateMessagesAdminPage::date( RequestInput::get_post_string( 'from' ) );
 		$to   = DateMessagesAdminPage::date( RequestInput::get_post_string( 'to' ) );
+		// An announcement goes out on one day, today: the dates are not asked (#1949).
+		if ( $rule->is_announcement() ) {
+			$from = Runner::today();
+			$to   = $from;
+		}
 		if ( null === $from || null === $to ) {
 			wp_send_json_error( array( 'message' => __( 'Enter both dates.', 'ffcertificate' ) ), 400 );
 		}

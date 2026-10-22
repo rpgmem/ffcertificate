@@ -19,6 +19,10 @@ use FreeFormCertificate\DateMessages\Runner;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+
+// An announcement has no date to choose: the dates row starts hidden when the
+// first rule is one (#1949). The script follows the rule picker.
+$ffc_dm_first_ann = ! empty( $rules ) && array_values( $rules )[0]->is_announcement();
 ?>
 <p class="description">
 	<?php
@@ -54,16 +58,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<td>
 						<select id="ffc-dm-send-rule" name="rule_id" class="ffc-dm-rule">
 							<?php foreach ( $rules as $ffc_dm_rule ) : ?>
-								<option value="<?php echo esc_attr( (string) $ffc_dm_rule->id ); ?>"><?php echo esc_html( $ffc_dm_rule->name ); ?></option>
+								<option value="<?php echo esc_attr( (string) $ffc_dm_rule->id ); ?>" data-ffc-dm-kind="<?php echo esc_attr( $ffc_dm_rule->kind ); ?>"><?php echo esc_html( $ffc_dm_rule->name ); ?></option>
 							<?php endforeach; ?>
 						</select>
 					</td>
 				</tr>
-				<tr>
+				<tr data-ffc-dm-dated-only
+				<?php
+				if ( $ffc_dm_first_ann ) :
+					?>
+					hidden<?php endif; ?>>
 					<th scope="row"><?php esc_html_e( 'Dates in the profile', 'ffcertificate' ); ?></th>
 					<td>
-						<label><?php esc_html_e( 'From', 'ffcertificate' ); ?> <input type="date" name="from" class="ffc-dm-from" required value="<?php echo esc_attr( $today->format( 'Y-m-d' ) ); ?>"></label>
-						<label><?php esc_html_e( 'To', 'ffcertificate' ); ?> <input type="date" name="to" class="ffc-dm-to" required value="<?php echo esc_attr( $today->format( 'Y-m-d' ) ); ?>"></label>
+						<label><?php esc_html_e( 'From', 'ffcertificate' ); ?> <input type="date" name="from" class="ffc-dm-from" value="<?php echo esc_attr( $today->format( 'Y-m-d' ) ); ?>"></label>
+						<label><?php esc_html_e( 'To', 'ffcertificate' ); ?> <input type="date" name="to" class="ffc-dm-to" value="<?php echo esc_attr( $today->format( 'Y-m-d' ) ); ?>"></label>
 					</td>
 				</tr>
 			</table>

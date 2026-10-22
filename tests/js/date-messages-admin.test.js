@@ -312,4 +312,20 @@ describe('ffc-date-messages-admin', () => {
 		expect(window.$('[data-ffc-dm-kind-only="announcement"]').prop('hidden')).toBe(false);
 		delete window.ffcDateMessageDefaults;
 	});
+
+	it('asks for dates only when the rule chosen on the send tab is dated', async () => {
+		document.body.innerHTML = '';
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			'<select class="ffc-dm-rule"><option value="1" data-ffc-dm-kind="announcement" selected>A</option><option value="2" data-ffc-dm-kind="dated">D</option></select>' +
+				'<table><tr data-ffc-dm-dated-only><td>dates</td></tr></table>'
+		);
+		await loadOnReady();
+
+		expect(window.$('[data-ffc-dm-dated-only]').prop('hidden')).toBe(true);
+		window.$('.ffc-dm-rule').val('2').trigger('change');
+		expect(window.$('[data-ffc-dm-dated-only]').prop('hidden')).toBe(false);
+		window.$('.ffc-dm-rule').val('1').trigger('change');
+		expect(window.$('[data-ffc-dm-dated-only]').prop('hidden')).toBe(true);
+	});
 });

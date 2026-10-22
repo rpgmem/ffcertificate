@@ -568,6 +568,11 @@ final class DateMessagesAdminPage {
 
 		$from = self::date( RequestInput::get_post_string( 'from' ) );
 		$to   = self::date( RequestInput::get_post_string( 'to' ) );
+		// An announcement goes out on one day, today: the dates are not asked (#1949).
+		if ( $rule->is_announcement() ) {
+			$from = Runner::today();
+			$to   = $from;
+		}
 		if ( null === $from || null === $to ) {
 			$this->finish( 'error', __( 'Enter both dates.', 'ffcertificate' ), $back );
 		}
@@ -714,7 +719,9 @@ final class DateMessagesAdminPage {
 				if ( ! is_object( $node ) || ! isset( $node->id, $node->name ) ) {
 					continue;
 				}
-				$options[ (int) $node->id ] = str_repeat( '— ', $depth ) . (string) $node->name;
+				// The count is the reach of the audience, sub-audiences included.
+				$members                    = count( \FreeFormCertificate\Audience\AudienceReader::get_members( (int) $node->id, true ) );
+				$options[ (int) $node->id ] = str_repeat( '— ', $depth ) . (string) $node->name . ' (' . $members . ')';
 				if ( isset( $node->children ) && is_array( $node->children ) ) {
 					$walk( $node->children, $depth + 1 );
 				}

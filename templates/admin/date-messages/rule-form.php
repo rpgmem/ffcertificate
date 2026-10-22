@@ -104,6 +104,22 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			<th scope="row"><label for="ffc-dm-name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?></label></th>
 			<td><input type="text" id="ffc-dm-name" name="rule[name]" class="regular-text" required value="<?php echo esc_attr( (string) $ffc_dm_values['name'] ); ?>"></td>
 		</tr>
+<tr>
+			<th scope="row"><label for="ffc-dm-is-active"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label></th>
+			<td>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_toggle(
+					array(
+						'name'    => 'rule[is_active]',
+						'id'      => 'ffc-dm-is-active',
+						'checked' => $ffc_dm_flag( $ffc_dm_values['is_active'] ),
+						'label'   => __( 'Active (the daily run sends it)', 'ffcertificate' ),
+						'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'date_message_rule', (int) $ffc_dm_values['id'], 'is_active' ),
+					)
+				);
+				?>
+			</td>
+		</tr>
 		<tr>
 			<th scope="row"><label for="ffc-dm-kind"><?php esc_html_e( 'Kind of message', 'ffcertificate' ); ?></label></th>
 			<td>
@@ -129,46 +145,11 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 				</select>
 			</td>
 		</tr>
-		<tr data-ffc-dm-kind-only="dated"
-		<?php
-		if ( $ffc_dm_hidden( 'dated' ) ) :
-			?>
-			hidden<?php endif; ?>>
-			<th scope="row"><label for="ffc-dm-offset"><?php esc_html_e( 'Days from the date', 'ffcertificate' ); ?></label></th>
-			<td>
-				<input type="number" id="ffc-dm-offset" name="rule[offset_days]" class="small-text" required step="1"
-					min="<?php echo esc_attr( (string) -Rule::MAX_OFFSET_DAYS ); ?>" max="<?php echo esc_attr( (string) Rule::MAX_OFFSET_DAYS ); ?>"
-					value="<?php echo esc_attr( (string) $ffc_dm_offset ); ?>">
-				<p class="description"><?php esc_html_e( '0 sends on the date itself; -7 sends seven days before it, 7 seven days after it. Not used by an announcement.', 'ffcertificate' ); ?></p>
-			</td>
-		</tr>
-		<tr data-ffc-dm-kind-only="announcement"
-		<?php
-		if ( $ffc_dm_hidden( 'announcement' ) ) :
-			?>
-			hidden<?php endif; ?>>
-			<th scope="row"><label for="ffc-dm-send-at"><?php esc_html_e( 'Send at', 'ffcertificate' ); ?></label></th>
-			<td>
-				<input type="datetime-local" id="ffc-dm-send-at" name="rule[send_at]" value="<?php echo esc_attr( DateMessagesAdminPage::send_at_for_input( (int) $ffc_dm_values['send_at'] ) ); ?>">
-				<p class="description"><?php esc_html_e( 'Announcements only, in the site timezone. The announcement is sent once at this time, if it is active. Leave it empty to send it by hand with Send now. A time already past queues nothing when the rule is saved.', 'ffcertificate' ); ?></p>
-			</td>
-		</tr>
-		<tr data-ffc-dm-kind-only="announcement"
-		<?php
-		if ( $ffc_dm_hidden( 'announcement' ) ) :
-			?>
-			hidden<?php endif; ?>>
-			<th scope="row"><?php esc_html_e( 'Announcements', 'ffcertificate' ); ?></th>
-			<td>
-				<label><input type="checkbox" name="rule[force_opt_out]" value="1" <?php checked( ! $ffc_dm_flag( $ffc_dm_values['respect_opt_out'] ) ); ?>> <?php esc_html_e( 'Send it also to people who turned announcements off', 'ffcertificate' ); ?></label>
-				<p class="description"><?php esc_html_e( 'Off by default, so people who turned announcements off do not receive it. When on, they receive it anyway, and the history counts them as forced. Announcements only.', 'ffcertificate' ); ?></p>
-			</td>
-		</tr>
-		<?php if ( array() !== $audiences ) : ?>
+								<?php if ( array() !== $audiences ) : ?>
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?></th>
 				<td>
-					<?php \FreeFormCertificate\Audience\AudienceTransferList::render( $ffc_dm_audiences, 'rule[audience_ids][]', false ); ?>
+									<?php \FreeFormCertificate\Audience\AudienceTransferList::render( $ffc_dm_audiences, 'rule[audience_ids][]', false ); ?>
 					<p class="description"><?php esc_html_e( 'A person receives the message when they belong to any audience on the right; members of sub-audiences are included. With none selected, the rule reaches everyone.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
@@ -386,25 +367,54 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 					)
 				);
 				?>
+				<span class="ffc-dm-info" role="img" title="<?php echo esc_attr( __( 'The day and the month of each person\'s date are the reference. The year is not used.', 'ffcertificate' ) ); ?>" aria-label="<?php echo esc_attr( __( 'The day and the month of each person\'s date are the reference. The year is not used.', 'ffcertificate' ) ); ?>"><?php echo \FreeFormCertificate\Core\Icons::svg( 'info', 18 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?></span>
 			</td>
 		</tr>
-		<tr>
-			<th scope="row"><label for="ffc-dm-is-active"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label></th>
+<tr data-ffc-dm-kind-only="dated"
+		<?php
+		if ( $ffc_dm_hidden( 'dated' ) ) :
+			?>
+			hidden<?php endif; ?>>
+			<th scope="row"><label for="ffc-dm-offset"><?php esc_html_e( 'Days from the date', 'ffcertificate' ); ?></label></th>
+			<td>
+				<input type="number" id="ffc-dm-offset" name="rule[offset_days]" class="small-text" required step="1"
+					min="<?php echo esc_attr( (string) -Rule::MAX_OFFSET_DAYS ); ?>" max="<?php echo esc_attr( (string) Rule::MAX_OFFSET_DAYS ); ?>"
+					value="<?php echo esc_attr( (string) $ffc_dm_offset ); ?>">
+				<p class="description"><?php esc_html_e( '0 sends on the date itself; -7 sends seven days before it, 7 seven days after it. Not used by an announcement.', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
+<tr data-ffc-dm-kind-only="announcement"
+		<?php
+		if ( $ffc_dm_hidden( 'announcement' ) ) :
+			?>
+			hidden<?php endif; ?>>
+			<th scope="row"><label for="ffc-dm-send-at"><?php esc_html_e( 'Send at', 'ffcertificate' ); ?></label></th>
+			<td>
+				<input type="datetime-local" id="ffc-dm-send-at" name="rule[send_at]" value="<?php echo esc_attr( DateMessagesAdminPage::send_at_for_input( (int) $ffc_dm_values['send_at'] ) ); ?>">
+				<p class="description"><?php esc_html_e( 'Announcements only, in the site timezone. The announcement is sent once at this time, if it is active. Leave it empty to send it by hand with Send now. A time already past queues nothing when the rule is saved.', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
+<tr data-ffc-dm-kind-only="announcement"
+		<?php
+		if ( $ffc_dm_hidden( 'announcement' ) ) :
+			?>
+			hidden<?php endif; ?>>
+			<th scope="row"><?php esc_html_e( 'Announcements', 'ffcertificate' ); ?></th>
 			<td>
 				<?php
 				\FreeFormCertificate\Admin\AdminUI::render_toggle(
 					array(
-						'name'    => 'rule[is_active]',
-						'id'      => 'ffc-dm-is-active',
-						'checked' => $ffc_dm_flag( $ffc_dm_values['is_active'] ),
-						'label'   => __( 'Active (the daily run sends it)', 'ffcertificate' ),
-						'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'date_message_rule', (int) $ffc_dm_values['id'], 'is_active' ),
+						'name'        => 'rule[force_opt_out]',
+						'id'          => 'ffc-dm-force-opt-out',
+						'checked'     => ! $ffc_dm_flag( $ffc_dm_values['respect_opt_out'] ),
+						'label'       => __( 'Send it also to people who turned announcements off', 'ffcertificate' ),
+						'description' => __( 'Off by default: people who turned announcements off do not receive it. When on, they receive it anyway, and the history counts them as forced.', 'ffcertificate' ),
 					)
 				);
 				?>
 			</td>
 		</tr>
-	</table>
+			</table>
 	<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
 
 	<?php
@@ -465,8 +475,16 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 	?>
 	<p class="description"><?php esc_html_e( 'Uses the values on this form, saved or not. Nothing is sent and nothing is recorded.', 'ffcertificate' ); ?></p>
 	<div class="ffc-dm-preview" data-ffc-dm-preview="form">
-		<label><?php esc_html_e( 'From', 'ffcertificate' ); ?> <input type="date" class="ffc-dm-from" value="<?php echo esc_attr( $ffc_dm_target ); ?>"></label>
-		<label><?php esc_html_e( 'To', 'ffcertificate' ); ?> <input type="date" class="ffc-dm-to" value="<?php echo esc_attr( $ffc_dm_target ); ?>"></label>
+		<label data-ffc-dm-kind-only="dated"
+		<?php
+		if ( $ffc_dm_hidden( 'dated' ) ) :
+			?>
+			hidden<?php endif; ?>><?php esc_html_e( 'From', 'ffcertificate' ); ?> <input type="date" class="ffc-dm-from" value="<?php echo esc_attr( $ffc_dm_target ); ?>"></label>
+		<label data-ffc-dm-kind-only="dated"
+		<?php
+		if ( $ffc_dm_hidden( 'dated' ) ) :
+			?>
+			hidden<?php endif; ?>><?php esc_html_e( 'To', 'ffcertificate' ); ?> <input type="date" class="ffc-dm-to" value="<?php echo esc_attr( $ffc_dm_target ); ?>"></label>
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_button(
 			array(
@@ -492,7 +510,11 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			);
 		}
 		?>
-		<p class="description"><?php esc_html_e( 'The dates are the dates in the profile (such as birthdays), not the day the message goes out.', 'ffcertificate' ); ?></p>
+		<p class="description" data-ffc-dm-kind-only="dated"
+		<?php
+		if ( $ffc_dm_hidden( 'dated' ) ) :
+			?>
+			hidden<?php endif; ?>><?php esc_html_e( 'The dates are the dates in the profile (such as birthdays), not the day the message goes out.', 'ffcertificate' ); ?></p>
 		<div class="ffc-dm-preview-result" aria-live="polite"></div>
 		<?php
 		// Wider than the layout's phone breakpoint (the Email Model width plus
