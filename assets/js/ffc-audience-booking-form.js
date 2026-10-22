@@ -34,6 +34,10 @@
         $('#ffc-booking-form')[0].reset();
         FFC.clearFieldMessage($('#ffc-booking-form').find('input, select, textarea'));
         $('#booking-all-day').prop('checked', false);
+        $('#booking-end-date').val('').attr('min', date);
+        $('#booking-time-mode').val('daily');
+        $('#booking-skip-blocked').prop('checked', false);
+        setRangeOptions('');
         $('#booking-time-row').show();
         $('#booking-start-time').attr('required', 'required');
         $('#booking-end-time').attr('required', 'required');
@@ -117,6 +121,39 @@
     /**
      * The short label of a reason code (#1859).
      */
+    /**
+     * Render one date the way the modal's heading does (weekday, month name).
+     *
+     * @param {string} date Y-m-d.
+     * @return {string}
+     */
+    function formatBookingDate(date) {
+        return parseDate(date).toLocaleDateString(ffcAudience.locale, {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }
+
+    /**
+     * Show the range options, and the range heading, only while an end date is set
+     * (#1946). A range takes its hours from the time mode, so the all-day switch is
+     * switched off and hidden for one.
+     *
+     * @param {string} endDate Y-m-d, or '' for a single day.
+     */
+    function setRangeOptions(endDate) {
+        var isRange = !!endDate;
+        var date = $('#booking-date').val();
+
+        $('#booking-range-options').prop('hidden', !isRange);
+        $('#booking-all-day').prop('checked', false).closest('.ffc-form-group').toggle(!isRange);
+        $('.ffc-booking-date-display').text(
+            isRange ? formatBookingDate(date) + ' – ' + formatBookingDate(endDate) : formatBookingDate(date)
+        );
+    }
+
     function reasonLabel(code) {
         var S = ffcAudience.strings || {};
         var labels = {
@@ -394,8 +431,15 @@
             .catch(function(err) {
                 var body = err && err.xhr && err.xhr.responseJSON;
                 if (body && body.code === 'override_confirmation_required' && confirmed !== true) {
+                    var reasons = (body.reasons || []).slice();
+                    if (body.colliding_dates && body.colliding_dates.length) {
+                        reasons.push({
+                            code: 'colliding_dates',
+                            message: ((ffcAudience.strings || {}).collidingDays || 'Already booked on: %s').replace('%s', body.colliding_dates.join(', '))
+                        });
+                    }
                     FFC.overrideConfirm({
-                        reasons: body.reasons || [],
+                        reasons: reasons,
                         strings: (ffcAudience.strings || {}).override
                     }).then(function(agreed) {
                         if (agreed) {
@@ -489,6 +533,9 @@
             is_all_day: isAllDay ? 1 : 0,
             booking_type: bookingType,
             description: $('#booking-description').val().trim(),
+            end_date: $('#booking-end-date').val() || '',
+            time_mode: $('#booking-time-mode').val() || 'daily',
+            skip_blocked: $('#booking-skip-blocked').is(':checked') ? 1 : 0,
             audience_ids: [],
             user_ids: []
         };
@@ -509,6 +556,7 @@
     }
 
     api.openBookingModal   = openBookingModal;
+    api.setRangeOptions    = setRangeOptions;
     api.searchUsers        = searchUsers;
     api.updateSelectedUsers = updateSelectedUsers;
     api.checkConflicts     = checkConflicts;
