@@ -180,6 +180,17 @@ class CertTemplateWriterTest extends TestCase {
 		$this->assertSame( '', $this->written( CertTemplateCpt::META_BG_IMAGE ) );
 	}
 
+	public function test_create_stores_a_page_colour_only_when_given(): void {
+		Functions\when( 'wp_insert_post' )->justReturn( 81 );
+
+		CertTemplateWriter::create( 'Coloured', '<p>x</p>', true, '', CertTemplateCpt::KIND_CERTIFICATE, '#0a3d62' );
+		$this->assertSame( '#0a3d62', $this->written( CertTemplateCpt::META_BG_COLOR ) );
+
+		$this->meta_writes = array();
+		CertTemplateWriter::create( 'Plain', '<p>x</p>' );
+		$this->assertNotContains( CertTemplateCpt::META_BG_COLOR, array_column( $this->meta_writes, 'key' ), 'No colour writes no meta, so the model reads as white.' );
+	}
+
 	public function test_set_bg_image_updates_pool_post(): void {
 		Functions\when( 'get_post' )->justReturn( $this->pool_post( 15 ) );
 

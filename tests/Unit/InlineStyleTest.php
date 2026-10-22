@@ -188,9 +188,7 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="'                                                                                 => array( 1, self::OWN_DOCUMENT ),
 		),
 		'includes/admin/class-ffc-cert-template-admin-screen.php' => array(
-			'<style>: <style'                                                                                    => array( 1, self::OWN_DOCUMENT ),
-			'style=: style="position:relative;width:1123px;height:794px;'                                        => array( 1, self::OWN_DOCUMENT ),
-			'style=: style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover'              => array( 1, self::OWN_DOCUMENT ),
+			'<style>: <style' => array( 1, self::OWN_DOCUMENT ),
 		),
 		'includes/admin/class-ffc-submissions-list.php' => array(
 			'style=: style="display: none;' => array( 1, self::INITIAL_STATE ),

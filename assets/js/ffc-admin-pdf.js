@@ -189,7 +189,7 @@
                     var $htmlField = $('#ffc_pdf_layout');
                     if ($htmlField.length) {
                         // #865: the load response is a structured payload
-                        // { html, bg_image }. Tolerate the legacy bare-string
+                        // { html, bg_image, bg_color }. Tolerate the legacy bare-string
                         // shape (older responses) by using response.data as-is.
                         var data = response.data;
                         var html = (data && typeof data === 'object') ? (data.html || '') : data;
@@ -199,6 +199,11 @@
                         // its background with it (empty clears any prior value).
                         if (data && typeof data === 'object' && 'bg_image' in data) {
                             $('#ffc_bg_image_input').val(data.bg_image || '').trigger('change');
+                        }
+                        // The page colour travels the same way; a model saved
+                        // without one is white, as the defaults are drawn.
+                        if (data && typeof data === 'object' && 'bg_color' in data) {
+                            $('#ffc_bg_color_input').val(data.bg_color || '#ffffff').trigger('change');
                         }
                         var successTemplate = strings.templateLoadedSuccess || 'Template "%s" loaded successfully!';
                         var successMsg = successTemplate.replace('%s', displayName || '');
@@ -258,7 +263,8 @@
             html: html,
             // Round-trip the current background so a saved model carries it back
             // when re-loaded (#865).
-            bg_image: $('#ffc_bg_image_input').val() || ''
+            bg_image: $('#ffc_bg_image_input').val() || '',
+            bg_color: $('#ffc_bg_color_input').val() || ''
         })
             .done(function(response) {
                 if (response && response.success) {
@@ -363,14 +369,9 @@
     // CERTIFICATE PREVIEW
     // ==========================================================================
 
-    // Sample data for placeholder replacement.
-    //
-    // Source of truth is PHP: AdminAssetsManager localizes
-    // CertificatePreviewSamples::get_map() as ffc_ajax.previewSamples, so
-    // this preview stays in sync with the placeholders the real generators
-    // fill. The JS only overlays values PHP can't know at enqueue time —
-    // the live form title and custom builder field names.
-    // Preview button click handler
+    // Preview button click handler. The server fills the placeholders with
+    // CertificatePreviewSamples; the page sends only what it alone knows —
+    // the unsaved layout, background, colour and the builder's field labels.
     $(document).on('click', '#ffc_btn_preview', function(e) {
         e.preventDefault();
 

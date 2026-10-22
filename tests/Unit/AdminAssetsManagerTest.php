@@ -53,9 +53,8 @@ class AdminAssetsManagerTest extends TestCase {
 		Functions\when('wp_unslash')->returnArg();
 		Functions\when('sanitize_key')->returnArg();
 
-		// The localization payload now eagerly builds the certificate
-		// preview sample map (CertificatePreviewSamples::get_map()), which
-		// routes dates through DateFormatter and reads the blog name.
+		// Parts of the localization payload route dates through
+		// DateFormatter and read the blog name.
 		Functions\when('get_option')->justReturn(array());
 		Functions\when('get_bloginfo')->justReturn('Test Site');
 		Functions\when('wp_date')->justReturn('01/01/2026');
