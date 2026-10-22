@@ -1721,10 +1721,6 @@ msgstr ""
 msgid "All Day"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-shortcode.php:351
-msgid "All day event"
-msgstr ""
-
 #: includes/settings/views/documentation/email-texts-hub.php:45
 msgid "All default emails follow one skeleton so the communication reads as one voice:"
 msgstr ""
@@ -7057,27 +7053,11 @@ msgid "%1$s – %2$s"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-shortcode.php
-msgid "End date (optional)"
-msgstr ""
-
-#: includes/audience/class-ffc-audience-shortcode.php
-msgid "Leave empty for a single day. A range books every day from the date above to this one."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-shortcode.php
 msgid "Hours on each day"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-shortcode.php
 msgid "The same hours every day"
-msgstr ""
-
-#: includes/audience/class-ffc-audience-shortcode.php
-msgid "From the start time on the first day to the end time on the last"
-msgstr ""
-
-#: includes/audience/class-ffc-audience-shortcode.php
-msgid "Skip blocked days (holidays and global closures) instead of refusing the booking"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-shortcode.php
@@ -27790,4 +27770,93 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin-assets-manager.php
 msgid "The preview could not be rendered."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "One day"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Several days"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Until"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "All day"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Takes the space for the whole day."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Continuous"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Skip blocked days"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Holidays and global closures are left out instead of refusing the booking."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "For whom"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "None selected"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Done"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Search audiences"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "+%d more"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "Remove %s"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "1 person"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "%d people"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "%1$s–%2$s on each day"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "From %1$s on %2$s to %3$s on %4$s"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Choose the last day."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "The last day must come after the first."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The booking dialog asks when, where and for whom. One day or Several days sets the span; several days adds the last day, how the hours read on each day and the switch that skips blocked days. Audiences are ticked in a searchable list that shows each one's colour and how many people a booking for it reaches, a person in several sub-audiences counted once; ticking an audience ticks its sub-audiences too. One button checks the conflicts and, once the check passes, creates the booking; changing the date, the times, the space or who it is for asks for a new check. On a phone the dialog rises from the bottom of the screen and the audience list opens as a screen of its own."
 msgstr ""

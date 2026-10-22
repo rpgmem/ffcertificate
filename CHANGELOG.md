@@ -48,12 +48,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Audiences: a confirmed override no longer fails, because the earlier booking is now cancelled whole in the same transaction. Every conflict check reads the hours a span actually takes on each day, and the form's check covers every day of a range. The dashboard keeps a running range as upcoming and exports all its days. A span's hours now read per day on every screen and e-mail. The schema heal is recorded only once its columns exist (#2001).
 - **Date Messages announcements are scheduled, refused and cleaned up consistently.** Their events are listed in Scheduled Tasks and unscheduled with the module, on deactivation, on uninstall and when the rule is deleted; arming a send by save or list toggle needs the send capability, and the toggle now schedules it; history and summary count forced sends and name the announcement trigger (#2002).
 - **Certificate models keep their page colour, and a refused save says so** (#2003). Save as model, Load model and Duplicate carry the background colour with the image; a save refused for a missing required tag reads "The form was not saved", without WordPress's "Post updated"; the preview's error message is translated.
+- **Audience booking dialog: picking a user works again** (#2008). Picking a user from the search, or removing one already picked, did nothing, because the dialog stopped the click before its handler heard it.
 
 ### Changed
 
 - **Certificate models revised and extended** (#1956). The three default models are redrawn, and three new defaults (models 4 to 6) join the pool. Existing installs receive the new bodies when the seeder runs on upgrade; user templates are not changed. The background model 3 no longer uses stays in the plugin, since forms and user templates may still point at it.
 - **Date Messages: the rule form shows only what applies to the kind chosen, and its sections match the QR Code screen** (#1949 follow-up). An announcement hides the date, the offset and the per-person send switch; the sections are collapsible and start closed except the first.
 - **Date Messages: the rule form and the send tab follow the kind chosen** (#1949 follow-up). Status sits under the name; the day offset, the per-person switch, the send time and the announcement switch sit under Sending, with the switches as toggles; an announcement asks for no dates; audience labels carry their member count.
+- **Audience booking dialog redesigned** (#2008). Sections for when, where and for whom; One day / Several days; an audience list with colours, reach counts, search and chips; one button that checks then creates; header and footer fixed with no sideways scroll; a bottom sheet on phones.
 
 ## [6.41.0] (2026-10-19) — `2a4acb0a`
 - **The bulk issue skips a line with no e-mail and lists it in the report** (#1945). Without an address the link cannot be sent, so such a certificate is not issued with no account.

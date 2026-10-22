@@ -33,25 +33,24 @@
         // Reset form
         $('#ffc-booking-form')[0].reset();
         FFC.clearFieldMessage($('#ffc-booking-form').find('input, select, textarea'));
-        $('#booking-all-day').prop('checked', false);
+        $('#booking-date').val(date);
         $('#booking-end-date').val('').attr('min', date);
-        $('#booking-time-mode').val('daily');
+        $('input[name="booking_span"][value="single"]').prop('checked', true);
+        $('input[name="time_mode"][value="daily"]').prop('checked', true);
         $('#booking-skip-blocked').prop('checked', false);
-        setRangeOptions('');
-        $('#booking-time-row').show();
-        $('#booking-start-time').attr('required', 'required');
-        $('#booking-end-time').attr('required', 'required');
+        setAllDay(false);
+        setRangeOptions(false);
         state.selectedUsers = {};
         updateSelectedUsers();
-        $('#ffc-conflict-warning').hide();
-        $('#ffc-conflict-error').hide();
-        $('#ffc-conflict-acknowledge').prop('checked', false);
-        $('#ffc-check-conflicts-btn').show();
-        $('#ffc-create-booking-btn').hide().prop('disabled', false).text(ffcAudience.strings.createBooking);
+        $('#booking-audience-search').val('');
+        filterAudiences('');
+        updateAudienceSummary();
+        closeAudiencePicker(false);
+        resetConflicts();
+        setSubmitStep('check');
         $('#desc-char-count').text('0');
 
         // Set values
-        $('#booking-date').val(date);
         $('.ffc-booking-date-display').text(dateDisplay);
 
         // Populate environment select (#1859): the spaces of the calendar in
@@ -110,7 +109,7 @@
         updateEnvironmentStatus();
 
         // Show audience select by default
-        $('#booking-type').val('audience').trigger('change');
+        setBookingType('audience');
 
         state._triggerElement = document.activeElement;
         $modal.show();
@@ -137,21 +136,320 @@
     }
 
     /**
-     * Show the range options, and the range heading, only while an end date is set
-     * (#1946). A range takes its hours from the time mode, so the all-day switch is
-     * switched off and hidden for one.
+     * Whether the dialog books several days (#2008): the "Several days"
+     * segment is chosen.
      *
-     * @param {string} endDate Y-m-d, or '' for a single day.
+     * @return {boolean}
      */
-    function setRangeOptions(endDate) {
-        var isRange = !!endDate;
-        var date = $('#booking-date').val();
+    function isRange() {
+        return $('input[name="booking_span"]:checked').val() === 'range';
+    }
 
-        $('#booking-range-options').prop('hidden', !isRange);
-        $('#booking-all-day').prop('checked', false).closest('.ffc-form-group').toggle(!isRange);
-        $('.ffc-booking-date-display').text(
-            isRange ? formatBookingDate(date) + ' – ' + formatBookingDate(endDate) : formatBookingDate(date)
-        );
+    /**
+     * The chosen way of reading the hours of a range: `daily` or `span`.
+     *
+     * @return {string}
+     */
+    function timeMode() {
+        return $('input[name="time_mode"]:checked').val() || 'daily';
+    }
+
+    /**
+     * Show the range fields only for several days (#1946, #2008): the last
+     * day, the hours on each day and the blocked-day switch. A range takes
+     * its hours from the time mode, so the all-day switch is turned off and
+     * hidden for one. The heading names the first and the last day.
+     *
+     * @param {boolean|string} range True (or a last day, Y-m-d) for several days.
+     */
+    function setRangeOptions(range) {
+        var on = !!range;
+        var date = $('#booking-date').val();
+        var endDate = on ? ($('#booking-end-date').val() || '') : '';
+
+        $('#booking-end-date-group, #booking-range-options').prop('hidden', !on);
+        $('#booking-end-date').prop('required', on);
+        if (on && $('#booking-all-day').is(':checked')) {
+            setAllDay(false);
+        }
+        $('#booking-all-day-group').prop('hidden', on);
+
+        if (date) {
+            $('.ffc-booking-date-display').text(
+                endDate && endDate !== date ? formatBookingDate(date) + ' – ' + formatBookingDate(endDate) : formatBookingDate(date)
+            );
+        }
+        updateTimeModeHints();
+    }
+
+    /**
+     * Turn the all-day switch on or off and follow it with the time fields:
+     * a day taken whole needs no hours.
+     *
+     * @param {boolean} on
+     */
+    function setAllDay(on) {
+        $('#booking-all-day').prop('checked', !!on);
+        $('#booking-time-row').prop('hidden', !!on);
+        $('#booking-start-time').prop('required', !on).val(on ? '00:00' : '');
+        $('#booking-end-time').prop('required', !on).val(on ? '23:59' : '');
+    }
+
+    /**
+     * Say under each time mode what it will book, with the times and days
+     * the form holds (#2008); empty until the form holds them.
+     */
+    function updateTimeModeHints() {
+        var S = ffcAudience.strings || {};
+        var start = $('#booking-start-time').val() || '';
+        var end = $('#booking-end-time').val() || '';
+        var date = $('#booking-date').val() || '';
+        var endDate = $('#booking-end-date').val() || '';
+        var daily = '';
+        var span = '';
+
+        if (start && end) {
+            daily = (S.hintDaily || '%1$s–%2$s on each day').replace('%1$s', start).replace('%2$s', end);
+            if (date && endDate) {
+                span = (S.hintSpan || 'From %1$s on %2$s to %3$s on %4$s')
+                    .replace('%1$s', start)
+                    .replace('%2$s', shortDate(date))
+                    .replace('%3$s', end)
+                    .replace('%4$s', shortDate(endDate));
+            }
+        }
+        $('[data-ffc-time-mode-hint="daily"]').text(daily);
+        $('[data-ffc-time-mode-hint="span"]').text(span);
+    }
+
+    /**
+     * A day and month, the way the locale writes them (22/10).
+     *
+     * @param {string} date Y-m-d.
+     * @return {string}
+     */
+    function shortDate(date) {
+        return parseDate(date).toLocaleDateString(ffcAudience.locale, { day: '2-digit', month: '2-digit' });
+    }
+
+    /**
+     * The chosen booking type: `audience` or `individual`.
+     *
+     * @return {string}
+     */
+    function bookingType() {
+        return $('input[name="booking_type"]:checked').val() || 'audience';
+    }
+
+    /**
+     * Choose a booking type and show the picker that goes with it.
+     *
+     * @param {string} [type] `audience` or `individual`; the chosen one when left out.
+     */
+    function setBookingType(type) {
+        if (type) {
+            $('input[name="booking_type"][value="' + type + '"]').prop('checked', true);
+        }
+        var isAudience = bookingType() === 'audience';
+        $('#audience-select-group').prop('hidden', !isAudience);
+        $('#user-select-group').prop('hidden', isAudience);
+    }
+
+    /* ----- Audience picker (#2008) ----- */
+
+    /**
+     * The audience checkboxes the calendar module rendered.
+     *
+     * @return {jQuery}
+     */
+    function audienceInputs() {
+        return $('#booking-audiences input[type="checkbox"]');
+    }
+
+    /**
+     * The ids of the checked audiences.
+     *
+     * @return {number[]}
+     */
+    function selectedAudienceIds() {
+        return audienceInputs().filter(':checked').map(function() {
+            return parseInt(this.value, 10);
+        }).get();
+    }
+
+    /**
+     * Every audience under one, at any depth.
+     *
+     * @param {string|number} id
+     * @return {jQuery}
+     */
+    function audienceDescendants(id) {
+        var $out = $();
+        audienceInputs().filter('[data-parent="' + parseInt(id, 10) + '"]').each(function() {
+            $out = $out.add(this).add(audienceDescendants(this.value));
+        });
+        return $out;
+    }
+
+    /**
+     * Follow one checkbox: a parent takes its sub-audiences with it, on and
+     * off, as the select it replaced did.
+     *
+     * @param {HTMLInputElement} input
+     */
+    function toggleAudience(input) {
+        audienceDescendants(input.value).prop('checked', input.checked);
+        updateAudienceSummary();
+    }
+
+    /**
+     * Draw what is chosen: a chip per audience under the list, and the
+     * summary the phone screen shows in place of the list.
+     */
+    function updateAudienceSummary() {
+        var S = ffcAudience.strings || {};
+        var $checked = audienceInputs().filter(':checked');
+        var $chips = $('#booking-audience-chips').empty();
+        var $value = $('#booking-audience-summary-value').empty();
+
+        if (!$checked.length) {
+            $value.text(S.noneSelected || 'None selected');
+            $chips.prop('hidden', true);
+            return;
+        }
+
+        $checked.each(function(i) {
+            var $row = $(this).closest('.ffc-audience-picker-option');
+            var name = $row.find('.ffc-audience-picker-name').text();
+            var $dot = $row.find('.ffc-color-dot').first().clone();
+            var remove = FFC.button({
+                label: (S.removeAudience || 'Remove %s').replace('%s', name),
+                category: 'neutral',
+                icon: 'cross',
+                iconOnly: true,
+                className: 'ffc-audience-picker-chip-remove',
+                attrs: { 'data-id': this.value }
+            });
+            $chips.append($('<span class="ffc-audience-picker-chip"></span>').append($dot, $('<span></span>').text(name), remove));
+
+            if (i < 2) {
+                $value.append($('<span class="ffc-audience-picker-summary-item"></span>').append($dot.clone(), document.createTextNode(name)));
+            }
+        });
+        if ($checked.length > 2) {
+            $value.append($('<span class="ffc-audience-picker-summary-more"></span>').text(
+                (S.moreAudiences || '+%d more').replace('%d', String($checked.length - 2))
+            ));
+        }
+        $chips.prop('hidden', false);
+    }
+
+    /**
+     * Keep the audiences whose name holds the query; accents and case do
+     * not count.
+     *
+     * @param {string} query
+     */
+    function filterAudiences(query) {
+        var needle = fold(query);
+        $('#booking-audiences .ffc-audience-picker-option').each(function() {
+            var name = fold($(this).find('.ffc-audience-picker-name').text());
+            $(this).prop('hidden', needle !== '' && name.indexOf(needle) === -1);
+        });
+    }
+
+    /**
+     * Lower case, without accents.
+     *
+     * @param {string} text
+     * @return {string}
+     */
+    function fold(text) {
+        var out = String(text || '').toLowerCase().trim();
+        return typeof out.normalize === 'function' ? out.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : out;
+    }
+
+    /**
+     * Open the picker as its own screen (a phone, where the list does not
+     * fit beside the form); on a wider screen it is already in the form.
+     */
+    function openAudiencePicker() {
+        $('#ffc-booking-modal .ffc-booking-dialog').addClass('is-picking-audiences');
+        $('#booking-audience-summary').attr('aria-expanded', 'true');
+        $('#booking-audience-search').trigger('focus');
+    }
+
+    /**
+     * Close the picker screen.
+     *
+     * @param {boolean} [refocus] Give the focus back to the summary.
+     */
+    function closeAudiencePicker(refocus) {
+        $('#ffc-booking-modal .ffc-booking-dialog').removeClass('is-picking-audiences');
+        $('#booking-audience-summary').attr('aria-expanded', 'false');
+        if (refocus) {
+            $('#booking-audience-summary').trigger('focus');
+        }
+    }
+
+    /* ----- The one submit button (#2008) ----- */
+
+    /**
+     * Set the dialog's one button to a step: `check` asks for the conflicts,
+     * `create` makes the booking. The label and the category follow.
+     *
+     * @param {string} step `check` or `create`.
+     */
+    function setSubmitStep(step) {
+        var S = ffcAudience.strings || {};
+        var create = step === 'create';
+        $('#ffc-booking-submit')
+            .attr('data-step', create ? 'create' : 'check')
+            .toggleClass('ffc-btn-primary ffc-icon-search', !create)
+            .toggleClass('ffc-btn-create ffc-icon-plus', create)
+            .removeClass('ffc-btn-loading')
+            .prop('disabled', false)
+            .text(create ? (S.createBooking || 'Create Booking') : (S.checkConflicts || 'Check Conflicts'));
+    }
+
+    /**
+     * Mark the button busy while a request runs: the label stays.
+     *
+     * @param {boolean} busy
+     */
+    function setSubmitBusy(busy) {
+        $('#ffc-booking-submit').toggleClass('ffc-btn-loading', busy).prop('disabled', busy);
+    }
+
+    /**
+     * The button's action: check first, create once the check has passed.
+     */
+    function submitBooking() {
+        if ($('#ffc-booking-submit').attr('data-step') === 'create') {
+            createBooking();
+        } else {
+            checkConflicts();
+        }
+    }
+
+    /**
+     * A change to what is being booked undoes a check made for something
+     * else: the conflicts go and the button asks for a new check.
+     */
+    function invalidateCheck() {
+        if ($('#ffc-booking-submit').attr('data-step') !== 'create') {
+            return;
+        }
+        resetConflicts();
+        setSubmitStep('check');
+    }
+
+    /**
+     * Hide both conflict notices and untick the acknowledgement.
+     */
+    function resetConflicts() {
+        $('#ffc-conflict-warning, #ffc-conflict-error').prop('hidden', true);
+        $('#ffc-conflict-acknowledge').prop('checked', false);
     }
 
     function reasonLabel(code) {
@@ -263,10 +561,9 @@
         }
 
         var data = getBookingFormData();
-        var $btn = $('#ffc-check-conflicts-btn');
-        var originalText = $btn.text();
 
-        $btn.prop('disabled', true).text(ffcAudience.strings.loading);
+        resetConflicts();
+        setSubmitBusy(true);
 
         FFC.rest(ffcAudience.restUrl + 'conflicts', {
             method: 'POST',
@@ -290,11 +587,6 @@
                         var conflicts = response.conflicts || {};
                         var isHardConflict = (conflicts.type === 'environment');
 
-                        // Reset conflict UI
-                        $('#ffc-conflict-warning').hide();
-                        $('#ffc-conflict-error').hide();
-                        $('#ffc-conflict-acknowledge').prop('checked', false);
-
                         if (isHardConflict && conflicts.can_override) {
                             // HARD CONFLICT the person may override (#1859):
                             // offer the booking; the warning lists it again.
@@ -302,9 +594,8 @@
                             $('#ffc-conflict-error')
                                 .empty()
                                 .append(FFC.notice('warning', 'warning', overrideTimes, ffcAudience.strings.hardConflict || 'This time slot is already booked for this environment.', { role: 'status', hook: 'conflict-error' }))
-                                .show();
-                            $btn.hide();
-                            $('#ffc-create-booking-btn').show().prop('disabled', false);
+                                .prop('hidden', false);
+                            setSubmitStep('create');
                         } else if (isHardConflict) {
                             // HARD CONFLICT — block booking
                             var errorMsg = ffcAudience.strings.hardConflict || 'This time slot is already booked for this environment.';
@@ -313,11 +604,11 @@
                             $('#ffc-conflict-error')
                                 .empty()
                                 .append(FFC.notice('danger', 'error', times, errorMsg, { role: 'alert', hook: 'conflict-error' }))
-                                .show();
+                                .prop('hidden', false);
 
-                            // Hide check button, do NOT show create button
-                            $btn.hide();
-                            $('#ffc-create-booking-btn').hide();
+                            // No booking here: the button stays a check, for
+                            // after the time or the space has changed.
+                            setSubmitStep('check');
                         } else {
                             // Check for soft conflicts
                             var softWarnings = [];
@@ -343,7 +634,7 @@
                                 softWarnings.push(count + ' ' + (ffcAudience.strings.membersOverlapping || 'member(s) have overlapping bookings.'));
                             }
 
-                            $btn.hide();
+                            setSubmitStep('create');
 
                             if (softWarnings.length > 0) {
                                 // SOFT CONFLICT: show warning + require acknowledgment
@@ -355,18 +646,18 @@
                                 $warning
                                     .empty()
                                     .append(FFC.notice('warning', 'warning', softWarnings, '', { role: 'status', hook: 'conflict-warning', children: [ack] }))
-                                    .show();
-                                $('#ffc-create-booking-btn').show().prop('disabled', true);
-                            } else {
-                                // NO CONFLICT: proceed directly
-                                $('#ffc-create-booking-btn').show().prop('disabled', false);
+                                    .prop('hidden', false);
+                                // The booking waits for the acknowledgement.
+                                $('#ffc-booking-submit').prop('disabled', true);
                             }
                         }
                     } else {
+                        setSubmitStep('check');
                         alert((response && response.message) || ffcAudience.strings.error);
                     }
                 } catch (e) {
                     console.error('Error processing conflict response:', e);
+                    setSubmitStep('check');
                     alert(ffcAudience.strings.error);
                 }
             })
@@ -379,14 +670,8 @@
                 } else if (xhr && xhr.statusText === 'timeout') {
                     message = ffcAudience.strings.timeout;
                 }
+                setSubmitStep('check');
                 alert(message);
-            })
-            .then(function() {
-                // .finally equivalent — always restore the button state.
-                // Chaining a no-error .then after .catch lets us run this
-                // on both success + handled-error branches without needing
-                // Promise.prototype.finally polyfills on legacy browsers.
-                $btn.prop('disabled', false).text(originalText);
             });
     }
 
@@ -409,12 +694,12 @@
             data.confirm_override = true;
         }
 
-        var $btn = $('#ffc-create-booking-btn');
+        var $btn = $('#ffc-booking-submit');
         function restore() {
-            $btn.prop('disabled', false).text(ffcAudience.strings.createBooking);
+            setSubmitStep('create');
         }
 
-        $btn.prop('disabled', true).text(ffcAudience.strings.loading);
+        setSubmitBusy(true);
 
         FFC.rest(ffcAudience.restUrl + 'bookings', {
             method: 'POST',
@@ -473,7 +758,7 @@
         var $start = $('#booking-start-time');
         var $end = $('#booking-end-time');
         var $description = $('#booking-description');
-        var bookingType = $('#booking-type').val();
+        var type = bookingType();
         var invalid = [];
 
         function check($field, message) {
@@ -491,19 +776,34 @@
             var fill = S.fillTimeFields || 'Please fill in the time fields.';
             check($start, $start.val() ? '' : fill);
             // A span runs from one day to another, so its start may come after its end.
-            var endDate = $('#booking-end-date').val() || '';
-            var isSpan = endDate !== '' && endDate !== $('#booking-date').val() && $('#booking-time-mode').val() === 'span';
+            var lastDay = isRange() ? ($('#booking-end-date').val() || '') : '';
+            var isSpan = lastDay !== '' && lastDay !== $('#booking-date').val() && timeMode() === 'span';
             check($end, !$end.val() ? fill : (!isSpan && $start.val() && $start.val() >= $end.val() ? S.invalidTime : ''));
+        }
+
+        // Several days need a last day after the first (#2008).
+        var $endDate = $('#booking-end-date');
+        if (isRange()) {
+            var endDate = $endDate.val() || '';
+            check($endDate, !endDate ? (S.endDateRequired || 'Choose the last day.') : (endDate <= $('#booking-date').val() ? (S.endDateInvalid || 'The last day must come after the first.') : ''));
+        } else {
+            FFC.clearFieldMessage($endDate);
         }
 
         var length = ($description.val() || '').trim().length;
         check($description, length < 15 || length > 300 ? S.descriptionRequired : '');
 
-        var $audiences = $('#booking-audiences');
+        var $audiences = $('#booking-audience-search');
         var $users = $('#booking-user-search');
-        if (bookingType === 'audience') {
-            var audiences = $audiences.val();
-            check($audiences, !audiences || audiences.length === 0 ? S.selectAudience : '');
+        if (type === 'audience') {
+            // The message goes under the list, where the choice is made; on
+            // a phone the summary carries it, and opening the picker shows it.
+            if (selectedAudienceIds().length === 0) {
+                FFC.fieldMessage($audiences, 'error', S.selectAudience, { after: $('#booking-audiences') });
+                invalid.push(window.matchMedia && window.matchMedia('(max-width: 600px)').matches ? $('#booking-audience-summary')[0] : $audiences[0]);
+            } else {
+                FFC.clearFieldMessage($audiences);
+            }
             FFC.clearFieldMessage($users);
         } else {
             var userIds = $('#booking-user-ids').val();
@@ -529,7 +829,7 @@
      * Get booking form data
      */
     function getBookingFormData() {
-        var bookingType = $('#booking-type').val();
+        var type = bookingType();
         var isAllDay = $('#booking-all-day').is(':checked');
         var data = {
             environment_id: parseInt($('#booking-environment-id').val()),
@@ -537,19 +837,17 @@
             start_time: isAllDay ? '00:00' : $('#booking-start-time').val(),
             end_time: isAllDay ? '23:59' : $('#booking-end-time').val(),
             is_all_day: isAllDay ? 1 : 0,
-            booking_type: bookingType,
+            booking_type: type,
             description: $('#booking-description').val().trim(),
-            end_date: $('#booking-end-date').val() || '',
-            time_mode: $('#booking-time-mode').val() || 'daily',
+            end_date: isRange() ? ($('#booking-end-date').val() || '') : '',
+            time_mode: timeMode(),
             skip_blocked: $('#booking-skip-blocked').is(':checked') ? 1 : 0,
             audience_ids: [],
             user_ids: []
         };
 
-        if (bookingType === 'audience') {
-            data.audience_ids = ($('#booking-audiences').val() || []).map(function(id) {
-                return parseInt(id);
-            });
+        if (type === 'audience') {
+            data.audience_ids = selectedAudienceIds();
         } else {
             data.user_ids = ($('#booking-user-ids').val() || '').split(',').filter(function(id) {
                 return id.trim() !== '';
@@ -568,5 +866,18 @@
     api.checkConflicts     = checkConflicts;
     api.createBooking      = createBooking;
     api.updateEnvironmentStatus = updateEnvironmentStatus;
+    api.isRange            = isRange;
+    api.setAllDay          = setAllDay;
+    api.setBookingType     = setBookingType;
+    api.updateTimeModeHints = updateTimeModeHints;
+    api.toggleAudience     = toggleAudience;
+    api.selectedAudienceIds = selectedAudienceIds;
+    api.updateAudienceSummary = updateAudienceSummary;
+    api.filterAudiences    = filterAudiences;
+    api.openAudiencePicker = openAudiencePicker;
+    api.closeAudiencePicker = closeAudiencePicker;
+    api.setSubmitStep      = setSubmitStep;
+    api.submitBooking      = submitBooking;
+    api.invalidateCheck    = invalidateCheck;
 
 })(jQuery);

@@ -112,6 +112,7 @@ final class InlineStyleTest extends TestCase {
 		'assets/js/ffc-audience-calendar.js' => array(
 			'style=: style="border-left: 3px solid' => array( 1, self::OPERATOR_COLOUR ),
 			'style=: style="background-color:'      => array( 2, self::OPERATOR_COLOUR ),
+			'style=: style="--ffc-color:'           => array( 1, self::OPERATOR_COLOUR ),
 		),
 		'assets/js/ffc-audience-transfer-list.js' => array(
 			'.css(): .css("background", a.color' => array( 1, self::OPERATOR_COLOUR ),
@@ -207,7 +208,7 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="font-weight:600;'                                                 => array( 1, self::EMAIL_BODY ),
 		),
 		'includes/audience/class-ffc-audience-shortcode.php' => array(
-			'style=: style="display: none;' => array( 6, self::INITIAL_STATE ),
+			'style=: style="display: none;' => array( 2, self::INITIAL_STATE ),
 		),
 		'includes/core/captcha/class-ffc-composite-captcha.php' => array(
 			'<style>: <style' => array( 1, self::NOSCRIPT ),

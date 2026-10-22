@@ -183,26 +183,43 @@
     }
 
     /**
-     * Populate audience select
+     * Fill the booking dialog's audience picker (#2008): one checkbox row per
+     * audience, indented under its parent, with its colour and the people a
+     * booking for it reaches.
      */
     function populateAudienceSelect() {
-        var $select = $('#booking-audiences');
-        $select.empty();
+        var $list = $('#booking-audiences');
+        $list.empty();
 
+        var S = ffcAudience.strings || {};
         var audiences = state.config.audiences || [];
 
-        function appendNodes(nodes, depth) {
+        function people(count) {
+            return count === 1 ? (S.onePerson || '1 person') : (S.people || '%d people').replace('%d', String(count));
+        }
+
+        function appendNodes(nodes, depth, parentId) {
             nodes.forEach(function(node) {
-                var indent = new Array(depth + 1).join('   ');
-                var prefix = depth > 0 ? indent + '└ ' : '';
-                $select.append('<option value="' + node.id + '">' + prefix + escapeHtml(node.name) + '</option>');
+                var id = parseInt(node.id, 10);
+                // The colour is an operator's choice, so it stays inline as
+                // the dot's custom property; anything not a hex colour is
+                // dropped and the dot takes the text colour.
+                var color = /^#[0-9a-f]{3,8}$/i.test(node.color || '') ? node.color : '';
+                var html = '<label class="ffc-audience-picker-option" data-depth="' + Math.min(depth, 3) + '">' +
+                    '<input type="checkbox" name="audience_ids[]" value="' + id + '"' + (parentId ? ' data-parent="' + parentId + '"' : '') + '>' +
+                    '<span class="ffc-color-dot" aria-hidden="true"' + (color ? ' style="--ffc-color: ' + color + ';"' : '') + '></span>' +
+                    '<span class="ffc-audience-picker-name">' + escapeHtml(node.name) + '</span>';
+                if (typeof node.members === 'number') {
+                    html += '<span class="ffc-audience-picker-count">' + escapeHtml(people(node.members)) + '</span>';
+                }
+                $list.append(html + '</label>');
                 if (node.children && node.children.length > 0) {
-                    appendNodes(node.children, depth + 1);
+                    appendNodes(node.children, depth + 1, id);
                 }
             });
         }
 
-        appendNodes(audiences, 0);
+        appendNodes(audiences, 0, 0);
     }
 
     /**
