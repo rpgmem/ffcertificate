@@ -195,6 +195,11 @@ class UserCleanup {
 			// operator who started it.
 			'ffc_date_message_log'              => array( 'user_id' ),
 			'ffc_date_message_runs'             => array( 'created_by' ),
+			// Audience attendance (#1947): a check-in line is a record, so it
+			// stays and loses the person, and the operator who marked it or
+			// ran the window.
+			'ffc_audience_attendance'           => array( 'user_id', 'marked_by' ),
+			'ffc_audience_checkin_windows'      => array( 'opened_by', 'closed_by' ),
 		);
 
 		foreach ( $map as $basename => $columns ) {

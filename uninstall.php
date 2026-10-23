@@ -126,6 +126,8 @@ $ffcertificate_tables = array(
 	// Custom fields.
 	$wpdb->prefix . 'ffc_custom_fields',
 	// Audience.
+	$wpdb->prefix . 'ffc_audience_attendance',
+	$wpdb->prefix . 'ffc_audience_checkin_windows',
 	$wpdb->prefix . 'ffc_audience_booking_users',
 	$wpdb->prefix . 'ffc_audience_booking_audiences',
 	$wpdb->prefix . 'ffc_audience_bookings',

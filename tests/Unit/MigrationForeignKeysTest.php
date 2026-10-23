@@ -115,7 +115,7 @@ class MigrationForeignKeysTest extends TestCase {
 		$status = MigrationForeignKeys::get_status();
 
 		$this->assertTrue( $status['available'] );
-		$this->assertSame( 7, $status['total_constraints'] );
+		$this->assertSame( 8, $status['total_constraints'] );
 		$this->assertSame( 0, $status['existing_constraints'] );
 		$this->assertFalse( $status['is_complete'] );
 	}
@@ -130,6 +130,7 @@ class MigrationForeignKeysTest extends TestCase {
 			'fk_ffc_submissions_user',
 			'fk_ffc_appointments_user',
 			'fk_ffc_activity_log_user',
+			'fk_ffc_attendance_user',
 			'fk_ffc_audience_members_user',
 			'fk_ffc_booking_users_user',
 			'fk_ffc_schedule_perms_user',
@@ -139,7 +140,7 @@ class MigrationForeignKeysTest extends TestCase {
 		$status = MigrationForeignKeys::get_status();
 
 		$this->assertTrue( $status['is_complete'] );
-		$this->assertSame( 7, $status['existing_constraints'] );
+		$this->assertSame( 8, $status['existing_constraints'] );
 	}
 
 	// ==================================================================
@@ -231,21 +232,23 @@ class MigrationForeignKeysTest extends TestCase {
 		$result = MigrationForeignKeys::run();
 
 		$this->assertTrue( $result['success'] );
-		$this->assertCount( 7, $result['added'] );
+		$this->assertCount( 8, $result['added'] );
 		$this->assertSame( array(), $result['skipped'] );
-		$this->assertStringContainsString( '7 added, 0 skipped, 0 errors', $result['message'] );
+		$this->assertStringContainsString( '8 added, 0 skipped, 0 errors', $result['message'] );
 
 		$alters = array_values( array_filter( $queries->getArrayCopy(), static fn( $q ) => false !== strpos( $q, 'ADD CONSTRAINT' ) ) );
-		$this->assertCount( 7, $alters );
+		$this->assertCount( 8, $alters );
 		$this->assertStringContainsString( 'wp_ffc_submissions ADD CONSTRAINT fk_ffc_submissions_user', $alters[0] );
 		$this->assertStringEndsWith( 'ON DELETE SET NULL', $alters[0] );
-		$this->assertStringEndsWith( 'ON DELETE CASCADE', $alters[6] );
+		$this->assertStringEndsWith( 'ON DELETE SET NULL', $alters[3] );
+		$this->assertStringContainsString( 'wp_ffc_audience_attendance ADD CONSTRAINT fk_ffc_attendance_user', $alters[3] );
+		$this->assertStringEndsWith( 'ON DELETE CASCADE', $alters[7] );
 
 		$modified = array_filter( $queries->getArrayCopy(), static fn( $q ) => false !== strpos( $q, 'MODIFY user_id' ) );
-		$this->assertCount( 3, $modified, 'Only the SET NULL tables need user_id made nullable.' );
+		$this->assertCount( 4, $modified, 'Only the SET NULL tables need user_id made nullable.' );
 
 		$cleaned = array_filter( $queries->getArrayCopy(), static fn( $q ) => 0 === strpos( $q, 'UPDATE ' ) );
-		$this->assertCount( 7, $cleaned, 'Orphaned references are cleared before every constraint.' );
+		$this->assertCount( 8, $cleaned, 'Orphaned references are cleared before every constraint.' );
 	}
 
 	public function test_run_skips_a_table_without_user_id_or_on_another_engine(): void {
@@ -258,7 +261,7 @@ class MigrationForeignKeysTest extends TestCase {
 		$result = MigrationForeignKeys::run();
 
 		$this->assertTrue( $result['success'] );
-		$this->assertCount( 5, $result['added'] );
+		$this->assertCount( 6, $result['added'] );
 
 		$skipped = array();
 		foreach ( $result['skipped'] as $entry ) {
@@ -279,7 +282,7 @@ class MigrationForeignKeysTest extends TestCase {
 		$result = MigrationForeignKeys::run();
 
 		$this->assertFalse( $result['success'] );
-		$this->assertCount( 7, $result['errors'] );
+		$this->assertCount( 8, $result['errors'] );
 		$this->assertSame( 'Cannot add foreign key constraint', $result['errors'][0]['message'] );
 		$this->assertSame( 'fk_ffc_submissions_user', $result['errors'][0]['constraint'] );
 	}
@@ -298,7 +301,7 @@ class MigrationForeignKeysTest extends TestCase {
 
 		$result = MigrationForeignKeys::run();
 
-		$this->assertCount( 6, $result['added'] );
+		$this->assertCount( 7, $result['added'] );
 		$this->assertSame( 'FK already exists', $result['skipped'][0]['message'] );
 		$this->assertSame( 'fk_ffc_appointments_user', $result['skipped'][0]['constraint'] );
 		foreach ( $queries as $query ) {

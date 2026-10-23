@@ -264,6 +264,12 @@ class CapabilityManager {
 		// carries it (and `ffc_administrator` through
 		// `get_all_capabilities()`), so no grant migration seeds it.
 		'ffc_purge_appointments',
+		// Attendance tier (#1947). `checkin` is a flow verb: open and close a
+		// booking day's check-in, project its QR and mark attendance by hand.
+		// It sits on the Audience Calendars Operator tier, so
+		// `RoleRegistrar::register_module_roles()` adds it to the stored roles
+		// and no grant migration seeds it.
+		'ffc_checkin_audiences',
 
 		// Granular "export" tier (GAP G). Each `ffc_export_<domain>` cap gates
 		// the bulk CSV data-extraction path of its domain *strictly* — the
@@ -874,7 +880,7 @@ class CapabilityManager {
 		$bookings_manager  = array_merge( $bookings_operator, array( 'ffc_export_appointments', 'ffc_delete_appointments', 'ffc_view_appointments_pii' ) );
 
 		$audiences_viewer   = array( 'ffc_view_audiences' );
-		$audiences_operator = array_merge( $audiences_viewer, array( 'ffc_import_audiences' ) );
+		$audiences_operator = array_merge( $audiences_viewer, array( 'ffc_import_audiences', 'ffc_checkin_audiences' ) );
 		$audiences_manager  = array_merge( $audiences_operator, array( 'ffc_manage_audiences', 'ffc_export_audiences', 'ffc_delete_audiences', 'ffc_view_audiences_pii' ) );
 
 		$rereg_viewer   = array( 'ffc_view_reregistration' );

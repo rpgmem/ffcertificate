@@ -337,6 +337,37 @@ class AudienceBookingWriter {
 	}
 
 	/**
+	 * Store a booking's attendance rule (#1947).
+	 *
+	 * The rule is normalised by {@see AudienceAttendanceRule::normalize()}: a
+	 * *single* rule stores NULL in both columns, which is also what a booking
+	 * that never had a rule reads as.
+	 *
+	 * @param int    $id      Booking ID.
+	 * @param string $mode    `single` or `total`.
+	 * @param int    $percent Minimum share of the booking's days, for `total`.
+	 * @return bool Whether the row was written.
+	 */
+	public static function set_attendance_rule( int $id, string $mode, int $percent ): bool {
+		$rule = AudienceAttendanceRule::normalize( $mode, $percent );
+
+		$written = self::db()->update(
+			self::get_table_name(),
+			array(
+				'attendance_mode'        => AudienceAttendanceRule::TOTAL === $rule['mode'] ? AudienceAttendanceRule::TOTAL : null,
+				'attendance_min_percent' => AudienceAttendanceRule::TOTAL === $rule['mode'] ? $rule['percent'] : null,
+			),
+			array( 'id' => $id ),
+			array( '%s', '%d' ),
+			array( '%d' )
+		);
+
+		static::cache_delete( "id_{$id}" );
+
+		return false !== $written;
+	}
+
+	/**
 	 * Cancel a booking
 	 *
 	 * @param int    $id Booking ID.

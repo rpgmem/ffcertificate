@@ -27949,3 +27949,31 @@ msgstr "O diálogo de reserva pergunta quando, onde e para quem. Um dia ou Vári
 #: includes/settings/views/documentation/feature-date-messages.php
 msgid "An announcement to audiences reads only their members, sub-audiences included, so its run and its preview never list anyone outside them; an announcement to everyone reads every account."
 msgstr "Um comunicado para públicos-alvo lê apenas os membros deles, subpúblicos incluídos, então seu envio e sua prévia nunca listam ninguém fora deles; um comunicado para todos lê todas as contas."
+
+#: includes/privacy/class-ffc-privacy-exporters.php:581
+msgid "Booking"
+msgstr "Reserva"
+
+#: includes/privacy/class-ffc-privacy-exporters.php:577
+msgid "FFC Audience Attendance"
+msgstr "FFC Presença em Reservas de Públicos"
+
+#: includes/privacy/class-ffc-privacy-exporters.php:594
+msgid "Marked by staff"
+msgstr "Marcada pela equipe"
+
+#: includes/privacy/class-ffc-privacy-exporters.php:594
+msgid "QR check-in"
+msgstr "Check-in por QR"
+
+#: includes/privacy/class-ffc-privacy-exporters.php:589
+msgid "Recorded at"
+msgstr "Registrada em"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:298
+msgid "Run attendance check-in"
+msgstr "Conduzir o check-in de presença"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:299
+msgid "Open and close check-in for a day of a booking, project its rotating QR and mark attendance by hand (#1947)."
+msgstr "Abrir e fechar o check-in de um dia da reserva, projetar o QR rotativo e marcar presença manualmente (#1947)."

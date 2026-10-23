@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '2';
+	public const SCHEMA_REVISION = '3';
 
 	/**
 	 * Option holding the revision last applied.
@@ -67,6 +67,8 @@ class AudienceActivator {
 		self::create_bookings_table();
 		self::create_booking_audiences_table();
 		self::create_booking_users_table();
+		self::create_attendance_table();
+		self::create_checkin_windows_table();
 		self::register_capabilities();
 		self::add_composite_indexes();
 	}
@@ -349,12 +351,87 @@ class AudienceActivator {
             end_date date DEFAULT NULL COMMENT 'Last day of a range, NULL for a single day',
             time_mode enum('daily','span') DEFAULT NULL COMMENT 'Hours of a range: daily or span',
             skipped_dates text DEFAULT NULL COMMENT 'JSON list of blocked days a range left out',
+            attendance_mode enum('single','total') DEFAULT NULL,
+            attendance_min_percent tinyint(3) unsigned DEFAULT NULL,
             PRIMARY KEY (id),
             KEY idx_environment (environment_id),
             KEY idx_date (booking_date),
             KEY idx_status (status),
             KEY idx_created_by (created_by),
             KEY idx_env_date_status (environment_id, booking_date, status)
+        ) {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Create the attendance table (#1947).
+	 *
+	 * One row per person, booking and day they were present. `user_id` is
+	 * nullable because a row is a record: deleting the account drops the link
+	 * and keeps the line (CLAUDE.md "Security & PII conventions"). The unique
+	 * key is what makes a second check-in on the same day a no-op.
+	 *
+	 * @return void
+	 */
+	private static function create_attendance_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_audience_attendance';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		$sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            booking_id bigint(20) unsigned NOT NULL,
+            user_id bigint(20) unsigned DEFAULT NULL,
+            attendance_date date NOT NULL,
+            checked_at bigint(20) unsigned NOT NULL,
+            method enum('qr','manual') NOT NULL DEFAULT 'qr',
+            marked_by bigint(20) unsigned DEFAULT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_booking_user_date (booking_id,user_id,attendance_date),
+            KEY idx_user (user_id),
+            KEY idx_booking_date (booking_id,attendance_date)
+        ) {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Create the check-in windows table (#1947).
+	 *
+	 * A window is one opening of check-in for one day of a booking. Its id
+	 * enters the QR signature, so reopening invalidates every code shown
+	 * before; `closes_at` is the automatic close, `closed_at` the actual one.
+	 *
+	 * @return void
+	 */
+	private static function create_checkin_windows_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_audience_checkin_windows';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		$sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            booking_id bigint(20) unsigned NOT NULL,
+            window_date date NOT NULL,
+            rotation_seconds smallint(5) unsigned NOT NULL DEFAULT 60,
+            opened_at bigint(20) unsigned NOT NULL,
+            opened_by bigint(20) unsigned DEFAULT NULL,
+            closes_at bigint(20) unsigned NOT NULL,
+            closed_at bigint(20) unsigned DEFAULT NULL,
+            closed_by bigint(20) unsigned DEFAULT NULL,
+            PRIMARY KEY (id),
+            KEY idx_booking_date (booking_id,window_date)
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -784,8 +861,19 @@ class AudienceActivator {
 			return;
 		}
 
+		global $wpdb;
+
 		$healed = self::migrate_audience_tree_access_columns();
 		$healed = self::migrate_booking_range_columns() && $healed;
+		$healed = self::migrate_booking_attendance_columns() && $healed;
+
+		// The attendance tables of #1947 reach upgraded installs here: the
+		// version-gated chain below never creates a table (#1311).
+		self::create_attendance_table();
+		self::create_checkin_windows_table();
+		$healed = $healed
+			&& self::table_exists( $wpdb->prefix . 'ffc_audience_attendance' )
+			&& self::table_exists( $wpdb->prefix . 'ffc_audience_checkin_windows' );
 
 		if ( $healed ) {
 			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
@@ -836,6 +924,28 @@ class AudienceActivator {
 	}
 
 	/**
+	 * Add the attendance rule to bookings (#1947).
+	 *
+	 * Both default to NULL, which reads as the *single* rule: one day of
+	 * attendance is enough.
+	 *
+	 * @return bool Whether the table now has the columns, or does not exist yet.
+	 */
+	private static function migrate_booking_attendance_columns(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_bookings';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing( $table_name, 'attendance_mode', "enum('single','total') DEFAULT NULL", 'skipped_dates' );
+		self::add_column_if_missing( $table_name, 'attendance_min_percent', 'tinyint(3) unsigned DEFAULT NULL', 'attendance_mode' );
+
+		return self::has_columns( $table_name, array( 'attendance_mode', 'attendance_min_percent' ) );
+	}
+
+	/**
 	 * Migrate audiences table to add the two tree-access flags (#1918).
 	 *
 	 * Both are read on a top-level audience only and cover its whole tree:
@@ -878,6 +988,8 @@ class AudienceActivator {
 
 		// Drop in reverse order of dependencies.
 		$tables = array(
+			$wpdb->prefix . 'ffc_audience_attendance',
+			$wpdb->prefix . 'ffc_audience_checkin_windows',
 			$wpdb->prefix . 'ffc_audience_booking_users',
 			$wpdb->prefix . 'ffc_audience_booking_audiences',
 			$wpdb->prefix . 'ffc_audience_bookings',
@@ -913,6 +1025,8 @@ class AudienceActivator {
 			'bookings'          => 'ffc_audience_bookings',
 			'booking_audiences' => 'ffc_audience_booking_audiences',
 			'booking_users'     => 'ffc_audience_booking_users',
+			'attendance'        => 'ffc_audience_attendance',
+			'checkin_windows'   => 'ffc_audience_checkin_windows',
 		);
 
 		$status = array();

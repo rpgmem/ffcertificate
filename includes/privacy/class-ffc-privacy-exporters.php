@@ -534,6 +534,76 @@ class PrivacyExporters {
 	}
 
 	/**
+	 * Export the days a user was recorded present at an audience booking (#1947).
+	 *
+	 * @param string $email_address User email.
+	 * @param int    $page          Page number.
+	 * @return array<string, mixed>
+	 */
+	public static function export_audience_attendance( string $email_address, int $page = 1 ): array {
+		global $wpdb;
+		$user = get_user_by( 'email', $email_address );
+
+		$attendance_table = $wpdb->prefix . 'ffc_audience_attendance';
+		if ( ! $user || ! self::table_exists( $attendance_table ) ) {
+			return array(
+				'data' => array(),
+				'done' => true,
+			);
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT a.id, a.attendance_date, a.checked_at, a.method, b.description
+             FROM %i a
+             LEFT JOIN %i b ON b.id = a.booking_id
+             WHERE a.user_id = %d
+             ORDER BY a.attendance_date DESC, a.id DESC
+             LIMIT %d OFFSET %d',
+				$attendance_table,
+				$wpdb->prefix . 'ffc_audience_bookings',
+				$user->ID,
+				self::ITEMS_PER_PAGE,
+				( $page - 1 ) * self::ITEMS_PER_PAGE
+			),
+			ARRAY_A
+		);
+
+		$export_items = array();
+		foreach ( $rows as $row ) {
+			$export_items[] = array(
+				'group_id'    => 'ffc-audience-attendance',
+				'group_label' => __( 'FFC Audience Attendance', 'ffcertificate' ),
+				'item_id'     => 'ffc-attendance-' . $row['id'],
+				'data'        => array(
+					array(
+						'name'  => __( 'Booking', 'ffcertificate' ),
+						'value' => $row['description'] ?? '',
+					),
+					array(
+						'name'  => __( 'Date', 'ffcertificate' ),
+						'value' => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $row['attendance_date'] ),
+					),
+					array(
+						'name'  => __( 'Recorded at', 'ffcertificate' ),
+						'value' => \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $row['checked_at'] ),
+					),
+					array(
+						'name'  => __( 'Method', 'ffcertificate' ),
+						'value' => 'manual' === $row['method'] ? __( 'Marked by staff', 'ffcertificate' ) : __( 'QR check-in', 'ffcertificate' ),
+					),
+				),
+			);
+		}
+
+		return array(
+			'data' => $export_items,
+			'done' => count( $rows ) < self::ITEMS_PER_PAGE,
+		);
+	}
+
+	/**
 	 * Export ffc_* user meta data
 	 *
 	 * @since 4.9.9

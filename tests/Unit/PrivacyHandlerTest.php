@@ -214,10 +214,11 @@ class PrivacyHandlerTest extends TestCase {
 	// register_exporters()
 	// ==================================================================
 
-	public function test_register_exporters_adds_eight_entries(): void {
+	public function test_register_exporters_adds_nine_entries(): void {
 		$result = PrivacyHandler::register_exporters(array());
 
-		$this->assertCount(8, $result);
+		$this->assertCount(9, $result);
+		$this->assertArrayHasKey('ffcertificate-audience-attendance', $result);
 		// Reregistration and recruitment joined in #1574.
 		$this->assertArrayHasKey('ffcertificate-reregistration', $result);
 		$this->assertArrayHasKey('ffcertificate-recruitment', $result);
@@ -239,7 +240,7 @@ class PrivacyHandlerTest extends TestCase {
 
 		$result = PrivacyHandler::register_exporters($existing);
 
-		$this->assertCount(9, $result);
+		$this->assertCount(10, $result);
 		$this->assertArrayHasKey('other-plugin', $result);
 	}
 
