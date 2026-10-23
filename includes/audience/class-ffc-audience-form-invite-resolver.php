@@ -132,7 +132,7 @@ class AudienceFormInviteResolver {
 	 * @return true|\WP_Error
 	 */
 	public static function check_identifier( int $user_id, string $cpf_rf ) {
-		$is_rf = 7 === strlen( $cpf_rf );
+		$is_rf = 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $cpf_rf );
 		$hash  = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( $is_rf ? 'rf' : 'cpf', $cpf_rf );
 		if ( null === $hash ) {
 			// No key to hash with: nothing can be compared, and the

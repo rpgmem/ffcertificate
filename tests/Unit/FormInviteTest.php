@@ -10,6 +10,7 @@ use FreeFormCertificate\Frontend\FormInvite;
 use FreeFormCertificate\Frontend\Submission\InviteGuard;
 use FreeFormCertificate\Frontend\Submission\SubmissionContext;
 use FreeFormCertificate\Frontend\Submission\SubmissionRejected;
+use FreeFormCertificate\Tests\Support\Identifiers;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -75,11 +76,11 @@ class FormInviteTest extends TestCase {
 		$ctx->submission_data = array(
 			'nome_completo' => 'Someone Else',
 			'email'         => 'forged@example.org',
-			'cpf_rf'        => '52998224725',
+			'cpf_rf'        => Identifiers::CPF_A,
 			'rating'        => 'Good',
 		);
 		$ctx->user_email      = 'forged@example.org';
-		$ctx->val_cpf         = '52998224725';
+		$ctx->val_cpf         = Identifiers::CPF_A;
 		return $ctx;
 	}
 
@@ -117,7 +118,7 @@ class FormInviteTest extends TestCase {
 
 	public function test_the_guard_overwrites_the_posted_identity_with_the_invited_one(): void {
 		Functions\when( 'FreeFormCertificate\Core\mb_convert_case' )->alias( 'mb_convert_case' );
-		Filters\expectApplied( FormInvite::FILTER )->once()->with( null, 40, 'code', '52998224725' )->andReturn( self::INVITE );
+		Filters\expectApplied( FormInvite::FILTER )->once()->with( null, 40, 'code', Identifiers::CPF_A )->andReturn( self::INVITE );
 		$ctx = $this->context( array( 'ffc_invite' => 'code' ) );
 
 		( new InviteGuard() )->apply( $ctx );
