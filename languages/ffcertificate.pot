@@ -28174,7 +28174,7 @@ msgid "A participant scans the code with the phone camera, logs in if asked and 
 msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
-msgid "The participants list shows who is present on the day selected and refreshes on its own. Mark present and Remove record or delete an attendance by hand on today or an earlier day, noting who marked it. The attendance rule decides who counts as attended for a booking over several days: Any day, or a minimum share of the booked days (skipped days do not count). Export CSV lists each participant's name, a column per day, the days present and whether the rule was met; it carries no e-mail or document number."
+msgid "The participants list shows who is present on the day selected and refreshes on its own. Mark present and Remove record or delete an attendance by hand on today or an earlier day, noting who marked it. The attendance rule decides who counts as attended for a booking over several days: Any day, or a minimum share of the booked days (skipped days do not count). Export CSV lists each participant's name, a column per day, the days present and whether the rule was met, and, when a post-event form applies, when they were invited and whether they answered; it carries no e-mail or document number."
 msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
@@ -28275,7 +28275,7 @@ msgid "The Post-event form tab of a calendar names the certificate form its book
 msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
-msgid "The Post-event form card on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences. This card and the Attendance rule card save each change as it is made; reload the page to see the new sentence and the invitations."
+msgid "The Post-event form card on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences. This card and the Attendance rule card save each change as it is made, and the sentences describing them follow; reload the page to see the invitations."
 msgstr ""
 
 #: includes/frontend/class-ffc-form-invite.php
@@ -28457,7 +28457,7 @@ msgid "Check-in closed on its own at %s, 30 minutes after the booking ended toda
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-attendance.php
-msgid "Changes save as you make them. Reload the page to see which form applies and the invitations."
+msgid "Changes save as you make them. Reload the page to see the invitations."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-record-autosave.php

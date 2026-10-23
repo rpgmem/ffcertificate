@@ -7,6 +7,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Audience\AudienceAdminAttendance;
 use FreeFormCertificate\Audience\AudienceAttendanceAjax;
+use FreeFormCertificate\Audience\AudienceAttendanceExportSource;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -17,6 +18,7 @@ use PHPUnit\Framework\TestCase;
  *
  * @covers \FreeFormCertificate\Audience\AudienceAdminAttendance
  * @covers \FreeFormCertificate\Audience\AudienceAttendanceAjax
+ * @covers \FreeFormCertificate\Audience\AudienceAttendanceExportSource
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
@@ -283,6 +285,81 @@ class AudienceAdminAttendanceTest extends TestCase {
 		$this->assertSame( 'Its calendar names no form, so this booking invites nobody.', AudienceAdminAttendance::post_event_status( $this->booking(), $applied, false ) );
 	}
 
+	/**
+	 * A booking that invites to form 40, which no page embeds.
+	 */
+	private function booking_with_form(): object {
+		Functions\when( 'get_post' )->alias(
+			static function () {
+				$post              = new \WP_Post();
+				$post->post_type   = 'ffc_form';
+				$post->post_status = 'publish';
+				return $post;
+			}
+		);
+		Functions\when( 'get_posts' )->justReturn( array() );
+		Functions\when( 'get_the_title' )->justReturn( 'Evaluation' );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+
+		return $this->booking(
+			array(
+				'post_event_custom'         => '1',
+				'post_event_form_id'        => '40',
+				'post_event_window_days'    => '2',
+				'post_event_attendees_only' => '0',
+			)
+		);
+	}
+
+	public function test_the_fragments_describe_the_booking_as_saved(): void {
+		$fragments = AudienceAdminAttendance::fragments( $this->booking_with_form() );
+
+		$this->assertSame(
+			array(
+				'ffc-attendance-rule-summary'      => 'As saved, 1 of the 3 booked day(s) are required.',
+				'ffc-attendance-post-event-status' => 'Participants are invited to "Evaluation", open from 2027-03-03 12:00 to 2027-03-05 12:00.',
+				'ffc-post-event-no-page'           => 'No published page embeds this form, so no invitation can be sent. Publish a page holding [ffc_form id="40"].',
+			),
+			$fragments
+		);
+
+		$none = AudienceAdminAttendance::fragments( $this->booking() );
+		$this->assertSame( '', $none['ffc-post-event-no-page'], 'No form, nothing to warn about: the warning hides.' );
+	}
+
+	public function test_the_csv_adds_the_post_event_columns_when_a_form_applies(): void {
+		$this->roster_present_for_7();
+		$reader = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceFormInviteReader' );
+		$reader->shouldReceive( 'for_booking' )->andReturn(
+			array(
+				7 => array(
+					'sent_at'    => self::NOW,
+					'send_count' => 1,
+				),
+			)
+		);
+		$reader->shouldReceive( 'answers' )->andReturn( array( 7 => 'publish' ) );
+
+		$source = new AudienceAttendanceExportSource( $this->booking_with_form() );
+		$rows   = iterator_to_array( $source->rows(), false );
+
+		$this->assertSame( array( 'Invited', 'Post-event form' ), array_slice( $source->header(), -2 ) );
+		$this->assertSame( array( gmdate( 'Y-m-d H:i', self::NOW ), 'Certificate issued' ), array_slice( $rows[0], -2 ), 'Ana was invited and her certificate was issued.' );
+		$this->assertSame( array( '', '' ), array_slice( $rows[1], -2 ), 'Bia was neither invited nor answered.' );
+		$this->assertCount( count( $source->header() ), $rows[1] );
+	}
+
+	public function test_the_csv_leaves_the_post_event_columns_out_without_a_form_or_an_invitation(): void {
+		$this->roster_present_for_7();
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceFormInviteReader' )
+			->shouldReceive( 'for_booking' )->andReturn( array() );
+
+		$source = new AudienceAttendanceExportSource( $this->booking() );
+
+		$this->assertSame( 'Attendance rule met', array_slice( $source->header(), -1 )[0] );
+		$this->assertCount( count( $source->header() ), iterator_to_array( $source->rows(), false )[0] );
+	}
+
 	public function test_export_needs_the_export_capability_and_an_unknown_action_fails(): void {
 		$this->assertSame( 'denied', $this->page()->perform( 'export', $this->booking(), self::TODAY, self::NOW ) );
 		$this->assertSame( 'failed', $this->page()->perform( 'bogus', $this->booking(), self::TODAY, self::NOW ) );
@@ -440,6 +517,9 @@ class AudienceAdminAttendanceTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'ffc-attendance-invites', $html );
+		$this->assertStringContainsString( 'id="ffc-attendance-rule-summary"', $html );
+		$this->assertStringContainsString( 'id="ffc-attendance-post-event-status"', $html );
+		$this->assertStringContainsString( '<div id="ffc-post-event-no-page" class="notice notice-warning inline ffc-post-event-no-page" data-ffc-fragment-hide-empty>', $html, 'No page embeds the form, so the warning shows.' );
 		$this->assertStringContainsString( 'name="ffc_attendance_action" value="invite"', $html );
 		$this->assertStringContainsString( '(sent 2 times)', $html );
 		$this->assertStringContainsString( 'Certificate issued', $html );

@@ -104,8 +104,8 @@ class AudienceRecordAutosave {
 		RecordAutosave::register(
 			'audience_booking',
 			array(
-				'cap'    => 'ffc_manage_audiences',
-				'fields' => array(
+				'cap'       => 'ffc_manage_audiences',
+				'fields'    => array(
 					'attendance_mode'           => array(
 						'type'    => 'enum',
 						'options' => array( AudienceAttendanceRule::SINGLE, AudienceAttendanceRule::TOTAL ),
@@ -127,8 +127,9 @@ class AudienceRecordAutosave {
 					),
 					'post_event_attendees_only' => array( 'type' => 'bool' ),
 				),
-				'exists' => static fn( int $id ): bool => null !== AudienceBookingReader::get_by_id( $id ),
-				'save'   => array( self::class, 'save_booking' ),
+				'exists'    => static fn( int $id ): bool => null !== AudienceBookingReader::get_by_id( $id ),
+				'save'      => array( self::class, 'save_booking' ),
+				'fragments' => array( self::class, 'booking_fragments' ),
 			)
 		);
 	}
@@ -198,6 +199,19 @@ class AudienceRecordAutosave {
 			return new \WP_Error( 'ffc_record_not_saved', __( 'The audience could not be saved.', 'ffcertificate' ) );
 		}
 		return true;
+	}
+
+	/**
+	 * What the Attendance screen shows about a booking after a save (#2026),
+	 * read back from the stored row.
+	 *
+	 * @param int $id Booking id.
+	 * @return array<string, string>
+	 */
+	public static function booking_fragments( int $id ): array {
+		$booking = AudienceBookingReader::get_by_id( $id );
+
+		return null === $booking ? array() : AudienceAdminAttendance::fragments( $booking );
 	}
 
 	/**

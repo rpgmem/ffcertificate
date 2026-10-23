@@ -118,6 +118,34 @@ class RecordAutosaveTest extends TestCase {
 		$this->assertSame( array( 'key' => 'flag', 'value' => 1 ), $this->responses[0]['data'] );
 	}
 
+	public function test_an_entity_with_fragments_sends_the_screen_text_back_after_the_save(): void {
+		RecordAutosave::register(
+			'described',
+			array(
+				'cap'       => 'ffc_manage_things',
+				'fields'    => array( 'flag' => array( 'type' => 'bool' ) ),
+				'exists'    => static fn( int $id ): bool => 7 === $id,
+				'save'      => function ( int $id, string $key, $value ) {
+					$this->saved[] = array( $id, $key, $value );
+					return true;
+				},
+				'fragments' => fn( int $id ): array => array( 'summary-' . $id => 'Saved ' . count( $this->saved ) ),
+			)
+		);
+
+		$this->dispatch( array( 'entity' => 'described', 'id' => '7', 'key' => 'flag', 'value' => '1' ) );
+
+		$this->assertSame(
+			array(
+				'key'       => 'flag',
+				'value'     => 1,
+				'fragments' => array( 'summary-7' => 'Saved 1' ),
+			),
+			$this->responses[0]['data'],
+			'The fragments are read after the save, so they describe what was stored.'
+		);
+	}
+
 	public function test_a_mapped_checkbox_saves_the_stored_value_its_state_means(): void {
 		$this->dispatch( array( 'entity' => 'thing', 'id' => '7', 'key' => 'status', 'value' => '0' ) );
 
