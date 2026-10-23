@@ -1040,8 +1040,9 @@ class AudienceAdminCalendar {
 				<td>
 					<?php self::render_form_select( 'schedule_post_event_form', 'schedule_post_event_form', $settings['form_id'] ); ?>
 					<p class="description">
-						<?php esc_html_e( 'When the last day of a booking ends, its participants are invited to this form, with their name, e-mail and CPF/RF filled in. A booking can choose another form, or none, on its Attendance screen.', 'ffcertificate' ); ?>
+						<?php esc_html_e( 'When the last day of a booking ends, its participants are invited to this form, with their name and e-mail filled in; the CPF/RF they type is checked against their account. A booking can choose another form, or none, on its Attendance screen.', 'ffcertificate' ); ?>
 					</p>
+					<?php echo AudienceFormInviteMailer::missing_page_notice( $settings['form_id'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by missing_page_notice(). ?>
 				</td>
 			</tr>
 			<tr>

@@ -182,6 +182,17 @@ class PrivacyErasers {
 			}
 		}
 
+		// 4c. Post-event form invitations (#2024): a relationship, deleted
+		// with the person as on account deletion.
+		$invites_table = $wpdb->prefix . 'ffc_audience_form_invites';
+		if ( self::table_exists( $invites_table ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
+			$rows = $wpdb->delete( $invites_table, array( 'user_id' => $user_id ), array( '%d' ) );
+			if ( $rows > 0 ) {
+				$items_removed += (int) $rows;
+			}
+		}
+
 		// 5. Audience schedule permissions: DELETE.
 		$permissions_table = $wpdb->prefix . 'ffc_audience_schedule_permissions';
 		if ( self::table_exists( $permissions_table ) ) {

@@ -23414,10 +23414,10 @@ msgstr ""
 msgid "Under Tools → Export Personal Data and Tools → Erase Personal Data, the plugin registers its own handlers. Each one works on the records linked to the WordPress account that has the requested e-mail address and, for records linked to no account, on those whose stored e-mail matches it — so a certificate or appointment made without logging in is found too:"
 msgstr ""
 
-msgid "an eraser clears the encrypted personal data (e-mail and its lookup hash, CPF/RF, the client IP, …) from the certificates and appointments and unlinks them from the account, deletes the person's audience memberships, booking links, schedule permissions, stored profile and FFC user settings, and unlinks their activity-log entries. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
+msgid "an eraser clears the encrypted personal data (e-mail and its lookup hash, CPF/RF, the client IP, …) from the certificates and appointments and unlinks them from the account, deletes the person's audience memberships, booking links, post-event form invitations, schedule permissions, stored profile and FFC user settings, and unlinks their attendance lines and activity-log entries. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
 msgstr ""
 
-msgid "exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings, reregistration submissions (with their answers decrypted), recruitment candidacies and their classifications, and FFC user settings."
+msgid "exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings, audience attendance, post-event form invitations, reregistration submissions (with their answers decrypted), recruitment candidacies and their classifications, and FFC user settings."
 msgstr ""
 
 msgid "A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced). When the CPF gate below is set to anything other than none — or when an operator volunteers a valid CPF — each attempt is written to a per-form audit log of the most recent attempts (timestamp, IP address stored encrypted, mode, result) that admins can export."
@@ -28218,7 +28218,7 @@ msgid "Certificate form"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-calendar.php
-msgid "When the last day of a booking ends, its participants are invited to this form, with their name, e-mail and CPF/RF filled in. A booking can choose another form, or none, on its Attendance screen."
+msgid "When the last day of a booking ends, its participants are invited to this form, with their name and e-mail filled in; the CPF/RF they type is checked against their account. A booking can choose another form, or none, on its Attendance screen."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-calendar.php
@@ -28466,4 +28466,21 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-record-autosave.php
 msgid "The booking could not be saved."
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+#: includes/privacy/class-ffc-privacy-handler.php
+msgid "FFC Post-event Form Invitations"
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+msgid "Last sent"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-form-invite-mailer.php
+msgid "No published page embeds this form, so no invitation can be sent. Publish a page holding %s."
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+msgid "Times sent"
 msgstr ""

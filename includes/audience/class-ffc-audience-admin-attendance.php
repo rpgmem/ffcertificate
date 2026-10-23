@@ -602,6 +602,7 @@ class AudienceAdminAttendance {
 
 		echo '<div class="card"><h2 class="ffc-icon-award">' . esc_html__( 'Post-event form', 'ffcertificate' ) . '</h2>';
 		echo '<p class="ffc-attendance-post-event-status">' . esc_html( self::post_event_status( $booking, $applied, $custom ) ) . '</p>';
+		echo AudienceFormInviteMailer::missing_page_notice( $applied['form_id'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by missing_page_notice().
 		echo '<form method="post">' . $this->form_fields( (int) ( $booking->id ?? 0 ), 'post_event', $date ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts by form_fields().
 		echo '<p>';
 		AdminUI::render_toggle(

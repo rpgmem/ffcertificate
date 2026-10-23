@@ -23497,11 +23497,11 @@ msgstr "Envios de recadastramento e candidaturas de recrutamento são exportados
 msgid "Under Tools → Export Personal Data and Tools → Erase Personal Data, the plugin registers its own handlers. Each one works on the records linked to the WordPress account that has the requested e-mail address and, for records linked to no account, on those whose stored e-mail matches it — so a certificate or appointment made without logging in is found too:"
 msgstr "Em Ferramentas → Exportar Dados Pessoais e Ferramentas → Apagar Dados Pessoais, o plugin registra seus próprios manipuladores. Cada um atua sobre os registros vinculados à conta do WordPress que tem o e-mail solicitado e, nos registros sem conta vinculada, sobre aqueles cujo e-mail armazenado corresponde a ele — assim, um certificado ou agendamento feito sem login também é encontrado:"
 
-msgid "an eraser clears the encrypted personal data (e-mail and its lookup hash, CPF/RF, the client IP, …) from the certificates and appointments and unlinks them from the account, deletes the person's audience memberships, booking links, schedule permissions, stored profile and FFC user settings, and unlinks their activity-log entries. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
-msgstr "um apagador remove os dados pessoais criptografados (e-mail e seu hash de busca, CPF/RF, o IP do cliente, …) dos certificados e agendamentos e os desvincula da conta, exclui as participações da pessoa em públicos-alvo, vínculos de reservas, permissões de agenda, perfil armazenado e configurações de usuário FFC, e desvincula suas entradas do registro de atividades. Códigos de autenticação e tokens de verificação podem ser mantidos de forma anonimizada para que certificados já emitidos continuem verificáveis depois que os dados da pessoa forem apagados."
+msgid "an eraser clears the encrypted personal data (e-mail and its lookup hash, CPF/RF, the client IP, …) from the certificates and appointments and unlinks them from the account, deletes the person's audience memberships, booking links, post-event form invitations, schedule permissions, stored profile and FFC user settings, and unlinks their attendance lines and activity-log entries. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
+msgstr "um apagador remove os dados pessoais criptografados (e-mail e seu hash de busca, CPF/RF, o IP do cliente, …) dos certificados e agendamentos e os desvincula da conta, exclui as participações da pessoa em públicos-alvo, vínculos de reservas, convites para formulários pós-evento, permissões de agenda, perfil armazenado e configurações de usuário FFC, e desvincula suas linhas de presença e suas entradas do registro de atividades. Códigos de autenticação e tokens de verificação podem ser mantidos de forma anonimizada para que certificados já emitidos continuem verificáveis depois que os dados da pessoa forem apagados."
 
-msgid "exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings, reregistration submissions (with their answers decrypted), recruitment candidacies and their classifications, and FFC user settings."
-msgstr "exportadores reúnem os dados FFC da pessoa: perfil, certificados, agendamentos, grupos de público-alvo, reservas de público-alvo, envios de recadastramento (com as respostas descriptografadas), candidaturas de recrutamento e suas classificações, e configurações de usuário FFC."
+msgid "exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings, audience attendance, post-event form invitations, reregistration submissions (with their answers decrypted), recruitment candidacies and their classifications, and FFC user settings."
+msgstr "exportadores reúnem os dados FFC da pessoa: perfil, certificados, agendamentos, grupos de público-alvo, reservas de público-alvo, presenças em reservas de público-alvo, convites para formulários pós-evento, envios de recadastramento (com as respostas descriptografadas), candidaturas de recrutamento e suas classificações, e configurações de usuário FFC."
 
 msgid "A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced). When the CPF gate below is set to anything other than none — or when an operator volunteers a valid CPF — each attempt is written to a per-form audit log of the most recent attempts (timestamp, IP address stored encrypted, mode, result) that admins can export."
 msgstr "Um formulário sem data de término nunca libera o arquivo CSV. Os downloads também estão sujeitos a uma cota por formulário (se o campo estiver em branco, aplica-se o Limite de Download Padrão global, definido em Configurações → Avançado). Quando a exigência de CPF abaixo está em qualquer modo diferente de none — ou quando um operador informa voluntariamente um CPF válido — cada tentativa é registrada em um log de auditoria do formulário com as tentativas mais recentes (data/hora, endereço IP armazenado criptografado, modo e resultado), que os administradores podem exportar."
@@ -28303,8 +28303,8 @@ msgid "Certificate form"
 msgstr "Formulário de certificado"
 
 #: includes/audience/class-ffc-audience-admin-calendar.php
-msgid "When the last day of a booking ends, its participants are invited to this form, with their name, e-mail and CPF/RF filled in. A booking can choose another form, or none, on its Attendance screen."
-msgstr "Quando o último dia de um agendamento termina, os participantes são convidados para este formulário, com nome, e-mail e CPF/RF já preenchidos. Um agendamento pode escolher outro formulário, ou nenhum, na tela de Presença."
+msgid "When the last day of a booking ends, its participants are invited to this form, with their name and e-mail filled in; the CPF/RF they type is checked against their account. A booking can choose another form, or none, on its Attendance screen."
+msgstr "Quando termina o último dia de uma reserva, os participantes são convidados para este formulário, com nome e e-mail já preenchidos; o CPF/RF que digitarem é conferido com a conta. Uma reserva pode escolher outro formulário, ou nenhum, na tela de Presença."
 
 #: includes/audience/class-ffc-audience-admin-calendar.php
 msgid "Days open"
@@ -28552,3 +28552,20 @@ msgstr "Escolha um formulário de certificado publicado."
 #: includes/audience/class-ffc-audience-record-autosave.php
 msgid "The booking could not be saved."
 msgstr "Não foi possível salvar a reserva."
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+#: includes/privacy/class-ffc-privacy-handler.php
+msgid "FFC Post-event Form Invitations"
+msgstr "Convites FFC para formulários pós-evento"
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+msgid "Last sent"
+msgstr "Último envio"
+
+#: includes/audience/class-ffc-audience-form-invite-mailer.php
+msgid "No published page embeds this form, so no invitation can be sent. Publish a page holding %s."
+msgstr "Nenhuma página publicada contém este formulário, então nenhum convite pode ser enviado. Publique uma página com %s."
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+msgid "Times sent"
+msgstr "Vezes enviado"
