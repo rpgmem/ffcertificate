@@ -103,6 +103,7 @@ class TypographyTokensTest extends TestCase {
 		'ffc-audience-checkin.css'         => 0,
 		'ffc-audience-attendance.css'      => 0,
 
+
 		// One `em` value relative to the parent on purpose: the component is
 		// dropped into contexts of different sizes and follows each one (the
 		// admin-bypass notice's `0.9em` left with it in #1842). Plus

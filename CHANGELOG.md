@@ -31,6 +31,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: participants check in by scanning the QR** (#1947). The scan is exchanged at once for a short-lived receipt, a logged-out participant logs in and comes back to it, and attendance is written only when they confirm on a page of its own. Someone not on the booking, a closed or reopened window and, when the window has a geofence, a position outside its areas are refused.
 - **Audience Calendars: the attendance screen** (#1947). The Attendance row action of Audience Bookings opens and closes a day's check-in (code rotation of 1–10 minutes, optional geofence areas, automatic close 30 minutes after the booking ends), projects the rotating QR full-screen, lists who is present live, marks or removes attendance by hand, sets the attendance rule and exports the list as CSV without e-mail or documents.
 
+
 ### Fixed
 
 - **PDFs no longer stretch images to fit their box** (#1952). The vendored html2canvas 1.4.1 ignored `object-fit`, so a background whose aspect was not A4 came out stretched in the certificate, record and receipt PDFs while the preview showed it cropped; the maintained fork html2canvas-pro 2.5.0 replaces it with the same API. Such a background now prints cropped, as previewed. The PDF needs Safari 13.4 / Chrome 80 or later.
