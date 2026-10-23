@@ -1,0 +1,107 @@
+{
+	"plain-math-issue": {
+		"successCard": true,
+		"platformLines": [
+			"desktop"
+		],
+		"error": "",
+		"pdf": "certificate_N_C-CODE.pdf",
+		"rowsAdded": 1
+	},
+	"plain-math-reprint": {
+		"successCard": true,
+		"platformLines": [
+			"desktop"
+		],
+		"error": "",
+		"pdf": "certificate_N_C-CODE.pdf",
+		"sameCode": true,
+		"rowsAddedTotal": 1
+	},
+	"gps-inside": {
+		"formShown": true,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": []
+	},
+	"gps-outside": {
+		"formShown": false,
+		"titleShown": false,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "geofence-blocked",
+				"text": "You are outside the allowed area for this form."
+			}
+		]
+	},
+	"gps-denied": {
+		"formShown": false,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "preflight-gps",
+				"text": "Location blocked This site needs your location, but the browser has it set to \"block\" for this site. On desktop: click the padlock in the address bar → Site Settings → Location → Allow. Try anyway"
+			}
+		]
+	},
+	"closed-period": {
+		"formShown": false,
+		"titleShown": false,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "geofence-blocked",
+				"text": "This form is no longer available."
+			}
+		]
+	},
+	"cookies-blocked": {
+		"formShown": false,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "preflight-cookies",
+				"text": "Cookies blocked Cookies are blocked in this browser. Without cookies, the form submission may fail. Enable cookies for this site, or try a different browser. On desktop: open Settings → Privacy → Cookies and allow first-party cookies for this site. Try anyway"
+			}
+		]
+	},
+	"content-inside": {
+		"formShown": false,
+		"titleShown": false,
+		"contentShown": true,
+		"notices": []
+	},
+	"content-denied": {
+		"formShown": false,
+		"titleShown": false,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "preflight-gps",
+				"text": "Location blocked This site needs your location, but the browser has it set to \"block\" for this site. On desktop: click the padlock in the address bar → Site Settings → Location → Allow. Try anyway"
+			}
+		]
+	},
+	"identity-correction-preview-wiring": {
+		"signedOut": {
+			"status": 400,
+			"body": "0"
+		},
+		"signedIn": {
+			"status": 403,
+			"body": "-1"
+		}
+	},
+	"altcha-issue": {
+		"successCard": true,
+		"platformLines": [
+			"desktop"
+		],
+		"error": "",
+		"pdf": "certificate_N_C-CODE.pdf",
+		"rowsAdded": 1
+	}
+}

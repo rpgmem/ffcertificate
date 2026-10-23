@@ -1,0 +1,126 @@
+{
+    "plain, math captcha": {
+        "wrapper": "<div class=\"ffc-shortcode ffc-form-wrapper\" id=\"ffc-form-N\">",
+        "form": "<form class=\"ffc-submission-form\" id=\"ffc-form-element-N\" autocomplete=\"off\" aria-label=\"Course certificate\">",
+        "noscript": [],
+        "hooks": [
+            "data-ffc-counter-for",
+            "data-ffc-full-name"
+        ],
+        "notices": [],
+        "captcha": {
+            "math": true,
+            "altcha": false
+        }
+    },
+    "ALTCHA only": {
+        "wrapper": "<div class=\"ffc-shortcode ffc-form-wrapper\" id=\"ffc-form-N\">",
+        "form": "<form class=\"ffc-submission-form\" id=\"ffc-form-element-N\" autocomplete=\"off\" aria-label=\"Course certificate\">",
+        "noscript": [
+            "<p class=\"ffc-altcha-noscript\"> This form requires JavaScript to verify that you are not a robot. </p>"
+        ],
+        "hooks": [
+            "data-ffc-counter-for",
+            "data-ffc-full-name"
+        ],
+        "notices": [],
+        "captcha": {
+            "math": false,
+            "altcha": true
+        }
+    },
+    "ALTCHA with math": {
+        "wrapper": "<div class=\"ffc-shortcode ffc-form-wrapper\" id=\"ffc-form-N\">",
+        "form": "<form class=\"ffc-submission-form\" id=\"ffc-form-element-N\" autocomplete=\"off\" aria-label=\"Course certificate\">",
+        "noscript": [
+            "<style>.ffc-altcha-row{display:none;}</style><div class=\"ffc-captcha-row\"> <label for=\"ffc_captcha_ans_N\"> <span class=\"ffc-captcha-label-text\">Security: How much is four times four?</span> <span class=\"ffc-required\" aria-hidden=\"true\">*</span> </label> <input type=\"number\" name=\"ffc_captcha_ans\" id=\"ffc_captcha_ans_N\" class=\"ffc-input\" required aria-required=\"true\"> <input type=\"hidden\" name=\"ffc_captcha_hash\" id=\"ffc_captcha_hash_N\" value=\"TOKEN\"> </div>"
+        ],
+        "hooks": [
+            "data-ffc-counter-for",
+            "data-ffc-full-name"
+        ],
+        "notices": [],
+        "captcha": {
+            "math": true,
+            "altcha": true
+        }
+    },
+    "date window": {
+        "wrapper": "<div class=\"ffc-shortcode ffc-form-wrapper ffc-has-geofence\" id=\"ffc-form-N\">",
+        "form": "<form class=\"ffc-submission-form\" id=\"ffc-form-element-N\" autocomplete=\"off\" aria-label=\"Course certificate\">",
+        "noscript": [],
+        "hooks": [
+            "data-ffc-counter-for",
+            "data-ffc-full-name"
+        ],
+        "notices": [],
+        "captcha": {
+            "math": true,
+            "altcha": false
+        }
+    },
+    "GPS": {
+        "wrapper": "<div class=\"ffc-shortcode ffc-form-wrapper ffc-has-geofence\" id=\"ffc-form-N\">",
+        "form": "<form class=\"ffc-submission-form\" id=\"ffc-form-element-N\" autocomplete=\"off\" aria-label=\"Course certificate\">",
+        "noscript": [],
+        "hooks": [
+            "data-ffc-counter-for",
+            "data-ffc-full-name"
+        ],
+        "notices": [],
+        "captcha": {
+            "math": true,
+            "altcha": false
+        }
+    },
+    "IP only": {
+        "wrapper": "<div class=\"ffc-shortcode ffc-form-wrapper ffc-has-geofence\" id=\"ffc-form-N\">",
+        "form": "<form class=\"ffc-submission-form\" id=\"ffc-form-element-N\" autocomplete=\"off\" aria-label=\"Course certificate\">",
+        "noscript": [],
+        "hooks": [
+            "data-ffc-counter-for",
+            "data-ffc-full-name"
+        ],
+        "notices": [],
+        "captcha": {
+            "math": true,
+            "altcha": false
+        }
+    },
+    "quiz reset on leave": {
+        "wrapper": "<div class=\"ffc-shortcode ffc-form-wrapper\" id=\"ffc-form-N\">",
+        "form": "<form class=\"ffc-submission-form\" id=\"ffc-form-element-N\" autocomplete=\"off\" aria-label=\"Quiz\" data-ffc-quiz-leave=\"[\"q1\"]\" data-ffc-quiz-leave-level=\"1\">",
+        "noscript": [],
+        "hooks": [
+            "data-ffc-counter-for",
+            "data-ffc-full-name",
+            "data-ffc-notice",
+            "data-ffc-quiz-leave",
+            "data-ffc-quiz-leave-level"
+        ],
+        "notices": [
+            "quiz-leave"
+        ],
+        "captcha": {
+            "math": true,
+            "altcha": false
+        }
+    },
+    "invitation": {
+        "wrapper": "<div class=\"ffc-shortcode ffc-form-wrapper\" id=\"ffc-form-N\">",
+        "form": "<form class=\"ffc-submission-form\" id=\"ffc-form-element-N\" autocomplete=\"off\" aria-label=\"Evaluation\">",
+        "noscript": [],
+        "hooks": [
+            "data-ffc-counter-for",
+            "data-ffc-full-name",
+            "data-ffc-notice"
+        ],
+        "notices": [
+            "invite"
+        ],
+        "captcha": {
+            "math": true,
+            "altcha": false
+        }
+    }
+}

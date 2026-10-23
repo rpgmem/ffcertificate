@@ -860,4 +860,140 @@ class FrontendShortcodesTest extends TestCase {
 
 		$this->assertArrayNotHasKey( 'ffc_exception_42', $_COOKIE );
 	}
+
+	// ==================================================================
+	// Visitor pre-flight baseline (#2030)
+	// ==================================================================
+
+	/**
+	 * The parts of the form's markup the pre-flight work changes, per
+	 * variant, compared with tests/fixtures/preflight-markup-baseline.json.
+	 *
+	 * The baseline is what the coming changes are proven against: each one
+	 * may alter only what the issue lists as intended. Regenerate only on
+	 * the code being frozen, with FFC_UPDATE_PREFLIGHT_BASELINE=1.
+	 */
+	public function test_the_form_markup_matches_the_preflight_baseline(): void {
+		$variants = array(
+			'plain, math captcha'     => fn() => $this->render_baseline_form( array(), array() ),
+			'ALTCHA only'             => fn() => $this->render_baseline_form( array(), array( 'captcha_provider' => 'altcha' ) ),
+			'ALTCHA with math'        => fn() => $this->render_baseline_form( array(), array( 'captcha_provider' => 'both' ) ),
+			'date window'             => fn() => $this->render_baseline_form( array( 'datetime_enabled' => '1', 'date_start' => '2027-03-01', 'date_end' => '2027-03-31' ), array() ),
+			'GPS'                     => fn() => $this->render_baseline_form( array( 'geo_enabled' => '1', 'geo_gps_enabled' => '1', 'geo_areas' => "-23.55, -46.63, 200" ), array() ),
+			'IP only'                 => fn() => $this->render_baseline_form( array( 'geo_enabled' => '1', 'geo_ip_enabled' => '1', 'geo_areas' => "-23.55, -46.63, 200" ), array() ),
+			'quiz reset on leave'     => fn() => $this->render_quiz_form( array( 'quiz_enabled' => '1', 'quiz_reset_on_leave' => '1' ) ),
+		);
+
+		$records = array();
+		foreach ( $variants as $name => $render ) {
+			$records[ $name ] = self::preflight_markup( (string) $render() );
+		}
+
+		$_GET['ffc_invite'] = '5.7.abc';
+		Filters\expectApplied( 'ffcertificate_form_invite' )->andReturn(
+			array(
+				'booking_id' => 5,
+				'user_id'    => 7,
+				'name'       => 'Ana Souza',
+				'email'      => 'ana@example.org',
+				'event'      => 'Workshop',
+			)
+		);
+		$records['invitation'] = self::preflight_markup( $this->render_invite_form( true ) );
+
+		$file = dirname( __DIR__ ) . '/fixtures/preflight-markup-baseline.json';
+		if ( '1' === getenv( 'FFC_UPDATE_PREFLIGHT_BASELINE' ) ) {
+			file_put_contents( $file, json_encode( $records, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . "\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writes a test fixture.
+		}
+		$this->assertFileExists( $file, 'Missing baseline: run with FFC_UPDATE_PREFLIGHT_BASELINE=1 on the code being frozen.' );
+		$expected = json_decode( (string) file_get_contents( $file ), true );
+
+		$this->assertCount( count( $variants ) + 1, $records, 'Every variant rendered.' );
+		$this->assertSame( $expected, $records );
+	}
+
+	/**
+	 * Render a one-field form with a geofence config and plugin settings.
+	 *
+	 * @param array<string, string> $geofence `_ffc_geofence_config`.
+	 * @param array<string, mixed>  $settings `ffc_settings`.
+	 * @return string
+	 */
+	private function render_baseline_form( array $geofence, array $settings ): string {
+		$this->reset_rate_limit_cache();
+		Functions\when( 'shortcode_atts' )->alias( static fn( $defaults, $atts ) => array_merge( $defaults, $atts ) );
+		Functions\when( 'get_post_type' )->justReturn( 'ffc_form' );
+		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Course certificate' ) );
+		Functions\when( 'wp_rand' )->justReturn( 4 );
+		Functions\when( 'wp_hash' )->justReturn( 'hash' );
+		Functions\when( 'wp_enqueue_script' )->justReturn( null );
+		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
+		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.org/wp-admin/' . $path );
+		Functions\when( 'get_locale' )->justReturn( 'pt_BR' );
+		Functions\when( 'determine_locale' )->justReturn( 'pt_BR' );
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) use ( $settings ) {
+				if ( 'ffc_settings' === $key ) {
+					return $settings;
+				}
+				if ( is_string( $key ) && 0 === strpos( $key, 'ffc_sched_exc_used_' ) ) {
+					return $default;
+				}
+				return array();
+			}
+		);
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id, $key ) use ( $geofence ) {
+				if ( '_ffc_form_fields' === $key ) {
+					return array( array( 'type' => 'text', 'name' => 'name', 'label' => 'Full Name', 'required' => true ) );
+				}
+				if ( '_ffc_geofence_config' === $key ) {
+					return $geofence ? $geofence : '';
+				}
+				if ( '_ffc_form_config' === $key ) {
+					return array( 'restrictions' => array() );
+				}
+				return '';
+			}
+		);
+
+		return (string) $this->shortcodes->render_form( array( 'id' => 9 ) );
+	}
+
+	/**
+	 * The part of a rendered form the pre-flight work touches.
+	 *
+	 * @param string $html Rendered form.
+	 * @return array<string, mixed>
+	 */
+	private static function preflight_markup( string $html ): array {
+		// Per-render ids come from a counter that runs across the whole
+		// process, so they depend on test order; challenge values change on
+		// every call.
+		$stable = (string) preg_replace(
+			array( '/((?:id|for)="[a-z_-]+[_-])\d+"/', '/value="\d+\.[0-9a-f]{16}\.[0-9a-f]{64}"/', '/challenge="[^"]*"/' ),
+			array( '$1N"', 'value="TOKEN"', 'challenge="CHALLENGE"' ),
+			$html
+		);
+
+		preg_match( '/<div[^>]*class="[^"]*ffc-form-wrapper[^"]*"[^>]*>/', $stable, $wrapper );
+		preg_match( '/<form\b[^>]*>/', $stable, $form );
+		preg_match_all( '/<noscript>(.*?)<\/noscript>/s', $stable, $noscript );
+		preg_match_all( '/\b(data-ffc-[a-z-]+)=/', $stable, $hooks );
+		preg_match_all( '/data-ffc-notice="([^"]+)"/', $stable, $notices );
+		$hook_names = array_values( array_unique( $hooks[1] ) );
+		sort( $hook_names );
+
+		return array(
+			'wrapper'  => $wrapper[0] ?? null,
+			'form'     => $form[0] ?? null,
+			'noscript' => array_map( static fn( $s ) => trim( (string) preg_replace( '/\s+/', ' ', $s ) ), $noscript[1] ),
+			'hooks'    => $hook_names,
+			'notices'  => $notices[1],
+			'captcha'  => array(
+				'math'   => str_contains( $stable, 'ffc_captcha_ans' ),
+				'altcha' => str_contains( $stable, '<altcha-widget' ),
+			),
+		);
+	}
 }
