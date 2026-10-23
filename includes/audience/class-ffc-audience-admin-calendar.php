@@ -1095,7 +1095,7 @@ class AudienceAdminCalendar {
 			)
 		);
 		?>
-		<select name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $field_id ); ?>"<?php disabled( $disabled ); ?>>
+		<select name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $field_id ); ?>"<?php echo $disabled ? ' disabled' : ''; ?>>
 			<option value="0"><?php esc_html_e( 'None', 'ffcertificate' ); ?></option>
 			<?php foreach ( $forms as $form ) : ?>
 				<option value="<?php echo esc_attr( (string) $form->ID ); ?>" <?php selected( $selected, $form->ID ); ?>><?php echo esc_html( $form->post_title ); ?></option>

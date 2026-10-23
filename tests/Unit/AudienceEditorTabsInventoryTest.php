@@ -57,6 +57,8 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The Post-event form tab lists the published certificate forms (#1948).
+		Functions\when( 'get_posts' )->justReturn( array() );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -435,6 +437,18 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 	}
 
 	/**
+	 * Drop the Post-event form tab's controls (#1948). The fixture predates
+	 * them: they are a feature added after the tabs, not a control the tabs
+	 * moved, so the callers assert them apart and compare the rest.
+	 *
+	 * @param list<string> $items Inventory.
+	 * @return list<string>
+	 */
+	private static function without_post_event( array $items ): array {
+		return array_values( array_filter( $items, static fn( string $item ): bool => ! str_contains( $item, 'post_event' ) ) );
+	}
+
+	/**
 	 * Drop the masked account-email cell (#1824). The fixture predates it, and
 	 * it is markup rather than a control, so the callers assert it is present
 	 * and compare the rest against the fixture.
@@ -492,7 +506,8 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 
 		$after = self::inventory( $this->render( 'ffc-scheduling-calendars', array( 'action' => 'edit', 'id' => '5' ) ) );
 		$this->assertContains( self::MASKED_EMAIL, $after, 'the User access table masks the account email' );
-		$this->assertSame( self::union( $fixture[ 'calendar-edit-' . $tier ], $list ), self::without_masked_email( self::without_tab_markup( $after ) ) );
+		$this->assertContains( 'field:select:select:schedule_post_event_form@save_schedule', $after, 'the Post-event form tab posts with the calendar' );
+		$this->assertSame( self::union( $fixture[ 'calendar-edit-' . $tier ], $list ), self::without_post_event( self::without_masked_email( self::without_tab_markup( $after ) ) ) );
 		if ( 'manage' === $tier ) {
 			$this->assertContains( $view . '&action=new&schedule_id=5', $after, 'the tab\'s Add New carries the calendar' );
 		}
@@ -502,7 +517,7 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 		$this->assertSame( array(), preg_grep( '/page=ffc-scheduling-environments/', $after ), 'no link is left on the previous slug' );
 
 		$after_new = self::inventory( $this->render( 'ffc-scheduling-calendars', array( 'action' => 'new' ) ) );
-		$this->assertSame( $fixture[ 'calendar-new-' . $tier ], self::without_tab_markup( $after_new ) );
+		$this->assertSame( $fixture[ 'calendar-new-' . $tier ], self::without_post_event( self::without_tab_markup( $after_new ) ) );
 	}
 
 	/**
