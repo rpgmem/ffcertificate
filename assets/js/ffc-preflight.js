@@ -15,7 +15,9 @@
  * geofence script registers `datetime`, `secure` and `geo`. The context
  * carries the wrapper (jQuery), the config, `text(key, fallback)` for the
  * localized strings, `content` for gated content, `browserCheck` (the
- * setting that turns the browser step off) and `altchaOnly`.
+ * setting that turns the browser step off), `altchaOnly`, and
+ * `formSelector` where the form is not a certificate form (the public CSV
+ * download runs the browser step too).
  *
  * THE WATCHDOG. A certificate form is submitted over AJAX and its PDF is
  * drawn in the browser, so a script that did not load (a content blocker, a
@@ -476,12 +478,13 @@
 	/**
 	 * Take the form away behind a notice.
 	 *
-	 * @param {jQuery}      wrapper Form or content wrapper.
-	 * @param {HTMLElement} notice  The notice.
+	 * @param {object}      ctx    Step context: its wrapper, and the form's
+	 *                             selector when it is not a certificate form's.
+	 * @param {HTMLElement} notice The notice.
 	 */
-	function hideBehind(wrapper, notice) {
-		wrapper.find('.ffc-submission-form, .ffc-form').hide();
-		wrapper.prepend(notice);
+	function hideBehind(ctx, notice) {
+		ctx.wrapper.find(ctx.formSelector || '.ffc-submission-form, .ffc-form').hide();
+		ctx.wrapper.prepend(notice);
 	}
 
 	register('browser', {
@@ -504,7 +507,7 @@
 			// whatever the visitor chooses: there is no way through.
 			if (missingFeatures().length) {
 				log(ctx.wrapper, 'browser_features');
-				hideBehind(ctx.wrapper, window.FFC.notice(
+				hideBehind(ctx, window.FFC.notice(
 					'warning',
 					'monitor',
 					ctx.text('browserFeaturesBody', 'This browser is missing features the form needs to issue your certificate. Open this page in %s.').replace('%s', list),
@@ -560,7 +563,7 @@
 				}
 				next();
 			});
-			hideBehind(ctx.wrapper, notice);
+			hideBehind(ctx, notice);
 		}
 	});
 

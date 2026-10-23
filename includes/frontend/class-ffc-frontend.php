@@ -368,7 +368,7 @@ class Frontend {
 
 		if ( $has_csv_download ) {
 			// The certificate preview captures the page as an image (html2canvas only).
-			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-layout-preview' );
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-layout-preview', 'ffc-preflight' );
 
 			wp_enqueue_script(
 				'ffc-csv-download',
@@ -381,7 +381,8 @@ class Frontend {
 				// _ffc_csv_public_cpf_mode is set. 'ffc-batched-export' owns
 				// window.FFCProgressOverlay, which this core's overlay helpers
 				// (used by the info screen's "Validating…" step) delegate to (#786).
-				array( 'jquery', 'ffc-core', 'ffc-rate-limit', 'ffc-batched-export' ),
+				// 'ffc-preflight' runs the browser check before the form (#2030).
+				array( 'jquery', 'ffc-core', 'ffc-rate-limit', 'ffc-batched-export', 'ffc-preflight' ),
 				FFC_VERSION,
 				true
 			);
@@ -419,6 +420,12 @@ class Frontend {
 				array(
 					'ajax_url'       => admin_url( 'admin-ajax.php' ),
 					'min_display_ms' => 1500,
+					// The browser check before the form (#2030), as on a
+					// certificate form: the same switch and strings.
+					'preflight'      => array(
+						'browserCheck' => BrowserGate::settings()['browserCheck'],
+						'strings'      => BrowserGate::strings(),
+					),
 					'strings'        => array(
 						// Progress overlay.
 						'validating'                     => __( 'Validating access…', 'ffcertificate' ),

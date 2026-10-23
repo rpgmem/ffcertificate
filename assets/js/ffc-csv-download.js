@@ -121,6 +121,37 @@
 			location.reload();
 		},
 
+		// ── Browser check (#2030) ───────────────────────────────────
+
+		// The visitor pre-flight's browser step, as on a certificate form:
+		// the download is a file the browser builds and saves, which an
+		// app's own browser often cannot do, and which a browser without
+		// Blob or fetch cannot do at all. The step hides the form while it
+		// blocks; the step after it shows the form again once the visitor
+		// goes on.
+		checkBrowser: function () {
+			var preflight = window.FFC && window.FFC.Preflight;
+			if (!preflight || typeof preflight.run !== 'function') {
+				return;
+			}
+			var cfg = (window.ffc_csv_download && window.ffc_csv_download.preflight) || {};
+			var strings = cfg.strings || {};
+			preflight.register('csv-download-form', {
+				run: function (ctx) {
+					ctx.wrapper.find(ctx.formSelector).show();
+				}
+			});
+			preflight.run(['browser', 'csv-download-form'], {
+				wrapper: api.$container,
+				config: {},
+				browserCheck: cfg.browserCheck !== false,
+				formSelector: '.ffc-verification-form',
+				text: function (key, fallback) {
+					return strings[key] || fallback;
+				}
+			});
+		},
+
 		// ── Initialise ──────────────────────────────────────────────
 
 		init: function () {
@@ -131,6 +162,7 @@
 			}
 			api.$btn = api.$form.find('.ffc-submit-btn');
 			api.$form.on('submit', api.onSubmitInfo);
+			api.checkBrowser();
 
 			// 6.3.4: apply the canonical CPF/RF mask helper to the optional CPF
 			// field rendered when _ffc_csv_public_cpf_mode is set on the target
