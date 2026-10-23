@@ -76,6 +76,13 @@
     font-size: var(--ffc-font-size-sm);
 }
 
+@media (forced-colors: active) {
+    /* The badge's time still says it; the border gives it its shape back. */
+    .ffc-page-scheduling-attendance .ffc-attendance-badge-open {
+        border: 1px solid CanvasText;
+    }
+}
+
 /* Projection: one centred stage, the QR as large as the screen allows. */
 
 body.ffc-attendance-projection {
