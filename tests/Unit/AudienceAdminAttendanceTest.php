@@ -162,6 +162,14 @@ class AudienceAdminAttendanceTest extends TestCase {
 		$this->assertSame( 'opened', $this->page()->perform( 'open', $this->booking(), self::TODAY, self::NOW ) );
 	}
 
+	public function test_open_is_refused_with_its_reason_once_the_day_has_closed(): void {
+		$this->window_writer->shouldReceive( 'auto_close_at' )->andReturn( self::NOW - 60 );
+		$this->window_writer->shouldNotReceive( 'open' );
+
+		$this->assertSame( 'ended', $this->page()->perform( 'open', $this->booking(), self::TODAY, self::NOW ) );
+		$this->assertSame( 'warning', AudienceAdminAttendance::messages()['ended'][1] );
+	}
+
 	public function test_open_is_refused_on_another_day_and_for_a_cancelled_booking(): void {
 		$this->window_writer->shouldNotReceive( 'open' );
 
@@ -281,7 +289,7 @@ class AudienceAdminAttendanceTest extends TestCase {
 	}
 
 	public function test_every_redirect_message_exists(): void {
-		foreach ( array( 'opened', 'closed', 'marked', 'unmarked', 'rule_saved', 'post_event_saved', 'invite_sent', 'invite_sent_all', 'invite_none', 'invite_not_eligible', 'invite_no_page', 'invite_failed', 'not_today', 'not_open', 'future', 'denied', 'failed' ) as $key ) {
+		foreach ( array( 'opened', 'closed', 'marked', 'unmarked', 'rule_saved', 'post_event_saved', 'invite_sent', 'invite_sent_all', 'invite_none', 'invite_not_eligible', 'invite_no_page', 'invite_failed', 'ended', 'not_today', 'not_open', 'future', 'denied', 'failed' ) as $key ) {
 			$this->assertArrayHasKey( $key, AudienceAdminAttendance::messages() );
 		}
 	}
@@ -540,6 +548,32 @@ class AudienceAdminAttendanceTest extends TestCase {
 		$this->assertStringContainsString( 'data-label="Remove"', $html );
 		$this->assertStringContainsString( 'data-label="Mark present"', $html );
 		$this->assertStringContainsString( 'id="ffc-attendance-date"', $html, 'A booking over several days has a day picker.' );
+		$this->assertMatchesRegularExpression( '/name="attendance_min_percent"[^>]*value="75"/', $html, 'Under "Any day" the share field still holds a value its min accepts, so the rule form can submit.' );
+	}
+
+	public function test_after_the_day_closes_the_card_says_so_and_offers_no_open(): void {
+		$this->roster_present_for_7();
+		$_GET = array( 'booking_id' => '5' );
+		$this->bookings->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $this->booking() );
+		$this->windows->shouldReceive( 'open_for' )->andReturn( null );
+		$this->window_writer->shouldReceive( 'auto_close_at' )->andReturn( 1000 );
+		$ui = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
+		$ui->shouldReceive( 'render_button' )->andReturnUsing(
+			static function ( array $args ): void {
+				echo '<button data-label="' . $args['label'] . '"></button>';
+			}
+		);
+		$ui->shouldReceive( 'render_segmented' );
+		$ui->shouldReceive( 'render_toggle' );
+		Functions\when( 'get_posts' )->justReturn( array() );
+
+		ob_start();
+		$this->page()->render_page();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Check-in closed on its own at 09:30', $html );
+		$this->assertStringNotContainsString( 'value="open"', $html );
+		$this->assertStringNotContainsString( 'data-label="Open check-in"', $html );
 	}
 
 	public function test_the_screen_on_another_day_offers_no_qr(): void {

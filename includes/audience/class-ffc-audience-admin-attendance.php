@@ -211,13 +211,17 @@ class AudienceAdminAttendance {
 				if ( 'active' !== ( $booking->status ?? '' ) || $date !== $today ) {
 					return 'not_today';
 				}
+				$closes = AudienceCheckinWindowWriter::auto_close_at( $booking, $date );
+				if ( $closes <= $now ) {
+					return 'ended';
+				}
 				$known    = array_map( static fn( array $l ): string => (string) ( $l['id'] ?? '' ), \FreeFormCertificate\Security\GeofenceLocationRegistry::get_all() );
 				$geofence = array_values( array_intersect( RequestInput::get_post_array( 'geofence_locations' ), $known ) );
 				$id       = AudienceCheckinWindowWriter::open(
 					$booking_id,
 					$date,
 					RequestInput::get_post_int( 'rotation_seconds', 60 ),
-					AudienceCheckinWindowWriter::auto_close_at( $booking, $date ),
+					$closes,
 					$user,
 					$now,
 					$geofence
@@ -327,6 +331,7 @@ class AudienceAdminAttendance {
 			'invite_not_eligible' => array( __( 'This person cannot be invited now: the form is not open, or they are not eligible.', 'ffcertificate' ), 'warning' ),
 			'invite_no_page'      => array( __( 'No published page embeds the post-event form. Add the form to a page, then send again.', 'ffcertificate' ), 'error' ),
 			'invite_failed'       => array( __( 'The invitation could not be sent.', 'ffcertificate' ), 'error' ),
+			'ended'               => array( __( 'Check-in can no longer be opened today: the booking has ended. Mark attendance by hand below.', 'ffcertificate' ), 'warning' ),
 			'not_today'           => array( __( 'Check-in by QR code opens only on the day itself, for an active booking.', 'ffcertificate' ), 'warning' ),
 			'not_open'            => array( __( 'Check-in was not open.', 'ffcertificate' ), 'warning' ),
 			'future'              => array( __( 'Attendance cannot be marked for a day that has not come yet.', 'ffcertificate' ), 'warning' ),
@@ -380,7 +385,7 @@ class AudienceAdminAttendance {
 		}
 
 		echo '<div class="ffc-boxed ffc-attendance">';
-		$this->render_checkin_card( $booking, $date, $today, $window );
+		$this->render_checkin_card( $booking, $date, $today, $window, $now );
 		$this->render_rule_card( $booking, $date );
 		$this->render_post_event_card( $booking, $date, $roster, $now );
 		$this->render_participants_card( $booking, $date, $today, $roster );
@@ -436,9 +441,10 @@ class AudienceAdminAttendance {
 	 * @param string                    $date    Day shown.
 	 * @param string                    $today   Today.
 	 * @param array<string, mixed>|null $window  The window open now, if any.
+	 * @param int                       $now     Unix time.
 	 * @return void
 	 */
-	private function render_checkin_card( object $booking, string $date, string $today, ?array $window ): void {
+	private function render_checkin_card( object $booking, string $date, string $today, ?array $window, int $now ): void {
 		$booking_id = (int) ( $booking->id ?? 0 );
 
 		echo '<div class="card"><h2 class="ffc-icon-qr">' . esc_html__( 'Check-in by QR code', 'ffcertificate' ) . '</h2>';
@@ -490,6 +496,13 @@ class AudienceAdminAttendance {
 			return;
 		}
 
+		$closes = AudienceCheckinWindowWriter::auto_close_at( $booking, $date );
+		if ( $closes <= $now ) {
+			/* translators: %s: time check-in closed on its own */
+			echo '<p>' . esc_html( sprintf( __( 'Check-in closed on its own at %s, 30 minutes after the booking ended today. Attendance can still be marked by hand below.', 'ffcertificate' ), DateFormatter::format_time( $closes ) ) ) . '</p></div>';
+			return;
+		}
+
 		echo '<form method="post" class="ffc-attendance-open-form">' . $this->form_fields( $booking_id, 'open', $date ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts by form_fields().
 		echo '<p><label for="ffc-attendance-rotation">' . esc_html__( 'The code changes every', 'ffcertificate' ) . '</label> <select id="ffc-attendance-rotation" name="rotation_seconds">';
 		foreach ( AudienceCheckinCode::ROTATIONS as $seconds ) {
@@ -512,7 +525,7 @@ class AudienceAdminAttendance {
 		}
 
 		/* translators: %s: time check-in closes on its own */
-		echo '<p class="description">' . esc_html( sprintf( __( 'Check-in closes on its own at %s, 30 minutes after the booking ends today.', 'ffcertificate' ), DateFormatter::format_time( AudienceCheckinWindowWriter::auto_close_at( $booking, $date ) ) ) ) . '</p>';
+		echo '<p class="description">' . esc_html( sprintf( __( 'Check-in closes on its own at %s, 30 minutes after the booking ends today.', 'ffcertificate' ), DateFormatter::format_time( $closes ) ) ) . '</p>';
 		AdminUI::render_button(
 			array(
 				'label'    => __( 'Open check-in', 'ffcertificate' ),
@@ -555,7 +568,7 @@ class AudienceAdminAttendance {
 			)
 		);
 		echo '<p><label for="ffc-attendance-percent">' . esc_html__( 'Minimum share of days (%)', 'ffcertificate' ) . '</label> ';
-		echo '<input type="number" id="ffc-attendance-percent" name="attendance_min_percent" min="1" max="100" step="1" required class="small-text" value="' . esc_attr( (string) $rule['percent'] ) . '"' . disabled( ! $can_edit, true, false ) . '></p>';
+		echo '<input type="number" id="ffc-attendance-percent" name="attendance_min_percent" min="1" max="100" step="1" required class="small-text" value="' . esc_attr( (string) ( $rule['percent'] > 0 ? $rule['percent'] : AudienceAttendanceRule::DEFAULT_PERCENT ) ) . '"' . disabled( ! $can_edit, true, false ) . '></p>';
 		/* translators: 1: days required, 2: days booked */
 		echo '<p class="description">' . esc_html( sprintf( __( 'As saved, %1$d of the %2$d booked day(s) are required.', 'ffcertificate' ), AudienceAttendanceRule::required_days( $booking ), $days ) ) . '</p>';
 		if ( $can_edit ) {

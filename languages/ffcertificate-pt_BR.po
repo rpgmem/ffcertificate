@@ -28251,8 +28251,8 @@ msgid "Attendance and QR check-in"
 msgstr "Presença e check-in por QR"
 
 #: includes/settings/views/documentation/scheduling-audiences.php
-msgid "The Attendance link in a booking's row of Audience Bookings opens its attendance screen. On the day itself, Open check-in starts a check-in for that day: choose how often the code changes (1, 2, 3, 5 or 10 minutes) and, optionally, the saved geolocation areas the participant must be inside. Project the QR code opens a full-screen page for a projector or a screen; the code changes on its own and the page counts who is present. Check-in closes when you press Close check-in, or on its own 30 minutes after the booking ends that day. Opening it again starts a new check-in, and codes from the previous one stop working."
-msgstr "O link Presença na linha de uma reserva em Agendamentos de Público-alvo abre a tela de presença. No próprio dia, Abrir check-in inicia o check-in daquele dia: escolha com que frequência o código muda (1, 2, 3, 5 ou 10 minutos) e, opcionalmente, as áreas de geolocalização salvas em que o participante precisa estar. Projetar o QR code abre uma página em tela cheia para projetor ou monitor; o código muda sozinho e a página conta quem está presente. O check-in encerra quando você clica em Encerrar check-in, ou sozinho 30 minutos após o fim da reserva naquele dia. Abrir de novo inicia um novo check-in, e os códigos do anterior deixam de valer."
+msgid "The Attendance link in a booking's row of Audience Bookings opens its attendance screen. On the day itself, until 30 minutes after the booking ends, Open check-in starts a check-in for that day: choose how often the code changes (1, 2, 3, 5 or 10 minutes) and, optionally, the saved geolocation areas the participant must be inside. Project the QR code opens a full-screen page for a projector or a screen; the code changes on its own and the page counts who is present. Check-in closes when you press Close check-in, or on its own 30 minutes after the booking ends that day. Opening it again starts a new check-in, and codes from the previous one stop working."
+msgstr "O link Presença na linha de uma reserva em Agendamentos de Público-alvo abre a tela de presença. No próprio dia, até 30 minutos após o fim da reserva, Abrir check-in inicia o check-in daquele dia: escolha com que frequência o código muda (1, 2, 3, 5 ou 10 minutos) e, opcionalmente, as áreas de geolocalização salvas em que o participante precisa estar. Projetar o QR code abre uma página em tela cheia para projetor ou monitor; o código muda sozinho e a página conta quem está presente. O check-in encerra quando você clica em Encerrar check-in, ou sozinho 30 minutos após o fim da reserva naquele dia. Abrir de novo inicia um novo check-in, e os códigos do anterior deixam de valer."
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "A participant scans the code with the phone camera, logs in if asked and confirms. Only people on the booking (its custom users and the members of its audiences) can check in, once per day. A code shown on the screen is valid for its rotation and the one before; a link copied from it expires within minutes. The location of an area check-in comes from the participant's browser and can be faked: it makes checking in from elsewhere harder, it does not prove presence."
@@ -28532,3 +28532,11 @@ msgstr "Seu certificado está à sua espera"
 #: includes/settings/views/documentation/email-texts-hub.php
 msgid "global only; the form a booking leads to is chosen on its calendar or its Attendance screen."
 msgstr "somente global; o formulário a que um agendamento leva é escolhido no calendário ou na tela de Presença dele."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in can no longer be opened today: the booking has ended. Mark attendance by hand below."
+msgstr "O check-in não pode mais ser aberto hoje: a reserva já terminou. Marque a presença à mão abaixo."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in closed on its own at %s, 30 minutes after the booking ended today. Attendance can still be marked by hand below."
+msgstr "O check-in encerrou sozinho às %s, 30 minutos após o fim da reserva hoje. A presença ainda pode ser marcada à mão abaixo."
