@@ -233,4 +233,29 @@ class PreflightTelemetryTest extends TestCase {
 		$this->assertSame( array( 'logged' => false ), $this->captured_success );
 		$this->assertSame( PreflightTelemetry::MAX_PER_WINDOW, array_sum( array_map( 'intval', $this->transients ) ) );
 	}
+
+	/**
+	 * The reasons the endpoint accepts and the ones the scripts send are
+	 * one list (#2030): a reason a script sends that is not allowed is
+	 * refused silently, and an allowed one nothing sends is dead.
+	 */
+	public function test_the_allowed_reasons_are_the_ones_the_scripts_send(): void {
+		$sent  = array();
+		$files = glob( dirname( __DIR__, 2 ) . '/assets/js/*.js' );
+		$this->assertNotEmpty( $files );
+		foreach ( $files as $file ) {
+			if ( str_ends_with( $file, '.min.js' ) ) {
+				continue;
+			}
+			preg_match_all( "/\\blog\\([^,()]+,\\s*'([a-z_]+)'\\)/", (string) file_get_contents( $file ), $m );
+			$sent = array_merge( $sent, $m[1] );
+		}
+		$sent = array_values( array_unique( $sent ) );
+		sort( $sent );
+
+		$allowed = PreflightTelemetry::ALLOWED_REASONS;
+		sort( $allowed );
+
+		$this->assertSame( $allowed, $sent );
+	}
 }

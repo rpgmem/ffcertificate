@@ -68,6 +68,40 @@
 			}
 		]
 	},
+	"plain-cookies-blocked": {
+		"formShown": false,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "preflight-cookies",
+				"text": "Cookies blocked Cookies are blocked in this browser. Without cookies, the form submission may fail. Enable cookies for this site, or try a different browser. On desktop: open Settings → Privacy → Cookies and allow first-party cookies for this site. Try anyway"
+			}
+		]
+	},
+	"plain-inapp": {
+		"formShown": false,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "preflight-browser",
+				"text": "Open this page in your browser You are viewing this page inside an app, where your location and the certificate download often fail. Open it in Chrome, Firefox, Edge, Opera or Samsung Internet. Or tap the menu (⋮) and choose \"Open in browser\". Open in Chrome Continue anyway"
+			}
+		]
+	},
+	"plain-inapp-continue": {
+		"formShown": true,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": []
+	},
+	"plain-inapp-check-off": {
+		"formShown": true,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": []
+	},
 	"content-inside": {
 		"formShown": false,
 		"titleShown": false,

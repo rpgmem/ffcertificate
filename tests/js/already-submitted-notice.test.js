@@ -243,4 +243,33 @@ describe('ffc-already-submitted-notice', () => {
 		expect(list.length).toBe(50);
 		expect(list[list.length - 1]).toBe(60);
 	});
+
+	describe('after the visitor pre-flight (#2030)', () => {
+		const queued = () => {
+			window.ffcGeofenceConfig = { 42: {}, _global: {} };
+			window.FFC = window.FFC || {};
+			window.FFC.Preflight = window.FFC.Preflight || { run() {} };
+		};
+
+		it('waits for the queue to pass before drawing the notice', async () => {
+			installForm(42);
+			window.localStorage.setItem(STORAGE_KEY, JSON.stringify([42]));
+			queued();
+			await loadOnReady();
+			expect(document.querySelector('[data-ffc-notice="already-submitted"]')).toBeNull();
+			window.$('.ffc-form-wrapper').trigger('ffc:preflight-passed');
+			expect(document.querySelectorAll('[data-ffc-notice="already-submitted"]').length).toBe(1);
+			window.ffcGeofenceConfig = undefined;
+		});
+
+		it('draws it at once when the queue already passed', async () => {
+			installForm(42);
+			document.querySelector('.ffc-form-wrapper').classList.add('ffc-validated');
+			window.localStorage.setItem(STORAGE_KEY, JSON.stringify([42]));
+			queued();
+			await loadOnReady();
+			expect(document.querySelector('[data-ffc-notice="already-submitted"]')).not.toBeNull();
+			window.ffcGeofenceConfig = undefined;
+		});
+	});
 });

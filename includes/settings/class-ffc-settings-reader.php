@@ -455,6 +455,16 @@ final class SettingsReader {
 		return self::get_bool( 'delete_data_on_uninstall' );
 	}
 
+	/**
+	 * Whether a certificate form checks the visitor's browser before it is
+	 * shown (#2030): an app's own browser is stopped with "Continue anyway",
+	 * one missing what the form needs is stopped outright. On by default;
+	 * the switch exists for a false positive in production.
+	 */
+	public static function browser_check_enabled(): bool {
+		return self::get_bool( 'browser_check', true );
+	}
+
 	/** Whether the QR-code cache is enabled. */
 	public static function qr_cache_enabled(): bool {
 		return self::get_bool( 'qr_cache_enabled' );

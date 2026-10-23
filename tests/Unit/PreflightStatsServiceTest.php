@@ -70,7 +70,11 @@ class PreflightStatsServiceTest extends TestCase {
 		$query = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLogQuery' );
 		$query->shouldNotReceive( 'get_activities' );
 
-		$this->assertSame( $cached, PreflightStatsService::get_form_stats( 7 ) );
+		$stats = PreflightStatsService::get_form_stats( 7 );
+		$this->assertSame( 3, $stats['cookies'] );
+		$this->assertSame( 6, $stats['total'] );
+		// An entry cached before a reason was added (#2030) reads it as 0.
+		$this->assertSame( 0, $stats['browser_inapp'] );
 	}
 
 	/**
@@ -114,7 +118,17 @@ class PreflightStatsServiceTest extends TestCase {
 		$stats = PreflightStatsService::get_form_stats( 42 );
 
 		$this->assertSame(
-			array( 'cookies' => 0, 'gps_denied' => 0, 'gps_prompt' => 0, 'total' => 0 ),
+			array(
+				'cookies'                => 0,
+				'gps_denied'             => 0,
+				'gps_prompt'             => 0,
+				'secure'                 => 0,
+				'browser_inapp'          => 0,
+				'browser_inapp_continue' => 0,
+				'browser_features'       => 0,
+				'browser_boot'           => 0,
+				'total'                  => 0,
+			),
 			$stats
 		);
 	}
@@ -239,5 +253,38 @@ class PreflightStatsServiceTest extends TestCase {
 
 		// The empty-state copy must NOT appear when there is friction.
 		$this->assertStringNotContainsString( 'No pre-flight or rate-limit friction', $html );
+	}
+
+	/**
+	 * The reasons #2030 added are counted like the first three, and their
+	 * badges show only for a form where they happened.
+	 */
+	public function test_counts_and_shows_the_browser_and_https_reasons_only_when_they_happened(): void {
+		$this->stub_activity_log_rows( array(
+			array( 'context' => '{"form_id":42,"reason":"browser_inapp"}' ),
+			array( 'context' => '{"form_id":42,"reason":"browser_inapp"}' ),
+			array( 'context' => '{"form_id":42,"reason":"browser_inapp_continue"}' ),
+			array( 'context' => '{"form_id":42,"reason":"secure"}' ),
+		) );
+		$this->stub_render_helpers();
+
+		$stats = PreflightStatsService::get_form_stats( 42 );
+		$this->assertSame( 2, $stats['browser_inapp'] );
+		$this->assertSame( 1, $stats['browser_inapp_continue'] );
+		$this->assertSame( 1, $stats['secure'] );
+		$this->assertSame( 0, $stats['browser_features'] );
+		$this->assertSame( 4, $stats['total'] );
+
+		ob_start();
+		PreflightStatsService::render_metabox( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'ffc-preflight-badge-browser-inapp"', $html );
+		$this->assertStringContainsString( 'ffc-preflight-badge-browser-inapp-continue', $html );
+		$this->assertStringContainsString( 'ffc-preflight-badge-secure', $html );
+		$this->assertStringNotContainsString( 'ffc-preflight-badge-browser-features', $html );
+		$this->assertStringNotContainsString( 'ffc-preflight-badge-browser-boot', $html );
+		// The first three always show, at zero here.
+		$this->assertStringContainsString( 'ffc-preflight-badge-cookies', $html );
 	}
 }

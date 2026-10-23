@@ -175,29 +175,6 @@ class Frontend {
 			// needs this refresh too.
 			wp_enqueue_script( 'ffc-dynamic-fragments' );
 
-			// 6.3.7: WebView (in-app browser) preventive warning. Detects
-			// FB/Insta/WhatsApp/TikTok/LinkedIn/Android-WebView at page
-			// load and offers an "Open in browser" CTA before the user
-			// invests time filling the form. Pure UX layer — the v6.3.6
-			// pre-open + manual-tap fallbacks still cover anyone who
-			// dismisses the banner and proceeds.
-			if ( $has_form || $has_csv_download ) {
-				wp_enqueue_script( 'ffc-webview-warning', FFC_PLUGIN_URL . "assets/js/ffc-webview-warning{$s}.js", array( 'ffc-core' ), FFC_VERSION, true );
-				wp_localize_script(
-					'ffc-webview-warning',
-					'ffc_webview_warning',
-					array(
-						'strings' => array(
-							'title'           => __( 'Download may fail in this app', 'ffcertificate' ),
-							'body'            => __( 'You are viewing this page inside an app browser. To make sure the certificate downloads correctly, please open the page in your main browser (Chrome or Safari).', 'ffcertificate' ),
-							'openInBrowser'   => __( 'Open in browser', 'ffcertificate' ),
-							'continueAnyway'  => __( 'Continue anyway', 'ffcertificate' ),
-							'iosInstructions' => __( 'Tap the menu icon (•••) at the bottom of the app and choose "Open in Safari".', 'ffcertificate' ),
-						),
-					)
-				);
-			}
-
 			// 6.3.10: friendly "already submitted" notice. Pure client-side
 			// hint backed by localStorage; reads `ffc_submitted_forms` and,
 			// if the current form_id is in the list, shows a dismissable
@@ -704,9 +681,9 @@ class Frontend {
 		foreach ( array_unique( $form_ids ) as $form_id_int ) {
 			$config = \FreeFormCertificate\Security\Geofence::get_frontend_config( $form_id_int );
 
-			if ( null !== $config ) {
-				$geofence_configs[ $form_id_int ] = $config;
-			}
+			// A form with no restriction still runs the visitor pre-flight
+			// (#2030): the browser and cookie steps apply to every form.
+			$geofence_configs[ $form_id_int ] = null !== $config ? $config : BrowserGate::form_config( $form_id_int );
 		}
 
 		// Add global settings without re-indexing form IDs.
@@ -779,6 +756,11 @@ class Frontend {
 				'gpsPromptContinue'         => __( 'Continue', 'ffcertificate' ),
 			),
 		);
+
+		// The browser and HTTPS steps of the pre-flight (#2030): their
+		// switches and strings.
+		$geofence_configs['_global']            += BrowserGate::settings();
+		$geofence_configs['_global']['strings'] += BrowserGate::strings();
 
 		// Localize script with preserved array keys.
 		/**

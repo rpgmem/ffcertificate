@@ -140,6 +140,27 @@ $ffcertificate_data_row = static function ( string $index, array $row, array $ty
 					</p>
 				</td>
 			</tr>
+			<tr>
+				<th scope="row">
+					<label for="browser_check"><?php esc_html_e( 'Browser check', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'    => 'ffc_settings[browser_check]',
+							'id'      => 'browser_check',
+							'checked' => \FreeFormCertificate\Settings\SettingsReader::browser_check_enabled(),
+							'label'   => __( 'Check the visitor\'s browser before the form', 'ffcertificate' ),
+							'data'    => array( 'ffc-autosave-key' => 'browser_check' ),
+						)
+					);
+					?>
+					<p class="description">
+						<?php esc_html_e( 'An app\'s own browser (Instagram, WhatsApp, Facebook and others) is asked to open the page in the phone\'s browser, with a "Continue anyway" link; a browser missing what the form needs to issue the certificate is stopped. Turn it off only if visitors are stopped by mistake: they then reach the form whatever browser they use.', 'ffcertificate' ); ?>
+					</p>
+				</td>
+			</tr>
 		</tbody>
 	</table>
 </div>

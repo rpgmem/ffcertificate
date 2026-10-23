@@ -19,6 +19,11 @@
  *   translated here rather than shipped to a script that may be the one that
  *   failed.
  *
+ * It also carries what the visitor pre-flight queue needs on every form
+ * (#2030): the minimal configuration of a form with no date or location
+ * restriction, so the queue runs on it too, the strings of the browser and
+ * HTTPS steps, and the two switches the steps read.
+ *
  * @package FreeFormCertificate\Frontend
  */
 
@@ -27,7 +32,10 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend;
 
 use FreeFormCertificate\Core\Button;
+use FreeFormCertificate\Core\Captcha\CaptchaProvider;
 use FreeFormCertificate\Core\Notice;
+use FreeFormCertificate\Security\Geofence;
+use FreeFormCertificate\Settings\SettingsReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -100,6 +108,65 @@ class BrowserGate {
 					)
 				),
 			)
+		);
+	}
+
+	/**
+	 * The pre-flight configuration of a form with no date or location
+	 * restriction: both checks off, so the queue runs only the steps every
+	 * form takes (browser and cookies). An administrator under bypass skips
+	 * those, as on a restricted form, without the bypass notices: there is
+	 * no restriction to tell them about.
+	 *
+	 * @param int $form_id Form ID.
+	 * @return array<string, mixed>
+	 */
+	public static function form_config( int $form_id ): array {
+		return array(
+			'formId'      => $form_id,
+			'adminBypass' => Geofence::should_bypass_datetime() || Geofence::should_bypass_geo(),
+			'bypassInfo'  => null,
+			'datetime'    => array( 'enabled' => false ),
+			'geo'         => array( 'enabled' => false ),
+		);
+	}
+
+	/**
+	 * The switches the pre-flight steps read, for the `_global` block of
+	 * the geofence configuration.
+	 *
+	 * @return array{browserCheck: bool, altchaOnly: bool}
+	 */
+	public static function settings(): array {
+		return array(
+			'browserCheck' => SettingsReader::browser_check_enabled(),
+			// The ALTCHA widget refuses to run outside a secure context. The
+			// composite mode is not included: its math half works anywhere.
+			'altchaOnly'   => 'altcha' === CaptchaProvider::resolve()->id(),
+		);
+	}
+
+	/**
+	 * The strings of the browser and HTTPS steps.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function strings(): array {
+		return array(
+			'secureRequired'       => __( 'This form requires a secure connection (HTTPS). Please contact the site administrator.', 'ffcertificate' ),
+			'browsersAndroid'      => __( 'Chrome, Firefox, Edge, Opera or Samsung Internet', 'ffcertificate' ),
+			'browsersIos'          => __( 'Safari, Chrome, Firefox or Edge', 'ffcertificate' ),
+			'browsersOther'        => __( 'Chrome, Firefox, Edge or Safari', 'ffcertificate' ),
+			'inAppTitle'           => __( 'Open this page in your browser', 'ffcertificate' ),
+			/* translators: %s: a list of browsers, such as "Safari, Chrome, Firefox or Edge". */
+			'inAppBody'            => __( 'You are viewing this page inside an app, where your location and the certificate download often fail. Open it in %s.', 'ffcertificate' ),
+			'inAppHowIos'          => __( 'Tap the menu (••• or the share icon) and choose "Open in Safari" or "Open in browser".', 'ffcertificate' ),
+			'inAppHowAndroid'      => __( 'Or tap the menu (⋮) and choose "Open in browser".', 'ffcertificate' ),
+			'openInChrome'         => __( 'Open in Chrome', 'ffcertificate' ),
+			'continueAnyway'       => __( 'Continue anyway', 'ffcertificate' ),
+			'browserFeaturesTitle' => __( 'This browser cannot run the form', 'ffcertificate' ),
+			/* translators: %s: a list of browsers, such as "Safari, Chrome, Firefox or Edge". */
+			'browserFeaturesBody'  => __( 'This browser is missing features the form needs to issue your certificate. Open this page in %s.', 'ffcertificate' ),
 		);
 	}
 }

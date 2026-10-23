@@ -32,6 +32,7 @@ const wpLoad = join( wpDir, 'wp-load.php' );
 
 const php = ( ...args ) => execFileSync( 'php', args, { encoding: 'utf8' } ).trim();
 const setCaptcha = ( mode ) => php( join( here, 'seed.php' ), wpLoad, `--captcha=${ mode }` );
+const setBrowserCheck = ( on ) => php( join( here, 'seed.php' ), wpLoad, `--browser-check=${ on ? 1 : 0 }` );
 const wp = ( ...args ) => execFileSync( 'wp', [ ...args, `--path=${ wpDir }`, '--allow-root' ], { encoding: 'utf8' } ).trim();
 const submissions = () => Number( wp( 'db', 'query', 'SELECT COUNT(*) FROM wp_ffc_submissions', '--skip-column-names' ) );
 
@@ -218,6 +219,40 @@ for ( const [ name, options ] of Object.entries( {
 	await settle( page );
 	record( 'cookies-blocked', await snapshot( page ) );
 	await context.close();
+}
+
+// 4b. The checks every form runs since #2030 PR 4: cookies on a form with no
+// restriction, an app's own browser (stopped, then "Continue anyway"), and
+// the same browser with Settings → Certificates → Browser check off.
+{
+	const { context, page } = await visit( {},
+		"Object.defineProperty(Navigator.prototype, 'cookieEnabled', { get: () => false });" );
+	await page.goto( m.pages.plain );
+	await settle( page );
+	record( 'plain-cookies-blocked', await snapshot( page ) );
+	await context.close();
+}
+{
+	const userAgent = 'Mozilla/5.0 (Linux; Android 14; SM-S918B Build/UP1A.231005.007; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0.6668.81 Mobile Safari/537.36 Instagram 350.0.0.42.92 Android';
+	const { context, page } = await visit( { userAgent } );
+	await page.goto( m.pages.plain );
+	await settle( page );
+	record( 'plain-inapp', await snapshot( page ) );
+	await page.click( '.ffc-preflight-continue' );
+	await settle( page );
+	record( 'plain-inapp-continue', await snapshot( page ) );
+	await context.close();
+
+	setBrowserCheck( false );
+	try {
+		const off = await visit( { userAgent } );
+		await off.page.goto( m.pages.plain );
+		await settle( off.page );
+		record( 'plain-inapp-check-off', await snapshot( off.page ) );
+		await off.context.close();
+	} finally {
+		setBrowserCheck( true );
+	}
 }
 
 // 6. Gated content: inside the area, permission refused.

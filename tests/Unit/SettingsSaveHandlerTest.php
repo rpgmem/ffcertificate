@@ -244,6 +244,19 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertSame( 700, $this->invoke( 'save_general_settings', array( array( 'quiz_focus_grace_ms' => 700 ), array() ) )['quiz_focus_grace_ms'] );
 	}
 
+	/**
+	 * #2030 — the browser check is a checkbox, so a Certificates save rebuilds
+	 * it from presence; another tab's save leaves the stored value alone.
+	 */
+	public function test_certificates_tab_rebuilds_the_browser_check_from_presence(): void {
+		$_POST['_ffc_tab'] = 'certificates';
+		$this->assertTrue( $this->invoke( 'save_general_settings', array( array(), array( 'browser_check' => '1' ) ) )['browser_check'] );
+		$this->assertFalse( $this->invoke( 'save_general_settings', array( array( 'browser_check' => true ), array() ) )['browser_check'] );
+
+		$_POST['_ffc_tab'] = 'general';
+		$this->assertTrue( $this->invoke( 'save_general_settings', array( array( 'browser_check' => true ), array() ) )['browser_check'] );
+	}
+
 	public function test_another_tab_leaves_the_required_data_alone(): void {
 		$_POST['_ffc_tab']     = 'general';
 		$_POST['ffc_settings'] = array( 'required_data' => array( array( 'name' => 'x' ) ) );

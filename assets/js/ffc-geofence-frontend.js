@@ -10,7 +10,9 @@
  *
  * The checks before a form is shown run as FFC.Preflight's queue
  * (ffc-preflight.js, #2030). This file registers the steps that are
- * geofence's — `datetime`, `secure` and `geo` — and runs the queue.
+ * geofence's — `datetime`, `secure` and `geo` — and runs the queue on
+ * every certificate form: one with no restriction arrives with a minimal
+ * configuration (`Frontend\BrowserGate::form_config()`).
  *
  * Handles client-side geolocation and date/time validation for forms.
  *
@@ -86,7 +88,7 @@
                 this.debug('Admin bypass active for some restrictions');
             }
 
-            window.FFC.Preflight.run(['datetime', 'cookies', 'secure', 'geo'], this.preflightContext(formWrapper, config));
+            window.FFC.Preflight.run(['datetime', 'secure', 'browser', 'cookies', 'geo'], this.preflightContext(formWrapper, config));
         },
 
         /**
@@ -98,9 +100,14 @@
          */
         preflightContext: function(formWrapper, config) {
             const self = this;
+            const global = (window.ffcGeofenceConfig && window.ffcGeofenceConfig._global) || {};
             return {
                 wrapper: formWrapper,
                 config: config,
+                content: false,
+                // On unless the setting says otherwise.
+                browserCheck: global.browserCheck !== false,
+                altchaOnly: global.altchaOnly === true,
                 text: function(key, fallback) {
                     return self.getString(key, fallback);
                 }
@@ -133,6 +140,16 @@
             if (phase === 'after')  return datetimeConfig.hideModeAfter  || 'message';
             if (phase === 'during') return datetimeConfig.hideModeDuring || 'message';
             return datetimeConfig.hideModeBefore || 'message';
+        },
+
+        /**
+         * Whether a configuration asks the browser for the location.
+         *
+         * @param {object} config Form or content geofence configuration.
+         * @returns {boolean}
+         */
+        needsGps: function(config) {
+            return !!(config && config.geo && config.geo.enabled && config.geo.gpsEnabled);
         },
 
         /**
@@ -177,6 +194,9 @@
             // form becomes visible the moment we add `.ffc-validated`.
             formWrapper.find('.ffc-submission-form').show();
             this.debug('Form validation passed, showing form');
+            // The queue passed: what waits for it (the "already submitted"
+            // notice) may draw now.
+            formWrapper.trigger('ffc:preflight-passed');
         },
 
         resetForm: function(formWrapper) {
@@ -426,20 +446,26 @@
     });
 
     window.FFC.Preflight.register('secure', {
-        // Browsers give the location only to a secure page.
+        // Browsers give the location only to a secure page, and the ALTCHA
+        // widget refuses to run outside one. The composite captcha mode is
+        // not stopped: its math half works on any page.
         applies: function(ctx) {
-            return !!(ctx.config.geo && ctx.config.geo.enabled && ctx.config.geo.gpsEnabled);
+            return FFCGeofence.needsGps(ctx.config) || (!ctx.content && ctx.altchaOnly === true);
         },
         run: function(ctx, next) {
             if (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
                 next();
                 return;
             }
-            FFCGeofence.debug('Geolocation blocked: page not served over HTTPS');
+            FFCGeofence.debug('Blocked: page not served over HTTPS');
+            window.FFC.Preflight.log(ctx.wrapper, 'secure');
+            const gps = FFCGeofence.needsGps(ctx.config);
             FFCGeofence.handleBlocked(
                 ctx.wrapper,
-                ctx.config.geo.hideMode,
-                ctx.text('httpsRequired', 'This form requires a secure connection (HTTPS) to access your location. Please contact the site administrator.')
+                gps ? ctx.config.geo.hideMode : 'message',
+                gps
+                    ? ctx.text('httpsRequired', 'This form requires a secure connection (HTTPS) to access your location. Please contact the site administrator.')
+                    : ctx.text('secureRequired', 'This form requires a secure connection (HTTPS). Please contact the site administrator.')
             );
         }
     });
