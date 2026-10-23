@@ -28269,3 +28269,96 @@ msgstr "As linhas de presença são registros: quando uma conta é excluída ou 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "run attendance: open and close check-in, project the QR code and mark attendance by hand. Held by the Operator tier and above. Changing a booking's attendance rule needs ffc_manage_audiences, and its CSV needs ffc_export_audiences."
 msgstr "conduzir a presença: abrir e encerrar o check-in, projetar o QR code e marcar presença manualmente. Dada ao nível Operador e acima. Alterar a regra de presença de uma reserva exige ffc_manage_audiences, e o CSV exige ffc_export_audiences."
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This invitation is not for a participant of this event."
+msgstr "Este convite não é para um participante deste evento."
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This form opens when the event ends."
+msgstr "Este formulário abre quando o evento termina."
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "The period to fill in this form has ended."
+msgstr "O prazo para preencher este formulário terminou."
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This form is only for people whose attendance at the event was recorded."
+msgstr "Este formulário é só para quem teve a presença no evento registrada."
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This event was cancelled."
+msgstr "Este evento foi cancelado."
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This event has no form to fill in."
+msgstr "Este evento não tem formulário para preencher."
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Post-event form"
+msgstr "Formulário pós-evento"
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Certificate form"
+msgstr "Formulário de certificado"
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "When the last day of a booking ends, its participants are invited to this form, with their name, e-mail and CPF/RF filled in. A booking can choose another form, or none, on its Attendance screen."
+msgstr "Quando o último dia de um agendamento termina, os participantes são convidados para este formulário, com nome, e-mail e CPF/RF já preenchidos. Um agendamento pode escolher outro formulário, ou nenhum, na tela de Presença."
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Days open"
+msgstr "Dias aberto"
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "How many days after the end of the event the invitation link works."
+msgstr "Por quantos dias depois do fim do evento o link do convite funciona."
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Attendees only"
+msgstr "Somente presentes"
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Invite only people whose attendance meets the booking's rule"
+msgstr "Convidar só quem cumpriu a regra de presença do agendamento"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Post-event form saved."
+msgstr "Formulário pós-evento salvo."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Use settings of its own for this booking"
+msgstr "Usar configuração própria neste agendamento"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Off, the booking follows its calendar. On, the three settings below apply to this booking only; choose None to invite nobody."
+msgstr "Desligado, o agendamento segue o calendário. Ligado, as três configurações abaixo valem só para este agendamento; escolha Nenhum para não convidar ninguém."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invite only people whose attendance meets the rule"
+msgstr "Convidar só quem cumpriu a regra de presença"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "This booking invites nobody to a form."
+msgstr "Este agendamento não convida ninguém para um formulário."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Its calendar names no form, so this booking invites nobody."
+msgstr "O calendário não indica formulário, então este agendamento não convida ninguém."
+
+#. translators: 1: form title, 2: date and time the form opens, 3: date and time it closes
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Participants are invited to \"%1$s\", open from %2$s to %3$s."
+msgstr "Os participantes são convidados para \"%1$s\", aberto de %2$s a %3$s."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Post-event certificate form"
+msgstr "Formulário de certificado pós-evento"
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The Post-event form tab of a calendar names the certificate form its bookings lead to, how many days it stays open after the event (1 to 90) and whether only people whose attendance meets the booking's rule are invited. The form opens when the booking's last day ends. The questions are ordinary fields of that certificate form."
+msgstr "A aba Formulário pós-evento de um calendário indica o formulário de certificado para onde os agendamentos levam, por quantos dias ele fica aberto depois do evento (1 a 90) e se só são convidados os que cumpriram a regra de presença do agendamento. O formulário abre quando termina o último dia do agendamento. As perguntas são campos comuns desse formulário de certificado."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The Post-event form card on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences."
+msgstr "O cartão Formulário pós-evento na tela de Presença de um agendamento diz qual formulário vale e quando está aberto. O interruptor dá a esse agendamento uma configuração própria no lugar da do calendário, inclusive Nenhum para não convidar ninguém; alterá-lo exige ffc_manage_audiences."

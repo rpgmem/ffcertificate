@@ -28184,3 +28184,96 @@ msgstr ""
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "run attendance: open and close check-in, project the QR code and mark attendance by hand. Held by the Operator tier and above. Changing a booking's attendance rule needs ffc_manage_audiences, and its CSV needs ffc_export_audiences."
 msgstr ""
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This invitation is not for a participant of this event."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This form opens when the event ends."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "The period to fill in this form has ended."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This form is only for people whose attendance at the event was recorded."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This event was cancelled."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This event has no form to fill in."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Post-event form"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Certificate form"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "When the last day of a booking ends, its participants are invited to this form, with their name, e-mail and CPF/RF filled in. A booking can choose another form, or none, on its Attendance screen."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Days open"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "How many days after the end of the event the invitation link works."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Attendees only"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Invite only people whose attendance meets the booking's rule"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Post-event form saved."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Use settings of its own for this booking"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Off, the booking follows its calendar. On, the three settings below apply to this booking only; choose None to invite nobody."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invite only people whose attendance meets the rule"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "This booking invites nobody to a form."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Its calendar names no form, so this booking invites nobody."
+msgstr ""
+
+#. translators: 1: form title, 2: date and time the form opens, 3: date and time it closes
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Participants are invited to \"%1$s\", open from %2$s to %3$s."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Post-event certificate form"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The Post-event form tab of a calendar names the certificate form its bookings lead to, how many days it stays open after the event (1 to 90) and whether only people whose attendance meets the booking's rule are invited. The form opens when the booking's last day ends. The questions are ordinary fields of that certificate form."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The Post-event form card on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences."
+msgstr ""

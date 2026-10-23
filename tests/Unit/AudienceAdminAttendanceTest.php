@@ -68,6 +68,7 @@ class AudienceAdminAttendanceTest extends TestCase {
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } );
 		Functions\when( 'wp_kses_post' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_key' )->returnArg();
@@ -96,6 +97,7 @@ class AudienceAdminAttendanceTest extends TestCase {
 		$dates = Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' );
 		$dates->shouldReceive( 'format_time' )->andReturn( '09:30' );
 		$dates->shouldReceive( 'format_wallclock_date' )->andReturnUsing( static fn( $d ) => 'D:' . $d );
+		$dates->shouldReceive( 'format_datetime' )->andReturnUsing( static fn( int $t ) => gmdate( 'Y-m-d H:i', $t ) );
 
 		$this->windows        = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceCheckinWindowReader' );
 		$this->window_writer  = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceCheckinWindowWriter' );
@@ -210,13 +212,76 @@ class AudienceAdminAttendanceTest extends TestCase {
 		$this->assertSame( 'rule_saved', $this->page()->perform( 'rule', $this->booking(), self::TODAY, self::NOW ) );
 	}
 
+	public function test_the_post_event_form_needs_the_manage_capability_and_a_real_form(): void {
+		Functions\when( 'get_post' )->alias(
+			static function ( $id ) {
+				$post              = new \WP_Post();
+				$post->post_type   = 'ffc_form';
+				$post->post_status = 40 === (int) $id ? 'publish' : 'draft';
+				return $post;
+			}
+		);
+		$_POST = array(
+			'post_event_custom'         => '1',
+			'post_event_form'           => '40',
+			'post_event_window_days'    => '10',
+			'post_event_attendees_only' => '1',
+		);
+		$this->booking_writer->shouldReceive( 'set_post_event_form' )->once()->with( 5, true, 40, 10, true )->andReturn( true );
+
+		$this->assertSame( 'denied', $this->page()->perform( 'post_event', $this->booking(), self::TODAY, self::NOW ) );
+
+		$this->caps[] = 'ffc_manage_audiences';
+		$this->assertSame( 'post_event_saved', $this->page()->perform( 'post_event', $this->booking(), self::TODAY, self::NOW ) );
+
+		$_POST['post_event_form'] = '41';
+		$this->assertSame( 'failed', $this->page()->perform( 'post_event', $this->booking(), self::TODAY, self::NOW ), 'A draft or unknown form is refused.' );
+	}
+
+	public function test_turning_the_switch_off_follows_the_calendar_again(): void {
+		$this->caps[] = 'ffc_manage_audiences';
+		$_POST        = array(
+			'post_event_form'        => '0',
+			'post_event_window_days' => '7',
+		);
+		$this->booking_writer->shouldReceive( 'set_post_event_form' )->once()->with( 5, false, 0, 7, false )->andReturn( true );
+
+		$this->assertSame( 'post_event_saved', $this->page()->perform( 'post_event', $this->booking(), self::TODAY, self::NOW ) );
+	}
+
+	public function test_the_post_event_status_says_which_form_and_when(): void {
+		Functions\when( 'get_post' )->alias(
+			static function () {
+				$post              = new \WP_Post();
+				$post->post_type   = 'ffc_form';
+				$post->post_status = 'publish';
+				return $post;
+			}
+		);
+		Functions\when( 'get_the_title' )->justReturn( 'Evaluation' );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+
+		$applied = array(
+			'form_id'        => 40,
+			'window_days'    => 2,
+			'attendees_only' => false,
+		);
+		$status  = AudienceAdminAttendance::post_event_status( $this->booking(), $applied, false );
+
+		$this->assertSame( 'Participants are invited to "Evaluation", open from 2027-03-03 12:00 to 2027-03-05 12:00.', $status );
+
+		$applied['form_id'] = 0;
+		$this->assertSame( 'This booking invites nobody to a form.', AudienceAdminAttendance::post_event_status( $this->booking(), $applied, true ) );
+		$this->assertSame( 'Its calendar names no form, so this booking invites nobody.', AudienceAdminAttendance::post_event_status( $this->booking(), $applied, false ) );
+	}
+
 	public function test_export_needs_the_export_capability_and_an_unknown_action_fails(): void {
 		$this->assertSame( 'denied', $this->page()->perform( 'export', $this->booking(), self::TODAY, self::NOW ) );
 		$this->assertSame( 'failed', $this->page()->perform( 'bogus', $this->booking(), self::TODAY, self::NOW ) );
 	}
 
 	public function test_every_redirect_message_exists(): void {
-		foreach ( array( 'opened', 'closed', 'marked', 'unmarked', 'rule_saved', 'not_today', 'not_open', 'future', 'denied', 'failed' ) as $key ) {
+		foreach ( array( 'opened', 'closed', 'marked', 'unmarked', 'rule_saved', 'post_event_saved', 'not_today', 'not_open', 'future', 'denied', 'failed' ) as $key ) {
 			$this->assertArrayHasKey( $key, AudienceAdminAttendance::messages() );
 		}
 	}
@@ -304,12 +369,16 @@ class AudienceAdminAttendanceTest extends TestCase {
 			}
 		);
 		$ui->shouldReceive( 'render_segmented' );
+		$ui->shouldReceive( 'render_toggle' );
+		Functions\when( 'get_posts' )->justReturn( array() );
 
 		ob_start();
 		$this->page()->render_page();
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'ffc-page-scheduling-attendance', $html );
+		$this->assertStringContainsString( 'name="ffc_attendance_action" value="post_event"', $html );
+		$this->assertStringContainsString( 'Its calendar names no form, so this booking invites nobody.', $html );
 		$this->assertStringContainsString( 'name="ffc_attendance_action" value="open"', $html );
 		$this->assertStringContainsString( 'data-label="Open check-in"', $html );
 		$this->assertStringContainsString( 'name="rotation_seconds"', $html );
@@ -335,6 +404,8 @@ class AudienceAdminAttendanceTest extends TestCase {
 			}
 		);
 		$ui->shouldReceive( 'render_segmented' );
+		$ui->shouldReceive( 'render_toggle' );
+		Functions\when( 'get_posts' )->justReturn( array() );
 
 		ob_start();
 		$this->page()->render_page();
