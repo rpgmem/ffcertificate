@@ -17,7 +17,7 @@ use FreeFormCertificate\Submissions\SubmissionHandler;
  *
  *   - LGPD + email-presence are O(1) string compares; the field loop
  *     runs CPF/RF regex + checksum. Cheap → expensive ordering.
- *   - The pre-flight returns ALL missing-presence errors in a single
+ *   - The presence check returns ALL missing-presence errors in a single
  *     `errors` array so the user sees "missing email AND missing
  *     LGPD" in one go instead of one-at-a-time round-trips.
  *
@@ -26,7 +26,7 @@ use FreeFormCertificate\Submissions\SubmissionHandler;
  * @runClassInSeparateProcess
  * @preserveGlobalState disabled
  */
-class FormProcessorPreflightOrderTest extends TestCase {
+class FormProcessorRequiredPresenceOrderTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
@@ -44,7 +44,7 @@ class FormProcessorPreflightOrderTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 
-		// Reach the preflight gate: rate-limit allows, nonce valid,
+		// Reach the presence gate: rate-limit allows, nonce valid,
 		// captcha valid, form_id valid, form config exists with an
 		// email-typed field.
 		$rate_limiter_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
@@ -159,15 +159,15 @@ class FormProcessorPreflightOrderTest extends TestCase {
 		}
 	}
 
-	public function test_preflight_passes_when_lgpd_and_email_are_filled(): void {
-		// Both presence checks satisfied → preflight does NOT call
+	public function test_presence_check_passes_when_lgpd_and_email_are_filled(): void {
+		// Both presence checks satisfied → presence check does NOT call
 		// wp_send_json_error, which proves it's purely additive and
 		// doesn't change the happy-path behaviour. The request will
 		// continue into the field-validation loop downstream; we don't
-		// mock that here, so we assert ONLY that the preflight is
+		// mock that here, so we assert ONLY that the presence check is
 		// silent (captured_error stays null until something downstream
 		// fires it). A null captured_error after a try/catch confirms
-		// the preflight branch didn't fire.
+		// the presence check branch didn't fire.
 		$_POST = array(
 			'action'           => 'ffc_submit_form',
 			'nonce'            => 'ok',
@@ -182,21 +182,21 @@ class FormProcessorPreflightOrderTest extends TestCase {
 		} catch ( \Throwable $e ) {
 			// Downstream may throw (no full mock chain). All we care
 			// about is that the captured payload doesn't carry the
-			// preflight `errors` array — which would mean the
-			// preflight fired incorrectly.
+			// presence check `errors` array — which would mean the
+			// presence check fired incorrectly.
 		}
 		if ( null === $this->captured_error ) {
-			// No wp_send_json_error fired at all → preflight passed and
+			// No wp_send_json_error fired at all → presence check passed and
 			// downstream didn't reach a json_error either. Pass.
 			$this->assertNull( $this->captured_error );
 			return;
 		}
 		// Some downstream check fired wp_send_json_error. As long as it
-		// doesn't have our `errors` array, it wasn't the preflight.
+		// doesn't have our `errors` array, it wasn't the presence check.
 		$this->assertArrayNotHasKey(
 			'errors',
 			$this->captured_error,
-			'preflight `errors` array should not be present on a non-preflight failure'
+			'presence check `errors` array should not be present on a non-presence-check failure'
 		);
 	}
 }

@@ -1,4 +1,4 @@
-// Tests for the identity queue's correction preflight (#1397 sprint 4).
+// Tests for the identity queue's correction preview (#1397 sprint 4).
 //
 // The verdicts are the server's and are proved there, against the real repair.
 // What this covers is the browser half: that an allowed correction says how
@@ -9,10 +9,10 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
-	window.ffcIdentityPreflight = {
+	window.ffcIdentityCorrectionPreview = {
 		ajaxUrl: '/wp-admin/admin-ajax.php',
-		action: 'ffc_identity_preflight_correction',
-		nonce: 'preflight-nonce',
+		action: 'ffc_identity_correction_preview',
+		nonce: 'preview-nonce',
 	};
 	// THE REAL `setRequiredWithin`, NOT THE GUARD AROUND IT.
 	//
@@ -21,7 +21,7 @@ beforeAll(() => {
 	// nothing about the attribute -- which is the half that decides whether the
 	// form can be submitted at all (#1117).
 	loadScript('assets/js/ffc-core.js');
-	loadScript('assets/js/ffc-identity-preflight.js');
+	loadScript('assets/js/ffc-identity-correction-preview.js');
 });
 
 const MARKUP = `
@@ -67,7 +67,7 @@ function chainFrom(response) {
 
 beforeEach(() => {
 	document.body.innerHTML = MARKUP;
-	window.FFC.IdentityPreflight.boot();
+	window.FFC.IdentityCorrectionPreview.boot();
 });
 
 afterEach(() => {
@@ -78,7 +78,7 @@ function check() {
 	window.$('.ffc-identity-check').trigger('click');
 }
 
-describe('the correction preflight', () => {
+describe('the correction preview', () => {
 	it('asks for a number before asking the server', () => {
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(chainFrom(null));
 
@@ -99,8 +99,8 @@ describe('the correction preflight', () => {
 
 		expect(postSpy).toHaveBeenCalledTimes(1);
 		expect(postSpy.mock.calls[0][1]).toMatchObject({
-			action: 'ffc_identity_preflight_correction',
-			nonce: 'preflight-nonce',
+			action: 'ffc_identity_correction_preview',
+			nonce: 'preview-nonce',
 			subject: 'abc',
 			field: 'rf',
 			value: '1234561',
@@ -280,7 +280,7 @@ describe('the correction preflight', () => {
 			data: { allowed: true, rows: 1, account: 398, consolidates: false },
 		}));
 
-		window.FFC.IdentityPreflight.boot();
+		window.FFC.IdentityCorrectionPreview.boot();
 		window.$('#ffc-rf-abc').val('1234561');
 		check();
 
@@ -289,7 +289,7 @@ describe('the correction preflight', () => {
 
 	it('binds nothing when the screen prints no correction field', () => {
 		document.body.innerHTML = '<div></div>';
-		expect(window.FFC.IdentityPreflight.boot()).toBe(false);
+		expect(window.FFC.IdentityCorrectionPreview.boot()).toBe(false);
 	});
 });
 
@@ -301,7 +301,7 @@ describe('the correction preflight', () => {
 // never drawn on the form that refusal arrives from. It is now shipped hidden
 // and revealed here, which also answers in one request what took a refusal and
 // a re-render.
-describe('the acknowledgement the preflight reveals', () => {
+describe('the acknowledgement the correction preview reveals', () => {
 	const $box = () => window.$('#ffc-ack-abc');
 	const $tick = () => window.$('#ffc-ack-abc input[type="checkbox"]');
 

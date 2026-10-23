@@ -114,24 +114,24 @@ $ffc_identity_foot = static function () {
  * and this no longer depends on that being the only route.
  *
  * The argument that followed was that two of the three forms have no
- * preflight, so a box revealed by a typed value could only appear on the
+ * correction preview, so a box revealed by a typed value could only appear on the
  * third. Both halves are true and the conclusion was backwards: the third form
- * is exactly the one that needs it, because the preflight already ASKS whether
+ * is exactly the one that needs it, because the correction preview already ASKS whether
  * the value belongs to somebody and paints the answer. Revealing the box
  * beneath that sentence satisfies `told why` in one request instead of two.
- * So a form with a preflight ships the box hidden and the preflight reveals
+ * So a form with a correction preview ships the box hidden and the correction preview reveals
  * it; a form without one still grows it from the refusal.
  *
  * @param string $subject   The finding this form acts on.
- * @param bool   $preflight Whether this form can reveal the box itself.
+ * @param bool   $correction_preview Whether this form can reveal the box itself.
  * @return void
  */
-$ffc_identity_ack = static function ( $subject, $preflight = false ) use ( $ffc_identity_outcome ) {
+$ffc_identity_ack = static function ( $subject, $correction_preview = false ) use ( $ffc_identity_outcome ) {
 	$refused = IdentityResolutionScreen::refused( $ffc_identity_outcome, (string) $subject );
 
-	// A form with no preflight has nothing that could reveal a hidden box, so
+	// A form with no correction preview has nothing that could reveal a hidden box, so
 	// there it is rendered only by the refusal that asks for it.
-	if ( ! $refused && ! $preflight ) {
+	if ( ! $refused && ! $correction_preview ) {
 		return;
 	}
 

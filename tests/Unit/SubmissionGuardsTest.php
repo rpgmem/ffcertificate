@@ -14,7 +14,7 @@ use FreeFormCertificate\Frontend\Submission\IpRateLimitGuard;
 use FreeFormCertificate\Frontend\Submission\NonceGuard;
 use FreeFormCertificate\Frontend\Submission\SecurityFieldsGuard;
 use FreeFormCertificate\Frontend\Submission\FormConfigResolver;
-use FreeFormCertificate\Frontend\Submission\PreflightGuard;
+use FreeFormCertificate\Frontend\Submission\RequiredPresenceGuard;
 use FreeFormCertificate\Frontend\Submission\FieldSanitizer;
 use FreeFormCertificate\Frontend\Submission\DeviceSignalsResolver;
 use FreeFormCertificate\Frontend\Submission\GeofenceGuard;
@@ -211,14 +211,14 @@ class SubmissionGuardsTest extends TestCase {
 		$this->assertCount( 1, $ctx->fields_config );
 	}
 
-	// ===================== PreflightGuard =====================
+	// ===================== RequiredPresenceGuard =====================
 
-	public function test_preflight_collects_both_lgpd_and_email_errors(): void {
+	public function test_presence_check_collects_both_lgpd_and_email_errors(): void {
 		$_POST           = array(); // no consent, no email value.
 		$ctx             = $this->ctx();
 		$ctx->fields_config = array( array( 'name' => 'email', 'type' => 'email' ) );
 		try {
-			( new PreflightGuard() )->apply( $ctx );
+			( new RequiredPresenceGuard() )->apply( $ctx );
 			$this->fail( 'expected SubmissionRejected' );
 		} catch ( SubmissionRejected $e ) {
 			$errors = $e->get_payload()['errors'];
@@ -226,14 +226,14 @@ class SubmissionGuardsTest extends TestCase {
 		}
 	}
 
-	public function test_preflight_passes_when_consent_and_email_present(): void {
+	public function test_presence_check_passes_when_consent_and_email_present(): void {
 		$_POST              = array( 'ffc_lgpd_consent' => '1', 'email' => 'a@b.co' );
 		$ctx                = $this->ctx();
 		$ctx->fields_config = array( array( 'name' => 'email', 'type' => 'email' ) );
 
 		// Same contract as the nonce guard: passing means apply() returns
 		// rather than throwing SubmissionRejected.
-		$this->assertNull( ( new PreflightGuard() )->apply( $ctx ) );
+		$this->assertNull( ( new RequiredPresenceGuard() )->apply( $ctx ) );
 	}
 
 	// ===================== FieldSanitizer =====================

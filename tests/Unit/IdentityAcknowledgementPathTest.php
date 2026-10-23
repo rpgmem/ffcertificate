@@ -301,7 +301,7 @@ class IdentityAcknowledgementPathTest extends TestCase {
 	}
 
 	/**
-	 * The repair form ships the box, so the preflight has something to reveal.
+	 * The repair form ships the box, so the correction preview has something to reveal.
 	 *
 	 * Hidden and WITHOUT `required`, which is the #1117 rule: a required
 	 * control inside a hidden block blocks the submit against something nobody
@@ -311,12 +311,12 @@ class IdentityAcknowledgementPathTest extends TestCase {
 	public function test_the_repair_form_ships_the_box_hidden_and_not_required(): void {
 		$view = \FreeFormCertificate\Tests\Support\ButtonMarkup::args_as_attributes( \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined() );
 
-		// SELECTED BY THE PREFLIGHT, NOT BY THE ACTION OR BY ORDER.
+		// SELECTED BY THE CORRECTION PREVIEW, NOT BY THE ACTION OR BY ORDER.
 		//
 		// TWO forms post `REPAIR_ACTION` -- the shared pair's and this one --
 		// so `strstr()` on the action finds the wrong one, which is how this
 		// assertion first failed against a correct fix. Selecting by the
-		// preflight says what the case is actually about, and stays right if a
+		// correction preview says what the case is actually about, and stays right if a
 		// third form is added on either side.
 		$forms = array_values(
 			array_filter(
@@ -327,7 +327,7 @@ class IdentityAcknowledgementPathTest extends TestCase {
 			)
 		);
 
-		$this->assertCount( 1, $forms, 'Exactly one form carries the preflight; the reveal is written for that one.' );
+		$this->assertCount( 1, $forms, 'Exactly one form carries the correction preview; the reveal is written for that one.' );
 
 		$form = (string) strstr( $forms[0], '</form>', true );
 
@@ -337,7 +337,7 @@ class IdentityAcknowledgementPathTest extends TestCase {
 		$this->assertMatchesRegularExpression(
 			'/\$ffc_identity_ack\(\s*\(string\) \( \$ffc_identity_row\[\'subject\'\] \?\? \'\' \),\s*true\s*\)/',
 			$form,
-			'The form with a preflight must ask for the box unconditionally.'
+			'The form with a correction preview must ask for the box unconditionally.'
 		);
 
 		$this->assertStringContainsString(

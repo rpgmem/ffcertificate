@@ -1,6 +1,6 @@
 <?php
 /**
- * Preflight for a corrected identifier.
+ * Preview of a corrected identifier.
  *
  * Answers, without writing anything, what typing this number would do
  * (#1397 sprint 4).
@@ -65,12 +65,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Say what a correction would do before it is committed.
  */
-class IdentityPreflightAjaxEndpoint {
+class IdentityCorrectionPreviewAjaxEndpoint {
 
 	/**
 	 * AJAX action, and the nonce the screen localises under it.
 	 */
-	public const AJAX_ACTION = 'ffc_identity_preflight_correction';
+	public const AJAX_ACTION = 'ffc_identity_correction_preview';
 
 	/**
 	 * How many characters of a hash reach the browser.
@@ -87,7 +87,7 @@ class IdentityPreflightAjaxEndpoint {
 	}
 
 	/**
-	 * Answer one preflight.
+	 * Answer one correction preview.
 	 *
 	 * @return void
 	 */
@@ -127,7 +127,7 @@ class IdentityPreflightAjaxEndpoint {
 				// This used to reach the screen only on a refusal, because a
 				// value belonging to another account WAS the refusal. It is now
 				// a consequence the correction is allowed to produce, so the
-				// preflight has to name it here or the verdict would read
+				// correction preview has to name it here or the verdict would read
 				// `allowed` and say nothing about the second account -- the one
 				// thing an operator must know before confirming a write that no
 				// use of this verb can undo.
@@ -142,7 +142,7 @@ class IdentityPreflightAjaxEndpoint {
 	 * A refusal, and — where it is a collision — who holds the value and
 	 * whether the records could simply be moved to them.
 	 *
-	 * Every other refusal is passed through word for word. A preflight that
+	 * Every other refusal is passed through word for word. A correction preview that
 	 * paraphrased would be a second vocabulary for the same decisions.
 	 *
 	 * @param WP_Error $plan What `plan()` refused with.

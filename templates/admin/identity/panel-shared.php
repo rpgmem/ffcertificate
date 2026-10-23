@@ -187,7 +187,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php
 					// THE PREVIEW IS THE WRITE'S OWN COUNT, ASKED FOR BEFORE
 					// THE WRITE. Its region carries the fixed sentences as
-					// data attributes, the way the correction preflight does,
+					// data attributes, the way the correction preview does,
 					// so every string is escaped at the output point.
 					?>
 					<p>

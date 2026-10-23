@@ -19,7 +19,7 @@
 (function ($) {
     'use strict';
 
-    var cfg = window.ffcIdentityPreflight || {};
+    var cfg = window.ffcIdentityCorrectionPreview || {};
 
     /**
      * Fill a %s / %1$s template the way `sprintf` would for our few cases.
@@ -76,7 +76,7 @@
      *
      * THE BOX IS REVEALED BY THE ANSWER, NOT BY THE TYPING.
      *
-     * The preflight already asks whether the typed value belongs to another
+     * The correction preview already asks whether the typed value belongs to another
      * account, so the operator has read what the write will do by the time the
      * box appears -- which is the condition the acknowledgement exists to
      * satisfy, met in one request instead of a refusal and a re-render.
@@ -233,8 +233,8 @@
             return false;
         }
 
-        $(document).off('.ffcIdentityPreflight')
-            .on('click.ffcIdentityPreflight', '.ffc-identity-check', function (event) {
+        $(document).off('.ffcIdentityCorrectionPreview')
+            .on('click.ffcIdentityCorrectionPreview', '.ffc-identity-check', function (event) {
                 event.preventDefault();
                 check($(this));
             });
@@ -243,7 +243,7 @@
     }
 
     window.FFC = window.FFC || {};
-    window.FFC.IdentityPreflight = { boot: boot };
+    window.FFC.IdentityCorrectionPreview = { boot: boot };
 
     $(boot);
 }(jQuery));

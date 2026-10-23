@@ -238,7 +238,7 @@ for ( const [ name, options ] of Object.entries( {
 	const { context, page } = await visit();
 	const ajax = `${ base }/wp-admin/admin-ajax.php`;
 	const probe = async () => {
-		const r = await page.request.post( ajax, { form: { action: 'ffc_identity_preflight_correction', nonce: 'x' } } );
+		const r = await page.request.post( ajax, { form: { action: 'ffc_identity_correction_preview', nonce: 'x' } } );
 		return { status: r.status(), body: ( await r.text() ).slice( 0, 20 ) };
 	};
 	const signedOut = await probe();

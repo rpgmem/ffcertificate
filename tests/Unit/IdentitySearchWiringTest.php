@@ -9,7 +9,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\IdentityResolutionPage;
 use FreeFormCertificate\Admin\IdentityMergePreviewAjaxEndpoint;
-use FreeFormCertificate\Admin\IdentityPreflightAjaxEndpoint;
+use FreeFormCertificate\Admin\IdentityCorrectionPreviewAjaxEndpoint;
 use FreeFormCertificate\Admin\IdentitySearchAjaxEndpoint;
 
 /**
@@ -144,8 +144,8 @@ class IdentitySearchWiringTest extends TestCase {
 
 		$this->assertArrayHasKey( 'ffc-identity-search', $this->scripts );
 		$this->assertMatchesRegularExpression( '#assets/js/ffc-identity-search(\.min)?\.js$#', $this->scripts['ffc-identity-search'] );
-		$this->assertArrayHasKey( 'ffc-identity-preflight', $this->scripts );
-		$this->assertMatchesRegularExpression( '#assets/js/ffc-identity-preflight(\.min)?\.js$#', $this->scripts['ffc-identity-preflight'] );
+		$this->assertArrayHasKey( 'ffc-identity-correction-preview', $this->scripts );
+		$this->assertMatchesRegularExpression( '#assets/js/ffc-identity-correction-preview(\.min)?\.js$#', $this->scripts['ffc-identity-correction-preview'] );
 	}
 
 	/**
@@ -185,10 +185,10 @@ class IdentitySearchWiringTest extends TestCase {
 	}
 
 	/**
-	 * The preflight script is told the action ITS endpoint registers, which is
+	 * The correction preview script is told the action ITS endpoint registers, which is
 	 * a different one from the dialog's.
 	 */
-	public function test_the_preflight_is_localised_with_its_own_action(): void {
+	public function test_the_correction_preview_is_localised_with_its_own_action(): void {
 		$page = new IdentityResolutionPage();
 		$page->enqueue( 'ffc_form_page_' . IdentityResolutionPage::MENU_SLUG );
 
@@ -198,27 +198,27 @@ class IdentitySearchWiringTest extends TestCase {
 			$found[ $entry['name'] ] = $entry['data'];
 		}
 
-		$this->assertArrayHasKey( 'ffcIdentityPreflight', $found );
+		$this->assertArrayHasKey( 'ffcIdentityCorrectionPreview', $found );
 		$this->assertSame(
-			IdentityPreflightAjaxEndpoint::AJAX_ACTION,
-			$found['ffcIdentityPreflight']['action'] ?? ''
+			IdentityCorrectionPreviewAjaxEndpoint::AJAX_ACTION,
+			$found['ffcIdentityCorrectionPreview']['action'] ?? ''
 		);
 		$this->assertNotSame(
 			IdentitySearchAjaxEndpoint::AJAX_ACTION,
-			$found['ffcIdentityPreflight']['action'] ?? '',
+			$found['ffcIdentityCorrectionPreview']['action'] ?? '',
 			'Two endpoints under one action is a copy-paste that would route every check to the search.'
 		);
-		$this->assertNotSame( '', (string) ( $found['ffcIdentityPreflight']['nonce'] ?? '' ) );
+		$this->assertNotSame( '', (string) ( $found['ffcIdentityCorrectionPreview']['nonce'] ?? '' ) );
 	}
 
 	/**
-	 * Every id the PREFLIGHT script reads is printed by the view too.
+	 * Every id the CORRECTION PREVIEW script reads is printed by the view too.
 	 *
 	 * Same scan as its sibling below, over the other file — the ids it reads
 	 * are built by concatenation, so they are checked as prefixes on the data
 	 * attributes that name them.
 	 */
-	public function test_the_preflight_names_ids_the_view_emits(): void {
+	public function test_the_correction_preview_names_ids_the_view_emits(): void {
 		$view = self::view();
 
 		$pairs = array(
@@ -233,7 +233,7 @@ class IdentitySearchWiringTest extends TestCase {
 
 		// Every `data-` key the script reads off the verdict region must be
 		// printed, or the region renders an empty sentence.
-		preg_match_all( "/\\\$region\\.data\\('([a-z]+)'\\)/", self::script( 'ffc-identity-preflight.js' ), $matches );
+		preg_match_all( "/\\\$region\\.data\\('([a-z]+)'\\)/", self::script( 'ffc-identity-correction-preview.js' ), $matches );
 
 		$this->assertNotEmpty( $matches[1], 'The scan found no data lookups, so it proves nothing.' );
 

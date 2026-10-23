@@ -1,6 +1,6 @@
 <?php
 /**
- * PreflightGuard — pipeline stage 7 (#563 Sprint 1).
+ * RequiredPresenceGuard — pipeline stage 7 (#563 Sprint 1).
  *
  * Cheap O(1) presence checks BEFORE the field-validation loop: LGPD consent
  * + email presence. Running them up front lets the user get both errors in a
@@ -20,22 +20,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * LGPD consent + email-presence preflight gate.
+ * LGPD consent + email-presence gate.
  */
-class PreflightGuard {
+class RequiredPresenceGuard {
 
 	/**
 	 * Reject the request when consent or email presence is missing.
 	 *
 	 * @param SubmissionContext $ctx Submission context.
-	 * @throws SubmissionRejected With every preflight error at once.
+	 * @throws SubmissionRejected With every presence error at once.
 	 */
 	public function apply( SubmissionContext $ctx ): void {
-		$preflight_errors = array();
+		$errors = array();
 
 		// LGPD: trivial string compare, no field loop dependency.
 		if ( SubmissionInput::string( $ctx, 'ffc_lgpd_consent' ) !== '1' ) {
-			$preflight_errors[] = __( 'You must agree to the Privacy Policy to continue.', 'ffcertificate' );
+			$errors[] = __( 'You must agree to the Privacy Policy to continue.', 'ffcertificate' );
 		}
 
 		// Email presence: peek at the admin-configured 'email' fields.
@@ -55,18 +55,18 @@ class PreflightGuard {
 				}
 			}
 			if ( $email_missing ) {
-				$preflight_errors[] = __( 'Email address is required.', 'ffcertificate' );
+				$errors[] = __( 'Email address is required.', 'ffcertificate' );
 			}
 		}
 
-		if ( ! empty( $preflight_errors ) ) {
+		if ( ! empty( $errors ) ) {
 			throw new SubmissionRejected(
 				array(
 					// Backward-compatible: legacy single-error consumers read
 					// `message` (first error). New consumers read the full
 					// `errors` array to surface every missing field at once.
-					'message' => $preflight_errors[0],
-					'errors'  => $preflight_errors,
+					'message' => $errors[0],
+					'errors'  => $errors,
 				)
 			);
 		}
