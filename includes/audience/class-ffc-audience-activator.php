@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '4';
+	public const SCHEMA_REVISION = '5';
 
 	/**
 	 * Option holding the revision last applied.
@@ -69,6 +69,7 @@ class AudienceActivator {
 		self::create_booking_users_table();
 		self::create_attendance_table();
 		self::create_checkin_windows_table();
+		self::create_form_invites_table();
 		self::register_capabilities();
 		self::add_composite_indexes();
 	}
@@ -442,6 +443,41 @@ class AudienceActivator {
             geofence_locations varchar(255) DEFAULT NULL,
             PRIMARY KEY (id),
             KEY idx_booking_date (booking_id,window_date)
+        ) {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Create the post-event invitations table (#1948).
+	 *
+	 * One row per person and booking whose post-event form invitation was
+	 * sent; the unique key is what makes a second send update the row rather
+	 * than add one. A row is a relationship, not a record: it is deleted with
+	 * the account.
+	 *
+	 * @return void
+	 */
+	private static function create_form_invites_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_audience_form_invites';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		$sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            booking_id bigint(20) unsigned NOT NULL,
+            user_id bigint(20) unsigned NOT NULL,
+            form_id bigint(20) unsigned NOT NULL,
+            sent_at bigint(20) unsigned NOT NULL,
+            send_count smallint(5) unsigned NOT NULL DEFAULT 1,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_booking_user (booking_id,user_id),
+            KEY idx_user (user_id)
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -878,13 +914,16 @@ class AudienceActivator {
 		$healed = self::migrate_booking_attendance_columns() && $healed;
 		$healed = self::migrate_post_event_form_columns() && $healed;
 
-		// The attendance tables of #1947 reach upgraded installs here: the
-		// version-gated chain below never creates a table (#1311).
+		// The attendance tables of #1947 and the invitations of #1948 reach
+		// upgraded installs here: the version-gated chain below never creates
+		// a table (#1311).
 		self::create_attendance_table();
 		self::create_checkin_windows_table();
+		self::create_form_invites_table();
 		$healed = $healed
 			&& self::table_exists( $wpdb->prefix . 'ffc_audience_attendance' )
-			&& self::table_exists( $wpdb->prefix . 'ffc_audience_checkin_windows' );
+			&& self::table_exists( $wpdb->prefix . 'ffc_audience_checkin_windows' )
+			&& self::table_exists( $wpdb->prefix . 'ffc_audience_form_invites' );
 
 		if ( $healed ) {
 			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
@@ -1034,6 +1073,7 @@ class AudienceActivator {
 
 		// Drop in reverse order of dependencies.
 		$tables = array(
+			$wpdb->prefix . 'ffc_audience_form_invites',
 			$wpdb->prefix . 'ffc_audience_attendance',
 			$wpdb->prefix . 'ffc_audience_checkin_windows',
 			$wpdb->prefix . 'ffc_audience_booking_users',
@@ -1073,6 +1113,7 @@ class AudienceActivator {
 			'booking_users'     => 'ffc_audience_booking_users',
 			'attendance'        => 'ffc_audience_attendance',
 			'checkin_windows'   => 'ffc_audience_checkin_windows',
+			'form_invites'      => 'ffc_audience_form_invites',
 		);
 
 		$status = array();

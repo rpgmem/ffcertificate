@@ -109,7 +109,8 @@ class DeactivatorTest extends TestCase {
 		$this->assertContains( 'ffcertificate_warm_cache_hook', $cleared );
 		// The bulk-issue purge of unfinished imports (#1945).
 		$this->assertContains( 'ffcertificate_bulk_issue_purge', $cleared );
-		$this->assertCount( 12, $cleared );
+		$this->assertContains( 'ffcertificate_audience_post_event_invites', $cleared );
+		$this->assertCount( 13, $cleared );
 	}
 
 	public function test_deactivate_flushes_rewrite_rules(): void {

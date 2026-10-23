@@ -48,6 +48,13 @@ final class EmailSource {
 	public const AUDIENCE = 'plugin:ffcertificate_audience';
 
 	/**
+	 * Post-event certificate form invitations of an audience booking (#1948):
+	 * attributed apart from the booking notices, so the mail queue shows
+	 * which messages lead to a certificate.
+	 */
+	public const AUDIENCE_POST_EVENT = 'plugin:ffcertificate_audience_post_event';
+
+	/**
 	 * Re-registration campaign emails.
 	 */
 	public const REREGISTRATION = 'plugin:ffcertificate_reregistration';
@@ -95,6 +102,8 @@ final class EmailSource {
 				return __( 'FFCertificate — Personal Calendars', 'ffcertificate' );
 			case self::AUDIENCE:
 				return __( 'FFCertificate — Audience Calendars', 'ffcertificate' );
+			case self::AUDIENCE_POST_EVENT:
+				return __( 'FFCertificate — Audience Calendars post-event forms', 'ffcertificate' );
 			case self::REREGISTRATION:
 				return __( 'FFCertificate — Reregistration', 'ffcertificate' );
 			case self::RECRUITMENT:

@@ -504,6 +504,9 @@ class Loader {
 			wp_schedule_event( time(), 'hourly', \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK );
 		}
 
+		// Ensure the hourly post-event form invitation run is scheduled (#1948).
+		\FreeFormCertificate\Audience\AudienceFormInviteScanner::schedule();
+
 		// Ensure the daily Cloudflare CIDR refresh cron is scheduled (#901).
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::schedule();
 
@@ -1234,6 +1237,9 @@ class Loader {
 		}
 		if ( SettingsReader::module_enabled( 'self_scheduling' ) ) {
 			add_action( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::class, 'run' ) );
+		}
+		if ( SettingsReader::module_enabled( 'audiences' ) ) {
+			add_action( \FreeFormCertificate\Audience\AudienceFormInviteScanner::CRON_HOOK, array( \FreeFormCertificate\Audience\AudienceFormInviteScanner::class, 'run' ) );
 		}
 		if ( SettingsReader::module_enabled( 'date_messages' ) ) {
 			\FreeFormCertificate\DateMessages\DateMessagesCron::init();

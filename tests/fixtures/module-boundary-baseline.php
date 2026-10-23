@@ -38,6 +38,7 @@ return array(
 	'Admin>UserDashboard',
 	'Audience>Admin',
 	'Audience>Core',
+	'Audience>Frontend',
 	'Audience>Generators',
 	'Audience>Integrations',
 	'Audience>Reregistration',

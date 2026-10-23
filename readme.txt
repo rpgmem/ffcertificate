@@ -52,7 +52,7 @@ The full reference (every token, shortcode, capability and setting) ships inside
 * **Multi-day Bookings** - A booking can cover a range of days, with the same hours each day or from the start time on the first day to the end time on the last. A holiday inside the range refuses the booking unless the operator skips it.
 * **CSV Import & Export** - Import and export audiences and members, with user creation.
 * **Conflict Detection** - Conflicts are checked before a booking is confirmed.
-* **Attendance** - Participants check in by scanning a QR code that rotates every few minutes, optionally inside a geofence. The organiser sees the list live, marks people by hand, sets a rule for multi-day bookings and exports the attendance to CSV.
+* **Attendance** - Participants check in by scanning a QR code that rotates every few minutes, optionally inside a geofence. The organiser sees the list live, marks people by hand, sets a rule for multi-day bookings and exports the attendance to CSV. After the event, each participant is e-mailed a personal link to a certificate form, and the organiser follows who answered.
 * **Shortcodes** - The Audience Calendars list shows each calendar's and each environment's shortcode with a copy button.
 * **Email Notifications** - Automatic notifications for new bookings and cancellations.
 

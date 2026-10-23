@@ -30,6 +30,7 @@ class Deactivator {
 		wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 		wp_clear_scheduled_hook( 'ffcertificate_bulk_issue_purge' );
 		wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
+		wp_clear_scheduled_hook( 'ffcertificate_audience_post_event_invites' );
 		wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 		// A pending reminder batch would otherwise fire into code that is no
 		// longer loaded (#1538 -- it was cleared nowhere).

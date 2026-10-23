@@ -26510,7 +26510,7 @@ msgid "Let bypass holders book outside the rules"
 msgstr ""
 
 #: includes/settings/views/documentation/reference-emails.php
-msgid "New scheduled activity and activity-cancelled notices, and the \"booking cancelled by an administrator\" notice sent to the owner of a booking an override replaced"
+msgid "New scheduled activity and activity-cancelled notices, the \"booking cancelled by an administrator\" notice sent to the owner of a booking an override replaced, and the post-event form invitation sent to each participant once a booking ends"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-shortcode.php
@@ -28322,4 +28322,128 @@ msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "An invitation link opens the form with the participant's name and e-mail filled in and locked, from their account; no login is needed, so treat the link as personal. The CPF/RF is not filled in: the participant types it, and it is refused when it belongs to another account, or when it differs from the one already on record. A first CPF/RF is accepted and recorded on their profile. The submission keeps the booking it came from. To keep the form closed to everyone else, switch on its \"Booking participants only\" restriction."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "%1$s (sent %2$d times)"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Answer"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Answered"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Audience post-event form invitation"
+msgstr ""
+
+#: includes/settings/views/documentation/email-texts-hub.php
+msgid "Audience post-event form invitation:"
+msgstr ""
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Audience post-event form invitations"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Certificate issued"
+msgstr ""
+
+#: includes/core/class-ffc-email-source.php
+msgid "FFCertificate — Audience Calendars post-event forms"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invitation sent."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invitations go out on their own once the event ends, and can be sent again here while the form is open."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invitations sent to everyone eligible who has not answered."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invited"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-form-invite-mailer.php
+msgid "No published page embeds the post-event form, so there is no link to send."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "No published page embeds the post-event form. Add the form to a page, then send again."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Nobody was sent an invitation: everyone eligible has answered, or the form is not open."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Not yet"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Once an hour the plugin e-mails each eligible participant of a booking whose form has opened the personal link, once. The e-mail is \"Audience post-event form invitation\" under Settings → Email texts. It needs a published page that embeds the form, since the link points there; without one nothing is sent. The Attendance screen lists who was invited and when, who answered and whose certificate was issued, and while the form is open it resends to one person or to everyone who has not answered; this needs ffc_checkin_audiences."
+msgstr ""
+
+#: templates/emails/audience-post-event-invite.php
+msgid "Open the form"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Post-event form invitation"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Resend"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Send to everyone who has not answered"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Sent to each participant when a booking with a post-event form ends, and again on Resend — text edited globally in the hub above."
+msgstr ""
+
+#: templates/emails/audience-post-event-invite.php
+msgid "Thank you for taking part in {{event}}. Fill in the form \"{{form_title}}\" to receive your certificate."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-form-invite-mailer.php
+msgid "The e-mail could not be sent."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "The invitation could not be sent."
+msgstr ""
+
+#: templates/emails/audience-post-event-invite.php
+msgid "The link is open until {{closes_at}}. It is personal: it fills in your name and e-mail, so do not forward it."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-form-invite-mailer.php
+msgid "The participant has no valid e-mail address."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "This person cannot be invited now: the form is not open, or they are not eligible."
+msgstr ""
+
+#: templates/emails/audience-post-event-invite.php
+msgid "Your certificate for {{event}}"
+msgstr ""
+
+#: templates/emails/audience-post-event-invite.php
+msgid "Your certificate is waiting"
+msgstr ""
+
+#: includes/settings/views/documentation/email-texts-hub.php
+msgid "global only; the form a booking leads to is chosen on its calendar or its Attendance screen."
 msgstr ""
