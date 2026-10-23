@@ -999,6 +999,15 @@ details.ffc-consent-description > p {
     display: block !important;
 }
 
+/* The form's scripts did not load in time (#2030): the boot watchdog shows
+   its notice and takes the form away, so nothing invites a submit that would
+   go nowhere. One class more than the rule above, which it has to beat on a
+   form the geofence already validated. */
+.ffc-shortcode.ffc-form-wrapper.ffc-boot-failed .ffc-submission-form,
+.ffc-shortcode.ffc-form-wrapper.ffc-boot-failed .ffc-geofence-loading-msg {
+    display: none !important;
+}
+
 /* Geofence loading message */
 .ffc-shortcode .ffc-geofence-loading-msg {
     text-align: center;

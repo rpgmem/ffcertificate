@@ -28592,3 +28592,30 @@ msgid "You have %d certificate form to fill in. Find it under Actions."
 msgid_plural "You have %d certificate forms to fill in. Find them under Actions."
 msgstr[0] "Você tem %d formulário de certificado para preencher. Ele está em Ações."
 msgstr[1] "Você tem %d formulários de certificado para preencher. Eles estão em Ações."
+
+msgid "JavaScript is off"
+msgstr "O JavaScript está desativado"
+
+msgid "This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your certificate."
+msgstr "Este formulário precisa de JavaScript, que está desativado neste navegador. Ative-o ou abra esta página em outro navegador para obter o seu certificado."
+
+msgid "The form did not load completely"
+msgstr "O formulário não carregou por completo"
+
+msgid "Part of this form did not load, so it cannot be sent yet. Reload the page. If this message comes back, turn off any content blocker for this site or open the page in another browser."
+msgstr "Parte deste formulário não carregou, por isso ele ainda não pode ser enviado. Recarregue a página. Se esta mensagem voltar, desative bloqueadores de conteúdo neste site ou abra a página em outro navegador."
+
+msgid "Reload the page"
+msgstr "Recarregar a página"
+
+msgid "A visitor sees \"The form did not load completely\" or \"JavaScript is off\""
+msgstr "Um visitante vê \"O formulário não carregou por completo\" ou \"O JavaScript está desativado\""
+
+msgid "The form is sent and the PDF is drawn by scripts in the browser, so it cannot work without them"
+msgstr "O formulário é enviado e o PDF é desenhado por scripts no navegador, por isso ele não funciona sem eles"
+
+msgid "A content blocker or a dropped request kept a script, or the refresh of the captcha and security codes, from loading: ask the visitor to reload, then to allow the site in the blocker or use another browser"
+msgstr "Um bloqueador de conteúdo ou uma requisição perdida impediu o carregamento de um script, ou a atualização do captcha e dos códigos de segurança: peça ao visitante para recarregar a página e, depois, para liberar o site no bloqueador ou usar outro navegador"
+
+msgid "If every visitor sees it, check that a cache or optimisation plugin is not combining or delaying the plugin's scripts, and that admin-ajax.php is reachable"
+msgstr "Se todos os visitantes veem a mensagem, verifique se um plugin de cache ou de otimização não está combinando ou adiando os scripts do plugin, e se o admin-ajax.php está acessível"

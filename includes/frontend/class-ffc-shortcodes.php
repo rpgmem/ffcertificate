@@ -289,9 +289,15 @@ class Shortcodes {
 				);
 				echo $invite_notice; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
 			}
+
+			// What the visitor sees when this browser cannot run the form
+			// (#2030). The form below posts with POST, so a submit that reaches
+			// the browser's default action (no script ran) keeps the name,
+			// e-mail and CPF/RF out of the URL, the history and the server logs.
+			echo BrowserGate::form_markup(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() and Button::html() escape every value.
 			?>
 			<h2 class="ffc-form-title"><?php echo esc_html( $form_title ); ?></h2>
-			<form class="ffc-submission-form" id="ffc-form-element-<?php echo esc_attr( (string) $form_id ); ?>" autocomplete="off" aria-label="<?php echo esc_attr( $form_title ); ?>"<?php echo null !== $quiz_leave ? $this->quiz_leave_attributes( $quiz_leave, $leave_level ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value escaped in quiz_leave_attributes(). ?>>
+			<form class="ffc-submission-form" id="ffc-form-element-<?php echo esc_attr( (string) $form_id ); ?>" method="post" autocomplete="off" aria-label="<?php echo esc_attr( $form_title ); ?>"<?php echo null !== $quiz_leave ? $this->quiz_leave_attributes( $quiz_leave, $leave_level ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value escaped in quiz_leave_attributes(). ?>>
 				<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form_id ); ?>">
 				<?php if ( null !== $invite ) : ?>
 					<input type="hidden" name="<?php echo esc_attr( FormInvite::QUERY_VAR ); ?>" value="<?php echo esc_attr( $invite_code ); ?>">

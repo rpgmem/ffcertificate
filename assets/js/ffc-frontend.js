@@ -800,6 +800,17 @@
             this.style.setProperty('height', 'auto', 'important');
             this.style.setProperty('height', this.scrollHeight + 'px', 'important');
         });
+
+        // Tell the boot watchdog the form can be sent (#2030): this setup
+        // ran, and what a submit goes through is on the page — the request
+        // helper and the libraries the PDF is drawn with.
+        if (window.FFC && FFC.Preflight
+            && typeof FFC.request === 'function'
+            && typeof window.ffcGeneratePDF === 'function'
+            && typeof window.html2canvas === 'function'
+            && window.jspdf && typeof window.jspdf.jsPDF === 'function') {
+            FFC.Preflight.ready('frontend');
+        }
     });
 
     // console.log('[FFC Frontend] Script loaded v3.1.0 (cleaned up defensive code)');
