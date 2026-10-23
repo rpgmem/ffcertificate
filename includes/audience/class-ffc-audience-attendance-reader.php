@@ -62,6 +62,35 @@ class AudienceAttendanceReader {
 	}
 
 	/**
+	 * The days every recorded person was present at a booking, in one query.
+	 *
+	 * Lines whose person was deleted (`user_id` NULL) are left out: they
+	 * count for nobody.
+	 *
+	 * @param int $booking_id Booking ID.
+	 * @return array<int, list<string>> User ID => Y-m-d, oldest first.
+	 */
+	public static function days_by_user( int $booking_id ): array {
+		$wpdb = self::db();
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT user_id, attendance_date FROM %i WHERE booking_id = %d AND user_id IS NOT NULL ORDER BY attendance_date ASC',
+				self::get_table_name(),
+				$booking_id
+			),
+			ARRAY_A
+		);
+
+		$days = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$days[ ArrayValue::int( $row, 'user_id' ) ][] = ArrayValue::string( $row, 'attendance_date' );
+		}
+
+		return $days;
+	}
+
+	/**
 	 * Whether a person is already recorded present on one day of a booking.
 	 *
 	 * @param int    $booking_id Booking ID.

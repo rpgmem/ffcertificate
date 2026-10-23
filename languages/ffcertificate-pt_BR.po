@@ -28056,6 +28056,216 @@ msgstr "Sua localização é necessária para fazer check-in aqui. Permita nas c
 msgid "Your location is outside the event area. Check in from the event, or ask the organiser to mark your attendance."
 msgstr "Sua localização está fora da área do evento. Faça o check-in no evento ou peça ao organizador para marcar sua presença."
 
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in is open. Project the QR code where participants can scan it."
+msgstr "O check-in está aberto. Projete o QR code onde os participantes possam lê-lo."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in is closed."
+msgstr "O check-in está encerrado."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance marked."
+msgstr "Presença marcada."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance removed."
+msgstr "Presença removida."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance rule saved."
+msgstr "Regra de presença salva."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in by QR code opens only on the day itself, for an active booking."
+msgstr "O check-in por QR code só abre no próprio dia, para uma reserva ativa."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in was not open."
+msgstr "O check-in não estava aberto."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance cannot be marked for a day that has not come yet."
+msgstr "Não é possível marcar presença em um dia que ainda não chegou."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "You do not have permission to do that."
+msgstr "Você não tem permissão para fazer isso."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "The change could not be saved."
+msgstr "Não foi possível salvar a alteração."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance"
+msgstr "Presença"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Back to bookings"
+msgstr "Voltar às reservas"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in by QR code"
+msgstr "Check-in por QR code"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "This booking is cancelled, so it takes no check-in."
+msgstr "Esta reserva está cancelada, então não recebe check-in."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in by QR code opens only on the day itself. Attendance on other days can be marked by hand below."
+msgstr "O check-in por QR code só abre no próprio dia. A presença em outros dias pode ser marcada manualmente abaixo."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "Closes on its own at %1$s. The code changes every %2$d seconds."
+msgstr "Encerra sozinho às %1$s. O código muda a cada %2$d segundos."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Participants must be inside one of the selected areas."
+msgstr "Os participantes precisam estar dentro de uma das áreas selecionadas."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Project the QR code"
+msgstr "Projetar o QR code"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Close check-in"
+msgstr "Encerrar check-in"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "The code changes every"
+msgstr "O código muda a cada"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Require the participant to be inside (optional)"
+msgstr "Exigir que o participante esteja dentro de (opcional)"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "The position comes from the participant's browser and can be faked: an area makes checking in from elsewhere harder, it does not prove presence."
+msgstr "A posição vem do navegador do participante e pode ser falsificada: uma área dificulta o check-in de outro lugar, mas não comprova a presença."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "Check-in closes on its own at %s, 30 minutes after the booking ends today."
+msgstr "O check-in encerra sozinho às %s, 30 minutos após o fim da reserva hoje."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Open check-in"
+msgstr "Abrir check-in"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance rule"
+msgstr "Regra de presença"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Any day"
+msgstr "Qualquer dia"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Share of days"
+msgstr "Percentual de dias"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Present on at least one day counts as attended."
+msgstr "Presente em pelo menos um dia conta como participação."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Present on at least the share below of the booked days counts as attended. Skipped days do not count."
+msgstr "Presente em pelo menos o percentual abaixo dos dias reservados conta como participação. Dias pulados não contam."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "Minimum share of days (%)"
+msgstr "Percentual mínimo de dias (%)"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "As saved, %1$d of the %2$d booked day(s) are required."
+msgstr "Como está salva, a regra exige %1$d dos %2$d dia(s) reservado(s)."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "%1$s of %2$s present on %3$s"
+msgstr "%1$s de %2$s presentes em %3$s"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "This booking has no participants."
+msgstr "Esta reserva não tem participantes."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "This day"
+msgstr "Neste dia"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Days present"
+msgstr "Dias presentes"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Met"
+msgstr "Cumprida"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Mark present"
+msgstr "Marcar presença"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "by hand"
+msgstr "manual"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "QR"
+msgstr "QR"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in"
+msgstr "Check-in"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in QR code"
+msgstr "QR code de check-in"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Scan with your phone camera to check in."
+msgstr "Leia com a câmera do celular para fazer o check-in."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "%1$s of %2$s present"
+msgstr "%1$s de %2$s presentes"
+
+#: includes/audience/class-ffc-audience-attendance-ajax.php
+msgid "You do not have permission to run check-in."
+msgstr "Você não tem permissão para conduzir o check-in."
+
+#: includes/audience/class-ffc-audience-attendance-export-source.php
+msgid "Attendance rule met"
+msgstr "Regra de presença cumprida"
+
+#: includes/audience/class-ffc-audience-attendance-export-source.php
+msgid "Present"
+msgstr "Presente"
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Attendance and QR check-in"
+msgstr "Presença e check-in por QR"
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The Attendance link in a booking's row of Audience Bookings opens its attendance screen. On the day itself, Open check-in starts a check-in for that day: choose how often the code changes (1, 2, 3, 5 or 10 minutes) and, optionally, the saved geolocation areas the participant must be inside. Project the QR code opens a full-screen page for a projector or a screen; the code changes on its own and the page counts who is present. Check-in closes when you press Close check-in, or on its own 30 minutes after the booking ends that day. Opening it again starts a new check-in, and codes from the previous one stop working."
+msgstr "O link Presença na linha de uma reserva em Agendamentos de Público-alvo abre a tela de presença. No próprio dia, Abrir check-in inicia o check-in daquele dia: escolha com que frequência o código muda (1, 2, 3, 5 ou 10 minutos) e, opcionalmente, as áreas de geolocalização salvas em que o participante precisa estar. Projetar o QR code abre uma página em tela cheia para projetor ou monitor; o código muda sozinho e a página conta quem está presente. O check-in encerra quando você clica em Encerrar check-in, ou sozinho 30 minutos após o fim da reserva naquele dia. Abrir de novo inicia um novo check-in, e os códigos do anterior deixam de valer."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "A participant scans the code with the phone camera, logs in if asked and confirms. Only people on the booking (its custom users and the members of its audiences) can check in, once per day. A code shown on the screen is valid for its rotation and the one before; a link copied from it expires within minutes. The location of an area check-in comes from the participant's browser and can be faked: it makes checking in from elsewhere harder, it does not prove presence."
+msgstr "O participante lê o código com a câmera do celular, faz login se for pedido e confirma. Só pessoas da reserva (seus usuários personalizados e os membros de seus públicos) podem fazer check-in, uma vez por dia. Um código exibido na tela vale durante sua rotação e a anterior; um link copiado dele expira em poucos minutos. A localização de um check-in com área vem do navegador do participante e pode ser falsificada: dificulta o check-in de outro lugar, mas não comprova a presença."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The participants list shows who is present on the day selected and refreshes on its own. Mark present and Remove record or delete an attendance by hand on today or an earlier day, noting who marked it. The attendance rule decides who counts as attended for a booking over several days: Any day, or a minimum share of the booked days (skipped days do not count). Export CSV lists each participant's name, a column per day, the days present and whether the rule was met; it carries no e-mail or document number."
+msgstr "A lista de participantes mostra quem está presente no dia selecionado e se atualiza sozinha. Marcar presença e Remover registram ou apagam uma presença manualmente hoje ou em um dia anterior, anotando quem marcou. A regra de presença decide quem conta como participante em uma reserva de vários dias: Qualquer dia, ou um percentual mínimo dos dias reservados (dias pulados não contam). Exportar CSV lista o nome de cada participante, uma coluna por dia, os dias presentes e se a regra foi cumprida; não traz e-mail nem número de documento."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Attendance lines are records: when an account is deleted or its data erased, the line stays and loses the person. A participant's attendance is included in their privacy export."
+msgstr "As linhas de presença são registros: quando uma conta é excluída ou seus dados são apagados, a linha permanece sem a pessoa. A presença de um participante entra na sua exportação de privacidade."
+
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "run attendance: open and close check-in, project the QR code and mark attendance by hand. Held by the Operator tier and above. Changing a booking's attendance rule needs ffc_manage_audiences, and its CSV needs ffc_export_audiences."
 msgstr "conduzir a presença: abrir e encerrar o check-in, projetar o QR code e marcar presença manualmente. Dada ao nível Operador e acima. Alterar a regra de presença de uma reserva exige ffc_manage_audiences, e o CSV exige ffc_export_audiences."

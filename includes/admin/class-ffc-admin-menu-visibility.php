@@ -65,7 +65,7 @@ final class AdminMenuVisibility {
 	 *
 	 * @var list<string>
 	 */
-	public const AUDIENCE_SCREEN_SUFFIXES = array( 'dashboard', 'calendars', 'environments', 'audiences', 'bookings', 'settings' );
+	public const AUDIENCE_SCREEN_SUFFIXES = array( 'dashboard', 'calendars', 'environments', 'audiences', 'bookings', 'attendance', 'settings' );
 
 	/**
 	 * `?page=` of the Short URLs list, registered by
@@ -131,6 +131,9 @@ final class AdminMenuVisibility {
 		foreach ( self::AUDIENCE_SCREEN_SUFFIXES as $suffix ) {
 			$audience_screens[] = AudienceAdminPage::MENU_SLUG . '-' . $suffix;
 		}
+		// The attendance screen runs check-in (`ffc_checkin_audiences`, #1947),
+		// which the view-only roles do not hold.
+		$audience_view_screens = array_values( array_diff( $audience_screens, array( AudienceAdminPage::MENU_SLUG . '-attendance' ) ) );
 
 		// The Certificates screens (#1776). The forms' list is also the parent
 		// of the Dashboard and Submissions submenus, whose menu links take the
@@ -238,7 +241,7 @@ final class AdminMenuVisibility {
 			// gated on `ffc_view_audiences`.
 			'ffc_audiences_viewer'        => array(
 				'landing_page'         => AudienceAdminPage::MENU_SLUG,
-				'allowed_pages'        => $audience_screens,
+				'allowed_pages'        => $audience_view_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
@@ -298,7 +301,7 @@ final class AdminMenuVisibility {
 							$certificate_screens,
 							$form_screens,
 							array( ReregistrationAdmin::MENU_SLUG, RecruitmentAdminPage::PAGE_SLUG, self::APPOINTMENTS_PAGE, $personal_calendars, self::SHORT_URLS_PAGE, self::DATE_MESSAGES_PAGE ),
-							$audience_screens
+							$audience_view_screens
 						)
 					)
 				),

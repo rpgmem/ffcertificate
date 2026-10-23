@@ -137,6 +137,9 @@ class AudienceLoader {
 			}
 		);
 
+		// The live state the attendance screen and the projected QR poll (#1947).
+		AudienceAttendanceAjax::init();
+
 		// Load admin assets.
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 	}
@@ -268,6 +271,11 @@ class AudienceLoader {
 				FFC_VERSION,
 				true
 			);
+		}
+
+		// Attendance screen of one booking (#1947).
+		if ( AudienceAdminPage::MENU_SLUG . '-attendance' === $page ) {
+			( new AudienceAdminAttendance( AudienceAdminPage::MENU_SLUG ) )->maybe_enqueue();
 		}
 
 		// Bookings page: the batched CSV export button drives the shared

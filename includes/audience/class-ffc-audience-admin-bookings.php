@@ -226,6 +226,9 @@ class AudienceAdminBookings {
 						// View and Cancel call AJAX handlers gated on
 						// `ffc_manage_audiences` (AudienceAjaxController, #1769).
 						$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
+						// Attendance opens the booking's check-in screen (#1947).
+						$can_checkin = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( AudienceAdminAttendance::CAP );
+						$attendance  = new AudienceAdminAttendance( $this->menu_slug );
 						?>
 						<?php foreach ( $bookings as $booking ) : ?>
 							<?php
@@ -267,6 +270,12 @@ class AudienceAdminBookings {
 												<?php esc_html_e( 'Cancel', 'ffcertificate' ); ?>
 											</a>
 										<?php endif; ?>
+									<?php endif; ?>
+									<?php if ( $can_checkin && 'active' === $booking->status ) : ?>
+										<?php echo $can_manage ? '|' : ''; ?>
+										<a href="<?php echo esc_url( $attendance->url( (int) $booking->id ) ); ?>" class="ffc-attendance-link">
+											<?php esc_html_e( 'Attendance', 'ffcertificate' ); ?>
+										</a>
 									<?php endif; ?>
 								</td>
 							</tr>

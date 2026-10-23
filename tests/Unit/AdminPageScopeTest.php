@@ -89,6 +89,7 @@ class AdminPageScopeTest extends TestCase {
 		'ffc-page-settings'               => 'ffc-settings',
 		'ffc-page-scheduling-audiences'   => 'ffc-scheduling-audiences',
 		'ffc-page-scheduling-bookings'    => 'ffc-scheduling-bookings',
+		'ffc-page-scheduling-attendance'  => 'ffc-scheduling-attendance',
 		'ffc-page-scheduling-calendars'   => 'ffc-scheduling-calendars',
 		// The parent menu `ffc-scheduling` and the submenu `ffc-scheduling-dashboard`
 		// call the SAME `render_dashboard_page()`. A screen with two addresses is
