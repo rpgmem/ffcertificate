@@ -28,6 +28,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: the booking form takes a range** (#1946). The booking form has an optional end date, the hours on each day (the same every day, or from the start time on the first day to the end time on the last) and a "Skip blocked days" switch. A clash on any day lists the days already taken. The booking guide describes ranges, and the readmes list them.
 - Audiences: the audience picker of the Date Messages rule and the reregistration campaign shows beside each audience how many people it reaches, sub-audiences included and each person once (#1998).
 - **Audience Calendars: the groundwork for attendance** (#1947). Attendance and check-in window tables, a per-booking attendance rule (one day, or a share of the days with skipped days left out), the signed rotating QR code with its 10-minute scan receipt, and the `ffc_checkin_audiences` capability on the Operator tier. Attendance lines survive account deletion and erasure without the person, and join the privacy export.
+- **Audience Calendars: participants check in by scanning the QR** (#1947). The scan is exchanged at once for a short-lived receipt, a logged-out participant logs in and comes back to it, and attendance is written only when they confirm on a page of its own. Someone not on the booking, a closed or reopened window and, when the window has a geofence, a position outside its areas are refused.
 
 ### Fixed
 

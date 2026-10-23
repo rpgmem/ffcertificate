@@ -100,6 +100,7 @@ class TypographyTokensTest extends TestCase {
 
 		// A badge that has to fit inside the day cell, with its own responsive step.
 		'ffc-audience.css'                 => 2,
+		'ffc-audience-checkin.css'         => 0,
 
 		// One `em` value relative to the parent on purpose: the component is
 		// dropped into contexts of different sizes and follows each one (the

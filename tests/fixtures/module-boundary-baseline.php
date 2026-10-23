@@ -41,6 +41,7 @@ return array(
 	'Audience>Integrations',
 	'Audience>Reregistration',
 	'Audience>Scheduling',
+	'Audience>Security',
 	'Audience>Settings',
 	'Audience>UserDashboard',
 	'Core>Reregistration',

@@ -27977,3 +27977,81 @@ msgstr "Conduzir o check-in de presença"
 #: includes/user-dashboard/class-ffc-capability-catalog.php:299
 msgid "Open and close check-in for a day of a booking, project its rotating QR and mark attendance by hand (#1947)."
 msgstr "Abrir e fechar o check-in de um dia da reserva, projetar o QR rotativo e marcar presença manualmente (#1947)."
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:212
+msgid "Attendance recorded"
+msgstr "Presença registrada"
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:188
+msgid "Check in"
+msgstr "Check-in"
+
+#: includes/audience/class-ffc-audience-checkin.php:241
+msgid "Check-in for this event is closed."
+msgstr "O check-in deste evento está encerrado."
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:230
+msgid "Check-in not recorded"
+msgstr "Check-in não registrado"
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:178
+msgid "Confirm my attendance"
+msgstr "Confirmar minha presença"
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:320
+msgid "Reading your location…"
+msgstr "Lendo sua localização…"
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:208
+#, php-format
+msgid "Recorded at %s. You can close this page."
+msgstr "Registrada às %s. Você pode fechar esta página."
+
+#: includes/audience/class-ffc-audience-checkin.php:237
+msgid "This check-in code is not valid any more. Scan the QR code shown at the event again."
+msgstr "Este código de check-in não é mais válido. Leia novamente o QR code exibido no evento."
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:173
+msgid "This check-in confirms you are at the event: your browser will ask for your location."
+msgstr "Este check-in confirma que você está no evento: o navegador vai pedir sua localização."
+
+#: includes/audience/class-ffc-audience-checkin.php:239
+msgid "This check-in link has expired. Scan the QR code shown at the event again."
+msgstr "Este link de check-in expirou. Leia novamente o QR code exibido no evento."
+
+#: includes/audience/class-ffc-audience-checkin.php:247
+msgid "This check-in needs your location. Allow it in your browser and try again."
+msgstr "Este check-in precisa da sua localização. Permita no navegador e tente novamente."
+
+#: includes/audience/class-ffc-audience-checkin.php:243
+msgid "This event is not taking check-ins today."
+msgstr "Este evento não está recebendo check-ins hoje."
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:144
+msgid "This page expired. Scan the QR code shown at the event again."
+msgstr "Esta página expirou. Leia novamente o QR code exibido no evento."
+
+#: includes/audience/class-ffc-audience-checkin.php:245
+msgid "You are not on the participant list of this event. Ask the organiser to mark your attendance."
+msgstr "Você não está na lista de participantes deste evento. Peça ao organizador para marcar sua presença."
+
+#: includes/audience/class-ffc-audience-checkin.php:251
+msgid "Your attendance could not be recorded. Try again, or ask the organiser to mark it."
+msgstr "Não foi possível registrar sua presença. Tente novamente ou peça ao organizador para marcá-la."
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:206
+#, php-format
+msgid "Your attendance for today was already recorded at %s."
+msgstr "Sua presença de hoje já foi registrada às %s."
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:319
+msgid "Your location could not be read. Move to an open area and try again."
+msgstr "Não foi possível ler sua localização. Vá para uma área aberta e tente novamente."
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:318
+msgid "Your location is needed to check in here. Allow it in your browser settings and try again."
+msgstr "Sua localização é necessária para fazer check-in aqui. Permita nas configurações do navegador e tente novamente."
+
+#: includes/audience/class-ffc-audience-checkin.php:249
+msgid "Your location is outside the event area. Check in from the event, or ask the organiser to mark your attendance."
+msgstr "Sua localização está fora da área do evento. Faça o check-in no evento ou peça ao organizador para marcar sua presença."
