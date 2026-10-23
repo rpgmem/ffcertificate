@@ -250,6 +250,61 @@ for ( const [ name, options ] of Object.entries( {
 	await context.close();
 }
 
+// 9. Boot watchdog (#2030 PR 1): a form whose scripts all load is marked
+// ready; one whose script, or whose captcha and nonce refresh, did not
+// complete shows the notice at the deadline and offers no submit.
+const boot = async ( page ) => ( {
+	...( await snapshot( page ) ),
+	ready: await page.evaluate( () => document.querySelector( '.ffc-form-wrapper' ).getAttribute( 'data-ffc-ready' ) ),
+	submitDisabled: await page.evaluate( () => !! document.querySelector( 'form.ffc-submission-form [type="submit"]' ).disabled ),
+} );
+const deadline = 11000;
+{
+	const { context, page } = await visit();
+	await page.goto( m.pages.plain );
+	await settle( page );
+	record( 'boot-ready', await boot( page ) );
+	await context.close();
+}
+for ( const [ name, pattern ] of Object.entries( {
+	'boot-script-blocked': '**/ffc-frontend*.js*',
+	'boot-pdf-library-blocked': '**/libs/js/jspdf-*',
+} ) ) {
+	const { context, page } = await visit();
+	await page.route( pattern, ( r ) => r.abort() );
+	await page.goto( m.pages.plain );
+	await page.waitForTimeout( deadline );
+	record( name, await boot( page ) );
+	await context.close();
+}
+{
+	const { context, page } = await visit();
+	await page.route( '**/admin-ajax.php', async ( r ) => (
+		( r.request().postData() || '' ).includes( 'action=ffc_get_dynamic_fragments' ) ? r.fulfill( { status: 500, body: '' } ) : r.continue()
+	) );
+	await page.goto( m.pages.plain );
+	await page.waitForTimeout( deadline );
+	record( 'boot-fragments-failed', await boot( page ) );
+	await context.close();
+}
+
+// 10. JavaScript off (#2030 PR 1): the notice says so, and a submit the
+// browser performs itself is a POST that keeps the fields out of the URL.
+{
+	const { context, page } = await visit( { javaScriptEnabled: false } );
+	await page.goto( m.pages.plain );
+	const shown = await snapshot( page );
+	await page.fill( 'input[name="name"]', visitor.name );
+	await page.fill( 'input[name="email"]', visitor.email );
+	await page.fill( 'input[name="cpf_rf"]', visitor.cpf );
+	const [ request ] = await Promise.all( [
+		page.waitForRequest( ( r ) => r.isNavigationRequest() && r.frame() === page.mainFrame() ),
+		page.evaluate( () => document.querySelector( 'form.ffc-submission-form' ).submit() ),
+	] );
+	record( 'no-javascript', { ...shown, method: request.method(), queryInUrl: new URL( request.url() ).search !== '' } );
+	await context.close();
+}
+
 // 8. ALTCHA: the same plain form under the proof-of-work captcha.
 try {
 	setCaptcha( 'altcha' );

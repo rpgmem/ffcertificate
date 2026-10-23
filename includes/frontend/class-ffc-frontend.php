@@ -251,7 +251,9 @@ class Frontend {
 			// PDF Generator (shared module).
 			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-pdf-generator' );
 
-			wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . "assets/js/ffc-frontend{$s}.js", array( 'jquery', 'ffc-core', 'ffc-pdf-generator', 'ffc-rate-limit' ), FFC_VERSION, true );
+			// ffc-preflight: the boot watchdog this script reports to (#2030).
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-preflight' );
+			wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . "assets/js/ffc-frontend{$s}.js", array( 'jquery', 'ffc-core', 'ffc-pdf-generator', 'ffc-rate-limit', 'ffc-preflight' ), FFC_VERSION, true );
 
 			// The geofence core and its validation modules; the geofence config
 			// localize stays on 'ffc-geofence-frontend'.

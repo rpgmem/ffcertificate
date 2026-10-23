@@ -28507,3 +28507,30 @@ msgid "You have %d certificate form to fill in. Find it under Actions."
 msgid_plural "You have %d certificate forms to fill in. Find them under Actions."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "JavaScript is off"
+msgstr ""
+
+msgid "This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your certificate."
+msgstr ""
+
+msgid "The form did not load completely"
+msgstr ""
+
+msgid "Part of this form did not load, so it cannot be sent yet. Reload the page. If this message comes back, turn off any content blocker for this site or open the page in another browser."
+msgstr ""
+
+msgid "Reload the page"
+msgstr ""
+
+msgid "A visitor sees \"The form did not load completely\" or \"JavaScript is off\""
+msgstr ""
+
+msgid "The form is sent and the PDF is drawn by scripts in the browser, so it cannot work without them"
+msgstr ""
+
+msgid "A content blocker or a dropped request kept a script, or the refresh of the captcha and security codes, from loading: ask the visitor to reload, then to allow the site in the blocker or use another browser"
+msgstr ""
+
+msgid "If every visitor sees it, check that a cache or optimisation plugin is not combining or delaying the plugin's scripts, and that admin-ajax.php is reachable"
+msgstr ""

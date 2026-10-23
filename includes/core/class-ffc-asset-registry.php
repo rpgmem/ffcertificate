@@ -89,6 +89,9 @@ final class AssetRegistry {
 		'ffc-pdf-generator'         => array( 'assets/js/ffc-pdf-generator', array( 'jquery', 'html2canvas', 'jspdf' ) ),
 		'ffc-layout-preview'        => array( 'assets/js/ffc-layout-preview', array( 'html2canvas' ) ),
 		'ffc-bulk-issue'            => array( 'assets/js/ffc-bulk-issue', array() ),
+		// The boot watchdog of the certificate form (#2030). No dependencies:
+		// it has to run when the scripts it watches did not load.
+		'ffc-preflight'             => array( 'assets/js/ffc-preflight', array() ),
 	);
 
 	/**
@@ -132,7 +135,9 @@ final class AssetRegistry {
 		Captcha\AltchaCaptcha::register_assets();
 
 		// Dynamic fragments: refresh captcha + nonces on cached pages (v4.12.0).
-		\wp_register_script( 'ffc-dynamic-fragments', FFC_PLUGIN_URL . "assets/js/ffc-dynamic-fragments{$s}.js", array(), FFC_VERSION, true );
+		// ffc-preflight dep: the refresh reports to the boot watchdog (#2030),
+		// which therefore has to be on the page first.
+		\wp_register_script( 'ffc-dynamic-fragments', FFC_PLUGIN_URL . "assets/js/ffc-dynamic-fragments{$s}.js", array( 'ffc-preflight' ), FFC_VERSION, true );
 		\wp_localize_script(
 			'ffc-dynamic-fragments',
 			'ffcDynamic',

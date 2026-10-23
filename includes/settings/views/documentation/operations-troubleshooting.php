@@ -89,6 +89,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</td>
 			</tr>
 			<tr>
+				<td><?php esc_html_e( 'A visitor sees "The form did not load completely" or "JavaScript is off"', 'ffcertificate' ); ?></td>
+				<td>
+					• <?php esc_html_e( 'The form is sent and the PDF is drawn by scripts in the browser, so it cannot work without them', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'A content blocker or a dropped request kept a script, or the refresh of the captcha and security codes, from loading: ask the visitor to reload, then to allow the site in the blocker or use another browser', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'If every visitor sees it, check that a cache or optimisation plugin is not combining or delaying the plugin\'s scripts, and that admin-ajax.php is reachable', 'ffcertificate' ); ?>
+				</td>
+			</tr>
+			<tr>
 				<td><?php esc_html_e( 'Short URL returns 404', 'ffcertificate' ); ?></td>
 				<td>
 					• <?php esc_html_e( 'Re-save Settings → Permalinks once to flush WordPress rewrite rules', 'ffcertificate' ); ?><br>

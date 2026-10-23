@@ -95,6 +95,66 @@
 			"body": "-1"
 		}
 	},
+	"boot-ready": {
+		"formShown": true,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [],
+		"ready": "1",
+		"submitDisabled": false
+	},
+	"boot-script-blocked": {
+		"formShown": false,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "boot-failed",
+				"text": "The form did not load completely Part of this form did not load, so it cannot be sent yet. Reload the page. If this message comes back, turn off any content blocker for this site or open the page in another browser. Reload the page"
+			}
+		],
+		"ready": null,
+		"submitDisabled": true
+	},
+	"boot-pdf-library-blocked": {
+		"formShown": false,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "boot-failed",
+				"text": "The form did not load completely Part of this form did not load, so it cannot be sent yet. Reload the page. If this message comes back, turn off any content blocker for this site or open the page in another browser. Reload the page"
+			}
+		],
+		"ready": null,
+		"submitDisabled": true
+	},
+	"boot-fragments-failed": {
+		"formShown": false,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "boot-failed",
+				"text": "The form did not load completely Part of this form did not load, so it cannot be sent yet. Reload the page. If this message comes back, turn off any content blocker for this site or open the page in another browser. Reload the page"
+			}
+		],
+		"ready": null,
+		"submitDisabled": true
+	},
+	"no-javascript": {
+		"formShown": true,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "noscript",
+				"text": "JavaScript is off This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your certificate."
+			}
+		],
+		"method": "POST",
+		"queryInUrl": false
+	},
 	"altcha-issue": {
 		"successCard": true,
 		"platformLines": [

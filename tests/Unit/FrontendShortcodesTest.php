@@ -909,7 +909,45 @@ class FrontendShortcodesTest extends TestCase {
 		$expected = json_decode( (string) file_get_contents( $file ), true );
 
 		$this->assertCount( count( $variants ) + 1, $records, 'Every variant rendered.' );
-		$this->assertSame( $expected, $records );
+		$this->assertSame( self::allowed_differences( $expected ), $records );
+	}
+
+	/**
+	 * The recorded baseline with the differences #2030 meant applied, and no
+	 * other: the comparison fails when one of these is missing and when
+	 * anything else changed.
+	 *
+	 * The fixture stays what PR 0 recorded, so each PR adds its own lines
+	 * here and the list reads as the closed list of allowed differences.
+	 *
+	 * PR 1 (the fix):
+	 * - the form posts with `method="post"`;
+	 * - every form carries the "JavaScript is off" `<noscript>` notice, before
+	 *   any `<noscript>` the captcha prints;
+	 * - every form carries the boot watchdog's notice, inert in a `<template>`.
+	 *
+	 * @param array<string, array<string, mixed>> $baseline Records of the PR 0 baseline.
+	 * @return array<string, array<string, mixed>>
+	 */
+	private static function allowed_differences( array $baseline ): array {
+		$noscript = '<div class="ffc-notice ffc-notice-warning" role="status" data-ffc-notice="noscript"><span class="ffc-notice-icon ffc-icon-warning" aria-hidden="true"></span><div class="ffc-notice-body"><strong class="ffc-notice-title">JavaScript is off</strong><p class="ffc-notice-text">This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your certificate.</p></div></div>';
+
+		foreach ( $baseline as $name => $record ) {
+			$record['form'] = str_replace( '" autocomplete="off"', '" method="post" autocomplete="off"', (string) $record['form'] );
+			array_unshift( $record['noscript'], $noscript );
+
+			// `data-ffc-boot-notice` carries no value, and the extractor reads
+			// attributes that do; the notice inside it brings `data-ffc-notice`.
+			$hooks = array_values( array_unique( array_merge( $record['hooks'], array( 'data-ffc-notice' ) ) ) );
+			sort( $hooks );
+			$record['hooks'] = $hooks;
+
+			// Both notices come after the system notices above the title.
+			$record['notices'] = array_merge( $record['notices'], array( 'noscript', 'boot-failed' ) );
+
+			$baseline[ $name ] = $record;
+		}
+		return $baseline;
 	}
 
 	/**
