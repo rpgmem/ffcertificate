@@ -6,7 +6,7 @@
  * text's length, a number's range and whether a choice was one of the
  * options were all the browser's word, so an edited page could post any of
  * them. This stage reads the sanitized answers and refuses the submission
- * with every broken rule at once, in the shape PreflightGuard already uses.
+ * with every broken rule at once, in the shape RequiredPresenceGuard already uses.
  *
  * Runs after FieldSanitizer, so it sees the values that will be stored.
  *
@@ -77,7 +77,7 @@ class FieldRulesGuard {
 
 		$values = $this->values( $data[ $name ] ?? null );
 		if ( array() === $values ) {
-			// The email's presence is PreflightGuard's, which reports it
+			// The email's presence is RequiredPresenceGuard's, which reports it
 			// together with the consent.
 			if ( ! empty( $field['required'] ) && 'email' !== $type ) {
 				return 'checkbox' === $type

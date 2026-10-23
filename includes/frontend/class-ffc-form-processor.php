@@ -66,7 +66,7 @@ class FormProcessor {
 			( new Submission\NonceGuard() )->apply( $ctx );
 			( new Submission\SecurityFieldsGuard() )->apply( $ctx );
 			( new Submission\FormConfigResolver() )->apply( $ctx );
-			( new Submission\PreflightGuard() )->apply( $ctx );
+			( new Submission\RequiredPresenceGuard() )->apply( $ctx );
 			( new Submission\FieldSanitizer() )->apply( $ctx );
 			( new Submission\InviteGuard() )->apply( $ctx );
 			( new Submission\FieldRulesGuard() )->apply( $ctx );

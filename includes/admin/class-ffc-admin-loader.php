@@ -127,7 +127,7 @@ class AdminLoader {
 		FormListColumns::init();
 		AdminUserCustomFields::init();
 		IdentitySearchAjaxEndpoint::init();
-		IdentityPreflightAjaxEndpoint::init();
+		IdentityCorrectionPreviewAjaxEndpoint::init();
 		IdentityMergePreviewAjaxEndpoint::init();
 
 		// Held, not fire-and-forget: the page registers its submenu on

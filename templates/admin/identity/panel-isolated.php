@@ -89,7 +89,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		// that rule exists against.
 		//
 		// The FORM IS UNTOUCHED: same fields, same nonce, same action, same
-		// `data-ffc-*` hooks the preflight binds to.
+		// `data-ffc-*` hooks the correction preview binds to.
 		?>
 		<div class="ffc-identity-cards">
 		<?php foreach ( $ffc_identity_rows as $ffc_identity_row ) : ?>

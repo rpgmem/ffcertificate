@@ -356,7 +356,7 @@ final class IdentityResolutionScreen {
 	 * this finding.
 	 *
 	 * What decides that a correction's acknowledgement box is drawn already
-	 * checked-for, rather than hidden behind a preflight (#1478, #1487).
+	 * checked-for, rather than hidden behind a correction preview (#1478, #1487).
 	 *
 	 * @param mixed  $outcome The outcome the last handler left, or false.
 	 * @param string $subject The finding a form acts on.

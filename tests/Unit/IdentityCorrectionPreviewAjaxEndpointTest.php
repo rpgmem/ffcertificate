@@ -8,25 +8,25 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
-use FreeFormCertificate\Admin\IdentityPreflightAjaxEndpoint;
+use FreeFormCertificate\Admin\IdentityCorrectionPreviewAjaxEndpoint;
 use FreeFormCertificate\Maintenance\IdentityRelink;
 use FreeFormCertificate\Maintenance\IdentityRepair;
 use RuntimeException;
 use WP_User;
 
 /**
- * The preflight says what the write would say (#1397 sprint 4).
+ * The correction preview says what the write would say (#1397 sprint 4).
  *
  * Same shape as `IdentitySearchAjaxEndpointTest`, for the same reason: a test
- * that checked the preflight reports "refused" would pass against a SECOND
+ * that checked the correction preview reports "refused" would pass against a SECOND
  * copy of the repair's checks, which is the defect the `plan()` split exists
  * to make impossible. So each case drives the REAL `IdentityRepair::repair()`
  * and the endpoint against ONE fixture and asserts the two agree, word for
  * word.
  *
- * @covers \FreeFormCertificate\Admin\IdentityPreflightAjaxEndpoint
+ * @covers \FreeFormCertificate\Admin\IdentityCorrectionPreviewAjaxEndpoint
  */
-class IdentityPreflightAjaxEndpointTest extends TestCase {
+class IdentityCorrectionPreviewAjaxEndpointTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
@@ -58,7 +58,7 @@ class IdentityPreflightAjaxEndpointTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
-		class_exists( '\FreeFormCertificate\Admin\IdentityPreflightAjaxEndpoint' );
+		class_exists( '\FreeFormCertificate\Admin\IdentityCorrectionPreviewAjaxEndpoint' );
 		class_exists( '\FreeFormCertificate\Maintenance\IdentityRepair' );
 		class_exists( '\FreeFormCertificate\Maintenance\IdentityRelink' );
 
@@ -221,13 +221,13 @@ class IdentityPreflightAjaxEndpointTest extends TestCase {
 	}
 
 	/**
-	 * Run one preflight.
+	 * Run one correction preview.
 	 *
 	 * @param string $subject The finding's hash.
 	 * @param string $value   The value typed.
 	 * @return array<string, mixed>
 	 */
-	private function preflight( string $subject, string $value ): array {
+	private function correction_preview( string $subject, string $value ): array {
 		$_POST = array(
 			'subject' => $subject,
 			'field'   => 'rf',
@@ -235,7 +235,7 @@ class IdentityPreflightAjaxEndpointTest extends TestCase {
 		);
 
 		try {
-			IdentityPreflightAjaxEndpoint::handle();
+			IdentityCorrectionPreviewAjaxEndpoint::handle();
 		} catch ( RuntimeException $e ) {
 			if ( 'ffc_test_sent' !== $e->getMessage() ) {
 				throw $e;
@@ -266,10 +266,10 @@ class IdentityPreflightAjaxEndpointTest extends TestCase {
 	}
 
 	/**
-	 * THE WHOLE POINT: the preflight's answer and the write's answer are one
+	 * THE WHOLE POINT: the correction preview's answer and the write's answer are one
 	 * answer, driven from a single fixture per case.
 	 */
-	public function test_every_refusal_the_preflight_shows_is_the_one_the_write_reaches(): void {
+	public function test_every_refusal_the_correction_preview_shows_is_the_one_the_write_reaches(): void {
 		$cases = array(
 			// Nothing carries the finding's hash any more.
 			'already repaired'             => array(
@@ -295,19 +295,19 @@ class IdentityPreflightAjaxEndpointTest extends TestCase {
 
 			$written = $this->writer()->repair( $case['subject'], self::GOOD_RF );
 
-			$shown = $this->preflight( $case['subject'], self::GOOD_RF );
+			$shown = $this->correction_preview( $case['subject'], self::GOOD_RF );
 
 			$this->assertInstanceOf( \WP_Error::class, $written, $name . ': the write must have refused.' );
-			$this->assertFalse( (bool) $shown['allowed'], $name . ': the preflight must refuse too.' );
+			$this->assertFalse( (bool) $shown['allowed'], $name . ': the correction preview must refuse too.' );
 			$this->assertSame(
 				$written->get_error_code(),
 				$shown['code'],
-				$name . ': the preflight must name the refusal the write names.'
+				$name . ': the correction preview must name the refusal the write names.'
 			);
 			$this->assertSame(
 				$written->get_error_message(),
 				$shown['message'],
-				$name . ': the preflight must give the reason the write gives, word for word.'
+				$name . ': the correction preview must give the reason the write gives, word for word.'
 			);
 		}
 	}
@@ -326,7 +326,7 @@ class IdentityPreflightAjaxEndpointTest extends TestCase {
 			)
 		);
 
-		$shown = $this->preflight( 'wrong', self::GOOD_RF );
+		$shown = $this->correction_preview( 'wrong', self::GOOD_RF );
 
 		$this->assertTrue( (bool) $shown['allowed'] );
 		$this->assertSame( 2, $shown['rows'] );
@@ -356,7 +356,7 @@ class IdentityPreflightAjaxEndpointTest extends TestCase {
 			array( self::row( 2, 513, 'cpfA', self::hash_of( self::GOOD_RF ) ) )
 		);
 
-		$shown = $this->preflight( 'wrong', self::GOOD_RF );
+		$shown = $this->correction_preview( 'wrong', self::GOOD_RF );
 
 		$this->assertTrue( (bool) $shown['allowed'] );
 		$this->assertSame( '', $shown['code'] );
@@ -378,7 +378,7 @@ class IdentityPreflightAjaxEndpointTest extends TestCase {
 			array( self::row( 1, 398, 'cpfA', 'wrong' ) )
 		);
 
-		$shown = $this->preflight( 'wrong', self::GOOD_RF );
+		$shown = $this->correction_preview( 'wrong', self::GOOD_RF );
 
 		$this->assertTrue( (bool) $shown['allowed'] );
 		$this->assertNull( $shown['holder'] );
@@ -414,8 +414,8 @@ class IdentityPreflightAjaxEndpointTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, $verdict );
 		$this->assertSame( 'ffc_identity_relink_conflict', $verdict->get_error_code() );
 
-		// And the preflight does not pretend otherwise.
-		$this->assertArrayNotHasKey( 'move', $this->preflight( 'wrong', self::GOOD_RF ) );
+		// And the correction preview does not pretend otherwise.
+		$this->assertArrayNotHasKey( 'move', $this->correction_preview( 'wrong', self::GOOD_RF ) );
 	}
 
 	/**
@@ -428,7 +428,7 @@ class IdentityPreflightAjaxEndpointTest extends TestCase {
 			array( self::row( 1, 398, 'cpfA', 'aVeryLongSubjectHashIndeed' ) )
 		);
 
-		$shown = $this->preflight( 'aVeryLongSubjectHashIndeed', self::GOOD_RF );
+		$shown = $this->correction_preview( 'aVeryLongSubjectHashIndeed', self::GOOD_RF );
 
 		$this->assertSame( 'aVeryLongSub', $shown['prefix'] );
 		$this->assertNotContains( self::hash_of( self::GOOD_RF ), $shown, 'The hash of the typed value must never travel back.' );

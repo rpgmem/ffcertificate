@@ -360,20 +360,20 @@ class IdentityResolutionPage {
 		// contents. All of its fixed prose is `data-` attributes in the view,
 		// so it localises no strings at all.
 		wp_enqueue_script(
-			'ffc-identity-preflight',
-			FFC_PLUGIN_URL . "assets/js/ffc-identity-preflight{$s}.js",
+			'ffc-identity-correction-preview',
+			FFC_PLUGIN_URL . "assets/js/ffc-identity-correction-preview{$s}.js",
 			array( 'jquery' ),
 			FFC_VERSION,
 			true
 		);
 
 		wp_localize_script(
-			'ffc-identity-preflight',
-			'ffcIdentityPreflight',
+			'ffc-identity-correction-preview',
+			'ffcIdentityCorrectionPreview',
 			array(
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'action'  => IdentityPreflightAjaxEndpoint::AJAX_ACTION,
-				'nonce'   => wp_create_nonce( IdentityPreflightAjaxEndpoint::AJAX_ACTION ),
+				'action'  => IdentityCorrectionPreviewAjaxEndpoint::AJAX_ACTION,
+				'nonce'   => wp_create_nonce( IdentityCorrectionPreviewAjaxEndpoint::AJAX_ACTION ),
 			)
 		);
 
@@ -1329,10 +1329,10 @@ class IdentityResolutionPage {
 	 * the wrong thing to hold: a shared builder makes the two writers differ
 	 * only in where they send the operator, whatever forms exist later.
 	 *
-	 * Explaining before confirming stays the design. The preflight satisfies
+	 * Explaining before confirming stays the design. The correction preview satisfies
 	 * it in one request rather than two -- it paints what the write will do
 	 * and reveals the box beneath that sentence -- and this payload is what
-	 * still satisfies it when there was no preflight, or when JavaScript never
+	 * still satisfies it when there was no correction preview, or when JavaScript never
 	 * ran.
 	 *
 	 * @since 6.31.0

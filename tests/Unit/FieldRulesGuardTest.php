@@ -50,7 +50,7 @@ class FieldRulesGuardTest extends TestCase {
 		$this->assertNull( $this->guard->check( $this->field( 'text' ), array() ) );
 	}
 
-	public function test_an_empty_email_is_left_to_the_preflight(): void {
+	public function test_an_empty_email_is_left_to_the_presence_check(): void {
 		$this->assertNull( $this->guard->check( $this->field( 'email', array( 'required' => '1' ) ), array() ) );
 	}
 

@@ -597,13 +597,13 @@ class FormRestController {
 	 * form's order ({@see \FreeFormCertificate\Frontend\FormProcessor}).
 	 *
 	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Submission handler.
-	 * @return list<Submission\IpRateLimitGuard|Submission\FormConfigResolver|Submission\PreflightGuard|Submission\FieldSanitizer|Submission\InviteGuard|Submission\FieldRulesGuard|Submission\GeofenceGuard|Submission\RateLimitGuard|Submission\AccessRestrictionGuard|Submission\SubmissionPersister>
+	 * @return list<Submission\IpRateLimitGuard|Submission\FormConfigResolver|Submission\RequiredPresenceGuard|Submission\FieldSanitizer|Submission\InviteGuard|Submission\FieldRulesGuard|Submission\GeofenceGuard|Submission\RateLimitGuard|Submission\AccessRestrictionGuard|Submission\SubmissionPersister>
 	 */
 	protected function submission_stages( \FreeFormCertificate\Submissions\SubmissionHandler $handler ): array {
 		return array(
 			new Submission\IpRateLimitGuard(),
 			new Submission\FormConfigResolver(),
-			new Submission\PreflightGuard(),
+			new Submission\RequiredPresenceGuard(),
 			new Submission\FieldSanitizer(),
 			new Submission\InviteGuard(),
 			new Submission\FieldRulesGuard(),
