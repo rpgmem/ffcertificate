@@ -155,6 +155,39 @@
     }
 
     /**
+     * Write the text a save sent back for the elements that describe it
+     * (#2026): a record entity may return `fragments`, element id => text,
+     * so a sentence such as "As saved, 3 of 4 days are required" follows the
+     * control instead of waiting for a reload.
+     *
+     * Text only: `textContent`, never markup. An element may point at the
+     * node to write with a `data-ffc-fragment-text` descendant, and one
+     * marked `data-ffc-fragment-hide-empty` takes WordPress's `hidden` class
+     * while its text is empty.
+     *
+     * @param {Object} [fragments] Element id => text.
+     */
+    function applyFragments(fragments) {
+        if (!fragments || typeof fragments !== 'object') {
+            return;
+        }
+        Object.keys(fragments).forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) {
+                return;
+            }
+            var text = String(fragments[id] == null ? '' : fragments[id]);
+            var target = el.querySelector('[data-ffc-fragment-text]') || el;
+            target.textContent = text;
+            if (el.hasAttribute('data-ffc-fragment-hide-empty')) {
+                el.classList.toggle('hidden', text === '');
+            }
+        });
+    }
+
+    window.FFC.Admin.applyFragments = applyFragments;
+
+    /**
      * Attach auto-save behaviour to a field.
      *
      * The endpoint is a parameter rather than a constant because two of
@@ -305,6 +338,7 @@
                     }
                     setBadgeState($badge, 'saved', saved);
                     lingerTimer = setTimeout(function () { hideBadge($badge); }, SAVED_LINGER);
+                    applyFragments(data && data.fragments);
                     announceSaved(config.key, value, data, $field[0]);
                 }, function (err) {
                     if (settle()) {

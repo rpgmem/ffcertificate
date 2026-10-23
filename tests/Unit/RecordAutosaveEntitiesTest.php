@@ -93,6 +93,24 @@ class RecordAutosaveEntitiesTest extends TestCase {
 		);
 		$this->assertSame( 1, $booking['fields']['attendance_min_percent']['min'] );
 		$this->assertSame( 90, $booking['fields']['post_event_window_days']['max'] );
+		$this->assertSame( array( AudienceRecordAutosave::class, 'booking_fragments' ), $booking['fragments'] );
+	}
+
+	public function test_the_booking_fragments_are_the_attendance_screen_s_for_the_stored_row(): void {
+		$this->booking_world( array( 'attendance_mode' => 'total' ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceAdminAttendance' )
+			->shouldReceive( 'fragments' )->once()
+			->with( Mockery::on( static fn( $b ): bool => 5 === $b->id && 'total' === $b->attendance_mode ) )
+			->andReturn( array( 'ffc-attendance-rule-summary' => 'As saved' ) );
+
+		$this->assertSame( array( 'ffc-attendance-rule-summary' => 'As saved' ), AudienceRecordAutosave::booking_fragments( 5 ) );
+	}
+
+	public function test_a_booking_gone_has_no_fragments(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' )
+			->shouldReceive( 'get_by_id' )->andReturn( null );
+
+		$this->assertSame( array(), AudienceRecordAutosave::booking_fragments( 5 ) );
 	}
 
 	/**

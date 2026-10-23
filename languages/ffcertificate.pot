@@ -28457,7 +28457,7 @@ msgid "Check-in closed on its own at %s, 30 minutes after the booking ended toda
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-attendance.php
-msgid "Changes save as you make them. Reload the page to see which form applies and the invitations."
+msgid "Changes save as you make them. Reload the page to see the invitations."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-record-autosave.php

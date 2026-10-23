@@ -548,7 +548,6 @@ class AudienceAdminAttendance {
 	private function render_rule_card( object $booking, string $date ): void {
 		$rule     = AudienceAttendanceRule::of( $booking );
 		$can_edit = Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
-		$days     = count( AudienceAttendanceRule::counted_days( $booking ) );
 		$id       = $can_edit ? (int) ( $booking->id ?? 0 ) : 0;
 
 		echo '<div class="card"><h2 class="ffc-icon-checkmark">' . esc_html__( 'Attendance rule', 'ffcertificate' ) . '</h2>';
@@ -573,8 +572,7 @@ class AudienceAdminAttendance {
 		);
 		echo '<p class="ffc-collapsed-target" data-ffc-master="ffc-attendance-mode" data-ffc-master-value="' . esc_attr( AudienceAttendanceRule::TOTAL ) . '"><label for="ffc-attendance-percent">' . esc_html__( 'Minimum share of days (%)', 'ffcertificate' ) . '</label> ';
 		echo '<input type="number" id="ffc-attendance-percent" name="attendance_min_percent" min="1" max="100" step="1" required class="small-text" value="' . esc_attr( (string) ( $rule['percent'] > 0 ? $rule['percent'] : AudienceAttendanceRule::DEFAULT_PERCENT ) ) . '"' . self::data_attrs( RecordAutosave::attrs( 'audience_booking', $id, 'attendance_min_percent' ) ) . disabled( ! $can_edit, true, false ) . '></p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- data_attrs() escapes each name and value.
-		/* translators: 1: days required, 2: days booked */
-		echo '<p class="description">' . esc_html( sprintf( __( 'As saved, %1$d of the %2$d booked day(s) are required.', 'ffcertificate' ), AudienceAttendanceRule::required_days( $booking ), $days ) ) . '</p>';
+		echo '<p class="description" id="ffc-attendance-rule-summary">' . esc_html( self::rule_summary( $booking ) ) . '</p>';
 		echo '</form></div>';
 	}
 
@@ -601,8 +599,11 @@ class AudienceAdminAttendance {
 		$id     = $can_edit ? (int) ( $booking->id ?? 0 ) : 0;
 
 		echo '<div class="card"><h2 class="ffc-icon-award">' . esc_html__( 'Post-event form', 'ffcertificate' ) . '</h2>';
-		echo '<p class="ffc-attendance-post-event-status">' . esc_html( self::post_event_status( $booking, $applied, $custom ) ) . '</p>';
-		echo AudienceFormInviteMailer::missing_page_notice( $applied['form_id'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by missing_page_notice().
+		echo '<p class="ffc-attendance-post-event-status" id="ffc-attendance-post-event-status">' . esc_html( self::post_event_status( $booking, $applied, $custom ) ) . '</p>';
+		// Always printed, hidden while empty, so an autosave that picks a form
+		// with no page can show it without a reload (#2026).
+		$no_page = AudienceFormInviteMailer::missing_page_text( $applied['form_id'] );
+		echo '<div id="ffc-post-event-no-page" class="notice notice-warning inline ffc-post-event-no-page' . ( '' === $no_page ? ' hidden' : '' ) . '" data-ffc-fragment-hide-empty><p data-ffc-fragment-text>' . esc_html( $no_page ) . '</p></div>';
 		echo '<form method="post">' . $this->form_fields( (int) ( $booking->id ?? 0 ), 'post_event', $date ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts by form_fields().
 		echo '<p>';
 		AdminUI::render_toggle(
@@ -633,7 +634,7 @@ class AudienceAdminAttendance {
 		);
 		echo '</p></div>';
 		if ( $can_edit ) {
-			echo '<p class="description">' . esc_html__( 'Changes save as you make them. Reload the page to see which form applies and the invitations.', 'ffcertificate' ) . '</p>';
+			echo '<p class="description">' . esc_html__( 'Changes save as you make them. Reload the page to see the invitations.', 'ffcertificate' ) . '</p>';
 		}
 		echo '</form>';
 
@@ -754,6 +755,38 @@ class AudienceAdminAttendance {
 			$out .= ' data-' . esc_attr( $name ) . '="' . esc_attr( $value ) . '"';
 		}
 		return $out;
+	}
+
+	/**
+	 * How many of the booked days the saved rule requires.
+	 *
+	 * @param object $booking Booking row.
+	 * @return string
+	 */
+	public static function rule_summary( object $booking ): string {
+		return sprintf(
+			/* translators: 1: days required, 2: days booked */
+			__( 'As saved, %1$d of the %2$d booked day(s) are required.', 'ffcertificate' ),
+			AudienceAttendanceRule::required_days( $booking ),
+			count( AudienceAttendanceRule::counted_days( $booking ) )
+		);
+	}
+
+	/**
+	 * The text of the elements that describe a booking's saved rule and
+	 * post-event form, by element id, for the autosave to write back (#2026).
+	 *
+	 * @param object $booking Booking row, as saved.
+	 * @return array<string, string>
+	 */
+	public static function fragments( object $booking ): array {
+		$applied = AudiencePostEventForm::settings( $booking );
+
+		return array(
+			'ffc-attendance-rule-summary'      => self::rule_summary( $booking ),
+			'ffc-attendance-post-event-status' => self::post_event_status( $booking, $applied, AudiencePostEventForm::is_custom( $booking ) ),
+			'ffc-post-event-no-page'           => AudienceFormInviteMailer::missing_page_text( $applied['form_id'] ),
+		);
 	}
 
 	/**

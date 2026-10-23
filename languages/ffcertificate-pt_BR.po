@@ -28542,8 +28542,8 @@ msgid "Check-in closed on its own at %s, 30 minutes after the booking ended toda
 msgstr "O check-in encerrou sozinho às %s, 30 minutos após o fim da reserva hoje. A presença ainda pode ser marcada à mão abaixo."
 
 #: includes/audience/class-ffc-audience-admin-attendance.php
-msgid "Changes save as you make them. Reload the page to see which form applies and the invitations."
-msgstr "As alterações são salvas assim que feitas. Recarregue a página para ver qual formulário vale e os convites."
+msgid "Changes save as you make them. Reload the page to see the invitations."
+msgstr "As alterações são salvas assim que feitas. Recarregue a página para ver os convites."
 
 #: includes/audience/class-ffc-audience-record-autosave.php
 msgid "Choose a published certificate form."

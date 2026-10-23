@@ -34,7 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Registry and AJAX handler for per-record autosave.
  *
  * @phpstan-type RecordField array{type: string, options?: list<string>, map?: array<int, string>, min?: int, max?: int}
- * @phpstan-type RecordEntity array{cap: string, fields: array<string, RecordField>, exists: callable(int): bool, save: callable(int, string, mixed): (true|\WP_Error)}
+ * @phpstan-type RecordEntity array{cap: string, fields: array<string, RecordField>, exists: callable(int): bool, save: callable(int, string, mixed): (true|\WP_Error), fragments?: callable(int): array<string, string>}
  */
 class RecordAutosave {
 
@@ -73,6 +73,11 @@ class RecordAutosave {
 	 * - `int`: a whole number, refused outside `min` / `max` when given. An
 	 *   empty value is refused, never read as 0 (CLAUDE.md "Admin number
 	 *   inputs").
+	 *
+	 * An entity may also name `fragments`: given the record id after a save,
+	 * it returns the text of the elements on the screen that describe the
+	 * saved state, keyed by element id, and the widget writes each one in
+	 * (#2026). Text only -- the widget sets `textContent`, never markup.
 	 *
 	 * @param string               $entity Entity key, as the markup names it.
 	 * @param array<string, mixed> $def    Capability, fields and callbacks.
@@ -187,12 +192,15 @@ class RecordAutosave {
 			wp_send_json_error( array( 'message' => $result->get_error_message() ), 400 );
 		}
 
-		wp_send_json_success(
-			array(
-				'key'   => $key,
-				'value' => $value,
-			)
+		$response = array(
+			'key'   => $key,
+			'value' => $value,
 		);
+		if ( isset( $entity['fragments'] ) ) {
+			$response['fragments'] = ( $entity['fragments'] )( $id );
+		}
+
+		wp_send_json_success( $response );
 	}
 
 	/**
