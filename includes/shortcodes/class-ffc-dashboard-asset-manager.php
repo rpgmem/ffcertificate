@@ -238,6 +238,11 @@ class DashboardAssetManager {
 					'noCertificates'           => __( 'No certificates found', 'ffcertificate' ),
 					'noAppointments'           => __( 'No appointments found', 'ffcertificate' ),
 					'noAudienceBookings'       => __( 'No scheduled activities found', 'ffcertificate' ),
+					'fillPostEventForm'        => __( 'Fill in the form', 'ffcertificate' ),
+					/* translators: %s: date and time the form closes */
+					'postEventCloses'          => __( 'Open until %s', 'ffcertificate' ),
+					/* translators: %s: form title */
+					'postEventWaiting'         => __( 'Form waiting: %s', 'ffcertificate' ),
 					'downloadPdf'              => __( 'View PDF', 'ffcertificate' ),
 					'yes'                      => __( 'Yes', 'ffcertificate' ),
 					'no'                       => __( 'No', 'ffcertificate' ),

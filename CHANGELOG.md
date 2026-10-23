@@ -33,6 +33,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: a post-event certificate form per calendar** (#1948). A new Post-event form tab names the certificate form a calendar's bookings lead to, how many days it stays open after the event and whether only attendees are invited; a booking can override it on its Attendance screen. Submissions gain an `audience_booking_id` column.
 - **Certificates: a form can be filled in from a personal invitation** (#1948). A post-event invitation link fills in and locks the person's name and e-mail and needs no login; the CPF/RF is typed and refused when it belongs to another account or differs from the one on record. A new *Booking participants only* restriction closes the form to everyone else; the submission records its booking.
 - **Audience Calendars: post-event invitations go out on their own** (#1948). An hourly run e-mails each eligible participant a personal link once the booking's last day ends, through a new editable *Audience post-event form invitation* e-mail. The Attendance screen lists who was invited, who answered and whose certificate was issued, and resends to one person or to everyone who has not answered.
+- **Audience Calendars: the participant's dashboard shows a post-event form waiting** (#2028). A booking whose form is open, the person eligible and not yet answered shows Fill in the form with their own link and the closing time; a notice counts the forms waiting. Viewing as a user shows the form without its link.
 
 
 ### Fixed

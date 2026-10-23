@@ -31,6 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><?php esc_html_e( 'Their personal-calendar appointments (with receipt / cancel actions where allowed)', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'The reregistration banner and "Download Record" action when a reregistration applies to them', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Their audience bookings, and the Recruitment tab with their call-ups, when they belong to an audience or are linked to a candidate', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'A post-event certificate form still waiting for them: the booking shows Fill in the form, their personal link, and when the form closes, and a notice at the top of the tab counts the forms waiting. Viewing as a user shows that a form waits, never its link.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'A Profile tab, read from the plugin\'s own user profile, where they edit their display name, phone, department, organization, notes and birth date (stored encrypted, and the date Date Messages uses)', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Notification Preferences: an "Appointment reminder" toggle and, when the Date Messages module is on, a "Date messages (such as birthday greetings)" toggle and an "Announcements from this site" toggle, each of which opts them out; all are on until turned off', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Change Password, and Privacy & Data (LGPD) buttons to request an export or the deletion of their personal data', 'ffcertificate' ); ?></li>

@@ -28569,3 +28569,26 @@ msgstr "Nenhuma página publicada contém este formulário, então nenhum convit
 #: includes/privacy/class-ffc-privacy-exporters.php
 msgid "Times sent"
 msgstr "Vezes enviado"
+
+msgid "A participant whose e-mail went astray also finds the form on their dashboard, in the bookings tab, until it closes or they answer."
+msgstr "Um participante cujo e-mail se perdeu também encontra o formulário no seu painel, na aba de agendamentos, até ele fechar ou ser respondido."
+
+msgid "A post-event certificate form still waiting for them: the booking shows Fill in the form, their personal link, and when the form closes, and a notice at the top of the tab counts the forms waiting. Viewing as a user shows that a form waits, never its link."
+msgstr "Um formulário de certificado pós-evento ainda à espera: o agendamento mostra Preencher o formulário, o link pessoal, e quando o formulário fecha, e um aviso no topo da aba conta os formulários pendentes. Ver como usuário mostra que há um formulário à espera, nunca o seu link."
+
+msgid "Fill in the form"
+msgstr "Preencher o formulário"
+
+#, php-format
+msgid "Form waiting: %s"
+msgstr "Formulário à espera: %s"
+
+#, php-format
+msgid "Open until %s"
+msgstr "Aberto até %s"
+
+#, php-format
+msgid "You have %d certificate form to fill in. Find it under Actions."
+msgid_plural "You have %d certificate forms to fill in. Find them under Actions."
+msgstr[0] "Você tem %d formulário de certificado para preencher. Ele está em Ações."
+msgstr[1] "Você tem %d formulários de certificado para preencher. Eles estão em Ações."
