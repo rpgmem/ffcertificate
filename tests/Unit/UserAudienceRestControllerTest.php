@@ -384,6 +384,77 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->assertSame( 'From 14:00 on the first day to 10:00 on the last day', $row['time_label'] );
 	}
 
+	/**
+	 * A booking row the controller can format.
+	 *
+	 * @param int $id Booking ID.
+	 * @return array<string, mixed>
+	 */
+	private function plain_booking( int $id ): array {
+		return array(
+			'id'               => $id,
+			'booking_date'     => '2026-06-01',
+			'start_time'       => '08:00:00',
+			'end_time'         => '10:00:00',
+			'status'           => 'active',
+			'environment_id'   => 3,
+			'environment_name' => 'Room',
+			'schedule_name'    => 'Sched',
+			'description'      => 'desc',
+			'audiences'        => array(),
+		);
+	}
+
+	public function test_get_user_audience_bookings_carries_the_post_event_form_waiting_and_counts_it(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'current_time' )->justReturn( '2026-06-06' );
+		Functions\when( 'wp_date' )->justReturn( '' );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
+
+		$waiting = array(
+			'form_title'   => 'Evaluation',
+			'url'          => 'https://example.org/form/?ffc_invite=abc',
+			'closes_at'    => 1800000000,
+			'closes_label' => '2027-01-15 12:00',
+		);
+		$this->query_service->shouldReceive( 'find_user_bookings' )->andReturn( array( $this->plain_booking( 7 ), $this->plain_booking( 8 ) ) );
+		Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudiencePostEventPending' )
+			->shouldReceive( 'for_user' )
+			->twice()
+			->with( Mockery::type( 'object' ), 5, Mockery::type( 'int' ), true )
+			->andReturnUsing( static fn( object $b ) => 7 === (int) $b->id ? $waiting : null );
+
+		$result = ( new UserAudienceRestController( 'ffc/v1' ) )->get_user_audience_bookings( $this->make_request() );
+
+		$this->assertSame( $waiting, $result['bookings'][0]['post_event'] );
+		$this->assertNull( $result['bookings'][1]['post_event'] );
+		$this->assertSame( 1, $result['pending_post_event'] );
+		$this->assertSame( 'You have 1 certificate form to fill in. Find it under Actions.', $result['pending_label'] );
+	}
+
+	public function test_viewing_as_a_user_asks_for_the_post_event_form_without_its_link(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'current_time' )->justReturn( '2026-06-06' );
+		Functions\when( 'wp_date' )->justReturn( '' );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+
+		$this->query_service->shouldReceive( 'find_user_bookings' )->with( 9 )->andReturn( array( $this->plain_booking( 7 ) ) );
+		Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudiencePostEventPending' )
+			->shouldReceive( 'for_user' )->once()
+			->with( Mockery::type( 'object' ), 9, Mockery::type( 'int' ), false )
+			->andReturn( null );
+
+		$result = ( new UserAudienceRestController( 'ffc/v1' ) )->get_user_audience_bookings( $this->make_request( array( 'viewAsUserId' => '9' ) ) );
+
+		$this->assertSame( 0, $result['pending_post_event'] );
+		$this->assertSame( '', $result['pending_label'] );
+	}
+
 	public function test_get_user_audience_bookings_returns_500_on_exception(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( true );

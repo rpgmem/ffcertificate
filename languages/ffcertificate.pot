@@ -28484,3 +28484,26 @@ msgstr ""
 #: includes/privacy/class-ffc-privacy-exporters.php
 msgid "Times sent"
 msgstr ""
+
+msgid "A participant whose e-mail went astray also finds the form on their dashboard, in the bookings tab, until it closes or they answer."
+msgstr ""
+
+msgid "A post-event certificate form still waiting for them: the booking shows Fill in the form, their personal link, and when the form closes, and a notice at the top of the tab counts the forms waiting. Viewing as a user shows that a form waits, never its link."
+msgstr ""
+
+msgid "Fill in the form"
+msgstr ""
+
+#, php-format
+msgid "Form waiting: %s"
+msgstr ""
+
+#, php-format
+msgid "Open until %s"
+msgstr ""
+
+#, php-format
+msgid "You have %d certificate form to fill in. Find it under Actions."
+msgid_plural "You have %d certificate forms to fill in. Find them under Actions."
+msgstr[0] ""
+msgstr[1] ""

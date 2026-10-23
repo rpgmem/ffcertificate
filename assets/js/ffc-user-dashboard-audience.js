@@ -23,6 +23,34 @@
     }
 
     /**
+     * The post-event form waiting for this person (#2028): a button with
+     * their own link and when the form closes. Without a link (someone
+     * viewing as the user) it only says the form waits.
+     *
+     * @param {Object|null} postEvent The booking's `post_event` from the REST payload.
+     * @returns {string}
+     */
+    function postEventHtml(postEvent) {
+        if (!postEvent) return '';
+        var s = ffcDashboard.strings;
+        var html = '<div class="ffc-post-event-pending">';
+        if (postEvent.url) {
+            html += FFC.buttonHtml({
+                label: s.fillPostEventForm || 'Fill in the form',
+                icon: 'award',
+                category: 'primary',
+                href: postEvent.url,
+                className: 'ffc-btn-post-event',
+                attrs: { title: postEvent.form_title || '' }
+            });
+        } else {
+            html += '<span class="ffc-post-event-waiting">' + helpers.esc((s.postEventWaiting || 'Form waiting: %s').replace('%s', postEvent.form_title || '')) + '</span>';
+        }
+        html += '<small class="ffc-post-event-closes">' + helpers.esc((s.postEventCloses || 'Open until %s').replace('%s', postEvent.closes_label || '')) + '</small>';
+        return html + '</div>';
+    }
+
+    /**
      * One booking row.
      *
      * @param {Object} booking Booking row from the REST payload.
@@ -67,6 +95,7 @@
             };
             html += FFCDashboard.calExport.buildButton(bookingEvent);
         }
+        html += postEventHtml(booking.post_event);
         html += '</td></tr>';
         return html;
     }
@@ -94,12 +123,16 @@
             FFC.rest(url, { nonce: ffcDashboard.nonce })
                 .then(function (response) {
                     self.state = response.bookings || [];
+                    self.pendingLabel = response.pending_label || '';
                     self.render(self.state, 1);
                 })
                 .catch(function () {
                     $container.empty().append(FFC.notice('danger', 'error', ffcDashboard.strings.error, '', { role: 'alert' }));
                 });
         },
+
+        // The count of post-event forms waiting, as the server worded it.
+        pendingLabel: '',
 
         // The page each section shows; `render()` resets them, a pager
         // click moves one (core's `handleSectionPage`).
@@ -149,6 +182,9 @@
             };
 
             var html = filterHtml;
+            if (this.pendingLabel) {
+                html += FFC.notice('info', 'award', this.pendingLabel, '', { hook: 'post-event-pending' }).outerHTML;
+            }
             var self = this;
             SECTION_ORDER.forEach(function (key) {
                 html += self.buildSectionHtml(key);

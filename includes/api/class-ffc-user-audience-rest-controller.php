@@ -146,6 +146,8 @@ class UserAudienceRestController {
 			$bookings = \FreeFormCertificate\Audience\AudienceQueryService::find_user_bookings( $user_id );
 
 			$bookings_formatted = array();
+			$now                = time();
+			$pending            = 0;
 
 			foreach ( $bookings as $booking ) {
 				// booking_date is a wall-clock DATE (Category B), rendered literally with no
@@ -197,6 +199,13 @@ class UserAudienceRestController {
 					}
 				);
 
+				// The post-event form still open to them (#2028). Someone viewing
+				// as the user sees that it waits, never the user's own link.
+				$post_event = \FreeFormCertificate\Audience\AudiencePostEventPending::for_user( $row, (int) $user_id, $now, ! $ctx['is_view_as'] );
+				if ( null !== $post_event ) {
+					++$pending;
+				}
+
 				$bookings_formatted[] = array(
 					'id'               => (int) $booking['id'],
 					'environment_id'   => (int) $booking['environment_id'],
@@ -222,13 +231,20 @@ class UserAudienceRestController {
 					// The text colour over each audience's own colour is computed here,
 					// not left to the script (#1826).
 					'audiences'        => \FreeFormCertificate\Core\BadgeHtml::with_row_colors( $booking['audiences'] ),
+					'post_event'       => $post_event,
 				);
 			}
 
 			return rest_ensure_response(
 				array(
-					'bookings' => $bookings_formatted,
-					'total'    => count( $bookings_formatted ),
+					'bookings'           => $bookings_formatted,
+					'total'              => count( $bookings_formatted ),
+					'pending_post_event' => $pending,
+					'pending_label'      => 0 === $pending ? '' : sprintf(
+						/* translators: %d: number of certificate forms */
+						_n( 'You have %d certificate form to fill in. Find it under Actions.', 'You have %d certificate forms to fill in. Find them under Actions.', $pending, 'ffcertificate' ),
+						$pending
+					),
 				)
 			);
 
