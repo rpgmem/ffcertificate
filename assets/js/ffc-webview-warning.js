@@ -30,25 +30,14 @@
 	'use strict';
 
 	var STORAGE_KEY = 'ffc_webview_warning_dismissed';
-	var ua          = navigator.userAgent || '';
-
-	// Android WebView markers (Chromium WebView ships `; wv)` or `; wv;`
-	// in the UA on Android 5+).
-	var isAndroidWebView = /\bwv\)/.test( ua ) || /; wv;/.test( ua );
-
-	// iOS in-app browsers add their own app marker to the UA. iOS Safari
-	// proper does NOT match any of these, nor does Chrome iOS (which uses
-	// "CriOS"). Matching means we're inside an embedded WebKit shell.
-	var isIOSInAppBrowser =
-		/(FBAN|FBAV|FBIOS)/i.test( ua ) ||           // Facebook + Messenger
-		/Instagram/i.test( ua ) ||
-		/TwitterIOS\/|Twitter for iPhone/i.test( ua ) ||
-		/WhatsApp/i.test( ua ) ||
-		/LinkedInApp/i.test( ua ) ||
-		/BytedanceWebView|musical_ly/i.test( ua ) || // TikTok
-		/Line\//i.test( ua );                        // Line messenger
-
-	var isInAppBrowser = isAndroidWebView || isIOSInAppBrowser;
+	// The banner is the shared notice, so without ffc-core there is none;
+	// the in-app test is FFC.Platform's (#2030).
+	var platform = window.FFC && window.FFC.Platform;
+	if ( ! platform ) {
+		return;
+	}
+	var isAndroidWebView = platform.androidWebView();
+	var isInAppBrowser   = platform.inApp();
 
 	if ( ! isInAppBrowser ) {
 		return;

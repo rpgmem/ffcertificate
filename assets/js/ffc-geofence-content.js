@@ -1,8 +1,8 @@
 /**
  * FFC Geofence — protected content ([ffc_geofence], #1668).
  *
- * Runs the same checks a geofenced form runs (date/time, GPS with its
- * pre-flight and fallbacks), through the shared window.FFCGeofence object,
+ * Runs the same pre-flight queue a geofenced form runs (date/time, GPS with
+ * its permission banners and fallbacks), through the shared window.FFCGeofence object,
  * on every `[data-ffc-geofence-handle]` placeholder. Where a form would be
  * revealed, the content is fetched instead: the server re-runs the
  * date/time and IP checks and returns it only if they pass. The page HTML
@@ -72,19 +72,8 @@
                 this.showBypassBadge(wrapper, config.bypassInfo);
             }
 
-            if (config.datetime && config.datetime.enabled) {
-                const datetime = this.validateDateTime(config.datetime);
-                if (!datetime.valid) {
-                    this.handleBlocked(
-                        wrapper,
-                        this.pickHideMode(config.datetime, datetime.phase),
-                        config.datetime.message || datetime.message
-                    );
-                    return;
-                }
-            }
-
-            this.processGeoOrShow(wrapper, config);
+            // No cookie step: the content is fetched, not submitted.
+            window.FFC.Preflight.run(['datetime', 'secure', 'geo'], this.preflightContext(wrapper, config));
         },
 
         /**

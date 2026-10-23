@@ -22,10 +22,11 @@ import { loadScript } from './helpers.js';
 
 beforeAll(() => {
 	loadScript('assets/js/ffc-core.js');
+	loadScript('assets/js/ffc-preflight.js');
 	loadScript('assets/js/ffc-geofence-frontend.js');
 	loadScript('assets/js/ffc-geofence-datetime.js');
 	loadScript('assets/js/ffc-geofence-gps.js');
-	loadScript('assets/js/ffc-geofence-preflight.js');
+	loadScript('assets/js/ffc-geofence-permission.js');
 });
 
 beforeEach(() => {
@@ -189,10 +190,11 @@ describe('FFCGeofence.validateGeolocation', () => {
 		};
 	}
 
-	it('blocks immediately on http (not localhost)', () => {
+	it('blocks immediately on http (not localhost), in the `secure` pre-flight step', () => {
 		const restore = installLocation('http:', 'example.com');
 		const $w = mountForm(100);
-		window.FFCGeofence.validateGeolocation($w, { hideMode: 'message' });
+		const geo = { enabled: true, gpsEnabled: true, hideMode: 'message' };
+		window.FFC.Preflight.run(['secure', 'geo'], window.FFCGeofence.preflightContext($w, { geo }));
 		expect($w.find('[data-ffc-notice="geofence-blocked"]').text()).toContain('secure connection');
 		restore();
 	});

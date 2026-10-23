@@ -7,10 +7,11 @@ import { loadScript } from './helpers.js';
 
 beforeAll(() => {
 	loadScript('assets/js/ffc-core.js');
+	loadScript('assets/js/ffc-preflight.js');
 	loadScript('assets/js/ffc-geofence-frontend.js');
 	loadScript('assets/js/ffc-geofence-datetime.js');
 	loadScript('assets/js/ffc-geofence-gps.js');
-	loadScript('assets/js/ffc-geofence-preflight.js');
+	loadScript('assets/js/ffc-geofence-permission.js');
 	loadScript('assets/js/ffc-geofence-content.js');
 	core = window.FFC;
 });
@@ -29,7 +30,7 @@ beforeEach(() => {
 	};
 	request = vi.fn(() => Promise.resolve({ html: '<p>Answer key</p>' }));
 	// The notices are built by the real FFC.notice() (#1842).
-	window.FFC = { request, notice: core.notice };
+	window.FFC = { request, notice: core.notice, Preflight: core.Preflight, Platform: core.Platform };
 });
 
 afterEach(() => {

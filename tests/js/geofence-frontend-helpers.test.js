@@ -17,10 +17,11 @@ beforeAll(() => {
 		},
 	};
 	loadScript('assets/js/ffc-core.js');
+	loadScript('assets/js/ffc-preflight.js');
 	loadScript('assets/js/ffc-geofence-frontend.js');
 	loadScript('assets/js/ffc-geofence-datetime.js');
 	loadScript('assets/js/ffc-geofence-gps.js');
-	loadScript('assets/js/ffc-geofence-preflight.js');
+	loadScript('assets/js/ffc-geofence-permission.js');
 });
 
 beforeEach(() => {
@@ -142,10 +143,10 @@ describe('FFCGeofence.deg2rad', () => {
 });
 
 // ----------------------------------------------------------------------
-// Browser detection — isSafari
+// Browser detection — FFC.Platform.webkit()
 // ----------------------------------------------------------------------
 
-describe('FFCGeofence.isSafari', () => {
+describe('FFC.Platform.webkit (was FFCGeofence.isSafari)', () => {
 	const origUA = navigator.userAgent;
 	const origMaxTouch = navigator.maxTouchPoints;
 
@@ -160,27 +161,27 @@ describe('FFCGeofence.isSafari', () => {
 
 	it('returns true for iPhone UA', () => {
 		setUA('Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1');
-		expect(G().isSafari()).toBe(true);
+		expect(window.FFC.Platform.webkit()).toBe(true);
 	});
 
 	it('returns true for desktop Safari UA', () => {
 		setUA('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/15.0 Safari/605.1.15');
-		expect(G().isSafari()).toBe(true);
+		expect(window.FFC.Platform.webkit()).toBe(true);
 	});
 
 	it('returns true for iPad-as-desktop (maxTouchPoints > 1 + Macintosh UA)', () => {
 		setUA('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/15.0 Safari/605.1.15', 5);
-		expect(G().isSafari()).toBe(true);
+		expect(window.FFC.Platform.webkit()).toBe(true);
 	});
 
 	it('returns false for Chrome UA', () => {
 		setUA('Mozilla/5.0 (Windows NT 10.0; Win64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36');
-		expect(G().isSafari()).toBe(false);
+		expect(window.FFC.Platform.webkit()).toBe(false);
 	});
 
 	it('returns false for Firefox UA', () => {
 		setUA('Mozilla/5.0 (X11; Linux x86_64; rv:122.0) Gecko/20100101 Firefox/122.0');
-		expect(G().isSafari()).toBe(false);
+		expect(window.FFC.Platform.webkit()).toBe(false);
 	});
 });
 

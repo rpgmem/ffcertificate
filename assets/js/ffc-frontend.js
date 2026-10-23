@@ -441,31 +441,13 @@
     });
 
     /**
-     * Detect the device family for the "where is my file" hint in the
-     * success card. Mirrors the UA logic in ffc-pdf-generator.js (iPadOS
-     * reports "Macintosh" but exposes maxTouchPoints > 1).
-     *
-     * @returns {'ios'|'android'|'desktop'}
-     */
-    function detectPlatform() {
-        var ua = navigator.userAgent || '';
-        if (/iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) {
-            return 'ios';
-        }
-        if (/Android/i.test(ua)) {
-            return 'android';
-        }
-        return 'desktop';
-    }
-
-    /**
      * Hide the platform-guidance lines that don't apply to the visitor's
      * device. The matching line stays visible.
      *
      * @param {jQuery} $form Form (or success card) container.
      */
     function filterPlatformGuidance($form) {
-        var platform = detectPlatform();
+        var platform = FFC.Platform.os();
         $form.find('.ffc-success-where-is-file li[data-platform]').each(function () {
             var $li = $(this);
             if ($li.attr('data-platform') !== platform) {

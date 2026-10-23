@@ -74,19 +74,22 @@ final class AssetRegistry {
 		'ffc-working-hours'         => array( 'assets/js/ffc-working-hours', array( 'jquery', 'ffc-core' ) ),
 		'ffc-audience'              => array( 'assets/js/ffc-audience', array( 'jquery', 'ffc-core' ) ),
 		// ffc-core dep: ffc-geofence-frontend.js calls FFC.request().
-		'ffc-geofence-frontend'     => array( 'assets/js/ffc-geofence-frontend', array( 'jquery', 'ffc-core' ) ),
+		// ffc-preflight dep: it registers its steps on the pre-flight queue
+		// and runs it (#2030).
+		'ffc-geofence-frontend'     => array( 'assets/js/ffc-geofence-frontend', array( 'jquery', 'ffc-core', 'ffc-preflight' ) ),
 		// Validation modules split out of the former monolith. Each extends
 		// window.FFCGeofence (Object.assign), so each loads after it.
 		'ffc-geofence-datetime'     => array( 'assets/js/ffc-geofence-datetime', array( 'jquery', 'ffc-geofence-frontend' ) ),
 		'ffc-geofence-gps'          => array( 'assets/js/ffc-geofence-gps', array( 'jquery', 'ffc-geofence-frontend' ) ),
-		'ffc-geofence-preflight'    => array( 'assets/js/ffc-geofence-preflight', array( 'jquery', 'ffc-geofence-frontend' ) ),
+		'ffc-geofence-permission'   => array( 'assets/js/ffc-geofence-permission', array( 'jquery', 'ffc-geofence-frontend' ) ),
 		'ffc-qr-raster'             => array( 'assets/js/ffc-qr-raster', array() ),
 		'ffc-qr-design'             => array( 'assets/js/ffc-qr-design', array( 'jquery', 'ffc-core' ) ),
 		// `ffc-core` carries `window.FFC.request()`, which the QR-download click
 		// handler calls; declaring it keeps the load order through JS-combining
 		// cache plugins that would otherwise drop it from the chain (#367).
 		'ffc-url-shortener-admin'   => array( 'assets/js/ffc-url-shortener-admin', array( 'jquery', 'ffc-core', 'ffc-admin-js', 'ffc-qr-raster' ) ),
-		'ffc-pdf-generator'         => array( 'assets/js/ffc-pdf-generator', array( 'jquery', 'html2canvas', 'jspdf' ) ),
+		// ffc-core dep: the PDF path asks FFC.Platform which browser it is in (#2030).
+		'ffc-pdf-generator'         => array( 'assets/js/ffc-pdf-generator', array( 'jquery', 'ffc-core', 'html2canvas', 'jspdf' ) ),
 		'ffc-layout-preview'        => array( 'assets/js/ffc-layout-preview', array( 'html2canvas' ) ),
 		'ffc-bulk-issue'            => array( 'assets/js/ffc-bulk-issue', array() ),
 		// The boot watchdog of the certificate form (#2030). No dependencies:
