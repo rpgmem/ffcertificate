@@ -10,6 +10,9 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// The PDF path asks FFC.Platform which browser it is in (#2030).
+loadScript('assets/js/ffc-core.js');
+
 beforeAll(async () => {
 	window.ffc_ajax = {
 		strings: {

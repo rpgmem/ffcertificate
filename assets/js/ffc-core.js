@@ -85,10 +85,93 @@
     }
 
     /**
+     * What the visitor's browser is, asked in one place (#2030).
+     *
+     * The success card, the pre-flight banners, the GPS timings and the PDF
+     * download each used to carry their own copy of these patterns. Every
+     * answer reads the user agent at call time, so a test (or a browser that
+     * changes it) is answered as it is now. Each test is one capability or
+     * one context, never a brand: Samsung Internet is named only because its
+     * PDF download needs the placeholder tab.
+     */
+    var Platform = {
+        /** @returns {string} The user agent, or '' where there is none. */
+        ua: function() {
+            return (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+        },
+
+        /**
+         * iPhone, iPod or iPad. iPadOS 13+ reports a Mac but has touch.
+         *
+         * @returns {boolean}
+         */
+        ios: function() {
+            var ua = this.ua();
+            return /iPad|iPhone|iPod/.test(ua)
+                || (/Macintosh/.test(ua) && typeof navigator !== 'undefined' && navigator.maxTouchPoints > 1);
+        },
+
+        /** @returns {'ios'|'android'|'desktop'} */
+        os: function() {
+            if (this.ios()) {
+                return 'ios';
+            }
+            return /Android/i.test(this.ua()) ? 'android' : 'desktop';
+        },
+
+        /**
+         * WebKit's rules apply: iOS, where every browser is WebKit, and
+         * desktop Safari. Decides the GPS timings.
+         *
+         * @returns {boolean}
+         */
+        webkit: function() {
+            return this.ios() || /^((?!chrome|android).)*safari/i.test(this.ua());
+        },
+
+        /** @returns {boolean} An Android WebView (`; wv)` or `; wv;`). */
+        androidWebView: function() {
+            var ua = this.ua();
+            return /\bwv\)/.test(ua) || /; wv;/.test(ua);
+        },
+
+        /**
+         * An app's embedded browser: an Android WebView, or an iOS app that
+         * adds its own marker to the user agent. Safari and Chrome on iOS
+         * match none of these.
+         *
+         * @returns {boolean}
+         */
+        inApp: function() {
+            var ua = this.ua();
+            return this.androidWebView()
+                || /(FBAN|FBAV|FBIOS)/i.test(ua)
+                || /Instagram/i.test(ua)
+                || /TwitterIOS\/|Twitter for iPhone/i.test(ua)
+                || /WhatsApp/i.test(ua)
+                || /LinkedInApp/i.test(ua)
+                || /BytedanceWebView|musical_ly/i.test(ua)
+                || /Line\//i.test(ua);
+        },
+
+        /** @returns {boolean} Samsung Internet. */
+        samsung: function() {
+            return /SamsungBrowser/i.test(this.ua());
+        },
+
+        /** @returns {boolean} A phone or tablet, by the user agent alone. */
+        mobile: function() {
+            return /Mobi|Android|iPhone|iPad|iPod/i.test(this.ua());
+        }
+    };
+
+    /**
      * Initialize global FFC namespace
      */
     var core = {
-        
+
+        Platform: Platform,
+
         /**
          * Plugin version
          */

@@ -17,24 +17,6 @@
     Object.assign(FFCGeofence, {
 
         /**
-         * Detect if running on Safari/iOS (including iPadOS 13+ which
-         * reports a Mac desktop user-agent).
-         */
-        isSafari: function() {
-            var ua = navigator.userAgent;
-            // Classic iOS devices
-            if (/iPad|iPhone|iPod/.test(ua)) {
-                return true;
-            }
-            // iPadOS 13+ identifies as Macintosh but has touch support
-            if (/Macintosh/.test(ua) && navigator.maxTouchPoints && navigator.maxTouchPoints > 1) {
-                return true;
-            }
-            // Desktop Safari (not Chrome, Edge, or Android)
-            return /^((?!chrome|android).)*safari/i.test(ua);
-        },
-
-        /**
          * Validate geolocation
          *
          * @param {jQuery} formWrapper Form wrapper element
@@ -43,16 +25,8 @@
         validateGeolocation: function(formWrapper, config, preflightDone) {
             const self = this;
 
-            // Check HTTPS requirement (required by Safari and recommended by all browsers)
-            if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-                this.debug('Geolocation blocked: page not served over HTTPS');
-                this.handleBlocked(
-                    formWrapper,
-                    config.hideMode,
-                    this.getString('httpsRequired', 'This form requires a secure connection (HTTPS) to access your location. Please contact the site administrator.')
-                );
-                return;
-            }
+            // The page is secure by now: the `secure` pre-flight step runs
+            // before this one (#2030).
 
             // Check browser support. Honour the admin's allow/block choice
             // for the `noApi` case: 'allow' lets the user through despite
@@ -140,7 +114,7 @@
                 return;
             }
 
-            var isSafariBrowser = this.isSafari();
+            var isSafariBrowser = window.FFC.Platform.webkit();
 
             // IMPORTANT: Hide form BEFORE requesting location
             formWrapper.find('.ffc-submission-form').hide();
@@ -356,7 +330,7 @@
                 this.showForm(formWrapper);
                 return;
             }
-            var msg = this.isSafari()
+            var msg = window.FFC.Platform.webkit()
                 ? this.getString('safariSafetyTimeout', "Your device didn't respond to the location request. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services, then reload the page.")
                 : this.getString('safetyTimeout', "Your device didn't respond to the location request. Make sure location is enabled and reload the page.");
             this.handleBlocked(formWrapper, config.hideMode, msg, true);

@@ -257,7 +257,7 @@ class Frontend {
 
 			// The geofence core and its validation modules; the geofence config
 			// localize stays on 'ffc-geofence-frontend'.
-			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-geofence-frontend', 'ffc-geofence-datetime', 'ffc-geofence-gps', 'ffc-geofence-preflight' );
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-geofence-frontend', 'ffc-geofence-datetime', 'ffc-geofence-gps', 'ffc-geofence-permission' );
 
 			// Pass geofence configurations to frontend.
 			$this->localize_geofence_config();
@@ -610,7 +610,7 @@ class Frontend {
 	 * Enqueue what [ffc_geofence] needs (#1668).
 	 *
 	 * The content script reuses the form geofence modules (date/time, GPS,
-	 * pre-flight) and their styles, so it loads them itself on a page that
+	 * permission banners, through the pre-flight queue) and their styles, so it loads them itself on a page that
 	 * has no form; on a page that has one, the form branch loads them and
 	 * localizes their shared configuration.
 	 *
@@ -626,7 +626,7 @@ class Frontend {
 			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-frontend-css' );
 		}
 
-		$modules = array( 'ffc-geofence-datetime', 'ffc-geofence-gps', 'ffc-geofence-preflight' );
+		$modules = array( 'ffc-geofence-datetime', 'ffc-geofence-gps', 'ffc-geofence-permission' );
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-geofence-frontend', ...$modules );
 
 		wp_enqueue_script( GeofenceContent::SCRIPT_HANDLE, FFC_PLUGIN_URL . "assets/js/ffc-geofence-content{$s}.js", array_merge( array( 'jquery', 'ffc-core' ), $modules ), FFC_VERSION, true );

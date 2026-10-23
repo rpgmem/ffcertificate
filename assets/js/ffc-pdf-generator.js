@@ -245,11 +245,9 @@
         // Mac Safari, Chrome (desktop or Android), Firefox, and Edge all
         // honour <a download> via pdf.save() correctly — they fall through
         // to the else branch below.
-        var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-        var isSamsungInternet = /SamsungBrowser/i.test(navigator.userAgent);
-        var isAndroidWebView = /\bwv\)/.test(navigator.userAgent) || /; wv;/.test(navigator.userAgent);
-        var needsPreOpen = isIOS || isSamsungInternet || isAndroidWebView;
+        var platform = window.FFC.Platform;
+        var isIOS = platform.ios();
+        var needsPreOpen = isIOS || platform.samsung() || platform.androidWebView();
         var pdfWindow = null;
         if (needsPreOpen) {
             pdfWindow = window.open('about:blank', '_blank');
@@ -463,8 +461,7 @@
                     // Reduce canvas scale on mobile to prevent memory
                     // exhaustion on low-end devices (scale 2 produces a
                     // ~14 MP image that can exceed 100 MB of RAM).
-                    var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-                    var canvasScale = isMobile ? 1.5 : 2;
+                    var canvasScale = platform.mobile() ? 1.5 : 2;
 
                     html2canvas(element, {
                         scale: canvasScale,
@@ -578,7 +575,7 @@
                                 successMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfOpenedAndroidTab)
                                     ? ffc_ajax.strings.pdfOpenedAndroidTab
                                     : 'PDF opened in a new tab. Use the menu to save or share.';
-                            } else if (/Android/i.test(navigator.userAgent)) {
+                            } else if (platform.os() === 'android') {
                                 // pdf.save() path on Android Chrome / Firefox → file in Downloads.
                                 successMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfSavedAndroid)
                                     ? ffc_ajax.strings.pdfSavedAndroid

@@ -9,10 +9,11 @@ import { loadScript } from './helpers.js';
 
 beforeAll(() => {
 	loadScript('assets/js/ffc-core.js');
+	loadScript('assets/js/ffc-preflight.js');
 	loadScript('assets/js/ffc-geofence-frontend.js');
 	loadScript('assets/js/ffc-geofence-datetime.js');
 	loadScript('assets/js/ffc-geofence-gps.js');
-	loadScript('assets/js/ffc-geofence-preflight.js');
+	loadScript('assets/js/ffc-geofence-permission.js');
 });
 
 beforeEach(() => {
@@ -157,7 +158,7 @@ describe('telemetry ping on banner render (#361)', () => {
 		document.body.innerHTML = '<div id="ffc-form-" class="ffc-form-wrapper"></div>';
 		const $wrap = window.$('#ffc-form-');
 
-		window.FFCGeofence.logPreflightBail($wrap, 'cookies');
+		window.FFC.Preflight.log($wrap, 'cookies');
 
 		expect(spy).not.toHaveBeenCalled();
 	});

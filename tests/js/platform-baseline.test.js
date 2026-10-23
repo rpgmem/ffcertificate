@@ -6,6 +6,10 @@
 //   1. ffc-frontend.js — the success card's "where is my file" line;
 //   2. FFCGeofence.detectPlatformFamily — the pre-flight banners' how-to;
 //   3. FFCGeofence.isSafari — the GPS timeouts and messages;
+//
+// Since #2030 PR 3 the five read FFC.Platform; entries 2 and 3 are read
+// from what replaced them there (os() and webkit()), and the fixture is
+// unchanged, which is the proof the merge answers every browser as before.
 //   4. ffc-pdf-generator.js — the placeholder tab, the canvas scale and the
 //      message after the download;
 //   5. ffc-webview-warning.js — the in-app browser banner.
@@ -78,10 +82,11 @@ beforeAll(async () => {
 	loadScript('assets/js/ffc-field-behaviours.js');
 	loadScript('assets/js/ffc-frontend-helpers.js');
 	loadScript('assets/js/ffc-frontend.js');
+	loadScript('assets/js/ffc-preflight.js');
 	loadScript('assets/js/ffc-geofence-frontend.js');
 	loadScript('assets/js/ffc-geofence-datetime.js');
 	loadScript('assets/js/ffc-geofence-gps.js');
-	loadScript('assets/js/ffc-geofence-preflight.js');
+	loadScript('assets/js/ffc-geofence-permission.js');
 	await new Promise((r) => setTimeout(r, 0));
 });
 
@@ -167,8 +172,8 @@ describe('platform detection baseline (#2030)', () => {
 			useDevice(CORPUS[name]);
 			records[name] = {
 				successCard: await successCardPlatform(),
-				preflightFamily: window.FFCGeofence.detectPlatformFamily(),
-				gpsSafari: window.FFCGeofence.isSafari(),
+				preflightFamily: window.FFC.Platform.os(),
+				gpsSafari: window.FFC.Platform.webkit(),
 				pdf: await pdfPath(),
 				webviewBanner: webviewBanner(),
 			};
