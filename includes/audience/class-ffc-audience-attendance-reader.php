@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+use FreeFormCertificate\Core\ArrayValue;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -82,7 +84,7 @@ class AudienceAttendanceReader {
 
 		$days = array();
 		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
-			$days[ (int) $row['user_id'] ][] = (string) $row['attendance_date'];
+			$days[ ArrayValue::int( $row, 'user_id' ) ][] = ArrayValue::string( $row, 'attendance_date' );
 		}
 
 		return $days;
@@ -141,13 +143,13 @@ class AudienceAttendanceReader {
 	 */
 	private static function shape( array $row ): array {
 		return array(
-			'id'              => (int) ( $row['id'] ?? 0 ),
-			'booking_id'      => (int) ( $row['booking_id'] ?? 0 ),
-			'user_id'         => null === ( $row['user_id'] ?? null ) ? null : (int) $row['user_id'],
-			'attendance_date' => (string) ( $row['attendance_date'] ?? '' ),
-			'checked_at'      => (int) ( $row['checked_at'] ?? 0 ),
-			'method'          => (string) ( $row['method'] ?? '' ),
-			'marked_by'       => null === ( $row['marked_by'] ?? null ) ? null : (int) $row['marked_by'],
+			'id'              => ArrayValue::int( $row, 'id' ),
+			'booking_id'      => ArrayValue::int( $row, 'booking_id' ),
+			'user_id'         => null === ( $row['user_id'] ?? null ) ? null : ArrayValue::int( $row, 'user_id' ),
+			'attendance_date' => ArrayValue::string( $row, 'attendance_date' ),
+			'checked_at'      => ArrayValue::int( $row, 'checked_at' ),
+			'method'          => ArrayValue::string( $row, 'method' ),
+			'marked_by'       => null === ( $row['marked_by'] ?? null ) ? null : ArrayValue::int( $row, 'marked_by' ),
 		);
 	}
 }
