@@ -72,8 +72,11 @@
                 this.showBypassBadge(wrapper, config.bypassInfo);
             }
 
-            // No cookie step: the content is fetched, not submitted.
-            window.FFC.Preflight.run(['datetime', 'secure', 'geo'], this.preflightContext(wrapper, config));
+            // No cookie step: the content is fetched, not submitted. The
+            // browser step runs only where the location is asked for.
+            const ctx = this.preflightContext(wrapper, config);
+            ctx.content = true;
+            window.FFC.Preflight.run(['datetime', 'secure', 'browser', 'geo'], ctx);
         },
 
         /**

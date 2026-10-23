@@ -5,6 +5,7 @@
  * Usage:
  *   php .github/scripts/preflight-e2e/seed.php /path/to/wp-load.php <manifest.json>
  *   php .github/scripts/preflight-e2e/seed.php /path/to/wp-load.php --captcha=<math|altcha|both>
+ *   php .github/scripts/preflight-e2e/seed.php /path/to/wp-load.php --browser-check=<0|1>
  *
  * The first form creates the forms and pages run.mjs drives and writes their
  * URLs to the manifest. The second only switches the captcha provider, which
@@ -18,7 +19,7 @@
 // phpcs:ignoreFile -- Developer tooling run from the CLI against a throwaway install, never shipped.
 
 if ( PHP_SAPI !== 'cli' || empty( $argv[1] ) || empty( $argv[2] ) ) {
-	fwrite( STDERR, "Usage: php seed.php /path/to/wp-load.php <manifest.json|--captcha=mode>\n" );
+	fwrite( STDERR, "Usage: php seed.php /path/to/wp-load.php <manifest.json|--captcha=mode|--browser-check=0|1>\n" );
 	exit( 1 );
 }
 
@@ -27,6 +28,14 @@ require $argv[1];
 
 wp_set_current_user( 1 );
 add_filter( 'pre_wp_mail', '__return_false' );
+
+if ( 0 === strpos( $argv[2], '--browser-check=' ) ) {
+	$settings                  = (array) get_option( 'ffc_settings', array() );
+	$settings['browser_check'] = '1' === substr( $argv[2], strlen( '--browser-check=' ) );
+	update_option( 'ffc_settings', $settings );
+	echo 'browser_check=' . ( $settings['browser_check'] ? '1' : '0' ) . "\n";
+	exit( 0 );
+}
 
 if ( 0 === strpos( $argv[2], '--captcha=' ) ) {
 	$settings                     = (array) get_option( 'ffc_settings', array() );

@@ -37,6 +37,9 @@ class FrontendTest extends TestCase {
 		Functions\when( 'add_shortcode' )->justReturn( true );
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'get_post_meta' )->justReturn( '' );
+		// A form with no restriction gets the pre-flight's minimal config
+		// (#2030), which asks whether an administrator is under bypass.
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'wp_enqueue_style' )->justReturn( true );
 		Functions\when( 'wp_enqueue_script' )->justReturn( true );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
@@ -266,6 +269,26 @@ class FrontendTest extends TestCase {
 		// Geofence config should be localized
 		$this->assertArrayHasKey( 'ffcGeofenceConfig', $localized );
 		$this->assertArrayHasKey( '_global', $localized['ffcGeofenceConfig'] );
+
+		// A form with no restriction still gets a config, so the visitor
+		// pre-flight runs on it (#2030), with both checks off.
+		$this->assertSame(
+			array(
+				'formId'      => 99,
+				'adminBypass' => false,
+				'bypassInfo'  => null,
+				'datetime'    => array( 'enabled' => false ),
+				'geo'         => array( 'enabled' => false ),
+			),
+			$localized['ffcGeofenceConfig'][99]
+		);
+		$global = $localized['ffcGeofenceConfig']['_global'];
+		$this->assertTrue( $global['browserCheck'] );
+		$this->assertFalse( $global['altchaOnly'] );
+		$this->assertArrayHasKey( 'inAppTitle', $global['strings'] );
+		$this->assertArrayHasKey( 'cookieBlockedTitle', $global['strings'] );
+		// The in-app banner is gone: its script is never enqueued.
+		$this->assertArrayNotHasKey( 'ffc_webview_warning', $localized );
 	}
 
 	/**

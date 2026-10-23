@@ -25,6 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<li><strong><?php esc_html_e( 'IP:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'coarse (roughly 1–50 km) — use a larger radius. IP validation requires the global geolocation API to be enabled (Settings → Geolocation); the per-form IP toggle stays disabled until then.', 'ffcertificate' ); ?></li>
 	</ul>
 	<p><?php esc_html_e( 'When both are enabled you choose whether the visitor must pass GPS AND IP, or either one (OR, the default). Blocked visitors see a configurable message, the title + description + message, or the form is hidden. A separate Error Message is shown when the location cannot be determined (e.g. GPS permission denied).', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The location is the last of the checks a form runs before it is shown, after the date window, the secure connection, the browser and the cookies; see Certificates & Forms → Checks before the form. A page served over plain HTTP cannot ask for the location, and an app\'s own browser often cannot either, which is why those two are checked first.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Area source: registered locations vs custom coordinates', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'You pick where the allowed GPS area comes from; IP validation reuses the GPS areas unless "Use different areas for IP validation" is checked, in which case IP gets its own source:', 'ffcertificate' ); ?></p>

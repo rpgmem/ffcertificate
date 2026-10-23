@@ -6250,10 +6250,6 @@ msgstr ""
 msgid "Download Limit"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:181
-msgid "Download may fail in this app"
-msgstr ""
-
 #: includes/user-dashboard/class-ffc-capability-catalog.php:122
 msgid "Download own certificates"
 msgstr ""
@@ -12076,10 +12072,6 @@ msgstr ""
 msgid "Open form"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:183
-msgid "Open in browser"
-msgstr ""
-
 #: includes/frontend/class-ffc-frontend.php:564
 msgid "Open participant form"
 msgstr ""
@@ -16601,10 +16593,6 @@ msgstr ""
 msgid "tag in the page head and the HTTP Link header, and it also backs the editor's \"Get Shortlink\" button and REST. Expose is off by default (opt-in), depends on Shorten, and only takes effect once a short URL exists for the page — otherwise WordPress falls back to its native shortlink."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:185
-msgid "Tap the menu icon (•••) at the bottom of the app and choose \"Open in Safari\"."
-msgstr ""
-
 #: includes/frontend/class-ffc-frontend.php:333
 msgid "Tap to open the PDF"
 msgstr ""
@@ -19800,10 +19788,6 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:350 includes/audience/class-ffc-audience-shortcode.php:172
 msgid "You are viewing this calendar as an administrator (bypass active)."
-msgstr ""
-
-#: includes/frontend/class-ffc-frontend.php:182
-msgid "You are viewing this page inside an app browser. To make sure the certificate downloads correctly, please open the page in your main browser (Chrome or Safari)."
 msgstr ""
 
 #. %d: maximum number of groups
@@ -28533,4 +28517,115 @@ msgid "A content blocker or a dropped request kept a script, or the refresh of t
 msgstr ""
 
 msgid "If every visitor sees it, check that a cache or optimisation plugin is not combining or delaying the plugin's scripts, and that admin-ajax.php is reachable"
+msgstr ""
+
+msgid "Browser check"
+msgstr ""
+
+msgid "Check the visitor's browser before the form"
+msgstr ""
+
+msgid "An app's own browser (Instagram, WhatsApp, Facebook and others) is asked to open the page in the phone's browser, with a \"Continue anyway\" link; a browser missing what the form needs to issue the certificate is stopped. Turn it off only if visitors are stopped by mistake: they then reach the form whatever browser they use."
+msgstr ""
+
+msgid "This form requires a secure connection (HTTPS). Please contact the site administrator."
+msgstr ""
+
+msgid "Chrome, Firefox, Edge, Opera or Samsung Internet"
+msgstr ""
+
+msgid "Safari, Chrome, Firefox or Edge"
+msgstr ""
+
+msgid "Chrome, Firefox, Edge or Safari"
+msgstr ""
+
+msgid "Open this page in your browser"
+msgstr ""
+
+msgid "You are viewing this page inside an app, where your location and the certificate download often fail. Open it in %s."
+msgstr ""
+
+msgid "Tap the menu (••• or the share icon) and choose \"Open in Safari\" or \"Open in browser\"."
+msgstr ""
+
+msgid "Or tap the menu (⋮) and choose \"Open in browser\"."
+msgstr ""
+
+msgid "Open in Chrome"
+msgstr ""
+
+msgid "This browser cannot run the form"
+msgstr ""
+
+msgid "This browser is missing features the form needs to issue your certificate. Open this page in %s."
+msgstr ""
+
+msgid "no HTTPS"
+msgstr ""
+
+msgid "Open the Activity Log: visitors stopped because the page is not served over HTTPS"
+msgstr ""
+
+msgid "app browser"
+msgstr ""
+
+msgid "Open the Activity Log: visitors asked to leave an app's own browser"
+msgstr ""
+
+msgid "continued in app"
+msgstr ""
+
+msgid "Open the Activity Log: visitors who chose \"Continue anyway\" in an app's browser"
+msgstr ""
+
+msgid "browser missing features"
+msgstr ""
+
+msgid "Open the Activity Log: visitors whose browser lacks what the form needs"
+msgstr ""
+
+msgid "form did not load"
+msgstr ""
+
+msgid "Open the Activity Log: forms whose scripts did not load in time"
+msgstr ""
+
+msgid "Checks before the form"
+msgstr ""
+
+msgid "Before a visitor sees a certificate form, the browser runs a short queue of checks, in this order. The first one that fails stops the queue and shows one message; nothing after it runs until the visitor fixes the cause or goes on where that is allowed."
+msgstr ""
+
+msgid "Date and time: on a form with a date window, outside it the form's closed-period message is shown."
+msgstr ""
+
+msgid "Secure connection: a form that asks for the location, or any form while the captcha is ALTCHA only, needs HTTPS; on a plain HTTP page the visitor is asked to contact the site administrator."
+msgstr ""
+
+msgid "Browser: an app's own browser (Instagram, WhatsApp, Facebook, TikTok, LinkedIn and others) is asked to open the page in the phone's browser, where the location and the download work; a \"Continue anyway\" link lets the visitor go on, because the detection can misfire. A browser missing what the form needs to issue the certificate is stopped with the list of browsers to use, and cannot go on."
+msgstr ""
+
+msgid "Cookies: a browser that blocks cookies is warned, with how to allow them, and may try anyway."
+msgstr ""
+
+msgid "Location: on a form with GPS validation, the location is asked for and checked (see Geolocation / Geofence)."
+msgstr ""
+
+msgid "Every form runs the browser and cookie checks, not only the ones with a restriction. The \"already submitted\" notice is drawn only after the queue passes. Settings → Certificates → Browser check turns the browser check off, should visitors be stopped by mistake. An administrator for whom the geolocation bypass is on skips the browser and cookie checks. Each stop is written to the Activity Log as a pre-flight block, and the form editor counts them per form."
+msgstr ""
+
+msgid "The location is the last of the checks a form runs before it is shown, after the date window, the secure connection, the browser and the cookies; see Certificates & Forms → Checks before the form. A page served over plain HTTP cannot ask for the location, and an app's own browser often cannot either, which is why those two are checked first."
+msgstr ""
+
+msgid "A visitor sees \"Open this page in your browser\" or \"This browser cannot run the form\""
+msgstr ""
+
+msgid "The page was opened inside an app (a link in Instagram or WhatsApp, for example): the visitor should open it in the phone's browser, or use \"Continue anyway\""
+msgstr ""
+
+msgid "A browser missing what the form needs cannot issue the certificate: the message lists the browsers to use instead"
+msgstr ""
+
+msgid "If visitors in an ordinary browser are stopped, turn the check off under Settings → Certificates → Browser check and report the browser"
 msgstr ""

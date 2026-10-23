@@ -142,6 +142,8 @@ class SettingsAjaxEndpoint {
 			// read from an HR specification, and a blocked registration is
 			// worse than a stored typo the audit finds later.
 			'validate_rf_check_digit',
+			// Certificates tab — check the visitor's browser (#2030).
+			'browser_check',
 		);
 
 		$allowlist = array(

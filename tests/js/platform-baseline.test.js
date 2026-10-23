@@ -12,7 +12,10 @@
 // unchanged, which is the proof the merge answers every browser as before.
 //   4. ffc-pdf-generator.js — the placeholder tab, the canvas scale and the
 //      message after the download;
-//   5. ffc-webview-warning.js — the in-app browser banner.
+//   5. ffc-webview-warning.js — the in-app browser banner. PR 4 replaced it
+//      with the pre-flight's `browser` step; entry 5 now reads whether that
+//      step stops the visitor as in an app's browser (`inAppBlock`), and
+//      the values are the banner's, browser for browser.
 //
 // They are about to become one FFC.Platform. Each answer is read through the
 // behaviour a visitor sees, never by copying a pattern into the test, and
@@ -152,17 +155,18 @@ async function pdfPath() {
 	return { preOpen, scale, message: h3 ? h3.textContent.trim() : null };
 }
 
-/** 5. The in-app browser banner, drawn on load or not. */
-function webviewBanner() {
+/** 5. The pre-flight's in-app block, drawn or not (was the in-app banner). */
+function inAppBlock() {
 	try {
 		window.sessionStorage.clear();
 	} catch (_e) {
 		/* ignore */
 	}
-	document.body.innerHTML = '<div class="ffc-form-wrapper"><form class="ffc-submission-form"></form></div>';
-	window.ffc_webview_warning = { strings: {} };
-	loadScript('assets/js/ffc-webview-warning.js');
-	return !!document.querySelector('[data-ffc-notice="webview-warning"]');
+	document.body.innerHTML = '<div class="ffc-form-wrapper" id="ffc-form-7"><form class="ffc-submission-form"></form></div>';
+	const ctx = { wrapper: window.jQuery('#ffc-form-7'), config: {}, browserCheck: true, text: (_k, f) => f };
+	window.FFC.Preflight.run(['browser'], ctx);
+	const notice = document.querySelector('[data-ffc-notice="preflight-browser"]');
+	return !!(notice && notice.querySelector('.ffc-preflight-continue'));
 }
 
 describe('platform detection baseline (#2030)', () => {
@@ -175,7 +179,7 @@ describe('platform detection baseline (#2030)', () => {
 				preflightFamily: window.FFC.Platform.os(),
 				gpsSafari: window.FFC.Platform.webkit(),
 				pdf: await pdfPath(),
-				webviewBanner: webviewBanner(),
+				inAppBlock: inAppBlock(),
 			};
 		}
 

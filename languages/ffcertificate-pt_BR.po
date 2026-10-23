@@ -6258,10 +6258,6 @@ msgstr "Baixar submissões (CSV)"
 msgid "Download Limit"
 msgstr "Limite de Download"
 
-#: includes/frontend/class-ffc-frontend.php:181
-msgid "Download may fail in this app"
-msgstr "O download pode falhar neste aplicativo"
-
 #: includes/user-dashboard/class-ffc-capability-catalog.php:122
 msgid "Download own certificates"
 msgstr "Baixe seus próprios certificados"
@@ -12096,10 +12092,6 @@ msgstr "Abra e salve a tela de edição da submissão."
 msgid "Open form"
 msgstr "Acesse formulário"
 
-#: includes/frontend/class-ffc-frontend.php:183
-msgid "Open in browser"
-msgstr "Abrir no navegador"
-
 #: includes/frontend/class-ffc-frontend.php:564
 msgid "Open participant form"
 msgstr "Abrir formulário do participante"
@@ -16653,10 +16645,6 @@ msgstr "Tag"
 msgid "tag in the page head and the HTTP Link header, and it also backs the editor's \"Get Shortlink\" button and REST. Expose is off by default (opt-in), depends on Shorten, and only takes effect once a short URL exists for the page — otherwise WordPress falls back to its native shortlink."
 msgstr "a tag no cabeçalho da página e o cabeçalho HTTP Link; além disso, ela dá suporte ao botão \"Obter Link Curto\" do editor e à API REST. O recurso \"Expose\" vem desativado por padrão (requer ativação), depende do plugin Shorten e só entra em ação quando já existe uma URL curta para a página — caso contrário, o WordPress utiliza seu próprio link curto nativo."
 
-#: includes/frontend/class-ffc-frontend.php:185
-msgid "Tap the menu icon (•••) at the bottom of the app and choose \"Open in Safari\"."
-msgstr "Toque no ícone de menu (•••) na parte inferior do aplicativo e escolha \"Abrir no Safari\"."
-
 #: includes/frontend/class-ffc-frontend.php:333
 msgid "Tap to open the PDF"
 msgstr "Toque para abrir o PDF"
@@ -19859,10 +19847,6 @@ msgstr "Você está fora da área permitida para este formulário."
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:350 includes/audience/class-ffc-audience-shortcode.php:172
 msgid "You are viewing this calendar as an administrator (bypass active)."
 msgstr "Você está visualizando este calendário como administrador (modo ignorar ativo)."
-
-#: includes/frontend/class-ffc-frontend.php:182
-msgid "You are viewing this page inside an app browser. To make sure the certificate downloads correctly, please open the page in your main browser (Chrome or Safari)."
-msgstr "Você está visualizando esta página dentro de um navegador de aplicativo. Para garantir que o certificado seja baixado corretamente, abra a página no seu navegador principal (Chrome ou Safari)."
 
 #. %d: maximum number of groups
 #: includes/api/class-ffc-user-audience-rest-controller.php:411
@@ -28619,3 +28603,114 @@ msgstr "Um bloqueador de conteúdo ou uma requisição perdida impediu o carrega
 
 msgid "If every visitor sees it, check that a cache or optimisation plugin is not combining or delaying the plugin's scripts, and that admin-ajax.php is reachable"
 msgstr "Se todos os visitantes veem a mensagem, verifique se um plugin de cache ou de otimização não está combinando ou adiando os scripts do plugin, e se o admin-ajax.php está acessível"
+
+msgid "Browser check"
+msgstr "Verificação do navegador"
+
+msgid "Check the visitor's browser before the form"
+msgstr "Verificar o navegador do visitante antes do formulário"
+
+msgid "An app's own browser (Instagram, WhatsApp, Facebook and others) is asked to open the page in the phone's browser, with a \"Continue anyway\" link; a browser missing what the form needs to issue the certificate is stopped. Turn it off only if visitors are stopped by mistake: they then reach the form whatever browser they use."
+msgstr "O navegador próprio de um aplicativo (Instagram, WhatsApp, Facebook e outros) recebe o pedido de abrir a página no navegador do celular, com um link \"Continuar mesmo assim\"; um navegador sem o que o formulário precisa para emitir o certificado é barrado. Desative apenas se visitantes forem barrados por engano: eles passam a chegar ao formulário com qualquer navegador."
+
+msgid "This form requires a secure connection (HTTPS). Please contact the site administrator."
+msgstr "Este formulário exige uma conexão segura (HTTPS). Entre em contato com o administrador do site."
+
+msgid "Chrome, Firefox, Edge, Opera or Samsung Internet"
+msgstr "Chrome, Firefox, Edge, Opera ou Samsung Internet"
+
+msgid "Safari, Chrome, Firefox or Edge"
+msgstr "Safari, Chrome, Firefox ou Edge"
+
+msgid "Chrome, Firefox, Edge or Safari"
+msgstr "Chrome, Firefox, Edge ou Safari"
+
+msgid "Open this page in your browser"
+msgstr "Abra esta página no seu navegador"
+
+msgid "You are viewing this page inside an app, where your location and the certificate download often fail. Open it in %s."
+msgstr "Você está vendo esta página dentro de um aplicativo, onde a localização e o download do certificado costumam falhar. Abra-a em um destes navegadores: %s."
+
+msgid "Tap the menu (••• or the share icon) and choose \"Open in Safari\" or \"Open in browser\"."
+msgstr "Toque no menu (••• ou no ícone de compartilhar) e escolha \"Abrir no Safari\" ou \"Abrir no navegador\"."
+
+msgid "Or tap the menu (⋮) and choose \"Open in browser\"."
+msgstr "Ou toque no menu (⋮) e escolha \"Abrir no navegador\"."
+
+msgid "Open in Chrome"
+msgstr "Abrir no Chrome"
+
+msgid "This browser cannot run the form"
+msgstr "Este navegador não consegue executar o formulário"
+
+msgid "This browser is missing features the form needs to issue your certificate. Open this page in %s."
+msgstr "Faltam neste navegador recursos de que o formulário precisa para emitir o seu certificado. Abra esta página em um destes navegadores: %s."
+
+msgid "no HTTPS"
+msgstr "sem HTTPS"
+
+msgid "Open the Activity Log: visitors stopped because the page is not served over HTTPS"
+msgstr "Abra o registro de atividades: visitantes barrados porque a página não é servida por HTTPS"
+
+msgid "app browser"
+msgstr "navegador de aplicativo"
+
+msgid "Open the Activity Log: visitors asked to leave an app's own browser"
+msgstr "Abra o registro de atividades: visitantes convidados a sair do navegador próprio de um aplicativo"
+
+msgid "continued in app"
+msgstr "continuou no aplicativo"
+
+msgid "Open the Activity Log: visitors who chose \"Continue anyway\" in an app's browser"
+msgstr "Abra o registro de atividades: visitantes que escolheram \"Continuar mesmo assim\" no navegador de um aplicativo"
+
+msgid "browser missing features"
+msgstr "navegador sem recursos"
+
+msgid "Open the Activity Log: visitors whose browser lacks what the form needs"
+msgstr "Abra o registro de atividades: visitantes cujo navegador não tem o que o formulário precisa"
+
+msgid "form did not load"
+msgstr "formulário não carregou"
+
+msgid "Open the Activity Log: forms whose scripts did not load in time"
+msgstr "Abra o registro de atividades: formulários cujos scripts não carregaram a tempo"
+
+msgid "Checks before the form"
+msgstr "Verificações antes do formulário"
+
+msgid "Before a visitor sees a certificate form, the browser runs a short queue of checks, in this order. The first one that fails stops the queue and shows one message; nothing after it runs until the visitor fixes the cause or goes on where that is allowed."
+msgstr "Antes de o visitante ver um formulário de certificado, o navegador executa uma pequena fila de verificações, nesta ordem. A primeira que falhar interrompe a fila e mostra uma única mensagem; nada depois dela é executado até o visitante corrigir a causa ou seguir adiante, quando isso é permitido."
+
+msgid "Date and time: on a form with a date window, outside it the form's closed-period message is shown."
+msgstr "Data e hora: em um formulário com janela de datas, fora dela é exibida a mensagem de período encerrado do formulário."
+
+msgid "Secure connection: a form that asks for the location, or any form while the captcha is ALTCHA only, needs HTTPS; on a plain HTTP page the visitor is asked to contact the site administrator."
+msgstr "Conexão segura: um formulário que pede a localização, ou qualquer formulário enquanto o captcha for somente ALTCHA, exige HTTPS; em uma página HTTP simples o visitante é orientado a entrar em contato com o administrador do site."
+
+msgid "Browser: an app's own browser (Instagram, WhatsApp, Facebook, TikTok, LinkedIn and others) is asked to open the page in the phone's browser, where the location and the download work; a \"Continue anyway\" link lets the visitor go on, because the detection can misfire. A browser missing what the form needs to issue the certificate is stopped with the list of browsers to use, and cannot go on."
+msgstr "Navegador: o navegador próprio de um aplicativo (Instagram, WhatsApp, Facebook, TikTok, LinkedIn e outros) recebe o pedido de abrir a página no navegador do celular, onde a localização e o download funcionam; um link \"Continuar mesmo assim\" permite seguir, porque a detecção pode errar. Um navegador sem o que o formulário precisa para emitir o certificado é barrado com a lista de navegadores a usar, e não pode seguir."
+
+msgid "Cookies: a browser that blocks cookies is warned, with how to allow them, and may try anyway."
+msgstr "Cookies: um navegador que bloqueia cookies recebe um aviso, com instruções para permiti-los, e pode tentar mesmo assim."
+
+msgid "Location: on a form with GPS validation, the location is asked for and checked (see Geolocation / Geofence)."
+msgstr "Localização: em um formulário com validação por GPS, a localização é solicitada e verificada (veja Geolocalização / Geocerca)."
+
+msgid "Every form runs the browser and cookie checks, not only the ones with a restriction. The \"already submitted\" notice is drawn only after the queue passes. Settings → Certificates → Browser check turns the browser check off, should visitors be stopped by mistake. An administrator for whom the geolocation bypass is on skips the browser and cookie checks. Each stop is written to the Activity Log as a pre-flight block, and the form editor counts them per form."
+msgstr "Todo formulário executa as verificações de navegador e de cookies, não apenas os que têm restrição. O aviso de \"já enviado\" só aparece depois que a fila passa. Configurações → Certificados → Verificação do navegador desliga a verificação do navegador, caso visitantes sejam barrados por engano. Um administrador com o bypass de geolocalização ativo pula as verificações de navegador e de cookies. Cada bloqueio é gravado no registro de atividades como um bloqueio de pré-verificação, e o editor do formulário os conta por formulário."
+
+msgid "The location is the last of the checks a form runs before it is shown, after the date window, the secure connection, the browser and the cookies; see Certificates & Forms → Checks before the form. A page served over plain HTTP cannot ask for the location, and an app's own browser often cannot either, which is why those two are checked first."
+msgstr "A localização é a última das verificações que um formulário executa antes de ser exibido, depois da janela de datas, da conexão segura, do navegador e dos cookies; veja Certificados e Formulários → Verificações antes do formulário. Uma página servida por HTTP simples não pode pedir a localização, e o navegador próprio de um aplicativo muitas vezes também não, por isso esses dois são verificados antes."
+
+msgid "A visitor sees \"Open this page in your browser\" or \"This browser cannot run the form\""
+msgstr "Um visitante vê \"Abra esta página no seu navegador\" ou \"Este navegador não consegue executar o formulário\""
+
+msgid "The page was opened inside an app (a link in Instagram or WhatsApp, for example): the visitor should open it in the phone's browser, or use \"Continue anyway\""
+msgstr "A página foi aberta dentro de um aplicativo (um link no Instagram ou no WhatsApp, por exemplo): o visitante deve abri-la no navegador do celular, ou usar \"Continuar mesmo assim\""
+
+msgid "A browser missing what the form needs cannot issue the certificate: the message lists the browsers to use instead"
+msgstr "Um navegador sem o que o formulário precisa não consegue emitir o certificado: a mensagem lista os navegadores a usar no lugar dele"
+
+msgid "If visitors in an ordinary browser are stopped, turn the check off under Settings → Certificates → Browser check and report the browser"
+msgstr "Se visitantes em um navegador comum forem barrados, desligue a verificação em Configurações → Certificados → Verificação do navegador e informe o navegador"

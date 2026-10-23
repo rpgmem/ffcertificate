@@ -4,7 +4,8 @@
  *
  * AJAX endpoint that records `ActivityLog` rows for every pre-flight
  * banner the client renders (cookie wall, GPS denied wall, GPS prompt
- * pre-explainer). Lets admins see the volume of visitors hit by each
+ * pre-explainer, HTTPS block, the browser step's blocks, the boot
+ * watchdog). Lets admins see the volume of visitors hit by each
  * gate from a single screen instead of relying on user reports.
  *
  * @package FreeFormCertificate\Frontend
@@ -36,13 +37,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 class PreflightTelemetry {
 
 	/**
-	 * Allowed `reason` values. Mirrors the three pre-flight banners in
-	 * ffc-geofence-frontend.js: cookie probe, GPS denied, GPS prompt.
+	 * Allowed `reason` values: the pre-flight steps that stop a visitor
+	 * (ffc-preflight.js and the geofence steps). `browser_inapp_continue` is
+	 * the visitor going on from the in-app block; `browser_boot` is the boot
+	 * watchdog taking the form away.
 	 */
-	private const ALLOWED_REASONS = array(
+	public const ALLOWED_REASONS = array(
 		'cookies',
 		'gps_denied',
 		'gps_prompt',
+		'secure',
+		'browser_inapp',
+		'browser_inapp_continue',
+		'browser_features',
+		'browser_boot',
 	);
 
 	/**

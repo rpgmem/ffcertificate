@@ -10,10 +10,12 @@
  * queue carries on from the step after it. The order is the caller's, so a
  * form and gated content can run different lists through the same steps.
  *
- * Steps registered here: `cookies` (the probe and its banner). The
+ * Steps registered here: `browser` (an app's own browser, or one missing
+ * what the form needs) and `cookies` (the probe and its banner). The
  * geofence script registers `datetime`, `secure` and `geo`. The context
- * carries the wrapper (jQuery), the config, and `text(key, fallback)` for
- * the localized strings.
+ * carries the wrapper (jQuery), the config, `text(key, fallback)` for the
+ * localized strings, `content` for gated content, `browserCheck` (the
+ * setting that turns the browser step off) and `altchaOnly`.
  *
  * THE WATCHDOG. A certificate form is submitted over AJAX and its PDF is
  * drawn in the browser, so a script that did not load (a content blocker, a
@@ -142,6 +144,8 @@
 			}
 		}
 		wrapper.classList.add('ffc-boot-failed');
+		// Only when the request helper loaded: the log goes through it.
+		log(wrapper, 'browser_boot');
 	}
 
 	/**
@@ -269,12 +273,16 @@
 	 * (`ffc_log_preflight_bail`). Any failure is swallowed — the banner is
 	 * the visitor's feedback, the log only the administrator's.
 	 *
-	 * @param {jQuery} wrapper Form wrapper (`#ffc-form-<id>`).
-	 * @param {string} reason  `cookies` | `gps_denied` | `gps_prompt`
+	 * @param {jQuery|Element} wrapper Form wrapper (`#ffc-form-<id>`).
+	 * @param {string}         reason  `cookies` | `gps_denied` | `gps_prompt` |
+	 *                                 `secure` | `browser_inapp` |
+	 *                                 `browser_inapp_continue` |
+	 *                                 `browser_features` | `browser_boot`
 	 */
 	function log(wrapper, reason) {
 		try {
-			var formId = parseInt((wrapper.attr('id') || '').replace('ffc-form-', ''), 10);
+			var id = wrapper && wrapper.jquery ? wrapper.attr('id') : wrapper && wrapper.id;
+			var formId = parseInt((id || '').replace('ffc-form-', ''), 10);
 			if (!formId || isNaN(formId)) {
 				return;
 			}
@@ -379,6 +387,183 @@
 		}
 	});
 
+	/**
+	 * The browsers to name on a platform, as the localized list.
+	 *
+	 * @param {object} ctx Step context.
+	 * @returns {string}
+	 */
+	function browserList(ctx) {
+		var os = window.FFC.Platform.os();
+		if (os === 'android') {
+			return ctx.text('browsersAndroid', 'Chrome, Firefox, Edge, Opera or Samsung Internet');
+		}
+		if (os === 'ios') {
+			return ctx.text('browsersIos', 'Safari, Chrome, Firefox or Edge');
+		}
+		return ctx.text('browsersOther', 'Chrome, Firefox, Edge or Safari');
+	}
+
+	/**
+	 * The features the form cannot work without that this browser lacks:
+	 * the request and form-data APIs it submits through, and the canvas and
+	 * Blob the PDF is drawn with. Only their presence is read; drawing on a
+	 * canvas here would cost every visitor a render for a rare case.
+	 *
+	 * @returns {string[]} Names of the missing features; empty when none.
+	 */
+	function missingFeatures() {
+		var missing = [];
+		if (typeof window.Promise !== 'function') {
+			missing.push('Promise');
+		}
+		if (typeof window.FormData !== 'function') {
+			missing.push('FormData');
+		}
+		if (typeof window.fetch !== 'function' && typeof window.XMLHttpRequest !== 'function') {
+			missing.push('fetch');
+		}
+		if (typeof window.Blob !== 'function') {
+			missing.push('Blob');
+		}
+		try {
+			var canvas = document.createElement('canvas');
+			if (typeof canvas.getContext !== 'function' || typeof canvas.toDataURL !== 'function') {
+				missing.push('canvas');
+			}
+		} catch (e) {
+			missing.push('canvas');
+		}
+		return missing;
+	}
+
+	/**
+	 * Session flag set by "Continue anyway", so the visitor who chose to go
+	 * on is not stopped again on the next page of the same visit.
+	 */
+	var CONTINUE_KEY = 'ffc_inapp_continue';
+
+	function continued() {
+		try {
+			return window.sessionStorage.getItem(CONTINUE_KEY) === '1';
+		} catch (e) {
+			return false;
+		}
+	}
+
+	function rememberContinue() {
+		try {
+			window.sessionStorage.setItem(CONTINUE_KEY, '1');
+		} catch (e) {
+			// Private mode: the choice lasts for this page only.
+		}
+	}
+
+	/**
+	 * Hand the page to Chrome from an Android in-app browser. Most WebViews
+	 * follow an `intent://` link; one that refuses leaves the visitor where
+	 * they are, with the menu instructions still on screen.
+	 */
+	function openInChrome() {
+		var url = window.location.href.replace(/^https?:\/\//, '');
+		try {
+			window.location.href = 'intent://' + url + '#Intent;scheme=https;package=com.android.chrome;end';
+		} catch (e) {
+			// The instructions in the notice cover it.
+		}
+	}
+
+	/**
+	 * Take the form away behind a notice.
+	 *
+	 * @param {jQuery}      wrapper Form or content wrapper.
+	 * @param {HTMLElement} notice  The notice.
+	 */
+	function hideBehind(wrapper, notice) {
+		wrapper.find('.ffc-submission-form, .ffc-form').hide();
+		wrapper.prepend(notice);
+	}
+
+	register('browser', {
+		// Every form, and gated content that asks for the location. The
+		// setting turns it off; an administrator under bypass is not stopped
+		// by it, as by the cookie step.
+		applies: function (ctx) {
+			if (ctx.browserCheck === false || (ctx.config && ctx.config.adminBypass === true)) {
+				return false;
+			}
+			if (ctx.content) {
+				return !!(ctx.config && ctx.config.geo && ctx.config.geo.enabled && ctx.config.geo.gpsEnabled);
+			}
+			return true;
+		},
+		run: function (ctx, next) {
+			var list = browserList(ctx);
+
+			// A browser without the features cannot issue the certificate,
+			// whatever the visitor chooses: there is no way through.
+			if (missingFeatures().length) {
+				log(ctx.wrapper, 'browser_features');
+				hideBehind(ctx.wrapper, window.FFC.notice(
+					'warning',
+					'monitor',
+					ctx.text('browserFeaturesBody', 'This browser is missing features the form needs to issue your certificate. Open this page in %s.').replace('%s', list),
+					ctx.text('browserFeaturesTitle', 'This browser cannot run the form'),
+					{ role: 'alert', live: 'assertive', hook: 'preflight-browser' }
+				));
+				return;
+			}
+
+			if (!window.FFC.Platform.inApp() || continued()) {
+				next();
+				return;
+			}
+
+			// An app's own browser: the location and the download are
+			// unreliable there. Detection is by user agent and can misfire,
+			// so the visitor may go on; the steps after this still run.
+			log(ctx.wrapper, 'browser_inapp');
+			var os = window.FFC.Platform.os();
+			var actions = document.createElement('div');
+			actions.className = 'ffc-notice-actions';
+			if (os === 'android') {
+				var open = window.FFC.button({
+					label: ctx.text('openInChrome', 'Open in Chrome'),
+					category: 'primary',
+					icon: 'external',
+					className: 'ffc-preflight-open-browser'
+				});
+				open.addEventListener('click', openInChrome);
+				actions.appendChild(open);
+			}
+			var go = document.createElement('button');
+			go.type = 'button';
+			go.className = 'ffc-preflight-continue';
+			go.textContent = ctx.text('continueAnyway', 'Continue anyway');
+			actions.appendChild(go);
+
+			var how = os === 'ios'
+				? ctx.text('inAppHowIos', 'Tap the menu (••• or the share icon) and choose "Open in Safari" or "Open in browser".')
+				: ctx.text('inAppHowAndroid', 'Or tap the menu (⋮) and choose "Open in browser".');
+			var notice = window.FFC.notice(
+				'warning',
+				'phone',
+				[ctx.text('inAppBody', 'You are viewing this page inside an app, where your location and the certificate download often fail. Open it in %s.').replace('%s', list), how],
+				ctx.text('inAppTitle', 'Open this page in your browser'),
+				{ role: 'alert', live: 'assertive', hook: 'preflight-browser', children: [actions] }
+			);
+			go.addEventListener('click', function () {
+				log(ctx.wrapper, 'browser_inapp_continue');
+				rememberContinue();
+				if (notice.parentNode) {
+					notice.parentNode.removeChild(notice);
+				}
+				next();
+			});
+			hideBehind(ctx.wrapper, notice);
+		}
+	});
+
 	ns.Preflight = {
 		/**
 		 * Report that a part finished.
@@ -407,6 +592,7 @@
 		log: log,
 		banner: banner,
 		cookiesWork: cookiesWork,
+		missingFeatures: missingFeatures,
 	};
 
 	if (document.readyState === 'loading') {

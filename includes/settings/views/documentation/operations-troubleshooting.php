@@ -97,6 +97,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</td>
 			</tr>
 			<tr>
+				<td><?php esc_html_e( 'A visitor sees "Open this page in your browser" or "This browser cannot run the form"', 'ffcertificate' ); ?></td>
+				<td>
+					• <?php esc_html_e( 'The page was opened inside an app (a link in Instagram or WhatsApp, for example): the visitor should open it in the phone\'s browser, or use "Continue anyway"', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'A browser missing what the form needs cannot issue the certificate: the message lists the browsers to use instead', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'If visitors in an ordinary browser are stopped, turn the check off under Settings → Certificates → Browser check and report the browser', 'ffcertificate' ); ?>
+				</td>
+			</tr>
+			<tr>
 				<td><?php esc_html_e( 'Short URL returns 404', 'ffcertificate' ); ?></td>
 				<td>
 					• <?php esc_html_e( 'Re-save Settings → Permalinks once to flush WordPress rewrite rules', 'ffcertificate' ); ?><br>
