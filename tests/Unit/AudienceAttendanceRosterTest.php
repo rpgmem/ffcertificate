@@ -118,6 +118,10 @@ class AudienceAttendanceRosterTest extends TestCase {
 
 	public function test_the_csv_has_a_column_per_counted_day_and_names_no_identifier(): void {
 		Functions\when( 'current_time' )->justReturn( '2027-03-01' );
+		// No form applies and nobody was invited, so the post-event columns
+		// stay out (#2026).
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceFormInviteReader' )
+			->shouldReceive( 'for_booking' )->with( 5 )->andReturn( array() );
 		$source = new AudienceAttendanceExportSource( $this->booking() );
 
 		$this->assertSame( array( 'Name', '2027-03-01', '2027-03-03', 'Days present', 'Attendance rule met' ), $source->header() );
