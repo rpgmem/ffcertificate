@@ -44,6 +44,7 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 		Functions\when( 'sanitize_key' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/' );
+		Functions\when( 'add_query_arg' )->alias( static fn( array $args, string $url ): string => $url . '?' . http_build_query( $args ) );
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_trim_words' )->returnArg();
@@ -195,6 +196,27 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 		$this->assertStringContainsString( '<td>101</td>', $output, 'The row renders for both tiers.' );
 		$this->assertSame( $sees_links ? 1 : 0, substr_count( $output, 'ffc-view-booking' ) );
 		$this->assertSame( $sees_links ? 1 : 0, substr_count( $output, 'ffc-cancel-booking' ) );
+	}
+
+	/**
+	 * Attendance opens the booking's check-in screen (#1947): only for the
+	 * holder of the check-in capability, and only on an active booking.
+	 */
+	public function test_attendance_link_renders_for_the_checkin_cap_on_active_rows(): void {
+		$this->mock_repositories( array( $this->active_booking(), $this->cancelled_booking() ), false );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )
+			->andReturnUsing( static fn( string $cap ): bool => 'ffc_checkin_audiences' === $cap );
+		Functions\when( 'get_users' )->justReturn( array() );
+
+		$page = new AudienceAdminBookings( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = ob_get_clean();
+
+		$this->assertSame( 1, substr_count( $output, 'ffc-attendance-link' ) );
+		$this->assertStringContainsString( 'page=ffc-scheduling-attendance&booking_id=101', $output );
+		$this->assertSame( 0, substr_count( $output, 'ffc-view-booking' ), 'The check-in tier alone does not manage bookings.' );
 	}
 
 	/**
