@@ -26593,8 +26593,8 @@ msgid "Let bypass holders book outside the rules"
 msgstr "Permitir que quem tem a exceção reserve fora das regras"
 
 #: includes/settings/views/documentation/reference-emails.php
-msgid "New scheduled activity and activity-cancelled notices, and the \"booking cancelled by an administrator\" notice sent to the owner of a booking an override replaced"
-msgstr "Avisos de nova atividade agendada e de atividade cancelada, e o aviso \"reserva cancelada por um administrador\" enviado ao responsável por uma reserva substituída por uma sobreposição"
+msgid "New scheduled activity and activity-cancelled notices, the \"booking cancelled by an administrator\" notice sent to the owner of a booking an override replaced, and the post-event form invitation sent to each participant once a booking ends"
+msgstr "Avisos de nova atividade agendada e de atividade cancelada, o aviso \"reserva cancelada por um administrador\" enviado ao responsável por uma reserva substituída por uma sobreposição, e o convite para o formulário pós-evento enviado a cada participante quando um agendamento termina"
 
 #: includes/audience/class-ffc-audience-shortcode.php
 msgid "No space is open on this date."
@@ -28408,3 +28408,127 @@ msgstr "Só pode enviar quem foi convidado pelo link pós-evento de um agendamen
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "An invitation link opens the form with the participant's name and e-mail filled in and locked, from their account; no login is needed, so treat the link as personal. The CPF/RF is not filled in: the participant types it, and it is refused when it belongs to another account, or when it differs from the one already on record. A first CPF/RF is accepted and recorded on their profile. The submission keeps the booking it came from. To keep the form closed to everyone else, switch on its \"Booking participants only\" restriction."
 msgstr "O link de convite abre o formulário com o nome e o e-mail do participante já preenchidos e bloqueados, a partir da conta dele; não é preciso login, então o link é pessoal. O CPF/RF não vem preenchido: o participante digita, e ele é recusado se pertencer a outra conta ou se for diferente do que já consta no cadastro. Um primeiro CPF/RF é aceito e registrado no perfil. A submissão guarda o agendamento de onde veio. Para fechar o formulário a todos os demais, ligue a restrição \"Somente participantes do agendamento\"."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "%1$s (sent %2$d times)"
+msgstr "%1$s (enviado %2$d vezes)"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Answer"
+msgstr "Resposta"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Answered"
+msgstr "Respondeu"
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Audience post-event form invitation"
+msgstr "Convite para o formulário pós-evento de público"
+
+#: includes/settings/views/documentation/email-texts-hub.php
+msgid "Audience post-event form invitation:"
+msgstr "Convite para o formulário pós-evento de público:"
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Audience post-event form invitations"
+msgstr "Convites para o formulário pós-evento de público"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Certificate issued"
+msgstr "Certificado emitido"
+
+#: includes/core/class-ffc-email-source.php
+msgid "FFCertificate — Audience Calendars post-event forms"
+msgstr "FFCertificate — Formulários pós-evento dos Calendários de Público"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invitation sent."
+msgstr "Convite enviado."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invitations go out on their own once the event ends, and can be sent again here while the form is open."
+msgstr "Os convites saem sozinhos quando o evento termina, e podem ser reenviados aqui enquanto o formulário estiver aberto."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invitations sent to everyone eligible who has not answered."
+msgstr "Convites enviados a todos os elegíveis que ainda não responderam."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invited"
+msgstr "Convidado"
+
+#: includes/audience/class-ffc-audience-form-invite-mailer.php
+msgid "No published page embeds the post-event form, so there is no link to send."
+msgstr "Nenhuma página publicada contém o formulário pós-evento, então não há link para enviar."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "No published page embeds the post-event form. Add the form to a page, then send again."
+msgstr "Nenhuma página publicada contém o formulário pós-evento. Adicione o formulário a uma página e envie de novo."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Nobody was sent an invitation: everyone eligible has answered, or the form is not open."
+msgstr "Nenhum convite foi enviado: todos os elegíveis já responderam, ou o formulário não está aberto."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Not yet"
+msgstr "Ainda não"
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Once an hour the plugin e-mails each eligible participant of a booking whose form has opened the personal link, once. The e-mail is \"Audience post-event form invitation\" under Settings → Email texts. It needs a published page that embeds the form, since the link points there; without one nothing is sent. The Attendance screen lists who was invited and when, who answered and whose certificate was issued, and while the form is open it resends to one person or to everyone who has not answered; this needs ffc_checkin_audiences."
+msgstr "Uma vez por hora o plugin envia por e-mail a cada participante elegível de um agendamento cujo formulário abriu o link pessoal, uma única vez. O e-mail é \"Convite para o formulário pós-evento de público\" em Configurações → Textos de e-mail. É preciso uma página publicada que contenha o formulário, pois o link aponta para ela; sem ela nada é enviado. A tela de Presença mostra quem foi convidado e quando, quem respondeu e de quem o certificado foi emitido, e enquanto o formulário estiver aberto reenvia a uma pessoa ou a todos que ainda não responderam; isso exige ffc_checkin_audiences."
+
+#: templates/emails/audience-post-event-invite.php
+msgid "Open the form"
+msgstr "Abrir o formulário"
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Post-event form invitation"
+msgstr "Convite para o formulário pós-evento"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Resend"
+msgstr "Reenviar"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Send to everyone who has not answered"
+msgstr "Enviar a todos que ainda não responderam"
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Sent to each participant when a booking with a post-event form ends, and again on Resend — text edited globally in the hub above."
+msgstr "Enviado a cada participante quando termina um agendamento com formulário pós-evento, e de novo ao Reenviar — texto editado globalmente no painel acima."
+
+#: templates/emails/audience-post-event-invite.php
+msgid "Thank you for taking part in {{event}}. Fill in the form \"{{form_title}}\" to receive your certificate."
+msgstr "Obrigado por participar de {{event}}. Preencha o formulário \"{{form_title}}\" para receber o seu certificado."
+
+#: includes/audience/class-ffc-audience-form-invite-mailer.php
+msgid "The e-mail could not be sent."
+msgstr "Não foi possível enviar o e-mail."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "The invitation could not be sent."
+msgstr "Não foi possível enviar o convite."
+
+#: templates/emails/audience-post-event-invite.php
+msgid "The link is open until {{closes_at}}. It is personal: it fills in your name and e-mail, so do not forward it."
+msgstr "O link fica aberto até {{closes_at}}. Ele é pessoal: preenche o seu nome e e-mail, então não o encaminhe."
+
+#: includes/audience/class-ffc-audience-form-invite-mailer.php
+msgid "The participant has no valid e-mail address."
+msgstr "O participante não tem um endereço de e-mail válido."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "This person cannot be invited now: the form is not open, or they are not eligible."
+msgstr "Esta pessoa não pode ser convidada agora: o formulário não está aberto, ou ela não é elegível."
+
+#: templates/emails/audience-post-event-invite.php
+msgid "Your certificate for {{event}}"
+msgstr "Seu certificado de {{event}}"
+
+#: templates/emails/audience-post-event-invite.php
+msgid "Your certificate is waiting"
+msgstr "Seu certificado está à sua espera"
+
+#: includes/settings/views/documentation/email-texts-hub.php
+msgid "global only; the form a booking leads to is chosen on its calendar or its Attendance screen."
+msgstr "somente global; o formulário a que um agendamento leva é escolhido no calendário ou na tela de Presença dele."

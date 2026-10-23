@@ -281,9 +281,162 @@ class AudienceAdminAttendanceTest extends TestCase {
 	}
 
 	public function test_every_redirect_message_exists(): void {
-		foreach ( array( 'opened', 'closed', 'marked', 'unmarked', 'rule_saved', 'post_event_saved', 'not_today', 'not_open', 'future', 'denied', 'failed' ) as $key ) {
+		foreach ( array( 'opened', 'closed', 'marked', 'unmarked', 'rule_saved', 'post_event_saved', 'invite_sent', 'invite_sent_all', 'invite_none', 'invite_not_eligible', 'invite_no_page', 'invite_failed', 'not_today', 'not_open', 'future', 'denied', 'failed' ) as $key ) {
 			$this->assertArrayHasKey( $key, AudienceAdminAttendance::messages() );
 		}
+	}
+
+	/**
+	 * The post-event form's eligibility and mailer, answering per person.
+	 *
+	 * @param array<int, string|true> $eligible User ID => true or an error code.
+	 * @param array<int, string|true> $sends    User ID => true or an error code.
+	 * @return \Mockery\MockInterface The mailer.
+	 */
+	private function invitations( array $eligible, array $sends ) {
+		$form = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudiencePostEventForm' );
+		$form->shouldReceive( 'participants' )->andReturn( array_keys( $eligible ) );
+		$form->shouldReceive( 'eligibility' )->andReturnUsing(
+			static fn( $booking, int $user ) => true === ( $eligible[ $user ] ?? 'not_participant' ) ? true : new \WP_Error( $eligible[ $user ] ?? 'not_participant', 'No.' )
+		);
+		$mailer = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceFormInviteMailer' );
+		$mailer->shouldReceive( 'send' )->andReturnUsing(
+			static fn( $booking, int $user ) => true === ( $sends[ $user ] ?? true ) ? true : new \WP_Error( $sends[ $user ], 'No.' )
+		);
+		return $mailer;
+	}
+
+	public function test_a_resend_goes_only_to_an_eligible_person_and_reports_why_not(): void {
+		$mailer = $this->invitations(
+			array(
+				7 => true,
+				8 => 'absent',
+				9 => true,
+			),
+			array( 9 => 'no_page' )
+		);
+
+		$_POST = array( 'invite_user' => '7' );
+		$this->assertSame( 'invite_sent', $this->page()->perform( 'invite', $this->booking(), self::TODAY, self::NOW ) );
+
+		$_POST = array( 'invite_user' => '8' );
+		$this->assertSame( 'invite_not_eligible', $this->page()->perform( 'invite', $this->booking(), self::TODAY, self::NOW ) );
+
+		$_POST = array( 'invite_user' => '9' );
+		$this->assertSame( 'invite_no_page', $this->page()->perform( 'invite', $this->booking(), self::TODAY, self::NOW ) );
+
+		$_POST = array( 'invite_user' => '12' );
+		$this->assertSame( 'invite_not_eligible', $this->page()->perform( 'invite', $this->booking(), self::TODAY, self::NOW ), 'A forged id is not on the booking.' );
+
+		$mailer->shouldHaveReceived( 'send' )->twice();
+	}
+
+	public function test_sending_to_everyone_skips_who_answered_and_who_is_not_eligible(): void {
+		$mailer = $this->invitations(
+			array(
+				7 => true,
+				8 => 'absent',
+				9 => true,
+			),
+			array()
+		);
+		$reader = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceFormInviteReader' );
+		$reader->shouldReceive( 'answers' )->with( 5 )->andReturn( array( 9 => 'publish' ) );
+
+		$this->assertSame( 'invite_sent_all', $this->page()->perform( 'invite_all', $this->booking(), self::TODAY, self::NOW ) );
+		$mailer->shouldHaveReceived( 'send' )->once()->with( Mockery::any(), 7, self::NOW );
+	}
+
+	public function test_sending_to_everyone_says_when_nobody_was_left(): void {
+		$this->invitations( array( 8 => 'absent' ), array() );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceFormInviteReader' )
+			->shouldReceive( 'answers' )->andReturn( array() );
+
+		$this->assertSame( 'invite_none', $this->page()->perform( 'invite_all', $this->booking(), self::TODAY, self::NOW ) );
+	}
+
+	public function test_the_tracking_cells_say_what_was_sent_and_answered(): void {
+		$this->assertSame( 'Not yet', AudienceAdminAttendance::invite_cell( null ) );
+		$this->assertSame(
+			'2027-01-15 08:00',
+			AudienceAdminAttendance::invite_cell(
+				array(
+					'sent_at'    => self::NOW,
+					'send_count' => 1,
+				)
+			)
+		);
+		$this->assertSame(
+			'2027-01-15 08:00 (sent 3 times)',
+			AudienceAdminAttendance::invite_cell(
+				array(
+					'sent_at'    => self::NOW,
+					'send_count' => 3,
+				)
+			)
+		);
+
+		$this->assertSame( 'Not yet', AudienceAdminAttendance::answer_label( null ) );
+		$this->assertSame( 'Answered', AudienceAdminAttendance::answer_label( 'pending' ) );
+		$this->assertSame( 'Certificate issued', AudienceAdminAttendance::answer_label( 'publish' ) );
+	}
+
+	public function test_the_screen_lists_invitations_once_a_form_applies(): void {
+		$this->roster_present_for_7();
+		$_GET    = array( 'booking_id' => '5' );
+		$booking = $this->booking(
+			array(
+				'post_event_custom'         => '1',
+				'post_event_form_id'        => '40',
+				'post_event_window_days'    => '7',
+				'post_event_attendees_only' => '0',
+			)
+		);
+		$this->bookings->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $booking );
+		$this->windows->shouldReceive( 'open_for' )->andReturn( null );
+		$this->window_writer->shouldReceive( 'auto_close_at' )->andReturn( self::NOW + 9000 );
+		Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' )
+			->shouldReceive( 'get_all' )->andReturn( array() );
+		$ui = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
+		$ui->shouldReceive( 'render_button' )->andReturnUsing(
+			static function ( array $args ): void {
+				echo '<button data-label="' . $args['label'] . '"></button>';
+			}
+		);
+		$ui->shouldReceive( 'render_segmented' );
+		$ui->shouldReceive( 'render_toggle' );
+		Functions\when( 'get_posts' )->justReturn( array() );
+		Functions\when( 'get_the_title' )->justReturn( 'Evaluation' );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'get_post' )->alias(
+			static function () {
+				$post              = new \WP_Post();
+				$post->post_type   = 'ffc_form';
+				$post->post_status = 'publish';
+				return $post;
+			}
+		);
+		$reader = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceFormInviteReader' );
+		$reader->shouldReceive( 'for_booking' )->andReturn(
+			array(
+				7 => array(
+					'sent_at'    => self::NOW,
+					'send_count' => 2,
+				),
+			)
+		);
+		$reader->shouldReceive( 'answers' )->andReturn( array( 7 => 'publish' ) );
+
+		ob_start();
+		$this->page()->render_page();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'ffc-attendance-invites', $html );
+		$this->assertStringContainsString( 'name="ffc_attendance_action" value="invite"', $html );
+		$this->assertStringContainsString( '(sent 2 times)', $html );
+		$this->assertStringContainsString( 'Certificate issued', $html );
+		$this->assertStringContainsString( 'Invitations go out on their own once the event ends', $html, 'Before the event ends nothing can be sent.' );
+		$this->assertStringNotContainsString( 'data-label="Send to everyone who has not answered"', $html );
 	}
 
 	public function test_a_status_cell_says_when_and_how(): void {

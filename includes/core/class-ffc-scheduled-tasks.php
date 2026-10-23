@@ -103,6 +103,10 @@ final class ScheduledTasks {
 			'recurrence' => 'hourly',
 			'module'     => 'self_scheduling',
 		),
+		'ffcertificate_audience_post_event_invites'   => array(
+			'recurrence' => 'hourly',
+			'module'     => 'audiences',
+		),
 		'ffc_cloudflare_cidr_refresh'                 => array(
 			'recurrence' => 'daily',
 			'module'     => null,
@@ -183,6 +187,8 @@ final class ScheduledTasks {
 				return __( 'Reregistration expiry, invitations and automated reminders', 'ffcertificate' );
 			case 'ffcertificate_self_scheduling_reminder_scan':
 				return __( 'Appointment reminder scan', 'ffcertificate' );
+			case 'ffcertificate_audience_post_event_invites':
+				return __( 'Audience post-event form invitations', 'ffcertificate' );
 			case 'ffc_cloudflare_cidr_refresh':
 				return __( 'Cloudflare IP range refresh', 'ffcertificate' );
 			case 'ffcertificate_bulk_issue_purge':

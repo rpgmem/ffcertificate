@@ -32,6 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><strong><?php esc_html_e( 'Personal Calendars confirmation:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'a calendar can keep its own confirmation body; "Restore Default Text" there restores the effective global.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Audience booking / cancellation:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'a schedule\'s own custom body still overrides the global.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Audience booking cancelled by an administrator:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'global only; a schedule does not override it.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Audience post-event form invitation:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'global only; the form a booking leads to is chosen on its calendar or its Attendance screen.', 'ffcertificate' ); ?></li>
 		</ul>
 		<?php ob_start(); ?>
 			<p>

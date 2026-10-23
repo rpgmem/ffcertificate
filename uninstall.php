@@ -48,6 +48,7 @@ if ( ! $ffcertificate_purge ) {
 	wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 	wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 	wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
+	wp_clear_scheduled_hook( 'ffcertificate_audience_post_event_invites' );
 	wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
 	wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
 	wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
@@ -127,6 +128,7 @@ $ffcertificate_tables = array(
 	$wpdb->prefix . 'ffc_custom_fields',
 	// Audience.
 	$wpdb->prefix . 'ffc_audience_attendance',
+	$wpdb->prefix . 'ffc_audience_form_invites',
 	$wpdb->prefix . 'ffc_audience_checkin_windows',
 	$wpdb->prefix . 'ffc_audience_booking_users',
 	$wpdb->prefix . 'ffc_audience_booking_audiences',
@@ -363,6 +365,7 @@ wp_unschedule_hook( 'ffc_process_submission_async' );
 wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
+wp_clear_scheduled_hook( 'ffcertificate_audience_post_event_invites' );
 wp_clear_scheduled_hook( 'ffc_cloudflare_cidr_refresh' );
 // See the cron-only block above (#1538).
 wp_clear_scheduled_hook( 'ffc_daily_expired_tickets_cleanup' );

@@ -532,6 +532,31 @@ class AudienceBookingReader {
 	}
 
 	/**
+	 * The active bookings whose last day falls in a range (#1948).
+	 *
+	 * The post-event invitation scan reads it: a booking's form opens when its
+	 * last day ends, so only bookings that ended recently can owe invitations.
+	 *
+	 * @param string $from First last-day to include (Y-m-d).
+	 * @param string $to   Last last-day to include (Y-m-d).
+	 * @return list<int> Booking IDs, oldest end first.
+	 */
+	public static function ended_between( string $from, string $to ): array {
+		$wpdb = self::db();
+
+		$ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT id FROM %i WHERE status = 'active' AND COALESCE(end_date, booking_date) BETWEEN %s AND %s ORDER BY COALESCE(end_date, booking_date) ASC, id ASC",
+				self::get_table_name(),
+				$from,
+				$to
+			)
+		);
+
+		return array_map( 'intval', $ids );
+	}
+
+	/**
 	 * Check for time conflicts
 	 *
 	 * @param int      $environment_id Environment ID.

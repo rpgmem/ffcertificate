@@ -44,7 +44,7 @@ A referência completa (cada token, shortcode, capacidade e configuração) vem 
 * **Agendamentos de vários dias** - Um agendamento pode cobrir um intervalo de dias, com o mesmo horário todos os dias ou do horário inicial no primeiro dia ao horário final no último. Um feriado dentro do intervalo recusa o agendamento, a menos que o operador o pule.
 * **Importação e exportação em CSV** - Importe e exporte públicos e membros, com criação de usuários.
 * **Detecção de conflitos** - Os conflitos são verificados antes de um agendamento ser confirmado.
-* **Presença** - Os participantes registram presença lendo um QR code que muda a cada poucos minutos, com cerca geográfica opcional. O organizador acompanha a lista ao vivo, marca pessoas à mão, define uma regra para agendamentos de vários dias e exporta a presença em CSV.
+* **Presença** - Os participantes registram presença lendo um QR code que muda a cada poucos minutos, com cerca geográfica opcional. O organizador acompanha a lista ao vivo, marca pessoas à mão, define uma regra para agendamentos de vários dias e exporta a presença em CSV. Depois do evento, cada participante recebe por e-mail um link pessoal para um formulário de certificado, e o organizador acompanha quem respondeu.
 * **Shortcodes** - A lista de Calendários de Público-alvo mostra o shortcode de cada calendário e de cada ambiente, com um botão de copiar.
 * **Notificações por e-mail** - Notificações automáticas de novos agendamentos e de cancelamentos.
 

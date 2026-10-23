@@ -144,7 +144,7 @@ class AudienceActivatorTest extends TestCase {
 
 		AudienceActivator::create_tables();
 
-		$this->assertSame( 11, $delta_count, 'dbDelta should be called 11 times for 11 audience tables' );
+		$this->assertSame( 12, $delta_count, 'dbDelta should be called 12 times for 12 audience tables' );
 	}
 
 	// ==================================================================
@@ -260,7 +260,7 @@ class AudienceActivatorTest extends TestCase {
 	// drop_tables()
 	// ==================================================================
 
-	public function test_drop_tables_drops_all_eleven(): void {
+	public function test_drop_tables_drops_all_twelve(): void {
 		$prepared_queries = [];
 		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$prepared_queries ) {
 			$args = func_get_args();
@@ -275,7 +275,7 @@ class AudienceActivatorTest extends TestCase {
 			return stripos( $args[0], 'DROP TABLE IF EXISTS' ) !== false;
 		} );
 
-		$this->assertCount( 11, $drop_queries, 'Should prepare DROP TABLE for all 11 audience tables' );
+		$this->assertCount( 12, $drop_queries, 'Should prepare DROP TABLE for all 12 audience tables' );
 	}
 
 	// ==================================================================
@@ -299,7 +299,7 @@ class AudienceActivatorTest extends TestCase {
 
 		$status = AudienceActivator::get_tables_status();
 
-		$this->assertCount( 11, $status, 'Should return status for 11 tables' );
+		$this->assertCount( 12, $status, 'Should return status for 12 tables' );
 
 		foreach ( $status as $key => $info ) {
 			$this->assertTrue( $info['exists'], "Table '$key' should be reported as existing" );
@@ -327,7 +327,7 @@ class AudienceActivatorTest extends TestCase {
 
 		$status = AudienceActivator::get_tables_status();
 
-		$this->assertCount( 11, $status, 'Should return status for 11 tables' );
+		$this->assertCount( 12, $status, 'Should return status for 12 tables' );
 
 		foreach ( $status as $key => $info ) {
 			$this->assertFalse( $info['exists'], "Table '$key' should be reported as not existing" );

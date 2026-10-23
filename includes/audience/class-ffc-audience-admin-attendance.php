@@ -168,6 +168,9 @@ class AudienceAdminAttendance {
 		if ( 'mark' === $action && RequestInput::has_post( 'unmark_user' ) ) {
 			$action = 'unmark';
 		}
+		if ( 'invite' === $action && RequestInput::has_post( 'invite_all' ) ) {
+			$action = 'invite_all';
+		}
 
 		$days = AudienceAttendanceRule::counted_days( $booking );
 		$date = RequestInput::get_post_string( 'date' );
@@ -266,6 +269,34 @@ class AudienceAdminAttendance {
 					isset( $_POST['post_event_attendees_only'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing -- handle_actions() verified the nonce before dispatching here.
 				) ? 'post_event_saved' : 'failed';
 
+			case 'invite':
+				$invitee = RequestInput::get_post_int( 'invite_user' );
+				$allowed = AudiencePostEventForm::eligibility( $booking, $invitee, $now );
+				if ( $allowed instanceof \WP_Error ) {
+					return 'invite_not_eligible';
+				}
+				$result = AudienceFormInviteMailer::send( $booking, $invitee, $now );
+				if ( true === $result ) {
+					return 'invite_sent';
+				}
+				return 'no_page' === $result->get_error_code() ? 'invite_no_page' : 'invite_failed';
+
+			case 'invite_all':
+				$answers = AudienceFormInviteReader::answers( $booking_id );
+				$sent    = 0;
+				foreach ( AudiencePostEventForm::participants( $booking_id ) as $invitee ) {
+					if ( isset( $answers[ $invitee ] ) || true !== AudiencePostEventForm::eligibility( $booking, $invitee, $now ) ) {
+						continue;
+					}
+					$result = AudienceFormInviteMailer::send( $booking, $invitee, $now );
+					if ( true === $result ) {
+						++$sent;
+					} elseif ( 'no_page' === $result->get_error_code() ) {
+						return 'invite_no_page';
+					}
+				}
+				return $sent > 0 ? 'invite_sent_all' : 'invite_none';
+
 			case 'export':
 				if ( ! Capabilities::current_user_can_admin_or( 'ffc_export_audiences' ) ) {
 					return 'denied';
@@ -284,17 +315,23 @@ class AudienceAdminAttendance {
 	 */
 	public static function messages(): array {
 		return array(
-			'opened'           => array( __( 'Check-in is open. Project the QR code where participants can scan it.', 'ffcertificate' ), 'success' ),
-			'closed'           => array( __( 'Check-in is closed.', 'ffcertificate' ), 'success' ),
-			'marked'           => array( __( 'Attendance marked.', 'ffcertificate' ), 'success' ),
-			'unmarked'         => array( __( 'Attendance removed.', 'ffcertificate' ), 'success' ),
-			'rule_saved'       => array( __( 'Attendance rule saved.', 'ffcertificate' ), 'success' ),
-			'post_event_saved' => array( __( 'Post-event form saved.', 'ffcertificate' ), 'success' ),
-			'not_today'        => array( __( 'Check-in by QR code opens only on the day itself, for an active booking.', 'ffcertificate' ), 'warning' ),
-			'not_open'         => array( __( 'Check-in was not open.', 'ffcertificate' ), 'warning' ),
-			'future'           => array( __( 'Attendance cannot be marked for a day that has not come yet.', 'ffcertificate' ), 'warning' ),
-			'denied'           => array( __( 'You do not have permission to do that.', 'ffcertificate' ), 'error' ),
-			'failed'           => array( __( 'The change could not be saved.', 'ffcertificate' ), 'error' ),
+			'opened'              => array( __( 'Check-in is open. Project the QR code where participants can scan it.', 'ffcertificate' ), 'success' ),
+			'closed'              => array( __( 'Check-in is closed.', 'ffcertificate' ), 'success' ),
+			'marked'              => array( __( 'Attendance marked.', 'ffcertificate' ), 'success' ),
+			'unmarked'            => array( __( 'Attendance removed.', 'ffcertificate' ), 'success' ),
+			'rule_saved'          => array( __( 'Attendance rule saved.', 'ffcertificate' ), 'success' ),
+			'post_event_saved'    => array( __( 'Post-event form saved.', 'ffcertificate' ), 'success' ),
+			'invite_sent'         => array( __( 'Invitation sent.', 'ffcertificate' ), 'success' ),
+			'invite_sent_all'     => array( __( 'Invitations sent to everyone eligible who has not answered.', 'ffcertificate' ), 'success' ),
+			'invite_none'         => array( __( 'Nobody was sent an invitation: everyone eligible has answered, or the form is not open.', 'ffcertificate' ), 'warning' ),
+			'invite_not_eligible' => array( __( 'This person cannot be invited now: the form is not open, or they are not eligible.', 'ffcertificate' ), 'warning' ),
+			'invite_no_page'      => array( __( 'No published page embeds the post-event form. Add the form to a page, then send again.', 'ffcertificate' ), 'error' ),
+			'invite_failed'       => array( __( 'The invitation could not be sent.', 'ffcertificate' ), 'error' ),
+			'not_today'           => array( __( 'Check-in by QR code opens only on the day itself, for an active booking.', 'ffcertificate' ), 'warning' ),
+			'not_open'            => array( __( 'Check-in was not open.', 'ffcertificate' ), 'warning' ),
+			'future'              => array( __( 'Attendance cannot be marked for a day that has not come yet.', 'ffcertificate' ), 'warning' ),
+			'denied'              => array( __( 'You do not have permission to do that.', 'ffcertificate' ), 'error' ),
+			'failed'              => array( __( 'The change could not be saved.', 'ffcertificate' ), 'error' ),
 		);
 	}
 
@@ -345,7 +382,7 @@ class AudienceAdminAttendance {
 		echo '<div class="ffc-boxed ffc-attendance">';
 		$this->render_checkin_card( $booking, $date, $today, $window );
 		$this->render_rule_card( $booking, $date );
-		$this->render_post_event_card( $booking, $date );
+		$this->render_post_event_card( $booking, $date, $roster, $now );
 		$this->render_participants_card( $booking, $date, $today, $roster );
 		echo '</div></div>';
 	}
@@ -538,11 +575,14 @@ class AudienceAdminAttendance {
 	 * The post-event form card (#1948): what applies to this booking, and the
 	 * switch that gives it settings of its own instead of its calendar's.
 	 *
-	 * @param object $booking Booking row.
-	 * @param string $date    Day shown.
+	 * @param object               $booking Booking row.
+	 * @param string               $date    Day shown.
+	 * @param array<string, mixed> $roster  Roster, for the names and the rule.
+	 * @param int                  $now     Unix time.
+	 * @phpstan-param array{rows: list<array{user_id: int, name: string, present_at: int|null, method: string|null, days: list<string>, met: bool}>, present: int, total: int, required: int, days: list<string>} $roster
 	 * @return void
 	 */
-	private function render_post_event_card( object $booking, string $date ): void {
+	private function render_post_event_card( object $booking, string $date, array $roster, int $now ): void {
 		$can_edit    = Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
 		$custom      = AudiencePostEventForm::is_custom( $booking );
 		$applied     = AudiencePostEventForm::settings( $booking );
@@ -589,7 +629,111 @@ class AudienceAdminAttendance {
 				)
 			);
 		}
-		echo '</form></div>';
+		echo '</form>';
+
+		if ( AudiencePostEventForm::is_form( $applied['form_id'] ) && array() !== $roster['rows'] ) {
+			$this->render_invite_tracking( $booking, $date, $roster, $now );
+		}
+		echo '</div>';
+	}
+
+	/**
+	 * Who was invited to the post-event form, and what they did with it.
+	 *
+	 * @param object               $booking Booking row.
+	 * @param string               $date    Day shown.
+	 * @param array<string, mixed> $roster  Roster.
+	 * @param int                  $now     Unix time.
+	 * @phpstan-param array{rows: list<array{user_id: int, name: string, present_at: int|null, method: string|null, days: list<string>, met: bool}>, present: int, total: int, required: int, days: list<string>} $roster
+	 * @return void
+	 */
+	private function render_invite_tracking( object $booking, string $date, array $roster, int $now ): void {
+		$booking_id = (int) ( $booking->id ?? 0 );
+		$invited    = AudienceFormInviteReader::for_booking( $booking_id );
+		$answers    = AudienceFormInviteReader::answers( $booking_id );
+		$opens      = AudiencePostEventForm::opens_at( $booking );
+		$open       = 'cancelled' !== ( $booking->status ?? '' ) && 0 !== $opens && $now >= $opens
+			&& $now < AudiencePostEventForm::closes_at( $booking, AudiencePostEventForm::settings( $booking )['window_days'] );
+
+		echo '<h3>' . esc_html__( 'Invitations', 'ffcertificate' ) . '</h3>';
+		echo '<form method="post">' . $this->form_fields( $booking_id, 'invite', $date ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts by form_fields().
+		echo '<table class="widefat striped ffc-attendance-invites"><thead><tr>';
+		echo '<th scope="col">' . esc_html__( 'Name', 'ffcertificate' ) . '</th>';
+		echo '<th scope="col">' . esc_html__( 'Attendance', 'ffcertificate' ) . '</th>';
+		echo '<th scope="col">' . esc_html__( 'Invited', 'ffcertificate' ) . '</th>';
+		echo '<th scope="col">' . esc_html__( 'Answer', 'ffcertificate' ) . '</th>';
+		echo '<th scope="col"><span class="screen-reader-text">' . esc_html__( 'Actions', 'ffcertificate' ) . '</span></th>';
+		echo '</tr></thead><tbody>';
+
+		foreach ( $roster['rows'] as $row ) {
+			$user_id = $row['user_id'];
+			echo '<tr data-user-id="' . esc_attr( (string) $user_id ) . '">';
+			echo '<td>' . esc_html( $row['name'] ) . '</td>';
+			echo '<td>' . ( $row['met'] ? '<span class="ffc-attendance-badge ffc-attendance-badge-open">' . esc_html__( 'Met', 'ffcertificate' ) . '</span>' : '—' ) . '</td>';
+			echo '<td>' . esc_html( self::invite_cell( $invited[ $user_id ] ?? null ) ) . '</td>';
+			echo '<td>' . esc_html( self::answer_label( $answers[ $user_id ] ?? null ) ) . '</td>';
+			echo '<td class="ffc-attendance-row-actions">';
+			if ( $open && ! isset( $answers[ $user_id ] ) && true === AudiencePostEventForm::eligibility( $booking, $user_id, $now ) ) {
+				AdminUI::render_button(
+					array(
+						'label' => isset( $invited[ $user_id ] ) ? __( 'Resend', 'ffcertificate' ) : __( 'Send', 'ffcertificate' ),
+						'icon'  => 'send',
+						'type'  => 'submit',
+						'name'  => 'invite_user',
+						'value' => (string) $user_id,
+					)
+				);
+			}
+			echo '</td></tr>';
+		}
+		echo '</tbody></table>';
+
+		if ( $open ) {
+			echo '<p>';
+			AdminUI::render_button(
+				array(
+					'label' => __( 'Send to everyone who has not answered', 'ffcertificate' ),
+					'icon'  => 'send',
+					'type'  => 'submit',
+					'name'  => 'invite_all',
+					'value' => '1',
+				)
+			);
+			echo '</p>';
+		} else {
+			echo '<p class="description">' . esc_html__( 'Invitations go out on their own once the event ends, and can be sent again here while the form is open.', 'ffcertificate' ) . '</p>';
+		}
+		echo '</form>';
+	}
+
+	/**
+	 * The "Invited" cell.
+	 *
+	 * @param array{sent_at: int, send_count: int}|null $invite The record, if any.
+	 * @return string
+	 */
+	public static function invite_cell( ?array $invite ): string {
+		if ( null === $invite ) {
+			return __( 'Not yet', 'ffcertificate' );
+		}
+		if ( $invite['send_count'] > 1 ) {
+			/* translators: 1: date and time of the last send, 2: number of sends */
+			return sprintf( __( '%1$s (sent %2$d times)', 'ffcertificate' ), DateFormatter::format_datetime( $invite['sent_at'] ), $invite['send_count'] );
+		}
+		return DateFormatter::format_datetime( $invite['sent_at'] );
+	}
+
+	/**
+	 * The "Answer" cell: nothing yet, answered, or the certificate issued.
+	 *
+	 * @param string|null $status Submission status, if any.
+	 * @return string
+	 */
+	public static function answer_label( ?string $status ): string {
+		if ( null === $status ) {
+			return __( 'Not yet', 'ffcertificate' );
+		}
+		return 'publish' === $status ? __( 'Certificate issued', 'ffcertificate' ) : __( 'Answered', 'ffcertificate' );
 	}
 
 	/**

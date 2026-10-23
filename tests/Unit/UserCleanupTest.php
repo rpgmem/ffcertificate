@@ -281,6 +281,16 @@ class UserCleanupTest extends TestCase {
 		$this->assertStringNotContainsString('wp_ffc_audiences ', $joined);
 	}
 
+	public function test_post_event_invitations_are_deleted_even_without_a_footprint(): void {
+		$this->installSweepHarness(['wp_ffc_audience_form_invites']);
+		$this->wpdb->shouldReceive('delete')
+			->once()
+			->with('wp_ffc_audience_form_invites', ['user_id' => 42], ['%d'])
+			->andReturn(2);
+
+		UserCleanup::anonymize_user_data(42);
+	}
+
 	public function test_authorship_sweep_skips_absent_tables(): void {
 		// Only the candidate table present → only its UPDATE fires.
 		$this->installSweepHarness(['wp_ffc_recruitment_candidate']);

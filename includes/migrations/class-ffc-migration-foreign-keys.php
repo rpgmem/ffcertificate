@@ -74,6 +74,7 @@ class MigrationForeignKeys {
 			$wpdb->prefix . 'ffc_audience_booking_users' => 'fk_ffc_booking_users_user',
 			$wpdb->prefix . 'ffc_audience_schedule_permissions' => 'fk_ffc_schedule_perms_user',
 			$wpdb->prefix . 'ffc_user_profiles'          => 'fk_ffc_user_profiles_user',
+			$wpdb->prefix . 'ffc_audience_form_invites'  => 'fk_ffc_form_invites_user',
 		);
 
 		// Check wp_users engine first.
@@ -291,6 +292,7 @@ class MigrationForeignKeys {
 			'fk_ffc_booking_users_user',
 			'fk_ffc_schedule_perms_user',
 			'fk_ffc_user_profiles_user',
+			'fk_ffc_form_invites_user',
 		);
 
 		$existing = $wpdb->get_col(
