@@ -27977,3 +27977,7 @@ msgstr "Conduzir o check-in de presença"
 #: includes/user-dashboard/class-ffc-capability-catalog.php:299
 msgid "Open and close check-in for a day of a booking, project its rotating QR and mark attendance by hand (#1947)."
 msgstr "Abrir e fechar o check-in de um dia da reserva, projetar o QR rotativo e marcar presença manualmente (#1947)."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "run attendance: open and close check-in, project the QR code and mark attendance by hand. Held by the Operator tier and above. Changing a booking's attendance rule needs ffc_manage_audiences, and its CSV needs ffc_export_audiences."
+msgstr "conduzir a presença: abrir e encerrar o check-in, projetar o QR code e marcar presença manualmente. Dada ao nível Operador e acima. Alterar a regra de presença de uma reserva exige ffc_manage_audiences, e o CSV exige ffc_export_audiences."

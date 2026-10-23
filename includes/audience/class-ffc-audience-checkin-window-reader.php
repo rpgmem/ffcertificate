@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+use FreeFormCertificate\Core\ArrayValue;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -111,21 +113,21 @@ class AudienceCheckinWindowReader {
 	 * @return WindowRow
 	 */
 	private static function shape( array $row ): array {
-		$nullable = static function ( $value ): ?int {
-			return null === $value ? null : (int) $value;
+		$nullable = static function ( string $key ) use ( $row ): ?int {
+			return null === ( $row[ $key ] ?? null ) ? null : ArrayValue::int( $row, $key );
 		};
 
 		return array(
-			'id'                 => (int) ( $row['id'] ?? 0 ),
-			'booking_id'         => (int) ( $row['booking_id'] ?? 0 ),
-			'window_date'        => (string) ( $row['window_date'] ?? '' ),
-			'rotation_seconds'   => (int) ( $row['rotation_seconds'] ?? AudienceCheckinCode::DEFAULT_ROTATION ),
-			'opened_at'          => (int) ( $row['opened_at'] ?? 0 ),
-			'opened_by'          => $nullable( $row['opened_by'] ?? null ),
-			'closes_at'          => (int) ( $row['closes_at'] ?? 0 ),
-			'closed_at'          => $nullable( $row['closed_at'] ?? null ),
-			'closed_by'          => $nullable( $row['closed_by'] ?? null ),
-			'geofence_locations' => AudienceCheckinWindowWriter::location_ids( (string) ( $row['geofence_locations'] ?? '' ) ),
+			'id'                 => ArrayValue::int( $row, 'id' ),
+			'booking_id'         => ArrayValue::int( $row, 'booking_id' ),
+			'window_date'        => ArrayValue::string( $row, 'window_date' ),
+			'rotation_seconds'   => ArrayValue::int( $row, 'rotation_seconds', AudienceCheckinCode::DEFAULT_ROTATION ),
+			'opened_at'          => ArrayValue::int( $row, 'opened_at' ),
+			'opened_by'          => $nullable( 'opened_by' ),
+			'closes_at'          => ArrayValue::int( $row, 'closes_at' ),
+			'closed_at'          => $nullable( 'closed_at' ),
+			'closed_by'          => $nullable( 'closed_by' ),
+			'geofence_locations' => AudienceCheckinWindowWriter::location_ids( ArrayValue::string( $row, 'geofence_locations' ) ),
 		);
 	}
 }
