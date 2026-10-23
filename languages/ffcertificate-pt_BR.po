@@ -28055,3 +28055,7 @@ msgstr "Sua localização é necessária para fazer check-in aqui. Permita nas c
 #: includes/audience/class-ffc-audience-checkin.php:249
 msgid "Your location is outside the event area. Check in from the event, or ask the organiser to mark your attendance."
 msgstr "Sua localização está fora da área do evento. Faça o check-in no evento ou peça ao organizador para marcar sua presença."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "run attendance: open and close check-in, project the QR code and mark attendance by hand. Held by the Operator tier and above. Changing a booking's attendance rule needs ffc_manage_audiences, and its CSV needs ffc_export_audiences."
+msgstr "conduzir a presença: abrir e encerrar o check-in, projetar o QR code e marcar presença manualmente. Dada ao nível Operador e acima. Alterar a regra de presença de uma reserva exige ffc_manage_audiences, e o CSV exige ffc_export_audiences."
