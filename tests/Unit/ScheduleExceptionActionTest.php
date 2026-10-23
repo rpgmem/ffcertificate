@@ -47,6 +47,8 @@ class ScheduleExceptionActionTest extends TestCase {
 		// embeds the form, so resolve_form_url() falls back to home_url().
 		// Individual tests re-stub these to exercise the discovery path.
 		Functions\when( 'get_posts' )->justReturn( array() );
+		// A page the search returns embeds the seeded form (#2024).
+		Functions\when( 'get_post_field' )->justReturn( '[ffc_form id="42"]' );
 		Functions\when( 'get_permalink' )->alias( static fn( $id = 0 ) => 'https://example.test/?p=' . (int) $id );
 		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
 
@@ -339,6 +341,42 @@ class ScheduleExceptionActionTest extends TestCase {
 			'https://example.test/the-page/',
 			ScheduleExceptionAction::find_form_page_url( 42 )
 		);
+	}
+
+	public function test_find_form_page_url_skips_a_page_holding_another_form(): void {
+		Functions\when( 'get_posts' )->justReturn( array( 10, 11 ) );
+		Functions\when( 'get_post_field' )->alias(
+			static fn( $field, $id ) => 10 === (int) $id ? '[ffc_form id="421"]' : "[ffc_form id='42']"
+		);
+		Functions\when( 'get_permalink' )->alias( static fn( $id = 0 ) => 'https://example.test/page-' . (int) $id . '/' );
+
+		$this->assertSame( 'https://example.test/page-11/', ScheduleExceptionAction::find_form_page_url( 42 ) );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: bool}>
+	 */
+	public function embeds(): array {
+		return array(
+			'double quotes'       => array( '[ffc_form id="42"]', true ),
+			'single quotes'       => array( "[ffc_form id='42']", true ),
+			'no quotes'           => array( '[ffc_form id=42]', true ),
+			'self-closing'        => array( '[ffc_form id=42/]', true ),
+			'other attributes'    => array( '[ffc_form class="x" id = "42" title="y"]', true ),
+			'a longer number'     => array( '[ffc_form id="421"]', false ),
+			'a shorter number'    => array( '[ffc_form id="4"]', false ),
+			'unmatched quotes'    => array( '[ffc_form id="42\']', false ),
+			'another attribute'   => array( '[ffc_form form_id="42"]', false ),
+			'another shortcode'   => array( '[ffc_form_list id="42"]', false ),
+			'no shortcode'        => array( 'id="42"', false ),
+		);
+	}
+
+	/**
+	 * @dataProvider embeds
+	 */
+	public function test_embeds_form_reads_every_spelling_of_the_id( string $content, bool $expected ): void {
+		$this->assertSame( $expected, ScheduleExceptionAction::embeds_form( $content, 42 ) );
 	}
 
 	public function test_execute_falls_back_to_home_when_permalink_empty(): void {

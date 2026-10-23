@@ -306,7 +306,7 @@ final class ScheduleExceptionAction {
 	 *      wants to hard-wire the landing (highest priority, unchanged
 	 *      contract).
 	 *   2. Auto-discovery: the most recently published page/post that
-	 *      contains `[ffc_form id="N"`. This is the Sprint 5 lookup that
+	 *      embeds the form ({@see self::embeds_form()}). This is the Sprint 5 lookup that
 	 *      #366 deferred — there's no canonical "form page" because the
 	 *      form is a shortcode, not a CPT, so we search post_content the
 	 *      same way {@see \FreeFormCertificate\Submissions\FormCache} does
@@ -329,7 +329,7 @@ final class ScheduleExceptionAction {
 
 	/**
 	 * Locate the published page/post that embeds this form via the
-	 * `[ffc_form id="N"` shortcode, or '' when none is found.
+	 * `[ffc_form id=N]` shortcode, in any quoting, or '' when none is found.
 	 *
 	 * Unlike {@see resolve_form_url()}, this does NOT fall back to the site
 	 * home — a '' return is a meaningful "the form isn't embedded anywhere"
@@ -346,25 +346,44 @@ final class ScheduleExceptionAction {
 			return $candidate;
 		}
 
+		// WordPress parses `id="N"`, `id='N'` and `id=N` alike, so the
+		// search narrows to pages that hold the shortcode at all and the
+		// attribute is matched here, in every spelling (#2024).
 		$pages = get_posts(
 			array(
 				'post_type'      => array( 'page', 'post' ),
 				'post_status'    => 'publish',
-				's'              => '[ffc_form id="' . $form_id . '"',
+				's'              => '[ffc_form',
 				'orderby'        => 'date',
 				'order'          => 'DESC',
-				'posts_per_page' => 1,
+				'posts_per_page' => 50,
 				'fields'         => 'ids',
 			)
 		);
 
-		if ( ! empty( $pages ) ) {
-			$url = get_permalink( (int) $pages[0] );
+		foreach ( $pages as $page_id ) {
+			if ( ! self::embeds_form( (string) get_post_field( 'post_content', (int) $page_id ), $form_id ) ) {
+				continue;
+			}
+			$url = get_permalink( (int) $page_id );
 			if ( is_string( $url ) && '' !== $url ) {
 				return $url;
 			}
 		}
 
 		return '';
+	}
+
+	/**
+	 * Whether a page's content carries `[ffc_form]` for this form, with its
+	 * `id` in double quotes, single quotes or none. A longer number does not
+	 * match: `id="12"` is not form 1.
+	 *
+	 * @param string $content Post content.
+	 * @param int    $form_id Form post id.
+	 * @return bool
+	 */
+	public static function embeds_form( string $content, int $form_id ): bool {
+		return 1 === preg_match( '/\[ffc_form\b[^\]]*?\bid\s*=\s*(["\']?)' . $form_id . '\1(?=[\s\]\/])/i', $content );
 	}
 }

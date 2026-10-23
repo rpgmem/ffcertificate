@@ -255,6 +255,28 @@ class AudienceFormInviteSendingTest extends TestCase {
 		$this->assertSame( 'no_page', AudienceFormInviteMailer::send( $this->booking(), 7, $this->now )->get_error_code() );
 	}
 
+	public function test_a_form_no_page_embeds_is_flagged_and_an_embedded_or_absent_one_is_not(): void {
+		$pages = Mockery::mock( 'alias:FreeFormCertificate\Frontend\ScheduleExceptionAction' );
+		$pages->shouldReceive( 'find_form_page_url' )->with( self::FORM )->andReturn( '', 'https://example.org/feedback/' );
+		Functions\when( 'get_post' )->alias(
+			static function ( $id ) {
+				if ( self::FORM !== (int) $id ) {
+					return null;
+				}
+				$post              = new \WP_Post();
+				$post->post_type   = 'ffc_form';
+				$post->post_status = 'publish';
+				return $post;
+			}
+		);
+
+		$notice = AudienceFormInviteMailer::missing_page_notice( self::FORM );
+		$this->assertStringContainsString( 'notice-warning', $notice );
+		$this->assertStringContainsString( '[ffc_form id=&quot;40&quot;]', $notice );
+		$this->assertSame( '', AudienceFormInviteMailer::missing_page_notice( self::FORM ), 'Embedded: nothing to say.' );
+		$this->assertSame( '', AudienceFormInviteMailer::missing_page_notice( 0 ), 'No form chosen: nothing to say.' );
+	}
+
 	public function test_the_records_read_back_per_person_and_a_resend_counts(): void {
 		global $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' );

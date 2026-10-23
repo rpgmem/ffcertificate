@@ -47,6 +47,28 @@ class AudienceFormInviteMailer {
 	}
 
 	/**
+	 * A warning for a form the invitations cannot link to (#2024): the
+	 * hourly run skips a booking whose form no published page embeds, so
+	 * the screens that choose the form say so instead.
+	 *
+	 * @param int $form_id Form post ID.
+	 * @return string Escaped notice markup, or '' when there is nothing to say.
+	 */
+	public static function missing_page_notice( int $form_id ): string {
+		if ( ! AudiencePostEventForm::is_form( $form_id ) || '' !== \FreeFormCertificate\Frontend\ScheduleExceptionAction::find_form_page_url( $form_id ) ) {
+			return '';
+		}
+
+		return '<div class="notice notice-warning inline ffc-post-event-no-page"><p>' . esc_html(
+			sprintf(
+				/* translators: %s: the shortcode to put on a page */
+				__( 'No published page embeds this form, so no invitation can be sent. Publish a page holding %s.', 'ffcertificate' ),
+				'[ffc_form id="' . $form_id . '"]'
+			)
+		) . '</p></div>';
+	}
+
+	/**
 	 * Send one invitation.
 	 *
 	 * Eligibility is the caller's to check; this only refuses what it cannot
