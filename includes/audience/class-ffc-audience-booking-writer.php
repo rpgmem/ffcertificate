@@ -368,6 +368,40 @@ class AudienceBookingWriter {
 	}
 
 	/**
+	 * Store a booking's own post-event form settings (#1948).
+	 *
+	 * With `$custom` off the booking follows its calendar again, and its three
+	 * columns are cleared so a stale choice cannot come back by surprise when
+	 * the switch is turned on later. With it on, a form ID of 0 means the
+	 * booking has no form even when its calendar does.
+	 *
+	 * @param int  $id             Booking ID.
+	 * @param bool $custom         Whether the booking reads its own settings.
+	 * @param int  $form_id        Form post ID, 0 for none.
+	 * @param int  $window_days    Days the form stays open after the event.
+	 * @param bool $attendees_only Whether only those present may answer.
+	 * @return bool Whether the row was written.
+	 */
+	public static function set_post_event_form( int $id, bool $custom, int $form_id, int $window_days, bool $attendees_only ): bool {
+		$written = self::db()->update(
+			self::get_table_name(),
+			array(
+				'post_event_custom'         => $custom ? 1 : 0,
+				'post_event_form_id'        => $custom ? max( 0, $form_id ) : null,
+				'post_event_window_days'    => $custom ? AudiencePostEventForm::normalize_window( $window_days ) : null,
+				'post_event_attendees_only' => $custom ? ( $attendees_only ? 1 : 0 ) : null,
+			),
+			array( 'id' => $id ),
+			array( '%d', '%d', '%d', '%d' ),
+			array( '%d' )
+		);
+
+		static::cache_delete( "id_{$id}" );
+
+		return false !== $written;
+	}
+
+	/**
 	 * Cancel a booking
 	 *
 	 * @param int    $id Booking ID.

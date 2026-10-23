@@ -250,6 +250,22 @@ class AudienceAdminAttendance {
 				$rule = AudienceAttendanceRule::normalize( RequestInput::get_post_string( 'attendance_mode' ), RequestInput::get_post_int( 'attendance_min_percent', AudienceAttendanceRule::DEFAULT_PERCENT ) );
 				return AudienceBookingWriter::set_attendance_rule( $booking_id, $rule['mode'], $rule['percent'] ) ? 'rule_saved' : 'failed';
 
+			case 'post_event':
+				if ( ! Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+					return 'denied';
+				}
+				$form_id = RequestInput::get_post_int( 'post_event_form' );
+				if ( 0 !== $form_id && ! AudiencePostEventForm::is_form( $form_id ) ) {
+					return 'failed';
+				}
+				return AudienceBookingWriter::set_post_event_form(
+					$booking_id,
+					isset( $_POST['post_event_custom'] ), // phpcs:ignore WordPress.Security.NonceVerification.Missing -- handle_actions() verified the nonce before dispatching here.
+					$form_id,
+					RequestInput::get_post_int( 'post_event_window_days', AudiencePostEventForm::DEFAULT_WINDOW_DAYS ),
+					isset( $_POST['post_event_attendees_only'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing -- handle_actions() verified the nonce before dispatching here.
+				) ? 'post_event_saved' : 'failed';
+
 			case 'export':
 				if ( ! Capabilities::current_user_can_admin_or( 'ffc_export_audiences' ) ) {
 					return 'denied';
@@ -268,16 +284,17 @@ class AudienceAdminAttendance {
 	 */
 	public static function messages(): array {
 		return array(
-			'opened'     => array( __( 'Check-in is open. Project the QR code where participants can scan it.', 'ffcertificate' ), 'success' ),
-			'closed'     => array( __( 'Check-in is closed.', 'ffcertificate' ), 'success' ),
-			'marked'     => array( __( 'Attendance marked.', 'ffcertificate' ), 'success' ),
-			'unmarked'   => array( __( 'Attendance removed.', 'ffcertificate' ), 'success' ),
-			'rule_saved' => array( __( 'Attendance rule saved.', 'ffcertificate' ), 'success' ),
-			'not_today'  => array( __( 'Check-in by QR code opens only on the day itself, for an active booking.', 'ffcertificate' ), 'warning' ),
-			'not_open'   => array( __( 'Check-in was not open.', 'ffcertificate' ), 'warning' ),
-			'future'     => array( __( 'Attendance cannot be marked for a day that has not come yet.', 'ffcertificate' ), 'warning' ),
-			'denied'     => array( __( 'You do not have permission to do that.', 'ffcertificate' ), 'error' ),
-			'failed'     => array( __( 'The change could not be saved.', 'ffcertificate' ), 'error' ),
+			'opened'           => array( __( 'Check-in is open. Project the QR code where participants can scan it.', 'ffcertificate' ), 'success' ),
+			'closed'           => array( __( 'Check-in is closed.', 'ffcertificate' ), 'success' ),
+			'marked'           => array( __( 'Attendance marked.', 'ffcertificate' ), 'success' ),
+			'unmarked'         => array( __( 'Attendance removed.', 'ffcertificate' ), 'success' ),
+			'rule_saved'       => array( __( 'Attendance rule saved.', 'ffcertificate' ), 'success' ),
+			'post_event_saved' => array( __( 'Post-event form saved.', 'ffcertificate' ), 'success' ),
+			'not_today'        => array( __( 'Check-in by QR code opens only on the day itself, for an active booking.', 'ffcertificate' ), 'warning' ),
+			'not_open'         => array( __( 'Check-in was not open.', 'ffcertificate' ), 'warning' ),
+			'future'           => array( __( 'Attendance cannot be marked for a day that has not come yet.', 'ffcertificate' ), 'warning' ),
+			'denied'           => array( __( 'You do not have permission to do that.', 'ffcertificate' ), 'error' ),
+			'failed'           => array( __( 'The change could not be saved.', 'ffcertificate' ), 'error' ),
 		);
 	}
 
@@ -328,6 +345,7 @@ class AudienceAdminAttendance {
 		echo '<div class="ffc-boxed ffc-attendance">';
 		$this->render_checkin_card( $booking, $date, $today, $window );
 		$this->render_rule_card( $booking, $date );
+		$this->render_post_event_card( $booking, $date );
 		$this->render_participants_card( $booking, $date, $today, $roster );
 		echo '</div></div>';
 	}
@@ -514,6 +532,91 @@ class AudienceAdminAttendance {
 			);
 		}
 		echo '</form></div>';
+	}
+
+	/**
+	 * The post-event form card (#1948): what applies to this booking, and the
+	 * switch that gives it settings of its own instead of its calendar's.
+	 *
+	 * @param object $booking Booking row.
+	 * @param string $date    Day shown.
+	 * @return void
+	 */
+	private function render_post_event_card( object $booking, string $date ): void {
+		$can_edit    = Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
+		$custom      = AudiencePostEventForm::is_custom( $booking );
+		$applied     = AudiencePostEventForm::settings( $booking );
+		$schedule_id = (int) ( $booking->schedule_id ?? 0 );
+		$schedule    = $schedule_id > 0 ? AudienceScheduleRepository::get_by_id( $schedule_id ) : null;
+		// The fields start from what applies now, so turning the switch on
+		// begins from the calendar's choice rather than from nothing.
+		$fields = $custom ? $applied : AudiencePostEventForm::of_schedule( $schedule );
+
+		echo '<div class="card"><h2 class="ffc-icon-award">' . esc_html__( 'Post-event form', 'ffcertificate' ) . '</h2>';
+		echo '<p class="ffc-attendance-post-event-status">' . esc_html( self::post_event_status( $booking, $applied, $custom ) ) . '</p>';
+		echo '<form method="post">' . $this->form_fields( (int) ( $booking->id ?? 0 ), 'post_event', $date ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts by form_fields().
+		echo '<p>';
+		AdminUI::render_toggle(
+			array(
+				'name'     => 'post_event_custom',
+				'checked'  => $custom,
+				'disabled' => ! $can_edit,
+				'label'    => __( 'Use settings of its own for this booking', 'ffcertificate' ),
+			)
+		);
+		echo '</p><p class="description">' . esc_html__( 'Off, the booking follows its calendar. On, the three settings below apply to this booking only; choose None to invite nobody.', 'ffcertificate' ) . '</p>';
+		echo '<p><label for="ffc-post-event-form">' . esc_html__( 'Certificate form', 'ffcertificate' ) . '</label> ';
+		AudienceAdminCalendar::render_form_select( 'post_event_form', 'ffc-post-event-form', $fields['form_id'], ! $can_edit );
+		echo '</p><p><label for="ffc-post-event-days">' . esc_html__( 'Days open', 'ffcertificate' ) . '</label> ';
+		echo '<input type="number" id="ffc-post-event-days" name="post_event_window_days" min="1" max="' . esc_attr( (string) AudiencePostEventForm::MAX_WINDOW_DAYS ) . '" step="1" required class="small-text" value="' . esc_attr( (string) $fields['window_days'] ) . '"' . disabled( ! $can_edit, true, false ) . '></p>';
+		echo '<p>';
+		AdminUI::render_toggle(
+			array(
+				'name'     => 'post_event_attendees_only',
+				'checked'  => $fields['attendees_only'],
+				'disabled' => ! $can_edit,
+				'label'    => __( 'Invite only people whose attendance meets the rule', 'ffcertificate' ),
+			)
+		);
+		echo '</p>';
+		if ( $can_edit ) {
+			AdminUI::render_button(
+				array(
+					'label'    => __( 'Save', 'ffcertificate' ),
+					'category' => 'primary',
+					'icon'     => 'save',
+					'type'     => 'submit',
+				)
+			);
+		}
+		echo '</form></div>';
+	}
+
+	/**
+	 * One sentence saying which form applies to a booking and when it is open.
+	 *
+	 * @param object                                                      $booking Booking row.
+	 * @param array{form_id: int, window_days: int, attendees_only: bool} $applied Settings in force.
+	 * @param bool                                                        $custom  Whether they are the booking's own.
+	 * @return string
+	 */
+	public static function post_event_status( object $booking, array $applied, bool $custom ): string {
+		if ( ! AudiencePostEventForm::is_form( $applied['form_id'] ) ) {
+			return $custom
+				? __( 'This booking invites nobody to a form.', 'ffcertificate' )
+				: __( 'Its calendar names no form, so this booking invites nobody.', 'ffcertificate' );
+		}
+
+		$opens  = AudiencePostEventForm::opens_at( $booking );
+		$closes = AudiencePostEventForm::closes_at( $booking, $applied['window_days'] );
+
+		return sprintf(
+			/* translators: 1: form title, 2: date and time the form opens, 3: date and time it closes */
+			__( 'Participants are invited to "%1$s", open from %2$s to %3$s.', 'ffcertificate' ),
+			get_the_title( $applied['form_id'] ),
+			DateFormatter::format_datetime( $opens ),
+			DateFormatter::format_datetime( $closes )
+		);
 	}
 
 	/**

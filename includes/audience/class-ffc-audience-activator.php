@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '3';
+	public const SCHEMA_REVISION = '4';
 
 	/**
 	 * Option holding the revision last applied.
@@ -141,6 +141,9 @@ class AudienceActivator {
             audience_badge_format enum('name','parent_name') DEFAULT 'name' COMMENT 'How audience badges display: name only or parent: child',
             is_isolated tinyint(1) DEFAULT 0 COMMENT 'Ignore conflicts from other schedules',
             admin_bypass tinyint(1) DEFAULT 1 COMMENT 'Audience bypass holders may book outside the rules',
+            post_event_form_id bigint(20) unsigned DEFAULT NULL,
+            post_event_window_days smallint(5) unsigned DEFAULT NULL,
+            post_event_attendees_only tinyint(1) DEFAULT 0,
             PRIMARY KEY (id),
             KEY idx_status (status),
             KEY idx_created_by (created_by)
@@ -353,6 +356,10 @@ class AudienceActivator {
             skipped_dates text DEFAULT NULL COMMENT 'JSON list of blocked days a range left out',
             attendance_mode enum('single','total') DEFAULT NULL,
             attendance_min_percent tinyint(3) unsigned DEFAULT NULL,
+            post_event_custom tinyint(1) DEFAULT 0,
+            post_event_form_id bigint(20) unsigned DEFAULT NULL,
+            post_event_window_days smallint(5) unsigned DEFAULT NULL,
+            post_event_attendees_only tinyint(1) DEFAULT NULL,
             PRIMARY KEY (id),
             KEY idx_environment (environment_id),
             KEY idx_date (booking_date),
@@ -869,6 +876,7 @@ class AudienceActivator {
 		$healed = self::migrate_audience_tree_access_columns();
 		$healed = self::migrate_booking_range_columns() && $healed;
 		$healed = self::migrate_booking_attendance_columns() && $healed;
+		$healed = self::migrate_post_event_form_columns() && $healed;
 
 		// The attendance tables of #1947 reach upgraded installs here: the
 		// version-gated chain below never creates a table (#1311).
@@ -946,6 +954,41 @@ class AudienceActivator {
 		self::add_column_if_missing( $table_name, 'attendance_min_percent', 'tinyint(3) unsigned DEFAULT NULL', 'attendance_mode' );
 
 		return self::has_columns( $table_name, array( 'attendance_mode', 'attendance_min_percent' ) );
+	}
+
+	/**
+	 * Add the post-event form to calendars and bookings (#1948).
+	 *
+	 * A calendar names the certificate form its bookings lead to, how many
+	 * days it stays open after the event and whether only those present may
+	 * answer. A booking follows its calendar until `post_event_custom` is set,
+	 * and then reads its own three columns instead. Everything defaults to
+	 * NULL or 0, which reads as no form: an existing calendar invites nobody.
+	 *
+	 * @return bool Whether both tables now have the columns, or do not exist yet.
+	 */
+	private static function migrate_post_event_form_columns(): bool {
+		global $wpdb;
+		$schedules = $wpdb->prefix . 'ffc_audience_schedules';
+		$bookings  = $wpdb->prefix . 'ffc_audience_bookings';
+		$healed    = true;
+
+		if ( self::table_exists( $schedules ) ) {
+			self::add_column_if_missing( $schedules, 'post_event_form_id', 'bigint(20) unsigned DEFAULT NULL' );
+			self::add_column_if_missing( $schedules, 'post_event_window_days', 'smallint(5) unsigned DEFAULT NULL', 'post_event_form_id' );
+			self::add_column_if_missing( $schedules, 'post_event_attendees_only', 'tinyint(1) DEFAULT 0', 'post_event_window_days' );
+			$healed = self::has_columns( $schedules, array( 'post_event_form_id', 'post_event_window_days', 'post_event_attendees_only' ) );
+		}
+
+		if ( self::table_exists( $bookings ) ) {
+			self::add_column_if_missing( $bookings, 'post_event_custom', 'tinyint(1) DEFAULT 0', 'attendance_min_percent' );
+			self::add_column_if_missing( $bookings, 'post_event_form_id', 'bigint(20) unsigned DEFAULT NULL', 'post_event_custom' );
+			self::add_column_if_missing( $bookings, 'post_event_window_days', 'smallint(5) unsigned DEFAULT NULL', 'post_event_form_id' );
+			self::add_column_if_missing( $bookings, 'post_event_attendees_only', 'tinyint(1) DEFAULT NULL', 'post_event_window_days' );
+			$healed = self::has_columns( $bookings, array( 'post_event_custom', 'post_event_form_id', 'post_event_window_days', 'post_event_attendees_only' ) ) && $healed;
+		}
+
+		return $healed;
 	}
 
 	/**

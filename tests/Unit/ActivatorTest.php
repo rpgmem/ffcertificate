@@ -390,12 +390,11 @@ class ActivatorTest extends TestCase {
 		Activator::maybe_add_columns();
 
 		foreach ( $queries as $sql ) {
-			$this->assertFalse(
-				stripos( $sql, 'ADD COLUMN' ) !== false
-					&& (
-						stripos( $sql, 'schedule_start_override' ) !== false
-						|| stripos( $sql, 'schedule_end_override' ) !== false
-					),
+			// Matched on the column being added, not anywhere in the statement:
+			// a later column is placed AFTER schedule_end_override (#1948).
+			$this->assertDoesNotMatchRegularExpression(
+				'/ADD COLUMN\s+`?schedule_(start|end)_override\b/i',
+				$sql,
 				'ALTER TABLE ADD COLUMN should not be issued for already-present override columns'
 			);
 		}

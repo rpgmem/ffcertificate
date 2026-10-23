@@ -38,6 +38,7 @@ class AudienceRecordAutosave {
 		'show_event_list',
 		'is_isolated',
 		'admin_bypass',
+		'post_event_attendees_only',
 	);
 
 	/**

@@ -289,6 +289,11 @@ class AudienceAdminCalendar {
 				'label' => __( 'Event list & badges', 'ffcertificate' ),
 				'icon'  => 'ffc-icon-list',
 			),
+			array(
+				'key'   => 'post-event',
+				'label' => __( 'Post-event form', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-award',
+			),
 		);
 		if ( $id > 0 ) {
 			$tabs[] = array(
@@ -323,7 +328,7 @@ class AudienceAdminCalendar {
 		<div class="ffc-aud-editor">
 		<div class="ffc-aud-editor__main">
 		<?php AudienceEditorTabs::open( $tabs, $active ); ?>
-		<?php // One form across the first three tabs: the tabs only show and hide its panels, so one Save posts every field. ?>
+		<?php // One form across the first four tabs: the tabs only show and hide its panels, so one Save posts every field. ?>
 		<form method="post" action="" class="ffc-form" id="ffc-schedule-form">
 			<?php wp_nonce_field( 'save_schedule', 'ffc_schedule_nonce' ); ?>
 			<input type="hidden" name="schedule_id" value="<?php echo esc_attr( (string) $id ); ?>">
@@ -616,17 +621,20 @@ class AudienceAdminCalendar {
 				</tr>
 			</tbody></table>
 			<?php AudienceEditorTabs::panel_close(); ?>
+			<?php AudienceEditorTabs::panel_open( $tabs[3], $active ); ?>
+			<?php self::render_post_event_fields( $schedule, $id ); ?>
+			<?php AudienceEditorTabs::panel_close(); ?>
 			<?php if ( ! $can_manage ) : ?>
 				</fieldset>
 			<?php endif; ?>
 		</form>
 
 		<?php if ( $id > 0 ) : ?>
-			<?php AudienceEditorTabs::panel_open( $tabs[3], $active ); ?>
+			<?php AudienceEditorTabs::panel_open( $tabs[4], $active ); ?>
 			<?php ( new AudienceAdminEnvironment( $this->menu_slug ) )->render_calendar_tab( $id ); ?>
 			<?php AudienceEditorTabs::panel_close(); ?>
 
-			<?php AudienceEditorTabs::panel_open( $tabs[4], $active ); ?>
+			<?php AudienceEditorTabs::panel_open( $tabs[5], $active ); ?>
 			<p class="description">
 				<?php esc_html_e( 'Manage which users have access to this calendar and what they can do. For private calendars, only listed users can see and book. For public calendars, these permissions control who can book and cancel.', 'ffcertificate' ); ?>
 			</p>
@@ -696,7 +704,7 @@ class AudienceAdminCalendar {
 			<?php // Calendar permissions logic in ffc-audience-admin.js. ?>
 			<?php AudienceEditorTabs::panel_close(); ?>
 
-			<?php AudienceEditorTabs::panel_open( $tabs[5], $active ); ?>
+			<?php AudienceEditorTabs::panel_open( $tabs[6], $active ); ?>
 			<p class="description"><?php esc_html_e( 'Add specific dates when the calendar will be closed (holidays, maintenance, etc.).', 'ffcertificate' ); ?></p>
 
 			<?php if ( $can_manage ) : ?>
@@ -942,6 +950,9 @@ class AudienceAdminCalendar {
 					: null,
 				'is_isolated'                  => isset( $_POST['schedule_is_isolated'] ) ? 1 : 0,
 				'admin_bypass'                 => isset( $_POST['schedule_admin_bypass'] ) ? 1 : 0,
+				'post_event_form_id'           => AudiencePostEventForm::is_form( RequestInput::get_post_int( 'schedule_post_event_form' ) ) ? RequestInput::get_post_int( 'schedule_post_event_form' ) : null,
+				'post_event_window_days'       => AudiencePostEventForm::normalize_window( RequestInput::get_post_int( 'schedule_post_event_window_days', AudiencePostEventForm::DEFAULT_WINDOW_DAYS ) ),
+				'post_event_attendees_only'    => isset( $_POST['schedule_post_event_attendees_only'] ) ? 1 : 0,
 				'status'                       => RequestInput::get_post_string( 'schedule_status', 'active' ),
 			);
 
@@ -1009,6 +1020,88 @@ class AudienceAdminCalendar {
 				exit;
 			}
 		}
+	}
+
+	/**
+	 * Print the fields of the Post-event form tab (#1948).
+	 *
+	 * @param object|null $schedule Calendar row, null for a new calendar.
+	 * @param int         $id       Calendar ID, 0 for a new calendar.
+	 * @return void
+	 */
+	private static function render_post_event_fields( ?object $schedule, int $id ): void {
+		$settings = AudiencePostEventForm::of_schedule( $schedule );
+		?>
+		<table class="form-table" role="presentation"><tbody>
+			<tr>
+				<th scope="row">
+					<label for="schedule_post_event_form"><?php esc_html_e( 'Certificate form', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<?php self::render_form_select( 'schedule_post_event_form', 'schedule_post_event_form', $settings['form_id'] ); ?>
+					<p class="description">
+						<?php esc_html_e( 'When the last day of a booking ends, its participants are invited to this form, with their name, e-mail and CPF/RF filled in. A booking can choose another form, or none, on its Attendance screen.', 'ffcertificate' ); ?>
+					</p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row">
+					<label for="schedule_post_event_window_days"><?php esc_html_e( 'Days open', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<input type="number" name="schedule_post_event_window_days" id="schedule_post_event_window_days" class="small-text"
+							value="<?php echo esc_attr( (string) $settings['window_days'] ); ?>" min="1" max="<?php echo esc_attr( (string) AudiencePostEventForm::MAX_WINDOW_DAYS ); ?>" required>
+					<p class="description">
+						<?php esc_html_e( 'How many days after the end of the event the invitation link works.', 'ffcertificate' ); ?>
+					</p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Attendees only', 'ffcertificate' ); ?></th>
+				<td>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'    => 'schedule_post_event_attendees_only',
+							'checked' => $settings['attendees_only'],
+							'label'   => __( 'Invite only people whose attendance meets the booking\'s rule', 'ffcertificate' ),
+							'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience_schedule', $id, 'post_event_attendees_only' ),
+						)
+					);
+					?>
+				</td>
+			</tr>
+		</tbody></table>
+		<?php
+	}
+
+	/**
+	 * Print a select of the published certificate forms, with "None" first.
+	 *
+	 * @param string $name     Field name.
+	 * @param string $field_id Field ID.
+	 * @param int    $selected Selected form ID, 0 for none.
+	 * @param bool   $disabled Whether the select is disabled.
+	 * @return void
+	 */
+	public static function render_form_select( string $name, string $field_id, int $selected, bool $disabled = false ): void {
+		$forms = get_posts(
+			array(
+				'post_type'      => 'ffc_form',
+				'post_status'    => 'publish',
+				'orderby'        => 'title',
+				'order'          => 'ASC',
+				'posts_per_page' => -1,
+			)
+		);
+		?>
+		<select name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $field_id ); ?>"<?php echo $disabled ? ' disabled' : ''; ?>>
+			<option value="0"><?php esc_html_e( 'None', 'ffcertificate' ); ?></option>
+			<?php foreach ( $forms as $form ) : ?>
+				<option value="<?php echo esc_attr( (string) $form->ID ); ?>" <?php selected( $selected, $form->ID ); ?>><?php echo esc_html( $form->post_title ); ?></option>
+			<?php endforeach; ?>
+		</select>
+		<?php
 	}
 
 	/**

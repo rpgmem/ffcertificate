@@ -77,6 +77,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'The participants list shows who is present on the day selected and refreshes on its own. Mark present and Remove record or delete an attendance by hand on today or an earlier day, noting who marked it. The attendance rule decides who counts as attended for a booking over several days: Any day, or a minimum share of the booked days (skipped days do not count). Export CSV lists each participant\'s name, a column per day, the days present and whether the rule was met; it carries no e-mail or document number.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'Attendance lines are records: when an account is deleted or its data erased, the line stays and loses the person. A participant\'s attendance is included in their privacy export.', 'ffcertificate' ); ?></p>
 
+	<h4><?php esc_html_e( 'Post-event certificate form', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'The Post-event form tab of a calendar names the certificate form its bookings lead to, how many days it stays open after the event (1 to 90) and whether only people whose attendance meets the booking\'s rule are invited. The form opens when the booking\'s last day ends. The questions are ordinary fields of that certificate form.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The Post-event form card on a booking\'s Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar\'s, including None to invite nobody; changing it needs ffc_manage_audiences.', 'ffcertificate' ); ?></p>
+
 	<h4><?php esc_html_e( 'Import / export', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The Scheduling → Settings → Import & Export tab imports and exports audiences (name, color, parent) and members (email, name, audience) as CSV, optionally creating WordPress users for imported members.', 'ffcertificate' ); ?></p>
 

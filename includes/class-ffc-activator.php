@@ -180,6 +180,7 @@ class Activator {
             link_sent_at bigint(20) unsigned DEFAULT NULL,
             schedule_start_override time NULL DEFAULT NULL,
             schedule_end_override time NULL DEFAULT NULL,
+            audience_booking_id bigint(20) unsigned DEFAULT NULL,
             PRIMARY KEY (id),
             KEY form_id (form_id),
             KEY user_id (user_id),
@@ -190,6 +191,7 @@ class Activator {
             KEY cpf_hash (cpf_hash),
             KEY rf_hash (rf_hash),
             KEY ticket_hash (ticket_hash),
+            KEY audience_booking_id (audience_booking_id),
             KEY idx_form_cpf_new (form_id, cpf_hash),
             KEY idx_form_rf (form_id, rf_hash)
         ) {$charset_collate};";
@@ -328,6 +330,13 @@ class Activator {
 			'schedule_end_override'   => array(
 				'type'  => 'TIME NULL DEFAULT NULL',
 				'after' => 'schedule_start_override',
+			),
+			// The audience booking whose post-event invite led to this
+			// submission (#1948). NULL for every other submission.
+			'audience_booking_id'     => array(
+				'type'  => 'BIGINT(20) UNSIGNED NULL DEFAULT NULL',
+				'after' => 'schedule_end_override',
+				'index' => 'audience_booking_id',
 			),
 		);
 	}
