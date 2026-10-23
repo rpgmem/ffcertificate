@@ -102,6 +102,7 @@ final class AdminStylesheetTokensTest extends TestCase {
 		'ffc-admin.css'                 => 3,
 		'ffc-admin-settings.css'        => 5,
 		'ffc-audience.css'              => 2,
+		'ffc-audience-checkin.css'      => 0,
 		'ffc-audience-admin.css'        => 1,
 		'ffc-frontend.css'              => 3,
 		'ffc-user-dashboard.css'        => 1,

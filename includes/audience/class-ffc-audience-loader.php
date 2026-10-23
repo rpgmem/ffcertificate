@@ -154,6 +154,9 @@ class AudienceLoader {
 
 		// Enqueue frontend assets.
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
+
+		// The URL a check-in QR opens (#1947).
+		AudienceCheckinEndpoint::init();
 	}
 
 	/**
