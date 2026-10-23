@@ -28166,7 +28166,7 @@ msgid "Attendance and QR check-in"
 msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
-msgid "The Attendance link in a booking's row of Audience Bookings opens its attendance screen. On the day itself, Open check-in starts a check-in for that day: choose how often the code changes (1, 2, 3, 5 or 10 minutes) and, optionally, the saved geolocation areas the participant must be inside. Project the QR code opens a full-screen page for a projector or a screen; the code changes on its own and the page counts who is present. Check-in closes when you press Close check-in, or on its own 30 minutes after the booking ends that day. Opening it again starts a new check-in, and codes from the previous one stop working."
+msgid "The Attendance link in a booking's row of Audience Bookings opens its attendance screen. On the day itself, until 30 minutes after the booking ends, Open check-in starts a check-in for that day: choose how often the code changes (1, 2, 3, 5 or 10 minutes) and, optionally, the saved geolocation areas the participant must be inside. Project the QR code opens a full-screen page for a projector or a screen; the code changes on its own and the page counts who is present. Check-in closes when you press Close check-in, or on its own 30 minutes after the booking ends that day. Opening it again starts a new check-in, and codes from the previous one stop working."
 msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
@@ -28275,7 +28275,7 @@ msgid "The Post-event form tab of a calendar names the certificate form its book
 msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
-msgid "The Post-event form card on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences."
+msgid "The Post-event form card on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences. This card and the Attendance rule card save each change as it is made; reload the page to see the new sentence and the invitations."
 msgstr ""
 
 #: includes/frontend/class-ffc-form-invite.php
@@ -28446,4 +28446,24 @@ msgstr ""
 
 #: includes/settings/views/documentation/email-texts-hub.php
 msgid "global only; the form a booking leads to is chosen on its calendar or its Attendance screen."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in can no longer be opened today: the booking has ended. Mark attendance by hand below."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in closed on its own at %s, 30 minutes after the booking ended today. Attendance can still be marked by hand below."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Changes save as you make them. Reload the page to see which form applies and the invitations."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "Choose a published certificate form."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "The booking could not be saved."
 msgstr ""
