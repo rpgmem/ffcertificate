@@ -62,9 +62,10 @@ class MigrationForeignKeys {
 
 		// Tables that should SET NULL on user deletion (preserve audit trail).
 		$set_null_tables = array(
-			$wpdb->prefix . 'ffc_submissions'  => 'fk_ffc_submissions_user',
+			$wpdb->prefix . 'ffc_submissions'         => 'fk_ffc_submissions_user',
 			$wpdb->prefix . 'ffc_self_scheduling_appointments' => 'fk_ffc_appointments_user',
-			$wpdb->prefix . 'ffc_activity_log' => 'fk_ffc_activity_log_user',
+			$wpdb->prefix . 'ffc_activity_log'        => 'fk_ffc_activity_log_user',
+			$wpdb->prefix . 'ffc_audience_attendance' => 'fk_ffc_attendance_user',
 		);
 
 		// Tables that should CASCADE delete (no audit value).
@@ -285,6 +286,7 @@ class MigrationForeignKeys {
 			'fk_ffc_submissions_user',
 			'fk_ffc_appointments_user',
 			'fk_ffc_activity_log_user',
+			'fk_ffc_attendance_user',
 			'fk_ffc_audience_members_user',
 			'fk_ffc_booking_users_user',
 			'fk_ffc_schedule_perms_user',

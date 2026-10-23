@@ -169,6 +169,19 @@ class PrivacyErasers {
 			}
 		}
 
+		// 4b. Audience attendance (#1947): a record, so the line stays and
+		// loses the person, as account deletion does.
+		$attendance_table = $wpdb->prefix . 'ffc_audience_attendance';
+		if ( self::table_exists( $attendance_table ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
+			$rows = $wpdb->query(
+				$wpdb->prepare( 'UPDATE %i SET user_id = NULL WHERE user_id = %d', $attendance_table, $user_id )
+			);
+			if ( $rows > 0 ) {
+				$items_removed += (int) $rows;
+			}
+		}
+
 		// 5. Audience schedule permissions: DELETE.
 		$permissions_table = $wpdb->prefix . 'ffc_audience_schedule_permissions';
 		if ( self::table_exists( $permissions_table ) ) {

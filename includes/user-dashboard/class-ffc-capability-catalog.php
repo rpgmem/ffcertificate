@@ -294,6 +294,10 @@ final class CapabilityCatalog {
 						'label'       => __( 'Import audiences', 'ffcertificate' ),
 						'description' => __( 'Bulk-load members and audiences from CSV.', 'ffcertificate' ),
 					),
+					'ffc_checkin_audiences'  => array(
+						'label'       => __( 'Run attendance check-in', 'ffcertificate' ),
+						'description' => __( 'Open and close check-in for a day of a booking, project its rotating QR and mark attendance by hand (#1947).', 'ffcertificate' ),
+					),
 					'ffc_export_audiences'   => array(
 						'label'       => __( 'Export audiences', 'ffcertificate' ),
 						'description' => __( 'Download the members and audiences CSV exports.', 'ffcertificate' ),
