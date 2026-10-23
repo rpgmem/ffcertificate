@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -78,7 +79,7 @@ class FrontendShortcodesTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $_GET['token'] );
+		unset( $_GET['token'], $_GET['ffc_invite'] );
 		$_COOKIE = array();
 		$this->reset_rate_limit_cache();
 		Monkey\tearDown();
@@ -495,6 +496,79 @@ class FrontendShortcodesTest extends TestCase {
 
 		$this->assertStringContainsString( 'ffc_ticket', $html );
 		$this->assertStringContainsString( 'Ticket Code', $html );
+	}
+
+	/**
+	 * A form with a name and an e-mail field, invite-only when asked (#1948).
+	 */
+	private function render_invite_form( bool $invite_only ): string {
+		Functions\when( 'shortcode_atts' )->alias( static fn( $defaults, $atts ) => array_merge( $defaults, $atts ) );
+		Functions\when( 'get_post_type' )->justReturn( 'ffc_form' );
+		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Evaluation' ) );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id, $key ) use ( $invite_only ) {
+				if ( '_ffc_form_fields' === $key ) {
+					return array(
+						array(
+							'type'  => 'text',
+							'name'  => 'name',
+							'label' => 'Name',
+						),
+						array(
+							'type'  => 'email',
+							'name'  => 'email',
+							'label' => 'E-mail',
+						),
+					);
+				}
+				if ( '_ffc_form_config' === $key ) {
+					return $invite_only ? array( 'restrictions' => array( 'invite' => '1' ) ) : array();
+				}
+				return '';
+			}
+		);
+
+		return $this->shortcodes->render_form( array( 'id' => 7 ) );
+	}
+
+	public function test_an_invitation_fills_and_locks_name_and_email_and_carries_the_code(): void {
+		$_GET['ffc_invite'] = '5.7.abc';
+		Filters\expectApplied( 'ffcertificate_form_invite' )->once()->with( null, 7, '5.7.abc', null )->andReturn(
+			array(
+				'booking_id' => 5,
+				'user_id'    => 7,
+				'name'       => 'Ana Souza',
+				'email'      => 'ana@example.org',
+				'event'      => 'Workshop',
+			)
+		);
+
+		$html = $this->render_invite_form( true );
+
+		$this->assertStringContainsString( 'name="ffc_invite" value="5.7.abc"', $html );
+		$this->assertSame( 2, substr_count( $html, 'readonly aria-readonly="true"' ) );
+		$this->assertStringContainsString( 'value="Ana Souza"', $html );
+		$this->assertStringContainsString( 'Filling in as Ana Souza, for Workshop.', $html );
+	}
+
+	public function test_a_refused_invitation_shows_why_and_no_form(): void {
+		$_GET['ffc_invite'] = 'bad';
+		Filters\expectApplied( 'ffcertificate_form_invite' )->andReturn( new \WP_Error( 'closed', 'The period to fill in this form has ended.' ) );
+
+		$html = $this->render_invite_form( false );
+
+		$this->assertStringContainsString( 'The period to fill in this form has ended.', $html );
+		$this->assertStringNotContainsString( '<form', $html );
+	}
+
+	public function test_an_invite_only_form_shows_nothing_without_an_invitation(): void {
+		$closed = $this->render_invite_form( true );
+		$open   = $this->render_invite_form( false );
+
+		$this->assertStringContainsString( 'open by invitation only', $closed );
+		$this->assertStringNotContainsString( '<form', $closed );
+		$this->assertStringContainsString( '<form', $open );
+		$this->assertStringNotContainsString( 'readonly', $open );
 	}
 
 	// ==================================================================

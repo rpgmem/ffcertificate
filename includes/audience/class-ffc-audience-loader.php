@@ -160,6 +160,10 @@ class AudienceLoader {
 
 		// The URL a check-in QR opens (#1947).
 		AudienceCheckinEndpoint::init();
+
+		// Who a post-event invitation is for, asked by the certificate form
+		// on its page and on admin-ajax alike (#1948).
+		AudienceFormInviteResolver::register();
 	}
 
 	/**

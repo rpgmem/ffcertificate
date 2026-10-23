@@ -373,7 +373,8 @@ class FormMetaAjaxEndpointTest extends TestCase {
 
 	public function test_allowlist_covers_21_toggles_two_radio_groups_and_one_mapped_toggle(): void {
 		$allowlist = FormMetaAjaxEndpoint::allowlist();
-		$this->assertSame( 24, count( $allowlist ) );
+		$this->assertSame( 25, count( $allowlist ) );
+		$this->assertSame( array( 'restrictions', 'invite' ), $allowlist['restriction_invite']['path'] ?? null, 'The invitation-only restriction (#1948) autosaves.' );
 		$this->assertSame( 'map', $allowlist['geofence_schedule_default_mode']['type'] ?? null );
 		$this->assertSame( 'enum', $allowlist['csv_public_cpf_mode']['type'] ?? null );
 		foreach ( array( 'quiz_show_score', 'quiz_show_correct', 'geofence_geo_gps_enabled', 'geofence_geo_ip_enabled', 'csv_public_enabled' ) as $key ) {

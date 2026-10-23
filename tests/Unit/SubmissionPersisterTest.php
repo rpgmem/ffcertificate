@@ -144,6 +144,41 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertNull( $ctx->quiz_score );
 	}
 
+	public function test_an_invited_submission_names_its_booking_and_a_reprint_does_not_write(): void {
+		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'My Form' ) );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		$invite = array(
+			'booking_id' => 5,
+			'user_id'    => 7,
+			'name'       => 'Ana',
+			'email'      => 'a@b.com',
+			'event'      => 'Workshop',
+		);
+
+		$rd = Mockery::mock( 'alias:FreeFormCertificate\\Frontend\\ReprintDetector' );
+		$rd->shouldReceive( 'detect' )->andReturn(
+			$this->noReprint(),
+			array(
+				'is_reprint' => true,
+				'id'         => '555',
+				'date'       => 'then',
+				'data'       => array(),
+			)
+		);
+
+		$repo    = null;
+		$handler = $this->handlerWithRepo( $repo );
+		$handler->shouldReceive( 'process_submission' )->once()->andReturn( 555 );
+		$repo->shouldReceive( 'update' )->once()->with( 555, array( 'audience_booking_id' => 5 ) )->andReturn( 1 );
+
+		$persister = new SubmissionPersister( $handler );
+		$persister->apply( $this->ctx( array( 'invite' => $invite ) ) );
+
+		$again = $this->ctx( array( 'invite' => $invite ) );
+		$persister->apply( $again );
+		$this->assertTrue( $again->is_reprint, 'Opening the link again after answering reprints the certificate.' );
+	}
+
 	public function test_normal_flow_consumes_ticket(): void {
 		$this->stubReprintDetector( $this->noReprint() );
 		Functions\when( 'get_post' )->justReturn( null );

@@ -166,6 +166,10 @@ class FormMetaAjaxEndpoint {
 				'meta' => '_ffc_form_config',
 				'path' => array( 'restrictions', 'ticket' ),
 			),
+			'restriction_invite'                  => array(
+				'meta' => '_ffc_form_config',
+				'path' => array( 'restrictions', 'invite' ),
+			),
 
 			// Geofence — 3 master + 1 nested.
 			'geofence_datetime_enabled'           => array(

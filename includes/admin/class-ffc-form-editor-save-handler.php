@@ -373,8 +373,8 @@ class FormEditorSaveHandler {
 				$clean_config['email_admin'] = sanitize_text_field( ArrayValue::string( $config, 'email_admin' ) );
 			}
 
-			// Restrictions — 4 independent toggles. Each gates exactly one
-			// data field; when its toggle is off, the corresponding field
+			// Restrictions — 5 independent toggles. Each but the invitation
+			// gates exactly one data field; when its toggle is off, the corresponding field
 			// is not written to $clean_config so the prior value rides
 			// through `array_merge` at the end of this block.
 			$posted_restrictions          = ArrayValue::array( $config, 'restrictions' );
@@ -383,6 +383,7 @@ class FormEditorSaveHandler {
 				'allowlist' => isset( $posted_restrictions['allowlist'] ) ? '1' : '0',
 				'denylist'  => isset( $posted_restrictions['denylist'] ) ? '1' : '0',
 				'ticket'    => isset( $posted_restrictions['ticket'] ) ? '1' : '0',
+				'invite'    => isset( $posted_restrictions['invite'] ) ? '1' : '0',
 			);
 			$clean_config['restrictions'] = $restrictions;
 
