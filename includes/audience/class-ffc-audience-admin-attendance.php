@@ -16,6 +16,7 @@ use FreeFormCertificate\Admin\AdminUI;
 use FreeFormCertificate\Core\AssetHelper;
 use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\DateFormatter;
+use FreeFormCertificate\Core\RecordAutosave;
 use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -548,12 +549,15 @@ class AudienceAdminAttendance {
 		$rule     = AudienceAttendanceRule::of( $booking );
 		$can_edit = Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
 		$days     = count( AudienceAttendanceRule::counted_days( $booking ) );
+		$id       = $can_edit ? (int) ( $booking->id ?? 0 ) : 0;
 
 		echo '<div class="card"><h2 class="ffc-icon-checkmark">' . esc_html__( 'Attendance rule', 'ffcertificate' ) . '</h2>';
 		echo '<form method="post">' . $this->form_fields( (int) ( $booking->id ?? 0 ), 'rule', $date ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts by form_fields().
 		AdminUI::render_segmented(
 			array(
 				'name'         => 'attendance_mode',
+				'id'           => 'ffc-attendance-mode',
+				'data'         => RecordAutosave::attrs( 'audience_booking', $id, 'attendance_mode' ),
 				'legend'       => __( 'Attendance rule', 'ffcertificate' ),
 				'value'        => $rule['mode'],
 				'disabled'     => ! $can_edit,
@@ -567,20 +571,10 @@ class AudienceAdminAttendance {
 				),
 			)
 		);
-		echo '<p><label for="ffc-attendance-percent">' . esc_html__( 'Minimum share of days (%)', 'ffcertificate' ) . '</label> ';
-		echo '<input type="number" id="ffc-attendance-percent" name="attendance_min_percent" min="1" max="100" step="1" required class="small-text" value="' . esc_attr( (string) ( $rule['percent'] > 0 ? $rule['percent'] : AudienceAttendanceRule::DEFAULT_PERCENT ) ) . '"' . disabled( ! $can_edit, true, false ) . '></p>';
+		echo '<p class="ffc-collapsed-target" data-ffc-master="ffc-attendance-mode" data-ffc-master-value="' . esc_attr( AudienceAttendanceRule::TOTAL ) . '"><label for="ffc-attendance-percent">' . esc_html__( 'Minimum share of days (%)', 'ffcertificate' ) . '</label> ';
+		echo '<input type="number" id="ffc-attendance-percent" name="attendance_min_percent" min="1" max="100" step="1" required class="small-text" value="' . esc_attr( (string) ( $rule['percent'] > 0 ? $rule['percent'] : AudienceAttendanceRule::DEFAULT_PERCENT ) ) . '"' . self::data_attrs( RecordAutosave::attrs( 'audience_booking', $id, 'attendance_min_percent' ) ) . disabled( ! $can_edit, true, false ) . '></p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- data_attrs() escapes each name and value.
 		/* translators: 1: days required, 2: days booked */
 		echo '<p class="description">' . esc_html( sprintf( __( 'As saved, %1$d of the %2$d booked day(s) are required.', 'ffcertificate' ), AudienceAttendanceRule::required_days( $booking ), $days ) ) . '</p>';
-		if ( $can_edit ) {
-			AdminUI::render_button(
-				array(
-					'label'    => __( 'Save rule', 'ffcertificate' ),
-					'category' => 'primary',
-					'icon'     => 'save',
-					'type'     => 'submit',
-				)
-			);
-		}
 		echo '</form></div>';
 	}
 
@@ -604,6 +598,7 @@ class AudienceAdminAttendance {
 		// The fields start from what applies now, so turning the switch on
 		// begins from the calendar's choice rather than from nothing.
 		$fields = $custom ? $applied : AudiencePostEventForm::of_schedule( $schedule );
+		$id     = $can_edit ? (int) ( $booking->id ?? 0 ) : 0;
 
 		echo '<div class="card"><h2 class="ffc-icon-award">' . esc_html__( 'Post-event form', 'ffcertificate' ) . '</h2>';
 		echo '<p class="ffc-attendance-post-event-status">' . esc_html( self::post_event_status( $booking, $applied, $custom ) ) . '</p>';
@@ -612,35 +607,32 @@ class AudienceAdminAttendance {
 		AdminUI::render_toggle(
 			array(
 				'name'     => 'post_event_custom',
+				'id'       => 'ffc-post-event-custom',
+				'data'     => RecordAutosave::attrs( 'audience_booking', $id, 'post_event_custom' ),
 				'checked'  => $custom,
 				'disabled' => ! $can_edit,
 				'label'    => __( 'Use settings of its own for this booking', 'ffcertificate' ),
 			)
 		);
 		echo '</p><p class="description">' . esc_html__( 'Off, the booking follows its calendar. On, the three settings below apply to this booking only; choose None to invite nobody.', 'ffcertificate' ) . '</p>';
+		echo '<div class="ffc-collapsed-target" data-ffc-master="ffc-post-event-custom">';
 		echo '<p><label for="ffc-post-event-form">' . esc_html__( 'Certificate form', 'ffcertificate' ) . '</label> ';
-		AudienceAdminCalendar::render_form_select( 'post_event_form', 'ffc-post-event-form', $fields['form_id'], ! $can_edit );
+		AudienceAdminCalendar::render_form_select( 'post_event_form', 'ffc-post-event-form', $fields['form_id'], ! $can_edit, RecordAutosave::attrs( 'audience_booking', $id, 'post_event_form_id' ) );
 		echo '</p><p><label for="ffc-post-event-days">' . esc_html__( 'Days open', 'ffcertificate' ) . '</label> ';
-		echo '<input type="number" id="ffc-post-event-days" name="post_event_window_days" min="1" max="' . esc_attr( (string) AudiencePostEventForm::MAX_WINDOW_DAYS ) . '" step="1" required class="small-text" value="' . esc_attr( (string) $fields['window_days'] ) . '"' . disabled( ! $can_edit, true, false ) . '></p>';
+		echo '<input type="number" id="ffc-post-event-days" name="post_event_window_days" min="1" max="' . esc_attr( (string) AudiencePostEventForm::MAX_WINDOW_DAYS ) . '" step="1" required class="small-text" value="' . esc_attr( (string) $fields['window_days'] ) . '"' . self::data_attrs( RecordAutosave::attrs( 'audience_booking', $id, 'post_event_window_days' ) ) . disabled( ! $can_edit, true, false ) . '></p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- data_attrs() escapes each name and value.
 		echo '<p>';
 		AdminUI::render_toggle(
 			array(
 				'name'     => 'post_event_attendees_only',
+				'data'     => RecordAutosave::attrs( 'audience_booking', $id, 'post_event_attendees_only' ),
 				'checked'  => $fields['attendees_only'],
 				'disabled' => ! $can_edit,
 				'label'    => __( 'Invite only people whose attendance meets the rule', 'ffcertificate' ),
 			)
 		);
-		echo '</p>';
+		echo '</p></div>';
 		if ( $can_edit ) {
-			AdminUI::render_button(
-				array(
-					'label'    => __( 'Save', 'ffcertificate' ),
-					'category' => 'primary',
-					'icon'     => 'save',
-					'type'     => 'submit',
-				)
-			);
+			echo '<p class="description">' . esc_html__( 'Changes save as you make them. Reload the page to see which form applies and the invitations.', 'ffcertificate' ) . '</p>';
 		}
 		echo '</form>';
 
@@ -747,6 +739,20 @@ class AudienceAdminAttendance {
 			return __( 'Not yet', 'ffcertificate' );
 		}
 		return 'publish' === $status ? __( 'Certificate issued', 'ffcertificate' ) : __( 'Answered', 'ffcertificate' );
+	}
+
+	/**
+	 * `data-*` attributes for a hand-written control.
+	 *
+	 * @param array<string, string> $data Name (without `data-`) => value.
+	 * @return string Escaped attributes, each with a leading space.
+	 */
+	private static function data_attrs( array $data ): string {
+		$out = '';
+		foreach ( $data as $name => $value ) {
+			$out .= ' data-' . esc_attr( $name ) . '="' . esc_attr( $value ) . '"';
+		}
+		return $out;
 	}
 
 	/**
@@ -994,6 +1000,9 @@ class AudienceAdminAttendance {
 
 		wp_enqueue_style( 'ffc-audience-attendance', FFC_PLUGIN_URL . "assets/css/ffc-audience-attendance{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 		wp_enqueue_script( 'ffc-audience-attendance', FFC_PLUGIN_URL . "assets/js/ffc-audience-attendance{$s}.js", array(), FFC_VERSION, true );
+		if ( ! $projection && Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+			RecordAutosave::enqueue();
+		}
 		wp_localize_script(
 			'ffc-audience-attendance',
 			'ffcAttendance',

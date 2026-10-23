@@ -214,9 +214,26 @@ class RecordAutosaveTest extends TestCase {
 	}
 
 	public function test_an_unknown_field_type_sanitizes_to_null(): void {
-		$this->assertNull( RecordAutosave::sanitize( '1', array( 'type' => 'int' ) ) );
+		$this->assertNull( RecordAutosave::sanitize( '1', array( 'type' => 'float' ) ) );
 		$this->assertNull( RecordAutosave::sanitize( array( 'x' ), array( 'type' => 'enum', 'options' => array( 'x' ) ) ) );
 		$this->assertNull( RecordAutosave::sanitize( 'x', array( 'type' => 'list', 'options' => array( 'x' ) ) ) );
+	}
+
+	public function test_an_int_field_is_a_whole_number_inside_its_bounds(): void {
+		$field = array(
+			'type' => 'int',
+			'min'  => 1,
+			'max'  => 100,
+		);
+
+		$this->assertSame( 75, RecordAutosave::sanitize( '75', $field ) );
+		$this->assertSame( 1, RecordAutosave::sanitize( ' 1 ', $field ) );
+		$this->assertNull( RecordAutosave::sanitize( '', $field ), 'A cleared field is not 0.' );
+		$this->assertNull( RecordAutosave::sanitize( '0', $field ) );
+		$this->assertNull( RecordAutosave::sanitize( '101', $field ) );
+		$this->assertNull( RecordAutosave::sanitize( '7.5', $field ) );
+		$this->assertNull( RecordAutosave::sanitize( array( '7' ), $field ) );
+		$this->assertSame( -3, RecordAutosave::sanitize( '-3', array( 'type' => 'int' ) ), 'Without bounds any whole number is accepted.' );
 	}
 
 	public function test_entities_lists_what_was_registered(): void {

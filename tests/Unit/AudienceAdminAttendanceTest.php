@@ -551,6 +551,58 @@ class AudienceAdminAttendanceTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/name="attendance_min_percent"[^>]*value="75"/', $html, 'Under "Any day" the share field still holds a value its min accepts, so the rule form can submit.' );
 	}
 
+	public function test_a_manager_s_cards_save_as_they_change_and_a_checker_s_do_not(): void {
+		$this->roster_present_for_7();
+		$_GET = array( 'booking_id' => '5' );
+		$this->bookings->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $this->booking() );
+		$this->windows->shouldReceive( 'open_for' )->andReturn( null );
+		$this->window_writer->shouldReceive( 'auto_close_at' )->andReturn( self::NOW + 9000 );
+		Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' )
+			->shouldReceive( 'get_all' )->andReturn( array() );
+		$toggles = array();
+		$ui      = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
+		$ui->shouldReceive( 'render_button' )->andReturnUsing(
+			static function ( array $args ): void {
+				echo '<button data-label="' . $args['label'] . '"></button>';
+			}
+		);
+		$ui->shouldReceive( 'render_segmented' )->andReturnUsing(
+			static function ( array $args ) use ( &$toggles ): void {
+				$toggles[ $args['name'] ] = $args['data'] ?? array();
+			}
+		);
+		$ui->shouldReceive( 'render_toggle' )->andReturnUsing(
+			static function ( array $args ) use ( &$toggles ): void {
+				$toggles[ $args['name'] ] = $args['data'] ?? array();
+			}
+		);
+		Functions\when( 'get_posts' )->justReturn( array() );
+
+		$this->caps = array( 'ffc_checkin_audiences', 'ffc_manage_audiences' );
+		ob_start();
+		$this->page()->render_page();
+		$html = (string) ob_get_clean();
+
+		foreach ( array( 'attendance_min_percent', 'post_event_form_id', 'post_event_window_days' ) as $key ) {
+			$this->assertStringContainsString( 'data-ffc-autosave-record-key="' . $key . '" data-ffc-autosave-record="audience_booking:5"', $html, $key );
+		}
+		foreach ( array( 'attendance_mode', 'post_event_custom', 'post_event_attendees_only' ) as $name ) {
+			$this->assertSame( 'audience_booking:5', $toggles[ $name ]['ffc-autosave-record'] ?? '', $name );
+		}
+		$this->assertStringNotContainsString( 'data-label="Save rule"', $html, 'Nothing is left to save by hand.' );
+		$this->assertStringContainsString( 'data-ffc-master="ffc-attendance-mode" data-ffc-master-value="total"', $html, 'The share shows under Share of days only.' );
+		$this->assertStringContainsString( 'data-ffc-master="ffc-post-event-custom"', $html, 'The booking\'s own settings show only when it has them.' );
+
+		$this->caps = array( 'ffc_checkin_audiences' );
+		$toggles    = array();
+		ob_start();
+		$this->page()->render_page();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'data-ffc-autosave-record', $html, 'Without the manage capability the cards are read-only.' );
+		$this->assertSame( array(), $toggles['attendance_mode'] );
+	}
+
 	public function test_after_the_day_closes_the_card_says_so_and_offers_no_open(): void {
 		$this->roster_present_for_7();
 		$_GET = array( 'booking_id' => '5' );

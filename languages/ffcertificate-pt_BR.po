@@ -28360,8 +28360,8 @@ msgid "The Post-event form tab of a calendar names the certificate form its book
 msgstr "A aba Formulário pós-evento de um calendário indica o formulário de certificado para onde os agendamentos levam, por quantos dias ele fica aberto depois do evento (1 a 90) e se só são convidados os que cumpriram a regra de presença do agendamento. O formulário abre quando termina o último dia do agendamento. As perguntas são campos comuns desse formulário de certificado."
 
 #: includes/settings/views/documentation/scheduling-audiences.php
-msgid "The Post-event form card on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences."
-msgstr "O cartão Formulário pós-evento na tela de Presença de um agendamento diz qual formulário vale e quando está aberto. O interruptor dá a esse agendamento uma configuração própria no lugar da do calendário, inclusive Nenhum para não convidar ninguém; alterá-lo exige ffc_manage_audiences."
+msgid "The Post-event form card on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences. This card and the Attendance rule card save each change as it is made; reload the page to see the new sentence and the invitations."
+msgstr "O cartão Formulário pós-evento na tela de Presença de um agendamento diz qual formulário vale e quando está aberto. O interruptor dá a esse agendamento uma configuração própria no lugar da do calendário, inclusive Nenhum para não convidar ninguém; alterá-lo exige ffc_manage_audiences. Este cartão e o cartão Regra de presença salvam cada alteração assim que ela é feita; recarregue a página para ver a nova frase e os convites."
 
 #: includes/frontend/class-ffc-form-invite.php
 msgid "This invitation link is not valid."
@@ -28540,3 +28540,15 @@ msgstr "O check-in não pode mais ser aberto hoje: a reserva já terminou. Marqu
 #: includes/audience/class-ffc-audience-admin-attendance.php
 msgid "Check-in closed on its own at %s, 30 minutes after the booking ended today. Attendance can still be marked by hand below."
 msgstr "O check-in encerrou sozinho às %s, 30 minutos após o fim da reserva hoje. A presença ainda pode ser marcada à mão abaixo."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Changes save as you make them. Reload the page to see which form applies and the invitations."
+msgstr "As alterações são salvas assim que feitas. Recarregue a página para ver qual formulário vale e os convites."
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "Choose a published certificate form."
+msgstr "Escolha um formulário de certificado publicado."
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "The booking could not be saved."
+msgstr "Não foi possível salvar a reserva."

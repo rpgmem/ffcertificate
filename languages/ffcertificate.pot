@@ -28275,7 +28275,7 @@ msgid "The Post-event form tab of a calendar names the certificate form its book
 msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
-msgid "The Post-event form card on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences."
+msgid "The Post-event form card on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences. This card and the Attendance rule card save each change as it is made; reload the page to see the new sentence and the invitations."
 msgstr ""
 
 #: includes/frontend/class-ffc-form-invite.php
@@ -28454,4 +28454,16 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-attendance.php
 msgid "Check-in closed on its own at %s, 30 minutes after the booking ended today. Attendance can still be marked by hand below."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Changes save as you make them. Reload the page to see which form applies and the invitations."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "Choose a published certificate form."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "The booking could not be saved."
 msgstr ""

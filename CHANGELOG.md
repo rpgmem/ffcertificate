@@ -57,7 +57,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience booking dialog: picking a user works again** (#2008). Picking a user from the search, or removing one already picked, did nothing, because the dialog stopped the click before its handler heard it.
 - **Deleting a global holiday removes that holiday** (#2010). Scheduling → Settings → General listed the holidays by date and deleted by position in the stored order, so a list added out of order lost a different day; the holiday is now named by its date.
 - **Audience booking dialog keeps its look next to a personal calendar** (#2013). On a page with both shortcodes the personal calendar's form styles reached the dialog, which shares its form class: the toggle lost its track, the choices and audience rows their spacing, and the times and buttons stacked.
-- **Audience Calendars: the Attendance screen saves its rule and explains a closed check-in** (#2022). Under *Any day* the share field held 0 against its minimum of 1, so the browser refused to submit the rule. Once the day's automatic close has passed, the check-in card now says so instead of offering a button that failed with a generic error.
+- **Audience Calendars: the Attendance screen saves its rule and explains a closed check-in** (#2022). Under *Any day* the share field held 0 against its minimum of 1, so the browser refused to submit the rule. Once the day's automatic close has passed, the check-in card now says so instead of offering a button that failed with a generic error. The rule and post-event cards now save each change as it is made, through the record autosave, which gains a bounded whole-number field.
 
 ### Changed
 

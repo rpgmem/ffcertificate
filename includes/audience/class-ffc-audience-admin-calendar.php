@@ -1078,13 +1078,14 @@ class AudienceAdminCalendar {
 	/**
 	 * Print a select of the published certificate forms, with "None" first.
 	 *
-	 * @param string $name     Field name.
-	 * @param string $field_id Field ID.
-	 * @param int    $selected Selected form ID, 0 for none.
-	 * @param bool   $disabled Whether the select is disabled.
+	 * @param string                $name     Field name.
+	 * @param string                $field_id Field ID.
+	 * @param int                   $selected Selected form ID, 0 for none.
+	 * @param bool                  $disabled Whether the select is disabled.
+	 * @param array<string, string> $data     `data-*` attributes (name without `data-` => value).
 	 * @return void
 	 */
-	public static function render_form_select( string $name, string $field_id, int $selected, bool $disabled = false ): void {
+	public static function render_form_select( string $name, string $field_id, int $selected, bool $disabled = false, array $data = array() ): void {
 		$forms = get_posts(
 			array(
 				'post_type'      => 'ffc_form',
@@ -1095,7 +1096,14 @@ class AudienceAdminCalendar {
 			)
 		);
 		?>
-		<select name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $field_id ); ?>"<?php echo $disabled ? ' disabled' : ''; ?>>
+		<select name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $field_id ); ?>"
+			<?php
+			foreach ( $data as $data_name => $data_value ) {
+				echo ' data-' . esc_attr( $data_name ) . '="' . esc_attr( $data_value ) . '"';
+			}
+			echo $disabled ? ' disabled' : '';
+			?>
+		>
 			<option value="0"><?php esc_html_e( 'None', 'ffcertificate' ); ?></option>
 			<?php foreach ( $forms as $form ) : ?>
 				<option value="<?php echo esc_attr( (string) $form->ID ); ?>" <?php selected( $selected, $form->ID ); ?>><?php echo esc_html( $form->post_title ); ?></option>
