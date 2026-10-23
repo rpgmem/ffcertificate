@@ -62,8 +62,9 @@ class AudienceAttendanceRepositoryTest extends TestCase {
 				'opened_at'        => (string) ( self::NOW - 60 ),
 				'opened_by'        => '1',
 				'closes_at'        => (string) ( self::NOW + 3600 ),
-				'closed_at'        => null,
-				'closed_by'        => null,
+				'closed_at'          => null,
+				'closed_by'          => null,
+				'geofence_locations' => 'loc_a, loc_b,,loc_a',
 			),
 			$override
 		);
@@ -186,6 +187,7 @@ class AudienceAttendanceRepositoryTest extends TestCase {
 		$open = AudienceCheckinWindowReader::open_for( 123, '2027-01-15', self::NOW );
 		$this->assertNotNull( $open );
 		$this->assertSame( 120, $open['rotation_seconds'] );
+		$this->assertSame( array( 'loc_a', 'loc_b' ), $open['geofence_locations'], 'Trimmed, without empty or repeated ids.' );
 		$this->assertNull( $open['closed_at'] );
 		$this->assertFalse( AudienceCheckinWindowReader::is_open( $open, self::NOW + 3600 ), 'Closed by itself at closes_at.' );
 
@@ -212,6 +214,19 @@ class AudienceAttendanceRepositoryTest extends TestCase {
 		$this->wpdb->insert_id = 8;
 
 		$this->assertSame( 8, AudienceCheckinWindowWriter::open( 123, '2027-01-15', 45, self::NOW + 1800, 1, self::NOW ) );
+	}
+
+	public function test_a_window_can_require_saved_geofence_locations(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
+		$this->wpdb->shouldReceive( 'insert' )->once()->with(
+			'wp_ffc_audience_checkin_windows',
+			Mockery::on( static fn( $data ) => 'loc_1,loc_2' === ( $data['geofence_locations'] ?? null ) ),
+			array( '%d', '%s', '%d', '%d', '%d', '%s' )
+		)->andReturn( 1 );
+		$this->wpdb->insert_id = 9;
+
+		$this->assertSame( 9, AudienceCheckinWindowWriter::open( 123, '2027-01-15', 60, self::NOW + 60, null, self::NOW, array( 'loc_1', ' loc_2 ', 'bad id!', 'loc_1' ) ) );
 	}
 
 	public function test_a_window_that_would_close_before_it_opens_is_refused(): void {

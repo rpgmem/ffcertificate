@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Read operations for check-in windows.
  *
- * @phpstan-type WindowRow array{id: int, booking_id: int, window_date: string, rotation_seconds: int, opened_at: int, opened_by: int|null, closes_at: int, closed_at: int|null, closed_by: int|null}
+ * @phpstan-type WindowRow array{id: int, booking_id: int, window_date: string, rotation_seconds: int, opened_at: int, opened_by: int|null, closes_at: int, closed_at: int|null, closed_by: int|null, geofence_locations: list<string>}
  *
  * @since 6.42.0
  */
@@ -116,15 +116,16 @@ class AudienceCheckinWindowReader {
 		};
 
 		return array(
-			'id'               => (int) ( $row['id'] ?? 0 ),
-			'booking_id'       => (int) ( $row['booking_id'] ?? 0 ),
-			'window_date'      => (string) ( $row['window_date'] ?? '' ),
-			'rotation_seconds' => (int) ( $row['rotation_seconds'] ?? AudienceCheckinCode::DEFAULT_ROTATION ),
-			'opened_at'        => (int) ( $row['opened_at'] ?? 0 ),
-			'opened_by'        => $nullable( $row['opened_by'] ?? null ),
-			'closes_at'        => (int) ( $row['closes_at'] ?? 0 ),
-			'closed_at'        => $nullable( $row['closed_at'] ?? null ),
-			'closed_by'        => $nullable( $row['closed_by'] ?? null ),
+			'id'                 => (int) ( $row['id'] ?? 0 ),
+			'booking_id'         => (int) ( $row['booking_id'] ?? 0 ),
+			'window_date'        => (string) ( $row['window_date'] ?? '' ),
+			'rotation_seconds'   => (int) ( $row['rotation_seconds'] ?? AudienceCheckinCode::DEFAULT_ROTATION ),
+			'opened_at'          => (int) ( $row['opened_at'] ?? 0 ),
+			'opened_by'          => $nullable( $row['opened_by'] ?? null ),
+			'closes_at'          => (int) ( $row['closes_at'] ?? 0 ),
+			'closed_at'          => $nullable( $row['closed_at'] ?? null ),
+			'closed_by'          => $nullable( $row['closed_by'] ?? null ),
+			'geofence_locations' => AudienceCheckinWindowWriter::location_ids( (string) ( $row['geofence_locations'] ?? '' ) ),
 		);
 	}
 }

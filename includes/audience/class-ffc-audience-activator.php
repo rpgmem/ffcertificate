@@ -408,6 +408,8 @@ class AudienceActivator {
 	 * A window is one opening of check-in for one day of a booking. Its id
 	 * enters the QR signature, so reopening invalidates every code shown
 	 * before; `closes_at` is the automatic close, `closed_at` the actual one.
+	 * `geofence_locations` lists the saved geofence locations a check-in must
+	 * fall inside (comma-separated registry ids), NULL for none.
 	 *
 	 * @return void
 	 */
@@ -430,6 +432,7 @@ class AudienceActivator {
             closes_at bigint(20) unsigned NOT NULL,
             closed_at bigint(20) unsigned DEFAULT NULL,
             closed_by bigint(20) unsigned DEFAULT NULL,
+            geofence_locations varchar(255) DEFAULT NULL,
             PRIMARY KEY (id),
             KEY idx_booking_date (booking_id,window_date)
         ) {$charset_collate};";

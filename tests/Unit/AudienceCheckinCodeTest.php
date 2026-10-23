@@ -37,7 +37,7 @@ class AudienceCheckinCodeTest extends TestCase {
 	 * A window open on one day of booking 123.
 	 *
 	 * @param array<string, mixed> $override Fields to change.
-	 * @return array{id: int, booking_id: int, window_date: string, rotation_seconds: int, opened_at: int, opened_by: int|null, closes_at: int, closed_at: int|null, closed_by: int|null}
+	 * @return array{id: int, booking_id: int, window_date: string, rotation_seconds: int, opened_at: int, opened_by: int|null, closes_at: int, closed_at: int|null, closed_by: int|null, geofence_locations: list<string>}
 	 */
 	private function window( array $override = array() ): array {
 		return array_merge(
@@ -49,8 +49,9 @@ class AudienceCheckinCodeTest extends TestCase {
 				'opened_at'        => self::T0 - 600,
 				'opened_by'        => 1,
 				'closes_at'        => self::T0 + 3600,
-				'closed_at'        => null,
-				'closed_by'        => null,
+				'closed_at'          => null,
+				'closed_by'          => null,
+				'geofence_locations' => array(),
 			),
 			$override
 		);

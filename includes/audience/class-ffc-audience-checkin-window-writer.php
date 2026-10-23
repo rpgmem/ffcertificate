@@ -67,9 +67,10 @@ class AudienceCheckinWindowWriter {
 	 * @param int      $closes_at  Automatic close (Unix time).
 	 * @param int|null $opened_by  Operator.
 	 * @param int      $now        Unix time.
+	 * @param string[] $geofence   Saved geofence location ids a check-in must fall inside; empty for none.
 	 * @return int The new window's ID, or 0 on failure.
 	 */
-	public static function open( int $booking_id, string $date, int $rotation, int $closes_at, ?int $opened_by, int $now ): int {
+	public static function open( int $booking_id, string $date, int $rotation, int $closes_at, ?int $opened_by, int $now, array $geofence = array() ): int {
 		if ( $booking_id <= 0 || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) || $closes_at <= $now ) {
 			return 0;
 		}
@@ -92,10 +93,33 @@ class AudienceCheckinWindowWriter {
 			$data['opened_by'] = $opened_by;
 			$format[]          = '%d';
 		}
+		$locations = implode( ',', self::location_ids( implode( ',', $geofence ) ) );
+		if ( '' !== $locations ) {
+			$data['geofence_locations'] = $locations;
+			$format[]                   = '%s';
+		}
 
 		$inserted = $wpdb->insert( AudienceCheckinWindowReader::get_table_name(), $data, $format );
 
 		return false === $inserted ? 0 : (int) $wpdb->insert_id;
+	}
+
+	/**
+	 * The geofence location ids a stored list names: trimmed, without empty
+	 * or duplicate entries, and only the characters a registry id is made of.
+	 *
+	 * @param string $stored Comma-separated ids.
+	 * @return list<string>
+	 */
+	public static function location_ids( string $stored ): array {
+		$ids = array();
+		foreach ( explode( ',', $stored ) as $id ) {
+			$id = trim( $id );
+			if ( '' !== $id && preg_match( '/^[A-Za-z0-9_-]{1,64}$/', $id ) && ! in_array( $id, $ids, true ) ) {
+				$ids[] = $id;
+			}
+		}
+		return $ids;
 	}
 
 	/**
