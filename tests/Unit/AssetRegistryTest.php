@@ -183,7 +183,11 @@ class AssetRegistryTest extends TestCase {
 
 		$dynamic = $this->registration( 'ffc-dynamic-fragments' );
 		$this->assertStringContainsString( 'ffc-dynamic-fragments.min.js', $dynamic['src'] );
-		$this->assertSame( array(), $dynamic['deps'], 'ffc-dynamic-fragments has no dependencies.' );
+		// Only the boot watchdog it reports to (#2030), which has no
+		// dependencies of its own: the refresh still runs without jQuery.
+		$this->assertSame( array( 'ffc-preflight' ), $dynamic['deps'], 'ffc-dynamic-fragments depends on the boot watchdog alone.' );
+		$watchdog = $this->registration( 'ffc-preflight' );
+		$this->assertSame( array(), $watchdog['deps'], 'The boot watchdog has no dependencies: it runs when the scripts it watches did not load.' );
 		$this->assertTrue( $dynamic['in_footer'] );
 
 		$l10n = $this->localizations( 'ffc-dynamic-fragments' );
