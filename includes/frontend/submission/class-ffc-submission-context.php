@@ -129,6 +129,13 @@ class SubmissionContext {
 	public array $restriction_result = array();
 
 	/**
+	 * The invitation this submission answers (#1948), or null.
+	 *
+	 * @var array{booking_id: int, user_id: int, name: string, email: string, event: string}|null
+	 */
+	public ?array $invite = null;
+
+	/**
 	 * Persisted (or resolved) submission row id.
 	 *
 	 * @var int

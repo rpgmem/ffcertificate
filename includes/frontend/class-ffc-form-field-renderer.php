@@ -162,6 +162,10 @@ final class FormFieldRenderer {
 			$max_length = self::CPF_RF_MASKED_LENGTH;
 			$common    .= ' inputmode="numeric" autocomplete="off"';
 		}
+		// A value the invitation supplied (#1948): shown, posted, not edited.
+		if ( ! empty( $field['locked'] ) ) {
+			$common .= ' readonly aria-readonly="true"';
+		}
 		if ( FormField::is_full_name( $field ) ) {
 			$common .= ' data-ffc-full-name="1" autocomplete="name"';
 		}

@@ -53,6 +53,23 @@ class FormFieldRendererTest extends TestCase {
 		return ( new FormFieldRenderer() )->render( $field, (string) $field['type'] );
 	}
 
+	public function test_a_field_an_invitation_filled_is_read_only_and_still_posts(): void {
+		$locked = $this->render(
+			array(
+				'type'          => 'email',
+				'name'          => 'email',
+				'default_value' => 'ana@example.org',
+				'locked'        => true,
+			)
+		);
+		$open   = $this->render( array( 'type' => 'email' ) );
+
+		$this->assertStringContainsString( ' readonly aria-readonly="true"', $locked );
+		$this->assertStringContainsString( 'value="ana@example.org"', $locked );
+		$this->assertStringNotContainsString( 'disabled', $locked, 'A disabled control would not post (#1948).' );
+		$this->assertStringNotContainsString( 'readonly', $open );
+	}
+
 	public function test_a_checkbox_renders_one_box_per_option_posting_a_list(): void {
 		$html = $this->render(
 			array(

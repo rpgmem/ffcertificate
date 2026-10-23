@@ -43,6 +43,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><strong><?php esc_html_e( 'Ticket (unique codes)', 'ffcertificate' ); ?></strong></td>
 				<td><?php esc_html_e( 'Each submitter must present a single-use code from a generated pool. The code is claimed atomically (one use only) and removed from the pool as soon as the restriction check passes, before the submission is saved.', 'ffcertificate' ); ?></td>
 			</tr>
+			<tr>
+				<td><strong><?php esc_html_e( 'Booking participants only', 'ffcertificate' ); ?></strong></td>
+				<td><?php esc_html_e( 'Only a person invited by an audience booking\'s post-event link can submit. The link fills in and locks their name and e-mail from their account, works without logging in until the booking\'s form window closes, and names one person: their CPF/RF is typed, and refused when it belongs to another account. Opening the link again after answering returns the same certificate. Without this restriction the form stays open, and an invitation link only fills it in.', 'ffcertificate' ); ?></td>
+			</tr>
 		</tbody>
 	</table>
 
