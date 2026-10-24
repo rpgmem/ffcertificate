@@ -28681,9 +28681,6 @@ msgstr ""
 msgid "The receipt PDF is built in the visitor's browser, after booking or from the receipt page, and the same browser check a certificate form runs comes first: an app's own browser (Instagram, WhatsApp and others), where saving the file often fails, is asked to open the page in the phone's browser, with \"Continue anyway\", which then downloads it; a browser missing what the PDF needs is stopped. Booking itself never waits on this. Settings → Certificates → Browser check turns it off, and each stop is written to the Activity Log as a pre-flight block naming the appointment."
 msgstr ""
 
-msgid "About %1$s m, read in %2$s s"
-msgstr ""
-
 msgid "Allowed"
 msgstr ""
 
@@ -29186,4 +29183,22 @@ msgid "Range: 0.1 to 1. Default: 0.5."
 msgstr ""
 
 msgid "Keep the default unless you have a measured reason to change it. A lower value shows the notice to visitors whose GPS is good, who learn to ignore it; a higher one hides it from readings that only barely held."
+msgstr ""
+
+msgid "About %1$s m (precise), read in %2$s s"
+msgstr ""
+
+msgid "About %1$s m (low precision, but accepted), read in %2$s s"
+msgstr ""
+
+msgid "About %1$s m (too imprecise to confirm the area), read in %2$s s"
+msgstr ""
+
+msgid "In an area of %s m your location would be accepted, but with low precision. For more precision, turn on precise location or use your phone."
+msgstr ""
+
+msgid "With this precision, a form with an area of %s m cannot confirm where you are, and access depends on the form's policy. Turn on precise location (Google Location Accuracy on Android, Precise Location on iPhone) or use a phone with GPS."
+msgstr ""
+
+msgid "The location row grades how precise the reading is against a reference area of 50 m, by the same precision settings the forms use on the Geolocation tab: precise up to the share that triggers the low-precision notice (25 m by default), accepted with low precision up to the tolerance (75 m by default), and too imprecise to confirm the area beyond it, each with an information button saying what to do. Numbers carry one decimal when they have one. A section that opened by itself closes again once its checks pass, as the device settings do after a precise reading, unless the visitor opened or closed it."
 msgstr ""

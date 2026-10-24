@@ -200,6 +200,14 @@ describe('FFCGeofence.checkLocation: the accuracy rule, per area (#2040, #2070)'
 		expect(notice.text()).toContain('about 101 m)');
 	});
 
+	it('writes the error with one decimal only when it has one (#2074)', () => {
+		const $w = mount();
+		window.FFCGeofence.checkLocation($w, { latitude: -23.55, longitude: -46.63, accuracy: 120.44 }, window.ffcGeofenceConfig[7].geo);
+
+		expect($w.find('[data-ffc-notice="geofence-imprecise"]').text()).toContain('about 120.4 m)');
+		expect(window.FFCGeofence.metres(101.04)).toBe('101');
+	});
+
 	it('says nothing at or below half the radius', () => {
 		const $w = mount();
 		window.FFCGeofence.checkLocation($w, { latitude: -23.55, longitude: -46.63, accuracy: 100 }, window.ffcGeofenceConfig[7].geo);

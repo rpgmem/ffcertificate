@@ -28,6 +28,7 @@ use FreeFormCertificate\Core\Icons;
 use FreeFormCertificate\Core\Notice;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Core\WindowThrottle;
+use FreeFormCertificate\Settings\GeolocationSettingsReader;
 use FreeFormCertificate\Settings\RateLimitSettingsReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -54,6 +55,12 @@ final class DeviceCheck {
 	 * leading underscore, so the uninstall sweep matches it.
 	 */
 	private const PING_PREFIX = 'ffc_dcping_';
+
+	/**
+	 * Radius, in metres, of the area the location row grades a reading
+	 * against (#2074): a common size for a school or an office building.
+	 */
+	public const REFERENCE_RADIUS = 50;
 
 	/**
 	 * The checks, in the order shown, each with its icon: the network, the
@@ -285,7 +292,11 @@ final class DeviceCheck {
 			'noGeolocation'          => __( 'This browser cannot give a location.', 'ffcertificate' ),
 			'accuracyReading'        => __( 'Reading your location…', 'ffcertificate' ),
 			/* translators: 1: margin of error in metres, 2: seconds the reading took. */
-			'accuracyResult'         => __( 'About %1$s m, read in %2$s s', 'ffcertificate' ),
+			'accuracyPrecise'        => __( 'About %1$s m (precise), read in %2$s s', 'ffcertificate' ),
+			/* translators: 1: margin of error in metres, 2: seconds the reading took. */
+			'accuracyWeak'           => __( 'About %1$s m (low precision, but accepted), read in %2$s s', 'ffcertificate' ),
+			/* translators: 1: margin of error in metres, 2: seconds the reading took. */
+			'accuracyTooWeak'        => __( 'About %1$s m (too imprecise to confirm the area), read in %2$s s', 'ffcertificate' ),
 			'accuracyDenied'         => __( 'Refused by the browser or by you.', 'ffcertificate' ),
 			'accuracyFailed'         => __( 'Could not be read: move to an open area and try again.', 'ffcertificate' ),
 			'accuracyTimeout'        => __( 'Took too long: move to an open area and try again.', 'ffcertificate' ),
@@ -363,6 +374,10 @@ final class DeviceCheck {
 			'helpLocationDesktop'    => __( 'Click the icon next to the address → Site settings (or Permissions) → Location → Allow, and reload this page. On Windows and macOS, the system\'s location services must be on too.', 'ffcertificate' ),
 			'helpNoGeolocation'      => __( 'Use an up-to-date Chrome, Safari, Firefox or Edge: this browser cannot give a location.', 'ffcertificate' ),
 			'helpAccuracy'           => __( 'Turn on the device\'s location with high accuracy (Google Location Accuracy on Android, Precise Location on iPhone), go outdoors or near a window, wait a few seconds and test again.', 'ffcertificate' ),
+			/* translators: %s: radius in metres of the reference area the test grades against. */
+			'helpAccuracyWeak'       => __( 'In an area of %s m your location would be accepted, but with low precision. For more precision, turn on precise location or use your phone.', 'ffcertificate' ),
+			/* translators: %s: radius in metres of the reference area the test grades against. */
+			'helpAccuracyTooWeak'    => __( 'With this precision, a form with an area of %s m cannot confirm where you are, and access depends on the form\'s policy. Turn on precise location (Google Location Accuracy on Android, Precise Location on iPhone) or use a phone with GPS.', 'ffcertificate' ),
 			'helpPdf'                => __( 'Update the browser, or use an up-to-date Chrome, Safari, Firefox or Edge.', 'ffcertificate' ),
 			'helpOffline'            => __( 'Connect to the internet (Wi-Fi or mobile data) and reload this page.', 'ffcertificate' ),
 			'helpDataSaver'          => __( 'Data saver is on: some scripts may not load. Turn it off (Lite mode) in the browser\'s or the phone\'s settings, then reload this page.', 'ffcertificate' ),
@@ -486,6 +501,13 @@ final class DeviceCheck {
 				'ping'    => array(
 					'url'    => admin_url( 'admin-ajax.php' ),
 					'action' => self::AJAX_ACTION,
+				),
+				// The forms' precision settings, against a reference area, so
+				// the location row grades a reading as a form would (#2074).
+				'geo'     => array(
+					'reference' => self::REFERENCE_RADIUS,
+					'weakShare' => GeolocationSettingsReader::gps_weak_share(),
+					'tolerance' => GeolocationSettingsReader::gps_accuracy_tolerance(),
 				),
 				'strings' => self::strings(),
 			)
