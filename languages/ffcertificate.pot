@@ -1991,10 +1991,6 @@ msgstr ""
 msgid "and must be enabled there per form."
 msgstr ""
 
-#: templates/submission-success.php:102
-msgid "Android: open the Downloads folder, or use the Files app and look for \"certificate.pdf\"."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:123
 msgid "Another operator changed this notice's status moments ago. Reload to see the current state."
 msgstr ""
@@ -29150,4 +29146,10 @@ msgid "Press \"Test my location\" under Device settings to finish the test."
 msgstr ""
 
 msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result in sections (network, browser, form protections, device settings, display and PDF download) that stay closed while everything passes and open by themselves when a check warns or fails: secure connection, connection, whether a request reaches the server (and how long it took), the browser by name and version, cookies, local storage, the captcha (what ALTCHA needs, and whether its widget loaded), the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, the device's location (the permission and, when the visitor asks, how precise it is), screen, the theme in use and, last, PDF download. A summary above the sections says whether the device is ready, ready with warnings, or may fail; the test is finished only once the visitor presses \"Test my location\", which reads how precise the location is. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. A content or script blocker is named where it stops the server request, the device ID or the captcha; when it stops the test's own scripts, the page says so after a few seconds without them. A page served from an old cache, whose scripts belong to an earlier release, is named too, and how often one address may run the test is set on Settings → Rate Limit (default 60 runs per 10 minutes). Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the plugin's version, the captcha mode, whether the device limit is on, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
+msgstr ""
+
+msgid "Android: open the Downloads folder, or use the Files app and look for \"%s\"."
+msgstr ""
+
+msgid "Android: open the Downloads folder, or use the Files app."
 msgstr ""

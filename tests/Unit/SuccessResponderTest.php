@@ -27,6 +27,9 @@ class SuccessResponderTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var \Mockery\MockInterface Alias mock of the success-card renderer. */
+	private $renderer;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -37,9 +40,10 @@ class SuccessResponderTest extends TestCase {
 		// sprintf-style translator passthrough already handled by __ returnArg.
 
 		// Static HTML renderer is mocked — return a sentinel regardless of args.
-		Mockery::mock( 'alias:\FreeFormCertificate\Frontend\Submission\SuccessHtmlRenderer' )
-			->shouldReceive( 'generate_success_html' )
-			->andReturn( '<div class="ffc-success">OK</div>' );
+		$this->renderer = Mockery::mock( 'alias:\FreeFormCertificate\Frontend\Submission\SuccessHtmlRenderer' );
+		$this->renderer->shouldReceive( 'generate_success_html' )
+			->andReturn( '<div class="ffc-success">OK</div>' )
+			->byDefault();
 	}
 
 	protected function tearDown(): void {
@@ -60,6 +64,23 @@ class SuccessResponderTest extends TestCase {
 		$this->assertSame( 'Success!', $ctx->response['message'] );
 		$this->assertSame( '<div class="ffc-success">OK</div>', $ctx->response['html'] );
 		$this->assertArrayNotHasKey( 'quiz', $ctx->response );
+	}
+
+	public function test_the_card_is_told_the_name_the_pdf_is_saved_under(): void {
+		$ctx              = new SubmissionContext();
+		$ctx->form_config = array();
+		$ctx->pdf_data    = array( 'filename' => 'certificado_425_C-50IYW9J01HNR.pdf' );
+
+		$this->renderer->shouldReceive( 'generate_success_html' )
+			->once()
+			->withArgs(
+				static fn( ...$args ): bool => 'certificado_425_C-50IYW9J01HNR.pdf' === ( $args[6] ?? null )
+			)
+			->andReturn( '<div>named</div>' );
+
+		$this->responder()->apply( $ctx );
+
+		$this->assertSame( '<div>named</div>', $ctx->response['html'] );
 	}
 
 	public function test_an_attempt_awaiting_grading_says_so_and_carries_no_pdf(): void {
