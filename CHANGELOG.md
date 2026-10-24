@@ -68,7 +68,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **GPS forms no longer show "Location blocked" twice** (#2030). On a cached page, refreshing the captcha and security codes re-ran the checks while the browser was still answering the permission query, and both answers drew a banner. A stale answer is now dropped, and a banner replaces one with the same purpose.
 - **"Location blocked" only when the browser really blocks it** (#2048). Opera for Android reports the location as blocked while it gives the position, so GPS forms showed a false block, the check-in a false error and the device test "Blocked". A reported block is now confirmed by one quick read; the position is discarded.
 - **Scripts run again for visitors on sites that minify with LiteSpeed Cache** (#2056). Its minifier cut a regex literal ending in an escaped slash, which #2053 added, so the combined file stopped parsing and the device test stayed at "Checking…"; the three such literals are rewritten and a test refuses the shape.
-- **The device test names the connection honestly** (#2060). It showed the browser's speed estimate as a network generation, so a wired desktop read "4G"; it now reads one pair on every device, "Online/Speed: Wi-Fi / Fast (like 4G)", with "Not reported" where the browser gives nothing. The screen row says density, not zoom.
+- **The device test names the connection honestly** (#2060). It showed the browser's speed estimate as a network generation, so a wired desktop read "4G"; it now reads one pair on every device, "Online/Speed: Wi-Fi / Fast (like 4G or better)", says when the browser does not tell and why, and the screen row says density, not zoom.
 
 ### Changed
 

@@ -28939,9 +28939,6 @@ msgstr ""
 msgid "Time zone and language"
 msgstr ""
 
-msgid "Turn off data saver (Lite mode) in the browser's or the phone's settings, then reload this page."
-msgstr ""
-
 msgid "Turn on Settings → Privacy & Security → Location Services, then set the browser (Safari or Chrome) to \"While Using the App\". In Safari also tap \"aA\" next to the address → Website Settings → Location → Allow. Reload this page."
 msgstr ""
 
@@ -28958,9 +28955,6 @@ msgid "Update the browser, or use an up-to-date Chrome, Safari, Firefox or Edge.
 msgstr ""
 
 msgid "Use an up-to-date Chrome, Safari, Firefox or Edge: this browser cannot give a location."
-msgstr ""
-
-msgid "data saver on: some scripts may not load"
 msgstr ""
 
 msgid "%1$s (%2$s s)"
@@ -28990,9 +28984,6 @@ msgstr ""
 msgid "Other network"
 msgstr ""
 
-msgid "Fast (like 4G)"
-msgstr ""
-
 msgid "Slow (like 3G)"
 msgstr ""
 
@@ -29005,5 +28996,20 @@ msgstr ""
 msgid "Online/Speed: %1$s / %2$s"
 msgstr ""
 
-msgid "Not reported"
+msgid "Connection type not reported"
+msgstr ""
+
+msgid "Connection speed not reported"
+msgstr ""
+
+msgid "Fast (like 4G or better)"
+msgstr ""
+
+msgid "Data saver is on: some scripts may not load. Turn it off (Lite mode) in the browser's or the phone's settings, then reload this page."
+msgstr ""
+
+msgid "iOS gives no browser these details. This does not affect the forms."
+msgstr ""
+
+msgid "This browser does not give these details. This does not affect the forms."
 msgstr ""

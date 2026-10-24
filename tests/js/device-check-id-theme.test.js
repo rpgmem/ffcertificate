@@ -201,42 +201,48 @@ describe('storage, captcha, clock, locale, screen and connection rows (#2054)', 
 		expect(row('screen').text).toMatch(/^Window \d+ × \d+ · screen .+ · density [\d.]+×$/);
 	});
 
-	it('reports the connection, data saver and offline', async () => {
+	it('reports the connection as one medium / speed pair on every device (#2060)', async () => {
+		const NONE = 'Online/Speed: Connection type not reported / Connection speed not reported';
 		await run();
-		expect(row('connection')).toEqual({ state: 'info', text: 'Online/Speed: Not reported / Not reported' });
+		expect(row('connection')).toEqual({ state: 'info', text: NONE });
 
-		// One pair on every device (#2060): a desktop browser gives only the
-		// speed class, shown as a speed and never as a network generation.
+		// A desktop browser gives only the speed class: shown as a speed,
+		// never as a network generation.
 		define(navigator, 'connection', { effectiveType: '4g', saveData: false });
 		await run();
-		expect(row('connection')).toEqual({ state: 'info', text: 'Online/Speed: Not reported / Fast (like 4G)' });
+		expect(row('connection')).toEqual({ state: 'info', text: 'Online/Speed: Connection type not reported / Fast (like 4G or better)' });
 
 		// Chromium for Android also gives the medium.
 		define(navigator, 'connection', { type: 'wifi', effectiveType: '4g', saveData: false });
 		await run();
-		expect(row('connection').text).toBe('Online/Speed: Wi-Fi / Fast (like 4G)');
+		expect(row('connection').text).toBe('Online/Speed: Wi-Fi / Fast (like 4G or better)');
 
-		define(navigator, 'connection', { type: 'cellular', effectiveType: '2g', saveData: false });
+		define(navigator, 'connection', { type: 'cellular', effectiveType: '3g', saveData: false });
 		await run();
-		expect(row('connection').text).toBe('Online/Speed: Mobile data / Very slow (like 2G)');
+		expect(row('connection').text).toBe('Online/Speed: Mobile data / Slow (like 3G)');
 
-		define(navigator, 'connection', { type: 'ethernet', effectiveType: 'slow-2g', saveData: false });
+		define(navigator, 'connection', { type: 'ethernet', effectiveType: '2g', saveData: false });
 		await run();
-		expect(row('connection').text).toBe('Online/Speed: Wired / Very slow (below 2G)');
+		expect(row('connection').text).toBe('Online/Speed: Wired / Very slow (like 2G)');
+
+		define(navigator, 'connection', { type: 'bluetooth', effectiveType: 'slow-2g', saveData: false });
+		await run();
+		expect(row('connection').text).toBe('Online/Speed: Bluetooth / Very slow (below 2G)');
 
 		// A value nobody maps, or an inherited key, reads as not reported
 		// rather than as something wrong.
 		define(navigator, 'connection', { type: 'unknown', effectiveType: '5g', saveData: false });
 		await run();
-		expect(row('connection').text).toBe('Online/Speed: Not reported / Not reported');
+		expect(row('connection').text).toBe(NONE);
 		define(navigator, 'connection', { type: 'toString', effectiveType: 'constructor', saveData: false });
 		await run();
-		expect(row('connection').text).toBe('Online/Speed: Not reported / Not reported');
+		expect(row('connection').text).toBe(NONE);
+	});
 
-		define(navigator, 'connection', { effectiveType: '3g', saveData: true });
+	it('warns about data saver and fails offline', async () => {
+		define(navigator, 'connection', { type: 'cellular', effectiveType: '3g', saveData: true });
 		await run();
-		expect(row('connection').state).toBe('warn');
-		expect(row('connection').text).toBe('Online/Speed: Not reported / Slow (like 3G) / data saver on: some scripts may not load');
+		expect(row('connection')).toEqual({ state: 'warn', text: 'Online/Speed: Mobile data / Slow (like 3G)' });
 
 		define(navigator, 'onLine', false);
 		await run();
@@ -247,9 +253,11 @@ describe('storage, captcha, clock, locale, screen and connection rows (#2054)', 
 describe('"How to fix it" on a failing row (#2054)', () => {
 	const tip = (key) => document.querySelector('[data-ffc-check="' + key + '"] .ffc-device-check-tip');
 	const fix = (key) => document.querySelector('[data-ffc-check="' + key + '"] .ffc-device-check-fix');
+	const define = (target, name, value) => Object.defineProperty(target, name, { configurable: true, value });
 
 	afterEach(() => {
-		Object.defineProperty(navigator, 'onLine', { configurable: true, value: true });
+		define(navigator, 'onLine', true);
+		define(navigator, 'connection', undefined);
 	});
 
 	it('adds an information button that reveals the fix', async () => {
@@ -275,10 +283,35 @@ describe('"How to fix it" on a failing row (#2054)', () => {
 	});
 
 	it('draws nothing on a passing or informational row', async () => {
+		define(navigator, 'connection', { effectiveType: '4g', saveData: false });
 		await run();
 		expect(tip('storage')).toBeNull();
 		expect(tip('theme')).toBeNull();
+		expect(tip('connection')).toBeNull();
 		expect(document.querySelectorAll('.ffc-device-check-fix')).toHaveLength(0);
+	});
+
+	it('explains a connection the browser does not describe, by platform (#2060)', async () => {
+		window.ffcDeviceCheck = { strings: { helpConnectionIos: 'iOS gives nothing.', helpConnectionBrowser: 'This browser gives nothing.' } };
+		define(navigator, 'connection', undefined);
+		await run();
+		expect(row('connection').state).toBe('info');
+		expect(tip('connection')).not.toBeNull();
+		expect(fix('connection').textContent).toBe('This browser gives nothing.');
+
+		const ios = vi.spyOn(window.FFC.Platform, 'ios').mockReturnValue(true);
+		try {
+			await run();
+			expect(fix('connection').textContent).toBe('iOS gives nothing.');
+		} finally {
+			ios.mockRestore();
+		}
+
+		// Data saver is a warning with its own fix.
+		window.ffcDeviceCheck = { strings: { helpDataSaver: 'Turn it off.' } };
+		define(navigator, 'connection', { type: 'wifi', effectiveType: '4g', saveData: true });
+		await run();
+		expect(fix('connection').textContent).toBe('Turn it off.');
 	});
 
 	it('names the signals and explains them when the device ID changes', async () => {

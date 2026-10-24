@@ -29022,9 +29022,6 @@ msgstr "Com suporte"
 msgid "Time zone and language"
 msgstr "Fuso horário e idioma"
 
-msgid "Turn off data saver (Lite mode) in the browser's or the phone's settings, then reload this page."
-msgstr "Desligue a economia de dados (modo Lite) nas configurações do navegador ou do celular e recarregue esta página."
-
 msgid "Turn on Settings → Privacy & Security → Location Services, then set the browser (Safari or Chrome) to \"While Using the App\". In Safari also tap \"aA\" next to the address → Website Settings → Location → Allow. Reload this page."
 msgstr "Ligue Ajustes → Privacidade e Segurança → Serviços de Localização e defina o navegador (Safari ou Chrome) como \"Durante o Uso do App\". No Safari, toque também em \"aA\" ao lado do endereço → Ajustes do Site → Localização → Permitir. Recarregue esta página."
 
@@ -29042,9 +29039,6 @@ msgstr "Atualize o navegador ou use um Chrome, Safari, Firefox ou Edge atualizad
 
 msgid "Use an up-to-date Chrome, Safari, Firefox or Edge: this browser cannot give a location."
 msgstr "Use um Chrome, Safari, Firefox ou Edge atualizado: este navegador não consegue fornecer a localização."
-
-msgid "data saver on: some scripts may not load"
-msgstr "economia de dados ligada: alguns scripts podem não carregar"
 
 msgid "%1$s (%2$s s)"
 msgstr "%1$s (%2$s s)"
@@ -29073,9 +29067,6 @@ msgstr "Bluetooth"
 msgid "Other network"
 msgstr "Outra rede"
 
-msgid "Fast (like 4G)"
-msgstr "Rápida (equivalente a 4G)"
-
 msgid "Slow (like 3G)"
 msgstr "Lenta (equivalente a 3G)"
 
@@ -29088,5 +29079,20 @@ msgstr "Muito lenta (abaixo de 2G)"
 msgid "Online/Speed: %1$s / %2$s"
 msgstr "Conectado/Velocidade: %1$s / %2$s"
 
-msgid "Not reported"
-msgstr "Não informado"
+msgid "Connection type not reported"
+msgstr "Tipo de conexão não informado"
+
+msgid "Connection speed not reported"
+msgstr "Velocidade de conexão não informada"
+
+msgid "Fast (like 4G or better)"
+msgstr "Rápida (equivalente a 4G ou superior)"
+
+msgid "Data saver is on: some scripts may not load. Turn it off (Lite mode) in the browser's or the phone's settings, then reload this page."
+msgstr "Economia de dados ligada: alguns scripts podem não carregar. Desative-a (modo Lite) nas configurações do navegador ou do celular e recarregue esta página."
+
+msgid "iOS gives no browser these details. This does not affect the forms."
+msgstr "O iOS não informa estes dados a nenhum navegador. Isso não afeta os formulários."
+
+msgid "This browser does not give these details. This does not affect the forms."
+msgstr "Este navegador não informa estes dados. Isso não afeta os formulários."
