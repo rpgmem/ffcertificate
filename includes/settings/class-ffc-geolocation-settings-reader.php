@@ -108,6 +108,14 @@ final class GeolocationSettingsReader {
 		return ! empty( $opt['gps_cache_ttl'] ) ? absint( $opt['gps_cache_ttl'] ) : 600;
 	}
 
+	/**
+	 * How many times an area's radius a GPS reading's error may reach and
+	 * still count as inside it (default 1.5, kept between 1 and 3) (#2070).
+	 */
+	public static function gps_accuracy_tolerance(): float {
+		return \FreeFormCertificate\Security\GpsReading::clamp_tolerance( self::all()['gps_accuracy_tolerance'] ?? null );
+	}
+
 	/** Fallback behaviour when the IP API fails (default 'gps_only'). */
 	public static function api_fallback(): string {
 		return self::all()['api_fallback'] ?? 'gps_only';

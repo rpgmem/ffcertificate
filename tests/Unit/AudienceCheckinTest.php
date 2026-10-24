@@ -55,6 +55,8 @@ class AudienceCheckinTest extends TestCase {
 		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
 		Functions\when( 'current_time' )->justReturn( self::DAY );
 		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
+		// The GPS tolerance setting: nothing stored, so the default (#2070).
+		Functions\when( 'get_option' )->justReturn( array() );
 
 		Mockery::getConfiguration()->setConstantsMap(
 			array(
@@ -318,10 +320,6 @@ class AudienceCheckinTest extends TestCase {
 				),
 			)
 		);
-		$geo = Mockery::mock( 'alias:FreeFormCertificate\Integrations\IpGeolocation' );
-		$geo->shouldReceive( 'is_within_areas' )
-			->andReturnUsing( static fn( array $at ) => $at['latitude'] === -23.5 );
-
 		$outside = AudienceCheckin::check_position( array( 'loc_a' ), array( 'lat' => 10.0, 'lng' => 10.0, 'accuracy' => 5.0 ) );
 		$inside  = AudienceCheckin::check_position( array( 'loc_a' ), array( 'lat' => -23.5, 'lng' => -46.6, 'accuracy' => 5.0 ) );
 
@@ -338,7 +336,7 @@ class AudienceCheckinTest extends TestCase {
 		$this->assertSame( AudienceCheckin::ERROR_OUTSIDE_AREA, $result->get_error_code() );
 	}
 
-	public function test_a_reading_less_precise_than_the_smallest_area_is_refused(): void {
+	public function test_a_reading_less_precise_than_the_tolerance_allows_is_refused(): void {
 		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
 		$registry->shouldReceive( 'get_by_ids' )->andReturn(
 			array(
@@ -349,11 +347,9 @@ class AudienceCheckinTest extends TestCase {
 				),
 			)
 		);
-		$geo = Mockery::mock( 'alias:FreeFormCertificate\Integrations\IpGeolocation' );
-		$geo->shouldReceive( 'is_within_areas' )->andReturn( true );
-
-		$imprecise = AudienceCheckin::check_position( array( 'loc_a' ), array( 'lat' => -23.5, 'lng' => -46.6, 'accuracy' => 201.0 ) );
-		$exact     = AudienceCheckin::check_position( array( 'loc_a' ), array( 'lat' => -23.5, 'lng' => -46.6, 'accuracy' => 200.0 ) );
+		// 1.5 × the 200 m radius is the default tolerance (#2070).
+		$imprecise = AudienceCheckin::check_position( array( 'loc_a' ), array( 'lat' => -23.5, 'lng' => -46.6, 'accuracy' => 301.0 ) );
+		$exact     = AudienceCheckin::check_position( array( 'loc_a' ), array( 'lat' => -23.5, 'lng' => -46.6, 'accuracy' => 300.0 ) );
 
 		$this->assertSame( AudienceCheckin::ERROR_INACCURATE, $imprecise->get_error_code() );
 		$this->assertStringContainsString( 'not precise enough', $imprecise->get_error_message() );

@@ -180,4 +180,16 @@ class GeolocationSettingsReaderTest extends TestCase {
 		$this->stub_option( array( 'gps_cache_ttl' => '900' ) );
 		$this->assertSame( 900, GeolocationSettingsReader::gps_cache_ttl() );
 	}
+
+	public function test_gps_accuracy_tolerance_default_and_bounds(): void {
+		$this->stub_option( array() );
+		$this->assertSame( 1.5, GeolocationSettingsReader::gps_accuracy_tolerance() );
+
+		$this->stub_option( array( 'gps_accuracy_tolerance' => '2.0' ) );
+		$this->assertSame( 2.0, GeolocationSettingsReader::gps_accuracy_tolerance() );
+
+		// A value stored outside the range is clamped on read too (#2070).
+		$this->stub_option( array( 'gps_accuracy_tolerance' => 12 ) );
+		$this->assertSame( 3.0, GeolocationSettingsReader::gps_accuracy_tolerance() );
+	}
 }

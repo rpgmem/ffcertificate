@@ -4384,10 +4384,6 @@ msgstr ""
 msgid "Configure external IP geolocation services for backend validation. These services detect user location by IP address."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-geolocation.php:334
-msgid "Configure GPS location caching on the frontend (browser localStorage). GPS cache is always enabled for better performance."
-msgstr ""
-
 #: templates/admin/audience/self-scheduling-tab.php:57
 msgid "Configure how private calendars are displayed to non-logged-in visitors."
 msgstr ""
@@ -8760,10 +8756,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:341
 msgid "GPS Cache Duration (TTL)"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-geolocation.php:332
-msgid "GPS Cache Settings"
 msgstr ""
 
 #: includes/settings/views/documentation/config-geolocation.php:38
@@ -28660,12 +28652,6 @@ msgstr ""
 msgid "Deleted %d geolocation debug entries."
 msgstr ""
 
-msgid "Your location is not precise enough to confirm you are in the allowed area. Move to an open area or turn on precise location, then reload the page."
-msgstr ""
-
-msgid "The browser checks the location first, to say so before the visitor fills the form, and the server decides when the form is sent: the browser sends the GPS reading with the submission, and the server checks it against the areas and combines it with the IP the way the form asks. A reading whose margin of error is larger than the smallest area, or older than the GPS cache lifetime, cannot tell inside from outside and is treated as \"Location unavailable\" in the \"When GPS fails\" policy; a submission that arrives without a reading follows \"Browser does not support geolocation\". With \"GPS or IP\", a visitor whose GPS is inside passes even when their IP resolves elsewhere, which mobile networks often do."
-msgstr ""
-
 msgid "Secure connection: a form that asks for the location, or any form while the captcha is ALTCHA only, needs a page the browser treats as secure (HTTPS, or localhost); on any other page the visitor is asked to contact the site administrator. The browser decides, so a development host such as a .local name or a LAN address over plain HTTP is stopped too."
 msgstr ""
 
@@ -28681,16 +28667,10 @@ msgstr ""
 msgid "Appointment ID"
 msgstr ""
 
-msgid "Your location is not precise enough to confirm you are at the event. Move to an open area or turn on precise location, then try again."
-msgstr ""
-
 msgid "This check-in needs a secure connection (HTTPS) to read your location. Please tell the event organiser."
 msgstr ""
 
 msgid "You are viewing this page inside an app, where your location often cannot be read. Open it in %s."
-msgstr ""
-
-msgid "When the check-in asks for a location, the page runs the same checks a certificate form runs before it is used: a page not served over HTTPS is stopped, because the browser gives no location there, and an app's own browser (Instagram, WhatsApp and others) is asked to open the page in the phone's browser, with \"Continue anyway\". A location already refused in the browser is said at once, before the tap. A reading whose margin of error is larger than the smallest area is refused, as on a certificate form; there is no \"When GPS fails\" policy here: without a usable location there is no check-in, and the organiser can mark attendance by hand. Each stop is written to the Activity Log as a pre-flight block naming the booking."
 msgstr ""
 
 msgid "You are viewing this page inside an app, where downloading the receipt often fails. Open it in %s."
@@ -29150,4 +29130,40 @@ msgid "Press \"Test my location\" under Device settings to finish the test."
 msgstr ""
 
 msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result in sections (network, browser, form protections, device settings, display and PDF download) that stay closed while everything passes and open by themselves when a check warns or fails: secure connection, connection, whether a request reaches the server (and how long it took), the browser by name and version, cookies, local storage, the captcha (what ALTCHA needs, and whether its widget loaded), the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, the device's location (the permission and, when the visitor asks, how precise it is), screen, the theme in use and, last, PDF download. A summary above the sections says whether the device is ready, ready with warnings, or may fail; the test is finished only once the visitor presses \"Test my location\", which reads how precise the location is. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. A content or script blocker is named where it stops the server request, the device ID or the captcha; when it stops the test's own scripts, the page says so after a few seconds without them. A page served from an old cache, whose scripts belong to an earlier release, is named too, and how often one address may run the test is set on Settings → Rate Limit (default 60 runs per 10 minutes). Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the plugin's version, the captcha mode, whether the device limit is on, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
+msgstr ""
+
+msgid "Your location is not precise enough to confirm you are at the event. Move to an open area or turn on precise location, then try again. On a computer, open this page on your phone with location turned on."
+msgstr ""
+
+msgid "Your location is not precise enough to confirm you are in the allowed area. Move to an open area or turn on precise location, then reload the page. On a computer, open this page on your phone with location turned on."
+msgstr ""
+
+msgid "Your location is not precise enough to confirm you are in the allowed area, but this form allows access anyway."
+msgstr ""
+
+msgid "The browser checks the location first, to say so before the visitor fills the form, and the server decides when the form is sent: the browser sends the GPS reading with the submission, and the server checks it against the areas and combines it with the IP the way the form asks. Each area is judged with its own radius: a reading is inside an area when its point is inside it and its margin of error is at most the accepted error (1.5 times the area's radius by default, set under Settings → Geolocation → GPS Cache and Precision). A reading that is inside no area but whose error still reaches one, or that is older than the GPS cache lifetime, cannot tell inside from outside and is treated as \"Location unavailable\" in the \"When GPS fails\" policy: when that case blocks, the visitor is told to move to an open area or to use a phone, and when it allows, the form opens with a notice saying the location could not be confirmed. A reading whose error reaches no area is outside, whatever the policy; a submission that arrives without a reading follows \"Browser does not support geolocation\". With \"GPS or IP\", a visitor whose GPS is inside passes even when their IP resolves elsewhere, which mobile networks often do."
+msgstr ""
+
+msgid "When the check-in asks for a location, the page runs the same checks a certificate form runs before it is used: a page not served over HTTPS is stopped, because the browser gives no location there, and an app's own browser (Instagram, WhatsApp and others) is asked to open the page in the phone's browser, with \"Continue anyway\". A location already refused in the browser is said at once, before the tap. A reading is judged against each area as on a certificate form, with the same accepted error; one that cannot tell inside from outside is refused; there is no \"When GPS fails\" policy here: without a usable location there is no check-in, and the organiser can mark attendance by hand. Each stop is written to the Activity Log as a pre-flight block naming the booking."
+msgstr ""
+
+msgid "GPS Cache and Precision"
+msgstr ""
+
+msgid "How long the browser keeps a GPS reading (browser localStorage, always on), and how precise a reading must be to count as inside an area."
+msgstr ""
+
+msgid "Accepted error"
+msgstr ""
+
+msgid "× the area's radius"
+msgstr ""
+
+msgid "Each reading comes with a margin of error. Each area is judged with its own radius: a reading counts as inside when its point is inside the area and its error is at most this many times the area's radius. When its error circle still reaches an area but the reading is not inside any, the \"Location unavailable\" case of the fallback below decides. When it reaches no area, the visitor is outside."
+msgstr ""
+
+msgid "Range: 1 to 3. Default: 1.5."
+msgstr ""
+
+msgid "Keep the default unless you have a measured reason to change it. A higher value lets a reading count as inside while the visitor may be outside the area; a lower one refuses phones whose GPS is good but not exact."
 msgstr ""

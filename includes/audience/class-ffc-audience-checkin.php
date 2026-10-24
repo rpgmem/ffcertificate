@@ -208,7 +208,8 @@ class AudienceCheckin {
 				'status'  => '',
 			),
 			array(),
-			0
+			0,
+			\FreeFormCertificate\Settings\GeolocationSettingsReader::gps_accuracy_tolerance()
 		);
 		if ( $verdict['pass'] ) {
 			return true;
@@ -268,7 +269,7 @@ class AudienceCheckin {
 			case self::ERROR_OUTSIDE_AREA:
 				return __( 'Your location is outside the event area. Check in from the event, or ask the organiser to mark your attendance.', 'ffcertificate' );
 			case self::ERROR_INACCURATE:
-				return __( 'Your location is not precise enough to confirm you are at the event. Move to an open area or turn on precise location, then try again.', 'ffcertificate' );
+				return __( 'Your location is not precise enough to confirm you are at the event. Move to an open area or turn on precise location, then try again. On a computer, open this page on your phone with location turned on.', 'ffcertificate' );
 			default:
 				return __( 'Your attendance could not be recorded. Try again, or ask the organiser to mark it.', 'ffcertificate' );
 		}

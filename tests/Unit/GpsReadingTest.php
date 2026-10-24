@@ -90,19 +90,79 @@ class GpsReadingTest extends TestCase {
 		);
 	}
 
-	public function test_a_reading_less_precise_than_the_smallest_area_follows_position_unavailable(): void {
-		// 300 m of error inside a 200 m area cannot tell inside from outside.
-		$imprecise = self::reading( -23.55, -46.63, 300.0 );
+	public function test_an_error_up_to_the_tolerance_times_the_radius_is_still_inside(): void {
+		// 300 m of error in a 200 m area: 1.5 × the radius, the default.
+		$this->assertSame(
+			array( 'pass' => true, 'reason' => GpsReading::REASON_INSIDE ),
+			GpsReading::decide( self::AREAS, self::reading( -23.55, -46.63, 300.0 ), self::STRICT, 600 )
+		);
+		// One metre more cannot tell inside from outside.
+		$this->assertSame(
+			array( 'pass' => false, 'reason' => GpsReading::REASON_INACCURATE ),
+			GpsReading::decide( self::AREAS, self::reading( -23.55, -46.63, 301.0 ), self::STRICT, 600 )
+		);
+		// The administrator's tolerance moves the line.
+		$this->assertFalse( GpsReading::decide( self::AREAS, self::reading( -23.55, -46.63, 201.0 ), self::STRICT, 600, 1.0 )['pass'] );
+		$this->assertTrue( GpsReading::decide( self::AREAS, self::reading( -23.55, -46.63, 600.0 ), self::STRICT, 600, 3.0 )['pass'] );
+	}
+
+	public function test_an_unsure_reading_follows_position_unavailable(): void {
+		$imprecise = self::reading( -23.55, -46.63, 900.0 );
 
 		$this->assertSame(
 			array( 'pass' => false, 'reason' => GpsReading::REASON_INACCURATE ),
 			GpsReading::decide( self::AREAS, $imprecise, self::HYBRID, 600 )
 		);
-		$this->assertTrue(
-			GpsReading::decide( self::AREAS, $imprecise, array( 'position_unavailable' => 'allow' ) + self::STRICT, 600 )['pass']
+		$this->assertSame(
+			array( 'pass' => true, 'reason' => GpsReading::REASON_INACCURATE ),
+			GpsReading::decide( self::AREAS, $imprecise, array( 'position_unavailable' => 'allow' ) + self::STRICT, 600 )
 		);
-		// Exactly the radius is still precise enough.
-		$this->assertTrue( GpsReading::decide( self::AREAS, self::reading( -23.55, -46.63, 200.0 ), self::STRICT, 600 )['pass'] );
+	}
+
+	public function test_a_point_outside_whose_error_reaches_the_area_is_unsure(): void {
+		// About 300 m north of the 200 m area's centre, with 150 m of error:
+		// the error circle reaches 50 m into the area.
+		$this->assertSame(
+			array( 'pass' => false, 'reason' => GpsReading::REASON_INACCURATE ),
+			GpsReading::decide( self::AREAS, self::reading( -23.5473, -46.63, 150.0 ), self::STRICT, 600 )
+		);
+		// With 50 m of error it falls short of the area: outside.
+		$this->assertSame(
+			array( 'pass' => false, 'reason' => GpsReading::REASON_OUTSIDE ),
+			GpsReading::decide( self::AREAS, self::reading( -23.5473, -46.63, 50.0 ), self::STRICT, 600 )
+		);
+	}
+
+	public function test_an_imprecise_reading_far_from_every_area_is_outside_even_when_the_policy_allows_unsure_ones(): void {
+		// Belo Horizonte with 2 km of error reaches neither area.
+		$this->assertSame(
+			array( 'pass' => false, 'reason' => GpsReading::REASON_OUTSIDE ),
+			GpsReading::decide( self::AREAS, self::reading( -19.92, -43.94, 2000.0 ), array( 'position_unavailable' => 'allow' ) + self::STRICT, 600 )
+		);
+	}
+
+	public function test_each_area_is_judged_with_its_own_radius(): void {
+		// A 50 m area in Rio and a 100 m one in Sao Paulo.
+		$areas = array(
+			array( 'lat' => -22.9, 'lng' => -43.2, 'radius' => 50.0 ),
+			array( 'lat' => -23.55, 'lng' => -46.63, 'radius' => 100.0 ),
+		);
+
+		// 80 m of error in Sao Paulo: judged against its 100 m, not Rio's 50 m.
+		$this->assertSame(
+			array( 'pass' => true, 'reason' => GpsReading::REASON_INSIDE ),
+			GpsReading::decide( $areas, self::reading( -23.55, -46.63, 80.0 ), self::STRICT, 600 )
+		);
+		// 70 m of error in Rio is inside Rio's area at 1.5 × 50 m, whichever order the areas come in.
+		$this->assertTrue( GpsReading::decide( array_reverse( $areas ), self::reading( -22.9, -43.2, 70.0 ), self::STRICT, 600 )['pass'] );
+	}
+
+	public function test_clamp_tolerance_keeps_the_value_in_range(): void {
+		$this->assertSame( 1.5, GpsReading::clamp_tolerance( null ) );
+		$this->assertSame( 1.5, GpsReading::clamp_tolerance( 'lots' ) );
+		$this->assertSame( 1.0, GpsReading::clamp_tolerance( '0.2' ) );
+		$this->assertSame( 3.0, GpsReading::clamp_tolerance( 10 ) );
+		$this->assertSame( 2.3, GpsReading::clamp_tolerance( '2.34' ) );
 	}
 
 	public function test_a_reading_older_than_the_cache_lifetime_follows_position_unavailable(): void {

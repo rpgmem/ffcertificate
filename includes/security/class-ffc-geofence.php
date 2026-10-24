@@ -285,7 +285,8 @@ class Geofence {
 					'status'  => (string) ( $gps_input['status'] ?? '' ),
 				),
 				self::gps_fallback_cases(),
-				\FreeFormCertificate\Settings\GeolocationSettingsReader::gps_cache_ttl()
+				\FreeFormCertificate\Settings\GeolocationSettingsReader::gps_cache_ttl(),
+				\FreeFormCertificate\Settings\GeolocationSettingsReader::gps_accuracy_tolerance()
 			)
 			: null;
 		$ip  = $use_ip ? self::validate_geolocation( $config ) : null;
@@ -926,6 +927,7 @@ class Geofence {
 					'gpsFallback'    => $gps_fallback, // Per-case allow/block map — honoured by frontend on GPS failure.
 					'cacheEnabled'   => true, // Always enable frontend cache.
 					'cacheTtl'       => $gps_cache_ttl, // From global settings.
+					'tolerance'      => \FreeFormCertificate\Settings\GeolocationSettingsReader::gps_accuracy_tolerance(), // Error allowed, × an area's radius (#2070).
 				),
 				'global'      => array(
 					'debug' => class_exists( '\FreeFormCertificate\Core\Debug' )

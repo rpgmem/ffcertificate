@@ -135,6 +135,8 @@ class GeoServerBaselineTest extends TestCase {
 	 * PR 3 of #2040 refuses instead of deciding it as if it were exact.
 	 */
 	public function test_the_checkin_decides_by_distance_and_accuracy(): void {
+		// No tolerance stored: the default, 1.5 × the radius (#2070).
+		Functions\when( 'get_option' )->justReturn( array() );
 		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
 		$registry->shouldReceive( 'get_by_ids' )->andReturn( array( self::AREA ) );
 
@@ -172,6 +174,8 @@ class GeoServerBaselineTest extends TestCase {
 	 * whenever the activity log was on.
 	 */
 	public function test_an_area_check_writes_nothing_to_the_activity_log_without_debugging(): void {
+		// No tolerance stored: the default (#2070).
+		Functions\when( 'get_option' )->justReturn( array() );
 		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
 		$registry->shouldReceive( 'get_by_ids' )->andReturn( array( self::AREA ) );
 

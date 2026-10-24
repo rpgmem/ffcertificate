@@ -730,7 +730,8 @@ class Frontend {
 				'positionUnavailable'       => __( 'Location information is unavailable.', 'ffcertificate' ),
 				'timeout'                   => __( 'Location request timed out.', 'ffcertificate' ),
 				'outsideArea'               => __( 'You are outside the allowed area for this form.', 'ffcertificate' ),
-				'inaccurate'                => __( 'Your location is not precise enough to confirm you are in the allowed area. Move to an open area or turn on precise location, then reload the page.', 'ffcertificate' ),
+				'inaccurate'                => __( 'Your location is not precise enough to confirm you are in the allowed area. Move to an open area or turn on precise location, then reload the page. On a computer, open this page on your phone with location turned on.', 'ffcertificate' ),
+				'inaccurateAllowed'         => __( 'Your location is not precise enough to confirm you are in the allowed area, but this form allows access anyway.', 'ffcertificate' ),
 				// Safari/iOS progressive loading phases.
 				'safariPhase1'              => __( 'Requesting your location… If prompted, tap "Allow".', 'ffcertificate' ),
 				'safariPhase2'              => __( 'Waiting for location permission… Check if a browser prompt appeared.', 'ffcertificate' ),

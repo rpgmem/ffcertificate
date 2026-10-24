@@ -222,6 +222,7 @@
             formWrapper.removeClass('ffc-validated');
             formWrapper.find('[data-ffc-notice="geofence-blocked"]').remove();
             formWrapper.find('[data-ffc-notice="geofence-bypass"]').remove();
+            formWrapper.find('[data-ffc-notice="geofence-imprecise"]').remove();
             // processForm draws the pre-flight banner again when it is
             // still needed; leaving the old one stacks a second (#1668).
             formWrapper.find('[data-ffc-notice^="preflight"]').remove();

@@ -90,6 +90,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - ⚠ **The audience check-in runs the visitor pre-flight and refuses an imprecise location** (#2040). A check-in that asks for the location stops an insecure page and asks an app's own browser to switch, says a refused permission before the tap, and refuses a reading less precise than the smallest area; stops are logged against the booking.
 - **The appointment receipt checks the browser before its PDF is built** (#2040). After booking and on the receipt page, an app's own browser is asked to switch, with "Continue anyway", which then downloads; booking never waits on it. Settings → Certificates → Browser check turns it off; stops are logged against the appointment.
 - Internal (#2058) — CI runs the suite in parallel: coverage in 6 shards instead of 4, PHP 8.4 in 3, and no separate PHP 8.3 run (the coverage shards are that run); the shards now take the Integration suite too. Gate jobs keep the required check names.
+- ⚠ **GPS precision is judged per area, with a configurable tolerance** (#2070). A reading is inside an area when its point is and its error is at most 1.5 × that area's radius (Settings → Geolocation, 1 to 3); one whose error reaches no area is outside, even when uncertain readings are allowed, and an allowed uncertain reading now opens the form with a notice.
 
 ### Security
 
