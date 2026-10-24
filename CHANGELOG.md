@@ -85,6 +85,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The server decides the GPS area of a certificate submission** (#2040). Only the browser checked the GPS before, so a submission posted without it passed. The form now sends its reading, and the server checks it against the areas; a submission with no reading, including through the forms API, follows the "When GPS fails" case "Browser does not support geolocation".
 
 
+### Security
+
+- **A visitor's position is no longer written to the activity log** (#2040). Every geofence area check logged the coordinates it compared — each audience check-in's exact GPS position, and each IP's resolved position — whenever the log was on. Checks now log the decision only, and only with geolocation debugging on; the "Activity Log: Delete Logged Locations" migration removes the old entries.
+
+
 ## [6.41.0] (2026-10-19) — `2a4acb0a`
 - **The bulk issue skips a line with no e-mail and lists it in the report** (#1945). Without an address the link cannot be sent, so such a certificate is not issued with no account.
 
