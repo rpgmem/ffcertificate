@@ -35,6 +35,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: post-event invitations go out on their own** (#1948). An hourly run e-mails each eligible participant a personal link once the booking's last day ends, through a new editable *Audience post-event form invitation* e-mail. The Attendance screen lists who was invited, who answered and whose certificate was issued, and resends to one person or to everyone who has not answered.
 - **Audience Calendars: the participant's dashboard shows a post-event form waiting** (#2028). A booking whose form is open, the person eligible and not yet answered shows Fill in the form with their own link and the closing time; a notice counts the forms waiting. Viewing as a user shows the form without its link.
 - **Certificate forms check the visitor's browser first** (#2030). Every form runs the pre-flight: an app's own browser is asked to switch (with "Continue anyway"), one missing what the form needs is stopped, cookies are checked on every form and ALTCHA-only needs HTTPS. Settings → Certificates → Browser check turns it off.
+- **The public CSV download checks the browser too** (#2030). An app's own browser is asked to open the page in the phone's browser, with "Continue anyway", as on a certificate form, under the same Settings → Certificates → Browser check; the in-app banner it had is replaced.
 
 
 ### Fixed
