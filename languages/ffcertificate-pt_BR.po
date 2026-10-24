@@ -29252,3 +29252,21 @@ msgstr "Android: abra a pasta Downloads ou use um aplicativo que acesse os Arqui
 
 msgid "Android: open the Downloads folder, or use the Files app."
 msgstr "Android: abra a pasta Downloads ou use um aplicativo que acesse os Arquivos."
+
+msgid "Your location was accepted, but with low precision (about %s m of error). If you can, turn on precise location."
+msgstr "Sua localização foi aceita, mas com pouca precisão (cerca de %s m de erro). Se puder, ative a localização precisa."
+
+msgid "A reading accepted as inside whose error is above a share of the area's radius (the Low-precision notice under Settings → Geolocation → GPS Cache and Precision, 0.5 by default) opens the form with a notice saying the location was accepted with low precision and giving the error in metres. It changes no decision."
+msgstr "Uma leitura aceita como dentro cujo erro passa de uma fração do raio da área (o Aviso de baixa precisão em Configurações → Geolocalização → Cache e precisão do GPS, 0,5 por padrão) abre o formulário com um aviso de que a localização foi aceita com pouca precisão, informando o erro em metros. Não muda nenhuma decisão."
+
+msgid "Low-precision notice"
+msgstr "Aviso de baixa precisão"
+
+msgid "When a reading is accepted as inside but its error is above this many times the area's radius, the form opens with a notice saying the location was accepted with low precision, and its error in metres. It changes no decision: only what the visitor is told."
+msgstr "Quando uma leitura é aceita como dentro, mas o erro passa deste número de vezes o raio da área, o formulário abre com um aviso de que a localização foi aceita com pouca precisão, informando o erro em metros. Não muda nenhuma decisão: só o que o visitante vê."
+
+msgid "Range: 0.1 to 1. Default: 0.5."
+msgstr "Faixa: 0,1 a 1. Padrão: 0,5."
+
+msgid "Keep the default unless you have a measured reason to change it. A lower value shows the notice to visitors whose GPS is good, who learn to ignore it; a higher one hides it from readings that only barely held."
+msgstr "Mantenha o padrão, a menos que tenha um motivo medido para mudá-lo. Um valor menor mostra o aviso a visitantes cujo GPS é bom, que aprendem a ignorá-lo; um maior o esconde de leituras que só passaram por pouco."

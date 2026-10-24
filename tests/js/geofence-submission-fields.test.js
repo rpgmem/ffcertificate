@@ -148,12 +148,12 @@ describe('FFCGeofence.checkLocation: the accuracy rule, per area (#2040, #2070)'
 		expect(notice.text()).toContain('allows access anyway');
 	});
 
-	it('takes an error up to 1.5 × the radius as inside, with no notice', () => {
+	it('takes an error up to 1.5 × the radius as inside, saying the reading is weak', () => {
 		const $w = mount();
 		window.FFCGeofence.checkLocation($w, { latitude: -23.55, longitude: -46.63, accuracy: 300 }, window.ffcGeofenceConfig[7].geo);
 
 		expect($w.hasClass('ffc-validated')).toBe(true);
-		expect($w.find('[data-ffc-notice="geofence-imprecise"]').length).toBe(0);
+		expect($w.find('[data-ffc-notice="geofence-imprecise"]').text()).toContain('accepted, but with low precision');
 	});
 
 	it('reads the tolerance the server sends', () => {
@@ -187,5 +187,40 @@ describe('FFCGeofence.checkLocation: the accuracy rule, per area (#2040, #2070)'
 		window.FFCGeofence.checkLocation($w, { latitude: -23.5473, longitude: -46.63, accuracy: 150 }, window.ffcGeofenceConfig[7].geo);
 
 		expect($w.text()).toContain('not precise enough');
+	});
+
+	it('says so when the form opens on a weak reading, above half the radius (#2072)', () => {
+		const $w = mount();
+		// 101 m of error in a 200 m area: inside, but weak.
+		window.FFCGeofence.checkLocation($w, { latitude: -23.55, longitude: -46.63, accuracy: 101 }, window.ffcGeofenceConfig[7].geo);
+
+		expect($w.hasClass('ffc-validated')).toBe(true);
+		const notice = $w.find('[data-ffc-notice="geofence-imprecise"]');
+		expect(notice.length).toBe(1);
+		expect(notice.text()).toContain('about 101 m of error');
+	});
+
+	it('says nothing at or below half the radius', () => {
+		const $w = mount();
+		window.FFCGeofence.checkLocation($w, { latitude: -23.55, longitude: -46.63, accuracy: 100 }, window.ffcGeofenceConfig[7].geo);
+
+		expect($w.hasClass('ffc-validated')).toBe(true);
+		expect($w.find('[data-ffc-notice="geofence-imprecise"]').length).toBe(0);
+	});
+
+	it('judges a weak reading by the area that holds it best', () => {
+		// 60 m of error: weak for the 100 m area, comfortable for the 200 m one.
+		const $w = mount({ areas: [{ lat: -23.55, lng: -46.63, radius: 100 }, { lat: -23.5501, lng: -46.6301, radius: 200 }] });
+		window.FFCGeofence.checkLocation($w, { latitude: -23.55, longitude: -46.63, accuracy: 60 }, window.ffcGeofenceConfig[7].geo);
+
+		expect($w.find('[data-ffc-notice="geofence-imprecise"]').length).toBe(0);
+	});
+
+	it('reads the share the server sends', () => {
+		const $w = mount({ weakShare: 0.8 });
+		// 101 m of error in a 200 m area is below 0.8 × the radius.
+		window.FFCGeofence.checkLocation($w, { latitude: -23.55, longitude: -46.63, accuracy: 101 }, window.ffcGeofenceConfig[7].geo);
+
+		expect($w.find('[data-ffc-notice="geofence-imprecise"]').length).toBe(0);
 	});
 });

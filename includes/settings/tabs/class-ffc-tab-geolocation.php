@@ -213,6 +213,7 @@ class TabGeolocation extends SettingsTab {
 			// GPS Cache Settings.
 			'gps_cache_ttl'          => 600, // 10 minutes in seconds (60-3600)
 			'gps_accuracy_tolerance' => \FreeFormCertificate\Security\GpsReading::TOLERANCE_DEFAULT, // × an area's radius (1-3).
+			'gps_weak_share'         => \FreeFormCertificate\Security\GpsReading::WEAK_SHARE_DEFAULT, // × an area's radius (0.1-1).
 
 			// Fallback behavior when API fails.
 			'api_fallback'           => 'gps_only', // 'allow', 'block', 'gps_only'
@@ -317,7 +318,8 @@ class TabGeolocation extends SettingsTab {
 			$cases = self::preset_to_cases( $preset );
 		}
 
-		$ffc_gps_tolerance = \FreeFormCertificate\Core\RequestInput::get_post_string( 'gps_accuracy_tolerance' );
+		$ffc_gps_tolerance  = \FreeFormCertificate\Core\RequestInput::get_post_string( 'gps_accuracy_tolerance' );
+		$ffc_gps_weak_share = \FreeFormCertificate\Core\RequestInput::get_post_string( 'gps_weak_share' );
 
 		$settings = array(
 			'ip_api_enabled'         => isset( $_POST['ip_api_enabled'] ),
@@ -334,6 +336,9 @@ class TabGeolocation extends SettingsTab {
 			'gps_accuracy_tolerance' => '' === $ffc_gps_tolerance
 				? \FreeFormCertificate\Settings\GeolocationSettingsReader::gps_accuracy_tolerance()
 				: \FreeFormCertificate\Security\GpsReading::clamp_tolerance( $ffc_gps_tolerance ),
+			'gps_weak_share'         => '' === $ffc_gps_weak_share
+				? \FreeFormCertificate\Settings\GeolocationSettingsReader::gps_weak_share()
+				: \FreeFormCertificate\Security\GpsReading::clamp_weak_share( $ffc_gps_weak_share ),
 
 			'api_fallback'           => in_array( $ffc_api_fallback, array( 'allow', 'block', 'gps_only' ), true )
 				? $ffc_api_fallback

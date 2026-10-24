@@ -157,6 +157,14 @@ class GpsReadingTest extends TestCase {
 		$this->assertTrue( GpsReading::decide( array_reverse( $areas ), self::reading( -22.9, -43.2, 70.0 ), self::STRICT, 600 )['pass'] );
 	}
 
+	public function test_clamp_weak_share_keeps_the_value_in_range(): void {
+		$this->assertSame( 0.5, GpsReading::clamp_weak_share( null ) );
+		$this->assertSame( 0.5, GpsReading::clamp_weak_share( 'half' ) );
+		$this->assertSame( 0.1, GpsReading::clamp_weak_share( '0' ) );
+		$this->assertSame( 1.0, GpsReading::clamp_weak_share( 4 ) );
+		$this->assertSame( 0.7, GpsReading::clamp_weak_share( '0.66' ) );
+	}
+
 	public function test_clamp_tolerance_keeps_the_value_in_range(): void {
 		$this->assertSame( 1.5, GpsReading::clamp_tolerance( null ) );
 		$this->assertSame( 1.5, GpsReading::clamp_tolerance( 'lots' ) );

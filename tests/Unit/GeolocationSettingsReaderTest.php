@@ -181,6 +181,18 @@ class GeolocationSettingsReaderTest extends TestCase {
 		$this->assertSame( 900, GeolocationSettingsReader::gps_cache_ttl() );
 	}
 
+	public function test_gps_weak_share_default_and_bounds(): void {
+		$this->stub_option( array() );
+		$this->assertSame( 0.5, GeolocationSettingsReader::gps_weak_share() );
+
+		$this->stub_option( array( 'gps_weak_share' => '0.8' ) );
+		$this->assertSame( 0.8, GeolocationSettingsReader::gps_weak_share() );
+
+		// A value stored outside the range is clamped on read too (#2072).
+		$this->stub_option( array( 'gps_weak_share' => 5 ) );
+		$this->assertSame( 1.0, GeolocationSettingsReader::gps_weak_share() );
+	}
+
 	public function test_gps_accuracy_tolerance_default_and_bounds(): void {
 		$this->stub_option( array() );
 		$this->assertSame( 1.5, GeolocationSettingsReader::gps_accuracy_tolerance() );
