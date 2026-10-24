@@ -632,7 +632,7 @@
 	 * they are, with the menu instructions still on screen.
 	 */
 	function openInChrome() {
-		var url = window.location.href.replace(/^https?:\/\//, '');
+		var url = window.location.href.replace(/^https?:\/{2}/, '');
 		try {
 			window.location.href = 'intent://' + url + '#Intent;scheme=https;package=com.android.chrome;end';
 		} catch (e) {

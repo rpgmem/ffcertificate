@@ -151,7 +151,7 @@
                 || /WhatsApp/i.test(ua)
                 || /LinkedInApp/i.test(ua)
                 || /BytedanceWebView|musical_ly/i.test(ua)
-                || /Line\//i.test(ua);
+                || /Line\/\d/i.test(ua);
         },
 
         /** @returns {boolean} Samsung Internet. */

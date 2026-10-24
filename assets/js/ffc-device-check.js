@@ -160,7 +160,7 @@
 		['WhatsApp', /WhatsApp/i],
 		['TikTok', /BytedanceWebView|musical_ly/i],
 		['LinkedIn', /LinkedInApp/i],
-		['LINE', /Line\//]
+		['LINE', /Line\/\d/]
 	];
 
 	/**
