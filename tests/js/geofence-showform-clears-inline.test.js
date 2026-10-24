@@ -93,7 +93,7 @@ describe('FFCGeofence.showForm — clears inline display:none from validateGeolo
 
 		window.FFCGeofence.validateGeolocation($w, {
 			hideMode: 'message',
-			areas: [{ lat: 0, lng: 0, radius: 1 }],
+			areas: [{ lat: 0, lng: 0, radius: 100 }],
 		});
 
 		// Wrapper has the validated class.
@@ -127,7 +127,7 @@ describe('FFCGeofence.showForm — clears inline display:none from validateGeolo
 
 		window.FFCGeofence.validateGeolocation($w, {
 			hideMode: 'message',
-			areas: [{ lat: 0, lng: 0, radius: 1 }],
+			areas: [{ lat: 0, lng: 0, radius: 100 }],
 		});
 
 		// Cache-hit now mounts the spinner first and only resolves to

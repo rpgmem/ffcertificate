@@ -3,7 +3,7 @@
  * GeofenceGuard — pipeline stage 11 (#563 Sprint 1).
  *
  * Geofence validation (date/time + geolocation), run BEFORE the
- * consolidated rate-limit check. Geofence::can_access_form is read-only
+ * consolidated rate-limit check. Geofence::check_submission is read-only
  * (single get_post_meta + optional IP geolocation lookup); the rate-limit
  * block, in contrast, records attempts (writes). Doing the cheaper
  * read-only check first preserves a near-miss visitor's rate-limit budget
@@ -34,36 +34,26 @@ class GeofenceGuard {
 	 * @throws SubmissionRejected When geofence access is denied.
 	 */
 	public function apply( SubmissionContext $ctx ): void {
-		if ( class_exists( '\FreeFormCertificate\Security\Geofence' ) ) {
-			// Get form geofence config to check if IP validation is enabled.
-			$geofence_config    = \FreeFormCertificate\Security\Geofence::get_form_config( $ctx->form_id );
-			$should_validate_ip = false;
+		if ( ! class_exists( '\FreeFormCertificate\Security\Geofence' ) ) {
+			return;
+		}
 
-			// Backend validation logic:
-			// - Always validate datetime (server-side is authoritative)
-			// - Only validate IP geolocation if explicitly enabled.
-			// - GPS validation happens on the frontend (browser geolocation API).
-			if ( $geofence_config && ! empty( $geofence_config['geo_enabled'] ) && ! empty( $geofence_config['geo_ip_enabled'] ) ) {
-				$should_validate_ip = true;
-			}
+		// The server decides the date window, the GPS reading the browser
+		// sent and the IP, combined by the form's "GPS or IP" setting
+		// (#2040). The browser's own check only decides what it shows.
+		$geofence_check = \FreeFormCertificate\Security\Geofence::check_submission(
+			$ctx->form_id,
+			\FreeFormCertificate\Security\GpsReading::from_request()
+		);
 
-			$geofence_check = \FreeFormCertificate\Security\Geofence::can_access_form(
-				$ctx->form_id,
+		if ( ! $geofence_check['allowed'] ) {
+			throw new SubmissionRejected(
 				array(
-					'check_datetime' => true,                  // Always validate date/time server-side.
-					'check_geo'      => $should_validate_ip,   // Only validate IP if explicitly enabled.
+					'message'          => $geofence_check['message'],
+					'geofence_blocked' => true,
+					'reason'           => $geofence_check['reason'],
 				)
 			);
-
-			if ( ! $geofence_check['allowed'] ) {
-				throw new SubmissionRejected(
-					array(
-						'message'          => $geofence_check['message'] ?? '',
-						'geofence_blocked' => true,
-						'reason'           => $geofence_check['reason'] ?? '',
-					)
-				);
-			}
 		}
 	}
 }

@@ -77,6 +77,13 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The visitor pre-flight runs as one queue, and the browser is asked in one place** (#2030). `FFC.Preflight` runs the date, cookie, HTTPS and location checks in order for forms and gated content; `FFC.Platform` (in `ffc-core`) replaces five copies of the iOS/Android/in-app/Samsung checks. The script handle `ffc-geofence-preflight` is now `ffc-geofence-permission`. No behaviour change: every recorded outcome matches the baseline.
 - **The Bulk issue tab reads as three steps** (#2038). The CSV template is a button with the download icon and the template's columns listed under it, the file field takes the plugin's one file picker, and "Check the file" stays disabled until a file is chosen.
 - **Every file field is one picker with the upload icon** (#2038). The browser's "Choose File" button could not carry an icon, so the five CSV imports (bulk issue, audience members and audiences, reregistration, both recruitment imports) now draw a neutral family button with the upload icon beside the chosen file's name, from `AdminUI::render_file_picker()`; a guard refuses any other file input.
+- ⚠ **"GPS or IP" now passes on either, and an imprecise reading is not trusted** (#2040). The IP was checked alone on submit, so OR behaved as AND; a visitor whose GPS is inside now passes when their IP resolves elsewhere. A reading whose margin of error exceeds the smallest area, or older than the GPS cache lifetime, follows "Location unavailable", which a strict policy blocks.
+
+### Security
+
+- **A visitor's position is no longer written to the activity log** (#2040). Every geofence area check logged the coordinates it compared — each audience check-in's exact GPS position, and each IP's resolved position — whenever the log was on. Checks now log the decision only, and only with geolocation debugging on; the "Activity Log: Delete Logged Locations" migration removes the old entries.
+- **The server decides the GPS area of a certificate submission** (#2040). Only the browser checked the GPS before, so a submission posted without it passed. The form now sends its reading, and the server checks it against the areas; a submission with no reading, including through the forms API, follows the "When GPS fails" case "Browser does not support geolocation".
+
 
 ### Security
 

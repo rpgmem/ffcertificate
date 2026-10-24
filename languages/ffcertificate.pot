@@ -28665,3 +28665,10 @@ msgstr ""
 
 msgid "Deleted %d geolocation debug entries."
 msgstr ""
+
+msgid "Your location is not precise enough to confirm you are in the allowed area. Move to an open area or turn on precise location, then reload the page."
+msgstr ""
+
+msgid "The browser checks the location first, to say so before the visitor fills the form, and the server decides when the form is sent: the browser sends the GPS reading with the submission, and the server checks it against the areas and combines it with the IP the way the form asks. A reading whose margin of error is larger than the smallest area, or older than the GPS cache lifetime, cannot tell inside from outside and is treated as \"Location unavailable\" in the \"When GPS fails\" policy; a submission that arrives without a reading follows \"Browser does not support geolocation\". With \"GPS or IP\", a visitor whose GPS is inside passes even when their IP resolves elsewhere, which mobile networks often do."
+msgstr ""
+
