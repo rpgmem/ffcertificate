@@ -28818,3 +28818,6 @@ msgstr ""
 
 msgid "With ?ffc_device_check=1 in the address it shows the \"Test my device\" checks instead; the page links there from its footer."
 msgstr ""
+
+msgid "A \"Location blocked\" message appears only when the browser really refuses the location. Some browsers, Opera for Android among them, report the location as blocked while they hand it over; the plugin then reads the position once to check, and a browser that gives it is treated as allowed."
+msgstr ""

@@ -95,16 +95,18 @@ describe('telemetry ping on banner render (#361)', () => {
 			configurable: true,
 			value: { query: () => Promise.resolve({ state: 'denied' }) },
 		});
+		// A real block: the read that confirms a "denied" (#2048) is refused.
 		Object.defineProperty(navigator, 'geolocation', {
 			configurable: true,
-			value: { getCurrentPosition: vi.fn() },
+			value: { getCurrentPosition: vi.fn((success, error) => error({ code: 1 })) },
 		});
 		setupForm(42, { enabled: true, gpsEnabled: true });
 		const spy = spyOnFFCRequest();
 
 		window.FFCGeofence.init();
-		await Promise.resolve();
-		await Promise.resolve();
+		for (let i = 0; i < 6; i++) {
+			await Promise.resolve();
+		}
 
 		const denied = spy.mock.calls.find(c => c[1] && c[1].reason === 'gps_denied');
 		expect(denied).toBeDefined();

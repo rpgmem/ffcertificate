@@ -28,9 +28,13 @@
          * @param {jQuery}           formWrapper Form wrapper element.
          * @param {object}           config Geofence config.
          * @param {PermissionStatus} status Result of permissions.query.
+         * @param {string}           [state] The state to act on, when the
+         *                           queue module confirmed it differs from
+         *                           `status.state` (#2048); defaults to it.
          */
-        handleGpsPermissionStatus: function(formWrapper, config, status) {
+        handleGpsPermissionStatus: function(formWrapper, config, status, state) {
             const self = this;
+            const current = state || status.state;
             try {
                 status.onchange = function () {
                     // Only act on a positive transition. denied↔prompt
@@ -54,13 +58,13 @@
                 // assignment. Swallow.
             }
 
-            this.debug('GPS permission status', status.state);
+            this.debug('GPS permission status', current);
 
-            if (status.state === 'granted') {
+            if (current === 'granted') {
                 this.validateGeolocation(formWrapper, config, true);
                 return;
             }
-            if (status.state === 'denied') {
+            if (current === 'denied') {
                 this.handleGpsDeniedBanner(formWrapper, config);
                 return;
             }

@@ -456,7 +456,7 @@ describe('validateGeolocation — success, safety timer, Safari retry', () => {
 		setSpy.mockRestore();
 	});
 
-	it('permissions.query throwing synchronously falls through to the native flow', () => {
+	it('permissions.query throwing synchronously falls through to the native flow', async () => {
 		const restoreUa = installUa(CHROME_UA);
 		const restoreLoc = installLocationHttps();
 		const getPos = vi.fn();
@@ -475,13 +475,17 @@ describe('validateGeolocation — success, safety timer, Safari retry', () => {
 		const $w = mountForm(6007);
 
 		// preflightDone defaults to false → the permissions.query block runs
-		// and its synchronous throw hits the catch at line 111.
+		// and its synchronous throw is caught by FFC.Preflight.geoPermission().
 		window.FFCGeofence.validateGeolocation($w, {
 			hideMode: 'message',
 			areas: [{ lat: 0, lng: 0, radius: 1 }],
 		});
 
-		// The synchronous catch re-entered validateGeolocation → getCurrentPosition.
+		// The queue module's catch answers "unknown" (#2048), which re-enters
+		// validateGeolocation → getCurrentPosition.
+		for (let i = 0; i < 6; i++) {
+			await Promise.resolve();
+		}
 		expect(getPos).toHaveBeenCalled();
 		Object.defineProperty(window.navigator, 'permissions', {
 			configurable: true,
