@@ -544,39 +544,6 @@
 	}
 
 	/**
-	 * Whether a request reaches the server the forms post to (#2062): an
-	 * empty POST to admin-ajax.php, which WordPress answers with a 400 and
-	 * "0" when it names no action. Anything else came from a firewall in
-	 * front of the site; no answer at all means a blocker or the network
-	 * stopped it.
-	 */
-	function checkServer() {
-		if (!row('server')) {
-			return;
-		}
-		var ns = window.FFC || {};
-		var url = (window.ffc_ajax && window.ffc_ajax.ajax_url) || (typeof ns.getAjaxUrl === 'function' ? ns.getAjaxUrl() : '');
-		var blocked = function () {
-			set('server', 'fail', text('serverBlocked', 'Did not reach the server: sending a form will fail.'), 'helpServerBlocked');
-		};
-		if (!url || typeof window.fetch !== 'function') {
-			blocked();
-			return;
-		}
-		pending('server', text('serverReading', 'Sending a test request…'));
-		var started = Date.now();
-		window.fetch(url, { method: 'POST', cache: 'no-store', credentials: 'same-origin' }).then(function (response) {
-			return response.text().then(function (body) {
-				if (400 === response.status && '0' === String(body).trim()) {
-					set('server', 'ok', text('serverOk', 'Reached, answered in %s ms').replace('%s', String(Date.now() - started)));
-				} else {
-					set('server', 'fail', text('serverRefused', 'Refused by the server or a firewall (code %s): sending a form will fail.').replace('%s', String(response.status)), 'helpServerRefused');
-				}
-			});
-		}).catch(blocked);
-	}
-
-	/**
 	 * A duration, rounded to the unit a person reads.
 	 *
 	 * @param {number} seconds
@@ -594,41 +561,106 @@
 	}
 
 	/**
-	 * The device clock against the server's (#2054), read from the `Date`
-	 * header of a request for this same page: no endpoint, nothing sent but
-	 * the request itself. A clock more than a minute off breaks date windows
-	 * and the captcha's expiry.
+	 * The device clock against the server's (#2054), from the time the ping
+	 * answered with. The server's second is matched against the middle of
+	 * the request. A clock more than a minute off breaks date windows and
+	 * the captcha's expiry.
+	 *
+	 * @param {number} server  Server time, in seconds since the epoch.
+	 * @param {number} sent    When the request left, in ms.
+	 * @param {number} arrived When the answer arrived, in ms.
 	 */
-	function checkClock() {
-		if (!row('clock')) {
+	function paintClock(server, sent, arrived) {
+		var skew = ((sent + arrived) / 2 - server * 1000) / 1000;
+		if (Math.abs(skew) <= 60) {
+			set('clock', 'ok', text('clockOk', 'Correct (differs by %s)').replace('%s', duration(skew)));
+		} else if (skew > 0) {
+			set('clock', 'warn', text('clockAhead', 'Ahead by %s: date windows and the captcha may fail. Set the clock to automatic.').replace('%s', duration(skew)), 'helpClock');
+		} else {
+			set('clock', 'warn', text('clockBehind', 'Behind by %s: date windows and the captcha may fail. Set the clock to automatic.').replace('%s', duration(skew)), 'helpClock');
+		}
+	}
+
+	/**
+	 * The test's one server request (#2064), which feeds two rows: whether
+	 * a request reaches the server the forms post to, and the clock. The
+	 * answer also carries the plugin's version, so a page served from an
+	 * old cache, whose scripts belong to an earlier release, is named.
+	 *
+	 * A 429 is the site's limit on how often one address may run the test:
+	 * a warning with the wait, not a fault of the device. Any other answer
+	 * that is not the ping's came from a firewall in front of the site, and
+	 * no answer at all means a blocker or the network stopped the request.
+	 */
+	function checkServer() {
+		var server = row('server');
+		var clock = row('clock');
+		if (!server && !clock) {
 			return;
 		}
-		var unknown = function () {
-			set('clock', 'info', text('clockUnknown', 'Could not compare with the server.'));
+		var ping = cfg.ping || {};
+		var clockUnknown = function () {
+			if (clock) {
+				set('clock', 'info', text('clockUnknown', 'Could not compare with the server.'));
+			}
 		};
-		if (typeof window.fetch !== 'function') {
-			unknown();
+		var blocked = function () {
+			if (server) {
+				set('server', 'fail', text('serverBlocked', 'Did not reach the server: sending a form will fail.'), 'helpServerBlocked');
+			}
+			clockUnknown();
+		};
+		if (!ping.url || !ping.action || typeof window.fetch !== 'function') {
+			blocked();
 			return;
 		}
-		pending('clock', text('clockReading', 'Comparing with the server…'));
+		if (server) {
+			pending('server', text('serverReading', 'Sending a test request…'));
+		}
+		if (clock) {
+			pending('clock', text('clockReading', 'Comparing with the server…'));
+		}
 		var sent = Date.now();
-		window.fetch(window.location.href, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' }).then(function (response) {
-			var server = Date.parse(response.headers.get('Date') || '');
-			if (isNaN(server)) {
-				unknown();
-				return;
-			}
-			// The header is the server's second; the device's matching moment
-			// is the middle of the request.
-			var skew = ((sent + Date.now()) / 2 - server) / 1000;
-			if (Math.abs(skew) <= 60) {
-				set('clock', 'ok', text('clockOk', 'Correct (differs by %s)').replace('%s', duration(skew)));
-			} else if (skew > 0) {
-				set('clock', 'warn', text('clockAhead', 'Ahead by %s: date windows and the captcha may fail. Set the clock to automatic.').replace('%s', duration(skew)), 'helpClock');
-			} else {
-				set('clock', 'warn', text('clockBehind', 'Behind by %s: date windows and the captcha may fail. Set the clock to automatic.').replace('%s', duration(skew)), 'helpClock');
-			}
-		}, unknown);
+		window.fetch(ping.url, {
+			method: 'POST',
+			cache: 'no-store',
+			credentials: 'same-origin',
+			body: new URLSearchParams({ action: ping.action })
+		}).then(function (response) {
+			var arrived = Date.now();
+			return response.json().catch(function () {
+				return null;
+			}).then(function (json) {
+				var data = json && json.data;
+				if (429 === response.status && data) {
+					if (server) {
+						set('server', 'warn', text('serverLimited', 'Too many tests from this network: wait %s, then reload the page.').replace('%s', duration(data.retryAfter || 0)), 'helpServerLimited');
+					}
+					clockUnknown();
+					return;
+				}
+				if (200 !== response.status || !json || !json.success || !data) {
+					if (server) {
+						set('server', 'fail', text('serverRefused', 'Refused by the server or a firewall (code %s): sending a form will fail.').replace('%s', String(response.status)), 'helpServerRefused');
+					}
+					clockUnknown();
+					return;
+				}
+				if (clock) {
+					paintClock(Number(data.time), sent, arrived);
+				}
+				if (!server) {
+					return;
+				}
+				var built = window.ffcCoreConfig && window.ffcCoreConfig.version;
+				var ms = String(arrived - sent);
+				if (built && data.version && String(built) !== String(data.version)) {
+					set('server', 'warn', fill(text('serverStale', 'Reached in %1$s ms, but this page is an old copy (version %2$s; the site runs %3$s).'), [ms, built, data.version]), 'helpServerStale');
+				} else {
+					set('server', 'ok', text('serverOk', 'Reached, answered in %s ms').replace('%s', ms));
+				}
+			});
+		}).catch(blocked);
 	}
 
 	/** The time zone and the language the browser reports (#2054). */
@@ -893,11 +925,10 @@
 			? text('pdfNo', 'Not supported: missing %s.').replace('%s', missing.join(', '))
 			: text('pdfYes', 'Supported: this browser can build and save the PDF.'), 'helpPdf');
 
-		checkServer();
 		checkStorage();
 		checkCaptcha();
 		checkDevice();
-		checkClock();
+		checkServer();
 		checkLocale();
 		checkScreen();
 		checkConnection();

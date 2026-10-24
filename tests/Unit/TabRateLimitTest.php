@@ -12,6 +12,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Settings\Tabs\TabRateLimit;
 use FreeFormCertificate\Core\Captcha\CaptchaSettings;
+use FreeFormCertificate\Settings\RateLimitSettingsReader;
 
 /**
  * Tests for TabRateLimit: rate limiting settings tab.
@@ -467,6 +468,51 @@ class TabRateLimitTest extends TestCase {
 		// rebuild-save falls back to the same default the endpoint reads.
 		$this->assertSame( CaptchaSettings::MINT_CAP_DEFAULT, $saved['ip']['captcha_max_per_window'] );
 		$this->assertSame( CaptchaSettings::MINT_WINDOW_DEFAULT, $saved['ip']['captcha_window_seconds'] );
+		// So does the device test's cap (#2064).
+		$this->assertSame( 60, $saved['ip']['device_check_max_per_window'] );
+		$this->assertSame( 600, $saved['ip']['device_check_window_seconds'] );
+	}
+
+	public function test_save_settings_bounds_the_device_test_cap_and_keeps_a_cleared_field(): void {
+		$this->stub_save_funcs();
+
+		$saved = null;
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$saved ) {
+				if ( 'ffc_rate_limit_settings' === $key ) {
+					$saved = $value;
+				}
+				return true;
+			}
+		);
+
+		$_POST['ip_device_check_max_per_window'] = '999999';
+		$_POST['ip_device_check_window_seconds'] = '86400';
+		$this->invoke_private( 'save_settings' );
+		$this->assertSame( RateLimitSettingsReader::DEVICE_CHECK_CAP_MAX, $saved['ip']['device_check_max_per_window'] );
+		$this->assertSame( RateLimitSettingsReader::DEVICE_CHECK_WINDOW_MAX, $saved['ip']['device_check_window_seconds'] );
+
+		// 0 is "no cap", the same escape hatch as the captcha's.
+		$_POST['ip_device_check_max_per_window'] = '0';
+		$this->invoke_private( 'save_settings' );
+		$this->assertSame( 0, $saved['ip']['device_check_max_per_window'] );
+
+		// A cleared field keeps what is stored rather than saving 0.
+		$_POST['ip_device_check_max_per_window'] = '';
+		$_POST['ip_device_check_window_seconds'] = '';
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				'ip' => array(
+					'device_check_max_per_window' => 150,
+					'device_check_window_seconds' => 900,
+				),
+			)
+		);
+		$this->invoke_private( 'save_settings' );
+		$this->assertSame( 150, $saved['ip']['device_check_max_per_window'] );
+		$this->assertSame( 900, $saved['ip']['device_check_window_seconds'] );
+
+		unset( $_POST['ip_device_check_max_per_window'], $_POST['ip_device_check_window_seconds'] );
 	}
 
 	public function test_save_settings_accepts_zero_as_no_captcha_cap(): void {

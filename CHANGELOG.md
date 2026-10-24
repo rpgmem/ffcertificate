@@ -40,6 +40,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The device test names the browser and its version** (#2052). "Ordinary browser" becomes, for instance, "Chrome (v. 129.0.6668.81)", "Brave / Chromium (v. …)" or "Opera 103 / Chromium (v. 117.…)", read from the brands a Chromium browser declares and then from the user agent; an app's own browser names the app, and the PDF row says what it checked.
 - **The device test diagnoses more, and says how to fix what fails** (#2054). New rows: local storage, the ALTCHA captcha's needs, the device ID the device limit reads (a short code, signals read, whether they hold between reads, read-only), the clock against the server's, time zone and language, screen, connection and theme. A failing row opens how to fix it; a check still running counts down from 20 seconds.
 - **The device test names a blocker and gives a verdict** (#2062). New row: whether a request reaches the server, with its time. The device ID and the captcha say when a blocker stopped them; a CSS-timed notice shows when the test's own scripts never ran. A summary sits above the rows, location is one row, the PDF comes last, and the copy carries version and setup.
+- **The device test talks to the plugin, under a per-address limit** (#2064). One request now feeds the server and clock rows, and names a page served from an old cache. Settings → Rate Limit caps runs per address (default 60 per 10 minutes; 0 off), past which the row warns with the wait. The ALTCHA cap shares the counter.
 
 ### Fixed
 
