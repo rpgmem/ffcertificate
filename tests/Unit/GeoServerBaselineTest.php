@@ -18,9 +18,9 @@ use PHPUnit\Framework\TestCase;
  * Three facts the follow-up PRs change, each pinned here so the change is
  * an edit to a named assertion rather than a silent drift:
  *
- * - The submission guard never asks for a GPS check: a GPS-only form is
- *   validated by date alone, and coordinates posted with the submission
- *   are not read.
+ * - The submission guard never asked for a GPS check: a GPS-only form was
+ *   validated by date alone. Since PR 1 it hands the posted reading to
+ *   {@see \FreeFormCertificate\Security\Geofence::check_submission()}.
  * - The check-in decides by the real distance formula, with no regard for
  *   the reading's accuracy.
  * - An area check wrote the visitor's coordinates to the activity log
@@ -89,59 +89,44 @@ class GeoServerBaselineTest extends TestCase {
 	}
 
 	/**
-	 * The geofence configs a form can carry, and what the guard asks of
-	 * `Geofence::can_access_form()` for each today.
+	 * The submission guard hands the GPS reading the browser posted to the
+	 * server's geofence check.
 	 *
-	 * @return array<string, array{0: array<string, bool>, 1: bool}>
+	 * Changed by PR 1 of #2040: the guard used to ask for the date and the
+	 * IP only, so the GPS area was the browser's alone.
 	 */
-	public static function guard_cases(): array {
-		return array(
-			'gps only'      => array( array( 'geo_enabled' => true, 'geo_gps_enabled' => true, 'geo_ip_enabled' => false ), false ),
-			'gps and ip'    => array( array( 'geo_enabled' => true, 'geo_gps_enabled' => true, 'geo_ip_enabled' => true ), true ),
-			'ip only'       => array( array( 'geo_enabled' => true, 'geo_gps_enabled' => false, 'geo_ip_enabled' => true ), true ),
-			'geo off'       => array( array( 'geo_enabled' => false, 'geo_gps_enabled' => true, 'geo_ip_enabled' => true ), false ),
+	public function test_the_submission_guard_hands_the_gps_reading_to_the_server(): void {
+		$posted = array(
+			'reading' => array(
+				'lat'      => 10.0,
+				'lng'      => 10.0,
+				'accuracy' => 5.0,
+				'age'      => 1000,
+			),
+			'status'  => '',
 		);
-	}
-
-	/**
-	 * The submission guard checks the date always and the IP when the form
-	 * asks for it, and never the GPS: posted coordinates are not read.
-	 *
-	 * PR 1 of #2040 changes the "gps only" and "gps and ip" rows.
-	 *
-	 * @dataProvider guard_cases
-	 *
-	 * @param array<string, bool> $config   Stored geofence switches.
-	 * @param bool                $check_ip Whether the guard asks for the IP check today.
-	 */
-	public function test_the_submission_guard_never_reads_the_gps( array $config, bool $check_ip ): void {
-		$_POST = array(
-			'ffc_lat'      => '10.0',
-			'ffc_lng'      => '10.0',
-			'ffc_accuracy' => '5',
-		);
+		Mockery::mock( 'alias:FreeFormCertificate\Security\GpsReading' )
+			->shouldReceive( 'from_request' )->andReturn( $posted );
 
 		$asked = null;
-		$gf    = Mockery::mock( 'alias:FreeFormCertificate\Security\Geofence' );
-		$gf->shouldReceive( 'get_form_config' )->andReturn( $config );
-		$gf->shouldReceive( 'can_access_form' )->andReturnUsing(
-			static function ( int $form_id, array $options ) use ( &$asked ): array {
-				$asked = $options;
-				return array( 'allowed' => true );
-			}
-		);
+		Mockery::mock( 'alias:FreeFormCertificate\Security\Geofence' )
+			->shouldReceive( 'check_submission' )
+			->andReturnUsing(
+				static function ( int $form_id, array $input ) use ( &$asked ): array {
+					$asked = array( $form_id, $input );
+					return array(
+						'allowed' => true,
+						'reason'  => 'validated',
+						'message' => '',
+					);
+				}
+			);
 
 		$ctx          = new SubmissionContext();
 		$ctx->form_id = 7;
 		( new GeofenceGuard() )->apply( $ctx );
 
-		$this->assertSame(
-			array(
-				'check_datetime' => true,
-				'check_geo'      => $check_ip,
-			),
-			$asked
-		);
+		$this->assertSame( array( 7, $posted ), $asked );
 	}
 
 	/**

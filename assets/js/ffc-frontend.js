@@ -557,7 +557,16 @@
             // Prepare form data (FFC.request appends action + nonce).
             var formData = $form.serialize();
 
-            FFC.request('ffc_submit_form', formData)
+            // The GPS reading goes with the submission: the server decides
+            // the area by it (#2040).
+            var geoFields = window.FFCGeofence && typeof window.FFCGeofence.submissionFields === 'function'
+                ? window.FFCGeofence.submissionFields($form)
+                : Promise.resolve('');
+
+            geoFields
+                .then(function (fields) {
+                    return FFC.request('ffc_submit_form', formData + fields);
+                })
                 .then(function (data) {
                     if (!data) {
                         FFC.Frontend.UI.showFormError($form, ffc_ajax.strings.error || 'Error occurred');

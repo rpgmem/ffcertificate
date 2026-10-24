@@ -28748,3 +28748,9 @@ msgstr "Não foi possível apagar as entradas de depuração de geolocalização
 
 msgid "Deleted %d geolocation debug entries."
 msgstr "%d entradas de depuração de geolocalização apagadas."
+
+msgid "Your location is not precise enough to confirm you are in the allowed area. Move to an open area or turn on precise location, then reload the page."
+msgstr "Sua localização não é precisa o bastante para confirmar que você está na área permitida. Vá para um local aberto ou ative a localização precisa e recarregue a página."
+
+msgid "The browser checks the location first, to say so before the visitor fills the form, and the server decides when the form is sent: the browser sends the GPS reading with the submission, and the server checks it against the areas and combines it with the IP the way the form asks. A reading whose margin of error is larger than the smallest area, or older than the GPS cache lifetime, cannot tell inside from outside and is treated as \"Location unavailable\" in the \"When GPS fails\" policy; a submission that arrives without a reading follows \"Browser does not support geolocation\". With \"GPS or IP\", a visitor whose GPS is inside passes even when their IP resolves elsewhere, which mobile networks often do."
+msgstr "O navegador verifica a localização primeiro, para avisar antes que o visitante preencha o formulário, e o servidor decide quando o formulário é enviado: o navegador envia a leitura do GPS com o envio, e o servidor a confere com as áreas e a combina com o IP como o formulário pede. Uma leitura cuja margem de erro é maior que a menor área, ou mais antiga que a validade do cache de GPS, não distingue dentro de fora e é tratada como \"Localização indisponível\" na política \"Quando o GPS falha\"; um envio que chega sem leitura segue \"O navegador não suporta geolocalização\". Com \"GPS ou IP\", um visitante cujo GPS está dentro passa mesmo quando o IP indica outro lugar, o que é comum em redes móveis."

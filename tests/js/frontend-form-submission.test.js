@@ -22,8 +22,15 @@ function postChain(spec) {
 	return chain;
 }
 
-// Microtask flush so .then/.catch reactions run before assertions.
-function flush() { return Promise.resolve().then(() => Promise.resolve()); }
+// Microtask flush so .then/.catch reactions run before assertions. The
+// submission waits on the GPS fields first (#2040), one more tick.
+function flush() {
+	let p = Promise.resolve();
+	for (let i = 0; i < 6; i++) {
+		p = p.then(() => undefined);
+	}
+	return p;
+}
 
 
 beforeAll(async () => {

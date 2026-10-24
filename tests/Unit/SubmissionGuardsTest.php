@@ -370,8 +370,9 @@ class SubmissionGuardsTest extends TestCase {
 
 	public function test_geofence_guard_throws_when_blocked(): void {
 		$gf = Mockery::mock( 'alias:\FreeFormCertificate\Security\Geofence' );
+		Mockery::mock( 'alias:\FreeFormCertificate\Security\GpsReading' )->shouldReceive( 'from_request' )->andReturn( array( 'reading' => null, 'status' => '' ) )->byDefault();
 		$gf->shouldReceive( 'get_form_config' )->andReturn( array( 'geo_enabled' => false ) );
-		$gf->shouldReceive( 'can_access_form' )->andReturn(
+		$gf->shouldReceive( 'check_submission' )->andReturn(
 			array( 'allowed' => false, 'message' => 'outside', 'reason' => 'geo_outside_radius' )
 		);
 		try {
@@ -386,8 +387,9 @@ class SubmissionGuardsTest extends TestCase {
 
 	public function test_geofence_guard_passes_when_allowed(): void {
 		$gf = Mockery::mock( 'alias:\FreeFormCertificate\Security\Geofence' );
+		Mockery::mock( 'alias:\FreeFormCertificate\Security\GpsReading' )->shouldReceive( 'from_request' )->andReturn( array( 'reading' => null, 'status' => '' ) )->byDefault();
 		$gf->shouldReceive( 'get_form_config' )->andReturn( array() );
-		$gf->shouldReceive( 'can_access_form' )->andReturn( array( 'allowed' => true ) );
+		$gf->shouldReceive( 'check_submission' )->andReturn( array( 'allowed' => true ) );
 		( new GeofenceGuard() )->apply( $this->ctx() );
 		$this->assertTrue( true );
 	}

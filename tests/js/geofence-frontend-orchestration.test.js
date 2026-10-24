@@ -250,7 +250,7 @@ describe('FFCGeofence.validateGeolocation', () => {
 
 		window.FFCGeofence.validateGeolocation($w, {
 			hideMode: 'message',
-			areas: [{ lat: 0, lng: 0, radius: 1 }],
+			areas: [{ lat: 0, lng: 0, radius: 100 }],
 			messageBlocked: 'no',
 		});
 
@@ -279,7 +279,7 @@ describe('FFCGeofence.validateGeolocation', () => {
 		const $w = mountForm(104);
 		window.FFCGeofence.validateGeolocation($w, {
 			hideMode: 'message',
-			areas: [{ lat: 0, lng: 0, radius: 1 }],
+			areas: [{ lat: 0, lng: 0, radius: 100 }],
 		});
 		expect($w.hasClass('ffc-validated')).toBe(true);
 		restore();
@@ -375,7 +375,7 @@ describe('FFCGeofence.checkLocation', () => {
 		window.FFCGeofence.checkLocation(
 			$w,
 			{ latitude: 0, longitude: 0 },
-			{ hideMode: 'message', areas: [{ lat: 0, lng: 0, radius: 1 }] },
+			{ hideMode: 'message', areas: [{ lat: 0, lng: 0, radius: 100 }] },
 		);
 		expect($w.hasClass('ffc-validated')).toBe(true);
 	});
@@ -387,7 +387,7 @@ describe('FFCGeofence.checkLocation', () => {
 			{ latitude: 90, longitude: 0 },
 			{
 				hideMode: 'message',
-				areas: [{ lat: 0, lng: 0, radius: 1 }],
+				areas: [{ lat: 0, lng: 0, radius: 100 }],
 				messageBlocked: 'Outside zone',
 			},
 		);
