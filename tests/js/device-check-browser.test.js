@@ -104,7 +104,7 @@ describe('device test: the browser by name (#2052)', () => {
 
 describe('device test: the browser row (#2052)', () => {
 	function page() {
-		document.body.innerHTML = '<ul>' + ['secure', 'browser', 'cookies', 'location', 'accuracy', 'pdf'].map((k) =>
+		document.body.innerHTML = '<ul>' + ['secure', 'browser', 'cookies', 'location', 'pdf'].map((k) =>
 			'<li class="ffc-device-check-row" data-ffc-check="' + k + '"><span class="ffc-device-check-label">' + k + '</span><span class="ffc-device-check-result"></span></li>').join('') + '</ul>';
 	}
 	const flush = () => new Promise((r) => setTimeout(r, 10));

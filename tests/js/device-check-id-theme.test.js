@@ -55,11 +55,20 @@ describe('device ID row (#2054)', () => {
 		expect(row('device')).toEqual({ state: 'info', text: 'Not used on this site: the device limit is off.' });
 	});
 
-	it('says the browser cannot read it when the limit is on but the collector stayed away', async () => {
+	it('says the browser cannot read it when the limit is on and Web Crypto is missing', async () => {
 		window.ffc_device_config = { signals: ['ua'] };
+		Object.defineProperty(window, 'crypto', { value: {}, configurable: true });
 		await run();
 		expect(row('device').state).toBe('warn');
 		expect(row('device').text).toContain('secure connection');
+	});
+
+	it('says a blocker stopped the collector when the browser could have run it (#2062)', async () => {
+		window.ffc_device_config = { signals: ['ua'] };
+		window.ffcDeviceCheck = { strings: { helpDeviceBlocked: 'Turn the blocker off.' } };
+		await run();
+		expect(row('device')).toEqual({ state: 'warn', text: 'Did not load: a content or script blocker may be stopping it.' });
+		expect(document.querySelector('[data-ffc-check="device"] .ffc-device-check-fix').textContent).toContain('blocker');
 	});
 
 	it('shows a short code, the count and "stable" when two reads agree', async () => {
@@ -349,5 +358,114 @@ describe('a check still running counts down (#2054)', () => {
 		const answered = row('device').text;
 		await new Promise((r) => setTimeout(r, 1100));
 		expect(row('device').text).toBe(answered);
+	});
+});
+
+describe('blockers and the verdict (#2062)', () => {
+	const ORIG_FETCH = window.fetch;
+	const ORIG_CE = window.customElements;
+
+	function server(page) {
+		document.body.innerHTML = '<div class="ffc-device-check"><div class="ffc-device-check-verdict"></div><ul>' + page.map((k) =>
+			'<li class="ffc-device-check-row" data-ffc-check="' + k + '"><span class="ffc-device-check-label">' + k + '</span><span class="ffc-device-check-result"></span></li>').join('') + '</ul></div>';
+	}
+
+	async function load(keys) {
+		server(keys);
+		loadScript('assets/js/ffc-device-check.js');
+		await flush();
+	}
+
+	afterEach(() => {
+		window.fetch = ORIG_FETCH;
+		Object.defineProperty(window, 'customElements', { value: ORIG_CE, configurable: true });
+		delete window.ffc_ajax;
+	});
+
+	it('reports the server reached when WordPress answers the empty request with 400 and "0"', async () => {
+		window.ffc_ajax = { ajax_url: '/wp-admin/admin-ajax.php' };
+		const calls = [];
+		window.fetch = (url, opts) => {
+			calls.push([url, opts.method]);
+			return Promise.resolve({ status: 400, text: () => Promise.resolve('0') });
+		};
+		await load(['server']);
+		expect(calls).toEqual([['/wp-admin/admin-ajax.php', 'POST']]);
+		expect(row('server').state).toBe('ok');
+		expect(row('server').text).toMatch(/^Reached, answered in \d+ ms$/);
+	});
+
+	it('names the code a firewall refused with, and a request that never arrived', async () => {
+		window.ffc_ajax = { ajax_url: '/wp-admin/admin-ajax.php' };
+		window.fetch = () => Promise.resolve({ status: 403, text: () => Promise.resolve('<html>Forbidden</html>') });
+		await load(['server']);
+		expect(row('server').state).toBe('fail');
+		expect(row('server').text).toContain('code 403');
+
+		window.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
+		window.ffcDeviceCheck = { strings: { helpServerBlocked: 'Turn the blocker off.' } };
+		await load(['server']);
+		expect(row('server')).toEqual({ state: 'fail', text: 'Did not reach the server: sending a form will fail.' });
+		expect(document.querySelector('[data-ffc-check="server"] .ffc-device-check-fix').textContent).toContain('blocker');
+	});
+
+	it('fails the captcha when the site uses ALTCHA and its widget never defined itself', async () => {
+		const worker = window.Worker;
+		window.Worker = function () {};
+		window.ffcDeviceCheck = { captcha: 'altcha', strings: {} };
+		Object.defineProperty(window, 'customElements', { value: { get: () => undefined }, configurable: true });
+		await load(['captcha']);
+		expect(row('captcha').state).toBe('fail');
+		expect(row('captcha').text).toContain('blocker');
+
+		Object.defineProperty(window, 'customElements', { value: { get: (n) => (n === 'altcha-widget' ? function () {} : undefined) }, configurable: true });
+		await load(['captcha']);
+		expect(row('captcha').state).toBe('ok');
+
+		// The math question needs no bundle.
+		window.ffcDeviceCheck = { captcha: 'math', strings: {} };
+		Object.defineProperty(window, 'customElements', { value: { get: () => undefined }, configurable: true });
+		await load(['captcha']);
+		expect(row('captcha').state).toBe('ok');
+		window.Worker = worker;
+	});
+
+	it('draws the worst state as the verdict, once every row has answered', async () => {
+		await load(['theme', 'storage']);
+		expect(document.querySelector('.ffc-device-check-verdict').getAttribute('data-ffc-verdict')).toBe('ok');
+		expect(document.querySelector('.ffc-device-check-verdict .ffc-notice-success')).not.toBeNull();
+
+		window.ffc_device_config = { signals: ['ua'] };
+		await load(['theme', 'device']);
+		expect(document.querySelector('.ffc-device-check-verdict').getAttribute('data-ffc-verdict')).toBe('warn');
+
+		window.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
+		window.ffc_ajax = { ajax_url: '/x' };
+		await load(['theme', 'device', 'server']);
+		expect(document.querySelector('.ffc-device-check-verdict').getAttribute('data-ffc-verdict')).toBe('fail');
+		expect(document.querySelector('.ffc-device-check-verdict .ffc-notice-title').textContent).toBe('The forms may not work here');
+	});
+
+	it('says it is still checking while a row waits for an answer', async () => {
+		window.ffc_ajax = { ajax_url: '/x' };
+		window.fetch = () => new Promise(() => {});
+		await load(['theme', 'server']);
+		expect(document.querySelector('.ffc-device-check-verdict').getAttribute('data-ffc-verdict')).toBe('checking');
+	});
+
+	it('marks the page running, or stalled when a script it needs is missing', async () => {
+		await load(['theme']);
+		expect(document.querySelector('.ffc-device-check').classList.contains('is-running')).toBe(true);
+
+		const preflight = window.FFC.Preflight;
+		delete window.FFC.Preflight;
+		try {
+			await load(['theme']);
+			const root = document.querySelector('.ffc-device-check');
+			expect(root.classList.contains('is-stalled')).toBe(true);
+			expect(root.classList.contains('is-running')).toBe(false);
+		} finally {
+			window.FFC.Preflight = preflight;
+		}
 	});
 });

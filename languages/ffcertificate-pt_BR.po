@@ -28833,12 +28833,6 @@ msgstr "Não foi possível copiar: faça uma captura de tela."
 msgid "JavaScript is off in this browser. The forms need it: turn it on and reload this page."
 msgstr "O JavaScript está desativado neste navegador. Os formulários precisam dele: ative-o e recarregue esta página."
 
-msgid "Location permission"
-msgstr "Permissão de localização"
-
-msgid "Location precision"
-msgstr "Precisão da localização"
-
 msgid "No: the browser gives no location here, and forms that ask for it will stop."
 msgstr "Não: o navegador não fornece a localização aqui, e os formulários que a pedem vão parar."
 
@@ -28853,9 +28847,6 @@ msgstr "Navegador comum (%s)"
 
 msgid "PDF download"
 msgstr "Download do PDF"
-
-msgid "Press \"Test my location\"."
-msgstr "Toque em \"Testar minha localização\"."
 
 msgid "Problems with a form? Test your device"
 msgstr "Problemas com um formulário? Teste seu dispositivo"
@@ -29049,9 +29040,6 @@ msgstr "Sem resposta após %s s: recarregue a página para testar de novo."
 msgid "Asking the browser…"
 msgstr "Consultando o navegador…"
 
-msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result: secure connection, the browser by name and version, cookies, local storage, what the ALTCHA captcha needs, the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, location permission, PDF download, screen, connection, the theme in use and, when the visitor asks, how precise the location is. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
-msgstr "A página de verificação ([ffc_verification]) tem um modo \"Testar meu dispositivo\", com link no rodapé, acessado ao acrescentar ?ffc_device_check=1 ao endereço. Ele executa essas verificações no próprio dispositivo do visitante e mostra cada resultado: conexão segura, o navegador com nome e versão, cookies, armazenamento local, o que o captcha ALTCHA precisa, o ID do dispositivo que o limite por dispositivo lê (um código curto, quantos sinais foram lidos e se eles se mantêm entre duas leituras), o relógio do dispositivo comparado ao do servidor, fuso horário e idioma, permissão de localização, download do PDF, tela, conexão, o tema em uso e, quando o visitante pede, a precisão da localização. Uma linha que falha traz um botão de informação com como corrigir, e uma verificação ainda em andamento faz uma contagem regressiva de 20 segundos. Nada é enviado nem guardado, e a posição em si nunca é exibida. O botão \"Copiar os resultados\" coloca na área de transferência os resultados, a identificação do navegador e o horário, para uma mensagem a quem dá suporte ao visitante."
-
 msgid "Window %1$s · screen %2$s · density %3$s×"
 msgstr "Janela %1$s · tela %2$s · densidade %3$s×"
 
@@ -29096,3 +29084,93 @@ msgstr "O iOS não informa estes dados a nenhum navegador. Isso não afeta os fo
 
 msgid "This browser does not give these details. This does not affect the forms."
 msgstr "Este navegador não informa estes dados. Isso não afeta os formulários."
+
+msgid "Server requests"
+msgstr "Envio ao servidor"
+
+msgid "Device location"
+msgstr "Localização do dispositivo"
+
+msgid "Reload the page. If this message comes back, a content or script blocker, or an optimization of this site, is stopping the plugin's scripts: turn the blocker off for this site or open the page in another browser. The forms will not work here until it does."
+msgstr "Recarregue a página. Se esta mensagem voltar, um bloqueador de conteúdo ou de scripts, ou uma otimização deste site, está impedindo os scripts do plugin: desative o bloqueador para este site ou abra a página em outro navegador. Os formulários não funcionarão aqui enquanto isso acontecer."
+
+msgid "The test could not run in this browser"
+msgstr "O teste não pôde ser executado neste navegador"
+
+msgid "Sending a test request…"
+msgstr "Enviando uma requisição de teste…"
+
+msgid "Reached, answered in %s ms"
+msgstr "Alcançado, respondeu em %s ms"
+
+msgid "Refused by the server or a firewall (code %s): sending a form will fail."
+msgstr "Recusado pelo servidor ou por um firewall (código %s): o envio de formulários vai falhar."
+
+msgid "Did not reach the server: sending a form will fail."
+msgstr "Não chegou ao servidor: o envio de formulários vai falhar."
+
+msgid "A firewall or security service in front of the site refused the request. Try another network (mobile data instead of Wi-Fi, or the other way round); if it keeps failing, send the copied results to the site administrator."
+msgstr "Um firewall ou serviço de segurança à frente do site recusou a requisição. Tente outra rede (dados móveis em vez de Wi-Fi, ou o contrário); se continuar falhando, envie os resultados copiados ao administrador do site."
+
+msgid "A content blocker, a VPN or the network stopped the request. Turn the blocker off for this site, or try another network, and reload this page."
+msgstr "Um bloqueador de conteúdo, uma VPN ou a rede impediu a requisição. Desative o bloqueador para este site, ou tente outra rede, e recarregue esta página."
+
+msgid "Did not load: a content or script blocker may be stopping it."
+msgstr "Não carregou: um bloqueador de conteúdo ou de scripts pode estar impedindo."
+
+msgid "Turn the content or script blocker off for this site (or add the site to its allowed list) and reload this page. A form with a device limit cannot be sent while it is blocked."
+msgstr "Desative o bloqueador de conteúdo ou de scripts para este site (ou adicione o site à lista de permitidos) e recarregue esta página. Um formulário com limite por dispositivo não pode ser enviado enquanto ele estiver bloqueado."
+
+msgid "Did not load: a content or script blocker may be stopping it. The forms cannot be sent."
+msgstr "Não carregou: um bloqueador de conteúdo ou de scripts pode estar impedindo. Os formulários não podem ser enviados."
+
+msgid "Turn the content or script blocker off for this site (or add the site to its allowed list) and reload this page."
+msgstr "Desative o bloqueador de conteúdo ou de scripts para este site (ou adicione o site à lista de permitidos) e recarregue esta página."
+
+msgid "%1$s · %2$s"
+msgstr "%1$s · %2$s"
+
+msgid "Running the checks…"
+msgstr "Executando as verificações…"
+
+msgid "This device is ready"
+msgstr "Este dispositivo está pronto"
+
+msgid "Every check passed: the forms should work here."
+msgstr "Todas as verificações passaram: os formulários devem funcionar aqui."
+
+msgid "Ready, with warnings"
+msgstr "Pronto, com avisos"
+
+msgid "The forms should work, but the items in yellow may get in the way. Open \"How to fix it\" on each one."
+msgstr "Os formulários devem funcionar, mas os itens em amarelo podem atrapalhar. Abra \"Como corrigir\" em cada um."
+
+msgid "The forms may not work here"
+msgstr "Os formulários podem não funcionar aqui"
+
+msgid "Fix the items in red: open \"How to fix it\" on each one, then reload this page."
+msgstr "Corrija os itens em vermelho: abra \"Como corrigir\" em cada um e recarregue esta página."
+
+msgid "Plugin version: %s"
+msgstr "Versão do plugin: %s"
+
+msgid "Captcha mode: %s"
+msgstr "Modo do captcha: %s"
+
+msgid "math question"
+msgstr "pergunta de matemática"
+
+msgid "ALTCHA"
+msgstr "ALTCHA"
+
+msgid "ALTCHA with a math question when JavaScript is off"
+msgstr "ALTCHA com pergunta de matemática quando o JavaScript está desativado"
+
+msgid "Device limit: %s"
+msgstr "Limite por dispositivo: %s"
+
+msgid "off"
+msgstr "desativado"
+
+msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result, grouped by subject: secure connection, connection, whether a request reaches the server (and how long it took), the browser by name and version, cookies, local storage, the captcha (what ALTCHA needs, and whether its widget loaded), the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, the device's location (the permission and, when the visitor asks, how precise it is), screen, the theme in use and, last, PDF download. A summary above the rows says whether the device is ready, ready with warnings, or may fail. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. A content or script blocker is named where it stops the server request, the device ID or the captcha; when it stops the test's own scripts, the page says so after a few seconds without them. Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the plugin's version, the captcha mode, whether the device limit is on, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
+msgstr "A página de verificação ([ffc_verification]) tem um modo \"Testar meu dispositivo\", com link no rodapé, acessado ao acrescentar ?ffc_device_check=1 ao endereço. Ele executa essas verificações no próprio dispositivo do visitante e mostra cada resultado, agrupado por assunto: conexão segura, conexão, se uma requisição chega ao servidor (e quanto tempo levou), o navegador com nome e versão, cookies, armazenamento local, o captcha (o que o ALTCHA precisa e se o widget carregou), o ID do dispositivo lido pelo limite por dispositivo (um código curto, quantos sinais foram lidos e se eles se mantêm entre duas leituras), o relógio do dispositivo comparado ao do servidor, fuso horário e idioma, a localização do dispositivo (a permissão e, quando o visitante pede, a precisão), tela, o tema em uso e, por último, o download do PDF. Um resumo acima das linhas diz se o dispositivo está pronto, pronto com avisos ou se pode falhar. Uma linha com falha traz um botão de informação com como corrigir, e uma verificação ainda em andamento faz uma contagem regressiva de 20 segundos. Um bloqueador de conteúdo ou de scripts é apontado onde impede a requisição ao servidor, o ID do dispositivo ou o captcha; quando impede os próprios scripts do teste, a página avisa depois de alguns segundos sem eles. Nada é enviado nem armazenado, e a posição em si nunca é mostrada. O botão \"Copiar os resultados\" coloca no clipboard os resultados, a versão do plugin, o modo do captcha, se o limite por dispositivo está ativado, a identificação do navegador e a hora, para uma mensagem a quem dá suporte ao visitante."

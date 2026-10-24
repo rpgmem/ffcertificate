@@ -10,7 +10,7 @@ const UA = {
 	instagram: 'Mozilla/5.0 (Linux; Android 14; SM-S918B Build/UP1A.231005.007; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0.6668.81 Mobile Safari/537.36 Instagram 350.0.0.42.92 Android',
 };
 
-const KEYS = ['secure', 'browser', 'cookies', 'location', 'accuracy', 'pdf'];
+const KEYS = ['secure', 'browser', 'cookies', 'location', 'pdf'];
 const flush = () => new Promise((r) => setTimeout(r, 10));
 const define = (target, name, value) => Object.defineProperty(target, name, { value, configurable: true });
 
@@ -70,7 +70,6 @@ describe('device check (#2040)', () => {
 		expect(row('cookies').state).toBe('ok');
 		expect(row('pdf').state).toBe('ok');
 		expect(row('location')).toEqual({ state: 'info', text: 'Not decided yet: the browser will ask.' });
-		expect(row('accuracy').text).toBe('Press "Test my location".');
 		expect(['ok', 'fail']).toContain(row('secure').state);
 	});
 
@@ -102,15 +101,15 @@ describe('device check (#2040)', () => {
 		await run({ geo: false });
 		expect(row('location').state).toBe('fail');
 		document.querySelector('.ffc-device-check-locate').click();
-		expect(row('accuracy').state).toBe('fail');
+		expect(row('location').state).toBe('fail');
 	});
 
-	it('shows the precision and never the position', async () => {
+	it('shows the precision beside the permission, and never the position (#2062)', async () => {
 		await run({ permission: 'granted', position: { latitude: -23.5505, longitude: -46.6333, accuracy: 12.4 } });
 		document.querySelector('.ffc-device-check-locate').click();
 		await flush();
-		expect(row('accuracy').state).toBe('ok');
-		expect(row('accuracy').text).toMatch(/^About 12 m, read in [\d.]+ s$/);
+		expect(row('location').state).toBe('ok');
+		expect(row('location').text).toMatch(/^Allowed · About 12 m, read in [\d.]+ s$/);
 		expect(document.body.textContent).not.toContain('23.55');
 		expect(document.body.textContent).not.toContain('46.63');
 	});
@@ -119,18 +118,20 @@ describe('device check (#2040)', () => {
 		await run({ position: { latitude: 1, longitude: 1, accuracy: 900 } });
 		document.querySelector('.ffc-device-check-locate').click();
 		await flush();
-		expect(row('accuracy').state).toBe('warn');
+		// The worse of the two: a prompt permission is no fault, the reading is.
+		expect(row('location').state).toBe('warn');
+		expect(row('location').text).toContain('About 900 m');
 
 		for (const [code, text] of [[1, 'Refused'], [2, 'Could not be read'], [3, 'Took too long']]) {
 			await run({ error: { code } });
 			document.querySelector('.ffc-device-check-locate').click();
 			await flush();
-			expect(row('accuracy').state).toBe('fail');
-			expect(row('accuracy').text).toContain(text);
+			expect(row('location').state).toBe('fail');
+			expect(row('location').text).toContain(text);
 		}
 	});
 
-	it('copies a summary with every row, the user agent and the time', async () => {
+	it('copies a summary with every row, the site\'s setup, the user agent and the time', async () => {
 		let copied = null;
 		define(window.navigator, 'clipboard', { writeText: (t) => { copied = t; return Promise.resolve(); } });
 		await run({ position: { latitude: -23.5505, longitude: -46.6333, accuracy: 20 } });
@@ -140,10 +141,13 @@ describe('device check (#2040)', () => {
 		await flush();
 
 		const lines = copied.split('\n');
-		expect(lines).toHaveLength(KEYS.length + 2);
+		expect(lines).toHaveLength(KEYS.length + 5);
 		KEYS.forEach((k, i) => expect(lines[i].startsWith(k + ': ')).toBe(true));
-		expect(lines[KEYS.length]).toBe('User agent: ' + UA.desktop);
-		expect(lines[KEYS.length + 1]).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+		expect(lines[KEYS.length]).toBe('Plugin version: ' + (window.ffcCoreConfig ? window.ffcCoreConfig.version : '?'));
+		expect(lines[KEYS.length + 1]).toBe('Captcha mode: ?');
+		expect(lines[KEYS.length + 2]).toBe('Device limit: off');
+		expect(lines[KEYS.length + 3]).toBe('User agent: ' + UA.desktop);
+		expect(lines[KEYS.length + 4]).toMatch(/^\d{4}-\d{2}-\d{2}T/);
 		expect(copied).not.toContain('23.55');
 		expect(document.querySelector('.ffc-device-check-copy .ffc-btn-label').textContent).toBe('Copied');
 	});

@@ -61,11 +61,16 @@ class DeviceCheckTest extends TestCase {
 	public function test_render_lists_every_check_and_never_a_coordinate_field(): void {
 		$html = DeviceCheck::render( 'https://example.com/valid/' );
 
-		foreach ( array( 'secure', 'browser', 'cookies', 'storage', 'captcha', 'device', 'clock', 'locale', 'location', 'accuracy', 'pdf', 'screen', 'connection', 'theme' ) as $key ) {
-			$this->assertStringContainsString( 'data-ffc-check="' . $key . '"', $html, "Row {$key} is missing." );
-		}
+		// Grouped by subject, the PDF last (#2062).
+		preg_match_all( '/data-ffc-check="([a-z]+)"/', $html, $rows );
+		$this->assertSame( array( 'secure', 'connection', 'server', 'browser', 'cookies', 'storage', 'captcha', 'device', 'clock', 'locale', 'location', 'screen', 'theme', 'pdf' ), $rows[1] );
 		$this->assertSame( 14, substr_count( $html, 'class="ffc-device-check-result"' ) );
-		$this->assertStringContainsString( '<noscript>', $html );
+		$this->assertStringContainsString( '<noscript><div class="ffc-notice ffc-notice-warning"', $html );
+		// The notice a stopped script cannot show sits in the page, for the
+		// stylesheet to reveal, and the verdict has its box (#2062).
+		$this->assertMatchesRegularExpression( '#<div class="ffc-device-check-stalled"><div class="ffc-notice ffc-notice-warning" role="alert" data-ffc-notice="device-check-stalled">#', $html );
+		$this->assertStringContainsString( '<div class="ffc-device-check-verdict" aria-live="polite"></div>', $html );
+		$this->assertStringNotContainsString( 'style=', $html );
 		$this->assertStringContainsString( 'href="https://example.com/valid/"', $html );
 		$this->assertStringNotContainsString( 'latitude', $html );
 
@@ -121,6 +126,7 @@ class DeviceCheckTest extends TestCase {
 			}
 		);
 
+		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'wp_script_is' )->justReturn( false );
 		DeviceCheck::enqueue_assets();
 
@@ -134,5 +140,24 @@ class DeviceCheckTest extends TestCase {
 		$this->assertSame( array( 'ffc-core', 'ffc-preflight', 'ffc-device-signals' ), $scripts['ffc-device-check'] );
 		$this->assertSame( 'ffcDeviceCheck', $data['ffc-device-check'][0] );
 		$this->assertSame( DeviceCheck::strings(), $data['ffc-device-check'][1]['strings'] );
+		$this->assertSame( 'math', $data['ffc-device-check'][1]['captcha'] );
+	}
+
+	public function test_enqueue_assets_loads_the_altcha_bundle_first_where_the_site_uses_it(): void {
+		$scripts = array();
+		Functions\when( 'wp_enqueue_style' )->justReturn( true );
+		Functions\when( 'wp_localize_script' )->justReturn( true );
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( $handle, $src, $deps ) use ( &$scripts ) {
+				$scripts[ $handle ] = $deps;
+			}
+		);
+		Functions\when( 'wp_script_is' )->alias( static fn( $handle, $list = 'enqueued' ) => 'ffc-altcha' === $handle && 'registered' === $list );
+
+		foreach ( array( 'altcha', 'both' ) as $mode ) {
+			Functions\when( 'get_option' )->justReturn( array( 'captcha_provider' => $mode ) );
+			DeviceCheck::enqueue_assets();
+			$this->assertSame( array( 'ffc-core', 'ffc-preflight', 'ffc-altcha' ), $scripts['ffc-device-check'], $mode );
+		}
 	}
 }
