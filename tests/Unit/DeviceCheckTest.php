@@ -127,6 +127,7 @@ class DeviceCheckTest extends TestCase {
 		);
 
 		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'admin_url' )->alias( static fn( $path ) => 'https://example.com/wp-admin/' . $path );
 		Functions\when( 'wp_script_is' )->justReturn( false );
 		DeviceCheck::enqueue_assets();
 
@@ -141,12 +142,21 @@ class DeviceCheckTest extends TestCase {
 		$this->assertSame( 'ffcDeviceCheck', $data['ffc-device-check'][0] );
 		$this->assertSame( DeviceCheck::strings(), $data['ffc-device-check'][1]['strings'] );
 		$this->assertSame( 'math', $data['ffc-device-check'][1]['captcha'] );
+		// The one server request the test makes (#2064).
+		$this->assertSame(
+			array(
+				'url'    => 'https://example.com/wp-admin/admin-ajax.php',
+				'action' => DeviceCheck::AJAX_ACTION,
+			),
+			$data['ffc-device-check'][1]['ping']
+		);
 	}
 
 	public function test_enqueue_assets_loads_the_altcha_bundle_first_where_the_site_uses_it(): void {
 		$scripts = array();
 		Functions\when( 'wp_enqueue_style' )->justReturn( true );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
+		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/admin-ajax.php' );
 		Functions\when( 'wp_enqueue_script' )->alias(
 			static function ( $handle, $src, $deps ) use ( &$scripts ) {
 				$scripts[ $handle ] = $deps;

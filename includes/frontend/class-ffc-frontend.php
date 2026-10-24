@@ -101,6 +101,9 @@ class Frontend {
 
 		add_action( 'wp_ajax_ffc_verify_magic_token', array( $this->verification_handler, 'handle_magic_verification_ajax' ) );
 		add_action( 'wp_ajax_nopriv_ffc_verify_magic_token', array( $this->verification_handler, 'handle_magic_verification_ajax' ) );
+
+		// The device test's one server request (#2064).
+		DeviceCheck::init();
 	}
 
 	/**

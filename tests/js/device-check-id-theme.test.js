@@ -9,6 +9,8 @@ import { loadScript } from './helpers.js';
 const ORIG_CRYPTO = window.crypto;
 const flush = () => new Promise((r) => setTimeout(r, 20));
 const KEYS = ['device', 'theme', 'storage', 'captcha', 'clock', 'locale', 'screen', 'connection'];
+const PING = { url: '/wp-admin/admin-ajax.php', action: 'ffc_device_check_ping' };
+const answer = (status, json) => Promise.resolve({ status, json: () => (json === undefined ? Promise.reject(new SyntaxError('not JSON')) : Promise.resolve(json)) });
 
 function page() {
 	document.body.innerHTML = '<ul>' + KEYS.map((k) =>
@@ -177,24 +179,39 @@ describe('storage, captcha, clock, locale, screen and connection rows (#2054)', 
 		[2, 'ok', 'Correct (differs by 2 s)'],
 		[420, 'warn', 'Ahead by 7 min'],
 		[-7200, 'warn', 'Behind by 2 h'],
-	])('compares the clock with the server (skew %i s)', async (skew, state, prefix) => {
-		// The Date header has second resolution: start on a whole second.
+	])('compares the clock with the time the ping answered with (skew %i s)', async (skew, state, prefix) => {
+		// The server answers in whole seconds: start on a whole second.
 		const now = Math.floor(Date.now() / 1000) * 1000;
-		window.fetch = vi.fn(() => Promise.resolve({ headers: { get: () => new Date(now - skew * 1000).toUTCString() } }));
+		window.ffcDeviceCheck = { ping: PING, strings: {} };
+		window.fetch = vi.fn(() => answer(200, { success: true, data: { time: (now - skew * 1000) / 1000, version: '1.0' } }));
 		vi.spyOn(Date, 'now').mockReturnValue(now);
 		await run();
-		expect(window.fetch).toHaveBeenCalledWith(window.location.href, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' });
+		// One request, to the plugin's own endpoint (#2064).
+		expect(window.fetch).toHaveBeenCalledTimes(1);
+		const [url, opts] = window.fetch.mock.calls[0];
+		expect(url).toBe(PING.url);
+		expect(opts.method).toBe('POST');
+		expect(opts.cache).toBe('no-store');
+		expect(String(opts.body)).toBe('action=ffc_device_check_ping');
 		expect(row('clock').state).toBe(state);
 		expect(row('clock').text.startsWith(prefix)).toBe(true);
 	});
 
 	it('says so when the server time cannot be read', async () => {
-		window.fetch = vi.fn(() => Promise.resolve({ headers: { get: () => null } }));
+		window.ffcDeviceCheck = { ping: PING, strings: {} };
+		window.fetch = vi.fn(() => answer(500));
 		await run();
 		expect(row('clock')).toEqual({ state: 'info', text: 'Could not compare with the server.' });
 
 		window.fetch = vi.fn(() => Promise.reject(new Error('offline')));
 		await run();
+		expect(row('clock').text).toBe('Could not compare with the server.');
+
+		// No ping configured, as on a page built before the endpoint existed.
+		window.ffcDeviceCheck = { strings: {} };
+		window.fetch = vi.fn();
+		await run();
+		expect(window.fetch).not.toHaveBeenCalled();
 		expect(row('clock').text).toBe('Could not compare with the server.');
 	});
 
@@ -379,31 +396,58 @@ describe('blockers and the verdict (#2062)', () => {
 	afterEach(() => {
 		window.fetch = ORIG_FETCH;
 		Object.defineProperty(window, 'customElements', { value: ORIG_CE, configurable: true });
-		delete window.ffc_ajax;
+		delete window.ffcCoreConfig;
 	});
 
-	it('reports the server reached when WordPress answers the empty request with 400 and "0"', async () => {
-		window.ffc_ajax = { ajax_url: '/wp-admin/admin-ajax.php' };
+	it('reports the server reached when the ping answers (#2064)', async () => {
+		window.ffcDeviceCheck = { ping: PING, strings: {} };
+		window.ffcCoreConfig = { version: '6.41.0' };
 		const calls = [];
 		window.fetch = (url, opts) => {
 			calls.push([url, opts.method]);
-			return Promise.resolve({ status: 400, text: () => Promise.resolve('0') });
+			return answer(200, { success: true, data: { time: Date.now() / 1000, version: '6.41.0' } });
 		};
-		await load(['server']);
+		await load(['server', 'clock']);
+		// The server row and the clock row share one request.
 		expect(calls).toEqual([['/wp-admin/admin-ajax.php', 'POST']]);
 		expect(row('server').state).toBe('ok');
 		expect(row('server').text).toMatch(/^Reached, answered in \d+ ms$/);
+		expect(row('clock').state).toBe('ok');
+	});
+
+	it('names a page served from an old cache', async () => {
+		window.ffcDeviceCheck = { ping: PING, strings: { helpServerStale: 'Reload; purge the cache.' } };
+		window.ffcCoreConfig = { version: '6.40.0' };
+		window.fetch = () => answer(200, { success: true, data: { time: Date.now() / 1000, version: '6.41.0' } });
+		await load(['server']);
+		expect(row('server').state).toBe('warn');
+		expect(row('server').text).toMatch(/^Reached in \d+ ms, but this page is an old copy \(version 6\.40\.0; the site runs 6\.41\.0\)\.$/);
+		expect(document.querySelector('[data-ffc-check="server"] .ffc-device-check-fix').textContent).toContain('cache');
+	});
+
+	it('warns, with the wait, when the site limits the test', async () => {
+		window.ffcDeviceCheck = { ping: PING, strings: { helpServerLimited: 'Wait, then reload.' } };
+		window.fetch = () => answer(429, { success: false, data: { retryAfter: 420 } });
+		await load(['server', 'clock']);
+		expect(row('server')).toEqual({ state: 'warn', text: 'Too many tests from this network: wait 7 min, then reload the page.' });
+		expect(row('clock')).toEqual({ state: 'info', text: 'Could not compare with the server.' });
 	});
 
 	it('names the code a firewall refused with, and a request that never arrived', async () => {
-		window.ffc_ajax = { ajax_url: '/wp-admin/admin-ajax.php' };
-		window.fetch = () => Promise.resolve({ status: 403, text: () => Promise.resolve('<html>Forbidden</html>') });
+		window.ffcDeviceCheck = { ping: PING, strings: {} };
+		window.fetch = () => answer(403);
 		await load(['server']);
 		expect(row('server').state).toBe('fail');
 		expect(row('server').text).toContain('code 403');
 
+		// A 429 that is not the ping's (a firewall's page) is a refusal.
+		window.fetch = () => answer(429);
+		await load(['server']);
+		expect(row('server').state).toBe('fail');
+		expect(row('server').text).toContain('code 429');
+
 		window.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
-		window.ffcDeviceCheck = { strings: { helpServerBlocked: 'Turn the blocker off.' } };
+		window.ffcDeviceCheck = { ping: PING, strings: { helpServerBlocked: 'Turn the blocker off.' } };
 		await load(['server']);
 		expect(row('server')).toEqual({ state: 'fail', text: 'Did not reach the server: sending a form will fail.' });
 		expect(document.querySelector('[data-ffc-check="server"] .ffc-device-check-fix').textContent).toContain('blocker');
@@ -440,14 +484,14 @@ describe('blockers and the verdict (#2062)', () => {
 		expect(document.querySelector('.ffc-device-check-verdict').getAttribute('data-ffc-verdict')).toBe('warn');
 
 		window.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
-		window.ffc_ajax = { ajax_url: '/x' };
+		window.ffcDeviceCheck = { ping: PING, strings: {} };
 		await load(['theme', 'device', 'server']);
 		expect(document.querySelector('.ffc-device-check-verdict').getAttribute('data-ffc-verdict')).toBe('fail');
 		expect(document.querySelector('.ffc-device-check-verdict .ffc-notice-title').textContent).toBe('The forms may not work here');
 	});
 
 	it('says it is still checking while a row waits for an answer', async () => {
-		window.ffc_ajax = { ajax_url: '/x' };
+		window.ffcDeviceCheck = { ping: PING, strings: {} };
 		window.fetch = () => new Promise(() => {});
 		await load(['theme', 'server']);
 		expect(document.querySelector('.ffc-device-check-verdict').getAttribute('data-ffc-verdict')).toBe('checking');

@@ -27,6 +27,8 @@ use FreeFormCertificate\Core\Captcha\CaptchaProvider;
 use FreeFormCertificate\Core\Icons;
 use FreeFormCertificate\Core\Notice;
 use FreeFormCertificate\Core\RequestInput;
+use FreeFormCertificate\Core\WindowThrottle;
+use FreeFormCertificate\Settings\RateLimitSettingsReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -41,6 +43,17 @@ final class DeviceCheck {
 	 * The query argument that switches the verification page to the test.
 	 */
 	public const QUERY_VAR = 'ffc_device_check';
+
+	/**
+	 * The AJAX action of the test's one server request (#2064).
+	 */
+	public const AJAX_ACTION = 'ffc_device_check_ping';
+
+	/**
+	 * Transient prefix of the ping's per-address counter: `ffc_` with no
+	 * leading underscore, so the uninstall sweep matches it.
+	 */
+	private const PING_PREFIX = 'ffc_dcping_';
 
 	/**
 	 * The checks, in the order shown, each with its icon: the network, the
@@ -65,6 +78,17 @@ final class DeviceCheck {
 		'theme'      => 'palette',
 		'pdf'        => 'file',
 	);
+
+	/**
+	 * Register the test's server request, for visitors and signed-in users
+	 * alike: the test runs for both (#2064).
+	 *
+	 * @return void
+	 */
+	public static function init(): void {
+		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( self::class, 'handle_ping' ) );
+		add_action( 'wp_ajax_nopriv_' . self::AJAX_ACTION, array( self::class, 'handle_ping' ) );
+	}
 
 	/**
 	 * Whether this request asks for the test.
@@ -286,6 +310,12 @@ final class DeviceCheck {
 			'serverBlocked'          => __( 'Did not reach the server: sending a form will fail.', 'ffcertificate' ),
 			'helpServerRefused'      => __( 'A firewall or security service in front of the site refused the request. Try another network (mobile data instead of Wi-Fi, or the other way round); if it keeps failing, send the copied results to the site administrator.', 'ffcertificate' ),
 			'helpServerBlocked'      => __( 'A content blocker, a VPN or the network stopped the request. Turn the blocker off for this site, or try another network, and reload this page.', 'ffcertificate' ),
+			/* translators: %s: how long to wait, such as "7 min". */
+			'serverLimited'          => __( 'Too many tests from this network: wait %s, then reload the page.', 'ffcertificate' ),
+			'helpServerLimited'      => __( 'The site limits how often one network can run this test. Wait, then reload this page. If a whole room is testing at once, ask the site administrator to raise the limit.', 'ffcertificate' ),
+			/* translators: 1: milliseconds the request took, 2: the version the page was built with, 3: the version the site runs. */
+			'serverStale'            => __( 'Reached in %1$s ms, but this page is an old copy (version %2$s; the site runs %3$s).', 'ffcertificate' ),
+			'helpServerStale'        => __( 'The page came from an old copy kept in a cache. Reload it; if this message comes back, the site administrator should purge the site\'s cache.', 'ffcertificate' ),
 			'deviceBlocked'          => __( 'Did not load: a content or script blocker may be stopping it.', 'ffcertificate' ),
 			'helpDeviceBlocked'      => __( 'Turn the content or script blocker off for this site (or add the site to its allowed list) and reload this page. A form with a device limit cannot be sent while it is blocked.', 'ffcertificate' ),
 			'captchaNotLoaded'       => __( 'Did not load: a content or script blocker may be stopping it. The forms cannot be sent.', 'ffcertificate' ),
@@ -310,6 +340,35 @@ final class DeviceCheck {
 			'summaryDeviceLimit'     => __( 'Device limit: %s', 'ffcertificate' ),
 			'summaryOn'              => __( 'on', 'ffcertificate' ),
 			'summaryOff'             => __( 'off', 'ffcertificate' ),
+		);
+	}
+
+	/**
+	 * Answer the test's server request (#2064): the server's clock, for the
+	 * clock row, and the plugin's version, which the script compares with
+	 * the version the page was built with to spot an old cached page.
+	 *
+	 * Nonce-free on purpose: a cached page carries a stale nonce, and the
+	 * answer is nothing a visitor could not read off any response header.
+	 * What it costs is a WordPress boot, which is what the per-address
+	 * counter bounds; over it the answer is a 429 with the seconds to wait.
+	 *
+	 * @return void
+	 */
+	public static function handle_ping(): void {
+		// A cached answer would report a stale clock and a stale version.
+		nocache_headers();
+
+		$window = RateLimitSettingsReader::device_check_window();
+		if ( ! WindowThrottle::take( self::PING_PREFIX, RateLimitSettingsReader::device_check_cap(), $window ) ) {
+			wp_send_json_error( array( 'retryAfter' => WindowThrottle::seconds_left( $window ) ), 429 );
+		}
+
+		wp_send_json_success(
+			array(
+				'time'    => time(),
+				'version' => FFC_VERSION,
+			)
 		);
 	}
 
@@ -345,6 +404,10 @@ final class DeviceCheck {
 			'ffcDeviceCheck',
 			array(
 				'captcha' => $captcha,
+				'ping'    => array(
+					'url'    => admin_url( 'admin-ajax.php' ),
+					'action' => self::AJAX_ACTION,
+				),
 				'strings' => self::strings(),
 			)
 		);

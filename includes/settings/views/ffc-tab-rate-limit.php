@@ -88,6 +88,37 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 </div>
 
 <div class="card">
+	<h2 class="ffc-icon-monitor"><?php esc_html_e( 'Device Test', 'ffcertificate' ); ?></h2>
+	<p class="description">
+		<?php esc_html_e( 'How many times one address may run the "Test my device" page of the verification shortcode, and over how long. Each run sends one request to the server. Past the cap the page still runs its other checks and says how long to wait before testing again.', 'ffcertificate' ); ?>
+	</p>
+	<table class="form-table" role="presentation"><tbody>
+		<tr>
+			<th><label for="ip_device_check_max_per_window"><?php esc_html_e( 'Max per window', 'ffcertificate' ); ?></label></th>
+			<td>
+				<input type="number" name="ip_device_check_max_per_window" id="ip_device_check_max_per_window"
+					value="<?php echo esc_attr( (string) (int) $ffcertificate_s['ip']['device_check_max_per_window'] ); ?>"
+					min="<?php echo esc_attr( (string) \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_CAP_MIN ); ?>"
+					max="<?php echo esc_attr( (string) \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_CAP_MAX ); ?>"
+					data-ffc-autosave-key="ip_device_check_max_per_window" required>
+				<p class="description"><?php esc_html_e( '0 disables this cap. Raise it when a whole room tests at once behind one address.', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="ip_device_check_window_seconds"><?php esc_html_e( 'Window (sec)', 'ffcertificate' ); ?></label></th>
+			<td>
+				<input type="number" name="ip_device_check_window_seconds" id="ip_device_check_window_seconds"
+					value="<?php echo esc_attr( (string) (int) $ffcertificate_s['ip']['device_check_window_seconds'] ); ?>"
+					min="<?php echo esc_attr( (string) \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_WINDOW_MIN ); ?>"
+					max="<?php echo esc_attr( (string) \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_WINDOW_MAX ); ?>"
+					data-ffc-autosave-key="ip_device_check_window_seconds" required>
+				<p class="description"><?php esc_html_e( 'Fixed windows, not sliding: the count resets on the boundary, so an address that hits the cap waits at most one window.', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
+	</tbody></table>
+</div>
+
+<div class="card">
 	<h2 class="ffc-icon-email"><?php esc_html_e( 'Email Rate Limit', 'ffcertificate' ); ?></h2>
 	<p>
 		<?php

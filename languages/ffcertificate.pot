@@ -29089,5 +29089,32 @@ msgstr ""
 msgid "off"
 msgstr ""
 
-msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result, grouped by subject: secure connection, connection, whether a request reaches the server (and how long it took), the browser by name and version, cookies, local storage, the captcha (what ALTCHA needs, and whether its widget loaded), the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, the device's location (the permission and, when the visitor asks, how precise it is), screen, the theme in use and, last, PDF download. A summary above the rows says whether the device is ready, ready with warnings, or may fail. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. A content or script blocker is named where it stops the server request, the device ID or the captcha; when it stops the test's own scripts, the page says so after a few seconds without them. Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the plugin's version, the captcha mode, whether the device limit is on, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
+msgid "Device Test"
+msgstr ""
+
+msgid "How many times one address may run the \"Test my device\" page of the verification shortcode, and over how long. Each run sends one request to the server. Past the cap the page still runs its other checks and says how long to wait before testing again."
+msgstr ""
+
+msgid "0 disables this cap. Raise it when a whole room tests at once behind one address."
+msgstr ""
+
+msgid "Device test per IP:"
+msgstr ""
+
+msgid "the \"Test my device\" page of the verification shortcode sends one request to the server per run, and the Device Test card caps how many runs one address may make per window (default 60 per 600 seconds; 0 removes the cap). Past it, the page still runs its other checks and tells the visitor how long to wait. Raise it when a whole room tests at once behind one address."
+msgstr ""
+
+msgid "Too many tests from this network: wait %s, then reload the page."
+msgstr ""
+
+msgid "The site limits how often one network can run this test. Wait, then reload this page. If a whole room is testing at once, ask the site administrator to raise the limit."
+msgstr ""
+
+msgid "Reached in %1$s ms, but this page is an old copy (version %2$s; the site runs %3$s)."
+msgstr ""
+
+msgid "The page came from an old copy kept in a cache. Reload it; if this message comes back, the site administrator should purge the site's cache."
+msgstr ""
+
+msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result, grouped by subject: secure connection, connection, whether a request reaches the server (and how long it took), the browser by name and version, cookies, local storage, the captcha (what ALTCHA needs, and whether its widget loaded), the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, the device's location (the permission and, when the visitor asks, how precise it is), screen, the theme in use and, last, PDF download. A summary above the rows says whether the device is ready, ready with warnings, or may fail. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. A content or script blocker is named where it stops the server request, the device ID or the captcha; when it stops the test's own scripts, the page says so after a few seconds without them. A page served from an old cache, whose scripts belong to an earlier release, is named too, and how often one address may run the test is set on Settings → Rate Limit (default 60 runs per 10 minutes). Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the plugin's version, the captcha mode, whether the device limit is on, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
 msgstr ""
