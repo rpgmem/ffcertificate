@@ -28677,9 +28677,6 @@ msgstr "Antes de o visitante ver um formulário de certificado, o navegador exec
 msgid "Date and time: on a form with a date window, outside it the form's closed-period message is shown."
 msgstr "Data e hora: em um formulário com janela de datas, fora dela é exibida a mensagem de período encerrado do formulário."
 
-msgid "Secure connection: a form that asks for the location, or any form while the captcha is ALTCHA only, needs HTTPS; on a plain HTTP page the visitor is asked to contact the site administrator."
-msgstr "Conexão segura: um formulário que pede a localização, ou qualquer formulário enquanto o captcha for somente ALTCHA, exige HTTPS; em uma página HTTP simples o visitante é orientado a entrar em contato com o administrador do site."
-
 msgid "Browser: an app's own browser (Instagram, WhatsApp, Facebook, TikTok, LinkedIn and others) is asked to open the page in the phone's browser, where the location and the download work; a \"Continue anyway\" link lets the visitor go on, because the detection can misfire. A browser missing what the form needs to issue the certificate is stopped with the list of browsers to use, and cannot go on."
 msgstr "Navegador: o navegador próprio de um aplicativo (Instagram, WhatsApp, Facebook, TikTok, LinkedIn e outros) recebe o pedido de abrir a página no navegador do celular, onde a localização e o download funcionam; um link \"Continuar mesmo assim\" permite seguir, porque a detecção pode errar. Um navegador sem o que o formulário precisa para emitir o certificado é barrado com a lista de navegadores a usar, e não pode seguir."
 
@@ -28688,9 +28685,6 @@ msgstr "Cookies: um navegador que bloqueia cookies recebe um aviso, com instruç
 
 msgid "Location: on a form with GPS validation, the location is asked for and checked (see Geolocation / Geofence)."
 msgstr "Localização: em um formulário com validação por GPS, a localização é solicitada e verificada (veja Geolocalização / Geocerca)."
-
-msgid "Every form runs the browser and cookie checks, not only the ones with a restriction. The \"already submitted\" notice is drawn only after the queue passes. Settings → Certificates → Browser check turns the browser check off, should visitors be stopped by mistake. An administrator for whom the geolocation bypass is on skips the browser and cookie checks. Each stop is written to the Activity Log as a pre-flight block, and the form editor counts them per form."
-msgstr "Todo formulário executa as verificações de navegador e de cookies, não apenas os que têm restrição. O aviso de \"já enviado\" só aparece depois que a fila passa. Configurações → Certificados → Verificação do navegador desliga a verificação do navegador, caso visitantes sejam barrados por engano. Um administrador com o bypass de geolocalização ativo pula as verificações de navegador e de cookies. Cada bloqueio é gravado no registro de atividades como um bloqueio de pré-verificação, e o editor do formulário os conta por formulário."
 
 msgid "The location is the last of the checks a form runs before it is shown, after the date window, the secure connection, the browser and the cookies; see Certificates & Forms → Checks before the form. A page served over plain HTTP cannot ask for the location, and an app's own browser often cannot either, which is why those two are checked first."
 msgstr "A localização é a última das verificações que um formulário executa antes de ser exibido, depois da janela de datas, da conexão segura, do navegador e dos cookies; veja Certificados e Formulários → Verificações antes do formulário. Uma página servida por HTTP simples não pode pedir a localização, e o navegador próprio de um aplicativo muitas vezes também não, por isso esses dois são verificados antes."
@@ -28755,3 +28749,17 @@ msgstr "Sua localização não é precisa o bastante para confirmar que você es
 msgid "The browser checks the location first, to say so before the visitor fills the form, and the server decides when the form is sent: the browser sends the GPS reading with the submission, and the server checks it against the areas and combines it with the IP the way the form asks. A reading whose margin of error is larger than the smallest area, or older than the GPS cache lifetime, cannot tell inside from outside and is treated as \"Location unavailable\" in the \"When GPS fails\" policy; a submission that arrives without a reading follows \"Browser does not support geolocation\". With \"GPS or IP\", a visitor whose GPS is inside passes even when their IP resolves elsewhere, which mobile networks often do."
 msgstr "O navegador verifica a localização primeiro, para avisar antes que o visitante preencha o formulário, e o servidor decide quando o formulário é enviado: o navegador envia a leitura do GPS com o envio, e o servidor a confere com as áreas e a combina com o IP como o formulário pede. Uma leitura cuja margem de erro é maior que a menor área, ou mais antiga que a validade do cache de GPS, não distingue dentro de fora e é tratada como \"Localização indisponível\" na política \"Quando o GPS falha\"; um envio que chega sem leitura segue \"O navegador não suporta geolocalização\". Com \"GPS ou IP\", um visitante cujo GPS está dentro passa mesmo quando o IP indica outro lugar, o que é comum em redes móveis."
 
+msgid "Secure connection: a form that asks for the location, or any form while the captcha is ALTCHA only, needs a page the browser treats as secure (HTTPS, or localhost); on any other page the visitor is asked to contact the site administrator. The browser decides, so a development host such as a .local name or a LAN address over plain HTTP is stopped too."
+msgstr "Conexão segura: um formulário que pede a localização, ou qualquer formulário enquanto o captcha for somente ALTCHA, exige uma página que o navegador considere segura (HTTPS, ou localhost); em qualquer outra página o visitante é orientado a entrar em contato com o administrador do site. Quem decide é o navegador, então um host de desenvolvimento, como um nome .local ou um endereço da rede local em HTTP simples, também é barrado."
+
+msgid "Every form runs the browser and cookie checks, not only the ones with a restriction. The \"already submitted\" notice is drawn only after the queue passes. Settings → Certificates → Browser check turns the browser check off, should visitors be stopped by mistake. An administrator for whom the geolocation bypass is on skips the browser and cookie checks. Each stop is written to the Activity Log as a pre-flight block, naming the form, or the CSV download page the visitor was on, and the form editor counts its own form's."
+msgstr "Todo formulário executa as verificações de navegador e de cookies, não apenas os que têm restrição. O aviso de \"já enviado\" só aparece depois que a fila passa. Configurações → Certificados → Verificação do navegador desliga a verificação do navegador, caso visitantes sejam barrados por engano. Um administrador com o bypass de geolocalização ativo pula as verificações de navegador e de cookies. Cada bloqueio é gravado no registro de atividades como um bloqueio de pré-verificação, indicando o formulário, ou a página de download de CSV em que o visitante estava, e o editor do formulário conta os do seu próprio formulário."
+
+msgid "Booking ID"
+msgstr "ID da reserva"
+
+msgid "CSV download page ID"
+msgstr "ID da página de download de CSV"
+
+msgid "Appointment ID"
+msgstr "ID do agendamento"

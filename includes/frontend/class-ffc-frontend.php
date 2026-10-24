@@ -425,6 +425,12 @@ class Frontend {
 					'preflight'      => array(
 						'browserCheck' => BrowserGate::settings()['browserCheck'],
 						'strings'      => BrowserGate::strings(),
+						// The page a visitor was stopped on, for the
+						// pre-flight telemetry (#2040).
+						'telemetry'    => array(
+							'type' => 'csv_download',
+							'id'   => (int) $post->ID,
+						),
 					),
 					'strings'        => array(
 						// Progress overlay.

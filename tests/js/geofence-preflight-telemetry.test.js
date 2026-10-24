@@ -84,7 +84,8 @@ describe('telemetry ping on banner render (#361)', () => {
 		window.FFCGeofence.init();
 
 		expect(spy).toHaveBeenCalledWith('ffc_log_preflight_bail', {
-			form_id: 42,
+			type: 'form',
+			id: 42,
 			reason: 'cookies',
 		});
 	});
@@ -107,7 +108,8 @@ describe('telemetry ping on banner render (#361)', () => {
 
 		const denied = spy.mock.calls.find(c => c[1] && c[1].reason === 'gps_denied');
 		expect(denied).toBeDefined();
-		expect(denied[1].form_id).toBe(42);
+		expect(denied[1].type).toBe('form');
+		expect(denied[1].id).toBe(42);
 	});
 
 	it('GPS prompt banner fires ffc_log_preflight_bail with reason=gps_prompt', async () => {
@@ -159,6 +161,31 @@ describe('telemetry ping on banner render (#361)', () => {
 		const $wrap = window.$('#ffc-form-');
 
 		window.FFC.Preflight.log($wrap, 'cookies');
+
+		expect(spy).not.toHaveBeenCalled();
+	});
+});
+
+describe('telemetry names what the visitor was reaching (#2040)', () => {
+	it('sends the context\'s own type and id', () => {
+		const spy = spyOnFFCRequest();
+		window.FFC.Preflight.log({ wrapper: window.$('<div>'), telemetry: { type: 'csv_download', id: '15' } }, 'browser_inapp');
+
+		expect(spy).toHaveBeenCalledWith('ffc_log_preflight_bail', { type: 'csv_download', id: 15, reason: 'browser_inapp' });
+	});
+
+	it('reads a certificate form from the context\'s wrapper', () => {
+		setupForm(9);
+		const spy = spyOnFFCRequest();
+		window.FFC.Preflight.log({ wrapper: window.$('#ffc-form-9') }, 'secure');
+
+		expect(spy).toHaveBeenCalledWith('ffc_log_preflight_bail', { type: 'form', id: 9, reason: 'secure' });
+	});
+
+	it('sends nothing when it cannot tell what the visitor was reaching', () => {
+		const spy = spyOnFFCRequest();
+		window.FFC.Preflight.log({ wrapper: window.$('<div id="x">') }, 'secure');
+		window.FFC.Preflight.log({ wrapper: window.$('<div>'), telemetry: { type: 'booking', id: 0 } }, 'secure');
 
 		expect(spy).not.toHaveBeenCalled();
 	});

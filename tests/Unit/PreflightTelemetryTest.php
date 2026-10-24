@@ -18,7 +18,7 @@ use FreeFormCertificate\Frontend\PreflightTelemetry;
  * Pins:
  *   - Nonce failure returns the standard refresh_nonce + new_nonce
  *     payload (so the client's #356 auto-recovery kicks in).
- *   - Invalid form_id / unknown reason are rejected.
+ *   - Invalid ID / unknown type / unknown reason are rejected.
  *   - Successful call writes one ActivityLog row with the expected
  *     action / level / context shape (including the SHA-256 IP hash,
  *     not the raw IP).
@@ -142,7 +142,7 @@ class PreflightTelemetryTest extends TestCase {
 		try {
 			$this->handler->handle_ajax();
 		} finally {
-			$this->assertSame( 'invalid_form_id', $this->captured_error['message'] );
+			$this->assertSame( 'invalid_id', $this->captured_error['message'] );
 		}
 	}
 
@@ -232,6 +232,111 @@ class PreflightTelemetryTest extends TestCase {
 		// The request over the cap still answers success, but logs nothing.
 		$this->assertSame( array( 'logged' => false ), $this->captured_success );
 		$this->assertSame( PreflightTelemetry::MAX_PER_WINDOW, array_sum( array_map( 'intval', $this->transients ) ) );
+	}
+
+	public function test_an_unknown_type_is_rejected(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		$_POST = array(
+			'nonce'  => 'ok',
+			'type'   => 'post',
+			'id'     => '42',
+			'reason' => 'secure',
+		);
+
+		$this->expectException( \RuntimeException::class );
+		try {
+			$this->handler->handle_ajax();
+		} finally {
+			$this->assertSame( 'invalid_type', $this->captured_error['message'] );
+		}
+	}
+
+	/**
+	 * A row that is not a form's names its type and keeps no `form_id`, so a
+	 * form's badges never count a booking or a page that shares its ID
+	 * (#2040).
+	 */
+	public function test_a_typed_row_names_what_it_is_about(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		$this->activity_log_mock->shouldReceive( 'log' )
+			->once()
+			->with(
+				'preflight_blocked',
+				'info',
+				Mockery::on(
+					static function ( $context ): bool {
+						return is_array( $context )
+							&& 'csv_download' === $context['type']
+							&& 15 === $context['id']
+							&& 'browser_inapp' === $context['reason']
+							&& ! array_key_exists( 'form_id', $context );
+					}
+				)
+			)
+			->andReturn( true );
+		$_POST = array(
+			'nonce'  => 'ok',
+			'type'   => 'csv_download',
+			'id'     => '15',
+			'reason' => 'browser_inapp',
+		);
+
+		try {
+			$this->handler->handle_ajax();
+		} catch ( \RuntimeException $e ) {
+			// wp_send_json_success short-circuits through the stub.
+		}
+
+		$this->assertSame( array( 'logged' => true ), $this->captured_success );
+	}
+
+	public function test_a_form_row_keeps_form_id_whether_typed_or_not(): void {
+		$expected = array(
+			'form_id' => 42,
+			'reason'  => 'cookies',
+			'ip_hash' => 'abc',
+		);
+
+		$this->assertSame( $expected, PreflightTelemetry::row_context( 'form', 42, 'cookies', 'abc' ) );
+		$this->assertSame(
+			array(
+				'type'    => 'booking',
+				'id'      => 7,
+				'reason'  => 'secure',
+				'ip_hash' => 'abc',
+			),
+			PreflightTelemetry::row_context( 'booking', 7, 'secure', 'abc' )
+		);
+	}
+
+	public function test_a_typed_form_request_writes_the_form_shape(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		$this->activity_log_mock->shouldReceive( 'log' )
+			->once()
+			->with(
+				'preflight_blocked',
+				'info',
+				Mockery::on(
+					static function ( $context ): bool {
+						return is_array( $context ) && 42 === $context['form_id'] && ! array_key_exists( 'type', $context );
+					}
+				)
+			)
+			->andReturn( true );
+		$_POST = array(
+			'nonce'  => 'ok',
+			'type'   => 'form',
+			'id'     => '42',
+			'reason' => 'cookies',
+		);
+
+		try {
+			$this->handler->handle_ajax();
+		} catch ( \RuntimeException $e ) {
+			// wp_send_json_success short-circuits through the stub.
+		}
+
+		$this->assertSame( array( 'logged' => true ), $this->captured_success );
 	}
 
 	/**

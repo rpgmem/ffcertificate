@@ -146,6 +146,7 @@
 				config: {},
 				browserCheck: cfg.browserCheck !== false,
 				formSelector: '.ffc-verification-form',
+				telemetry: cfg.telemetry,
 				text: function (key, fallback) {
 					return strings[key] || fallback;
 				}

@@ -73,4 +73,17 @@ describe('public CSV download: browser check (#2030)', () => {
 		expect(notice()).toBeNull();
 		expect(formDisplay()).not.toBe('none');
 	});
+
+	it('logs the stop against the download page, not a form (#2040)', async () => {
+		useUa('instagram');
+		const sent = [];
+		window.FFC.request = (action, data) => {
+			sent.push([action, data]);
+			return Promise.resolve({});
+		};
+		await load({ browserCheck: true, strings: {}, telemetry: { type: 'csv_download', id: 15 } });
+
+		expect(sent).toEqual([['ffc_log_preflight_bail', { type: 'csv_download', id: 15, reason: 'browser_inapp' }]]);
+		window.FFC.request = () => Promise.resolve({});
+	});
 });
