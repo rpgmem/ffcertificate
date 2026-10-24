@@ -335,8 +335,9 @@ final class BulkIssuePage {
 	}
 
 	/**
-	 * Renders the tab's panel body for the form being edited: the template link,
-	 * the file field and the button, and an empty box the steps are written into.
+	 * Renders the tab's panel body for the form being edited, as three steps:
+	 * the template button with the template's columns, the file field, and the
+	 * check button; then an empty box the next steps are written into.
 	 *
 	 * @param \WP_Post $post Form being edited.
 	 * @return void
@@ -347,19 +348,48 @@ final class BulkIssuePage {
 			self::template_nonce_action( $post->ID )
 		);
 
+		$fields  = get_post_meta( $post->ID, '_ffc_form_fields', true );
+		$columns = array_values( array_unique( array_merge( BulkIssuePlanner::REQUIRED_KEYS, BulkIssuePlanner::template_columns( is_array( $fields ) ? $fields : array() ) ) ) );
+
 		echo '<div class="ffc-bulk-issue" id="ffc-bulk-issue" data-form-id="' . esc_attr( (string) $post->ID ) . '">';
 		echo '<p class="description">' . esc_html__( 'Issue certificates for a list of participants from a CSV file, without each of them submitting the form. Download the template, upload the file, map its columns, check the preview and issue.', 'ffcertificate' ) . '</p>';
-		echo '<p><a href="' . esc_url( $template ) . '">' . esc_html__( 'Download the CSV template for this form', 'ffcertificate' ) . '</a></p>';
-		echo '<p><label for="ffc_bulk_file"><strong>' . esc_html__( 'Participants file (CSV)', 'ffcertificate' ) . '</strong></label><br>';
-		echo '<input type="file" name="' . esc_attr( self::FILE_FIELD ) . '" id="ffc_bulk_file" accept=".csv,text/csv"></p>';
 
+		// Three steps in the order the operator takes them (#2038).
+		echo '<ol class="ffc-bulk-issue-steps">';
+
+		echo '<li class="ffc-bulk-issue-step"><h4>' . esc_html__( 'Download the template for this form', 'ffcertificate' ) . '</h4>';
+		AdminUI::render_button(
+			array(
+				'label'    => __( 'Download the CSV template', 'ffcertificate' ),
+				'category' => 'neutral',
+				'icon'     => 'download',
+				'href'     => $template,
+			)
+		);
+		echo '<ul class="ffc-bulk-issue-columns" aria-label="' . esc_attr__( 'Columns of the template', 'ffcertificate' ) . '">';
+		foreach ( $columns as $column ) {
+			echo '<li><code>' . esc_html( $column ) . '</code></li>';
+		}
+		echo '</ul></li>';
+
+		echo '<li class="ffc-bulk-issue-step"><h4><label for="ffc_bulk_file">' . esc_html__( 'Upload the participants file', 'ffcertificate' ) . '</label></h4>';
+		echo '<input type="file" class="ffc-file-input" name="' . esc_attr( self::FILE_FIELD ) . '" id="ffc_bulk_file" accept=".csv,text/csv">';
+		echo '<p class="description">' . esc_html__( 'A CSV of up to 2 MB. Name, CPF/RF and e-mail are required.', 'ffcertificate' ) . '</p></li>';
+
+		echo '<li class="ffc-bulk-issue-step"><h4>' . esc_html__( 'Check before issuing', 'ffcertificate' ) . '</h4>';
+		// Disabled until a file is chosen; ffc-bulk-issue.js follows the field.
 		AdminUI::render_button(
 			array(
 				'label'    => __( 'Check the file', 'ffcertificate' ),
 				'category' => 'primary',
 				'icon'     => 'eye',
+				'class'    => 'ffc-bulk-issue-check',
+				'disabled' => true,
 			)
 		);
+		echo '<p class="description">' . esc_html__( 'Nothing is issued yet: the next step maps the columns and shows a preview.', 'ffcertificate' ) . '</p></li>';
+
+		echo '</ol>';
 
 		echo '<div class="ffc-bulk-issue-result" aria-live="polite"></div>';
 		echo '</div>';

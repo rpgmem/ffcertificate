@@ -2305,3 +2305,71 @@ td .ffc-restriction-label {
     color: var(--ffc-text-muted);
     font-size: var(--ffc-font-size-sm);
 }
+
+/* ==========================================================================
+   Bulk issue tab of the form editor (#2038): three numbered steps, the
+   template's columns as chips.
+   ========================================================================== */
+
+.ffc-bulk-issue-steps {
+    display: grid;
+    gap: var(--ffc-spacing-lg);
+    margin: var(--ffc-spacing-lg) 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: ffc-bulk-step;
+}
+
+.ffc-bulk-issue-step {
+    position: relative;
+    margin: 0;
+    padding-left: calc(26px + var(--ffc-spacing-sm));
+    counter-increment: ffc-bulk-step;
+}
+
+.ffc-bulk-issue-step::before {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 26px;
+    height: 26px;
+    color: var(--ffc-primary);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 700;
+    line-height: 26px;
+    text-align: center;
+    background: var(--ffc-info-bg);
+    border-radius: 50%;
+    content: counter(ffc-bulk-step);
+}
+
+.ffc-bulk-issue-step h4 {
+    margin: var(--ffc-spacing-2xs) 0 var(--ffc-spacing-sm);
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-bulk-issue-step .description {
+    margin: var(--ffc-spacing-xs) 0 0;
+}
+
+.ffc-bulk-issue-columns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-2xs);
+    margin: var(--ffc-spacing-sm) 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ffc-bulk-issue-columns li {
+    margin: 0;
+}
+
+.ffc-bulk-issue-columns code {
+    display: inline-block;
+    padding: 0 var(--ffc-spacing-xs);
+    font-size: var(--ffc-font-size-2xs);
+    background: var(--ffc-bg-alt);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+}

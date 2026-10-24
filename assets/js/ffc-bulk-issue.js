@@ -113,9 +113,22 @@
 
 		var button = panel.querySelector( 'button' );
 		var result = panel.querySelector( '.ffc-bulk-issue-result' );
+		var file   = panel.querySelector( 'input[type="file"]' );
 
 		if ( ! button || ! result ) {
 			return;
+		}
+
+		// The check needs a file: the button follows the field (#2038).
+		function hasFile() {
+			return !! ( file && file.files && file.files.length > 0 );
+		}
+
+		if ( file ) {
+			button.disabled = ! hasFile();
+			file.addEventListener( 'change', function () {
+				button.disabled = ! hasFile();
+			} );
 		}
 
 		button.addEventListener( 'click', function () {
@@ -135,7 +148,7 @@
 					showError( result, config.error );
 				} )
 				.then( function () {
-					button.disabled = false;
+					button.disabled = file ? ! hasFile() : false;
 				} );
 		} );
 

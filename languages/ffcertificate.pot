@@ -27329,14 +27329,6 @@ msgid "The file could not be read."
 msgstr ""
 
 #: includes/admin/class-ffc-bulk-issue-page.php
-msgid "Download the CSV template for this form"
-msgstr ""
-
-#: includes/admin/class-ffc-bulk-issue-page.php
-msgid "Participants file (CSV)"
-msgstr ""
-
-#: includes/admin/class-ffc-bulk-issue-page.php
 msgid "Check the file"
 msgstr ""
 
@@ -28628,4 +28620,25 @@ msgid "A browser missing what the form needs cannot issue the certificate: the m
 msgstr ""
 
 msgid "If visitors in an ordinary browser are stopped, turn the check off under Settings → Certificates → Browser check and report the browser"
+msgstr ""
+
+msgid "Download the template for this form"
+msgstr ""
+
+msgid "Download the CSV template"
+msgstr ""
+
+msgid "Columns of the template"
+msgstr ""
+
+msgid "Upload the participants file"
+msgstr ""
+
+msgid "A CSV of up to 2 MB. Name, CPF/RF and e-mail are required."
+msgstr ""
+
+msgid "Check before issuing"
+msgstr ""
+
+msgid "Nothing is issued yet: the next step maps the columns and shows a preview."
 msgstr ""

@@ -27412,14 +27412,6 @@ msgid "The file could not be read."
 msgstr "Não foi possível ler o arquivo."
 
 #: includes/admin/class-ffc-bulk-issue-page.php
-msgid "Download the CSV template for this form"
-msgstr "Baixar o modelo CSV deste formulário"
-
-#: includes/admin/class-ffc-bulk-issue-page.php
-msgid "Participants file (CSV)"
-msgstr "Arquivo de participantes (CSV)"
-
-#: includes/admin/class-ffc-bulk-issue-page.php
 msgid "Check the file"
 msgstr "Verificar o arquivo"
 
@@ -28714,3 +28706,24 @@ msgstr "Um navegador sem o que o formulário precisa não consegue emitir o cert
 
 msgid "If visitors in an ordinary browser are stopped, turn the check off under Settings → Certificates → Browser check and report the browser"
 msgstr "Se visitantes em um navegador comum forem barrados, desligue a verificação em Configurações → Certificados → Verificação do navegador e informe o navegador"
+
+msgid "Download the template for this form"
+msgstr "Baixe o modelo deste formulário"
+
+msgid "Download the CSV template"
+msgstr "Baixar o modelo CSV"
+
+msgid "Columns of the template"
+msgstr "Colunas do modelo"
+
+msgid "Upload the participants file"
+msgstr "Envie o arquivo de participantes"
+
+msgid "A CSV of up to 2 MB. Name, CPF/RF and e-mail are required."
+msgstr "CSV de até 2 MB. Nome, CPF/RF e e-mail são obrigatórios."
+
+msgid "Check before issuing"
+msgstr "Confira antes de emitir"
+
+msgid "Nothing is issued yet: the next step maps the columns and shows a preview."
+msgstr "Nada é emitido ainda: a próxima etapa associa as colunas e mostra uma pré-visualização."
