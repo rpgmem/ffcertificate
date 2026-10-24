@@ -254,4 +254,27 @@ describe('GPS Permissions API pre-check', () => {
 
 		expect($w.find('[data-ffc-notice="geofence-blocked"]')).toHaveLength(1);
 	});
+
+	// A cached page refreshes its fragments and calls recheck() while the
+	// first permission query is still pending; both queries answered and
+	// each drew a banner, so the visitor saw "Location blocked" twice.
+	it.each(['denied', 'prompt'])('a recheck while the query is pending draws one %s banner, not two', async (state) => {
+		const status = { state, onchange: null };
+		let release;
+		const pending = new Promise((resolve) => { release = resolve; });
+		Object.defineProperty(navigator, 'permissions', {
+			configurable: true,
+			value: { query: vi.fn(() => pending) },
+		});
+		setupForm(7);
+		window.FFCGeofence.init();
+		window.FFCGeofence.recheck();
+		release(status);
+		await pending;
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(navigator.permissions.query).toHaveBeenCalledTimes(2);
+		expect(document.querySelectorAll('[data-ffc-notice="preflight-gps"]').length).toBe(1);
+	});
 });
