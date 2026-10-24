@@ -38,6 +38,8 @@ class PiiRevealTest extends TestCase {
 
 		$this->assertStringContainsString( '<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii-page" data-nonce="nonce:ffc_reveal_pii_nonce">Reveal this page</button>', $html );
 		$this->assertStringContainsString( 'recorded in the activity log', $html );
+		// Below the floated status links and search box, never between them (#2050).
+		$this->assertStringStartsWith( '<p class="ffc-pii-reveal-bar">', $html );
 	}
 
 	public function test_the_field_button_carries_the_hook_and_its_data(): void {
