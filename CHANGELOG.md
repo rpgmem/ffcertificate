@@ -78,6 +78,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The Bulk issue tab reads as three steps** (#2038). The CSV template is a button with the download icon and the template's columns listed under it, the file field takes the plugin's one file picker, and "Check the file" stays disabled until a file is chosen.
 - **Every file field is one picker with the upload icon** (#2038). The browser's "Choose File" button could not carry an icon, so the five CSV imports (bulk issue, audience members and audiences, reregistration, both recruitment imports) now draw a neutral family button with the upload icon beside the chosen file's name, from `AdminUI::render_file_picker()`; a guard refuses any other file input.
 
+### Security
+
+- **A visitor's position is no longer written to the activity log** (#2040). Every geofence area check logged the coordinates it compared — each audience check-in's exact GPS position, and each IP's resolved position — whenever the log was on. Checks now log the decision only, and only with geolocation debugging on; the "Activity Log: Delete Logged Locations" migration removes the old entries.
+
+
 ## [6.41.0] (2026-10-19) — `2a4acb0a`
 - **The bulk issue skips a line with no e-mail and lists it in the report** (#1945). Without an address the link cannot be sent, so such a certificate is not issued with no account.
 

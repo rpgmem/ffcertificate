@@ -23,8 +23,10 @@ use PHPUnit\Framework\TestCase;
  *   are not read.
  * - The check-in decides by the real distance formula, with no regard for
  *   the reading's accuracy.
- * - Every area check writes the visitor's coordinates to the activity log
- *   when it is on.
+ * - An area check wrote the visitor's coordinates to the activity log
+ *   whenever the log was on; since PR 1 it writes nothing there unless
+ *   geolocation debugging is on, and never a position
+ *   ({@see LocationNeverLoggedTest}).
  *
  * @covers \FreeFormCertificate\Frontend\Submission\GeofenceGuard
  * @covers \FreeFormCertificate\Audience\AudienceCheckin
@@ -58,7 +60,10 @@ class GeoServerBaselineTest extends TestCase {
 
 		$this->logged = array();
 		Mockery::getConfiguration()->setConstantsMap(
-			array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_DEBUG' => 'debug' ) )
+			array(
+				'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_DEBUG' => 'debug' ),
+				'FreeFormCertificate\Core\Debug'       => array( 'AREA_GEOFENCE' => 'debug_geofence' ),
+			)
 		);
 		$log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
 		$log->shouldReceive( 'log' )->andReturnUsing(
@@ -72,7 +77,9 @@ class GeoServerBaselineTest extends TestCase {
 			}
 		);
 		$log->shouldReceive( 'log_access_denied' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Debug' )->shouldReceive( 'log_geofence' );
+		$debug = Mockery::mock( 'alias:FreeFormCertificate\Core\Debug' );
+		$debug->shouldReceive( 'log_geofence' );
+		$debug->shouldReceive( 'is_enabled' )->andReturn( false );
 	}
 
 	protected function tearDown(): void {
@@ -175,25 +182,18 @@ class GeoServerBaselineTest extends TestCase {
 	}
 
 	/**
-	 * Every area check writes the visitor's coordinates to the activity log.
+	 * An area check writes nothing to the activity log while geolocation
+	 * debugging is off, which is the default.
 	 *
-	 * PR 1 of #2040 removes them: the row keeps the decision only.
+	 * Changed by PR 1 of #2040: it used to write the visitor's coordinates
+	 * whenever the activity log was on.
 	 */
-	public function test_an_area_check_logs_the_visitors_coordinates(): void {
+	public function test_an_area_check_writes_nothing_to_the_activity_log_without_debugging(): void {
 		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
 		$registry->shouldReceive( 'get_by_ids' )->andReturn( array( self::AREA ) );
 
 		AudienceCheckin::check_position( array( 'loc_a' ), array( 'lat' => -23.5512, 'lng' => -46.6345 ) );
 
-		$this->assertCount( 1, $this->logged );
-		$this->assertSame( 'ip_geolocation_debug', $this->logged[0]['action'] );
-		$this->assertSame( 'debug', $this->logged[0]['level'] );
-		$this->assertSame(
-			array(
-				'lat' => -23.5512,
-				'lng' => -46.6345,
-			),
-			$this->logged[0]['context']['user_location']
-		);
+		$this->assertSame( array(), $this->logged );
 	}
 }
