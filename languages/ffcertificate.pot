@@ -28680,3 +28680,15 @@ msgstr ""
 
 msgid "Appointment ID"
 msgstr ""
+
+msgid "Your location is not precise enough to confirm you are at the event. Move to an open area or turn on precise location, then try again."
+msgstr ""
+
+msgid "This check-in needs a secure connection (HTTPS) to read your location. Please tell the event organiser."
+msgstr ""
+
+msgid "You are viewing this page inside an app, where your location often cannot be read. Open it in %s."
+msgstr ""
+
+msgid "When the check-in asks for a location, the page runs the same checks a certificate form runs before it is used: a page not served over HTTPS is stopped, because the browser gives no location there, and an app's own browser (Instagram, WhatsApp and others) is asked to open the page in the phone's browser, with \"Continue anyway\". A location already refused in the browser is said at once, before the tap. A reading whose margin of error is larger than the smallest area is refused, as on a certificate form; there is no \"When GPS fails\" policy here: without a usable location there is no check-in, and the organiser can mark attendance by hand. Each stop is written to the Activity Log as a pre-flight block naming the booking."
+msgstr ""

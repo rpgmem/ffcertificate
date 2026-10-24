@@ -131,12 +131,10 @@ class GeoServerBaselineTest extends TestCase {
 
 	/**
 	 * The check-in's decision, with the real distance formula: inside,
-	 * outside, and a reading whose error is larger than the area, which is
-	 * decided as if it were exact.
-	 *
-	 * PR 1 of #2040 changes the "imprecise" row.
+	 * outside, and a reading whose error is larger than the area, which
+	 * PR 3 of #2040 refuses instead of deciding it as if it were exact.
 	 */
-	public function test_the_checkin_decides_by_distance_alone(): void {
+	public function test_the_checkin_decides_by_distance_and_accuracy(): void {
 		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
 		$registry->shouldReceive( 'get_by_ids' )->andReturn( array( self::AREA ) );
 
@@ -150,16 +148,16 @@ class GeoServerBaselineTest extends TestCase {
 				'inside'    => 'inside',
 				'edge'      => 'inside',
 				'outside'   => AudienceCheckin::ERROR_OUTSIDE_AREA,
-				'imprecise' => 'inside',
+				'imprecise' => AudienceCheckin::ERROR_INACCURATE,
 				'none'      => AudienceCheckin::ERROR_NEEDS_LOCATION,
 			),
 			array(
-				'inside'    => $decide( array( 'lat' => -23.55, 'lng' => -46.63 ) ),
+				'inside'    => $decide( array( 'lat' => -23.55, 'lng' => -46.63, 'accuracy' => 10.0 ) ),
 				// About 150 m north of the centre.
-				'edge'      => $decide( array( 'lat' => -23.5487, 'lng' => -46.63 ) ),
-				'outside'   => $decide( array( 'lat' => -22.9, 'lng' => -43.2 ) ),
-				// The position carries no accuracy: an 800 m reading at the
-				// centre is the same as an exact one.
+				'edge'      => $decide( array( 'lat' => -23.5487, 'lng' => -46.63, 'accuracy' => 10.0 ) ),
+				'outside'   => $decide( array( 'lat' => -22.9, 'lng' => -43.2, 'accuracy' => 10.0 ) ),
+				// Changed by PR 3 of #2040: an 800 m reading cannot tell
+				// inside from outside a 200 m area, so it is refused.
 				'imprecise' => $decide( array( 'lat' => -23.55, 'lng' => -46.63, 'accuracy' => 800.0 ) ),
 				'none'      => $decide( null ),
 			)
@@ -177,7 +175,7 @@ class GeoServerBaselineTest extends TestCase {
 		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
 		$registry->shouldReceive( 'get_by_ids' )->andReturn( array( self::AREA ) );
 
-		AudienceCheckin::check_position( array( 'loc_a' ), array( 'lat' => -23.5512, 'lng' => -46.6345 ) );
+		AudienceCheckin::check_position( array( 'loc_a' ), array( 'lat' => -23.5512, 'lng' => -46.6345, 'accuracy' => 10.0 ) );
 
 		$this->assertSame( array(), $this->logged );
 	}

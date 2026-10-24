@@ -2,7 +2,10 @@
 // pre-flight queue (#2040): the audience check-in, which reads a position,
 // and the appointment receipt, which builds a PDF in the browser.
 //
-// Both are about to move onto the queue. This file records what a visitor
+// The check-in moved onto the queue in PR 3 of #2040: an insecure page and
+// an app's own browser are stopped before the tap, and the location
+// permission is read on load; the recorded outcomes changed in exactly those
+// scenarios. The receipt is still to move. This file records what a visitor
 // gets from them today across the dimensions the move touches (the device,
 // whether the page is secure, what the GPS answers), and compares every
 // outcome with tests/fixtures/geo-flows-baseline.json, so each later change
@@ -85,11 +88,12 @@ function notices() {
 async function checkin(s) {
 	installDevice(s.ua, s.secure, s.outcome);
 	document.body.innerHTML =
-		'<form method="post"' + (s.geofence ? ' data-ffc-checkin-geo="1"' : '') + '>' +
-		'<input type="hidden" name="ffc_lat" value=""><input type="hidden" name="ffc_lng" value="">' +
+		'<main class="ffc-checkin-card">' +
+		'<form method="post" class="ffc-checkin-form"' + (s.geofence ? ' data-ffc-checkin-geo="1"' : '') + '>' +
+		'<input type="hidden" name="ffc_lat" value=""><input type="hidden" name="ffc_lng" value=""><input type="hidden" name="ffc_accuracy" value="">' +
 		'<p class="ffc-checkin-geo-error" hidden></p>' +
 		'<button type="submit" class="ffc-btn ffc-btn-primary ffc-checkin-submit">Confirm</button>' +
-		'</form>';
+		'</form></main>';
 	const form = document.querySelector('form');
 	let posted = 0;
 	form.submit = () => { posted++; };
@@ -110,6 +114,8 @@ async function checkin(s) {
 		scriptPosts: posted,
 		lat: form.elements.ffc_lat.value,
 		lng: form.elements.ffc_lng.value,
+		accuracy: form.elements.ffc_accuracy.value,
+		formHidden: 'none' === window.$(form).css('display'),
 		error: error.hidden ? null : clean(error.textContent),
 		buttonDisabled: button.disabled,
 		buttonLoading: button.classList.contains('ffc-btn-loading'),
@@ -193,6 +199,9 @@ describe('geolocated and PDF flows outside the queue: baseline (#2040)', () => {
 
 	beforeAll(() => {
 		loadScript('assets/js/ffc-core.js');
+		// The check-in page loads the pre-flight queue since #2040, as the
+		// endpoint enqueues it.
+		loadScript('assets/js/ffc-preflight.js');
 		realFFC = window.FFC;
 	});
 
@@ -218,7 +227,8 @@ describe('geolocated and PDF flows outside the queue: baseline (#2040)', () => {
 			generated = [];
 			window.$(document).off();
 			window.FFC = realFFC;
-			window.ffcCheckin = { denied: 'Allow the location to check in.', unavailable: 'The location could not be read.' };
+			window.ffcCheckin = { denied: 'Allow the location to check in.', unavailable: 'The location could not be read.', telemetry: { type: 'booking', id: 7 } };
+			window.sessionStorage.clear();
 			delete window.ffcCalendarFrontend;
 			records[key(s)] = 'checkin' === s.flow ? await checkin(s) : await receipt(s);
 		}

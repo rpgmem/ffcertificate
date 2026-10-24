@@ -322,8 +322,8 @@ class AudienceCheckinTest extends TestCase {
 		$geo->shouldReceive( 'is_within_areas' )
 			->andReturnUsing( static fn( array $at ) => $at['latitude'] === -23.5 );
 
-		$outside = AudienceCheckin::check_position( array( 'loc_a' ), array( 'lat' => 10.0, 'lng' => 10.0 ) );
-		$inside  = AudienceCheckin::check_position( array( 'loc_a' ), array( 'lat' => -23.5, 'lng' => -46.6 ) );
+		$outside = AudienceCheckin::check_position( array( 'loc_a' ), array( 'lat' => 10.0, 'lng' => 10.0, 'accuracy' => 5.0 ) );
+		$inside  = AudienceCheckin::check_position( array( 'loc_a' ), array( 'lat' => -23.5, 'lng' => -46.6, 'accuracy' => 5.0 ) );
 
 		$this->assertSame( AudienceCheckin::ERROR_OUTSIDE_AREA, $outside->get_error_code() );
 		$this->assertTrue( $inside );
@@ -333,9 +333,31 @@ class AudienceCheckinTest extends TestCase {
 		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
 		$registry->shouldReceive( 'get_by_ids' )->andReturn( array() );
 
-		$result = AudienceCheckin::check_position( array( 'gone' ), array( 'lat' => 1.0, 'lng' => 1.0 ) );
+		$result = AudienceCheckin::check_position( array( 'gone' ), array( 'lat' => 1.0, 'lng' => 1.0, 'accuracy' => 5.0 ) );
 
 		$this->assertSame( AudienceCheckin::ERROR_OUTSIDE_AREA, $result->get_error_code() );
+	}
+
+	public function test_a_reading_less_precise_than_the_smallest_area_is_refused(): void {
+		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
+		$registry->shouldReceive( 'get_by_ids' )->andReturn(
+			array(
+				array(
+					'lat'    => -23.5,
+					'lng'    => -46.6,
+					'radius' => 200,
+				),
+			)
+		);
+		$geo = Mockery::mock( 'alias:FreeFormCertificate\Integrations\IpGeolocation' );
+		$geo->shouldReceive( 'is_within_areas' )->andReturn( true );
+
+		$imprecise = AudienceCheckin::check_position( array( 'loc_a' ), array( 'lat' => -23.5, 'lng' => -46.6, 'accuracy' => 201.0 ) );
+		$exact     = AudienceCheckin::check_position( array( 'loc_a' ), array( 'lat' => -23.5, 'lng' => -46.6, 'accuracy' => 200.0 ) );
+
+		$this->assertSame( AudienceCheckin::ERROR_INACCURATE, $imprecise->get_error_code() );
+		$this->assertStringContainsString( 'not precise enough', $imprecise->get_error_message() );
+		$this->assertTrue( $exact );
 	}
 
 	public function test_no_geofence_needs_no_position(): void {
@@ -343,11 +365,14 @@ class AudienceCheckinTest extends TestCase {
 	}
 
 	public function test_a_posted_position_is_read_only_within_range(): void {
-		$this->assertSame( array( 'lat' => -23.5, 'lng' => -46.6 ), AudienceCheckin::position( '-23.5', '-46.6' ) );
-		$this->assertNull( AudienceCheckin::position( '', '' ) );
-		$this->assertNull( AudienceCheckin::position( 'abc', '1' ) );
-		$this->assertNull( AudienceCheckin::position( '91', '0' ) );
-		$this->assertNull( AudienceCheckin::position( '0', '-181' ) );
+		$this->assertSame( array( 'lat' => -23.5, 'lng' => -46.6, 'accuracy' => 12.0 ), AudienceCheckin::position( '-23.5', '-46.6', '12' ) );
+		$this->assertNull( AudienceCheckin::position( '', '', '' ) );
+		$this->assertNull( AudienceCheckin::position( 'abc', '1', '1' ) );
+		$this->assertNull( AudienceCheckin::position( '91', '0', '1' ) );
+		$this->assertNull( AudienceCheckin::position( '0', '-181', '1' ) );
+		// The margin of error is part of the position (#2040).
+		$this->assertNull( AudienceCheckin::position( '-23.5', '-46.6', null ) );
+		$this->assertNull( AudienceCheckin::position( '-23.5', '-46.6', '-1' ) );
 	}
 
 	public function test_every_error_has_its_own_message(): void {
