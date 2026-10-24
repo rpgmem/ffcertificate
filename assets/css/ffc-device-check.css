@@ -33,12 +33,41 @@
     font-size: var(--ffc-font-size-sm);
 }
 
-.ffc-device-check .ffc-device-check-noscript {
+/* The notices (#2062) are the shared .ffc-notice component; this sheet
+   only spaces them and times the one a stopped script cannot show. */
+.ffc-device-check .ffc-device-check-verdict .ffc-notice,
+.ffc-device-check noscript .ffc-notice,
+.ffc-device-check .ffc-device-check-stalled .ffc-notice {
     margin: 0 0 var(--ffc-spacing-lg);
-    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
-    border-radius: var(--ffc-radius-sm);
-    background: var(--ffc-danger-bg);
-    color: var(--ffc-danger-text);
+}
+
+/* "The test could not run": hidden, then revealed by the stylesheet alone
+   after a delay, because a blocker that stops the script cannot report
+   itself. The script cancels it on start (is-running) or shows it at once
+   when a script it needs is missing (is-stalled). Height and visibility,
+   not display, so browsers that do not animate display still reveal it. */
+.ffc-device-check .ffc-device-check-stalled {
+    visibility: hidden;
+    max-height: 0;
+    overflow: hidden;
+    animation: ffc-device-check-stalled 0s linear 12s both;
+}
+
+.ffc-device-check.is-running .ffc-device-check-stalled {
+    animation: none;
+}
+
+.ffc-device-check.is-stalled .ffc-device-check-stalled {
+    visibility: visible;
+    max-height: none;
+    animation: none;
+}
+
+@keyframes ffc-device-check-stalled {
+    to {
+        visibility: visible;
+        max-height: 100em;
+    }
 }
 
 .ffc-device-check .ffc-device-check-list {

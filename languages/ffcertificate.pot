@@ -28750,12 +28750,6 @@ msgstr ""
 msgid "JavaScript is off in this browser. The forms need it: turn it on and reload this page."
 msgstr ""
 
-msgid "Location permission"
-msgstr ""
-
-msgid "Location precision"
-msgstr ""
-
 msgid "No: the browser gives no location here, and forms that ask for it will stop."
 msgstr ""
 
@@ -28769,9 +28763,6 @@ msgid "Ordinary browser (%s)"
 msgstr ""
 
 msgid "PDF download"
-msgstr ""
-
-msgid "Press \"Test my location\"."
 msgstr ""
 
 msgid "Problems with a form? Test your device"
@@ -28966,9 +28957,6 @@ msgstr ""
 msgid "Asking the browser…"
 msgstr ""
 
-msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result: secure connection, the browser by name and version, cookies, local storage, what the ALTCHA captcha needs, the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, location permission, PDF download, screen, connection, the theme in use and, when the visitor asks, how precise the location is. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
-msgstr ""
-
 msgid "Window %1$s · screen %2$s · density %3$s×"
 msgstr ""
 
@@ -29012,4 +29000,94 @@ msgid "iOS gives no browser these details. This does not affect the forms."
 msgstr ""
 
 msgid "This browser does not give these details. This does not affect the forms."
+msgstr ""
+
+msgid "Server requests"
+msgstr ""
+
+msgid "Device location"
+msgstr ""
+
+msgid "Reload the page. If this message comes back, a content or script blocker, or an optimization of this site, is stopping the plugin's scripts: turn the blocker off for this site or open the page in another browser. The forms will not work here until it does."
+msgstr ""
+
+msgid "The test could not run in this browser"
+msgstr ""
+
+msgid "Sending a test request…"
+msgstr ""
+
+msgid "Reached, answered in %s ms"
+msgstr ""
+
+msgid "Refused by the server or a firewall (code %s): sending a form will fail."
+msgstr ""
+
+msgid "Did not reach the server: sending a form will fail."
+msgstr ""
+
+msgid "A firewall or security service in front of the site refused the request. Try another network (mobile data instead of Wi-Fi, or the other way round); if it keeps failing, send the copied results to the site administrator."
+msgstr ""
+
+msgid "A content blocker, a VPN or the network stopped the request. Turn the blocker off for this site, or try another network, and reload this page."
+msgstr ""
+
+msgid "Did not load: a content or script blocker may be stopping it."
+msgstr ""
+
+msgid "Turn the content or script blocker off for this site (or add the site to its allowed list) and reload this page. A form with a device limit cannot be sent while it is blocked."
+msgstr ""
+
+msgid "Did not load: a content or script blocker may be stopping it. The forms cannot be sent."
+msgstr ""
+
+msgid "Turn the content or script blocker off for this site (or add the site to its allowed list) and reload this page."
+msgstr ""
+
+msgid "%1$s · %2$s"
+msgstr ""
+
+msgid "Running the checks…"
+msgstr ""
+
+msgid "This device is ready"
+msgstr ""
+
+msgid "Every check passed: the forms should work here."
+msgstr ""
+
+msgid "Ready, with warnings"
+msgstr ""
+
+msgid "The forms should work, but the items in yellow may get in the way. Open \"How to fix it\" on each one."
+msgstr ""
+
+msgid "The forms may not work here"
+msgstr ""
+
+msgid "Fix the items in red: open \"How to fix it\" on each one, then reload this page."
+msgstr ""
+
+msgid "Plugin version: %s"
+msgstr ""
+
+msgid "Captcha mode: %s"
+msgstr ""
+
+msgid "math question"
+msgstr ""
+
+msgid "ALTCHA"
+msgstr ""
+
+msgid "ALTCHA with a math question when JavaScript is off"
+msgstr ""
+
+msgid "Device limit: %s"
+msgstr ""
+
+msgid "off"
+msgstr ""
+
+msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result, grouped by subject: secure connection, connection, whether a request reaches the server (and how long it took), the browser by name and version, cookies, local storage, the captcha (what ALTCHA needs, and whether its widget loaded), the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, the device's location (the permission and, when the visitor asks, how precise it is), screen, the theme in use and, last, PDF download. A summary above the rows says whether the device is ready, ready with warnings, or may fail. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. A content or script blocker is named where it stops the server request, the device ID or the captcha; when it stops the test's own scripts, the page says so after a few seconds without them. Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the plugin's version, the captcha mode, whether the device limit is on, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
 msgstr ""

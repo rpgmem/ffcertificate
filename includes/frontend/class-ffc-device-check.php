@@ -22,7 +22,10 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend;
 
 use FreeFormCertificate\Core\Button;
+use FreeFormCertificate\Core\Captcha\AltchaCaptcha;
+use FreeFormCertificate\Core\Captcha\CaptchaProvider;
 use FreeFormCertificate\Core\Icons;
+use FreeFormCertificate\Core\Notice;
 use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -40,12 +43,16 @@ final class DeviceCheck {
 	public const QUERY_VAR = 'ffc_device_check';
 
 	/**
-	 * The checks, in the order shown, each with its icon.
+	 * The checks, in the order shown, each with its icon: the network, the
+	 * browser, the forms' protections, the device's settings, the display,
+	 * and the PDF last, as the step a form ends with (#2062).
 	 *
 	 * @var array<string, string>
 	 */
 	private const CHECKS = array(
 		'secure'     => 'lock',
+		'connection' => 'wifi',
+		'server'     => 'server',
 		'browser'    => 'monitor',
 		'cookies'    => 'cookie',
 		'storage'    => 'database',
@@ -54,11 +61,9 @@ final class DeviceCheck {
 		'clock'      => 'clock',
 		'locale'     => 'globe',
 		'location'   => 'map-pin',
-		'accuracy'   => 'map-pin',
-		'pdf'        => 'file',
 		'screen'     => 'layout',
-		'connection' => 'wifi',
 		'theme'      => 'palette',
+		'pdf'        => 'file',
 	);
 
 	/**
@@ -88,6 +93,7 @@ final class DeviceCheck {
 	private static function labels(): array {
 		return array(
 			'secure'     => __( 'Secure connection', 'ffcertificate' ),
+			'server'     => __( 'Server requests', 'ffcertificate' ),
 			'browser'    => __( 'Browser', 'ffcertificate' ),
 			'cookies'    => __( 'Cookies', 'ffcertificate' ),
 			'storage'    => __( 'Local storage', 'ffcertificate' ),
@@ -95,12 +101,11 @@ final class DeviceCheck {
 			'device'     => __( 'Device ID', 'ffcertificate' ),
 			'clock'      => __( 'Device clock', 'ffcertificate' ),
 			'locale'     => __( 'Time zone and language', 'ffcertificate' ),
-			'location'   => __( 'Location permission', 'ffcertificate' ),
-			'accuracy'   => __( 'Location precision', 'ffcertificate' ),
-			'pdf'        => __( 'PDF download', 'ffcertificate' ),
+			'location'   => __( 'Device location', 'ffcertificate' ),
 			'screen'     => __( 'Screen', 'ffcertificate' ),
 			'connection' => __( 'Connection', 'ffcertificate' ),
 			'theme'      => __( 'Theme', 'ffcertificate' ),
+			'pdf'        => __( 'PDF download', 'ffcertificate' ),
 		);
 	}
 
@@ -123,7 +128,22 @@ final class DeviceCheck {
 		$html  = '<div class="ffc-shortcode ffc-device-check">';
 		$html .= '<h2 class="ffc-device-check-title">' . Icons::svg( 'monitor', 24 ) . esc_html__( 'Test my device', 'ffcertificate' ) . '</h2>';
 		$html .= '<p class="ffc-device-check-intro">' . esc_html__( 'This page runs the checks a form runs before it is used and shows each result. Nothing is sent or stored, and your position is never shown: only how precise it is.', 'ffcertificate' ) . '</p>';
-		$html .= '<noscript><p class="ffc-device-check-noscript">' . esc_html__( 'JavaScript is off in this browser. The forms need it: turn it on and reload this page.', 'ffcertificate' ) . '</p></noscript>';
+		$html .= '<noscript>' . Notice::render( 'warning', 'warning', __( 'JavaScript is off in this browser. The forms need it: turn it on and reload this page.', 'ffcertificate' ), '', array( 'hook' => BrowserGate::NOSCRIPT_HOOK ) ) . '</noscript>';
+		// Shown by the stylesheet alone when the test's script has not
+		// started after a while: a blocker that stops the script cannot be
+		// reported by the script (#2062).
+		$html .= '<div class="ffc-device-check-stalled">' . Notice::render(
+			'warning',
+			'warning',
+			__( 'Reload the page. If this message comes back, a content or script blocker, or an optimization of this site, is stopping the plugin\'s scripts: turn the blocker off for this site or open the page in another browser. The forms will not work here until it does.', 'ffcertificate' ),
+			__( 'The test could not run in this browser', 'ffcertificate' ),
+			array(
+				'hook' => 'device-check-stalled',
+				'role' => 'alert',
+			)
+		) . '</div>';
+		// The overall verdict, drawn by the script from the rows (#2062).
+		$html .= '<div class="ffc-device-check-verdict" aria-live="polite"></div>';
 		$html .= '<ul class="ffc-device-check-list">' . $rows . '</ul>';
 		$html .= '<div class="ffc-device-check-actions">';
 		$html .= Button::html(
@@ -173,7 +193,6 @@ final class DeviceCheck {
 			'locationDenied'         => __( 'Blocked: allow it in the browser settings.', 'ffcertificate' ),
 			'locationUnknown'        => __( 'The browser does not say until it asks.', 'ffcertificate' ),
 			'noGeolocation'          => __( 'This browser cannot give a location.', 'ffcertificate' ),
-			'accuracyIdle'           => __( 'Press "Test my location".', 'ffcertificate' ),
 			'accuracyReading'        => __( 'Reading your location…', 'ffcertificate' ),
 			/* translators: 1: margin of error in metres, 2: seconds the reading took. */
 			'accuracyResult'         => __( 'About %1$s m, read in %2$s s', 'ffcertificate' ),
@@ -259,6 +278,38 @@ final class DeviceCheck {
 			'helpDataSaver'          => __( 'Data saver is on: some scripts may not load. Turn it off (Lite mode) in the browser\'s or the phone\'s settings, then reload this page.', 'ffcertificate' ),
 			'helpConnectionIos'      => __( 'iOS gives no browser these details. This does not affect the forms.', 'ffcertificate' ),
 			'helpConnectionBrowser'  => __( 'This browser does not give these details. This does not affect the forms.', 'ffcertificate' ),
+			'serverReading'          => __( 'Sending a test request…', 'ffcertificate' ),
+			/* translators: %s: milliseconds the request took. */
+			'serverOk'               => __( 'Reached, answered in %s ms', 'ffcertificate' ),
+			/* translators: %s: the HTTP status code. */
+			'serverRefused'          => __( 'Refused by the server or a firewall (code %s): sending a form will fail.', 'ffcertificate' ),
+			'serverBlocked'          => __( 'Did not reach the server: sending a form will fail.', 'ffcertificate' ),
+			'helpServerRefused'      => __( 'A firewall or security service in front of the site refused the request. Try another network (mobile data instead of Wi-Fi, or the other way round); if it keeps failing, send the copied results to the site administrator.', 'ffcertificate' ),
+			'helpServerBlocked'      => __( 'A content blocker, a VPN or the network stopped the request. Turn the blocker off for this site, or try another network, and reload this page.', 'ffcertificate' ),
+			'deviceBlocked'          => __( 'Did not load: a content or script blocker may be stopping it.', 'ffcertificate' ),
+			'helpDeviceBlocked'      => __( 'Turn the content or script blocker off for this site (or add the site to its allowed list) and reload this page. A form with a device limit cannot be sent while it is blocked.', 'ffcertificate' ),
+			'captchaNotLoaded'       => __( 'Did not load: a content or script blocker may be stopping it. The forms cannot be sent.', 'ffcertificate' ),
+			'helpCaptchaBlocked'     => __( 'Turn the content or script blocker off for this site (or add the site to its allowed list) and reload this page.', 'ffcertificate' ),
+			/* translators: 1: the permission's answer, 2: the precision read. */
+			'locationWithAccuracy'   => __( '%1$s · %2$s', 'ffcertificate' ),
+			'verdictChecking'        => __( 'Running the checks…', 'ffcertificate' ),
+			'verdictOkTitle'         => __( 'This device is ready', 'ffcertificate' ),
+			'verdictOk'              => __( 'Every check passed: the forms should work here.', 'ffcertificate' ),
+			'verdictWarnTitle'       => __( 'Ready, with warnings', 'ffcertificate' ),
+			'verdictWarn'            => __( 'The forms should work, but the items in yellow may get in the way. Open "How to fix it" on each one.', 'ffcertificate' ),
+			'verdictFailTitle'       => __( 'The forms may not work here', 'ffcertificate' ),
+			'verdictFail'            => __( 'Fix the items in red: open "How to fix it" on each one, then reload this page.', 'ffcertificate' ),
+			/* translators: %s: the plugin's version. */
+			'summaryVersion'         => __( 'Plugin version: %s', 'ffcertificate' ),
+			/* translators: %s: the captcha mode. */
+			'summaryCaptcha'         => __( 'Captcha mode: %s', 'ffcertificate' ),
+			'captchaModeMath'        => __( 'math question', 'ffcertificate' ),
+			'captchaModeAltcha'      => __( 'ALTCHA', 'ffcertificate' ),
+			'captchaModeBoth'        => __( 'ALTCHA with a math question when JavaScript is off', 'ffcertificate' ),
+			/* translators: %s: on or off. */
+			'summaryDeviceLimit'     => __( 'Device limit: %s', 'ffcertificate' ),
+			'summaryOn'              => __( 'on', 'ffcertificate' ),
+			'summaryOff'             => __( 'off', 'ffcertificate' ),
 		);
 	}
 
@@ -278,7 +329,24 @@ final class DeviceCheck {
 		if ( wp_script_is( 'ffc-device-signals', 'enqueued' ) ) {
 			$deps[] = 'ffc-device-signals';
 		}
+		// The captcha row asks whether the ALTCHA widget defined itself, so
+		// the page loads the bundle the forms use, before the script (#2062).
+		// Only the bundle: the test never draws a challenge.
+		$captcha = CaptchaProvider::resolve()->id();
+		if ( 'math' !== $captcha ) {
+			if ( ! wp_script_is( 'ffc-altcha', 'registered' ) ) {
+				AltchaCaptcha::register_assets();
+			}
+			$deps[] = 'ffc-altcha';
+		}
 		wp_enqueue_script( 'ffc-device-check', FFC_PLUGIN_URL . "assets/js/ffc-device-check{$s}.js", $deps, FFC_VERSION, true );
-		wp_localize_script( 'ffc-device-check', 'ffcDeviceCheck', array( 'strings' => self::strings() ) );
+		wp_localize_script(
+			'ffc-device-check',
+			'ffcDeviceCheck',
+			array(
+				'captcha' => $captcha,
+				'strings' => self::strings(),
+			)
+		);
 	}
 }
