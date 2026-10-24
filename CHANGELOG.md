@@ -37,6 +37,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificate forms check the visitor's browser first** (#2030). Every form runs the pre-flight: an app's own browser is asked to switch (with "Continue anyway"), one missing what the form needs is stopped, cookies are checked on every form and ALTCHA-only needs HTTPS. Settings → Certificates → Browser check turns it off.
 - **The public CSV download checks the browser too** (#2030). An app's own browser is asked to open the page in the phone's browser, with "Continue anyway", as on a certificate form, under the same Settings → Certificates → Browser check; the in-app banner it had is replaced.
 - **The verification page can test the visitor's device** (#2040). `[ffc_verification]` with `?ffc_device_check=1` shows, in the site's theme, each check a form runs (secure connection, browser, cookies, location permission and precision, PDF) and copies the results for support; the position is never shown. The page links there from its footer.
+- **The device test names the browser and its version** (#2052). "Ordinary browser" becomes, for instance, "Chrome (v. 129.0.6668.81)", "Brave / Chromium (v. …)" or "Opera 103 / Chromium (v. 117.…)", read from the brands a Chromium browser declares and then from the user agent; an app's own browser names the app, and the PDF row says what it checked.
 
 ### Fixed
 

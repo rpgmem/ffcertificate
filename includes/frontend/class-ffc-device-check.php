@@ -146,7 +146,9 @@ final class DeviceCheck {
 			'secureNo'        => __( 'No: the browser gives no location here, and forms that ask for it will stop.', 'ffcertificate' ),
 			/* translators: %s: the kind of device (iPhone or iPad, Android, computer). */
 			'browserOk'       => __( 'Ordinary browser (%s)', 'ffcertificate' ),
-			/* translators: %s: the kind of device (iPhone or iPad, Android, computer). */
+			/* translators: 1: the browser's name and version, such as "Chrome (v. 129.0.6668.81)", 2: the kind of device (iPhone or iPad, Android, computer). */
+			'browserNamed'    => __( '%1$s — %2$s', 'ffcertificate' ),
+			/* translators: %s: the kind of device (iPhone or iPad, Android, computer), after the app's name when it is known. */
 			'browserInApp'    => __( 'An app\'s own browser (%s): the location and downloads often fail. Open the page in the phone\'s browser.', 'ffcertificate' ),
 			'cookiesYes'      => __( 'Allowed', 'ffcertificate' ),
 			'cookiesNo'       => __( 'Blocked: sending a form may fail.', 'ffcertificate' ),
@@ -162,7 +164,7 @@ final class DeviceCheck {
 			'accuracyDenied'  => __( 'Refused by the browser or by you.', 'ffcertificate' ),
 			'accuracyFailed'  => __( 'Could not be read: move to an open area and try again.', 'ffcertificate' ),
 			'accuracyTimeout' => __( 'Took too long: move to an open area and try again.', 'ffcertificate' ),
-			'pdfYes'          => __( 'Supported', 'ffcertificate' ),
+			'pdfYes'          => __( 'Supported: this browser can build and save the PDF.', 'ffcertificate' ),
 			/* translators: %s: the browser features that are missing. */
 			'pdfNo'           => __( 'Not supported: missing %s.', 'ffcertificate' ),
 			'copied'          => __( 'Copied', 'ffcertificate' ),
