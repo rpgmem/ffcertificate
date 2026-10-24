@@ -36,7 +36,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: the participant's dashboard shows a post-event form waiting** (#2028). A booking whose form is open, the person eligible and not yet answered shows Fill in the form with their own link and the closing time; a notice counts the forms waiting. Viewing as a user shows the form without its link.
 - **Certificate forms check the visitor's browser first** (#2030). Every form runs the pre-flight: an app's own browser is asked to switch (with "Continue anyway"), one missing what the form needs is stopped, cookies are checked on every form and ALTCHA-only needs HTTPS. Settings → Certificates → Browser check turns it off.
 - **The public CSV download checks the browser too** (#2030). An app's own browser is asked to open the page in the phone's browser, with "Continue anyway", as on a certificate form, under the same Settings → Certificates → Browser check; the in-app banner it had is replaced.
-
+- **The verification page can test the visitor's device** (#2040). `[ffc_verification]` with `?ffc_device_check=1` shows, in the site's theme, each check a form runs (secure connection, browser, cookies, location permission and precision, PDF) and copies the results for support; the position is never shown. The page links there from its footer.
 
 ### Fixed
 
@@ -86,11 +86,6 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **A visitor's position is no longer written to the activity log** (#2040). Every geofence area check logged the coordinates it compared — each audience check-in's exact GPS position, and each IP's resolved position — whenever the log was on. Checks now log the decision only, and only with geolocation debugging on; the "Activity Log: Delete Logged Locations" migration removes the old entries.
 - **The server decides the GPS area of a certificate submission** (#2040). Only the browser checked the GPS before, so a submission posted without it passed. The form now sends its reading, and the server checks it against the areas; a submission with no reading, including through the forms API, follows the "When GPS fails" case "Browser does not support geolocation".
-
-
-### Security
-
-- **A visitor's position is no longer written to the activity log** (#2040). Every geofence area check logged the coordinates it compared — each audience check-in's exact GPS position, and each IP's resolved position — whenever the log was on. Checks now log the decision only, and only with geolocation debugging on; the "Activity Log: Delete Logged Locations" migration removes the old entries.
 
 
 ## [6.41.0] (2026-10-19) — `2a4acb0a`

@@ -111,6 +111,7 @@ class TypographyTokensTest extends TestCase {
 		// that makes a tag under `.ffc-shortcode` take its parent's step
 		// instead of the theme's. `SafetyNetTypographyTest` pins it.
 		'ffc-common.css'                   => 2,
+		'ffc-device-check.css'             => 0,
 
 		// `ffc-pdf-core.css` stays entirely literal, for two distinct reasons.
 		// The six h1-h6 rules redeclare the user agent's default sizes

@@ -28787,3 +28787,117 @@ msgstr "Este navegador não consegue gerar o comprovante"
 
 msgid "The receipt PDF is built in the visitor's browser, after booking or from the receipt page, and the same browser check a certificate form runs comes first: an app's own browser (Instagram, WhatsApp and others), where saving the file often fails, is asked to open the page in the phone's browser, with \"Continue anyway\", which then downloads it; a browser missing what the PDF needs is stopped. Booking itself never waits on this. Settings → Certificates → Browser check turns it off, and each stop is written to the Activity Log as a pre-flight block naming the appointment."
 msgstr "O PDF do comprovante é gerado no navegador do visitante, após o agendamento ou na página do comprovante, e antes vem a mesma verificação de navegador que um formulário de certificado executa: o navegador próprio de um aplicativo (Instagram, WhatsApp e outros), onde salvar o arquivo costuma falhar, recebe o pedido de abrir a página no navegador do celular, com \"Continuar mesmo assim\", que então faz o download; um navegador sem o que o PDF precisa é barrado. O agendamento em si nunca espera por isso. Configurações → Certificados → Verificação do navegador a desliga, e cada bloqueio é gravado no registro de atividades como um bloqueio de pré-verificação, indicando o agendamento."
+
+msgid "About %1$s m, read in %2$s s"
+msgstr "Cerca de %1$s m, lida em %2$s s"
+
+msgid "Allowed"
+msgstr "Permitido"
+
+msgid "An app's own browser (%s): the location and downloads often fail. Open the page in the phone's browser."
+msgstr "Navegador próprio de um aplicativo (%s): a localização e os downloads costumam falhar. Abra a página no navegador do celular."
+
+msgid "Android"
+msgstr "Android"
+
+msgid "Back to certificate verification"
+msgstr "Voltar à verificação de certificados"
+
+msgid "Blocked: allow it in the browser settings."
+msgstr "Bloqueada: permita nas configurações do navegador."
+
+msgid "Blocked: sending a form may fail."
+msgstr "Bloqueados: o envio de um formulário pode falhar."
+
+msgid "Browser"
+msgstr "Navegador"
+
+msgid "Checking…"
+msgstr "Verificando…"
+
+msgid "Cookies"
+msgstr "Cookies"
+
+msgid "Copied"
+msgstr "Copiado"
+
+msgid "Copy the results"
+msgstr "Copiar os resultados"
+
+msgid "Could not be read: move to an open area and try again."
+msgstr "Não foi possível ler: vá para um local aberto e tente de novo."
+
+msgid "Could not copy: take a screenshot instead."
+msgstr "Não foi possível copiar: faça uma captura de tela."
+
+msgid "JavaScript is off in this browser. The forms need it: turn it on and reload this page."
+msgstr "O JavaScript está desativado neste navegador. Os formulários precisam dele: ative-o e recarregue esta página."
+
+msgid "Location permission"
+msgstr "Permissão de localização"
+
+msgid "Location precision"
+msgstr "Precisão da localização"
+
+msgid "No: the browser gives no location here, and forms that ask for it will stop."
+msgstr "Não: o navegador não fornece a localização aqui, e os formulários que a pedem vão parar."
+
+msgid "Not decided yet: the browser will ask."
+msgstr "Ainda não decidida: o navegador vai perguntar."
+
+msgid "Not supported: missing %s."
+msgstr "Sem suporte: falta %s."
+
+msgid "Ordinary browser (%s)"
+msgstr "Navegador comum (%s)"
+
+msgid "PDF download"
+msgstr "Download do PDF"
+
+msgid "Press \"Test my location\"."
+msgstr "Toque em \"Testar minha localização\"."
+
+msgid "Problems with a form? Test your device"
+msgstr "Problemas com um formulário? Teste seu dispositivo"
+
+msgid "Refused by the browser or by you."
+msgstr "Recusada pelo navegador ou por você."
+
+msgid "Secure connection"
+msgstr "Conexão segura"
+
+msgid "Supported"
+msgstr "Com suporte"
+
+msgid "Test my device"
+msgstr "Testar meu dispositivo"
+
+msgid "Test my location"
+msgstr "Testar minha localização"
+
+msgid "The browser does not say until it asks."
+msgstr "O navegador só informa quando perguntar."
+
+msgid "This browser cannot give a location."
+msgstr "Este navegador não consegue fornecer a localização."
+
+msgid "This page runs the checks a form runs before it is used and shows each result. Nothing is sent or stored, and your position is never shown: only how precise it is."
+msgstr "Esta página executa as verificações que um formulário faz antes de ser usado e mostra cada resultado. Nada é enviado nem guardado, e a sua posição nunca é exibida: apenas a precisão dela."
+
+msgid "To ask for help, send a screenshot of this page or paste the copied results."
+msgstr "Para pedir ajuda, envie uma captura desta página ou cole os resultados copiados."
+
+msgid "Took too long: move to an open area and try again."
+msgstr "Demorou demais: vá para um local aberto e tente de novo."
+
+msgid "computer"
+msgstr "computador"
+
+msgid "iPhone or iPad"
+msgstr "iPhone ou iPad"
+
+msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result: secure connection, browser, cookies, location permission, PDF download and, when the visitor asks, how precise the location is. Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
+msgstr "A página de verificação ([ffc_verification]) tem um modo \"Testar meu dispositivo\", com link no rodapé, acessado ao acrescentar ?ffc_device_check=1 ao endereço. Ele executa essas verificações no próprio dispositivo do visitante e mostra cada resultado: conexão segura, navegador, cookies, permissão de localização, download do PDF e, quando o visitante pede, a precisão da localização. Nada é enviado nem guardado, e a posição em si nunca é exibida. O botão \"Copiar os resultados\" coloca na área de transferência os resultados, a identificação do navegador e o horário, para uma mensagem a quem dá suporte ao visitante."
+
+msgid "With ?ffc_device_check=1 in the address it shows the \"Test my device\" checks instead; the page links there from its footer."
+msgstr "Com ?ffc_device_check=1 no endereço, mostra as verificações de \"Testar meu dispositivo\" no lugar do formulário; a página tem um link para lá no rodapé."

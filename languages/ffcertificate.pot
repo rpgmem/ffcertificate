@@ -28704,3 +28704,117 @@ msgstr ""
 
 msgid "The receipt PDF is built in the visitor's browser, after booking or from the receipt page, and the same browser check a certificate form runs comes first: an app's own browser (Instagram, WhatsApp and others), where saving the file often fails, is asked to open the page in the phone's browser, with \"Continue anyway\", which then downloads it; a browser missing what the PDF needs is stopped. Booking itself never waits on this. Settings → Certificates → Browser check turns it off, and each stop is written to the Activity Log as a pre-flight block naming the appointment."
 msgstr ""
+
+msgid "About %1$s m, read in %2$s s"
+msgstr ""
+
+msgid "Allowed"
+msgstr ""
+
+msgid "An app's own browser (%s): the location and downloads often fail. Open the page in the phone's browser."
+msgstr ""
+
+msgid "Android"
+msgstr ""
+
+msgid "Back to certificate verification"
+msgstr ""
+
+msgid "Blocked: allow it in the browser settings."
+msgstr ""
+
+msgid "Blocked: sending a form may fail."
+msgstr ""
+
+msgid "Browser"
+msgstr ""
+
+msgid "Checking…"
+msgstr ""
+
+msgid "Cookies"
+msgstr ""
+
+msgid "Copied"
+msgstr ""
+
+msgid "Copy the results"
+msgstr ""
+
+msgid "Could not be read: move to an open area and try again."
+msgstr ""
+
+msgid "Could not copy: take a screenshot instead."
+msgstr ""
+
+msgid "JavaScript is off in this browser. The forms need it: turn it on and reload this page."
+msgstr ""
+
+msgid "Location permission"
+msgstr ""
+
+msgid "Location precision"
+msgstr ""
+
+msgid "No: the browser gives no location here, and forms that ask for it will stop."
+msgstr ""
+
+msgid "Not decided yet: the browser will ask."
+msgstr ""
+
+msgid "Not supported: missing %s."
+msgstr ""
+
+msgid "Ordinary browser (%s)"
+msgstr ""
+
+msgid "PDF download"
+msgstr ""
+
+msgid "Press \"Test my location\"."
+msgstr ""
+
+msgid "Problems with a form? Test your device"
+msgstr ""
+
+msgid "Refused by the browser or by you."
+msgstr ""
+
+msgid "Secure connection"
+msgstr ""
+
+msgid "Supported"
+msgstr ""
+
+msgid "Test my device"
+msgstr ""
+
+msgid "Test my location"
+msgstr ""
+
+msgid "The browser does not say until it asks."
+msgstr ""
+
+msgid "This browser cannot give a location."
+msgstr ""
+
+msgid "This page runs the checks a form runs before it is used and shows each result. Nothing is sent or stored, and your position is never shown: only how precise it is."
+msgstr ""
+
+msgid "To ask for help, send a screenshot of this page or paste the copied results."
+msgstr ""
+
+msgid "Took too long: move to an open area and try again."
+msgstr ""
+
+msgid "computer"
+msgstr ""
+
+msgid "iPhone or iPad"
+msgstr ""
+
+msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result: secure connection, browser, cookies, location permission, PDF download and, when the visitor asks, how precise the location is. Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
+msgstr ""
+
+msgid "With ?ffc_device_check=1 in the address it shows the \"Test my device\" checks instead; the page links there from its footer."
+msgstr ""

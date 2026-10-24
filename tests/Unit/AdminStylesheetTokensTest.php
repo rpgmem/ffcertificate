@@ -124,6 +124,7 @@ final class AdminStylesheetTokensTest extends TestCase {
 		// is white in both themes by decision, so what is drawn on it cannot
 		// follow a token that lightens in the dark theme.
 		'ffc-common.css'                => 124,
+		'ffc-device-check.css'          => 0,
 		'ffc-code-editor-dark.css'      => 35,
 		// 12 -> 10 in #1881: the button loading state left with its two white
 		// literals; it is a ring in the text colour in ffc-common.css now.

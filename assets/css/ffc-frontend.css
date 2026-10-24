@@ -653,6 +653,13 @@ details.ffc-consent-description > p {
     font-size: var(--ffc-font-size-lg);
 }
 
+/* The link to the "Test my device" mode (#2040). */
+.ffc-shortcode .ffc-verification-device-check {
+    margin: var(--ffc-spacing-xl) 0 0;
+    font-size: var(--ffc-font-size-sm);
+    text-align: center;
+}
+
 /* ============================================
    VERIFICATION MANUAL SECTION
    ============================================ */

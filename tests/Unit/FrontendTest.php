@@ -239,6 +239,47 @@ class FrontendTest extends TestCase {
 		$this->assertContains( 'ffc-geofence-frontend', $enqueued_scripts );
 	}
 
+	/**
+	 * The device test's script and sheet load on the verification page only in
+	 * its "Test my device" mode (#2040).
+	 *
+	 * @return void
+	 */
+	public function test_device_check_assets_load_only_in_device_check_mode(): void {
+		global $post;
+		$post = Mockery::mock( 'WP_Post' );
+		$post->post_content = '[ffc_verification]';
+
+		Functions\when( 'has_shortcode' )->alias( function ( $content, $tag ) {
+			return $tag === 'ffc_verification' && strpos( $content, '[ffc_verification' ) !== false;
+		} );
+
+		$run = function () {
+			$enqueued = array();
+			Functions\when( 'wp_enqueue_script' )->alias( function () use ( &$enqueued ) {
+				$enqueued[] = func_get_arg( 0 );
+			} );
+			Functions\when( 'wp_enqueue_style' )->alias( function () use ( &$enqueued ) {
+				$enqueued[] = func_get_arg( 0 );
+			} );
+			( new Frontend( $this->makeSubmissionHandlerMock() ) )->frontend_assets();
+			return $enqueued;
+		};
+
+		unset( $_GET['ffc_device_check'] );
+		$this->assertNotContains( 'ffc-device-check', $run() );
+
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_localize_script' )->justReturn( true );
+		$_GET['ffc_device_check'] = '1';
+		try {
+			$this->assertContains( 'ffc-device-check', $run() );
+		} finally {
+			unset( $_GET['ffc_device_check'] );
+		}
+	}
+
 	// ==================================================================
 	// frontend_assets() — geofence config localized
 	// ==================================================================
