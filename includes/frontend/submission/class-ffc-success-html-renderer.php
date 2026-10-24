@@ -38,9 +38,10 @@ final class SuccessHtmlRenderer {
 	 * @param string               $success_message Success message.
 	 * @param int                  $submission_id Submission ID (used to surface the magic link in the success card; 0 to skip).
 	 * @param object|null          $submission_handler Handler that knows how to ensure/load the submission's magic token.
+	 * @param string               $pdf_filename Name the PDF is saved under, so the "where is my file" hint names it; '' leaves the name out.
 	 * @return string HTML content
 	 */
-	public static function generate_success_html( array $submission_data, int $form_id, int|string $submission_date, string $success_message = '', int $submission_id = 0, ?object $submission_handler = null ): string {
+	public static function generate_success_html( array $submission_data, int $form_id, int|string $submission_date, string $success_message = '', int $submission_id = 0, ?object $submission_handler = null, string $pdf_filename = '' ): string {
 		// Get form configuration.
 		$form_config = get_post_meta( $form_id, '_ffc_form_config', true );
 		if ( ! is_array( $form_config ) ) {

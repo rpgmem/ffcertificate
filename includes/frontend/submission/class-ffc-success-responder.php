@@ -93,7 +93,8 @@ class SuccessResponder {
 				$ctx->real_submission_date,
 				$msg,
 				$ctx->submission_id,
-				$this->submission_handler
+				$this->submission_handler,
+				is_array( $ctx->pdf_data ) && isset( $ctx->pdf_data['filename'] ) ? (string) $ctx->pdf_data['filename'] : ''
 			),
 		);
 

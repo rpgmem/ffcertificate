@@ -72,6 +72,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **"Location blocked" only when the browser really blocks it** (#2048). Opera for Android reports the location as blocked while it gives the position, so GPS forms showed a false block, the check-in a false error and the device test "Blocked". A reported block is now confirmed by one quick read; the position is discarded.
 - **Scripts run again for visitors on sites that minify with LiteSpeed Cache** (#2056). Its minifier cut a regex literal ending in an escaped slash, which #2053 added, so the combined file stopped parsing and the device test stayed at "Checking…"; the three such literals are rewritten and a test refuses the shape.
 - **The device test names the connection honestly** (#2060). It showed the browser's speed estimate as a network generation, so a wired desktop read "4G"; it now reads one pair on every device, "Online/Speed: Wi-Fi / Fast (like 4G or better)", says when the browser does not tell and why, and the screen row says density, not zoom.
+- **The certificate's success card fits a phone and names the real file** (#2068). Below 768px the card no longer runs past the form's box, the Android hint names the file the PDF is saved under instead of "certificate.pdf", and the auth code's Copy button uses the form's font.
 
 ### Changed
 

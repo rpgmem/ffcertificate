@@ -1078,10 +1078,18 @@ details.ffc-consent-description > p {
    ============================================ */
 @media (max-width: 768px) {
     .ffc-shortcode.ffc-form-wrapper,
-    .ffc-shortcode.ffc-verification-container,
-    .ffc-shortcode .ffc-certificate-preview {
+    .ffc-shortcode.ffc-verification-container {
         padding: var(--ffc-spacing-2xl);
         margin: var(--ffc-spacing-xl);
+    }
+
+    /* The result card is already inside the form's own padded box: a side
+       margin on top of its full width pushed it past that box on a phone,
+       and a padding of its own inset the header. Its header, body and
+       actions carry their own padding, as on a wide screen. */
+    .ffc-shortcode .ffc-certificate-preview {
+        box-sizing: border-box;
+        margin: var(--ffc-spacing-xl) 0;
     }
 
     .ffc-shortcode .ffc-form-title,
@@ -1154,6 +1162,10 @@ details.ffc-consent-description > p {
     gap: var(--ffc-spacing-sm);
     flex-wrap: wrap;
     justify-content: flex-end;
+    /* The cell holds the copy button too, which inherits its font: the
+       monospace and the tracking belong to the code alone, below. */
+    font-family: inherit;
+    letter-spacing: normal;
 }
 
 /* The <code> wrapper itself — pinned by `SuccessHtmlTest`. Inherits
@@ -1162,6 +1174,8 @@ details.ffc-consent-description > p {
    `C-YK2K-RKFA-6EQC` never splits mid-string (regression from #354). */
 .ffc-shortcode .ffc-success-code {
     white-space: nowrap;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
 }
 
 /* Helper text below the auth-code row — full-width, muted. The hint

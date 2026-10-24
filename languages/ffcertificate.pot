@@ -1991,10 +1991,6 @@ msgstr ""
 msgid "and must be enabled there per form."
 msgstr ""
 
-#: templates/submission-success.php:102
-msgid "Android: open the Downloads folder, or use the Files app and look for \"certificate.pdf\"."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:123
 msgid "Another operator changed this notice's status moments ago. Reload to see the current state."
 msgstr ""
@@ -29166,4 +29162,9 @@ msgid "Range: 1 to 3. Default: 1.5."
 msgstr ""
 
 msgid "Keep the default unless you have a measured reason to change it. A higher value lets a reading count as inside while the visitor may be outside the area; a lower one refuses phones whose GPS is good but not exact."
+
+msgid "Android: open the Downloads folder, or use the Files app and look for \"%s\"."
+msgstr ""
+
+msgid "Android: open the Downloads folder, or use the Files app."
 msgstr ""
