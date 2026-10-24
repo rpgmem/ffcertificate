@@ -103,16 +103,21 @@ class SelfSchedulingShortcode {
 
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'jspdf' );
 
-		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-pdf-generator' );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-pdf-generator', 'ffc-preflight' );
 
 		// Enqueue calendar frontend scripts.
 		wp_enqueue_script(
 			'ffc-calendar-frontend',
 			FFC_PLUGIN_URL . "assets/js/ffc-calendar-frontend{$s}.js",
-			array( 'jquery', 'ffc-core', 'ffc-calendar-core', 'ffc-rate-limit', 'ffc-pdf-generator' ),
+			array( 'jquery', 'ffc-core', 'ffc-calendar-core', 'ffc-rate-limit', 'ffc-pdf-generator', 'ffc-preflight' ),
 			FFC_VERSION,
 			true
 		);
+
+		// The pre-flight's telemetry goes through the request helper, which
+		// reads its URL and nonce here (#2040). A page that also carries a
+		// certificate form prints the form's fuller `ffc_ajax` after this.
+		wp_localize_script( 'ffc-core', 'ffc_ajax', \FreeFormCertificate\Frontend\BrowserGate::request_config() );
 
 		// Dynamic fragments: refresh captcha + nonces on cached pages.
 		wp_enqueue_script( 'ffc-dynamic-fragments' );
@@ -122,9 +127,11 @@ class SelfSchedulingShortcode {
 			'ffc-calendar-frontend',
 			'ffcCalendar',
 			array(
-				'ajaxurl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'ffc_self_scheduling_nonce' ),
-				'strings' => array(
+				'ajaxurl'   => admin_url( 'admin-ajax.php' ),
+				'nonce'     => wp_create_nonce( 'ffc_self_scheduling_nonce' ),
+				// The browser step before the receipt download (#2040).
+				'preflight' => \FreeFormCertificate\Frontend\BrowserGate::script_config( AppointmentReceiptHandler::preflight_strings() ),
+				'strings'   => array(
 					'selectDate'           => __( 'Please select a date', 'ffcertificate' ),
 					'selectTime'           => __( 'Please select a time', 'ffcertificate' ),
 					'fillRequired'         => __( 'Please fill all required fields', 'ffcertificate' ),

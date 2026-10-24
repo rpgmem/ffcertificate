@@ -16,7 +16,6 @@ use FreeFormCertificate\Core\AssetHelper;
 use FreeFormCertificate\Core\AssetRegistry;
 use FreeFormCertificate\Core\Button;
 use FreeFormCertificate\Frontend\BrowserGate;
-use FreeFormCertificate\Settings\SettingsReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -325,35 +324,28 @@ class AudienceCheckinEndpoint {
 			AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-preflight' );
 			// The request helper reads its URL and nonce here; the
 			// pre-flight's telemetry goes through it.
-			wp_localize_script(
-				'ffc-core',
-				'ffc_ajax',
-				array(
-					'ajax_url' => admin_url( 'admin-ajax.php' ),
-					'nonce'    => wp_create_nonce( 'ffc_frontend_nonce' ),
-				)
-			);
+			wp_localize_script( 'ffc-core', 'ffc_ajax', BrowserGate::request_config() );
 			wp_enqueue_script( 'ffc-audience-checkin', FFC_PLUGIN_URL . "assets/js/ffc-audience-checkin{$s}.js", array( 'jquery', 'ffc-core', 'ffc-preflight' ), FFC_VERSION, true );
 			wp_localize_script(
 				'ffc-audience-checkin',
 				'ffcCheckin',
-				array(
-					'denied'       => __( 'Your location is needed to check in here. Allow it in your browser settings and try again.', 'ffcertificate' ),
-					'unavailable'  => __( 'Your location could not be read. Move to an open area and try again.', 'ffcertificate' ),
-					'locating'     => __( 'Reading your location…', 'ffcertificate' ),
-					'browserCheck' => SettingsReader::browser_check_enabled(),
-					'telemetry'    => array(
-						'type' => 'booking',
-						'id'   => $booking_id,
+				array_merge(
+					array(
+						'denied'      => __( 'Your location is needed to check in here. Allow it in your browser settings and try again.', 'ffcertificate' ),
+						'unavailable' => __( 'Your location could not be read. Move to an open area and try again.', 'ffcertificate' ),
+						'locating'    => __( 'Reading your location…', 'ffcertificate' ),
+						'telemetry'   => array(
+							'type' => 'booking',
+							'id'   => $booking_id,
+						),
 					),
-					'strings'      => array_merge(
-						BrowserGate::strings(),
+					BrowserGate::script_config(
 						array(
 							'secureRequired' => __( 'This check-in needs a secure connection (HTTPS) to read your location. Please tell the event organiser.', 'ffcertificate' ),
 							/* translators: %s: a list of browsers, such as "Safari, Chrome, Firefox or Edge". */
 							'inAppBody'      => __( 'You are viewing this page inside an app, where your location often cannot be read. Open it in %s.', 'ffcertificate' ),
 						)
-					),
+					)
 				)
 			);
 		}

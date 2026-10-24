@@ -34,6 +34,10 @@ class AppointmentReceiptHandlerTest extends TestCase {
 		Functions\when( 'add_filter' )->justReturn( true );
 		Functions\when( 'add_query_arg' )->justReturn( '/?ffc_appointment_receipt=1' );
 		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+		// The receipt page localizes the request helper's URL and nonce for
+		// the pre-flight telemetry (#2040).
+		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/admin-ajax.php' );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 
 	}
@@ -243,11 +247,17 @@ class AppointmentReceiptHandlerTest extends TestCase {
 
 		// wp_localize_script runs near the end of display_receipt(), after all
 		// the data prep + markup; throw there to stop before the caller's exit.
+		// The request helper's `ffc_ajax` is localized earlier, with the
+		// scripts (#2040); only the receipt's own data stops the run.
 		Functions\when( 'wp_localize_script' )->alias(
-			static function () {
-				throw new \RuntimeException( 'localized' );
+			static function ( $handle, $name ) {
+				if ( 'ffcReceiptData' === $name ) {
+					throw new \RuntimeException( 'localized' );
+				}
+				return true;
 			}
 		);
+		Functions\when( 'get_option' )->justReturn( array() );
 
 		$handler = new AppointmentReceiptHandler();
 

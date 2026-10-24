@@ -94,10 +94,10 @@
             // Manual receipt PDF download button
             $(document).on('click', '.ffc-download-receipt-btn', function(e) {
                 e.preventDefault();
-                var pdfData = $(this).data('pdfData');
+                var $btn = $(this);
+                var pdfData = $btn.data('pdfData');
                 if (pdfData && typeof window.ffcGeneratePDF === 'function') {
-                    var filename = pdfData.filename || 'appointment_receipt.pdf';
-                    window.ffcGeneratePDF(pdfData, filename);
+                    self.downloadReceipt($btn.closest('.ffc-receipt-actions'), pdfData, $btn.data('appointmentId'));
                 }
             });
         },
@@ -577,7 +577,7 @@
 
             // Attach pdf_data to download button
             if (data.pdf_data) {
-                $('.ffc-download-receipt-btn').data('pdfData', data.pdf_data);
+                $('.ffc-download-receipt-btn').data('pdfData', data.pdf_data).data('appointmentId', data.appointment_id);
             }
 
             // Show email confirmation notice only if email was actually sent
@@ -599,10 +599,39 @@
             // Auto-download PDF receipt if available
             if (data.pdf_data && typeof window.ffcGeneratePDF === 'function') {
                 setTimeout(function() {
-                    var filename = data.pdf_data.filename || 'appointment_receipt.pdf';
-                    window.ffcGeneratePDF(data.pdf_data, filename);
+                    self.downloadReceipt($('.ffc-receipt-actions'), data.pdf_data, data.appointment_id);
                 }, 500);
             }
+        },
+
+        /**
+         * Download the booking's receipt PDF, after the visitor pre-flight's
+         * browser step (#2040): an app's own browser often cannot save the
+         * file, so it is asked to switch, with "Continue anyway", and the
+         * button waits behind the notice.
+         *
+         * @param {jQuery} $actions     The receipt actions (the notice goes here).
+         * @param {object} pdfData      The receipt's PDF data.
+         * @param {number} appointmentId Appointment, for the log.
+         */
+        downloadReceipt: function($actions, pdfData, appointmentId) {
+            var go = function() {
+                window.ffcGeneratePDF(pdfData, pdfData.filename || 'appointment_receipt.pdf');
+            };
+            var preflight = window.FFC && window.FFC.Preflight;
+            if (!preflight || typeof preflight.beforeDownload !== 'function') {
+                go();
+                return;
+            }
+            var cfg = (window.ffcCalendar && window.ffcCalendar.preflight) || {};
+            preflight.beforeDownload({
+                wrapper: $actions,
+                trigger: '.ffc-download-receipt-btn',
+                telemetry: { type: 'receipt', id: appointmentId },
+                browserCheck: cfg.browserCheck,
+                strings: cfg.strings,
+                go: go
+            });
         },
 
 
