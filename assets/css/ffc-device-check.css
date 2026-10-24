@@ -246,3 +246,14 @@
 .ffc-device-check .ffc-device-check-group-actions {
     padding: 0 var(--ffc-spacing-md) var(--ffc-spacing-md);
 }
+
+@media (forced-colors: active) {
+    /* The chips: the text still says the state; the border gives them
+       their badge shape back when the system replaces the colours. */
+    .ffc-device-check .ffc-device-check-chip.is-ok,
+    .ffc-device-check .ffc-device-check-chip.is-warn,
+    .ffc-device-check .ffc-device-check-chip.is-fail,
+    .ffc-device-check .ffc-device-check-chip.is-info {
+        border: 1px solid CanvasText;
+    }
+}
