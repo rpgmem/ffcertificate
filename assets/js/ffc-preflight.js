@@ -250,6 +250,13 @@
 	 */
 	function run(names, ctx) {
 		var index = 0;
+		// A newer run on the same wrapper supersedes this one: a step that
+		// waits on something asynchronous (the GPS permission query) reads
+		// this and drops a stale answer, so a recheck while it waits does
+		// not draw its message twice.
+		if (ctx && ctx.wrapper && typeof ctx.wrapper.data === 'function') {
+			ctx.wrapper.data('ffcPreflightRun', (ctx.wrapper.data('ffcPreflightRun') || 0) + 1);
+		}
 		(function next() {
 			while (index < names.length) {
 				var step = steps[names[index++]];
@@ -331,6 +338,8 @@
 			onCta();
 		});
 		wrapper.find('.ffc-submission-form, .ffc-form').hide();
+		// One banner per hook: a second one replaces the first.
+		wrapper.find('[data-ffc-notice="' + hook + '"]').remove();
 		wrapper.prepend(notice);
 	}
 

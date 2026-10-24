@@ -72,12 +72,24 @@
             if (!preflightDone
                 && navigator.permissions
                 && typeof navigator.permissions.query === 'function') {
+                // The pre-flight run this query belongs to; a recheck that
+                // starts a newer one while it waits makes its answer stale.
+                const run = formWrapper.data('ffcPreflightRun');
+                const stale = function () {
+                    return formWrapper.data('ffcPreflightRun') !== run;
+                };
                 try {
                     navigator.permissions.query({ name: 'geolocation' })
                         .then(function (status) {
+                            if (stale()) {
+                                return;
+                            }
                             self.handleGpsPermissionStatus(formWrapper, config, status);
                         })
                         .catch(function () {
+                            if (stale()) {
+                                return;
+                            }
                             self.debug('Permissions.query rejected — falling through to native flow');
                             self.validateGeolocation(formWrapper, config, true);
                         });
