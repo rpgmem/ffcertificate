@@ -10,7 +10,7 @@
  *
  * The checks before a form is shown run as FFC.Preflight's queue
  * (ffc-preflight.js, #2030). This file registers the steps that are
- * geofence's — `datetime`, `secure` and `geo` — and runs the queue on
+ * geofence's — `datetime` and `geo` — and runs the queue on
  * every certificate form: one with no restriction arrives with a minimal
  * configuration (`Frontend\BrowserGate::form_config()`).
  *
@@ -108,6 +108,25 @@
                 // On unless the setting says otherwise.
                 browserCheck: global.browserCheck !== false,
                 altchaOnly: global.altchaOnly === true,
+                // Browsers give the location only to a secure page, and the
+                // ALTCHA widget refuses to run outside one. The composite
+                // captcha mode is not stopped: its math half works on any
+                // page. The queue's `secure` step decides; the message is
+                // the geofence's.
+                needsSecure: function(ctx) {
+                    return self.needsGps(ctx.config) || (!ctx.content && ctx.altchaOnly === true);
+                },
+                onInsecure: function(ctx) {
+                    self.debug('Blocked: page is not a secure context');
+                    const gps = self.needsGps(ctx.config);
+                    self.handleBlocked(
+                        ctx.wrapper,
+                        gps ? ctx.config.geo.hideMode : 'message',
+                        gps
+                            ? ctx.text('httpsRequired', 'This form requires a secure connection (HTTPS) to access your location. Please contact the site administrator.')
+                            : ctx.text('secureRequired', 'This form requires a secure connection (HTTPS). Please contact the site administrator.')
+                    );
+                },
                 text: function(key, fallback) {
                     return self.getString(key, fallback);
                 }
@@ -441,31 +460,6 @@
                 ctx.wrapper,
                 FFCGeofence.pickHideMode(ctx.config.datetime, result.phase),
                 ctx.config.datetime.message || result.message
-            );
-        }
-    });
-
-    window.FFC.Preflight.register('secure', {
-        // Browsers give the location only to a secure page, and the ALTCHA
-        // widget refuses to run outside one. The composite captcha mode is
-        // not stopped: its math half works on any page.
-        applies: function(ctx) {
-            return FFCGeofence.needsGps(ctx.config) || (!ctx.content && ctx.altchaOnly === true);
-        },
-        run: function(ctx, next) {
-            if (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-                next();
-                return;
-            }
-            FFCGeofence.debug('Blocked: page not served over HTTPS');
-            window.FFC.Preflight.log(ctx.wrapper, 'secure');
-            const gps = FFCGeofence.needsGps(ctx.config);
-            FFCGeofence.handleBlocked(
-                ctx.wrapper,
-                gps ? ctx.config.geo.hideMode : 'message',
-                gps
-                    ? ctx.text('httpsRequired', 'This form requires a secure connection (HTTPS) to access your location. Please contact the site administrator.')
-                    : ctx.text('secureRequired', 'This form requires a secure connection (HTTPS). Please contact the site administrator.')
             );
         }
     });

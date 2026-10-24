@@ -433,9 +433,20 @@ class AdminActivityLogPage {
 
 		$reason = isset( $context['reason'] ) ? (string) $context['reason'] : '';
 
+		// A form's row keeps `form_id`; any other names its type (#2040).
+		$labels = array(
+			'booking'      => __( 'Booking ID', 'ffcertificate' ),
+			'csv_download' => __( 'CSV download page ID', 'ffcertificate' ),
+			'receipt'      => __( 'Appointment ID', 'ffcertificate' ),
+		);
+		$type   = isset( $context['type'] ) ? (string) $context['type'] : 'form';
+		$about  = isset( $labels[ $type ] )
+			? array( $labels[ $type ], isset( $context['id'] ) ? (string) (int) $context['id'] : '' )
+			: array( __( 'Form ID', 'ffcertificate' ), isset( $context['form_id'] ) ? (string) (int) $context['form_id'] : '' );
+
 		$rows = array(
 			array( __( 'Reason', 'ffcertificate' ), self::get_preflight_reason_label( $reason ) ),
-			array( __( 'Form ID', 'ffcertificate' ), isset( $context['form_id'] ) ? (string) (int) $context['form_id'] : '' ),
+			$about,
 			array( __( 'Visitor (IP hash)', 'ffcertificate' ), self::shorten_hash( (string) ( $context['ip_hash'] ?? '' ) ) ),
 		);
 

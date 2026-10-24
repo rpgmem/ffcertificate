@@ -10,14 +10,17 @@
  * queue carries on from the step after it. The order is the caller's, so a
  * form and gated content can run different lists through the same steps.
  *
- * Steps registered here: `browser` (an app's own browser, or one missing
- * what the form needs) and `cookies` (the probe and its banner). The
- * geofence script registers `datetime`, `secure` and `geo`. The context
+ * Steps registered here: `secure` (the page is a secure context, when the
+ * caller needs one), `browser` (an app's own browser, or one missing what
+ * the form needs) and `cookies` (the probe and its banner). The geofence
+ * script registers `datetime` and `geo`. The context
  * carries the wrapper (jQuery), the config, `text(key, fallback)` for the
  * localized strings, `content` for gated content, `browserCheck` (the
  * setting that turns the browser step off), `altchaOnly`, and
  * `formSelector` where the form is not a certificate form (the public CSV
- * download runs the browser step too).
+ * download runs the browser step too), `needsSecure` / `onInsecure` for the
+ * secure step, and `telemetry` (`{type, id}`) where the wrapper is not a
+ * certificate form's.
  *
  * THE WATCHDOG. A certificate form is submitted over AJAX and its PDF is
  * drawn in the browser, so a script that did not load (a content blocker, a
@@ -278,25 +281,48 @@
 	}
 
 	/**
-	 * Fire-and-forget telemetry: one Activity Log row per banner shown
-	 * (`ffc_log_preflight_bail`). Any failure is swallowed — the banner is
-	 * the visitor's feedback, the log only the administrator's.
+	 * What a telemetry row is about: the context's own `telemetry`
+	 * (`{type, id}`), or the certificate form whose wrapper this is.
 	 *
-	 * @param {jQuery|Element} wrapper Form wrapper (`#ffc-form-<id>`).
-	 * @param {string}         reason  `cookies` | `gps_denied` | `gps_prompt` |
-	 *                                 `secure` | `browser_inapp` |
-	 *                                 `browser_inapp_continue` |
-	 *                                 `browser_features` | `browser_boot`
+	 * @param {object|jQuery|Element} target Step context, or a form wrapper.
+	 * @returns {{type: string, id: number}|null}
 	 */
-	function log(wrapper, reason) {
+	function telemetryOf(target) {
+		if (target && !target.jquery && !target.nodeType) {
+			if (target.telemetry && target.telemetry.type) {
+				var own = parseInt(target.telemetry.id, 10);
+				return own > 0 ? { type: String(target.telemetry.type), id: own } : null;
+			}
+			target = target.wrapper;
+		}
+		var id = target && target.jquery ? target.attr('id') : target && target.id;
+		var formId = parseInt((id || '').replace('ffc-form-', ''), 10);
+		return formId > 0 ? { type: 'form', id: formId } : null;
+	}
+
+	/**
+	 * Fire-and-forget telemetry: one Activity Log row per banner shown
+	 * (`ffc_log_preflight_bail`), naming what the visitor was trying to
+	 * reach: a `form`, a `booking`, a `csv_download` page or a `receipt`.
+	 * Any failure is swallowed — the banner is the visitor's feedback, the
+	 * log only the administrator's.
+	 *
+	 * @param {object|jQuery|Element} target Step context, or a form wrapper
+	 *                                       (`#ffc-form-<id>`).
+	 * @param {string}                reason `cookies` | `gps_denied` |
+	 *                                       `gps_prompt` | `secure` |
+	 *                                       `browser_inapp` |
+	 *                                       `browser_inapp_continue` |
+	 *                                       `browser_features` | `browser_boot`
+	 */
+	function log(target, reason) {
 		try {
-			var id = wrapper && wrapper.jquery ? wrapper.attr('id') : wrapper && wrapper.id;
-			var formId = parseInt((id || '').replace('ffc-form-', ''), 10);
-			if (!formId || isNaN(formId)) {
+			var about = telemetryOf(target);
+			if (!about) {
 				return;
 			}
 			if (typeof window.FFC.request === 'function') {
-				window.FFC.request('ffc_log_preflight_bail', { form_id: formId, reason: reason }).catch(function () {
+				window.FFC.request('ffc_log_preflight_bail', { type: about.type, id: about.id, reason: reason }).catch(function () {
 					// swallow
 				});
 			}
@@ -373,6 +399,49 @@
 		}
 	}
 
+	/**
+	 * Whether the browser treats this page as secure: what decides whether
+	 * it gives the location and runs the ALTCHA widget. A browser too old to
+	 * say falls back to the protocol and the loopback hosts.
+	 *
+	 * @returns {boolean}
+	 */
+	function secureContext() {
+		if (typeof window.isSecureContext === 'boolean') {
+			return window.isSecureContext;
+		}
+		var loc = window.location;
+		return loc.protocol === 'https:' || loc.hostname === 'localhost' || loc.hostname === '127.0.0.1';
+	}
+
+	register('secure', {
+		// The caller says whether the page needs to be secure
+		// (`needsSecure`, a boolean or a function of the context) and may
+		// draw its own message (`onInsecure`); without one the form is taken
+		// away behind a notice.
+		applies: function (ctx) {
+			return typeof ctx.needsSecure === 'function' ? !!ctx.needsSecure(ctx) : ctx.needsSecure === true;
+		},
+		run: function (ctx, next) {
+			if (secureContext()) {
+				next();
+				return;
+			}
+			log(ctx, 'secure');
+			if (typeof ctx.onInsecure === 'function') {
+				ctx.onInsecure(ctx);
+				return;
+			}
+			hideBehind(ctx, window.FFC.notice(
+				'danger',
+				'lock',
+				ctx.text('secureRequired', 'This form requires a secure connection (HTTPS). Please contact the site administrator.'),
+				'',
+				{ role: 'alert', live: 'assertive', hook: 'preflight-secure' }
+			));
+		}
+	});
+
 	register('cookies', {
 		// The session the nonce is bound to lives in a cookie. An
 		// administrator under bypass is not stopped by it.
@@ -384,7 +453,7 @@
 				next();
 				return;
 			}
-			log(ctx.wrapper, 'cookies');
+			log(ctx, 'cookies');
 			var os = window.FFC.Platform.os();
 			banner(
 				ctx.wrapper,
@@ -515,7 +584,7 @@
 			// A browser without the features cannot issue the certificate,
 			// whatever the visitor chooses: there is no way through.
 			if (missingFeatures().length) {
-				log(ctx.wrapper, 'browser_features');
+				log(ctx, 'browser_features');
 				hideBehind(ctx, window.FFC.notice(
 					'warning',
 					'monitor',
@@ -534,7 +603,7 @@
 			// An app's own browser: the location and the download are
 			// unreliable there. Detection is by user agent and can misfire,
 			// so the visitor may go on; the steps after this still run.
-			log(ctx.wrapper, 'browser_inapp');
+			log(ctx, 'browser_inapp');
 			var os = window.FFC.Platform.os();
 			var actions = document.createElement('div');
 			actions.className = 'ffc-notice-actions';
@@ -565,7 +634,7 @@
 				{ role: 'alert', live: 'assertive', hook: 'preflight-browser', children: [actions] }
 			);
 			go.addEventListener('click', function () {
-				log(ctx.wrapper, 'browser_inapp_continue');
+				log(ctx, 'browser_inapp_continue');
 				rememberContinue();
 				if (notice.parentNode) {
 					notice.parentNode.removeChild(notice);
@@ -602,6 +671,7 @@
 		register: register,
 		run: run,
 		log: log,
+		secureContext: secureContext,
 		banner: banner,
 		cookiesWork: cookiesWork,
 		missingFeatures: missingFeatures,

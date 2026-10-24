@@ -78,6 +78,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The Bulk issue tab reads as three steps** (#2038). The CSV template is a button with the download icon and the template's columns listed under it, the file field takes the plugin's one file picker, and "Check the file" stays disabled until a file is chosen.
 - **Every file field is one picker with the upload icon** (#2038). The browser's "Choose File" button could not carry an icon, so the five CSV imports (bulk issue, audience members and audiences, reregistration, both recruitment imports) now draw a neutral family button with the upload icon beside the chosen file's name, from `AdminUI::render_file_picker()`; a guard refuses any other file input.
 - ⚠ **"GPS or IP" now passes on either, and an imprecise reading is not trusted** (#2040). The IP was checked alone on submit, so OR behaved as AND; a visitor whose GPS is inside now passes when their IP resolves elsewhere. A reading whose margin of error exceeds the smallest area, or older than the GPS cache lifetime, follows "Location unavailable", which a strict policy blocks.
+- **The pre-flight asks the browser whether a page is secure, and its log names what was blocked** (#2040). The `secure` step moved into the queue module and reads `window.isSecureContext`, so a `.local` or LAN host over HTTP is stopped as the browser would. A pre-flight log row names its form, or the CSV download page.
 
 ### Security
 

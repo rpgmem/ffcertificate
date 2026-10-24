@@ -54,6 +54,19 @@ class PreflightTelemetry {
 	);
 
 	/**
+	 * What a row is about (#2040): a certificate form, an audience booking's
+	 * check-in, a public CSV download page or an appointment receipt. A
+	 * request with no type is a form's, which is what every row written
+	 * before the types existed is.
+	 */
+	public const ALLOWED_TYPES = array(
+		'form',
+		'booking',
+		'csv_download',
+		'receipt',
+	);
+
+	/**
 	 * Rows one visitor (IP hash) may write per window (#1861). A real
 	 * visitor hits a banner a handful of times; the endpoint is anonymous,
 	 * so without a cap a script could fill the activity log.
@@ -90,11 +103,16 @@ class PreflightTelemetry {
 			);
 		}
 
-		$form_id = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
-		$reason  = RequestInput::get_post_string( 'reason' );
+		// A page cached before the types existed posts `form_id` alone.
+		$type   = RequestInput::get_post_string( 'type', 'form' );
+		$id     = absint( RequestInput::get_post_string( 'id', RequestInput::get_post_string( 'form_id' ) ) );
+		$reason = RequestInput::get_post_string( 'reason' );
 
-		if ( $form_id <= 0 ) {
-			wp_send_json_error( array( 'message' => 'invalid_form_id' ) );
+		if ( ! in_array( $type, self::ALLOWED_TYPES, true ) ) {
+			wp_send_json_error( array( 'message' => 'invalid_type' ) );
+		}
+		if ( $id <= 0 ) {
+			wp_send_json_error( array( 'message' => 'invalid_id' ) );
 		}
 		if ( ! in_array( $reason, self::ALLOWED_REASONS, true ) ) {
 			wp_send_json_error( array( 'message' => 'invalid_reason' ) );
@@ -123,13 +141,33 @@ class PreflightTelemetry {
 		ActivityLog::log(
 			'preflight_blocked',
 			'info',
-			array(
-				'form_id' => $form_id,
-				'reason'  => $reason,
-				'ip_hash' => $ip_hash,
-			)
+			self::row_context( $type, $id, $reason, $ip_hash )
 		);
 
 		wp_send_json_success( array( 'logged' => true ) );
+	}
+
+	/**
+	 * The context a row stores. A form's keeps `form_id`, which the form
+	 * editor's badges count; every other type names itself, so a form's
+	 * badges never count a booking or a download page that shares its ID.
+	 *
+	 * @param string $type    One of {@see self::ALLOWED_TYPES}.
+	 * @param int    $id      The form, booking, page or appointment ID.
+	 * @param string $reason  One of {@see self::ALLOWED_REASONS}.
+	 * @param string $ip_hash Truncated, salted hash of the visitor's IP.
+	 * @return array<string, int|string>
+	 */
+	public static function row_context( string $type, int $id, string $reason, string $ip_hash ): array {
+		$about = 'form' === $type
+			? array( 'form_id' => $id )
+			: array(
+				'type' => $type,
+				'id'   => $id,
+			);
+		return $about + array(
+			'reason'  => $reason,
+			'ip_hash' => $ip_hash,
+		);
 	}
 }

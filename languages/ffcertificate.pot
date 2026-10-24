@@ -28594,9 +28594,6 @@ msgstr ""
 msgid "Date and time: on a form with a date window, outside it the form's closed-period message is shown."
 msgstr ""
 
-msgid "Secure connection: a form that asks for the location, or any form while the captcha is ALTCHA only, needs HTTPS; on a plain HTTP page the visitor is asked to contact the site administrator."
-msgstr ""
-
 msgid "Browser: an app's own browser (Instagram, WhatsApp, Facebook, TikTok, LinkedIn and others) is asked to open the page in the phone's browser, where the location and the download work; a \"Continue anyway\" link lets the visitor go on, because the detection can misfire. A browser missing what the form needs to issue the certificate is stopped with the list of browsers to use, and cannot go on."
 msgstr ""
 
@@ -28604,9 +28601,6 @@ msgid "Cookies: a browser that blocks cookies is warned, with how to allow them,
 msgstr ""
 
 msgid "Location: on a form with GPS validation, the location is asked for and checked (see Geolocation / Geofence)."
-msgstr ""
-
-msgid "Every form runs the browser and cookie checks, not only the ones with a restriction. The \"already submitted\" notice is drawn only after the queue passes. Settings → Certificates → Browser check turns the browser check off, should visitors be stopped by mistake. An administrator for whom the geolocation bypass is on skips the browser and cookie checks. Each stop is written to the Activity Log as a pre-flight block, and the form editor counts them per form."
 msgstr ""
 
 msgid "The location is the last of the checks a form runs before it is shown, after the date window, the secure connection, the browser and the cookies; see Certificates & Forms → Checks before the form. A page served over plain HTTP cannot ask for the location, and an app's own browser often cannot either, which is why those two are checked first."
@@ -28672,3 +28666,17 @@ msgstr ""
 msgid "The browser checks the location first, to say so before the visitor fills the form, and the server decides when the form is sent: the browser sends the GPS reading with the submission, and the server checks it against the areas and combines it with the IP the way the form asks. A reading whose margin of error is larger than the smallest area, or older than the GPS cache lifetime, cannot tell inside from outside and is treated as \"Location unavailable\" in the \"When GPS fails\" policy; a submission that arrives without a reading follows \"Browser does not support geolocation\". With \"GPS or IP\", a visitor whose GPS is inside passes even when their IP resolves elsewhere, which mobile networks often do."
 msgstr ""
 
+msgid "Secure connection: a form that asks for the location, or any form while the captcha is ALTCHA only, needs a page the browser treats as secure (HTTPS, or localhost); on any other page the visitor is asked to contact the site administrator. The browser decides, so a development host such as a .local name or a LAN address over plain HTTP is stopped too."
+msgstr ""
+
+msgid "Every form runs the browser and cookie checks, not only the ones with a restriction. The \"already submitted\" notice is drawn only after the queue passes. Settings → Certificates → Browser check turns the browser check off, should visitors be stopped by mistake. An administrator for whom the geolocation bypass is on skips the browser and cookie checks. Each stop is written to the Activity Log as a pre-flight block, naming the form, or the CSV download page the visitor was on, and the form editor counts its own form's."
+msgstr ""
+
+msgid "Booking ID"
+msgstr ""
+
+msgid "CSV download page ID"
+msgstr ""
+
+msgid "Appointment ID"
+msgstr ""

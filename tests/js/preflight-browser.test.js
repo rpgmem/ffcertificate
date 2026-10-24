@@ -213,11 +213,16 @@ describe('secure step for the ALTCHA-only captcha (#2030)', () => {
 		return () => Object.defineProperty(window, 'location', { configurable: true, writable: true, value: original });
 	}
 
+	// The geofence's context: it says when a form needs a secure page.
+	function formContext($w, extra) {
+		return Object.assign(window.FFCGeofence.preflightContext($w, context($w).config), extra);
+	}
+
 	it('blocks a form on an insecure page when the captcha is ALTCHA only', () => {
 		const restore = installLocation('http:', 'example.org');
 		try {
 			const $w = mountForm();
-			window.FFC.Preflight.run(['secure', 'geo'], context($w, { altchaOnly: true }));
+			window.FFC.Preflight.run(['secure', 'geo'], formContext($w, { altchaOnly: true }));
 			expect($w.find('[data-ffc-notice="geofence-blocked"]').text()).toContain('secure connection (HTTPS). Please contact');
 			expect($w.hasClass('ffc-validated')).toBe(false);
 			expect(logged).toEqual(['ffc_log_preflight_bail:secure']);
@@ -230,7 +235,7 @@ describe('secure step for the ALTCHA-only captcha (#2030)', () => {
 		const restore = installLocation('http:', 'example.org');
 		try {
 			const $composite = mountForm(9);
-			window.FFC.Preflight.run(['secure', 'geo'], context($composite, { altchaOnly: false }));
+			window.FFC.Preflight.run(['secure', 'geo'], formContext($composite, { altchaOnly: false }));
 			expect($composite.hasClass('ffc-validated')).toBe(true);
 		} finally {
 			restore();
@@ -238,12 +243,62 @@ describe('secure step for the ALTCHA-only captcha (#2030)', () => {
 		const restoreHttps = installLocation('https:', 'example.org');
 		try {
 			const $w = mountForm(10);
-			window.FFC.Preflight.run(['secure', 'geo'], context($w, { altchaOnly: true }));
+			window.FFC.Preflight.run(['secure', 'geo'], formContext($w, { altchaOnly: true }));
 			expect($w.hasClass('ffc-validated')).toBe(true);
 			expect(logged).toEqual([]);
 		} finally {
 			restoreHttps();
 		}
+	});
+});
+
+describe('the queue\'s secure step (#2040)', () => {
+	afterEach(() => {
+		delete window.isSecureContext;
+	});
+
+	it('asks the browser, not the protocol', () => {
+		// The page is http://localhost in the tests: the old protocol check
+		// let it through, the browser's own answer does not.
+		Object.defineProperty(window, 'isSecureContext', { configurable: true, value: false });
+		const $w = mountForm(21);
+		const next = vi.fn();
+		window.FFC.Preflight.register('after-secure', { run: next });
+		window.FFC.Preflight.run(['secure', 'after-secure'], context($w, { needsSecure: true }));
+
+		expect(next).not.toHaveBeenCalled();
+		expect($w.find('[data-ffc-notice="preflight-secure"]').text()).toContain('secure connection (HTTPS)');
+		expect($w.find('.ffc-submission-form').css('display')).toBe('none');
+		expect(logged).toEqual(['ffc_log_preflight_bail:secure']);
+	});
+
+	it('lets a secure context through, and skips a caller that needs none', () => {
+		Object.defineProperty(window, 'isSecureContext', { configurable: true, value: true });
+		const $w = mountForm(22);
+		const next = vi.fn();
+		window.FFC.Preflight.register('after-secure-2', { run: next });
+		window.FFC.Preflight.run(['secure', 'after-secure-2'], context($w, { needsSecure: true }));
+
+		Object.defineProperty(window, 'isSecureContext', { configurable: true, value: false });
+		window.FFC.Preflight.run(['secure', 'after-secure-2'], context($w, { needsSecure: false }));
+
+		expect(next).toHaveBeenCalledTimes(2);
+		expect(logged).toEqual([]);
+	});
+
+	it('hands the message to the caller when it has one', () => {
+		Object.defineProperty(window, 'isSecureContext', { configurable: true, value: false });
+		const $w = mountForm(23);
+		const onInsecure = vi.fn();
+		window.FFC.Preflight.run(['secure'], context($w, { needsSecure: () => true, onInsecure }));
+
+		expect(onInsecure).toHaveBeenCalledTimes(1);
+		expect($w.find('[data-ffc-notice="preflight-secure"]').length).toBe(0);
+	});
+
+	it('falls back to the protocol in a browser too old to say', () => {
+		expect(window.isSecureContext).toBeUndefined();
+		expect(window.FFC.Preflight.secureContext()).toBe(window.location.protocol === 'https:' || window.location.hostname === 'localhost');
 	});
 });
 
