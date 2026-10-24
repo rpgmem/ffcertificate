@@ -28714,3 +28714,6 @@ msgstr "Um navegador sem o que o formulário precisa não consegue emitir o cert
 
 msgid "If visitors in an ordinary browser are stopped, turn the check off under Settings → Certificates → Browser check and report the browser"
 msgstr "Se visitantes em um navegador comum forem barrados, desligue a verificação em Configurações → Certificados → Verificação do navegador e informe o navegador"
+
+msgid "The public CSV download page ([ffc_csv_download]) runs the browser check too, under the same setting: the file is built and saved by the browser, which an app's own browser often cannot do."
+msgstr "A página pública de download do CSV ([ffc_csv_download]) também executa a verificação do navegador, sob a mesma configuração: o arquivo é montado e salvo pelo navegador, o que o navegador próprio de um aplicativo muitas vezes não consegue fazer."

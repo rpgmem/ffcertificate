@@ -429,4 +429,35 @@ class FrontendTest extends TestCase {
 		$this->assertSame( array( 'follow' => true ), $result );
 		$this->assertArrayNotHasKey( 'noindex', $result );
 	}
+
+	/**
+	 * The public CSV download runs the browser check too (#2030): its
+	 * script waits for the pre-flight and receives the same switch and
+	 * strings as a certificate form.
+	 */
+	public function test_csv_download_page_gets_the_browser_check(): void {
+		global $post;
+		$post = Mockery::mock( 'WP_Post' );
+		$post->post_content = '[ffc_csv_download]';
+
+		Functions\when( 'has_shortcode' )->alias( function ( $content, $tag ) {
+			return 'ffc_csv_download' === $tag;
+		} );
+
+		$deps = array();
+		Functions\when( 'wp_enqueue_script' )->alias( function ( $handle, $src = '', $dependencies = array() ) use ( &$deps ) {
+			$deps[ $handle ] = $dependencies;
+		} );
+		$localized = array();
+		Functions\when( 'wp_localize_script' )->alias( function ( $handle, $name, $data ) use ( &$localized ) {
+			$localized[ $name ] = $data;
+		} );
+
+		$frontend = new Frontend( $this->makeSubmissionHandlerMock() );
+		$frontend->frontend_assets();
+
+		$this->assertContains( 'ffc-preflight', $deps['ffc-csv-download'] );
+		$this->assertTrue( $localized['ffc_csv_download']['preflight']['browserCheck'] );
+		$this->assertArrayHasKey( 'inAppTitle', $localized['ffc_csv_download']['preflight']['strings'] );
+	}
 }
