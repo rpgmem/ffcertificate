@@ -38,6 +38,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The public CSV download checks the browser too** (#2030). An app's own browser is asked to open the page in the phone's browser, with "Continue anyway", as on a certificate form, under the same Settings → Certificates → Browser check; the in-app banner it had is replaced.
 - **The verification page can test the visitor's device** (#2040). `[ffc_verification]` with `?ffc_device_check=1` shows, in the site's theme, each check a form runs (secure connection, browser, cookies, location permission and precision, PDF) and copies the results for support; the position is never shown. The page links there from its footer.
 - **The device test names the browser and its version** (#2052). "Ordinary browser" becomes, for instance, "Chrome (v. 129.0.6668.81)", "Brave / Chromium (v. …)" or "Opera 103 / Chromium (v. 117.…)", read from the brands a Chromium browser declares and then from the user agent; an app's own browser names the app, and the PDF row says what it checked.
+- **The device test diagnoses more, and says how to fix what fails** (#2054). New rows: local storage, the ALTCHA captcha's needs, the device ID the device limit reads (a short code, signals read, whether they hold between reads, read-only), the clock against the server's, time zone and language, screen, connection and theme. A failing row opens how to fix it; a check still running counts down from 20 seconds.
 
 ### Fixed
 
@@ -66,7 +67,6 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificate forms: no silent failure when the browser cannot run them** (#2030). The form posts with `method="post"`, so without JavaScript the name, e-mail and CPF/RF stay out of the URL and the logs, and a notice says JavaScript is off. A form whose scripts, PDF libraries or captcha and nonce refresh did not load in 10 s shows "The form did not load completely" with a Reload button instead of a form that fails on submit.
 - **GPS forms no longer show "Location blocked" twice** (#2030). On a cached page, refreshing the captcha and security codes re-ran the checks while the browser was still answering the permission query, and both answers drew a banner. A stale answer is now dropped, and a banner replaces one with the same purpose.
 - **"Location blocked" only when the browser really blocks it** (#2048). Opera for Android reports the location as blocked while it gives the position, so GPS forms showed a false block, the check-in a false error and the device test "Blocked". A reported block is now confirmed by one quick read; the position is discarded.
-- **The submissions list keeps a row's buttons on one line** (#2050). Every column of the fixed-layout table had an equal share, so Edit, PDF and Trash wrapped while Status and Date sat half empty. Status and Date now take what they hold, Actions what three buttons need, and the buttons keep an even gap. "Reveal this page" sits below the status links and the search box instead of between them.
 
 ### Changed
 

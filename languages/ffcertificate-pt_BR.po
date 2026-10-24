@@ -28902,5 +28902,167 @@ msgstr "A mensagem \"Localização bloqueada\" só aparece quando o navegador re
 msgid "Supported: this browser can build and save the PDF."
 msgstr "Com suporte: este navegador consegue gerar e salvar o PDF."
 
-msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result: secure connection, the browser by name and version, cookies, location permission, PDF download and, when the visitor asks, how precise the location is. Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
-msgstr "A página de verificação ([ffc_verification]) tem um modo \"Testar meu dispositivo\", com link no rodapé, acessado ao acrescentar ?ffc_device_check=1 ao endereço. Ele executa essas verificações no próprio dispositivo do visitante e mostra cada resultado: conexão segura, o navegador com nome e versão, cookies, permissão de localização, download do PDF e, quando o visitante pede, a precisão da localização. Nada é enviado nem guardado, e a posição em si nunca é exibida. O botão \"Copiar os resultados\" coloca na área de transferência os resultados, a identificação do navegador e o horário, para uma mensagem a quem dá suporte ao visitante."
+msgid "Device ID"
+msgstr "ID do dispositivo"
+
+msgid "Not used on this site: the device limit is off."
+msgstr "Não usado neste site: o limite por dispositivo está desligado."
+
+msgid "Not available in this browser: it needs a secure connection and a recent browser."
+msgstr "Indisponível neste navegador: é preciso uma conexão segura e um navegador recente."
+
+msgid "Reading the device signals…"
+msgstr "Lendo os sinais do dispositivo…"
+
+msgid "%1$s · %2$s of %3$s signals · stable"
+msgstr "%1$s · %2$s de %3$s sinais · estável"
+
+msgid "%1$s · %2$s of %3$s signals · changes on each read: %4$s"
+msgstr "%1$s · %2$s de %3$s sinais · muda a cada leitura: %4$s"
+
+msgid "The device signals could not be read."
+msgstr "Não foi possível ler os sinais do dispositivo."
+
+msgid "%1$s (site: %2$s; system: %3$s)"
+msgstr "%1$s (site: %2$s; sistema: %3$s)"
+
+msgid "Light"
+msgstr "Claro"
+
+msgid "Dark"
+msgstr "Escuro"
+
+msgid "always light"
+msgstr "sempre claro"
+
+msgid "always dark"
+msgstr "sempre escuro"
+
+msgid "follows the system"
+msgstr "segue o sistema"
+
+msgid "dark"
+msgstr "escuro"
+
+msgid "light"
+msgstr "claro"
+
+msgid "not stated"
+msgstr "não informado"
+
+msgid "A privacy setting or extension changes these signals on every read (the fingerprint protection of Brave, Firefox or Safari, for instance). A form with a device limit may then not recognise this device: use a browser without that protection, or ask the site administrator."
+msgstr "Uma configuração ou extensão de privacidade muda esses sinais a cada leitura (a proteção contra fingerprint do Brave, do Firefox ou do Safari, por exemplo). Um formulário com limite por dispositivo pode então não reconhecer este dispositivo: use um navegador sem essa proteção ou fale com o administrador do site."
+
+msgid "Ahead by %s: date windows and the captcha may fail. Set the clock to automatic."
+msgstr "Adiantado %s: prazos de data e o captcha podem falhar. Ajuste o relógio para automático."
+
+msgid "Allow cookies for this site in the browser's settings (Privacy or Site settings → Cookies), or leave the private (incognito) window."
+msgstr "Permita cookies para este site nas configurações do navegador (Privacidade ou Configurações do site → Cookies) ou saia da janela anônima."
+
+msgid "Behind by %s: date windows and the captcha may fail. Set the clock to automatic."
+msgstr "Atrasado %s: prazos de data e o captcha podem falhar. Ajuste o relógio para automático."
+
+msgid "Blocked (a private window?): the \"already submitted\" notice and \"Continue anyway\" will not be remembered."
+msgstr "Bloqueado (janela anônima?): o aviso de \"já enviado\" e o \"Continuar mesmo assim\" não serão lembrados."
+
+msgid "Click the icon next to the address → Site settings (or Permissions) → Location → Allow, and reload this page. On Windows and macOS, the system's location services must be on too."
+msgstr "Clique no ícone ao lado do endereço → Configurações do site (ou Permissões) → Localização → Permitir e recarregue esta página. No Windows e no macOS, os serviços de localização do sistema também precisam estar ligados."
+
+msgid "Comparing with the server…"
+msgstr "Comparando com o servidor…"
+
+msgid "Connect to the internet (Wi-Fi or mobile data) and reload this page."
+msgstr "Conecte-se à internet (Wi-Fi ou dados móveis) e recarregue esta página."
+
+msgid "Connection"
+msgstr "Conexão"
+
+msgid "Correct (differs by %s)"
+msgstr "Certo (diferença de %s)"
+
+msgid "Could not compare with the server."
+msgstr "Não foi possível comparar com o servidor."
+
+msgid "Device clock"
+msgstr "Relógio do dispositivo"
+
+msgid "How to fix it"
+msgstr "Como corrigir"
+
+msgid "Leave the private (incognito) window, or allow site data for this site in the browser's settings."
+msgstr "Saia da janela anônima ou permita dados de site para este site nas configurações do navegador."
+
+msgid "Local storage"
+msgstr "Armazenamento local"
+
+msgid "Not supported: missing %s. A form whose captcha is ALTCHA only cannot be sent."
+msgstr "Sem suporte: falta %s. Um formulário cujo captcha é só ALTCHA não pode ser enviado."
+
+msgid "Offline"
+msgstr "Sem conexão"
+
+msgid "Online · %s"
+msgstr "Conectado · %s"
+
+msgid "Online · the browser does not say the type"
+msgstr "Conectado · o navegador não informa o tipo"
+
+msgid "Open the app's menu (⋮ or ···) and choose \"Open in browser\" or \"Open in Safari\". Or copy this page's address and paste it into Chrome, Safari, Firefox or Edge."
+msgstr "Abra o menu do aplicativo (⋮ ou ···) e escolha \"Abrir no navegador\" ou \"Abrir no Safari\". Ou copie o endereço desta página e cole no Chrome, Safari, Firefox ou Edge."
+
+msgid "Open the site by its address starting with https://. If that address does not open, tell the site administrator."
+msgstr "Abra o site pelo endereço que começa com https://. Se esse endereço não abrir, avise o administrador do site."
+
+msgid "Open the site by its https:// address in an up-to-date browser, and allow its scripts: a content blocker can stop them."
+msgstr "Abra o site pelo endereço https:// num navegador atualizado e permita os scripts dele: um bloqueador de conteúdo pode impedi-los."
+
+msgid "Screen"
+msgstr "Tela"
+
+msgid "Set the date, time and time zone to automatic in the device's settings (Date and time → Set automatically), then reload this page."
+msgstr "Ajuste data, hora e fuso horário para automático nas configurações do dispositivo (Data e hora → Definir automaticamente) e recarregue esta página."
+
+msgid "Supported"
+msgstr "Com suporte"
+
+msgid "Time zone and language"
+msgstr "Fuso horário e idioma"
+
+msgid "Turn off data saver (Lite mode) in the browser's or the phone's settings, then reload this page."
+msgstr "Desligue a economia de dados (modo Lite) nas configurações do navegador ou do celular e recarregue esta página."
+
+msgid "Turn on Settings → Privacy & Security → Location Services, then set the browser (Safari or Chrome) to \"While Using the App\". In Safari also tap \"aA\" next to the address → Website Settings → Location → Allow. Reload this page."
+msgstr "Ligue Ajustes → Privacidade e Segurança → Serviços de Localização e defina o navegador (Safari ou Chrome) como \"Durante o Uso do App\". No Safari, toque também em \"aA\" ao lado do endereço → Ajustes do Site → Localização → Permitir. Recarregue esta página."
+
+msgid "Turn on the device's location with high accuracy (Google Location Accuracy on Android, Precise Location on iPhone), go outdoors or near a window, wait a few seconds and test again."
+msgstr "Ligue a localização do dispositivo com alta precisão (Precisão do Local do Google no Android, Localização Precisa no iPhone), vá para um local aberto ou perto de uma janela, espere alguns segundos e teste de novo."
+
+msgid "Turn on the phone's Location in the quick settings. Then tap the icon next to the address → Permissions (or Site settings) → Location → Allow, and reload this page."
+msgstr "Ligue a Localização do celular nas configurações rápidas. Depois toque no ícone ao lado do endereço → Permissões (ou Configurações do site) → Localização → Permitir e recarregue esta página."
+
+msgid "Update the browser, or use an up-to-date Chrome, Safari, Firefox or Edge, and open the site by its https:// address."
+msgstr "Atualize o navegador ou use um Chrome, Safari, Firefox ou Edge atualizado, e abra o site pelo endereço https://."
+
+msgid "Update the browser, or use an up-to-date Chrome, Safari, Firefox or Edge."
+msgstr "Atualize o navegador ou use um Chrome, Safari, Firefox ou Edge atualizado."
+
+msgid "Use an up-to-date Chrome, Safari, Firefox or Edge: this browser cannot give a location."
+msgstr "Use um Chrome, Safari, Firefox ou Edge atualizado: este navegador não consegue fornecer a localização."
+
+msgid "Window %1$s · screen %2$s · zoom %3$s×"
+msgstr "Janela %1$s · tela %2$s · zoom %3$s×"
+
+msgid "data saver on: some scripts may not load"
+msgstr "economia de dados ligada: alguns scripts podem não carregar"
+
+msgid "%1$s (%2$s s)"
+msgstr "%1$s (%2$s s)"
+
+msgid "No answer after %s s: reload the page to test again."
+msgstr "Sem resposta após %s s: recarregue a página para testar de novo."
+
+msgid "Asking the browser…"
+msgstr "Consultando o navegador…"
+
+msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result: secure connection, the browser by name and version, cookies, local storage, what the ALTCHA captcha needs, the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, location permission, PDF download, screen, connection, the theme in use and, when the visitor asks, how precise the location is. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
+msgstr "A página de verificação ([ffc_verification]) tem um modo \"Testar meu dispositivo\", com link no rodapé, acessado ao acrescentar ?ffc_device_check=1 ao endereço. Ele executa essas verificações no próprio dispositivo do visitante e mostra cada resultado: conexão segura, o navegador com nome e versão, cookies, armazenamento local, o que o captcha ALTCHA precisa, o ID do dispositivo que o limite por dispositivo lê (um código curto, quantos sinais foram lidos e se eles se mantêm entre duas leituras), o relógio do dispositivo comparado ao do servidor, fuso horário e idioma, permissão de localização, download do PDF, tela, conexão, o tema em uso e, quando o visitante pede, a precisão da localização. Uma linha que falha traz um botão de informação com como corrigir, e uma verificação ainda em andamento faz uma contagem regressiva de 20 segundos. Nada é enviado nem guardado, e a posição em si nunca é exibida. O botão \"Copiar os resultados\" coloca na área de transferência os resultados, a identificação do navegador e o horário, para uma mensagem a quem dá suporte ao visitante."

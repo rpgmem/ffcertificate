@@ -272,6 +272,7 @@ class FrontendTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_localize_script' )->justReturn( true );
+		Functions\when( 'wp_script_is' )->justReturn( false );
 		$_GET['ffc_device_check'] = '1';
 		try {
 			$this->assertContains( 'ffc-device-check', $run() );

@@ -26,18 +26,123 @@
 	/**
 	 * Write a check's result.
 	 *
-	 * @param {string} key   Check key.
-	 * @param {string} state `ok` | `warn` | `fail` | `info`.
-	 * @param {string} value What to show.
+	 * @param {string} key    Check key.
+	 * @param {string} state  `ok` | `warn` | `fail` | `info`.
+	 * @param {string} value  What to show.
+	 * @param {string} [help] The string key of how to fix it, shown behind
+	 *                        an information button when the state is
+	 *                        `warn` or `fail` (#2054).
 	 */
-	function set(key, state, value) {
+	function set(key, state, value, help) {
 		var el = row(key);
 		if (!el) {
 			return;
 		}
+		stopCountdown(key);
 		el.classList.remove('is-ok', 'is-warn', 'is-fail', 'is-info');
 		el.classList.add('is-' + state);
 		el.querySelector('.ffc-device-check-result').textContent = value;
+		showHelp(el, key, ('warn' === state || 'fail' === state) && help ? text(help, '') : '');
+	}
+
+	/** How long a check may run before its row says it got no answer. */
+	var PENDING_SECONDS = 20;
+
+	/** Running countdowns, by check key. */
+	var countdowns = {};
+
+	function stopCountdown(key) {
+		if (countdowns[key]) {
+			clearInterval(countdowns[key]);
+			delete countdowns[key];
+		}
+	}
+
+	/**
+	 * Show that a check is still running, with the seconds it has left, so
+	 * the visitor is never left without an answer (#2054). At zero the row
+	 * says the check got no answer.
+	 *
+	 * @param {string} key     Check key.
+	 * @param {string} message What is being done.
+	 */
+	function pending(key, message) {
+		var el = row(key);
+		if (!el) {
+			return;
+		}
+		var left = PENDING_SECONDS;
+		var paint = function () {
+			el.classList.remove('is-ok', 'is-warn', 'is-fail');
+			el.classList.add('is-info');
+			el.querySelector('.ffc-device-check-result').textContent = fill(text('pendingCountdown', '%1$s (%2$s s)'), [message, left]);
+		};
+		set(key, 'info', message);
+		paint();
+		countdowns[key] = setInterval(function () {
+			left--;
+			if (left > 0) {
+				paint();
+				return;
+			}
+			set(key, 'warn', text('pendingTimeout', 'No answer after %s s: reload the page to test again.').replace('%s', String(PENDING_SECONDS)));
+		}, 1000);
+	}
+
+	/**
+	 * The information button and the fix it reveals: drawn while a check
+	 * fails, removed when it passes.
+	 *
+	 * @param {HTMLElement} el   The row.
+	 * @param {string}      key  Check key.
+	 * @param {string}      fix  What to do; '' removes both.
+	 */
+	function showHelp(el, key, fix) {
+		var old = el.querySelector('.ffc-device-check-tip');
+		var box = el.querySelector('.ffc-device-check-fix');
+		if (!fix) {
+			if (old) {
+				old.remove();
+			}
+			if (box) {
+				box.remove();
+			}
+			return;
+		}
+		if (!box) {
+			box = document.createElement('p');
+			box.className = 'ffc-device-check-fix';
+			box.id = 'ffc-device-check-fix-' + key;
+			box.hidden = true;
+			el.appendChild(box);
+		}
+		box.textContent = fix;
+		if (old) {
+			return;
+		}
+		var ns = window.FFC || {};
+		var tip = typeof ns.button === 'function' ? ns.button({
+			label: text('helpLabel', 'How to fix it'),
+			icon: 'info',
+			iconOnly: true,
+			className: 'ffc-device-check-tip',
+			attrs: { 'aria-expanded': 'false', 'aria-controls': box.id }
+		}) : null;
+		if (!tip) {
+			box.hidden = false;
+			return;
+		}
+		tip.addEventListener('click', function () {
+			box.hidden = !box.hidden;
+			tip.setAttribute('aria-expanded', box.hidden ? 'false' : 'true');
+		});
+		el.querySelector('.ffc-device-check-label').appendChild(tip);
+	}
+
+	/** The fix for a blocked location, for the platform in hand. */
+	function locationHelp() {
+		var os = window.FFC && window.FFC.Platform ? window.FFC.Platform.os() : 'desktop';
+		return { ios: 'helpLocationIos', android: 'helpLocationAndroid' }[os] || 'helpLocationDesktop';
 	}
 
 	function device(platform) {
@@ -225,7 +330,7 @@
 		if (platform.inApp()) {
 			var app = appName(platform.ua());
 			set('browser', 'warn', text('browserInApp', 'An app\'s own browser (%s): the location and downloads often fail. Open the page in the phone\'s browser.')
-				.replace('%s', app ? app + ', ' + where : where));
+				.replace('%s', app ? app + ', ' + where : where), 'helpInApp');
 			return;
 		}
 		set('browser', 'ok', text('browserOk', 'Ordinary browser (%s)').replace('%s', where));
@@ -236,18 +341,253 @@
 		});
 	}
 
+	function fill(template, values) {
+		return values.reduce(function (out, value, i) {
+			return out.replace('%' + (i + 1) + '$s', String(value));
+		}, template);
+	}
+
+	/**
+	 * A short code for the signals read: the first eight hex characters of a
+	 * hash over every signal hash, in name order. Two attempts on one device
+	 * show the same code while the signals hold (#2054).
+	 *
+	 * @param {Object<string, string>} hashed
+	 * @returns {Promise<string>}
+	 */
+	function shortCode(hashed) {
+		var joined = Object.keys(hashed).sort().map(function (key) {
+			return key + ':' + hashed[key];
+		}).join('|');
+		return window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(joined)).then(function (buf) {
+			var hex = Array.prototype.map.call(new Uint8Array(buf), function (b) {
+				return (b + 0x100).toString(16).slice(1);
+			}).join('');
+			return hex.slice(0, 4) + ' ' + hex.slice(4, 8);
+		});
+	}
+
+	/**
+	 * The device ID row (#2054): the signals the device limit reads, read
+	 * twice to see whether they hold. Read-only: the collector never creates
+	 * the persistent id here, and nothing leaves the page.
+	 */
+	function checkDevice() {
+		if (!row('device')) {
+			return;
+		}
+		var collector = window.FFCDeviceSignals;
+		if (!collector) {
+			// The collector loads only where the device limit is on, and
+			// stays away without a secure context or the library.
+			set('device', window.ffc_device_config ? 'warn' : 'info', window.ffc_device_config
+				? text('deviceNone', 'Not available in this browser: it needs a secure connection and a recent browser.')
+				: text('deviceOff', 'Not used on this site: the device limit is off.'), 'helpDeviceNone');
+			return;
+		}
+		pending('device', text('deviceReading', 'Reading the device signals…'));
+		var failed = function () {
+			set('device', 'fail', text('deviceFailed', 'The device signals could not be read.'), 'helpDeviceNone');
+		};
+		collector.collect().then(function (first) {
+			return collector.collect().then(function (second) {
+				var changed = Object.keys(first).filter(function (key) {
+					return first[key] !== second[key];
+				});
+				var total = collector.enabled.length || Object.keys(first).length;
+				return shortCode(first).then(function (code) {
+					var read = Object.keys(first).length;
+					if (changed.length) {
+						set('device', 'warn', fill(text('deviceUnstable', '%1$s · %2$s of %3$s signals · changes on each read: %4$s'), [code, read, total, changed.sort().join(', ')]), 'helpDeviceUnstable');
+					} else {
+						set('device', read ? 'ok' : 'warn', fill(text('deviceStable', '%1$s · %2$s of %3$s signals · stable'), [code, read, total]), 'helpDeviceNone');
+					}
+				});
+			});
+		}).catch(failed);
+	}
+
+	/**
+	 * The theme row (#2054): what the page shows, the site's setting and the
+	 * system preference, which together explain unexpected colours.
+	 */
+	function checkTheme() {
+		if (!row('theme')) {
+			return;
+		}
+		var dark = document.documentElement.classList.contains('ffc-dark-mode');
+		var mode = (window.ffcDarkMode && window.ffcDarkMode.mode) || 'off';
+		var site = { on: text('themeSiteOn', 'always dark'), auto: text('themeSiteAuto', 'follows the system') }[mode]
+			|| text('themeSiteOff', 'always light');
+		var system = text('themeSystemNone', 'not stated');
+		if (window.matchMedia) {
+			if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+				system = text('themeSystemDark', 'dark');
+			} else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+				system = text('themeSystemLight', 'light');
+			}
+		}
+		set('theme', 'info', fill(text('themeResult', '%1$s (site: %2$s; system: %3$s)'), [
+			dark ? text('themeDark', 'Dark') : text('themeLight', 'Light'),
+			site,
+			system
+		]));
+	}
+
+	/** A probe key, written and removed at once: the test keeps nothing. */
+	var PROBE = 'ffc_device_check_probe';
+
+	function storageWorks(store) {
+		try {
+			window[store].setItem(PROBE, '1');
+			var ok = window[store].getItem(PROBE) === '1';
+			window[store].removeItem(PROBE);
+			return ok;
+		} catch (e) {
+			return false;
+		}
+	}
+
+	/**
+	 * Local and session storage (#2054): the "already submitted" notice and
+	 * "Continue anyway" are remembered there.
+	 */
+	function checkStorage() {
+		var ok = storageWorks('localStorage') && storageWorks('sessionStorage');
+		set('storage', ok ? 'ok' : 'warn', ok
+			? text('storageYes', 'Allowed')
+			: text('storageNo', 'Blocked (a private window?): the "already submitted" notice and "Continue anyway" will not be remembered.'), 'helpStorage');
+	}
+
+	/**
+	 * What the ALTCHA captcha needs (#2054): Web Crypto, which only a secure
+	 * page has, and Web Workers.
+	 */
+	function checkCaptcha() {
+		var missing = [];
+		if (!window.crypto || !window.crypto.subtle) {
+			missing.push('Web Crypto');
+		}
+		if (typeof window.Worker !== 'function') {
+			missing.push('Web Workers');
+		}
+		set('captcha', missing.length ? 'fail' : 'ok', missing.length
+			? text('captchaNo', 'Not supported: missing %s. A form whose captcha is ALTCHA only cannot be sent.').replace('%s', missing.join(', '))
+			: text('captchaYes', 'Supported'), 'helpCaptcha');
+	}
+
+	/**
+	 * A duration, rounded to the unit a person reads.
+	 *
+	 * @param {number} seconds
+	 * @returns {string}
+	 */
+	function duration(seconds) {
+		seconds = Math.round(Math.abs(seconds));
+		if (seconds < 60) {
+			return seconds + ' s';
+		}
+		if (seconds < 3600) {
+			return Math.round(seconds / 60) + ' min';
+		}
+		return Math.round(seconds / 3600) + ' h';
+	}
+
+	/**
+	 * The device clock against the server's (#2054), read from the `Date`
+	 * header of a request for this same page: no endpoint, nothing sent but
+	 * the request itself. A clock more than a minute off breaks date windows
+	 * and the captcha's expiry.
+	 */
+	function checkClock() {
+		if (!row('clock')) {
+			return;
+		}
+		var unknown = function () {
+			set('clock', 'info', text('clockUnknown', 'Could not compare with the server.'));
+		};
+		if (typeof window.fetch !== 'function') {
+			unknown();
+			return;
+		}
+		pending('clock', text('clockReading', 'Comparing with the server…'));
+		var sent = Date.now();
+		window.fetch(window.location.href, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' }).then(function (response) {
+			var server = Date.parse(response.headers.get('Date') || '');
+			if (isNaN(server)) {
+				unknown();
+				return;
+			}
+			// The header is the server's second; the device's matching moment
+			// is the middle of the request.
+			var skew = ((sent + Date.now()) / 2 - server) / 1000;
+			if (Math.abs(skew) <= 60) {
+				set('clock', 'ok', text('clockOk', 'Correct (differs by %s)').replace('%s', duration(skew)));
+			} else if (skew > 0) {
+				set('clock', 'warn', text('clockAhead', 'Ahead by %s: date windows and the captcha may fail. Set the clock to automatic.').replace('%s', duration(skew)), 'helpClock');
+			} else {
+				set('clock', 'warn', text('clockBehind', 'Behind by %s: date windows and the captcha may fail. Set the clock to automatic.').replace('%s', duration(skew)), 'helpClock');
+			}
+		}, unknown);
+	}
+
+	/** The time zone and the language the browser reports (#2054). */
+	function checkLocale() {
+		var zone = '';
+		try {
+			zone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+		} catch (e) {
+			zone = '';
+		}
+		var offset = -new Date().getTimezoneOffset();
+		var utc = 'UTC' + (offset < 0 ? '-' : '+') + Math.floor(Math.abs(offset) / 60) + (offset % 60 ? ':' + ('0' + Math.abs(offset % 60)).slice(-2) : '');
+		set('locale', 'info', [zone || utc, zone ? utc : '', navigator.language || ''].filter(Boolean).join(' · '));
+	}
+
+	/** The window, the screen and the zoom factor (#2054). */
+	function checkScreen() {
+		var screen = window.screen || {};
+		set('screen', 'info', fill(text('screenResult', 'Window %1$s · screen %2$s · zoom %3$s×'), [
+			window.innerWidth + ' × ' + window.innerHeight,
+			(screen.width || '?') + ' × ' + (screen.height || '?'),
+			Math.round((window.devicePixelRatio || 1) * 100) / 100
+		]));
+	}
+
+	/**
+	 * Online or not, and what the Network Information API says where the
+	 * browser has it (Chromium): the type and whether data saver is on.
+	 */
+	function checkConnection() {
+		if (navigator.onLine === false) {
+			set('connection', 'fail', text('connectionOffline', 'Offline'), 'helpOffline');
+			return;
+		}
+		var info = navigator.connection;
+		if (!info || !info.effectiveType) {
+			set('connection', 'info', text('connectionOnline', 'Online · the browser does not say the type'));
+			return;
+		}
+		var value = text('connectionType', 'Online · %s').replace('%s', String(info.effectiveType).toUpperCase());
+		if (info.saveData) {
+			value += ' · ' + text('connectionSaver', 'data saver on: some scripts may not load');
+		}
+		set('connection', info.saveData ? 'warn' : 'info', value, 'helpDataSaver');
+	}
+
 	function checkLocationPermission() {
 		if (!navigator.geolocation) {
-			set('location', 'fail', text('noGeolocation', 'This browser cannot give a location.'));
+			set('location', 'fail', text('noGeolocation', 'This browser cannot give a location.'), 'helpNoGeolocation');
 			return;
 		}
 		// The queue module confirms a "denied" before it is believed
-		// (#2048), as the forms do.
+		// (#2048), as the forms do; the confirming read can take seconds.
+		pending('location', text('locationChecking', 'Asking the browser…'));
 		window.FFC.Preflight.geoPermission().then(function (answer) {
 			if (answer.state === 'granted') {
 				set('location', 'ok', text('locationGranted', 'Allowed'));
 			} else if (answer.state === 'denied') {
-				set('location', 'fail', text('locationDenied', 'Blocked: allow it in the browser settings.'));
+				set('location', 'fail', text('locationDenied', 'Blocked: allow it in the browser settings.'), locationHelp());
 			} else if (answer.state === 'prompt') {
 				set('location', 'info', text('locationPrompt', 'Not decided yet: the browser will ask.'));
 			} else {
@@ -258,10 +598,10 @@
 
 	function readAccuracy() {
 		if (!navigator.geolocation) {
-			set('accuracy', 'fail', text('noGeolocation', 'This browser cannot give a location.'));
+			set('accuracy', 'fail', text('noGeolocation', 'This browser cannot give a location.'), 'helpNoGeolocation');
 			return;
 		}
-		set('accuracy', 'info', text('accuracyReading', 'Reading your location…'));
+		pending('accuracy', text('accuracyReading', 'Reading your location…'));
 		var started = Date.now();
 		navigator.geolocation.getCurrentPosition(
 			function (position) {
@@ -270,7 +610,8 @@
 				set(
 					'accuracy',
 					metres <= 100 ? 'ok' : 'warn',
-					text('accuracyResult', 'About %1$s m, read in %2$s s').replace('%1$s', String(metres)).replace('%2$s', seconds)
+					text('accuracyResult', 'About %1$s m, read in %2$s s').replace('%1$s', String(metres)).replace('%2$s', seconds),
+					'helpAccuracy'
 				);
 				// The permission may have just been granted.
 				checkLocationPermission();
@@ -278,11 +619,11 @@
 			function (error) {
 				var code = error && error.code;
 				if (code === 1) {
-					set('accuracy', 'fail', text('accuracyDenied', 'Refused by the browser or by you.'));
+					set('accuracy', 'fail', text('accuracyDenied', 'Refused by the browser or by you.'), locationHelp());
 				} else if (code === 3) {
-					set('accuracy', 'fail', text('accuracyTimeout', 'Took too long: move to an open area and try again.'));
+					set('accuracy', 'fail', text('accuracyTimeout', 'Took too long: move to an open area and try again.'), 'helpAccuracy');
 				} else {
-					set('accuracy', 'fail', text('accuracyFailed', 'Could not be read: move to an open area and try again.'));
+					set('accuracy', 'fail', text('accuracyFailed', 'Could not be read: move to an open area and try again.'), 'helpAccuracy');
 				}
 				checkLocationPermission();
 			},
@@ -336,19 +677,27 @@
 
 		set('secure', preflight.secureContext() ? 'ok' : 'fail', preflight.secureContext()
 			? text('secureYes', 'Yes')
-			: text('secureNo', 'No: the browser gives no location here, and forms that ask for it will stop.'));
+			: text('secureNo', 'No: the browser gives no location here, and forms that ask for it will stop.'), 'helpSecure');
 
 		checkBrowser(platform);
 
 		set('cookies', preflight.cookiesWork() ? 'ok' : 'fail', preflight.cookiesWork()
 			? text('cookiesYes', 'Allowed')
-			: text('cookiesNo', 'Blocked: sending a form may fail.'));
+			: text('cookiesNo', 'Blocked: sending a form may fail.'), 'helpCookies');
 
 		var missing = preflight.missingFeatures();
 		set('pdf', missing.length ? 'fail' : 'ok', missing.length
 			? text('pdfNo', 'Not supported: missing %s.').replace('%s', missing.join(', '))
-			: text('pdfYes', 'Supported: this browser can build and save the PDF.'));
+			: text('pdfYes', 'Supported: this browser can build and save the PDF.'), 'helpPdf');
 
+		checkStorage();
+		checkCaptcha();
+		checkDevice();
+		checkClock();
+		checkLocale();
+		checkScreen();
+		checkConnection();
+		checkTheme();
 		checkLocationPermission();
 		set('accuracy', 'info', text('accuracyIdle', 'Press "Test my location".'));
 
