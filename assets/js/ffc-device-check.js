@@ -800,6 +800,22 @@
 	}
 
 	/**
+	 * The captcha mode's name, for the copied results (#2062).
+	 *
+	 * @param {string} id The provider id the server localized.
+	 * @returns {string}
+	 */
+	function captchaMode(id) {
+		if ('math' === id) {
+			return text('captchaModeMath', 'math question');
+		}
+		if ('both' === id) {
+			return text('captchaModeBoth', 'ALTCHA with a math question when JavaScript is off');
+		}
+		return 'altcha' === id ? text('captchaModeAltcha', 'ALTCHA') : '?';
+	}
+
+	/**
 	 * The results as plain text, for a message to support: each row, the
 	 * browser's own identification and the time of the test.
 	 *
@@ -817,10 +833,8 @@
 		// What the site runs, so support need not ask (#2062): the version
 		// the page was built with and the two settings a blocker interacts
 		// with.
-		var modes = { math: ['captchaModeMath', 'math question'], altcha: ['captchaModeAltcha', 'ALTCHA'], both: ['captchaModeBoth', 'ALTCHA with a math question when JavaScript is off'] };
-		var mode = own(modes, cfg.captcha);
 		lines.push(text('summaryVersion', 'Plugin version: %s').replace('%s', (window.ffcCoreConfig && window.ffcCoreConfig.version) || '?'));
-		lines.push(text('summaryCaptcha', 'Captcha mode: %s').replace('%s', mode ? text(mode[0], mode[1]) : '?'));
+		lines.push(text('summaryCaptcha', 'Captcha mode: %s').replace('%s', captchaMode(cfg.captcha)));
 		lines.push(text('summaryDeviceLimit', 'Device limit: %s').replace('%s', window.ffc_device_config ? text('summaryOn', 'on') : text('summaryOff', 'off')));
 		lines.push('User agent: ' + ((window.FFC && window.FFC.Platform && window.FFC.Platform.ua()) || ''));
 		lines.push(new Date().toISOString());
