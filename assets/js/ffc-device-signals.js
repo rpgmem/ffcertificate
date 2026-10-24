@@ -66,18 +66,28 @@
 		return enabled.indexOf( name ) !== -1;
 	}
 
-	function getOrCreateDeviceId() {
+	/**
+	 * The device's persistent id. `readOnly` (the device test, #2054) reads
+	 * an existing one and never creates it, so the test stores nothing.
+	 *
+	 * @param {boolean} [readOnly]
+	 * @returns {string} '' when read-only and none exists.
+	 */
+	function getOrCreateDeviceId( readOnly ) {
 		try {
 			var existing = window.localStorage.getItem( 'ffc_device_id' );
 			if ( existing && /^[0-9a-f-]{30,40}$/i.test( existing ) ) {
 				return existing;
+			}
+			if ( readOnly ) {
+				return '';
 			}
 			var fresh = generateUuid();
 			window.localStorage.setItem( 'ffc_device_id', fresh );
 			return fresh;
 		} catch ( e ) {
 			// Private mode or storage disabled -- fall back to ephemeral id.
-			return generateUuid();
+			return readOnly ? '' : generateUuid();
 		}
 	}
 
@@ -169,11 +179,15 @@
 		};
 	}
 
-	function collectSignals() {
+	/**
+	 * @param {boolean} [readOnly] Never create the persistent id.
+	 * @returns {Promise<Object<string, string>>} Signal name to SHA-256 hex.
+	 */
+	function collectSignals( readOnly ) {
 		var raw = {};
 
 		if ( isEnabled( 'cookie' ) ) {
-			raw.cookie = getOrCreateDeviceId();
+			raw.cookie = getOrCreateDeviceId( readOnly );
 		}
 
 		return window.ThumbmarkJS.getFingerprintData().then( function ( data ) {
@@ -238,6 +252,15 @@
 			} );
 		} );
 	}
+
+	// The device test reads the same signals the forms send, without
+	// creating the persistent id (#2054).
+	window.FFCDeviceSignals = {
+		enabled: enabled.slice(),
+		collect: function () {
+			return collectSignals( true );
+		}
+	};
 
 	if ( document.readyState === 'loading' ) {
 		document.addEventListener( 'DOMContentLoaded', attachToForms );

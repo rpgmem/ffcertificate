@@ -38,6 +38,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The public CSV download checks the browser too** (#2030). An app's own browser is asked to open the page in the phone's browser, with "Continue anyway", as on a certificate form, under the same Settings → Certificates → Browser check; the in-app banner it had is replaced.
 - **The verification page can test the visitor's device** (#2040). `[ffc_verification]` with `?ffc_device_check=1` shows, in the site's theme, each check a form runs (secure connection, browser, cookies, location permission and precision, PDF) and copies the results for support; the position is never shown. The page links there from its footer.
 - **The device test names the browser and its version** (#2052). "Ordinary browser" becomes, for instance, "Chrome (v. 129.0.6668.81)", "Brave / Chromium (v. …)" or "Opera 103 / Chromium (v. 117.…)", read from the brands a Chromium browser declares and then from the user agent; an app's own browser names the app, and the PDF row says what it checked.
+- **The device test diagnoses more, and says how to fix what fails** (#2054). New rows: local storage, the ALTCHA captcha's needs, the device ID the device limit reads (a short code, signals read, whether they hold between reads, read-only), the clock against the server's, time zone and language, screen, connection and theme. A failing row opens how to fix it; a check still running counts down from 20 seconds.
 
 ### Fixed
 

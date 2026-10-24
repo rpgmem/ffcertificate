@@ -99,3 +99,17 @@
     margin: 0;
     font-size: var(--ffc-font-size-sm);
 }
+
+/* "How to fix it" (#2054): an information button on a failing row, and the
+   fix it reveals under the result. */
+.ffc-device-check .ffc-device-check-label .ffc-device-check-tip {
+    margin-left: auto;
+}
+
+.ffc-device-check .ffc-device-check-fix {
+    margin: 0;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-sm);
+    border-left: 3px solid var(--ffc-border);
+    color: var(--ffc-text);
+    font-size: var(--ffc-font-size-sm);
+}

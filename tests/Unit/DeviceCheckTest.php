@@ -61,10 +61,10 @@ class DeviceCheckTest extends TestCase {
 	public function test_render_lists_every_check_and_never_a_coordinate_field(): void {
 		$html = DeviceCheck::render( 'https://example.com/valid/' );
 
-		foreach ( array( 'secure', 'browser', 'cookies', 'location', 'accuracy', 'pdf' ) as $key ) {
+		foreach ( array( 'secure', 'browser', 'cookies', 'storage', 'captcha', 'device', 'clock', 'locale', 'location', 'accuracy', 'pdf', 'screen', 'connection', 'theme' ) as $key ) {
 			$this->assertStringContainsString( 'data-ffc-check="' . $key . '"', $html, "Row {$key} is missing." );
 		}
-		$this->assertSame( 6, substr_count( $html, 'class="ffc-device-check-result"' ) );
+		$this->assertSame( 14, substr_count( $html, 'class="ffc-device-check-result"' ) );
 		$this->assertStringContainsString( '<noscript>', $html );
 		$this->assertStringContainsString( 'href="https://example.com/valid/"', $html );
 		$this->assertStringNotContainsString( 'latitude', $html );
@@ -87,7 +87,9 @@ class DeviceCheckTest extends TestCase {
 	public function test_strings_carry_every_key_the_script_reads(): void {
 		$script = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/js/ffc-device-check.js' );
 		preg_match_all( "/text\\('([A-Za-z]+)'/", $script, $m );
-		$read = array_values( array_unique( $m[1] ) );
+		// The fixes are named by key where a row fails (#2054).
+		preg_match_all( "/'(help[A-Z][A-Za-z]+)'/", $script, $h );
+		$read = array_values( array_unique( array_merge( $m[1], $h[1] ) ) );
 
 		$this->assertNotEmpty( $read );
 		sort( $read );
@@ -116,10 +118,17 @@ class DeviceCheckTest extends TestCase {
 			}
 		);
 
+		Functions\when( 'wp_script_is' )->justReturn( false );
 		DeviceCheck::enqueue_assets();
 
 		$this->assertSame( array( 'ffc-common' ), $styles['ffc-device-check'] );
 		$this->assertSame( array( 'ffc-core', 'ffc-preflight' ), $scripts['ffc-device-check'] );
+
+		// Where the device limit loaded the collector, the test reads it, so
+		// it loads after it (#2054).
+		Functions\when( 'wp_script_is' )->alias( static fn( $handle ) => 'ffc-device-signals' === $handle );
+		DeviceCheck::enqueue_assets();
+		$this->assertSame( array( 'ffc-core', 'ffc-preflight', 'ffc-device-signals' ), $scripts['ffc-device-check'] );
 		$this->assertSame( 'ffcDeviceCheck', $data['ffc-device-check'][0] );
 		$this->assertSame( DeviceCheck::strings(), $data['ffc-device-check'][1]['strings'] );
 	}

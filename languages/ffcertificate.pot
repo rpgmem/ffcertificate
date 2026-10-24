@@ -28819,5 +28819,167 @@ msgstr ""
 msgid "Supported: this browser can build and save the PDF."
 msgstr ""
 
-msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result: secure connection, the browser by name and version, cookies, location permission, PDF download and, when the visitor asks, how precise the location is. Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
+msgid "Device ID"
+msgstr ""
+
+msgid "Not used on this site: the device limit is off."
+msgstr ""
+
+msgid "Not available in this browser: it needs a secure connection and a recent browser."
+msgstr ""
+
+msgid "Reading the device signals…"
+msgstr ""
+
+msgid "%1$s · %2$s of %3$s signals · stable"
+msgstr ""
+
+msgid "%1$s · %2$s of %3$s signals · changes on each read: %4$s"
+msgstr ""
+
+msgid "The device signals could not be read."
+msgstr ""
+
+msgid "%1$s (site: %2$s; system: %3$s)"
+msgstr ""
+
+msgid "Light"
+msgstr ""
+
+msgid "Dark"
+msgstr ""
+
+msgid "always light"
+msgstr ""
+
+msgid "always dark"
+msgstr ""
+
+msgid "follows the system"
+msgstr ""
+
+msgid "dark"
+msgstr ""
+
+msgid "light"
+msgstr ""
+
+msgid "not stated"
+msgstr ""
+
+msgid "A privacy setting or extension changes these signals on every read (the fingerprint protection of Brave, Firefox or Safari, for instance). A form with a device limit may then not recognise this device: use a browser without that protection, or ask the site administrator."
+msgstr ""
+
+msgid "Ahead by %s: date windows and the captcha may fail. Set the clock to automatic."
+msgstr ""
+
+msgid "Allow cookies for this site in the browser's settings (Privacy or Site settings → Cookies), or leave the private (incognito) window."
+msgstr ""
+
+msgid "Behind by %s: date windows and the captcha may fail. Set the clock to automatic."
+msgstr ""
+
+msgid "Blocked (a private window?): the \"already submitted\" notice and \"Continue anyway\" will not be remembered."
+msgstr ""
+
+msgid "Click the icon next to the address → Site settings (or Permissions) → Location → Allow, and reload this page. On Windows and macOS, the system's location services must be on too."
+msgstr ""
+
+msgid "Comparing with the server…"
+msgstr ""
+
+msgid "Connect to the internet (Wi-Fi or mobile data) and reload this page."
+msgstr ""
+
+msgid "Connection"
+msgstr ""
+
+msgid "Correct (differs by %s)"
+msgstr ""
+
+msgid "Could not compare with the server."
+msgstr ""
+
+msgid "Device clock"
+msgstr ""
+
+msgid "How to fix it"
+msgstr ""
+
+msgid "Leave the private (incognito) window, or allow site data for this site in the browser's settings."
+msgstr ""
+
+msgid "Local storage"
+msgstr ""
+
+msgid "Not supported: missing %s. A form whose captcha is ALTCHA only cannot be sent."
+msgstr ""
+
+msgid "Offline"
+msgstr ""
+
+msgid "Online · %s"
+msgstr ""
+
+msgid "Online · the browser does not say the type"
+msgstr ""
+
+msgid "Open the app's menu (⋮ or ···) and choose \"Open in browser\" or \"Open in Safari\". Or copy this page's address and paste it into Chrome, Safari, Firefox or Edge."
+msgstr ""
+
+msgid "Open the site by its address starting with https://. If that address does not open, tell the site administrator."
+msgstr ""
+
+msgid "Open the site by its https:// address in an up-to-date browser, and allow its scripts: a content blocker can stop them."
+msgstr ""
+
+msgid "Screen"
+msgstr ""
+
+msgid "Set the date, time and time zone to automatic in the device's settings (Date and time → Set automatically), then reload this page."
+msgstr ""
+
+msgid "Supported"
+msgstr ""
+
+msgid "Time zone and language"
+msgstr ""
+
+msgid "Turn off data saver (Lite mode) in the browser's or the phone's settings, then reload this page."
+msgstr ""
+
+msgid "Turn on Settings → Privacy & Security → Location Services, then set the browser (Safari or Chrome) to \"While Using the App\". In Safari also tap \"aA\" next to the address → Website Settings → Location → Allow. Reload this page."
+msgstr ""
+
+msgid "Turn on the device's location with high accuracy (Google Location Accuracy on Android, Precise Location on iPhone), go outdoors or near a window, wait a few seconds and test again."
+msgstr ""
+
+msgid "Turn on the phone's Location in the quick settings. Then tap the icon next to the address → Permissions (or Site settings) → Location → Allow, and reload this page."
+msgstr ""
+
+msgid "Update the browser, or use an up-to-date Chrome, Safari, Firefox or Edge, and open the site by its https:// address."
+msgstr ""
+
+msgid "Update the browser, or use an up-to-date Chrome, Safari, Firefox or Edge."
+msgstr ""
+
+msgid "Use an up-to-date Chrome, Safari, Firefox or Edge: this browser cannot give a location."
+msgstr ""
+
+msgid "Window %1$s · screen %2$s · zoom %3$s×"
+msgstr ""
+
+msgid "data saver on: some scripts may not load"
+msgstr ""
+
+msgid "%1$s (%2$s s)"
+msgstr ""
+
+msgid "No answer after %s s: reload the page to test again."
+msgstr ""
+
+msgid "Asking the browser…"
+msgstr ""
+
+msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result: secure connection, the browser by name and version, cookies, local storage, what the ALTCHA captcha needs, the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, location permission, PDF download, screen, connection, the theme in use and, when the visitor asks, how precise the location is. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
 msgstr ""
