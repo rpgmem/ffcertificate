@@ -458,50 +458,29 @@
                 return; // No restrictions
             }
 
-            // A reading less precise than the smallest area cannot tell inside
-            // from outside: it is the "position unavailable" case, as the
-            // server will judge it (#2040).
-            const smallest = Math.min.apply(null, areas.map(function (area) { return Number(area.radius); }));
-            if (typeof location.accuracy === 'number' && location.accuracy > smallest) {
-                this.debug('GPS reading too imprecise for the area', { accuracy: location.accuracy, smallest: smallest });
+            // Each area is judged with its own radius, as the server judges
+            // the submission (#2070): inside when the point is and the error
+            // is at most `tolerance` times the radius, unsure when the error
+            // circle still reaches the area, outside otherwise.
+            const verdict = this.areaVerdict(location, areas, Number(config.tolerance) || 1.5);
+
+            if (verdict === 'unsure') {
+                this.debug('GPS reading cannot tell inside from outside', { accuracy: location.accuracy });
                 if (this.shouldAllow(config, 'positionUnavailable')) {
                     this.showForm(formWrapper);
+                    this.showImpreciseNotice(formWrapper);
                     return;
                 }
                 this.handleBlocked(
                     formWrapper,
                     config.hideMode,
-                    this.getString('inaccurate', 'Your location is not precise enough to confirm you are in the allowed area. Move to an open area or turn on precise location, then reload the page.'),
+                    this.getString('inaccurate', 'Your location is not precise enough to confirm you are in the allowed area. Move to an open area or turn on precise location, then reload the page. On a computer, open this page on your phone with location turned on.'),
                     true
                 );
                 return;
             }
 
-            let withinAnyArea = false;
-
-            for (let i = 0; i < areas.length; i++) {
-                const area = areas[i];
-                const distance = this.calculateDistance(
-                    location.latitude,
-                    location.longitude,
-                    area.lat,
-                    area.lng
-                );
-
-                this.debug('Distance check', {
-                    area: i + 1,
-                    distance: distance.toFixed(2) + ' m',
-                    radius: area.radius + ' m',
-                    within: distance <= area.radius
-                });
-
-                if (distance <= area.radius) {
-                    withinAnyArea = true;
-                    break; // Found matching area
-                }
-            }
-
-            if (!withinAnyArea) {
+            if (verdict === 'outside') {
                 this.handleBlocked(
                     formWrapper,
                     config.hideMode,
@@ -512,6 +491,47 @@
                 this.cacheGeofencePass(formWrapper, config);
                 this.showForm(formWrapper);
             }
+        },
+
+        /**
+         * The reading against every area (#2070).
+         *
+         * @param {object} location  {latitude, longitude, accuracy}
+         * @param {Array}  areas     [{lat, lng, radius}]
+         * @param {number} tolerance How many times an area's radius the error may reach.
+         * @returns {string} 'inside' | 'unsure' | 'outside'
+         */
+        areaVerdict: function(location, areas, tolerance) {
+            const accuracy = typeof location.accuracy === 'number' ? location.accuracy : 0;
+            let verdict = 'outside';
+            for (let i = 0; i < areas.length; i++) {
+                const radius = Number(areas[i].radius);
+                const distance = this.calculateDistance(location.latitude, location.longitude, areas[i].lat, areas[i].lng);
+                if (distance <= radius && accuracy <= radius * tolerance) {
+                    return 'inside';
+                }
+                if (distance - accuracy <= radius) {
+                    verdict = 'unsure';
+                }
+            }
+            return verdict;
+        },
+
+        /**
+         * Say that the form opened without the location being confirmed:
+         * the policy let an imprecise reading through (#2070).
+         *
+         * @param {jQuery} formWrapper Form wrapper element
+         */
+        showImpreciseNotice: function(formWrapper) {
+            formWrapper.find('[data-ffc-notice="geofence-imprecise"]').remove();
+            formWrapper.prepend(window.FFC.notice(
+                'warning',
+                'map-pin',
+                this.getString('inaccurateAllowed', 'Your location is not precise enough to confirm you are in the allowed area, but this form allows access anyway.'),
+                '',
+                { role: 'note', hook: 'geofence-imprecise' }
+            ));
         },
 
         /**

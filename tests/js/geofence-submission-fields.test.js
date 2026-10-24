@@ -123,30 +123,69 @@ describe('FFCGeofence.submissionFields', () => {
 	});
 });
 
-describe('FFCGeofence.checkLocation: the accuracy rule (#2040)', () => {
+describe('FFCGeofence.checkLocation: the accuracy rule, per area (#2040, #2070)', () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
 	});
 
-	it('blocks a reading less precise than the smallest area when the policy blocks position_unavailable', () => {
+	it('blocks a reading that cannot tell inside from outside when the policy blocks position_unavailable', () => {
 		const $w = mount();
+		// 350 m of error in a 200 m area: past 1.5 × the radius.
 		window.FFCGeofence.checkLocation($w, { latitude: -23.55, longitude: -46.63, accuracy: 350 }, window.ffcGeofenceConfig[7].geo);
+
+		expect($w.hasClass('ffc-validated')).toBe(false);
+		expect($w.text()).toContain('not precise enough');
+		expect($w.text()).toContain('On a computer, open this page on your phone');
+	});
+
+	it('shows the form with a notice for an unsure reading when the policy allows position_unavailable', () => {
+		const $w = mount({ gpsFallback: { positionUnavailable: true } });
+		window.FFCGeofence.checkLocation($w, { latitude: -23.55, longitude: -46.63, accuracy: 350 }, window.ffcGeofenceConfig[7].geo);
+
+		expect($w.hasClass('ffc-validated')).toBe(true);
+		const notice = $w.find('[data-ffc-notice="geofence-imprecise"]');
+		expect(notice.length).toBe(1);
+		expect(notice.text()).toContain('allows access anyway');
+	});
+
+	it('takes an error up to 1.5 × the radius as inside, with no notice', () => {
+		const $w = mount();
+		window.FFCGeofence.checkLocation($w, { latitude: -23.55, longitude: -46.63, accuracy: 300 }, window.ffcGeofenceConfig[7].geo);
+
+		expect($w.hasClass('ffc-validated')).toBe(true);
+		expect($w.find('[data-ffc-notice="geofence-imprecise"]').length).toBe(0);
+	});
+
+	it('reads the tolerance the server sends', () => {
+		const $w = mount({ tolerance: 1 });
+		window.FFCGeofence.checkLocation($w, { latitude: -23.55, longitude: -46.63, accuracy: 201 }, window.ffcGeofenceConfig[7].geo);
 
 		expect($w.hasClass('ffc-validated')).toBe(false);
 		expect($w.text()).toContain('not precise enough');
 	});
 
-	it('shows the form for an imprecise reading when the policy allows position_unavailable', () => {
-		const $w = mount({ gpsFallback: { positionUnavailable: true } });
-		window.FFCGeofence.checkLocation($w, { latitude: -23.55, longitude: -46.63, accuracy: 350 }, window.ffcGeofenceConfig[7].geo);
+	it('judges each area with its own radius', () => {
+		// A 50 m area in Rio and a 100 m one in Sao Paulo.
+		const $w = mount({ areas: [{ lat: -22.9, lng: -43.2, radius: 50 }, { lat: -23.55, lng: -46.63, radius: 100 }] });
+		window.FFCGeofence.checkLocation($w, { latitude: -23.55, longitude: -46.63, accuracy: 80 }, window.ffcGeofenceConfig[7].geo);
 
 		expect($w.hasClass('ffc-validated')).toBe(true);
 	});
 
-	it('takes a reading exactly as precise as the area', () => {
-		const $w = mount();
-		window.FFCGeofence.checkLocation($w, { latitude: -23.55, longitude: -46.63, accuracy: 200 }, window.ffcGeofenceConfig[7].geo);
+	it('refuses as outside an imprecise reading far from every area, even when unsure readings are allowed', () => {
+		const $w = mount({ gpsFallback: { positionUnavailable: true }, messageBlocked: 'Outside the area.' });
+		// Belo Horizonte with 2 km of error.
+		window.FFCGeofence.checkLocation($w, { latitude: -19.92, longitude: -43.94, accuracy: 2000 }, window.ffcGeofenceConfig[7].geo);
 
-		expect($w.hasClass('ffc-validated')).toBe(true);
+		expect($w.hasClass('ffc-validated')).toBe(false);
+		expect($w.text()).toContain('Outside the area.');
+	});
+
+	it('treats a point outside whose error reaches the area as unsure', () => {
+		const $w = mount();
+		// About 300 m north of the 200 m area's centre, 150 m of error.
+		window.FFCGeofence.checkLocation($w, { latitude: -23.5473, longitude: -46.63, accuracy: 150 }, window.ffcGeofenceConfig[7].geo);
+
+		expect($w.text()).toContain('not precise enough');
 	});
 });

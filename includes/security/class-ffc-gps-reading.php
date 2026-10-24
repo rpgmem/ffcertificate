@@ -41,6 +41,20 @@ final class GpsReading {
 	public const REASON_MISSING    = 'gps_missing';
 	public const REASON_FAILED     = 'gps_failed';
 
+	/**
+	 * How many times an area's radius a reading's error may reach and still
+	 * count as inside it (#2070). Below 1 a good reading would fail; above 3
+	 * the area stops narrowing anything down.
+	 */
+	public const TOLERANCE_DEFAULT = 1.5;
+	public const TOLERANCE_MIN     = 1.0;
+	public const TOLERANCE_MAX     = 3.0;
+
+	/** The reading against the areas. */
+	private const INSIDE  = 'inside';
+	private const UNSURE  = 'unsure';
+	private const OUTSIDE = 'outside';
+
 	/** Seconds a reading may be older than the GPS cache lifetime, for slow networks. */
 	private const AGE_SLACK = 60;
 
@@ -97,20 +111,25 @@ final class GpsReading {
 	/**
 	 * Whether a reading passes a form's GPS areas.
 	 *
-	 * A reading inside an area passes; outside fails. A reading whose error
-	 * is larger than the smallest area, or older than the GPS cache lifetime,
-	 * cannot tell, and goes to the "position unavailable" case of the
-	 * "When GPS fails" policy. No reading goes to the case the browser
-	 * reported, or to "no API" when it reported none, which is what a script
-	 * that never ran or a forged request looks like.
+	 * Each area is judged with its own radius (#2070). A reading is inside an
+	 * area when its point is and its error is at most `$tolerance` times that
+	 * area's radius; it cannot tell when its error circle still reaches the
+	 * area; and it is outside when even the error circle misses it. One area
+	 * inside passes; none inside and one that cannot tell goes to the
+	 * "position unavailable" case of the "When GPS fails" policy; every area
+	 * outside fails. A reading older than the GPS cache lifetime cannot tell
+	 * wherever it lies. No reading goes to the case the browser reported, or
+	 * to "no API" when it reported none, which is what a script that never
+	 * ran or a forged request looks like.
 	 *
-	 * @param array<int, array{lat: float, lng: float, radius: float}>                                      $areas   The form's GPS areas.
-	 * @param array{reading: array{lat: float, lng: float, accuracy: float, age: int}|null, status: string} $input What the browser sent.
-	 * @param array<string, string>                                                                         $cases   The policy: case => allow|block.
-	 * @param int                                                                                           $max_age GPS cache lifetime in seconds.
+	 * @param array<int, array{lat: float, lng: float, radius: float}>                                      $areas     The form's GPS areas.
+	 * @param array{reading: array{lat: float, lng: float, accuracy: float, age: int}|null, status: string} $input     What the browser sent.
+	 * @param array<string, string>                                                                         $cases     The policy: case => allow|block.
+	 * @param int                                                                                           $max_age   GPS cache lifetime in seconds.
+	 * @param float                                                                                         $tolerance How many times an area's radius the error may reach.
 	 * @return array{pass: bool, reason: string}
 	 */
-	public static function decide( array $areas, array $input, array $cases, int $max_age ): array {
+	public static function decide( array $areas, array $input, array $cases, int $max_age, float $tolerance = self::TOLERANCE_DEFAULT ): array {
 		if ( array() === $areas ) {
 			return array(
 				'pass'   => true,
@@ -127,27 +146,58 @@ final class GpsReading {
 			);
 		}
 
-		$smallest = min( array_map( static fn( array $area ): float => (float) $area['radius'], $areas ) );
-		$stale    = $reading['age'] > ( $max_age + self::AGE_SLACK ) * 1000;
-		if ( $reading['accuracy'] > $smallest || $stale ) {
+		$verdict = $reading['age'] > ( $max_age + self::AGE_SLACK ) * 1000
+			? self::UNSURE
+			: self::verdict( $areas, $reading, $tolerance );
+
+		if ( self::UNSURE === $verdict ) {
 			return array(
 				'pass'   => self::allows( $cases, 'position_unavailable' ),
 				'reason' => self::REASON_INACCURATE,
 			);
 		}
 
-		$inside = IpGeolocation::is_within_areas(
-			array(
-				'latitude'  => $reading['lat'],
-				'longitude' => $reading['lng'],
-			),
-			$areas
-		);
-
+		$inside = self::INSIDE === $verdict;
 		return array(
 			'pass'   => $inside,
 			'reason' => $inside ? self::REASON_INSIDE : self::REASON_OUTSIDE,
 		);
+	}
+
+	/**
+	 * The reading against every area: inside one, unsure about one, or outside all.
+	 *
+	 * @param array<int, array{lat: float, lng: float, radius: float}> $areas     The form's GPS areas.
+	 * @param array{lat: float, lng: float, accuracy: float, age: int} $reading   The browser's reading.
+	 * @param float                                                    $tolerance How many times an area's radius the error may reach.
+	 * @return string One of the verdict constants.
+	 */
+	private static function verdict( array $areas, array $reading, float $tolerance ): string {
+		$verdict = self::OUTSIDE;
+		foreach ( $areas as $area ) {
+			$radius   = (float) $area['radius'];
+			$distance = IpGeolocation::calculate_distance( $reading['lat'], $reading['lng'], (float) $area['lat'], (float) $area['lng'] );
+			if ( $distance <= $radius && $reading['accuracy'] <= $radius * $tolerance ) {
+				return self::INSIDE;
+			}
+			if ( $distance - $reading['accuracy'] <= $radius ) {
+				$verdict = self::UNSURE;
+			}
+		}
+		return $verdict;
+	}
+
+	/**
+	 * A tolerance kept within what the rule can use.
+	 *
+	 * @param mixed $value The stored or posted value.
+	 * @return float
+	 */
+	public static function clamp_tolerance( $value ): float {
+		if ( ! is_numeric( $value ) ) {
+			return self::TOLERANCE_DEFAULT;
+		}
+		return round( max( self::TOLERANCE_MIN, min( self::TOLERANCE_MAX, (float) $value ) ), 1 );
 	}
 
 	/**
