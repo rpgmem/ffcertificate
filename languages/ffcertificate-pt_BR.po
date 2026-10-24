@@ -28730,3 +28730,6 @@ msgstr "Nada é emitido ainda: a próxima etapa associa as colunas e mostra uma 
 
 msgid "Choose file"
 msgstr "Escolher arquivo"
+
+msgid "The public CSV download page ([ffc_csv_download]) runs the browser check too, under the same setting: the file is built and saved by the browser, which an app's own browser often cannot do."
+msgstr "A página pública de download do CSV ([ffc_csv_download]) também executa a verificação do navegador, sob a mesma configuração: o arquivo é montado e salvo pelo navegador, o que o navegador próprio de um aplicativo muitas vezes não consegue fazer."

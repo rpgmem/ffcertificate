@@ -27712,6 +27712,7 @@ msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "When the hours run from the first day to the last, the calendar, the booking details, the user dashboard and the emails show the hours each day actually takes, and the calendar file covers every booked day. Cancelling a range cancels every day it covers; the confirmation names them and enables its button after a short countdown."
+msgstr ""
 
 #: includes/core/class-ffc-scheduled-tasks.php
 msgid "Date messages announcement (one per scheduled announcement)"
@@ -27735,6 +27736,7 @@ msgstr ""
 
 #: templates/emails/date-message-digest.php
 msgid "announcement"
+msgstr ""
 
 #: includes/admin/class-ffc-form-editor-save-handler.php
 msgid "Add them to the layout, or uncheck them in Settings → Certificates, and save again."
@@ -28644,4 +28646,7 @@ msgid "Nothing is issued yet: the next step maps the columns and shows a preview
 msgstr ""
 
 msgid "Choose file"
+msgstr ""
+
+msgid "The public CSV download page ([ffc_csv_download]) runs the browser check too, under the same setting: the file is built and saved by the browser, which an app's own browser often cannot do."
 msgstr ""
