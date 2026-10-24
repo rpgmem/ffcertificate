@@ -81,10 +81,21 @@ describe('device check (#2040)', () => {
 	});
 
 	it('reports a blocked or granted permission', async () => {
-		await run({ permission: 'denied' });
+		await run({ permission: 'denied', error: { code: 1 } });
 		expect(row('location').state).toBe('fail');
 		await run({ permission: 'granted' });
 		expect(row('location').state).toBe('ok');
+	});
+
+	it('believes the device over a "denied" it contradicts (#2048)', async () => {
+		// Opera for Android: the Permissions API says denied, the read works.
+		await run({ permission: 'denied', position: { latitude: -23.5505, longitude: -46.6333, accuracy: 22 } });
+		expect(row('location')).toEqual({ state: 'ok', text: 'Allowed' });
+		expect(document.body.textContent).not.toContain('23.55');
+
+		// A timeout says nothing about the permission.
+		await run({ permission: 'denied', error: { code: 3 } });
+		expect(row('location').state).toBe('info');
 	});
 
 	it('says so when the browser has no geolocation', async () => {

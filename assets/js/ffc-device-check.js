@@ -53,22 +53,18 @@
 			set('location', 'fail', text('noGeolocation', 'This browser cannot give a location.'));
 			return;
 		}
-		var permissions = navigator.permissions;
-		if (!permissions || typeof permissions.query !== 'function') {
-			set('location', 'info', text('locationUnknown', 'The browser does not say until it asks.'));
-			return;
-		}
-		permissions.query({ name: 'geolocation' }).then(function (status) {
-			var state = status && status.state;
-			if (state === 'granted') {
+		// The queue module confirms a "denied" before it is believed
+		// (#2048), as the forms do.
+		window.FFC.Preflight.geoPermission().then(function (answer) {
+			if (answer.state === 'granted') {
 				set('location', 'ok', text('locationGranted', 'Allowed'));
-			} else if (state === 'denied') {
+			} else if (answer.state === 'denied') {
 				set('location', 'fail', text('locationDenied', 'Blocked: allow it in the browser settings.'));
-			} else {
+			} else if (answer.state === 'prompt') {
 				set('location', 'info', text('locationPrompt', 'Not decided yet: the browser will ask.'));
+			} else {
+				set('location', 'info', text('locationUnknown', 'The browser does not say until it asks.'));
 			}
-		}, function () {
-			set('location', 'info', text('locationUnknown', 'The browser does not say until it asks.'));
 		});
 	}
 
