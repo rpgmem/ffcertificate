@@ -28783,9 +28783,6 @@ msgstr ""
 msgid "Secure connection"
 msgstr ""
 
-msgid "Supported"
-msgstr ""
-
 msgid "Test my device"
 msgstr ""
 
@@ -28813,11 +28810,14 @@ msgstr ""
 msgid "iPhone or iPad"
 msgstr ""
 
-msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result: secure connection, browser, cookies, location permission, PDF download and, when the visitor asks, how precise the location is. Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
-msgstr ""
-
 msgid "With ?ffc_device_check=1 in the address it shows the \"Test my device\" checks instead; the page links there from its footer."
 msgstr ""
 
 msgid "A \"Location blocked\" message appears only when the browser really refuses the location. Some browsers, Opera for Android among them, report the location as blocked while they hand it over; the plugin then reads the position once to check, and a browser that gives it is treated as allowed."
+msgstr ""
+
+msgid "Supported: this browser can build and save the PDF."
+msgstr ""
+
+msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result: secure connection, the browser by name and version, cookies, location permission, PDF download and, when the visitor asks, how precise the location is. Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
 msgstr ""
