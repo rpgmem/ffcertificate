@@ -28918,12 +28918,6 @@ msgstr ""
 msgid "Offline"
 msgstr ""
 
-msgid "Online · %s"
-msgstr ""
-
-msgid "Online · the browser does not say the type"
-msgstr ""
-
 msgid "Open the app's menu (⋮ or ···) and choose \"Open in browser\" or \"Open in Safari\". Or copy this page's address and paste it into Chrome, Safari, Firefox or Edge."
 msgstr ""
 
@@ -28945,9 +28939,6 @@ msgstr ""
 msgid "Time zone and language"
 msgstr ""
 
-msgid "Turn off data saver (Lite mode) in the browser's or the phone's settings, then reload this page."
-msgstr ""
-
 msgid "Turn on Settings → Privacy & Security → Location Services, then set the browser (Safari or Chrome) to \"While Using the App\". In Safari also tap \"aA\" next to the address → Website Settings → Location → Allow. Reload this page."
 msgstr ""
 
@@ -28966,12 +28957,6 @@ msgstr ""
 msgid "Use an up-to-date Chrome, Safari, Firefox or Edge: this browser cannot give a location."
 msgstr ""
 
-msgid "Window %1$s · screen %2$s · zoom %3$s×"
-msgstr ""
-
-msgid "data saver on: some scripts may not load"
-msgstr ""
-
 msgid "%1$s (%2$s s)"
 msgstr ""
 
@@ -28982,4 +28967,49 @@ msgid "Asking the browser…"
 msgstr ""
 
 msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result: secure connection, the browser by name and version, cookies, local storage, what the ALTCHA captcha needs, the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, location permission, PDF download, screen, connection, the theme in use and, when the visitor asks, how precise the location is. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
+msgstr ""
+
+msgid "Window %1$s · screen %2$s · density %3$s×"
+msgstr ""
+
+msgid "Mobile data"
+msgstr ""
+
+msgid "Wired"
+msgstr ""
+
+msgid "Bluetooth"
+msgstr ""
+
+msgid "Other network"
+msgstr ""
+
+msgid "Slow (like 3G)"
+msgstr ""
+
+msgid "Very slow (like 2G)"
+msgstr ""
+
+msgid "Very slow (below 2G)"
+msgstr ""
+
+msgid "Online/Speed: %1$s / %2$s"
+msgstr ""
+
+msgid "Connection type not reported"
+msgstr ""
+
+msgid "Connection speed not reported"
+msgstr ""
+
+msgid "Fast (like 4G or better)"
+msgstr ""
+
+msgid "Data saver is on: some scripts may not load. Turn it off (Lite mode) in the browser's or the phone's settings, then reload this page."
+msgstr ""
+
+msgid "iOS gives no browser these details. This does not affect the forms."
+msgstr ""
+
+msgid "This browser does not give these details. This does not affect the forms."
 msgstr ""

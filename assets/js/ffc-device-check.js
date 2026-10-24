@@ -32,8 +32,11 @@
 	 * @param {string} [help] The string key of how to fix it, shown behind
 	 *                        an information button when the state is
 	 *                        `warn` or `fail` (#2054).
+	 * @param {boolean} [explain] Show the button on an `info` row too, for
+	 *                        an answer that needs a word but is no fault
+	 *                        (#2060).
 	 */
-	function set(key, state, value, help) {
+	function set(key, state, value, help, explain) {
 		var el = row(key);
 		if (!el) {
 			return;
@@ -42,7 +45,8 @@
 		el.classList.remove('is-ok', 'is-warn', 'is-fail', 'is-info');
 		el.classList.add('is-' + state);
 		el.querySelector('.ffc-device-check-result').textContent = value;
-		showHelp(el, key, ('warn' === state || 'fail' === state) && help ? text(help, '') : '');
+		var shown = 'warn' === state || 'fail' === state || (explain === true && 'info' === state);
+		showHelp(el, key, shown && help ? text(help, '') : '');
 	}
 
 	/** How long a check may run before its row says it got no answer. */
@@ -544,10 +548,10 @@
 		set('locale', 'info', [zone || utc, zone ? utc : '', navigator.language || ''].filter(Boolean).join(' · '));
 	}
 
-	/** The window, the screen and the zoom factor (#2054). */
+	/** The window, the screen and the pixel density (#2054). */
 	function checkScreen() {
 		var screen = window.screen || {};
-		set('screen', 'info', fill(text('screenResult', 'Window %1$s · screen %2$s · zoom %3$s×'), [
+		set('screen', 'info', fill(text('screenResult', 'Window %1$s · screen %2$s · density %3$s×'), [
 			window.innerWidth + ' × ' + window.innerHeight,
 			(screen.width || '?') + ' × ' + (screen.height || '?'),
 			Math.round((window.devicePixelRatio || 1) * 100) / 100
@@ -558,21 +562,59 @@
 	 * Online or not, and what the Network Information API says where the
 	 * browser has it (Chromium): the type and whether data saver is on.
 	 */
+	/** `navigator.connection.type` values worth naming, by string key. */
+	var CONNECTION_TYPES = {
+		wifi: ['connectionWifi', 'Wi-Fi'],
+		cellular: ['connectionCellular', 'Mobile data'],
+		ethernet: ['connectionEthernet', 'Wired'],
+		bluetooth: ['connectionBluetooth', 'Bluetooth'],
+		wimax: ['connectionOther', 'Other network'],
+		other: ['connectionOther', 'Other network']
+	};
+
+	/** `navigator.connection.effectiveType` speed classes, by string key. */
+	var CONNECTION_SPEEDS = {
+		'4g': ['speedFast', 'Fast (like 4G or better)'],
+		'3g': ['speedSlow', 'Slow (like 3G)'],
+		'2g': ['speedVerySlow', 'Very slow (like 2G)'],
+		'slow-2g': ['speedSlowest', 'Very slow (below 2G)']
+	};
+
+	/** A map's own entry, never one inherited from Object.prototype. */
+	function own(map, key) {
+		return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : null;
+	}
+
 	function checkConnection() {
 		if (navigator.onLine === false) {
 			set('connection', 'fail', text('connectionOffline', 'Offline'), 'helpOffline');
 			return;
 		}
 		var info = navigator.connection;
-		if (!info || !info.effectiveType) {
-			set('connection', 'info', text('connectionOnline', 'Online · the browser does not say the type'));
+		// Always the same pair, on every device: the medium after
+		// "Online", the speed after "Speed", and "not reported" in the slot
+		// the browser leaves empty. `type` exists only on Chromium for
+		// Android and ChromeOS; `effectiveType` is a speed class the
+		// browser estimates, never the network generation (#2060).
+		var medium = info && own(CONNECTION_TYPES, info.type);
+		var speed = info && own(CONNECTION_SPEEDS, info.effectiveType);
+		var value = fill(text('connectionType', 'Online/Speed: %1$s / %2$s'), [
+			medium ? text(medium[0], medium[1]) : text('connectionTypeUnknown', 'Connection type not reported'),
+			speed ? text(speed[0], speed[1]) : text('connectionSpeedUnknown', 'Connection speed not reported')
+		]);
+		if (info && info.saveData) {
+			set('connection', 'warn', value, 'helpDataSaver');
 			return;
 		}
-		var value = text('connectionType', 'Online · %s').replace('%s', String(info.effectiveType).toUpperCase());
-		if (info.saveData) {
-			value += ' · ' + text('connectionSaver', 'data saver on: some scripts may not load');
+		if (!medium && !speed) {
+			// Nothing to fix, but the visitor deserves to know why: iOS gives
+			// no browser this, and neither do Safari on a Mac and Firefox.
+			var ns = window.FFC || {};
+			var ios = ns.Platform && typeof ns.Platform.ios === 'function' && ns.Platform.ios();
+			set('connection', 'info', value, ios ? 'helpConnectionIos' : 'helpConnectionBrowser', true);
+			return;
 		}
-		set('connection', info.saveData ? 'warn' : 'info', value, 'helpDataSaver');
+		set('connection', 'info', value);
 	}
 
 	function checkLocationPermission() {

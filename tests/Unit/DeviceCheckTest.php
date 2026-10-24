@@ -89,7 +89,10 @@ class DeviceCheckTest extends TestCase {
 		preg_match_all( "/text\\('([A-Za-z]+)'/", $script, $m );
 		// The fixes are named by key where a row fails (#2054).
 		preg_match_all( "/'(help[A-Z][A-Za-z]+)'/", $script, $h );
-		$read = array_values( array_unique( array_merge( $m[1], $h[1] ) ) );
+		// The connection medium and speed are looked up in maps of
+		// [ key, fallback ] pairs (#2060).
+		preg_match_all( "/\\['([a-z]+[A-Z][A-Za-z]*)', '/", $script, $p );
+		$read = array_values( array_unique( array_merge( $m[1], $h[1], $p[1] ) ) );
 
 		$this->assertNotEmpty( $read );
 		sort( $read );
