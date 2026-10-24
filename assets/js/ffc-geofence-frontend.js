@@ -32,6 +32,11 @@
         // setTimeout.
         MIN_LOADING_MS: 600,
 
+        // An accepted GPS reading whose error is above this share of the
+        // accepting area's radius is called weak to the visitor (#2072);
+        // the default when the server sends no `weakShare`.
+        WEAK_READING_SHARE: 0.5,
+
         /**
          * Initialize geofence validation
          */

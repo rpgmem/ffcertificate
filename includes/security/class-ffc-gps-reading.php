@@ -50,6 +50,14 @@ final class GpsReading {
 	public const TOLERANCE_MIN     = 1.0;
 	public const TOLERANCE_MAX     = 3.0;
 
+	/**
+	 * Above this share of the accepting area's radius, an accepted reading
+	 * is called weak to the visitor (#2072). It changes no decision.
+	 */
+	public const WEAK_SHARE_DEFAULT = 0.5;
+	public const WEAK_SHARE_MIN     = 0.1;
+	public const WEAK_SHARE_MAX     = 1.0;
+
 	/** The reading against the areas. */
 	private const INSIDE  = 'inside';
 	private const UNSURE  = 'unsure';
@@ -185,6 +193,19 @@ final class GpsReading {
 			}
 		}
 		return $verdict;
+	}
+
+	/**
+	 * A weak-reading share kept within its range (#2072).
+	 *
+	 * @param mixed $value The stored or posted value.
+	 * @return float
+	 */
+	public static function clamp_weak_share( $value ): float {
+		if ( ! is_numeric( $value ) ) {
+			return self::WEAK_SHARE_DEFAULT;
+		}
+		return round( max( self::WEAK_SHARE_MIN, min( self::WEAK_SHARE_MAX, (float) $value ) ), 1 );
 	}
 
 	/**

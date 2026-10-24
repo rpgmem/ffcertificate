@@ -116,6 +116,14 @@ final class GeolocationSettingsReader {
 		return \FreeFormCertificate\Security\GpsReading::clamp_tolerance( self::all()['gps_accuracy_tolerance'] ?? null );
 	}
 
+	/**
+	 * Share of an area's radius above which an accepted GPS reading is
+	 * called weak to the visitor (default 0.5, kept between 0.1 and 1) (#2072).
+	 */
+	public static function gps_weak_share(): float {
+		return \FreeFormCertificate\Security\GpsReading::clamp_weak_share( self::all()['gps_weak_share'] ?? null );
+	}
+
 	/** Fallback behaviour when the IP API fails (default 'gps_only'). */
 	public static function api_fallback(): string {
 		return self::all()['api_fallback'] ?? 'gps_only';

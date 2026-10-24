@@ -395,6 +395,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 						</div>
 					</td>
 				</tr>
+				<!-- Weak-reading notice (#2072) -->
+				<tr>
+					<th scope="row">
+						<label for="ffc_gps_weak_share"><?php esc_html_e( 'Low-precision notice', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<input type="number"
+								name="gps_weak_share"
+								id="ffc_gps_weak_share"
+								value="<?php echo esc_attr( (string) \FreeFormCertificate\Security\GpsReading::clamp_weak_share( $settings['gps_weak_share'] ?? null ) ); ?>"
+								min="<?php echo esc_attr( (string) \FreeFormCertificate\Security\GpsReading::WEAK_SHARE_MIN ); ?>"
+								max="<?php echo esc_attr( (string) \FreeFormCertificate\Security\GpsReading::WEAK_SHARE_MAX ); ?>"
+								step="0.1" required>
+						<?php esc_html_e( '× the area\'s radius', 'ffcertificate' ); ?>
+						<p class="description">
+							<?php esc_html_e( 'When a reading is accepted as inside but its error is above this many times the area\'s radius, the form opens with a notice saying the location was accepted with low precision, and its error in metres. It changes no decision: only what the visitor is told.', 'ffcertificate' ); ?>
+						</p>
+						<p class="description">
+							<?php esc_html_e( 'Range: 0.1 to 1. Default: 0.5.', 'ffcertificate' ); ?>
+						</p>
+						<div class="notice notice-warning inline">
+							<p>
+								<?php esc_html_e( 'Keep the default unless you have a measured reason to change it. A lower value shows the notice to visitors whose GPS is good, who learn to ignore it; a higher one hides it from readings that only barely held.', 'ffcertificate' ); ?>
+							</p>
+						</div>
+					</td>
+				</tr>
 			</tbody></table>
 		</div>
 

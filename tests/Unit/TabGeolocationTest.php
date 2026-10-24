@@ -77,7 +77,7 @@ class TabGeolocationTest extends TestCase {
 		unset( $_POST['gps_fallback'], $_POST['gps_fallback_preset'], $_POST['gps_fallback_cases'], $_POST['gps_fallback_custom'] );
 		unset( $_POST['both_fail_fallback'], $_POST['ip_api_enabled'], $_POST['ip_api_cascade'] );
 		unset( $_POST['ipinfo_api_key'], $_POST['ip_cache_enabled'], $_POST['ip_cache_ttl'] );
-		unset( $_POST['gps_cache_ttl'], $_POST['gps_accuracy_tolerance'], $_POST['admin_bypass_datetime'], $_POST['admin_bypass_geo'] );
+		unset( $_POST['gps_cache_ttl'], $_POST['gps_accuracy_tolerance'], $_POST['gps_weak_share'], $_POST['admin_bypass_datetime'], $_POST['admin_bypass_geo'] );
 		unset( $_POST['main_geo_areas'] );
 		Monkey\tearDown();
 		parent::tearDown();
@@ -463,6 +463,33 @@ class TabGeolocationTest extends TestCase {
 
 		$this->assertSame( 300, $captured_settings['ip_cache_ttl'] );
 		$this->assertSame( 60, $captured_settings['gps_cache_ttl'] );
+	}
+
+	public function test_save_settings_clamps_the_weak_share_and_keeps_it_when_cleared(): void {
+		$_POST['ip_api_service']      = 'ip-api';
+		$_POST['api_fallback']        = 'gps_only';
+		$_POST['gps_fallback_preset'] = 'tolerant';
+		$_POST['both_fail_fallback']  = 'block';
+
+		$stored   = array( 'gps_weak_share' => 0.6 );
+		$captured = array();
+		Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured ) {
+			if ( $key === 'ffc_geolocation_settings' ) {
+				$captured[] = $value['gps_weak_share'];
+			}
+		} );
+		Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => 'ffc_geolocation_settings' === $key ? $stored : $default );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
+		$ref->setAccessible( true );
+		foreach ( array( '2', '0', '0.4', '' ) as $posted ) {
+			$_POST['gps_weak_share'] = $posted;
+			$ref->invoke( $this->tab );
+		}
+
+		// Above the range, below it, within it, and a cleared field (#2072).
+		$this->assertSame( array( 1.0, 0.1, 0.4, 0.6 ), $captured );
 	}
 
 	public function test_save_settings_clamps_the_gps_tolerance_and_keeps_it_when_cleared(): void {

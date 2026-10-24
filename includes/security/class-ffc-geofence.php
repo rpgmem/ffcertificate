@@ -928,6 +928,7 @@ class Geofence {
 					'cacheEnabled'   => true, // Always enable frontend cache.
 					'cacheTtl'       => $gps_cache_ttl, // From global settings.
 					'tolerance'      => \FreeFormCertificate\Settings\GeolocationSettingsReader::gps_accuracy_tolerance(), // Error allowed, × an area's radius (#2070).
+					'weakShare'      => \FreeFormCertificate\Settings\GeolocationSettingsReader::gps_weak_share(), // Above it an accepted reading is called weak (#2072).
 				),
 				'global'      => array(
 					'debug' => class_exists( '\FreeFormCertificate\Core\Debug' )

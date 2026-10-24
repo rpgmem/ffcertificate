@@ -29169,3 +29169,21 @@ msgstr ""
 
 msgid "Android: open the Downloads folder, or use the Files app."
 msgstr ""
+
+msgid "Your location was accepted, but with low precision (about %s m). For more precision, turn on precise location or use your phone."
+msgstr ""
+
+msgid "A reading accepted as inside whose error is above a share of the area's radius (the Low-precision notice under Settings → Geolocation → GPS Cache and Precision, 0.5 by default) opens the form with a notice saying the location was accepted with low precision and giving the error in metres. It changes no decision."
+msgstr ""
+
+msgid "Low-precision notice"
+msgstr ""
+
+msgid "When a reading is accepted as inside but its error is above this many times the area's radius, the form opens with a notice saying the location was accepted with low precision, and its error in metres. It changes no decision: only what the visitor is told."
+msgstr ""
+
+msgid "Range: 0.1 to 1. Default: 0.5."
+msgstr ""
+
+msgid "Keep the default unless you have a measured reason to change it. A lower value shows the notice to visitors whose GPS is good, who learn to ignore it; a higher one hides it from readings that only barely held."
+msgstr ""

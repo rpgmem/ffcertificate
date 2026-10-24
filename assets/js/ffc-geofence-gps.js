@@ -490,7 +490,47 @@
                 this.debug('User within allowed area, showing form');
                 this.cacheGeofencePass(formWrapper, config);
                 this.showForm(formWrapper);
+                // Accepted, but on a weak reading: say so, with the error,
+                // so the visitor knows the location barely held (#2072).
+                if (this.weakInside(location, areas, Number(config.tolerance) || 1.5, Number(config.weakShare) || FFCGeofence.WEAK_READING_SHARE)) {
+                    this.showImpreciseNotice(
+                        formWrapper,
+                        this.getString('inaccurateAccepted', 'Your location was accepted, but with low precision (about %s m). For more precision, turn on precise location or use your phone.')
+                            .replace('%s', String(Math.round(location.accuracy)))
+                    );
+                }
             }
+        },
+
+        /**
+         * Whether a reading that passed did so only on a weak reading: in
+         * every area that takes it as inside, its error is above `share`
+         * times the radius (#2072). One area that holds it with room to
+         * spare is enough.
+         *
+         * @param {object} location  {latitude, longitude, accuracy}
+         * @param {Array}  areas     [{lat, lng, radius}]
+         * @param {number} tolerance How many times an area's radius the error may reach.
+         * @param {number} share     Above this many times an area's radius, the error is weak.
+         * @returns {boolean}
+         */
+        weakInside: function(location, areas, tolerance, share) {
+            if (typeof location.accuracy !== 'number') {
+                return false;
+            }
+            let weak = false;
+            for (let i = 0; i < areas.length; i++) {
+                const radius = Number(areas[i].radius);
+                const distance = this.calculateDistance(location.latitude, location.longitude, areas[i].lat, areas[i].lng);
+                if (distance > radius || location.accuracy > radius * tolerance) {
+                    continue;
+                }
+                if (location.accuracy <= radius * share) {
+                    return false;
+                }
+                weak = true;
+            }
+            return weak;
         },
 
         /**
@@ -518,17 +558,19 @@
         },
 
         /**
-         * Say that the form opened without the location being confirmed:
-         * the policy let an imprecise reading through (#2070).
+         * Say that the form opened without the location being confirmed
+         * (the policy let an imprecise reading through, #2070), or with a
+         * weak confirmation (#2072).
          *
          * @param {jQuery} formWrapper Form wrapper element
+         * @param {string} [message]   The text; the "allowed anyway" one by default.
          */
-        showImpreciseNotice: function(formWrapper) {
+        showImpreciseNotice: function(formWrapper, message) {
             formWrapper.find('[data-ffc-notice="geofence-imprecise"]').remove();
             formWrapper.prepend(window.FFC.notice(
                 'warning',
                 'map-pin',
-                this.getString('inaccurateAllowed', 'Your location is not precise enough to confirm you are in the allowed area, but this form allows access anyway.'),
+                message || this.getString('inaccurateAllowed', 'Your location is not precise enough to confirm you are in the allowed area, but this form allows access anyway.'),
                 '',
                 { role: 'note', hook: 'geofence-imprecise' }
             ));
