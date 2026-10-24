@@ -29001,12 +29001,6 @@ msgstr "Sem suporte: falta %s. Um formulário cujo captcha é só ALTCHA não po
 msgid "Offline"
 msgstr "Sem conexão"
 
-msgid "Online · %s"
-msgstr "Conectado · %s"
-
-msgid "Online · the browser does not say the type"
-msgstr "Conectado · o navegador não informa o tipo"
-
 msgid "Open the app's menu (⋮ or ···) and choose \"Open in browser\" or \"Open in Safari\". Or copy this page's address and paste it into Chrome, Safari, Firefox or Edge."
 msgstr "Abra o menu do aplicativo (⋮ ou ···) e escolha \"Abrir no navegador\" ou \"Abrir no Safari\". Ou copie o endereço desta página e cole no Chrome, Safari, Firefox ou Edge."
 
@@ -29049,9 +29043,6 @@ msgstr "Atualize o navegador ou use um Chrome, Safari, Firefox ou Edge atualizad
 msgid "Use an up-to-date Chrome, Safari, Firefox or Edge: this browser cannot give a location."
 msgstr "Use um Chrome, Safari, Firefox ou Edge atualizado: este navegador não consegue fornecer a localização."
 
-msgid "Window %1$s · screen %2$s · zoom %3$s×"
-msgstr "Janela %1$s · tela %2$s · zoom %3$s×"
-
 msgid "data saver on: some scripts may not load"
 msgstr "economia de dados ligada: alguns scripts podem não carregar"
 
@@ -29066,3 +29057,36 @@ msgstr "Consultando o navegador…"
 
 msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result: secure connection, the browser by name and version, cookies, local storage, what the ALTCHA captcha needs, the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, location permission, PDF download, screen, connection, the theme in use and, when the visitor asks, how precise the location is. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
 msgstr "A página de verificação ([ffc_verification]) tem um modo \"Testar meu dispositivo\", com link no rodapé, acessado ao acrescentar ?ffc_device_check=1 ao endereço. Ele executa essas verificações no próprio dispositivo do visitante e mostra cada resultado: conexão segura, o navegador com nome e versão, cookies, armazenamento local, o que o captcha ALTCHA precisa, o ID do dispositivo que o limite por dispositivo lê (um código curto, quantos sinais foram lidos e se eles se mantêm entre duas leituras), o relógio do dispositivo comparado ao do servidor, fuso horário e idioma, permissão de localização, download do PDF, tela, conexão, o tema em uso e, quando o visitante pede, a precisão da localização. Uma linha que falha traz um botão de informação com como corrigir, e uma verificação ainda em andamento faz uma contagem regressiva de 20 segundos. Nada é enviado nem guardado, e a posição em si nunca é exibida. O botão \"Copiar os resultados\" coloca na área de transferência os resultados, a identificação do navegador e o horário, para uma mensagem a quem dá suporte ao visitante."
+
+msgid "Window %1$s · screen %2$s · density %3$s×"
+msgstr "Janela %1$s · tela %2$s · densidade %3$s×"
+
+msgid "Mobile data"
+msgstr "Dados móveis"
+
+msgid "Wired"
+msgstr "Cabeada"
+
+msgid "Bluetooth"
+msgstr "Bluetooth"
+
+msgid "Other network"
+msgstr "Outra rede"
+
+msgid "Fast (like 4G)"
+msgstr "Rápida (equivalente a 4G)"
+
+msgid "Slow (like 3G)"
+msgstr "Lenta (equivalente a 3G)"
+
+msgid "Very slow (like 2G)"
+msgstr "Muito lenta (equivalente a 2G)"
+
+msgid "Very slow (below 2G)"
+msgstr "Muito lenta (abaixo de 2G)"
+
+msgid "Online/Speed: %1$s / %2$s"
+msgstr "Conectado/Velocidade: %1$s / %2$s"
+
+msgid "Not reported"
+msgstr "Não informado"

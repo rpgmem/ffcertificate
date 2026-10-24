@@ -219,12 +219,21 @@ final class DeviceCheck {
 			/* translators: %s: how far behind, such as "7 min". */
 			'clockBehind'         => __( 'Behind by %s: date windows and the captcha may fail. Set the clock to automatic.', 'ffcertificate' ),
 			'clockUnknown'        => __( 'Could not compare with the server.', 'ffcertificate' ),
-			/* translators: 1: viewport width × height, 2: screen width × height, 3: zoom factor. */
-			'screenResult'        => __( 'Window %1$s · screen %2$s · zoom %3$s×', 'ffcertificate' ),
-			/* translators: %s: the connection type the browser reports, such as "4g". */
-			'connectionType'      => __( 'Online · %s', 'ffcertificate' ),
+			/* translators: 1: viewport width × height, 2: screen width × height, 3: pixel density. */
+			'screenResult'        => __( 'Window %1$s · screen %2$s · density %3$s×', 'ffcertificate' ),
+			/* translators: 1: the network medium, such as "Wi-Fi", 2: the speed class, such as "Fast (like 4G)"; either may be "Not reported". */
+			'connectionType'      => __( 'Online/Speed: %1$s / %2$s', 'ffcertificate' ),
+			'connectionUnknown'   => __( 'Not reported', 'ffcertificate' ),
+			'connectionWifi'      => __( 'Wi-Fi', 'ffcertificate' ),
+			'connectionCellular'  => __( 'Mobile data', 'ffcertificate' ),
+			'connectionEthernet'  => __( 'Wired', 'ffcertificate' ),
+			'connectionBluetooth' => __( 'Bluetooth', 'ffcertificate' ),
+			'connectionOther'     => __( 'Other network', 'ffcertificate' ),
+			'speedFast'           => __( 'Fast (like 4G)', 'ffcertificate' ),
+			'speedSlow'           => __( 'Slow (like 3G)', 'ffcertificate' ),
+			'speedVerySlow'       => __( 'Very slow (like 2G)', 'ffcertificate' ),
+			'speedSlowest'        => __( 'Very slow (below 2G)', 'ffcertificate' ),
 			'connectionSaver'     => __( 'data saver on: some scripts may not load', 'ffcertificate' ),
-			'connectionOnline'    => __( 'Online · the browser does not say the type', 'ffcertificate' ),
 			'connectionOffline'   => __( 'Offline', 'ffcertificate' ),
 			/* translators: 1: what is being checked, 2: seconds left. */
 			'pendingCountdown'    => __( '%1$s (%2$s s)', 'ffcertificate' ),

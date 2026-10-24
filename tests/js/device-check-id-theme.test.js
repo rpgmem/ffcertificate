@@ -196,23 +196,47 @@ describe('storage, captcha, clock, locale, screen and connection rows (#2054)', 
 		expect(row('locale').text).toContain(navigator.language);
 	});
 
-	it('shows the window, the screen and the zoom', async () => {
+	it('shows the window, the screen and the pixel density', async () => {
 		await run();
-		expect(row('screen').text).toMatch(/^Window \d+ × \d+ · screen .+ · zoom [\d.]+×$/);
+		expect(row('screen').text).toMatch(/^Window \d+ × \d+ · screen .+ · density [\d.]+×$/);
 	});
 
 	it('reports the connection, data saver and offline', async () => {
 		await run();
-		expect(row('connection')).toEqual({ state: 'info', text: 'Online · the browser does not say the type' });
+		expect(row('connection')).toEqual({ state: 'info', text: 'Online/Speed: Not reported / Not reported' });
 
+		// One pair on every device (#2060): a desktop browser gives only the
+		// speed class, shown as a speed and never as a network generation.
 		define(navigator, 'connection', { effectiveType: '4g', saveData: false });
 		await run();
-		expect(row('connection')).toEqual({ state: 'info', text: 'Online · 4G' });
+		expect(row('connection')).toEqual({ state: 'info', text: 'Online/Speed: Not reported / Fast (like 4G)' });
+
+		// Chromium for Android also gives the medium.
+		define(navigator, 'connection', { type: 'wifi', effectiveType: '4g', saveData: false });
+		await run();
+		expect(row('connection').text).toBe('Online/Speed: Wi-Fi / Fast (like 4G)');
+
+		define(navigator, 'connection', { type: 'cellular', effectiveType: '2g', saveData: false });
+		await run();
+		expect(row('connection').text).toBe('Online/Speed: Mobile data / Very slow (like 2G)');
+
+		define(navigator, 'connection', { type: 'ethernet', effectiveType: 'slow-2g', saveData: false });
+		await run();
+		expect(row('connection').text).toBe('Online/Speed: Wired / Very slow (below 2G)');
+
+		// A value nobody maps, or an inherited key, reads as not reported
+		// rather than as something wrong.
+		define(navigator, 'connection', { type: 'unknown', effectiveType: '5g', saveData: false });
+		await run();
+		expect(row('connection').text).toBe('Online/Speed: Not reported / Not reported');
+		define(navigator, 'connection', { type: 'toString', effectiveType: 'constructor', saveData: false });
+		await run();
+		expect(row('connection').text).toBe('Online/Speed: Not reported / Not reported');
 
 		define(navigator, 'connection', { effectiveType: '3g', saveData: true });
 		await run();
 		expect(row('connection').state).toBe('warn');
-		expect(row('connection').text).toContain('data saver on');
+		expect(row('connection').text).toBe('Online/Speed: Not reported / Slow (like 3G) / data saver on: some scripts may not load');
 
 		define(navigator, 'onLine', false);
 		await run();

@@ -544,10 +544,10 @@
 		set('locale', 'info', [zone || utc, zone ? utc : '', navigator.language || ''].filter(Boolean).join(' · '));
 	}
 
-	/** The window, the screen and the zoom factor (#2054). */
+	/** The window, the screen and the pixel density (#2054). */
 	function checkScreen() {
 		var screen = window.screen || {};
-		set('screen', 'info', fill(text('screenResult', 'Window %1$s · screen %2$s · zoom %3$s×'), [
+		set('screen', 'info', fill(text('screenResult', 'Window %1$s · screen %2$s · density %3$s×'), [
 			window.innerWidth + ' × ' + window.innerHeight,
 			(screen.width || '?') + ' × ' + (screen.height || '?'),
 			Math.round((window.devicePixelRatio || 1) * 100) / 100
@@ -558,21 +558,52 @@
 	 * Online or not, and what the Network Information API says where the
 	 * browser has it (Chromium): the type and whether data saver is on.
 	 */
+	/** `navigator.connection.type` values worth naming, by string key. */
+	var CONNECTION_TYPES = {
+		wifi: ['connectionWifi', 'Wi-Fi'],
+		cellular: ['connectionCellular', 'Mobile data'],
+		ethernet: ['connectionEthernet', 'Wired'],
+		bluetooth: ['connectionBluetooth', 'Bluetooth'],
+		wimax: ['connectionOther', 'Other network'],
+		other: ['connectionOther', 'Other network']
+	};
+
+	/** `navigator.connection.effectiveType` speed classes, by string key. */
+	var CONNECTION_SPEEDS = {
+		'4g': ['speedFast', 'Fast (like 4G)'],
+		'3g': ['speedSlow', 'Slow (like 3G)'],
+		'2g': ['speedVerySlow', 'Very slow (like 2G)'],
+		'slow-2g': ['speedSlowest', 'Very slow (below 2G)']
+	};
+
+	/** A map's own entry, never one inherited from Object.prototype. */
+	function own(map, key) {
+		return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : null;
+	}
+
 	function checkConnection() {
 		if (navigator.onLine === false) {
 			set('connection', 'fail', text('connectionOffline', 'Offline'), 'helpOffline');
 			return;
 		}
 		var info = navigator.connection;
-		if (!info || !info.effectiveType) {
-			set('connection', 'info', text('connectionOnline', 'Online · the browser does not say the type'));
-			return;
+		// Always the same pair, on every device: the medium after
+		// "Online", the speed after "Speed", and "Not reported" in the slot
+		// the browser leaves empty. `type` exists only on Chromium for
+		// Android and ChromeOS; `effectiveType` is a speed class the
+		// browser estimates, never the network generation (#2060).
+		var unknown = text('connectionUnknown', 'Not reported');
+		var medium = info && own(CONNECTION_TYPES, info.type);
+		var speed = info && own(CONNECTION_SPEEDS, info.effectiveType);
+		var value = fill(text('connectionType', 'Online/Speed: %1$s / %2$s'), [
+			medium ? text(medium[0], medium[1]) : unknown,
+			speed ? text(speed[0], speed[1]) : unknown
+		]);
+		var saving = !!(info && info.saveData);
+		if (saving) {
+			value += ' / ' + text('connectionSaver', 'data saver on: some scripts may not load');
 		}
-		var value = text('connectionType', 'Online · %s').replace('%s', String(info.effectiveType).toUpperCase());
-		if (info.saveData) {
-			value += ' · ' + text('connectionSaver', 'data saver on: some scripts may not load');
-		}
-		set('connection', info.saveData ? 'warn' : 'info', value, 'helpDataSaver');
+		set('connection', saving ? 'warn' : 'info', value, 'helpDataSaver');
 	}
 
 	function checkLocationPermission() {
