@@ -239,7 +239,6 @@ class Frontend {
 			// Pass geofence configurations to frontend.
 			$this->localize_geofence_config();
 
-
 			// Device fingerprint signals collector (only when globally enabled).
 			//
 			// thumbmarkjs (vendored at libs/js/) provides the raw component
