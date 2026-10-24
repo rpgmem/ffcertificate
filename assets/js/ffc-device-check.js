@@ -62,31 +62,38 @@
 	 * no answer yet, then the worst state any row reached.
 	 */
 	function verdict() {
+		paintGroups();
 		var box = document.querySelector('.ffc-device-check-verdict');
 		var ns = window.FFC || {};
 		if (!box || typeof ns.notice !== 'function') {
 			return;
 		}
 		var worst = -1;
+		var todo = false;
 		var rows = document.querySelectorAll('.ffc-device-check-row');
 		for (var i = 0; i < rows.length; i++) {
-			if (!rows[i].hasAttribute('data-ffc-checked') || countdowns[rows[i].getAttribute('data-ffc-check')]) {
+			if (rowState(rows[i]) === 'checking') {
 				worst = -1;
 				break;
 			}
-			['info', 'ok', 'warn', 'fail'].forEach(function (state) {
-				if (rows[i].classList.contains('is-' + state)) {
-					worst = Math.max(worst, RANK[state]);
-				}
-			});
+			worst = Math.max(worst, RANK[rowState(rows[i])]);
+			todo = todo || rows[i].hasAttribute('data-ffc-todo');
 		}
-		var key = worst < 0 ? 'checking' : (worst === RANK.fail ? 'fail' : (worst === RANK.warn ? 'warn' : 'ok'));
+		// A step the visitor still owes (the location reading) comes before
+		// any warning, but a failure is told first (#2065).
+		var key = 'checking';
+		if (worst === RANK.fail) {
+			key = 'fail';
+		} else if (worst >= 0) {
+			key = todo ? 'todo' : (worst === RANK.warn ? 'warn' : 'ok');
+		}
 		if (key === drawn) {
 			return;
 		}
 		drawn = key;
 		var notice = {
 			checking: ['info', 'sync', text('verdictChecking', 'Running the checks…'), ''],
+			todo: ['info', 'map-pin', text('verdictTodo', 'Press "Test my location" under Device settings to finish the test.'), text('verdictTodoTitle', 'One step left')],
 			ok: ['success', 'success', text('verdictOk', 'Every check passed: the forms should work here.'), text('verdictOkTitle', 'This device is ready')],
 			warn: ['warning', 'warning', text('verdictWarn', 'The forms should work, but the items in yellow may get in the way. Open "How to fix it" on each one.'), text('verdictWarnTitle', 'Ready, with warnings')],
 			fail: ['danger', 'error', text('verdictFail', 'Fix the items in red: open "How to fix it" on each one, then reload this page.'), text('verdictFailTitle', 'The forms may not work here')]
@@ -95,6 +102,71 @@
 		box.appendChild(ns.notice(notice[0], notice[1], notice[2], notice[3]));
 		box.setAttribute('data-ffc-verdict', key);
 	}
+
+	/**
+	 * A row's state for the verdict and the sections: `checking` until it
+	 * has an answer that is not a countdown, then its colour.
+	 *
+	 * @param {HTMLElement} el The row.
+	 * @returns {string} `checking` | `info` | `ok` | `warn` | `fail`.
+	 */
+	function rowState(el) {
+		if (!el.hasAttribute('data-ffc-checked') || countdowns[el.getAttribute('data-ffc-check')]) {
+			return 'checking';
+		}
+		var states = ['fail', 'warn', 'ok', 'info'];
+		for (var i = 0; i < states.length; i++) {
+			if (el.classList.contains('is-' + states[i])) {
+				return states[i];
+			}
+		}
+		return 'info';
+	}
+
+	/**
+	 * Each section's chip, and its opening (#2065): a section opens by
+	 * itself when a row in it warns, fails or waits on the visitor, and is
+	 * never closed again by the script, so the screen does not move under
+	 * someone reading it.
+	 */
+	function paintGroups() {
+		var groups = document.querySelectorAll('.ffc-device-check-group');
+		for (var g = 0; g < groups.length; g++) {
+			var count = { checking: 0, info: 0, ok: 0, warn: 0, fail: 0 };
+			var todo = 0;
+			var rows = groups[g].querySelectorAll('.ffc-device-check-row');
+			for (var i = 0; i < rows.length; i++) {
+				count[rowState(rows[i])]++;
+				todo += rows[i].hasAttribute('data-ffc-todo') ? 1 : 0;
+			}
+			var chip = groups[g].querySelector('.ffc-device-check-chip');
+			var state = 'ok';
+			var label = text('chipOk', '%s OK').replace('%s', String(count.ok + count.info));
+			if (count.fail) {
+				state = 'fail';
+				label = 1 === count.fail ? text('chipFailOne', '1 failure') : text('chipFailMany', '%s failures').replace('%s', String(count.fail));
+			} else if (count.warn) {
+				state = 'warn';
+				label = 1 === count.warn ? text('chipWarnOne', '1 warning') : text('chipWarnMany', '%s warnings').replace('%s', String(count.warn));
+			} else if (count.checking) {
+				state = 'info';
+				label = text('chipChecking', 'Checking…');
+			} else if (todo) {
+				state = 'info';
+				label = text('chipTodo', 'Test pending');
+			}
+			if (chip) {
+				chip.classList.remove('is-ok', 'is-warn', 'is-fail', 'is-info');
+				chip.classList.add('is-' + state);
+				chip.textContent = label;
+			}
+			groups[g].setAttribute('data-ffc-state', state);
+			if (count.fail || count.warn || todo) {
+				groups[g].open = true;
+			}
+		}
+	}
+
 
 	/** How long a check may run before its row says it got no answer. */
 	var PENDING_SECONDS = 20;
@@ -759,9 +831,22 @@
 		var perm = geo.perm;
 		var acc = geo.acc;
 		var worst = acc && RANK[acc.state] > RANK[perm.state] ? acc : perm;
-		set('location', worst.state, acc
-			? fill(text('locationWithAccuracy', '%1$s · %2$s'), [perm.value, acc.value])
-			: perm.value, worst.help);
+		// Until the visitor reads the location, the test is not finished
+		// (#2065): the row says so and the verdict asks for the step.
+		var owed = !acc && !!navigator.geolocation;
+		var el = row('location');
+		if (el) {
+			if (owed) {
+				el.setAttribute('data-ffc-todo', '1');
+			} else {
+				el.removeAttribute('data-ffc-todo');
+			}
+		}
+		var value = perm.value;
+		if (acc || owed) {
+			value = fill(text('locationWithAccuracy', '%1$s · %2$s'), [perm.value, acc ? acc.value : text('locationTodo', 'precision not tested yet')]);
+		}
+		set('location', worst.state, value, worst.help);
 	}
 
 	function noGeolocation() {
