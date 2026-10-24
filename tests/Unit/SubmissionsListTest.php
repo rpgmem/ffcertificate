@@ -425,6 +425,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringContainsString( 'PDF', $out );
 		$this->assertStringContainsString( 'Trash', $out );
 		$this->assertStringNotContainsString( 'Restore', $out );
+		// One flex container holds the buttons, so they keep one line and an
+		// even gap where the column fits them.
+		$this->assertMatchesRegularExpression( '#^<div class="ffc-submission-actions">.*</div>$#s', $out );
 	}
 
 	public function test_actions_manage_trash_shows_restore_delete(): void {

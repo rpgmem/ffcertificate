@@ -41,7 +41,7 @@ final class PiiReveal {
 			return '';
 		}
 
-		return '<p>' . Button::html(
+		return '<p class="ffc-pii-reveal-bar">' . Button::html(
 			array(
 				'label' => __( 'Reveal this page', 'ffcertificate' ),
 				'icon'  => 'eye',

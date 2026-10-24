@@ -480,3 +480,10 @@
         display: none;
     }
 }
+
+/* "Reveal this page" sits below a list's status links and search box, which
+   WordPress floats left and right; without the clear it ran into the gap
+   between them (#2050). */
+.ffc-pii-reveal-bar {
+    clear: both;
+}
