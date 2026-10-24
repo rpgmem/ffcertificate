@@ -28650,3 +28650,18 @@ msgstr ""
 
 msgid "The public CSV download page ([ffc_csv_download]) runs the browser check too, under the same setting: the file is built and saved by the browser, which an app's own browser often cannot do."
 msgstr ""
+
+msgid "Activity Log: Delete Logged Locations"
+msgstr ""
+
+msgid "Delete the \"IP Geolocation Debug\" activity log entries. Until this release every geofence area check wrote the visitor's position there: the exact GPS position of each audience check-in, and the position each IP address resolved to. The entries are debug output with no audit value. A check now logs its decision only, and only while geolocation debugging is on."
+msgstr ""
+
+msgid "The visitor's position is used to decide and then discarded: it is not stored with the submission and is not written to any log. With geolocation debugging on, the debug entries say which area matched, never where the visitor was. Entries written before 6.42.0 did record the position; the \"Activity Log: Delete Logged Locations\" migration removes them."
+msgstr ""
+
+msgid "Could not delete the geolocation debug entries."
+msgstr ""
+
+msgid "Deleted %d geolocation debug entries."
+msgstr ""

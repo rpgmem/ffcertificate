@@ -323,20 +323,14 @@ class IpGeolocation {
 			$within    = ( $distance <= $area['radius'] );
 			$matches[] = $within;
 
+			// The decision only: never the visitor's position, nor the
+			// distance, which three areas would turn back into one (#2040).
 			self::debug_log(
 				'Area check',
 				array(
-					'user_location' => array(
-						'lat' => $location['latitude'],
-						'lng' => $location['longitude'],
-					),
-					'area_center'   => array(
-						'lat' => $area['lat'],
-						'lng' => $area['lng'],
-					),
-					'radius_km'     => $area['radius'],
-					'distance_km'   => round( $distance, 2 ),
-					'within'        => $within,
+					'area'   => count( $matches ) - 1,
+					'radius' => $area['radius'],
+					'within' => $within,
 				)
 			);
 		}
@@ -361,16 +355,22 @@ class IpGeolocation {
 
 	/**
 	 * Return a copy of a location array with the raw `ip` field replaced by its
-	 * truncated hash, for safe debug logging. The returned/cached location
-	 * structure is unchanged — only the log copy is redacted.
+	 * truncated hash and the coordinates removed, for safe debug logging. The
+	 * returned/cached location structure is unchanged — only the log copy is
+	 * redacted.
 	 *
 	 * @param mixed $location Location array (or anything; passed through if not an array).
 	 * @return mixed
 	 */
 	private static function redact_location_ip( $location ) {
-		if ( is_array( $location ) && isset( $location['ip'] ) && is_string( $location['ip'] ) && '' !== $location['ip'] ) {
+		if ( ! is_array( $location ) ) {
+			return $location;
+		}
+		if ( isset( $location['ip'] ) && is_string( $location['ip'] ) && '' !== $location['ip'] ) {
 			$location['ip'] = self::hash_ip( $location['ip'] );
 		}
+		// A position, even the city one an IP resolves to, is not logged (#2040).
+		unset( $location['latitude'], $location['longitude'] );
 		return $location;
 	}
 
@@ -386,8 +386,12 @@ class IpGeolocation {
 			\FreeFormCertificate\Core\Debug::log_geofence( $message, $context );
 		}
 
-		// Log to activity log.
-		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
+		// The activity log copy obeys the same toggle as the debug log: it is
+		// debug output, and it used to be written whenever the log was on
+		// (#2040).
+		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' )
+			&& class_exists( '\FreeFormCertificate\Core\Debug' )
+			&& \FreeFormCertificate\Core\Debug::is_enabled( \FreeFormCertificate\Core\Debug::AREA_GEOFENCE ) ) {
 			\FreeFormCertificate\Core\ActivityLog::log(
 				'ip_geolocation_debug',
 				\FreeFormCertificate\Core\ActivityLog::LEVEL_DEBUG,

@@ -574,6 +574,7 @@ class MigrationStatusCalculatorTest extends TestCase {
 			'email_hash_rehash'               => array( 'email_hash_rehash', $ns . 'EmailHashRehashMigrationStrategy' ),
 			'activity_log_clear_plaintext'    => array( 'activity_log_clear_plaintext', $ns . 'ActivityLogClearPlaintextMigrationStrategy' ),
 			'activity_log_encrypt_ip'         => array( 'activity_log_encrypt_ip', $ns . 'ActivityLogEncryptIpMigrationStrategy' ),
+			'activity_log_location_cleanup'   => array( 'activity_log_location_cleanup', $ns . 'ActivityLogLocationCleanupMigrationStrategy' ),
 			'key_rotation_remaining'          => array( 'key_rotation_remaining', $ns . 'KeyRotationRemainingMigrationStrategy' ),
 			'identity_normalization'          => array( 'identity_normalization', $ns . 'IdentityNormalizationMigrationStrategy' ),
 			'identity_index_backfill'         => array( 'identity_index_backfill', $ns . 'IdentityIndexBackfillMigrationStrategy' ),

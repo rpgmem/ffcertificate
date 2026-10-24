@@ -422,10 +422,11 @@ class Geofence {
 			return array(
 				'valid'   => false,
 				'message' => self::message_or_default( $config, 'msg_geo_blocked', __( 'This form is not available in your location.', 'ffcertificate' ) ),
+				// The position stays out of the result: the denial is logged
+				// from it (#2040).
 				'details' => array(
-					'reason'        => 'outside_allowed_areas',
-					'user_location' => $user_location,
-					'areas_count'   => count( $check_areas ),
+					'reason'      => 'outside_allowed_areas',
+					'areas_count' => count( $check_areas ),
 				),
 			);
 		}
@@ -433,7 +434,7 @@ class Geofence {
 		return array(
 			'valid'   => true,
 			'message' => '',
-			'details' => array( 'user_location' => $user_location ),
+			'details' => array( 'reason' => 'inside_allowed_areas' ),
 		);
 	}
 
