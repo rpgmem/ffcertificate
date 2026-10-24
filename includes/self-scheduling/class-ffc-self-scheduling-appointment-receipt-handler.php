@@ -127,14 +127,18 @@ class AppointmentReceiptHandler {
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'jspdf' );
 
 		// Enqueue PDF generator (reuse from certificates).
-		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-pdf-generator' );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-pdf-generator', 'ffc-preflight' );
+
+		// The pre-flight's telemetry goes through the request helper, which
+		// reads its URL and nonce here (#2040).
+		wp_localize_script( 'ffc-core', 'ffc_ajax', \FreeFormCertificate\Frontend\BrowserGate::request_config() );
 
 		// Receipt "Download PDF" button wiring (extracted from an inline
 		// <script>); reads the localized ffcReceiptData object below.
 		wp_enqueue_script(
 			'ffc-self-scheduling-receipt',
 			FFC_PLUGIN_URL . "assets/js/ffc-self-scheduling-receipt{$s}.js",
-			array( 'jquery', 'ffc-pdf-generator' ),
+			array( 'jquery', 'ffc-pdf-generator', 'ffc-preflight' ),
 			FFC_VERSION,
 			true
 		);
@@ -501,6 +505,8 @@ class AppointmentReceiptHandler {
 						'generatingPdf' => __( 'Generating PDF...', 'ffcertificate' ),
 						'pleaseWait'    => __( 'Please wait, this may take a few seconds...', 'ffcertificate' ),
 					),
+					// The browser step before the download (#2040).
+					'preflight'      => \FreeFormCertificate\Frontend\BrowserGate::script_config( self::preflight_strings() ),
 				)
 			);
 
@@ -508,11 +514,29 @@ class AppointmentReceiptHandler {
 			wp_print_scripts( 'html2canvas' );
 			wp_print_scripts( 'jspdf' );
 			wp_print_scripts( 'ffc-pdf-generator' );
+			wp_print_scripts( 'ffc-preflight' );
 			wp_print_scripts( 'ffc-self-scheduling-receipt' );
 			?>
 		</body>
 		</html>
 		<?php
+	}
+
+	/**
+	 * The browser step's strings where a receipt, not a certificate, is
+	 * being downloaded (#2040). Shared by the receipt page and the booking
+	 * confirmation.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function preflight_strings(): array {
+		return array(
+			/* translators: %s: a list of browsers, such as "Safari, Chrome, Firefox or Edge". */
+			'inAppBody'            => __( 'You are viewing this page inside an app, where downloading the receipt often fails. Open it in %s.', 'ffcertificate' ),
+			/* translators: %s: a list of browsers, such as "Safari, Chrome, Firefox or Edge". */
+			'browserFeaturesBody'  => __( 'This browser is missing features needed to build your receipt. Open this page in %s.', 'ffcertificate' ),
+			'browserFeaturesTitle' => __( 'This browser cannot build the receipt', 'ffcertificate' ),
+		);
 	}
 
 	/**

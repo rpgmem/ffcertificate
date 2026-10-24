@@ -12,7 +12,9 @@
  *
  * Steps registered here: `secure` (the page is a secure context, when the
  * caller needs one), `browser` (an app's own browser, or one missing what
- * the form needs) and `cookies` (the probe and its banner). The geofence
+ * the form needs), `cookies` (the probe and its banner) and `continue`
+ * (the end of `beforeDownload()`, which runs the browser step before a PDF
+ * the browser builds is downloaded). The geofence
  * script registers `datetime` and `geo`. The context
  * carries the wrapper (jQuery), the config, `text(key, fallback)` for the
  * localized strings, `content` for gated content, `browserCheck` (the
@@ -564,6 +566,12 @@
 	 */
 	function hideBehind(ctx, notice) {
 		ctx.wrapper.find(ctx.formSelector || '.ffc-submission-form, .ffc-form').hide();
+		// One notice per purpose: a second run (a receipt downloaded on its
+		// own and then by its button) replaces the first.
+		var hook = notice.getAttribute('data-ffc-notice');
+		if (hook) {
+			ctx.wrapper.find('[data-ffc-notice="' + hook + '"]').remove();
+		}
 		ctx.wrapper.prepend(notice);
 	}
 
@@ -647,6 +655,55 @@
 		}
 	});
 
+	register('continue', {
+		// The end of a queue run for an action rather than a form: the
+		// caller's `onPass` does what the visitor asked for.
+		run: function (ctx) {
+			if (typeof ctx.onPass === 'function') {
+				ctx.onPass(ctx);
+			}
+		}
+	});
+
+	/**
+	 * Run the browser step before a PDF the browser builds is downloaded
+	 * (the appointment receipt, #2040), then download it. An app's own
+	 * browser is asked to switch, with "Continue anyway", and a browser
+	 * missing what the PDF needs is stopped; the control that started the
+	 * download is hidden behind the notice and shown again when the visitor
+	 * goes on. Without the request helper or jQuery the download runs as it
+	 * always did.
+	 *
+	 * @param {object}   options
+	 * @param {jQuery}   options.wrapper      Where the notice goes.
+	 * @param {string}   options.trigger      Selector, inside the wrapper, of the control to hide.
+	 * @param {object}   [options.telemetry]  `{type, id}` for the log.
+	 * @param {boolean}  [options.browserCheck] The setting; off skips the step.
+	 * @param {object}   [options.strings]    Localized strings.
+	 * @param {Function} options.go           Builds and downloads the PDF.
+	 */
+	function beforeDownload(options) {
+		var strings = options.strings || {};
+		if (!options.wrapper || typeof options.wrapper.find !== 'function') {
+			options.go();
+			return;
+		}
+		run(['browser', 'continue'], {
+			wrapper: options.wrapper,
+			config: {},
+			browserCheck: options.browserCheck !== false,
+			formSelector: options.trigger,
+			telemetry: options.telemetry,
+			text: function (key, fallback) {
+				return strings[key] || fallback;
+			},
+			onPass: function (ctx) {
+				ctx.wrapper.find(options.trigger).show();
+				options.go();
+			}
+		});
+	}
+
 	ns.Preflight = {
 		/**
 		 * Report that a part finished.
@@ -673,6 +730,7 @@
 		register: register,
 		run: run,
 		log: log,
+		beforeDownload: beforeDownload,
 		secureContext: secureContext,
 		banner: banner,
 		cookiesWork: cookiesWork,

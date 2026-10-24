@@ -5,7 +5,9 @@
 // The check-in moved onto the queue in PR 3 of #2040: an insecure page and
 // an app's own browser are stopped before the tap, and the location
 // permission is read on load; the recorded outcomes changed in exactly those
-// scenarios. The receipt is still to move. This file records what a visitor
+// scenarios. The receipt moved in PR 4: an app's own browser is asked to
+// switch before the PDF is built, and the download waits behind "Continue
+// anyway". This file records what a visitor
 // gets from them today across the dimensions the move touches (the device,
 // whether the page is secure, what the GPS answers), and compares every
 // outcome with tests/fixtures/geo-flows-baseline.json, so each later change

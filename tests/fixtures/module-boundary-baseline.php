@@ -126,6 +126,7 @@ return array(
 	'Security>Settings',
 	'SelfScheduling>Admin',
 	'SelfScheduling>Core',
+	'SelfScheduling>Frontend',
 	'SelfScheduling>Generators',
 	'SelfScheduling>Repositories',
 	'SelfScheduling>Scheduling',

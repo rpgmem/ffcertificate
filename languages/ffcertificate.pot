@@ -28692,3 +28692,15 @@ msgstr ""
 
 msgid "When the check-in asks for a location, the page runs the same checks a certificate form runs before it is used: a page not served over HTTPS is stopped, because the browser gives no location there, and an app's own browser (Instagram, WhatsApp and others) is asked to open the page in the phone's browser, with \"Continue anyway\". A location already refused in the browser is said at once, before the tap. A reading whose margin of error is larger than the smallest area is refused, as on a certificate form; there is no \"When GPS fails\" policy here: without a usable location there is no check-in, and the organiser can mark attendance by hand. Each stop is written to the Activity Log as a pre-flight block naming the booking."
 msgstr ""
+
+msgid "You are viewing this page inside an app, where downloading the receipt often fails. Open it in %s."
+msgstr ""
+
+msgid "This browser is missing features needed to build your receipt. Open this page in %s."
+msgstr ""
+
+msgid "This browser cannot build the receipt"
+msgstr ""
+
+msgid "The receipt PDF is built in the visitor's browser, after booking or from the receipt page, and the same browser check a certificate form runs comes first: an app's own browser (Instagram, WhatsApp and others), where saving the file often fails, is asked to open the page in the phone's browser, with \"Continue anyway\", which then downloads it; a browser missing what the PDF needs is stopped. Booking itself never waits on this. Settings → Certificates → Browser check turns it off, and each stop is written to the Activity Log as a pre-flight block naming the appointment."
+msgstr ""

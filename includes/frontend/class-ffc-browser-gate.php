@@ -169,4 +169,34 @@ class BrowserGate {
 			'browserFeaturesBody'  => __( 'This browser is missing features the form needs to issue your certificate. Open this page in %s.', 'ffcertificate' ),
 		);
 	}
+
+	/**
+	 * What a page outside a certificate form hands the pre-flight queue
+	 * (#2040): the browser-check switch and the step strings, with the
+	 * page's own wording over the form's where they differ.
+	 *
+	 * @param array<string, string> $strings Strings that replace the form's.
+	 * @return array{browserCheck: bool, strings: array<string, string>}
+	 */
+	public static function script_config( array $strings = array() ): array {
+		return array(
+			'browserCheck' => SettingsReader::browser_check_enabled(),
+			'strings'      => array_merge( self::strings(), $strings ),
+		);
+	}
+
+	/**
+	 * What the request helper (`FFC.request`, in `ffc-core`) reads on a page
+	 * that loads no certificate form: the AJAX URL and the front-end nonce
+	 * the pre-flight telemetry is checked against. Localized onto
+	 * `ffc-core` as `ffc_ajax`, so the helper finds it at load.
+	 *
+	 * @return array{ajax_url: string, nonce: string}
+	 */
+	public static function request_config(): array {
+		return array(
+			'ajax_url' => admin_url( 'admin-ajax.php' ),
+			'nonce'    => wp_create_nonce( 'ffc_frontend_nonce' ),
+		);
+	}
 }
