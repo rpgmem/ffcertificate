@@ -102,30 +102,65 @@ jobs:
           echo "::error::composer audit failed after 3 attempts"
           exit 1
 
-  test:
-    # 6.6.5 — minimum PHP bumped 8.1 → 8.3. Matrix went 4 versions
-    # (8.1, 8.2, 8.3, 8.4) → 2 (8.3, 8.4). 8.1 / 8.2 visitors are
-    # capped at 6.6.4 by WordPress's `Requires PHP` enforcement.
-    name: PHPUnit (PHP ${{ matrix.php }})
+  # The suite runs on PHP 8.4 in 3 shards, partitioned like the coverage
+  # shards below (.github/scripts/shard-tests.php). One process took 10 to 17
+  # minutes on a runner, which held every run as long as the slowest
+  # coverage shard (#2058). PHP 8.3 has no plain run of its own: the coverage
+  # shards run the same suite on 8.3, so a second run repeated them.
+  test-shard:
+    name: PHPUnit 8.4 shard ${{ matrix.shard }}
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.3', '8.4']
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-composer
         with:
-          php-version: ${{ matrix.php }}
-      - name: Run PHPUnit
-        run: vendor/bin/phpunit
+          php-version: '8.4'
+      - name: Run PHPUnit shard
+        run: |
+          mkdir -p build
+          php .github/scripts/shard-tests.php ${{ matrix.shard }} 3 > build/phpunit.shard.xml
+          vendor/bin/phpunit -c build/phpunit.shard.xml
+
+  # Gating jobs — keep the exact "PHPUnit (PHP 8.x)" names the branch
+  # protection requires. Each reports its shards' result and runs nothing
+  # else; like `coverage` below, they run on shard failure (a definitive red,
+  # never a skipped required check) but not on a cancelled run.
+  test:
+    name: PHPUnit (PHP 8.4)
+    needs: test-shard
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any PHPUnit shard did not succeed
+        if: needs.test-shard.result != 'success'
+        run: |
+          echo "::error::One or more PHPUnit shards did not succeed (result=${{ needs.test-shard.result }})."
+          exit 1
+
+  test-83:
+    name: PHPUnit (PHP 8.3)
+    needs: coverage-shard
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any coverage shard did not succeed
+        if: needs.coverage-shard.result != 'success'
+        run: |
+          echo "::error::One or more coverage shards (the PHP 8.3 run) did not succeed (result=${{ needs.coverage-shard.result }})."
+          exit 1
 
   # The #563 coverage campaign grew the suite to ~6200 tests, many of them
   # @runTestsInSeparateProcesses (alias-mock containment) — slow under pcov on
   # 2-core runners (the single-process coverage run hit both the 30m timeout and
   # the 512M memory ceiling on #622). The suite was made order-independent
   # (namespaced Core stubs converted to globals so no test leaks a lingering
-  # symbol), which lets the coverage run be split into 4 parallel shards. Each
+  # symbol), which lets the coverage run be split into parallel shards (4, then
+  # 6 in #2058, when the slowest of 4 reached 20 minutes). Each
   # shard runs a balanced subset (.github/scripts/shard-tests.php, LPT-packed by
   # per-file test-method count so the process-isolated forks spread evenly) and
   # emits a partial .cov; the `coverage` job below merges them with phpcov and
@@ -137,7 +172,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-composer
@@ -148,7 +183,7 @@ jobs:
       - name: Run PHPUnit shard with coverage
         run: |
           mkdir -p build/cov
-          php .github/scripts/shard-tests.php ${{ matrix.shard }} 4 > build/phpunit.shard.xml
+          php .github/scripts/shard-tests.php ${{ matrix.shard }} 6 > build/phpunit.shard.xml
           vendor/bin/phpunit -c build/phpunit.shard.xml --coverage-php "build/cov/shard-${{ matrix.shard }}.cov"
       - name: Upload shard coverage
         uses: actions/upload-artifact@v7

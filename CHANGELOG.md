@@ -84,6 +84,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The pre-flight asks the browser whether a page is secure, and its log names what was blocked** (#2040). The `secure` step moved into the queue module and reads `window.isSecureContext`, so a `.local` or LAN host over HTTP is stopped as the browser would. A pre-flight log row names its form, or the CSV download page.
 - ⚠ **The audience check-in runs the visitor pre-flight and refuses an imprecise location** (#2040). A check-in that asks for the location stops an insecure page and asks an app's own browser to switch, says a refused permission before the tap, and refuses a reading less precise than the smallest area; stops are logged against the booking.
 - **The appointment receipt checks the browser before its PDF is built** (#2040). After booking and on the receipt page, an app's own browser is asked to switch, with "Continue anyway", which then downloads; booking never waits on it. Settings → Certificates → Browser check turns it off; stops are logged against the appointment.
+- Internal (#2058) — CI runs the suite in parallel: coverage in 6 shards instead of 4, PHP 8.4 in 3, and no separate PHP 8.3 run (the coverage shards are that run); the shards now take the Integration suite too. Gate jobs keep the required check names.
 
 ### Security
 
