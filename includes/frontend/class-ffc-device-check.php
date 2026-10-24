@@ -80,6 +80,39 @@ final class DeviceCheck {
 	);
 
 	/**
+	 * The sections the rows are drawn in, each a collapsible `<details>`
+	 * with its icon and its rows, in the order of CHECKS (#2065).
+	 *
+	 * @var array<string, array{icon: string, checks: list<string>}>
+	 */
+	private const GROUPS = array(
+		'network'     => array(
+			'icon'   => 'network',
+			'checks' => array( 'secure', 'connection', 'server' ),
+		),
+		'browser'     => array(
+			'icon'   => 'monitor',
+			'checks' => array( 'browser', 'cookies', 'storage' ),
+		),
+		'protections' => array(
+			'icon'   => 'shield',
+			'checks' => array( 'captcha', 'device' ),
+		),
+		'device'      => array(
+			'icon'   => 'clock',
+			'checks' => array( 'clock', 'locale', 'location' ),
+		),
+		'display'     => array(
+			'icon'   => 'layout',
+			'checks' => array( 'screen', 'theme' ),
+		),
+		'pdf'         => array(
+			'icon'   => 'file',
+			'checks' => array( 'pdf' ),
+		),
+	);
+
+	/**
 	 * Register the test's server request, for visitors and signed-in users
 	 * alike: the test runs for both (#2064).
 	 *
@@ -134,19 +167,60 @@ final class DeviceCheck {
 	}
 
 	/**
+	 * The sections' names, keyed as GROUPS is.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function group_labels(): array {
+		return array(
+			'network'     => __( 'Network', 'ffcertificate' ),
+			'browser'     => __( 'Browser', 'ffcertificate' ),
+			'protections' => __( 'Form protections', 'ffcertificate' ),
+			'device'      => __( 'Device settings', 'ffcertificate' ),
+			'display'     => __( 'Display', 'ffcertificate' ),
+			'pdf'         => __( 'PDF download', 'ffcertificate' ),
+		);
+	}
+
+	/**
 	 * The test's markup.
 	 *
 	 * @param string $back_url Where "Back to verification" leads.
 	 * @return string
 	 */
 	public static function render( string $back_url = '' ): string {
-		$labels = self::labels();
-		$rows   = '';
-		foreach ( self::CHECKS as $key => $icon ) {
-			$rows .= '<li class="ffc-device-check-row is-info" data-ffc-check="' . esc_attr( $key ) . '">'
-				. '<span class="ffc-device-check-label">' . Icons::svg( $icon, 18 ) . esc_html( $labels[ $key ] ) . '</span>'
-				. '<span class="ffc-device-check-result">' . esc_html__( 'Checking…', 'ffcertificate' ) . '</span>'
-				. '</li>';
+		$labels   = self::labels();
+		$sections = self::group_labels();
+		$groups   = '';
+		foreach ( self::GROUPS as $group => $spec ) {
+			$rows = '';
+			foreach ( $spec['checks'] as $key ) {
+				$rows .= '<li class="ffc-device-check-row is-info" data-ffc-check="' . esc_attr( $key ) . '">'
+					. '<span class="ffc-device-check-label">' . Icons::svg( self::CHECKS[ $key ], 18 ) . esc_html( $labels[ $key ] ) . '</span>'
+					. '<span class="ffc-device-check-result">' . esc_html__( 'Checking…', 'ffcertificate' ) . '</span>'
+					. '</li>';
+			}
+			// The location is read only when the visitor asks, so its
+			// button sits with its row (#2065).
+			$extra = 'device' === $group ? '<div class="ffc-device-check-group-actions">' . Button::html(
+				array(
+					'label'    => __( 'Test my location', 'ffcertificate' ),
+					'category' => 'primary',
+					'icon'     => 'map-pin',
+					'class'    => 'ffc-device-check-locate',
+				)
+			) . '</div>' : '';
+			// A native <details>: the sections open and close without the
+			// test's script, which a blocker may have stopped (#2065).
+			$groups .= '<details class="ffc-device-check-group" data-ffc-group="' . esc_attr( $group ) . '">'
+				. '<summary class="ffc-device-check-summary">'
+				. '<span class="ffc-device-check-group-name">' . Icons::svg( $spec['icon'], 18 ) . esc_html( $sections[ $group ] ) . '</span>'
+				. '<span class="ffc-device-check-chip is-info">' . esc_html__( 'Checking…', 'ffcertificate' ) . '</span>'
+				. '<span class="ffc-device-check-chevron">' . Icons::svg( 'chevron-down', 18 ) . '</span>'
+				. '</summary>'
+				. '<ul class="ffc-device-check-list">' . $rows . '</ul>'
+				. $extra
+				. '</details>';
 		}
 
 		$html  = '<div class="ffc-shortcode ffc-device-check">';
@@ -168,16 +242,8 @@ final class DeviceCheck {
 		) . '</div>';
 		// The overall verdict, drawn by the script from the rows (#2062).
 		$html .= '<div class="ffc-device-check-verdict" aria-live="polite"></div>';
-		$html .= '<ul class="ffc-device-check-list">' . $rows . '</ul>';
+		$html .= '<div class="ffc-device-check-groups">' . $groups . '</div>';
 		$html .= '<div class="ffc-device-check-actions">';
-		$html .= Button::html(
-			array(
-				'label'    => __( 'Test my location', 'ffcertificate' ),
-				'category' => 'primary',
-				'icon'     => 'map-pin',
-				'class'    => 'ffc-device-check-locate',
-			)
-		);
 		$html .= Button::html(
 			array(
 				'label' => __( 'Copy the results', 'ffcertificate' ),
@@ -322,6 +388,19 @@ final class DeviceCheck {
 			'helpCaptchaBlocked'     => __( 'Turn the content or script blocker off for this site (or add the site to its allowed list) and reload this page.', 'ffcertificate' ),
 			/* translators: 1: the permission's answer, 2: the precision read. */
 			'locationWithAccuracy'   => __( '%1$s · %2$s', 'ffcertificate' ),
+			'locationTodo'           => __( 'precision not tested yet', 'ffcertificate' ),
+			'verdictTodoTitle'       => __( 'One step left', 'ffcertificate' ),
+			'verdictTodo'            => __( 'Press "Test my location" under Device settings to finish the test.', 'ffcertificate' ),
+			/* translators: %s: how many checks passed. */
+			'chipOk'                 => __( '%s OK', 'ffcertificate' ),
+			'chipFailOne'            => __( '1 failure', 'ffcertificate' ),
+			/* translators: %s: how many checks failed. */
+			'chipFailMany'           => __( '%s failures', 'ffcertificate' ),
+			'chipWarnOne'            => __( '1 warning', 'ffcertificate' ),
+			/* translators: %s: how many checks warn. */
+			'chipWarnMany'           => __( '%s warnings', 'ffcertificate' ),
+			'chipChecking'           => __( 'Checking…', 'ffcertificate' ),
+			'chipTodo'               => __( 'Test pending', 'ffcertificate' ),
 			'verdictChecking'        => __( 'Running the checks…', 'ffcertificate' ),
 			'verdictOkTitle'         => __( 'This device is ready', 'ffcertificate' ),
 			'verdictOk'              => __( 'Every check passed: the forms should work here.', 'ffcertificate' ),

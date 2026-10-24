@@ -85,6 +85,42 @@ class DeviceCheckTest extends TestCase {
 		$this->assertContains( 'ffc-icon-copy', $copy[0] );
 	}
 
+	public function test_render_groups_the_rows_in_closed_sections(): void {
+		$html = DeviceCheck::render();
+
+		// Six native <details>, none open: the script opens what needs it (#2065).
+		preg_match_all( '/<details class="ffc-device-check-group" data-ffc-group="([a-z]+)">/', $html, $groups );
+		$this->assertSame( array( 'network', 'browser', 'protections', 'device', 'display', 'pdf' ), $groups[1] );
+		$this->assertStringNotContainsString( '<details class="ffc-device-check-group" data-ffc-group="network" open', $html );
+		$this->assertSame( 6, substr_count( $html, 'class="ffc-device-check-chip is-info"' ) );
+
+		// Each section holds its own rows, in order.
+		$sections = array();
+		foreach ( preg_split( '/<details /', $html ) as $chunk ) {
+			if ( preg_match( '/^class="ffc-device-check-group" data-ffc-group="([a-z]+)"/', $chunk, $m ) ) {
+				preg_match_all( '/data-ffc-check="([a-z]+)"/', $chunk, $rows );
+				$sections[ $m[1] ] = $rows[1];
+			}
+		}
+		$this->assertSame(
+			array(
+				'network'     => array( 'secure', 'connection', 'server' ),
+				'browser'     => array( 'browser', 'cookies', 'storage' ),
+				'protections' => array( 'captcha', 'device' ),
+				'device'      => array( 'clock', 'locale', 'location' ),
+				'display'     => array( 'screen', 'theme' ),
+				'pdf'         => array( 'pdf' ),
+			),
+			$sections
+		);
+
+		// The location button sits in the section of its row.
+		$device = substr( $html, (int) strpos( $html, 'data-ffc-group="device"' ) );
+		$device = substr( $device, 0, (int) strpos( $device, '</details>' ) );
+		$this->assertStringContainsString( 'ffc-device-check-locate', $device );
+		$this->assertSame( 1, substr_count( $html, 'ffc-device-check-locate' ) );
+	}
+
 	public function test_render_without_a_back_address_prints_no_back_link(): void {
 		$this->assertStringNotContainsString( 'ffc-device-check-back', DeviceCheck::render() );
 	}

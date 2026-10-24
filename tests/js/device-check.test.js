@@ -69,7 +69,8 @@ describe('device check (#2040)', () => {
 		expect(row('browser').state).toBe('ok');
 		expect(row('cookies').state).toBe('ok');
 		expect(row('pdf').state).toBe('ok');
-		expect(row('location')).toEqual({ state: 'info', text: 'Not decided yet: the browser will ask.' });
+		// The precision is a step the visitor owes (#2065).
+		expect(row('location')).toEqual({ state: 'info', text: 'Not decided yet: the browser will ask. · precision not tested yet' });
 		expect(['ok', 'fail']).toContain(row('secure').state);
 	});
 
@@ -89,7 +90,7 @@ describe('device check (#2040)', () => {
 	it('believes the device over a "denied" it contradicts (#2048)', async () => {
 		// Opera for Android: the Permissions API says denied, the read works.
 		await run({ permission: 'denied', position: { latitude: -23.5505, longitude: -46.6333, accuracy: 22 } });
-		expect(row('location')).toEqual({ state: 'ok', text: 'Allowed' });
+		expect(row('location')).toEqual({ state: 'ok', text: 'Allowed · precision not tested yet' });
 		expect(document.body.textContent).not.toContain('23.55');
 
 		// A timeout says nothing about the permission.
@@ -157,5 +158,75 @@ describe('device check (#2040)', () => {
 		await run();
 		document.querySelector('.ffc-device-check-copy').click();
 		expect(document.querySelector('.ffc-device-check-copy .ffc-btn-label').textContent).toContain('screenshot');
+	});
+});
+
+describe('sections and the location step (#2065)', () => {
+	const GROUPS = { network: ['secure'], browser: ['browser', 'cookies'], device: ['location'], pdf: ['pdf'] };
+
+	function sections() {
+		document.body.innerHTML = '<div class="ffc-device-check"><div class="ffc-device-check-verdict"></div>' +
+			Object.keys(GROUPS).map((g) => '<details class="ffc-device-check-group" data-ffc-group="' + g + '"><summary><span class="ffc-device-check-chip"></span></summary><ul>' +
+				GROUPS[g].map((k) => '<li class="ffc-device-check-row is-info" data-ffc-check="' + k + '"><span class="ffc-device-check-label">' + k + '</span><span class="ffc-device-check-result">…</span></li>').join('') +
+				'</ul>' + ('device' === g ? '<button class="ffc-btn ffc-device-check-locate"><span class="ffc-btn-label">Locate</span></button>' : '') + '</details>').join('') +
+			'</div>';
+	}
+
+	async function open(opts) {
+		device(opts);
+		sections();
+		loadScript('assets/js/ffc-device-check.js');
+		await flush();
+	}
+
+	const group = (g) => document.querySelector('[data-ffc-group="' + g + '"]');
+	const chip = (g) => group(g).querySelector('.ffc-device-check-chip');
+	const verdictKey = () => document.querySelector('.ffc-device-check-verdict').getAttribute('data-ffc-verdict');
+
+	it('keeps passing sections closed, counts their rows, and asks for the location step', async () => {
+		await open({ permission: 'granted' });
+		expect(group('browser').open).toBe(false);
+		expect(chip('browser').textContent).toBe('2 OK');
+		expect(chip('browser').classList.contains('is-ok')).toBe(true);
+		// The location is owed: its section opens to show the button.
+		expect(group('device').open).toBe(true);
+		expect(chip('device').textContent).toBe('Test pending');
+		expect(row('location').text).toBe('Allowed · precision not tested yet');
+		expect(['todo', 'fail']).toContain(verdictKey());
+	});
+
+	it('finishes the test once the location is read, and never closes an opened section', async () => {
+		await open({ permission: 'granted', position: { latitude: -23.5, longitude: -46.6, accuracy: 12 } });
+		document.querySelector('.ffc-device-check-locate').click();
+		await flush();
+		expect(row('location').state).toBe('ok');
+		expect(document.querySelector('[data-ffc-check="location"]').hasAttribute('data-ffc-todo')).toBe(false);
+		expect(chip('device').textContent).toBe('1 OK');
+		// Opened while the step was owed, it stays open.
+		expect(group('device').open).toBe(true);
+		expect(verdictKey()).not.toBe('todo');
+	});
+
+	it('opens a section on a warning and names the failures', async () => {
+		await open({ ua: 'instagram', permission: 'denied', error: { code: 1 } });
+		expect(group('browser').open).toBe(true);
+		expect(chip('browser').textContent).toBe('1 warning');
+		expect(group('browser').getAttribute('data-ffc-state')).toBe('warn');
+		expect(chip('device').textContent).toBe('1 failure');
+		expect(group('device').getAttribute('data-ffc-state')).toBe('fail');
+		// A failure is told before the owed step.
+		expect(verdictKey()).toBe('fail');
+	});
+
+	it('copies every row, those in closed sections too', async () => {
+		let copied = null;
+		define(window.navigator, 'clipboard', { writeText: (t) => { copied = t; return Promise.resolve(); } });
+		await open({ permission: 'granted' });
+		document.body.insertAdjacentHTML('beforeend', '<button class="ffc-btn ffc-device-check-copy"><span class="ffc-btn-label">Copy</span></button>');
+		loadScript('assets/js/ffc-device-check.js');
+		await flush();
+		document.querySelector('.ffc-device-check-copy').click();
+		await flush();
+		['secure', 'browser', 'cookies', 'location', 'pdf'].forEach((k) => expect(copied).toContain(k + ': '));
 	});
 });
