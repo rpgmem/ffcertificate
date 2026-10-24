@@ -29162,6 +29162,7 @@ msgid "Range: 1 to 3. Default: 1.5."
 msgstr ""
 
 msgid "Keep the default unless you have a measured reason to change it. A higher value lets a reading count as inside while the visitor may be outside the area; a lower one refuses phones whose GPS is good but not exact."
+msgstr ""
 
 msgid "Android: open the Downloads folder, or use the Files app and look for \"%s\"."
 msgstr ""
