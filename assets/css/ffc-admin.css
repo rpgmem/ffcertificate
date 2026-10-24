@@ -2339,7 +2339,7 @@ td .ffc-restriction-label {
     line-height: 26px;
     text-align: center;
     background: var(--ffc-info-bg);
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     content: counter(ffc-bulk-step);
 }
 

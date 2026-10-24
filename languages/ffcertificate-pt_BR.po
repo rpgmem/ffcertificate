@@ -28727,3 +28727,6 @@ msgstr "Confira antes de emitir"
 
 msgid "Nothing is issued yet: the next step maps the columns and shows a preview."
 msgstr "Nada é emitido ainda: a próxima etapa associa as colunas e mostra uma pré-visualização."
+
+msgid "Choose file"
+msgstr "Escolher arquivo"

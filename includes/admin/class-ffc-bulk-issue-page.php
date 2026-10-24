@@ -373,7 +373,13 @@ final class BulkIssuePage {
 		echo '</ul></li>';
 
 		echo '<li class="ffc-bulk-issue-step"><h4><label for="ffc_bulk_file">' . esc_html__( 'Upload the participants file', 'ffcertificate' ) . '</label></h4>';
-		echo '<input type="file" class="ffc-file-input" name="' . esc_attr( self::FILE_FIELD ) . '" id="ffc_bulk_file" accept=".csv,text/csv">';
+		AdminUI::render_file_picker(
+			array(
+				'id'     => 'ffc_bulk_file',
+				'name'   => self::FILE_FIELD,
+				'accept' => '.csv,text/csv',
+			)
+		);
 		echo '<p class="description">' . esc_html__( 'A CSV of up to 2 MB. Name, CPF/RF and e-mail are required.', 'ffcertificate' ) . '</p></li>';
 
 		echo '<li class="ffc-bulk-issue-step"><h4>' . esc_html__( 'Check before issuing', 'ffcertificate' ) . '</h4>';

@@ -243,7 +243,7 @@ class BulkIssuePageTest extends TestCase {
 			array( 'name', 'cpf_rf', 'email', 'school' ),
 			preg_match_all( '#<li><code>([^<]+)</code></li>#', $html, $m ) ? $m[1] : array()
 		);
-		$this->assertStringContainsString( 'class="ffc-file-input"', $html );
+		$this->assertMatchesRegularExpression( '#<input type="file" id="ffc_bulk_file" class="ffc-file-picker-input" name="[^"]+" accept="\.csv,text/csv"><label for="ffc_bulk_file" class="ffc-btn ffc-btn-neutral ffc-icon-upload ffc-file-picker-button">#', $html );
 		$this->assertMatchesRegularExpression( '/<button [^>]*class="[^"]*ffc-bulk-issue-check[^"]*"[^>]*disabled/', $html );
 		$this->assertSame( 3, substr_count( $html, 'class="ffc-bulk-issue-step"' ) );
 	}

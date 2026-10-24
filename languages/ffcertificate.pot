@@ -28642,3 +28642,6 @@ msgstr ""
 
 msgid "Nothing is issued yet: the next step maps the columns and shows a preview."
 msgstr ""
+
+msgid "Choose file"
+msgstr ""
