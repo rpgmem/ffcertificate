@@ -495,7 +495,7 @@
                 if (this.weakInside(location, areas, Number(config.tolerance) || 1.5, Number(config.weakShare) || FFCGeofence.WEAK_READING_SHARE)) {
                     this.showImpreciseNotice(
                         formWrapper,
-                        this.getString('inaccurateAccepted', 'Your location was accepted, but with low precision (about %s m of error). If you can, turn on precise location.')
+                        this.getString('inaccurateAccepted', 'Your location was accepted, but with low precision (about %s m). For more precision, turn on precise location or use your phone.')
                             .replace('%s', String(Math.round(location.accuracy)))
                     );
                 }

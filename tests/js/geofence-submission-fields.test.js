@@ -197,7 +197,7 @@ describe('FFCGeofence.checkLocation: the accuracy rule, per area (#2040, #2070)'
 		expect($w.hasClass('ffc-validated')).toBe(true);
 		const notice = $w.find('[data-ffc-notice="geofence-imprecise"]');
 		expect(notice.length).toBe(1);
-		expect(notice.text()).toContain('about 101 m of error');
+		expect(notice.text()).toContain('about 101 m)');
 	});
 
 	it('says nothing at or below half the radius', () => {

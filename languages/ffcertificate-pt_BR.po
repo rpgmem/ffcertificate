@@ -29253,8 +29253,8 @@ msgstr "Android: abra a pasta Downloads ou use um aplicativo que acesse os Arqui
 msgid "Android: open the Downloads folder, or use the Files app."
 msgstr "Android: abra a pasta Downloads ou use um aplicativo que acesse os Arquivos."
 
-msgid "Your location was accepted, but with low precision (about %s m of error). If you can, turn on precise location."
-msgstr "Sua localização foi aceita, mas com pouca precisão (cerca de %s m de erro). Se puder, ative a localização precisa."
+msgid "Your location was accepted, but with low precision (about %s m). For more precision, turn on precise location or use your phone."
+msgstr "Sua localização foi aceita, mas com pouca precisão (cerca de %s m). Para mais precisão, ative a localização precisa ou use o celular."
 
 msgid "A reading accepted as inside whose error is above a share of the area's radius (the Low-precision notice under Settings → Geolocation → GPS Cache and Precision, 0.5 by default) opens the form with a notice saying the location was accepted with low precision and giving the error in metres. It changes no decision."
 msgstr "Uma leitura aceita como dentro cujo erro passa de uma fração do raio da área (o Aviso de baixa precisão em Configurações → Geolocalização → Cache e precisão do GPS, 0,5 por padrão) abre o formulário com um aviso de que a localização foi aceita com pouca precisão, informando o erro em metros. Não muda nenhuma decisão."

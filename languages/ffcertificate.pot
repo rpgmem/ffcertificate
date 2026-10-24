@@ -29170,7 +29170,7 @@ msgstr ""
 msgid "Android: open the Downloads folder, or use the Files app."
 msgstr ""
 
-msgid "Your location was accepted, but with low precision (about %s m of error). If you can, turn on precise location."
+msgid "Your location was accepted, but with low precision (about %s m). For more precision, turn on precise location or use your phone."
 msgstr ""
 
 msgid "A reading accepted as inside whose error is above a share of the area's radius (the Low-precision notice under Settings → Geolocation → GPS Cache and Precision, 0.5 by default) opens the form with a notice saying the location was accepted with low precision and giving the error in metres. It changes no decision."
