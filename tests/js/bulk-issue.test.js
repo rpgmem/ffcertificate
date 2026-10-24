@@ -18,6 +18,10 @@ describe('ffc-bulk-issue.js', () => {
 		window.fetch = fetchMock;
 	}
 
+	function choose(input, files) {
+		Object.defineProperty(input, 'files', { value: files, configurable: true });
+	}
+
 	function click() {
 		document.querySelector('#ffc-bulk-issue button').click();
 	}
@@ -30,6 +34,8 @@ describe('ffc-bulk-issue.js', () => {
 				<div class="ffc-bulk-issue-result"></div>
 			</div>`;
 		window.ffcBulkIssue = { ajaxUrl: '/wp-admin/admin-ajax.php', nonce: 'abc', error: 'Try again.' };
+		// A file is chosen: the check button follows the field (#2038).
+		choose(document.querySelector('#ffc-bulk-issue input[type="file"]'), [new File(['name\n'], 'people.csv', { type: 'text/csv' })]);
 	});
 
 	afterEach(() => {
@@ -161,4 +167,36 @@ describe('ffc-bulk-issue.js', () => {
 		expect(start.get('ffc_issue_mode')).toBe('column');
 	});
 
+
+	describe('the check button follows the file field (#2038)', () => {
+		it('is disabled until a file is chosen, then enabled', () => {
+			const input = document.querySelector('#ffc-bulk-issue input[type="file"]');
+			choose(input, []);
+			respond({ success: true, data: { html: '', label: 'Preview' } });
+			loadScript('assets/js/ffc-bulk-issue.js');
+
+			const button = document.querySelector('#ffc-bulk-issue button');
+			expect(button.disabled).toBe(true);
+			click();
+			expect(fetchMock).not.toHaveBeenCalled();
+
+			choose(input, [new File(['name\n'], 'people.csv', { type: 'text/csv' })]);
+			input.dispatchEvent(new Event('change'));
+			expect(button.disabled).toBe(false);
+
+			choose(input, []);
+			input.dispatchEvent(new Event('change'));
+			expect(button.disabled).toBe(true);
+		});
+
+		it('stays disabled after a request when the file was cleared meanwhile', async () => {
+			respond({ success: true, data: { html: '', label: 'Preview' } });
+			loadScript('assets/js/ffc-bulk-issue.js');
+			click();
+			choose(document.querySelector('#ffc-bulk-issue input[type="file"]'), []);
+			await flush();
+
+			expect(document.querySelector('#ffc-bulk-issue button').disabled).toBe(true);
+		});
+	});
 });

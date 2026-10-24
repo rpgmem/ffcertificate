@@ -748,33 +748,41 @@
     color: var(--ffc-text-muted);
 }
 
-/* One file control for every upload field (#1757): the browser draws the
-   "Choose File" part, so it takes the secondary button's look here. The
-   dark rule below overrides the colours on purpose. */
-.ffc-file-input {
+/* One file control for every upload field (#1757, #2038): the browser's
+   "Choose File" cannot carry an icon, so it is hidden and the field's
+   `<label>` is drawn as a neutral family button with the upload icon
+   (AdminUI::file_picker()). The input stays visible as the file name the
+   browser prints, and keeps the focus: its ring is drawn on the button. */
+.ffc-file-picker {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-sm);
+    align-items: center;
     max-width: 100%;
+}
+
+.ffc-file-picker-button {
+    order: -1;
+}
+
+.ffc-file-picker-input,
+:root.ffc-dark-mode .ffc-file-picker-input:disabled {
+    max-width: 100%;
+    color: var(--ffc-text-muted);
     font-size: var(--ffc-font-size-sm);
+    background: transparent;
 }
 
-.ffc-file-input::file-selector-button {
-    min-height: 30px;
-    margin-right: var(--ffc-spacing-sm);
-    padding: 0 var(--ffc-spacing-sm);
-    color: var(--ffc-primary);
-    font: inherit;
-    background: var(--ffc-bg-alt);
-    border: 1px solid var(--ffc-primary);
-    border-radius: var(--ffc-radius-sm);
-    cursor: pointer;
+.ffc-file-picker-input::file-selector-button {
+    display: none;
 }
 
-.ffc-file-input::file-selector-button:hover {
-    color: var(--ffc-primary-hover);
-    border-color: var(--ffc-primary-hover);
+.ffc-file-picker-input:focus-visible {
+    outline: none;
 }
 
-.ffc-file-input:focus-visible {
-    outline: 2px solid var(--ffc-primary);
+.ffc-file-picker-input:focus-visible + .ffc-file-picker-button {
+    outline: 2px solid var(--ffc-border-focus);
     outline-offset: 2px;
 }
 
@@ -2455,7 +2463,8 @@ body.wp-admin .ffc-btn {
    `:disabled`. Declared after the categories, so it wins over their hover. */
 .ffc-btn:disabled,
 .ffc-btn.disabled,
-.ffc-btn[aria-disabled="true"] {
+.ffc-btn[aria-disabled="true"],
+.ffc-file-picker-input:disabled + .ffc-btn {
     background: var(--ffc-gray-200);
     color: var(--ffc-text-muted);
     border-color: transparent;
@@ -3382,7 +3391,8 @@ body.wp-admin .ffc-btn-icon::before {
        colour says it cannot be pressed. */
     .ffc-btn:disabled,
     .ffc-btn.disabled,
-    .ffc-btn[aria-disabled="true"] {
+    .ffc-btn[aria-disabled="true"],
+    .ffc-file-picker-input:disabled + .ffc-btn {
         border-color: GrayText;
         color: GrayText;
     }

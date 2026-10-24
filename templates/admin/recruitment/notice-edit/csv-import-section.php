@@ -62,7 +62,14 @@ if ( 'preliminary' === $status ) {
 echo '</td></tr>';
 
 echo '<tr><th><label for="ffc-edit-csv-file">' . esc_html__( 'CSV file', 'ffcertificate' ) . '</label></th><td>';
-echo '<input class="ffc-file-input" id="ffc-edit-csv-file" name="csv_file" type="file" accept=".csv,text/csv" required>';
+\FreeFormCertificate\Admin\AdminUI::render_file_picker(
+	array(
+		'id'       => 'ffc-edit-csv-file',
+		'name'     => 'csv_file',
+		'accept'   => '.csv,text/csv',
+		'required' => true,
+	)
+);
 echo '</td></tr>';
 
 echo '</tbody></table>';

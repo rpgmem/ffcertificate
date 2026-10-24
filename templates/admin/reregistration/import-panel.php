@@ -49,7 +49,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 				<p>
 					<label for="ffc-rereg-import-file"><?php esc_html_e( 'CSV file', 'ffcertificate' ); ?></label><br>
-					<input type="file" id="ffc-rereg-import-file" class="ffc-file-input ffc-rereg-import-file" accept=".csv,text/csv,text/plain">
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_file_picker(
+						array(
+							'id'     => 'ffc-rereg-import-file',
+							'class'  => 'ffc-rereg-import-file',
+							'accept' => '.csv,text/csv,text/plain',
+						)
+					);
+					?>
 					<span class="description">
 						<?php esc_html_e( 'The header names the fields, by key or by label. A column that matches nothing is ignored and reported.', 'ffcertificate' ); ?>
 					</span>

@@ -212,4 +212,39 @@ class BulkIssuePageTest extends TestCase {
 		$this->assertStringContainsString( '30', $sent['text'] );
 		$this->assertStringNotContainsString( '25', $sent['text'] );
 	}
+
+	/**
+	 * The panel lays out the three steps (#2038): the template as a neutral
+	 * button with the download icon and the template's columns, the plugin's
+	 * file control, and a check button disabled until a file is chosen.
+	 */
+	public function test_panel_draws_the_three_steps(): void {
+		Functions\when( 'wp_nonce_url' )->alias( static fn( $url ): string => $url . '&_wpnonce=n' );
+		Functions\when( 'admin_url' )->alias( static fn( $path ): string => 'https://example.test/wp-admin/' . $path );
+		Functions\when( 'get_post_meta' )->justReturn(
+			array(
+				array( 'name' => 'name' ),
+				array( 'name' => 'school' ),
+			)
+		);
+		foreach ( array( 'esc_html__', 'esc_attr__', 'esc_html', 'esc_attr', 'esc_url' ) as $fn ) {
+			Functions\when( $fn )->returnArg();
+		}
+
+		$post     = new \WP_Post( (object) array( 'ID' => 7 ) );
+		$post->ID = 7;
+
+		ob_start();
+		BulkIssuePage::render_panel( $post );
+		$html = (string) ob_get_clean();
+
+		$this->assertMatchesRegularExpression( '/<a href="[^"]*ffc_bulk_issue_template&form_id=7[^"]*" class="ffc-btn ffc-btn-neutral ffc-icon-download">/', $html );
+		$this->assertSame(
+			array( 'name', 'cpf_rf', 'email', 'school' ),
+			preg_match_all( '#<li><code>([^<]+)</code></li>#', $html, $m ) ? $m[1] : array()
+		);
+		$this->assertMatchesRegularExpression( '#<input type="file" id="ffc_bulk_file" class="ffc-file-picker-input" name="[^"]+" accept="\.csv,text/csv"><label for="ffc_bulk_file" class="ffc-btn ffc-btn-neutral ffc-icon-upload ffc-file-picker-button">#', $html );
+		$this->assertMatchesRegularExpression( '/<button [^>]*class="[^"]*ffc-bulk-issue-check[^"]*"[^>]*disabled/', $html );
+		$this->assertSame( 3, substr_count( $html, 'class="ffc-bulk-issue-step"' ) );
+	}
 }

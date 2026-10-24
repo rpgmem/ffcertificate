@@ -211,11 +211,16 @@ class ReregistrationAdminRendererTest extends TestCase {
 
 	/**
 	 * Teach an AdminUI alias mock the family's two button helpers, drawn by
-	 * the real `Core\Button` (#1904).
+	 * the real `Core\Button` (#1904), and the file picker (#2038).
 	 *
 	 * @param \Mockery\MockInterface $ui The alias mock.
 	 */
 	private function familyButtons( $ui ): void {
+		$ui->shouldReceive( 'render_file_picker' )->andReturnUsing(
+			static function ( array $args ): void {
+				echo '<input type="file" id="' . htmlspecialchars( (string) $args['id'] ) . '" class="ffc-file-picker-input ' . htmlspecialchars( (string) ( $args['class'] ?? '' ) ) . '">';
+			}
+		);
 		$ui->shouldReceive( 'render_button' )->andReturnUsing(
 			static function ( array $args ): void {
 				\FreeFormCertificate\Core\Button::render( $args );

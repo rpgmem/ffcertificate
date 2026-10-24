@@ -27329,14 +27329,6 @@ msgid "The file could not be read."
 msgstr ""
 
 #: includes/admin/class-ffc-bulk-issue-page.php
-msgid "Download the CSV template for this form"
-msgstr ""
-
-#: includes/admin/class-ffc-bulk-issue-page.php
-msgid "Participants file (CSV)"
-msgstr ""
-
-#: includes/admin/class-ffc-bulk-issue-page.php
 msgid "Check the file"
 msgstr ""
 
@@ -27720,6 +27712,7 @@ msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "When the hours run from the first day to the last, the calendar, the booking details, the user dashboard and the emails show the hours each day actually takes, and the calendar file covers every booked day. Cancelling a range cancels every day it covers; the confirmation names them and enables its button after a short countdown."
+msgstr ""
 
 #: includes/core/class-ffc-scheduled-tasks.php
 msgid "Date messages announcement (one per scheduled announcement)"
@@ -27743,6 +27736,7 @@ msgstr ""
 
 #: templates/emails/date-message-digest.php
 msgid "announcement"
+msgstr ""
 
 #: includes/admin/class-ffc-form-editor-save-handler.php
 msgid "Add them to the layout, or uncheck them in Settings → Certificates, and save again."
@@ -28628,6 +28622,30 @@ msgid "A browser missing what the form needs cannot issue the certificate: the m
 msgstr ""
 
 msgid "If visitors in an ordinary browser are stopped, turn the check off under Settings → Certificates → Browser check and report the browser"
+msgstr ""
+
+msgid "Download the template for this form"
+msgstr ""
+
+msgid "Download the CSV template"
+msgstr ""
+
+msgid "Columns of the template"
+msgstr ""
+
+msgid "Upload the participants file"
+msgstr ""
+
+msgid "A CSV of up to 2 MB. Name, CPF/RF and e-mail are required."
+msgstr ""
+
+msgid "Check before issuing"
+msgstr ""
+
+msgid "Nothing is issued yet: the next step maps the columns and shows a preview."
+msgstr ""
+
+msgid "Choose file"
 msgstr ""
 
 msgid "The public CSV download page ([ffc_csv_download]) runs the browser check too, under the same setting: the file is built and saved by the browser, which an app's own browser often cannot do."
