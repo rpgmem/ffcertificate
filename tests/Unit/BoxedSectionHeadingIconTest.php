@@ -35,6 +35,7 @@ class BoxedSectionHeadingIconTest extends TestCase {
 		// the text WordPress's privacy guide prints.
 		'includes/audience/class-ffc-audience-notification-handler.php' => 'an e-mail body',
 		'includes/audience/class-ffc-audience-shortcode.php'            => 'a public shortcode',
+		'includes/frontend/class-ffc-device-check.php'                  => 'a public shortcode mode',
 		'includes/frontend/class-ffc-public-csv-download.php'           => 'a public page',
 		'includes/frontend/class-ffc-shortcodes.php'                    => 'a public shortcode',
 		'includes/generators/class-ffc-pdf-html-renderer.php'           => 'the PDF body',

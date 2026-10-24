@@ -98,6 +98,14 @@ class Shortcodes {
 			return $this->render_magic_link_preview( $magic_token );
 		}
 
+		// "Test my device" mode (#2040): the same page, in the site's theme,
+		// shows the checks a form runs instead of the verification form.
+		$page_url = (string) get_permalink();
+		if ( DeviceCheck::requested() ) {
+			return DeviceCheck::render( $page_url );
+		}
+		$device_check_url = '' !== $page_url ? DeviceCheck::url( $page_url ) : '';
+
 		\FreeFormCertificate\Core\Debug::log_frontend(
 			'Verification shortcode rendered',
 			array(

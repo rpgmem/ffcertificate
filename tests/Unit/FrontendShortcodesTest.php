@@ -75,6 +75,11 @@ class FrontendShortcodesTest extends TestCase {
 			}
 		);
 
+		// The verification page links to its "Test my device" mode (#2040).
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/valid/' );
+		Functions\when( 'remove_query_arg' )->alias( static fn( $key, $url ) => $url );
+		Functions\when( 'add_query_arg' )->alias( static fn( $key, $value, $url ) => $url . '?' . $key . '=' . $value );
+
 		$this->shortcodes = new Shortcodes();
 	}
 
@@ -217,6 +222,43 @@ class FrontendShortcodesTest extends TestCase {
 		foreach ( array( 'ffc-btn', 'ffc-btn-primary', 'ffc-icon-checkmark', 'ffc-btn-block' ) as $class ) {
 			$this->assertContains( $class, $buttons[0], "Verify lacks {$class}." );
 		}
+	}
+
+	/**
+	 * The verification form links to the "Test my device" mode of the same
+	 * page (#2040).
+	 *
+	 * @return void
+	 */
+	public function test_verification_page_links_to_the_device_check(): void {
+		unset( $_GET['token'], $_GET['ffc_device_check'] );
+		Functions\when( 'wp_rand' )->justReturn( 2 );
+		Functions\when( 'wp_hash' )->justReturn( 'hash' );
+
+		$html = $this->shortcodes->render_verification_page( array() );
+
+		$this->assertStringContainsString( 'ffc-verification-device-check', $html );
+		$this->assertStringContainsString( 'href="https://example.com/valid/?ffc_device_check=1"', $html );
+	}
+
+	/**
+	 * In that mode the page shows the device test instead of the form, with
+	 * a way back.
+	 *
+	 * @return void
+	 */
+	public function test_device_check_mode_replaces_the_verification_form(): void {
+		unset( $_GET['token'] );
+		$_GET['ffc_device_check'] = '1';
+		try {
+			$html = $this->shortcodes->render_verification_page( array() );
+		} finally {
+			unset( $_GET['ffc_device_check'] );
+		}
+
+		$this->assertStringContainsString( 'ffc-device-check', $html );
+		$this->assertStringNotContainsString( 'ffc-verification-form', $html );
+		$this->assertStringContainsString( 'href="https://example.com/valid/"', $html );
 	}
 
 	/**

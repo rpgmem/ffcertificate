@@ -35,7 +35,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><code>[ffc_verification]</code></td>
 				<td>
 					<?php esc_html_e( 'Displays the public verification page.', 'ffcertificate' ); ?><br>
-					<strong><?php esc_html_e( 'Usage:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Users can validate certificates by entering the authentication code.', 'ffcertificate' ); ?>
+					<strong><?php esc_html_e( 'Usage:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Users can validate certificates by entering the authentication code.', 'ffcertificate' ); ?><br>
+					<?php esc_html_e( 'With ?ffc_device_check=1 in the address it shows the "Test my device" checks instead; the page links there from its footer.', 'ffcertificate' ); ?>
 				</td>
 			</tr>
 			<tr>

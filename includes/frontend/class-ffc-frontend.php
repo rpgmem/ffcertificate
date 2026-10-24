@@ -239,6 +239,12 @@ class Frontend {
 			// Pass geofence configurations to frontend.
 			$this->localize_geofence_config();
 
+			// The "Test my device" mode of the verification page (#2040):
+			// its script and sheet load only when the page is in that mode.
+			if ( $has_verification && DeviceCheck::requested() ) {
+				DeviceCheck::enqueue_assets();
+			}
+
 			// Device fingerprint signals collector (only when globally enabled).
 			//
 			// thumbmarkjs (vendored at libs/js/) provides the raw component
