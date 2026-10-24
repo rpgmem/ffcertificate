@@ -66,6 +66,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificate forms: no silent failure when the browser cannot run them** (#2030). The form posts with `method="post"`, so without JavaScript the name, e-mail and CPF/RF stay out of the URL and the logs, and a notice says JavaScript is off. A form whose scripts, PDF libraries or captcha and nonce refresh did not load in 10 s shows "The form did not load completely" with a Reload button instead of a form that fails on submit.
 - **GPS forms no longer show "Location blocked" twice** (#2030). On a cached page, refreshing the captcha and security codes re-ran the checks while the browser was still answering the permission query, and both answers drew a banner. A stale answer is now dropped, and a banner replaces one with the same purpose.
 - **"Location blocked" only when the browser really blocks it** (#2048). Opera for Android reports the location as blocked while it gives the position, so GPS forms showed a false block, the check-in a false error and the device test "Blocked". A reported block is now confirmed by one quick read; the position is discarded.
+- **The submissions list keeps a row's buttons on one line** (#2050). Every column of the fixed-layout table had an equal share, so Edit, PDF and Trash wrapped while Status and Date sat half empty. Status and Date now take what they hold, Actions what three buttons need, and the buttons keep an even gap. "Reveal this page" sits below the status links and the search box instead of between them.
 
 ### Changed
 
