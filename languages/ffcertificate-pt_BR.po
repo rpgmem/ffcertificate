@@ -28901,3 +28901,6 @@ msgstr "A página de verificação ([ffc_verification]) tem um modo \"Testar meu
 
 msgid "With ?ffc_device_check=1 in the address it shows the \"Test my device\" checks instead; the page links there from its footer."
 msgstr "Com ?ffc_device_check=1 no endereço, mostra as verificações de \"Testar meu dispositivo\" no lugar do formulário; a página tem um link para lá no rodapé."
+
+msgid "A \"Location blocked\" message appears only when the browser really refuses the location. Some browsers, Opera for Android among them, report the location as blocked while they hand it over; the plugin then reads the position once to check, and a browser that gives it is treated as allowed."
+msgstr "A mensagem \"Localização bloqueada\" só aparece quando o navegador realmente recusa a localização. Alguns navegadores, entre eles o Opera para Android, informam a localização como bloqueada enquanto a entregam; o plugin então lê a posição uma vez para conferir, e um navegador que a entrega é tratado como permitido."

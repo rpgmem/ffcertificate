@@ -39,17 +39,13 @@
 		ns.Preflight.register('checkin-geo', {
 			run: function (ctx) {
 				ctx.wrapper.find('.ffc-checkin-form').show();
-				var permissions = navigator.permissions;
-				if (!permissions || typeof permissions.query !== 'function') {
-					return;
-				}
-				permissions.query({ name: 'geolocation' }).then(function (status) {
-					if (status && status.state === 'denied') {
+				// A "denied" is confirmed before it is shown (#2048); the tap
+				// still asks whatever the answer.
+				ns.Preflight.geoPermission().then(function (answer) {
+					if (answer.state === 'denied') {
 						ns.Preflight.log(ctx, 'gps_denied');
 						fail(strings.denied || '');
 					}
-				}, function () {
-					// The tap still asks; nothing to say before it.
 				});
 			}
 		});

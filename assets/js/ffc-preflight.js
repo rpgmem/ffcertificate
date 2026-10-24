@@ -418,6 +418,89 @@
 		return loc.protocol === 'https:' || loc.hostname === 'localhost' || loc.hostname === '127.0.0.1';
 	}
 
+	/** How long the confirming read of a "denied" may take, in milliseconds. */
+	var GEO_CONFIRM_MS = 10000;
+
+	/**
+	 * Whether the browser refuses the location, by asking the device rather
+	 * than trusting the Permissions API alone.
+	 *
+	 * Opera for Android answers `denied` to the Permissions API while it hands
+	 * the position to `getCurrentPosition()`, so a "denied" is confirmed with
+	 * one quick read: a real block is refused at once (code 1) with nothing
+	 * shown to the visitor; a position means the permission was granted; a
+	 * timeout or an unavailable position says nothing about the permission,
+	 * so the state reads as not decided. The position is discarded unread.
+	 *
+	 * @returns {Promise<{state: string, status: (PermissionStatus|null)}>}
+	 *          `state` is `granted`, `denied`, `prompt` or `unknown` (the
+	 *          browser does not say); `status` is the PermissionStatus, for
+	 *          a caller that listens to its changes.
+	 */
+	function geoPermission() {
+		var unknown = { state: 'unknown', status: null };
+		var permissions = navigator.permissions;
+		if (!permissions || typeof permissions.query !== 'function') {
+			return Promise.resolve(unknown);
+		}
+		var asked;
+		try {
+			asked = permissions.query({ name: 'geolocation' });
+		} catch (e) {
+			// iOS Safari before 16 throws on the geolocation name.
+			return Promise.resolve(unknown);
+		}
+		return Promise.resolve(asked).then(function (status) {
+			var state = (status && status.state) || 'unknown';
+			if (state !== 'denied') {
+				return { state: state, status: status || null };
+			}
+			return confirmDenied().then(function (confirmed) {
+				return { state: confirmed, status: status };
+			});
+		}, function () {
+			return unknown;
+		});
+	}
+
+	/**
+	 * Read the position once to tell a real block from a wrong answer.
+	 *
+	 * @returns {Promise<string>} `denied`, `granted` or `prompt`.
+	 */
+	function confirmDenied() {
+		return new Promise(function (resolve) {
+			var geo = navigator.geolocation;
+			if (!geo || typeof geo.getCurrentPosition !== 'function') {
+				resolve('denied');
+				return;
+			}
+			var settled = false;
+			var done = function (state) {
+				if (!settled) {
+					settled = true;
+					resolve(state);
+				}
+			};
+			// A browser that never calls back must not hold the page.
+			var guard = setTimeout(function () {
+				done('prompt');
+			}, GEO_CONFIRM_MS + 1000);
+			try {
+				geo.getCurrentPosition(function () {
+					clearTimeout(guard);
+					done('granted');
+				}, function (error) {
+					clearTimeout(guard);
+					done(error && error.code === 1 ? 'denied' : 'prompt');
+				}, { enableHighAccuracy: false, maximumAge: Infinity, timeout: GEO_CONFIRM_MS });
+			} catch (e) {
+				clearTimeout(guard);
+				done('denied');
+			}
+		});
+	}
+
 	register('secure', {
 		// The caller says whether the page needs to be secure
 		// (`needsSecure`, a boolean or a function of the context) and may
@@ -732,6 +815,7 @@
 		log: log,
 		beforeDownload: beforeDownload,
 		secureContext: secureContext,
+		geoPermission: geoPermission,
 		banner: banner,
 		cookiesWork: cookiesWork,
 		missingFeatures: missingFeatures,

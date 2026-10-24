@@ -72,31 +72,29 @@
             // any "granted" or fallback path so we don't loop.
             if (!preflightDone
                 && navigator.permissions
-                && typeof navigator.permissions.query === 'function') {
+                && typeof navigator.permissions.query === 'function'
+                && window.FFC && window.FFC.Preflight
+                && typeof window.FFC.Preflight.geoPermission === 'function') {
                 // The pre-flight run this query belongs to; a recheck that
                 // starts a newer one while it waits makes its answer stale.
                 const run = formWrapper.data('ffcPreflightRun');
                 const stale = function () {
                     return formWrapper.data('ffcPreflightRun') !== run;
                 };
-                try {
-                    navigator.permissions.query({ name: 'geolocation' })
-                        .then(function (status) {
-                            if (stale()) {
-                                return;
-                            }
-                            self.handleGpsPermissionStatus(formWrapper, config, status);
-                        })
-                        .catch(function () {
-                            if (stale()) {
-                                return;
-                            }
-                            self.debug('Permissions.query rejected — falling through to native flow');
-                            self.validateGeolocation(formWrapper, config, true);
-                        });
-                } catch (e) {
-                    self.validateGeolocation(formWrapper, config, true);
-                }
+                // The queue module confirms a "denied" before it is
+                // believed (#2048): Opera for Android reports it while it
+                // gives the position.
+                window.FFC.Preflight.geoPermission().then(function (answer) {
+                    if (stale()) {
+                        return;
+                    }
+                    if (!answer.status) {
+                        self.debug('Permissions API unavailable — falling through to native flow');
+                        self.validateGeolocation(formWrapper, config, true);
+                        return;
+                    }
+                    self.handleGpsPermissionStatus(formWrapper, config, answer.status, answer.state);
+                });
                 return;
             }
 
