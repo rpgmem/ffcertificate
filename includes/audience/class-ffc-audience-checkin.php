@@ -41,6 +41,7 @@ class AudienceCheckin {
 	public const ERROR_NOT_ON_BOOKING  = 'ffc_checkin_not_on_booking';
 	public const ERROR_NEEDS_LOCATION  = 'ffc_checkin_needs_location';
 	public const ERROR_OUTSIDE_AREA    = 'ffc_checkin_outside_area';
+	public const ERROR_INACCURATE      = 'ffc_checkin_inaccurate';
 	public const ERROR_FAILED          = 'ffc_checkin_failed';
 
 	/**
@@ -115,10 +116,10 @@ class AudienceCheckin {
 	/**
 	 * Record the attendance a receipt and a logged-in user stand for.
 	 *
-	 * @param string                             $receipt  Receipt.
-	 * @param int                                $user_id  Logged-in user.
-	 * @param array{lat: float, lng: float}|null $position The browser's position, when it gave one.
-	 * @param int                                $now      Unix time.
+	 * @param string                                              $receipt  Receipt.
+	 * @param int                                                 $user_id  Logged-in user.
+	 * @param array{lat: float, lng: float, accuracy: float}|null $position The browser's position, when it gave one.
+	 * @param int                                                 $now      Unix time.
 	 * @return array{status: string, booking: object, checked_at: int}|\WP_Error `status` is a {@see AudienceAttendanceWriter} result.
 	 */
 	public static function confirm( string $receipt, int $user_id, ?array $position, int $now ) {
@@ -164,10 +165,13 @@ class AudienceCheckin {
 	 *
 	 * The position comes from the participant's browser, so it can be forged:
 	 * this adds friction to checking in from elsewhere, it does not prove
-	 * presence.
+	 * presence. The rule is the certificate form's (#2040): a reading whose
+	 * margin of error is larger than the smallest area cannot tell inside
+	 * from outside, and is refused. A check-in has no "When GPS fails"
+	 * policy: no usable position, no check-in.
 	 *
-	 * @param string[]                           $location_ids Saved geofence locations; empty for none.
-	 * @param array{lat: float, lng: float}|null $position     Browser position.
+	 * @param string[]                                            $location_ids Saved geofence locations; empty for none.
+	 * @param array{lat: float, lng: float, accuracy: float}|null $position     Browser position.
 	 * @return true|\WP_Error
 	 */
 	public static function check_position( array $location_ids, ?array $position ) {
@@ -190,38 +194,54 @@ class AudienceCheckin {
 			return self::error( null === $position ? self::ERROR_NEEDS_LOCATION : self::ERROR_OUTSIDE_AREA );
 		}
 
-		$inside = \FreeFormCertificate\Integrations\IpGeolocation::is_within_areas(
+		// The page reads a fresh position (no cached reading), so its age is
+		// zero; every failure case blocks.
+		$verdict = \FreeFormCertificate\Security\GpsReading::decide(
+			$areas,
 			array(
-				'latitude'  => $position['lat'],
-				'longitude' => $position['lng'],
+				'reading' => array(
+					'lat'      => $position['lat'],
+					'lng'      => $position['lng'],
+					'accuracy' => $position['accuracy'],
+					'age'      => 0,
+				),
+				'status'  => '',
 			),
-			$areas
+			array(),
+			0
 		);
+		if ( $verdict['pass'] ) {
+			return true;
+		}
 
-		return $inside ? true : self::error( self::ERROR_OUTSIDE_AREA );
+		return self::error( \FreeFormCertificate\Security\GpsReading::REASON_INACCURATE === $verdict['reason'] ? self::ERROR_INACCURATE : self::ERROR_OUTSIDE_AREA );
 	}
 
 	/**
-	 * A position posted by the confirmation page, if it is one.
+	 * A position posted by the confirmation page, if it is one: a latitude,
+	 * a longitude and the reading's margin of error in metres.
 	 *
-	 * @param mixed $lat Latitude.
-	 * @param mixed $lng Longitude.
-	 * @return array{lat: float, lng: float}|null
+	 * @param mixed $lat      Latitude.
+	 * @param mixed $lng      Longitude.
+	 * @param mixed $accuracy Margin of error, in metres.
+	 * @return array{lat: float, lng: float, accuracy: float}|null
 	 */
-	public static function position( $lat, $lng ): ?array {
-		if ( ! is_numeric( $lat ) || ! is_numeric( $lng ) ) {
+	public static function position( $lat, $lng, $accuracy ): ?array {
+		if ( ! is_numeric( $lat ) || ! is_numeric( $lng ) || ! is_numeric( $accuracy ) ) {
 			return null;
 		}
 
-		$lat = (float) $lat;
-		$lng = (float) $lng;
-		if ( $lat < -90 || $lat > 90 || $lng < -180 || $lng > 180 ) {
+		$lat      = (float) $lat;
+		$lng      = (float) $lng;
+		$accuracy = (float) $accuracy;
+		if ( $lat < -90 || $lat > 90 || $lng < -180 || $lng > 180 || $accuracy < 0 ) {
 			return null;
 		}
 
 		return array(
-			'lat' => $lat,
-			'lng' => $lng,
+			'lat'      => $lat,
+			'lng'      => $lng,
+			'accuracy' => $accuracy,
 		);
 	}
 
@@ -247,6 +267,8 @@ class AudienceCheckin {
 				return __( 'This check-in needs your location. Allow it in your browser and try again.', 'ffcertificate' );
 			case self::ERROR_OUTSIDE_AREA:
 				return __( 'Your location is outside the event area. Check in from the event, or ask the organiser to mark your attendance.', 'ffcertificate' );
+			case self::ERROR_INACCURATE:
+				return __( 'Your location is not precise enough to confirm you are at the event. Move to an open area or turn on precise location, then try again.', 'ffcertificate' );
 			default:
 				return __( 'Your attendance could not be recorded. Try again, or ask the organiser to mark it.', 'ffcertificate' );
 		}

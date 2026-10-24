@@ -79,6 +79,7 @@ class AudienceCheckinEndpointTest extends TestCase {
 
 	private function booking(): object {
 		return (object) array(
+			'id'               => 31,
 			'description'      => 'Workshop',
 			'environment_name' => 'Room 3',
 		);
@@ -160,6 +161,10 @@ class AudienceCheckinEndpointTest extends TestCase {
 
 		$this->assertTrue( $response['script'] );
 		$this->assertStringContainsString( 'data-ffc-checkin-geo="1"', $response['page'] );
+		// The margin of error travels with the position (#2040), and the
+		// pre-flight's telemetry names the booking.
+		$this->assertStringContainsString( 'name="ffc_accuracy"', $response['page'] );
+		$this->assertSame( 31, $response['booking'] );
 	}
 
 	public function test_a_get_by_someone_already_present_says_so(): void {
@@ -189,15 +194,17 @@ class AudienceCheckinEndpointTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 		$_POST                     = array(
-			'_wpnonce' => 'n',
-			'ffc_lat'  => '-23.5',
-			'ffc_lng'  => '-46.6',
+			'_wpnonce'     => 'n',
+			'ffc_lat'      => '-23.5',
+			'ffc_lng'      => '-46.6',
+			'ffc_accuracy' => '12',
 		);
 		$position = array(
-			'lat' => -23.5,
-			'lng' => -46.6,
+			'lat'      => -23.5,
+			'lng'      => -46.6,
+			'accuracy' => 12.0,
 		);
-		$this->checkin->shouldReceive( 'position' )->with( '-23.5', '-46.6' )->andReturn( $position );
+		$this->checkin->shouldReceive( 'position' )->with( '-23.5', '-46.6', '12' )->andReturn( $position );
 		$this->checkin->shouldReceive( 'confirm' )->once()->with( 'RECEIPT', 42, $position, self::NOW )->andReturn(
 			array(
 				'status'     => 'recorded',

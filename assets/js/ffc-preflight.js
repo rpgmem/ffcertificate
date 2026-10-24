@@ -19,8 +19,10 @@
  * setting that turns the browser step off), `altchaOnly`, and
  * `formSelector` where the form is not a certificate form (the public CSV
  * download runs the browser step too), `needsSecure` / `onInsecure` for the
- * secure step, and `telemetry` (`{type, id}`) where the wrapper is not a
- * certificate form's.
+ * secure step, `telemetry` (`{type, id}`) where the wrapper is not a
+ * certificate form's, and `featureCheck: false` where the page builds no
+ * PDF (the audience check-in), so the browser step asks only about an app's
+ * own browser.
  *
  * THE WATCHDOG. A certificate form is submitted over AJAX and its PDF is
  * drawn in the browser, so a script that did not load (a content blocker, a
@@ -583,7 +585,7 @@
 
 			// A browser without the features cannot issue the certificate,
 			// whatever the visitor chooses: there is no way through.
-			if (missingFeatures().length) {
+			if (ctx.featureCheck !== false && missingFeatures().length) {
 				log(ctx, 'browser_features');
 				hideBehind(ctx, window.FFC.notice(
 					'warning',

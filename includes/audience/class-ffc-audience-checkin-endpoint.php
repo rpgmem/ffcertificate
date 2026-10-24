@@ -13,7 +13,10 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Core\AssetHelper;
+use FreeFormCertificate\Core\AssetRegistry;
 use FreeFormCertificate\Core\Button;
+use FreeFormCertificate\Frontend\BrowserGate;
+use FreeFormCertificate\Settings\SettingsReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -146,7 +149,8 @@ class AudienceCheckinEndpoint {
 
 		$position = AudienceCheckin::position(
 			isset( $_POST['ffc_lat'] ) ? sanitize_text_field( wp_unslash( $_POST['ffc_lat'] ) ) : null,
-			isset( $_POST['ffc_lng'] ) ? sanitize_text_field( wp_unslash( $_POST['ffc_lng'] ) ) : null
+			isset( $_POST['ffc_lng'] ) ? sanitize_text_field( wp_unslash( $_POST['ffc_lng'] ) ) : null,
+			isset( $_POST['ffc_accuracy'] ) ? sanitize_text_field( wp_unslash( $_POST['ffc_accuracy'] ) ) : null
 		);
 
 		$result = AudienceCheckin::confirm( $receipt, $user_id, $position, $now );
@@ -163,12 +167,12 @@ class AudienceCheckinEndpoint {
 	 * @param string $receipt     Receipt.
 	 * @param object $booking     Booking row.
 	 * @param bool   $needs_place Whether the window asks for a location.
-	 * @return array{page: string, status: int, script: bool}
+	 * @return array{page: string, status: int, script: bool, booking: int}
 	 */
 	private static function confirm_page( string $receipt, object $booking, bool $needs_place ): array {
 		$form  = '<form method="post" class="ffc-checkin-form" action="' . esc_url( self::receipt_url( $receipt ) ) . '"' . ( $needs_place ? ' data-ffc-checkin-geo="1"' : '' ) . '>';
 		$form .= wp_nonce_field( self::NONCE_ACTION, '_wpnonce', false, false );
-		$form .= '<input type="hidden" name="ffc_lat" value=""><input type="hidden" name="ffc_lng" value="">';
+		$form .= '<input type="hidden" name="ffc_lat" value=""><input type="hidden" name="ffc_lng" value=""><input type="hidden" name="ffc_accuracy" value="">';
 		if ( $needs_place ) {
 			$form .= '<p class="ffc-checkin-hint ffc-icon-map-pin">' . esc_html__( 'This check-in confirms you are at the event: your browser will ask for your location.', 'ffcertificate' ) . '</p>';
 			$form .= '<p class="ffc-checkin-geo-error" role="alert" hidden></p>';
@@ -185,9 +189,10 @@ class AudienceCheckinEndpoint {
 		$form .= '</form>';
 
 		return array(
-			'page'   => self::card( __( 'Check in', 'ffcertificate' ), self::summary( $booking ) . $form, 'qr' ),
-			'status' => 200,
-			'script' => $needs_place,
+			'page'    => self::card( __( 'Check in', 'ffcertificate' ), self::summary( $booking ) . $form, 'qr' ),
+			'status'  => 200,
+			'script'  => $needs_place,
+			'booking' => (int) ( $booking->id ?? 0 ),
 		);
 	}
 
@@ -264,7 +269,7 @@ class AudienceCheckinEndpoint {
 	/**
 	 * Send a response and end the request.
 	 *
-	 * @param array{redirect?: string, page?: string, status?: int, script?: bool} $response Response.
+	 * @param array{redirect?: string, page?: string, status?: int, script?: bool, booking?: int} $response Response.
 	 * @return void
 	 */
 	private static function send( array $response ): void {
@@ -280,7 +285,7 @@ class AudienceCheckinEndpoint {
 			header( 'Referrer-Policy: no-referrer' );
 		}
 
-		self::enqueue_assets( ! empty( $response['script'] ) );
+		self::enqueue_assets( ! empty( $response['script'] ), (int) ( $response['booking'] ?? 0 ) );
 
 		echo '<!DOCTYPE html><html ' . get_language_attributes() . '><head>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_language_attributes() returns a safe attribute string.
 		echo '<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow">';
@@ -297,12 +302,19 @@ class AudienceCheckinEndpoint {
 
 	/**
 	 * Enqueue what the page prints: the palette and its dark-mode toggle, the
-	 * page's sheet, and its script when a location is needed.
+	 * page's sheet and, when a location is needed, the visitor pre-flight
+	 * and the page's script.
 	 *
-	 * @param bool $script Whether the location script is needed.
+	 * The pre-flight runs the `secure` and `browser` steps a certificate form
+	 * runs (#2040), and the page adds its own location step: an insecure page
+	 * or an app's own browser cannot read the location the check-in needs.
+	 * Its stops are logged against the booking.
+	 *
+	 * @param bool $script     Whether the location script is needed.
+	 * @param int  $booking_id Booking the page checks in to; 0 when unknown.
 	 * @return void
 	 */
-	private static function enqueue_assets( bool $script ): void {
+	private static function enqueue_assets( bool $script, int $booking_id = 0 ): void {
 		$s = AssetHelper::asset_suffix();
 
 		AssetHelper::enqueue_common_style();
@@ -310,14 +322,38 @@ class AudienceCheckinEndpoint {
 		wp_enqueue_style( 'ffc-audience-checkin', FFC_PLUGIN_URL . "assets/css/ffc-audience-checkin{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 
 		if ( $script ) {
-			wp_enqueue_script( 'ffc-audience-checkin', FFC_PLUGIN_URL . "assets/js/ffc-audience-checkin{$s}.js", array(), FFC_VERSION, true );
+			AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-preflight' );
+			// The request helper reads its URL and nonce here; the
+			// pre-flight's telemetry goes through it.
+			wp_localize_script(
+				'ffc-core',
+				'ffc_ajax',
+				array(
+					'ajax_url' => admin_url( 'admin-ajax.php' ),
+					'nonce'    => wp_create_nonce( 'ffc_frontend_nonce' ),
+				)
+			);
+			wp_enqueue_script( 'ffc-audience-checkin', FFC_PLUGIN_URL . "assets/js/ffc-audience-checkin{$s}.js", array( 'jquery', 'ffc-core', 'ffc-preflight' ), FFC_VERSION, true );
 			wp_localize_script(
 				'ffc-audience-checkin',
 				'ffcCheckin',
 				array(
-					'denied'      => __( 'Your location is needed to check in here. Allow it in your browser settings and try again.', 'ffcertificate' ),
-					'unavailable' => __( 'Your location could not be read. Move to an open area and try again.', 'ffcertificate' ),
-					'locating'    => __( 'Reading your location…', 'ffcertificate' ),
+					'denied'       => __( 'Your location is needed to check in here. Allow it in your browser settings and try again.', 'ffcertificate' ),
+					'unavailable'  => __( 'Your location could not be read. Move to an open area and try again.', 'ffcertificate' ),
+					'locating'     => __( 'Reading your location…', 'ffcertificate' ),
+					'browserCheck' => SettingsReader::browser_check_enabled(),
+					'telemetry'    => array(
+						'type' => 'booking',
+						'id'   => $booking_id,
+					),
+					'strings'      => array_merge(
+						BrowserGate::strings(),
+						array(
+							'secureRequired' => __( 'This check-in needs a secure connection (HTTPS) to read your location. Please tell the event organiser.', 'ffcertificate' ),
+							/* translators: %s: a list of browsers, such as "Safari, Chrome, Firefox or Edge". */
+							'inAppBody'      => __( 'You are viewing this page inside an app, where your location often cannot be read. Open it in %s.', 'ffcertificate' ),
+						)
+					),
 				)
 			);
 		}
