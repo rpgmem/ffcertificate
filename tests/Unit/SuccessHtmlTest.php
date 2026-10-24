@@ -214,6 +214,33 @@ class SuccessHtmlTest extends TestCase {
 		$this->assertStringContainsString( 'Save to Files', $html );
 	}
 
+	public function test_the_android_hint_names_the_file_the_pdf_was_saved_under(): void {
+		$html = SuccessHtmlRenderer::generate_success_html(
+			array( 'auth_code' => 'X' ),
+			42,
+			'2026-05-20 10:00:00',
+			'Done!',
+			0,
+			null,
+			'certificado_425_C-50IYW9J01HNR.pdf'
+		);
+
+		$this->assertStringContainsString( 'look for "certificado_425_C-50IYW9J01HNR.pdf"', $html );
+		$this->assertStringNotContainsString( 'certificate.pdf', $html );
+	}
+
+	public function test_without_a_filename_the_android_hint_names_none(): void {
+		$html = SuccessHtmlRenderer::generate_success_html(
+			array( 'auth_code' => 'X' ),
+			42,
+			'2026-05-20 10:00:00',
+			'Done!'
+		);
+
+		$this->assertStringContainsString( 'Android: open the Downloads folder, or use the Files app.', $html );
+		$this->assertStringNotContainsString( 'look for', $html );
+	}
+
 	public function test_success_html_keeps_legacy_form_and_date_rows(): void {
 		$html = SuccessHtmlRenderer::generate_success_html(
 			array( 'auth_code' => 'X' ),
