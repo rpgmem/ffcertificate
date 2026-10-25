@@ -432,7 +432,7 @@ class AudienceShortcode {
 										'name'        => 'skip_blocked',
 										'id'          => 'booking-skip-blocked',
 										'label'       => __( 'Skip blocked days', 'ffcertificate' ),
-										'description' => __( 'Holidays and global closures are left out instead of refusing the booking.', 'ffcertificate' ),
+										'description' => __( 'Holidays, global closures and the weekdays the space is closed are left out instead of refusing the booking.', 'ffcertificate' ),
 									)
 								);
 								?>

@@ -114,6 +114,25 @@ final class AudienceBookingRules {
 	}
 
 	/**
+	 * Whether "Skip blocked days" leaves a day out of a range: a holiday, or a
+	 * weekday the space's working hours close (#2078). The option speaks of
+	 * blocked days, and an operator skipping them means the weekend too.
+	 *
+	 * @param int    $environment_id Environment ID.
+	 * @param string $date           Date (Y-m-d).
+	 * @return bool
+	 */
+	public static function is_skippable_day( int $environment_id, string $date ): bool {
+		if ( self::is_blocked_day( $environment_id, $date ) ) {
+			return true;
+		}
+
+		$hours = AudienceEnvironmentRepository::get_working_hours( $environment_id );
+
+		return $hours && ! \FreeFormCertificate\Scheduling\WorkingHoursService::is_working_day( $date, $hours );
+	}
+
+	/**
 	 * The days a booking takes, with the hours each one takes, and the days a
 	 * range leaves out because they are blocked and the operator skipped them.
 	 *
@@ -127,7 +146,7 @@ final class AudienceBookingRules {
 	 * @param string $start_time     Start (H:i).
 	 * @param string $end_time       End (H:i).
 	 * @param string $time_mode      `daily` or `span`.
-	 * @param bool   $skip_blocked   Leave blocked days out of the range.
+	 * @param bool   $skip_blocked   Leave holidays and closed weekdays out of the range.
 	 * @return array{days: list<array{date: string, start_time: string, end_time: string}>, skipped: list<string>}
 	 */
 	public static function occurrences( int $environment_id, string $start_date, string $end_date, string $start_time, string $end_time, string $time_mode, bool $skip_blocked ): array {
@@ -135,7 +154,7 @@ final class AudienceBookingRules {
 		$booked  = array();
 
 		foreach ( self::range_days( $start_date, $end_date ) as $date ) {
-			if ( $skip_blocked && self::is_blocked_day( $environment_id, $date ) ) {
+			if ( $skip_blocked && self::is_skippable_day( $environment_id, $date ) ) {
 				$skipped[] = $date;
 				continue;
 			}
@@ -312,7 +331,7 @@ final class AudienceBookingRules {
 			'single'         => __( 'This cancels the booking on %s.', 'ffcertificate' ),
 			/* translators: 1: number of days the booking covers, 2: the first and last dates of it. */
 			'range'          => __( 'This booking covers %1$d days (%2$s). Cancelling it cancels every one of them.', 'ffcertificate' ),
-			'seconds'        => 5,
+			'seconds'        => \FreeFormCertificate\Core\ConfirmCountdown::SECONDS,
 		);
 	}
 

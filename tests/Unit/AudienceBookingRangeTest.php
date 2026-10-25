@@ -35,6 +35,9 @@ class AudienceBookingRangeTest extends TestCase {
 	/** @var list<string> Global holidays the test sets, answered by the holiday alias. */
 	private array $global_holidays = array();
 
+	/** @var array<string, mixed>|null Working hours the test sets, answered by the environment alias. */
+	private ?array $working_hours = null;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -50,7 +53,7 @@ class AudienceBookingRangeTest extends TestCase {
 
 		$this->environment = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
 		$this->environment->shouldReceive( 'is_holiday' )->andReturn( false );
-		$this->environment->shouldReceive( 'get_working_hours' )->andReturn( null );
+		$this->environment->shouldReceive( 'get_working_hours' )->andReturnUsing( fn(): ?array => $this->working_hours )->byDefault();
 	}
 
 	protected function tearDown(): void {
@@ -130,6 +133,30 @@ class AudienceBookingRangeTest extends TestCase {
 		$this->assertSame( array( '2026-03-16', '2026-03-18' ), array_column( $plan['days'], 'date' ) );
 	}
 
+	public function test_skipping_blocked_days_also_leaves_out_the_weekdays_the_space_is_closed(): void {
+		// Closed on Saturday and Sunday (#2078): a Monday-to-Monday range
+		// that skips blocked days books the weekdays and records the weekend.
+		$this->working_hours = array(
+			'sat' => array( 'closed' => true ),
+			'sun' => array( 'closed' => true ),
+			'mon' => array( 'start' => '08:00', 'end' => '18:00' ),
+		);
+
+		$plan = AudienceBookingRules::occurrences( 1, '2026-03-16', '2026-03-23', '09:00', '12:00', 'daily', true );
+
+		$this->assertSame( array( '2026-03-21', '2026-03-22' ), $plan['skipped'] );
+		$this->assertSame( array( '2026-03-16', '2026-03-17', '2026-03-18', '2026-03-19', '2026-03-20', '2026-03-23' ), array_column( $plan['days'], 'date' ) );
+	}
+
+	public function test_a_closed_weekday_is_kept_when_the_range_does_not_skip(): void {
+		$this->working_hours = array( 'sat' => array( 'closed' => true ) );
+
+		$plan = AudienceBookingRules::occurrences( 1, '2026-03-20', '2026-03-22', '09:00', '12:00', 'daily', false );
+
+		$this->assertSame( array(), $plan['skipped'] );
+		$this->assertCount( 3, $plan['days'] );
+	}
+
 	public function test_a_blocked_day_is_kept_when_the_range_does_not_skip(): void {
 		$this->environment->shouldReceive( 'is_holiday' )->with( 1, '2026-03-17' )->andReturn( true );
 
@@ -202,7 +229,7 @@ class AudienceBookingRangeTest extends TestCase {
 		foreach ( array( 'title', 'intro', 'agree', 'agreeIn', 'cancel', 'countdownStart', 'countdownEnd', 'single', 'range' ) as $key ) {
 			$this->assertNotSame( '', $strings[ $key ], "The $key string must not be empty." );
 		}
-		$this->assertSame( 5, $strings['seconds'] );
+		$this->assertSame( \FreeFormCertificate\Core\ConfirmCountdown::SECONDS, $strings['seconds'] );
 	}
 
 	public function test_the_range_sentence_names_both_the_day_count_and_the_dates(): void {
