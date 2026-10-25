@@ -7055,8 +7055,8 @@ msgid "Already booked on: %s"
 msgstr "Já reservado em: %s"
 
 #: includes/settings/views/documentation/scheduling-audiences.php
-msgid "A booking can cover a range of days: set an end date in the booking form and the booking takes every day from its date to that one. The hours on each day are either the same every day, or run from the start time on the first day to the end time on the last, with the whole opening window in between. Every day is checked against the rules and for conflicts; a clash on any day refuses the whole booking, and the form lists the days already taken. A holiday inside the range refuses the booking unless \"Skip blocked days\" is ticked, and then the skipped days are recorded. A range covers at most 31 days, and an all-day booking covers one day."
-msgstr "Um agendamento pode cobrir um intervalo de dias: informe uma data final no formulário de agendamento e ele ocupa todos os dias da data inicial até essa. Os horários de cada dia são iguais todos os dias, ou vão do horário inicial no primeiro dia ao horário final no último, com a janela de funcionamento inteira entre eles. Cada dia é verificado contra as regras e quanto a conflitos; um conflito em qualquer dia recusa o agendamento inteiro, e o formulário lista os dias já ocupados. Um feriado dentro do intervalo recusa o agendamento, a menos que \"Pular dias bloqueados\" esteja marcado; nesse caso os dias pulados são registrados. Um intervalo cobre no máximo 31 dias, e um agendamento de dia inteiro cobre apenas um dia."
+msgid "A booking can cover a range of days: set an end date in the booking form and the booking takes every day from its date to that one. The hours on each day are either the same every day, or run from the start time on the first day to the end time on the last, with the whole opening window in between. Every day is checked against the rules and for conflicts; a clash on any day refuses the whole booking, and the form lists the days already taken. A holiday or a weekday the space is closed inside the range refuses the booking unless \"Skip blocked days\" is ticked, and then those days are left out without a warning and recorded as skipped. A range covers at most 31 days, and an all-day booking covers one day."
+msgstr "Um agendamento pode cobrir um intervalo de dias: informe uma data final no formulário de agendamento e ele ocupa todos os dias da data inicial até essa. Os horários de cada dia são iguais todos os dias, ou vão do horário inicial no primeiro dia ao horário final no último, com a janela de funcionamento inteira entre eles. Cada dia é verificado contra as regras e quanto a conflitos; um conflito em qualquer dia recusa o agendamento inteiro, e o formulário lista os dias já ocupados. Um feriado ou um dia da semana em que o espaço fecha dentro do intervalo recusa o agendamento, a menos que \"Pular dias bloqueados\" esteja marcado; nesse caso esses dias ficam de fora sem aviso e são registrados como pulados. Um intervalo cobre no máximo 31 dias, e um agendamento de dia inteiro cobre apenas um dia."
 
 #: includes/frontend/class-ffc-frontend.php:464
 msgid "End date"
@@ -27850,10 +27850,6 @@ msgid "Skip blocked days"
 msgstr "Pular dias bloqueados"
 
 #: includes/audience/class-ffc-audience-shortcode.php
-msgid "Holidays and global closures are left out instead of refusing the booking."
-msgstr "Feriados e fechamentos gerais ficam de fora, em vez de recusar a reserva."
-
-#: includes/audience/class-ffc-audience-shortcode.php
 msgid "For whom"
 msgstr "Para quem"
 
@@ -29285,6 +29281,9 @@ msgstr "Com esta precisão, um formulário com área de %s m não consegue confi
 
 msgid "The location row grades how precise the reading is against a reference area of 50 m, by the same precision settings the forms use on the Geolocation tab: precise up to the share that triggers the low-precision notice (25 m by default), accepted with low precision up to the tolerance (75 m by default), and too imprecise to confirm the area beyond it, each with an information button saying what to do. Numbers carry one decimal when they have one. A section that opened by itself closes again once its checks pass, as the device settings do after a precise reading, unless the visitor opened or closed it."
 msgstr "A linha de localização classifica a precisão da leitura em relação a uma área de referência de 50 m, pelas mesmas configurações de precisão que os formulários usam na aba Geolocalização: precisa até a fração que dispara o aviso de pouca precisão (25 m por padrão), aceita com pouca precisão até a tolerância (75 m por padrão) e imprecisa demais para confirmar a área além disso, cada caso com um botão de informação dizendo o que fazer. Os números têm uma casa decimal quando ela existe. Uma seção que se abriu sozinha volta a se fechar quando suas verificações passam, como a de configurações do dispositivo após uma leitura precisa, a menos que o visitante a tenha aberto ou fechado."
+
+msgid "Holidays, global closures and the weekdays the space is closed are left out instead of refusing the booking."
+msgstr "Feriados, fechamentos gerais e os dias da semana em que o espaço fecha ficam de fora, em vez de recusar a reserva."
 
 msgid "(optional: read only when the date comes from a column of the file)"
 msgstr "(opcional: lida somente quando a data vem de uma coluna do arquivo)"
