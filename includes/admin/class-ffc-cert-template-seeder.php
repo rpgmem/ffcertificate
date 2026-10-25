@@ -69,8 +69,11 @@ class CertTemplateSeeder {
 	 *
 	 * Version 7 moves the footer of three defaults up so the QR code and the
 	 * validation link fit inside the A4 page; the bump refreshes those bodies.
+	 *
+	 * Version 8 sizes model 5's QR code to its 170 px box and moves model 6's
+	 * signatures and footer up, so its QR code stays inside the frame (#2076).
 	 */
-	private const SEED_VERSION = 7;
+	private const SEED_VERSION = 8;
 
 	/**
 	 * Directory (relative to the plugin root) holding the default background

@@ -349,7 +349,7 @@ final class BulkIssuePage {
 		);
 
 		$fields  = get_post_meta( $post->ID, '_ffc_form_fields', true );
-		$columns = array_values( array_unique( array_merge( BulkIssuePlanner::REQUIRED_KEYS, BulkIssuePlanner::template_columns( is_array( $fields ) ? $fields : array() ) ) ) );
+		$columns = BulkIssuePlanner::template_header( is_array( $fields ) ? $fields : array() );
 
 		echo '<div class="ffc-bulk-issue" id="ffc-bulk-issue" data-form-id="' . esc_attr( (string) $post->ID ) . '">';
 		echo '<p class="description">' . esc_html__( 'Issue certificates for a list of participants from a CSV file, without each of them submitting the form. Download the template, upload the file, map its columns, check the preview and issue.', 'ffcertificate' ) . '</p>';
@@ -368,7 +368,11 @@ final class BulkIssuePage {
 		);
 		echo '<ul class="ffc-bulk-issue-columns" aria-label="' . esc_attr__( 'Columns of the template', 'ffcertificate' ) . '">';
 		foreach ( $columns as $column ) {
-			echo '<li><code>' . esc_html( $column ) . '</code></li>';
+			echo '<li><code>' . esc_html( $column ) . '</code>';
+			if ( BulkIssuePlanner::ISSUE_DATE_COLUMN === $column ) {
+				echo ' ' . esc_html__( '(optional: read only when the date comes from a column of the file)', 'ffcertificate' );
+			}
+			echo '</li>';
 		}
 		echo '</ul></li>';
 
@@ -598,8 +602,13 @@ final class BulkIssuePage {
 		echo '<select name="ffc_issue_date_column" id="ffc_issue_date_column">';
 		echo '<option value="">' . esc_html__( 'Not in this file', 'ffcertificate' ) . '</option>';
 
+		// The template's own date column is the one to read unless another was chosen (#2076).
+		$chosen = '' !== $dates['column'] || ! in_array( BulkIssuePlanner::ISSUE_DATE_COLUMN, $header, true )
+			? $dates['column']
+			: BulkIssuePlanner::ISSUE_DATE_COLUMN;
+
 		foreach ( $header as $column ) {
-			echo '<option value="' . esc_attr( $column ) . '"' . selected( $dates['column'], $column, false ) . '>' . esc_html( $column ) . '</option>';
+			echo '<option value="' . esc_attr( $column ) . '"' . selected( $chosen, $column, false ) . '>' . esc_html( $column ) . '</option>';
 		}
 
 		echo '</select></p>';

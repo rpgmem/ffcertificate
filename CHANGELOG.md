@@ -74,6 +74,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Scripts run again for visitors on sites that minify with LiteSpeed Cache** (#2056). Its minifier cut a regex literal ending in an escaped slash, which #2053 added, so the combined file stopped parsing and the device test stayed at "Checking…"; the three such literals are rewritten and a test refuses the shape.
 - **The device test names the connection honestly** (#2060). It showed the browser's speed estimate as a network generation, so a wired desktop read "4G"; it now reads one pair on every device, "Online/Speed: Wi-Fi / Fast (like 4G or better)", says when the browser does not tell and why, and the screen row says density, not zoom.
 - **The certificate's success card fits a phone and names the real file** (#2068). Below 768px the card no longer runs past the form's box, the Android hint names the file the PDF is saved under instead of "certificate.pdf", and the auth code's Copy button uses the form's font.
+- **Default certificate models 5 and 6 place their QR code properly, and the bulk-issue template carries an issue-date column** (#2076). Model 5's code fills its 170 px box; model 6's footer, QR included, sits inside its frame (defaults refresh on update). The CSV template ends with an optional `issue_date` column, preselected when dates come from the file.
 
 ### Changed
 

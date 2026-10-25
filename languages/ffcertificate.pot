@@ -29202,3 +29202,9 @@ msgstr ""
 
 msgid "The location row grades how precise the reading is against a reference area of 50 m, by the same precision settings the forms use on the Geolocation tab: precise up to the share that triggers the low-precision notice (25 m by default), accepted with low precision up to the tolerance (75 m by default), and too imprecise to confirm the area beyond it, each with an information button saying what to do. Numbers carry one decimal when they have one. A section that opened by itself closes again once its checks pass, as the device settings do after a precise reading, unless the visitor opened or closed it."
 msgstr ""
+
+msgid "(optional: read only when the date comes from a column of the file)"
+msgstr ""
+
+msgid "The template ends with an optional issue_date column (YYYY-MM-DD or DD/MM/YYYY). It is read only when the issue date comes from a column of the file, where it is chosen by default, and ignored otherwise."
+msgstr ""

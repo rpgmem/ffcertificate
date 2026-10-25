@@ -38,13 +38,20 @@ class BulkIssueTemplateSourceTest extends TestCase {
 
 		$header = ( new BulkIssueTemplateSource( 12 ) )->header();
 
-		$this->assertSame( array( 'name', 'cpf_rf', 'email', 'course' ), $header );
+		$this->assertSame( array( 'name', 'cpf_rf', 'email', 'course', 'issue_date' ), $header );
+	}
+
+	public function test_header_ends_with_the_optional_issue_date_unless_a_field_takes_the_name(): void {
+		Functions\when( 'get_post_meta' )->justReturn( array( array( 'name' => 'issue_date' ), array( 'name' => 'course' ) ) );
+
+		// The form's own field keeps its place; the column is not repeated (#2076).
+		$this->assertSame( array( 'name', 'cpf_rf', 'email', 'issue_date', 'course' ), ( new BulkIssueTemplateSource( 12 ) )->header() );
 	}
 
 	public function test_header_is_the_required_identifiers_when_the_form_has_no_fields(): void {
 		Functions\when( 'get_post_meta' )->justReturn( '' );
 
-		$this->assertSame( array( 'name', 'cpf_rf', 'email' ), ( new BulkIssueTemplateSource( 12 ) )->header() );
+		$this->assertSame( array( 'name', 'cpf_rf', 'email', 'issue_date' ), ( new BulkIssueTemplateSource( 12 ) )->header() );
 	}
 
 	public function test_a_template_carries_no_rows(): void {
