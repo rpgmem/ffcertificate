@@ -72,23 +72,15 @@ final class BulkIssueTemplateSource implements SyncSourceInterface {
 	}
 
 	/**
-	 * The columns of the template: required identifiers, then the form's fields.
+	 * The columns of the template: required identifiers, the form's fields
+	 * and the optional issue date.
 	 *
-	 * @return array<int, string> Required identifiers, then the form's other fields.
+	 * @return array<int, string> Column names.
 	 */
 	public function header(): array {
-		$fields  = get_post_meta( $this->form_id, '_ffc_form_fields', true );
-		$columns = BulkIssuePlanner::template_columns( is_array( $fields ) ? $fields : array() );
+		$fields = get_post_meta( $this->form_id, '_ffc_form_fields', true );
 
-		$header = BulkIssuePlanner::REQUIRED_KEYS;
-
-		foreach ( $columns as $column ) {
-			if ( ! in_array( $column, $header, true ) ) {
-				$header[] = $column;
-			}
-		}
-
-		return $header;
+		return BulkIssuePlanner::template_header( is_array( $fields ) ? $fields : array() );
 	}
 
 	/**

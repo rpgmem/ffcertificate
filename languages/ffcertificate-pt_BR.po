@@ -29284,3 +29284,9 @@ msgstr "A linha de localização classifica a precisão da leitura em relação 
 
 msgid "Holidays, global closures and the weekdays the space is closed are left out instead of refusing the booking."
 msgstr "Feriados, fechamentos gerais e os dias da semana em que o espaço fecha ficam de fora, em vez de recusar a reserva."
+
+msgid "(optional: read only when the date comes from a column of the file)"
+msgstr "(opcional: lida somente quando a data vem de uma coluna do arquivo)"
+
+msgid "The template ends with an optional issue_date column (YYYY-MM-DD or DD/MM/YYYY). It is read only when the issue date comes from a column of the file, where it is chosen by default, and ignored otherwise."
+msgstr "O modelo termina com a coluna opcional issue_date (AAAA-MM-DD ou DD/MM/AAAA). Ela é lida somente quando a data de emissão vem de uma coluna do arquivo, em que é escolhida por padrão, e é ignorada nos outros casos."

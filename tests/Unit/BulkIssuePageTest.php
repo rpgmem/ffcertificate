@@ -166,6 +166,30 @@ class BulkIssuePageTest extends TestCase {
 	}
 
 	/**
+	 * The template's issue-date column is preselected when the file carries
+	 * it and nothing else was chosen; a column the operator chose wins (#2076).
+	 */
+	public function test_the_date_column_defaults_to_the_template_column(): void {
+		Functions\when( 'esc_attr' )->alias( static fn( $text ): string => htmlspecialchars( (string) $text, ENT_QUOTES ) );
+		Functions\when( 'esc_html' )->alias( static fn( $text ): string => htmlspecialchars( (string) $text, ENT_QUOTES ) );
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'selected' )->alias( static fn( $a, $b, $echo = true ): string => (string) $a === (string) $b ? ' selected=\'selected\'' : '' );
+
+		$render = new \ReflectionMethod( BulkIssuePage::class, 'render_issue_date' );
+		$render->setAccessible( true );
+		$header = array( 'name', 'cpf_rf', 'email', 'Day', 'issue_date' );
+		$draw   = static function ( string $column ) use ( $render, $header ): string {
+			ob_start();
+			$render->invoke( null, $header, array( 'mode' => 'now', 'date' => '', 'column' => $column ) );
+			return (string) ob_get_clean();
+		};
+
+		$this->assertStringContainsString( '<option value="issue_date" selected=\'selected\'>', $draw( '' ) );
+		$this->assertStringContainsString( '<option value="Day" selected=\'selected\'>', $draw( 'Day' ) );
+		$this->assertStringNotContainsString( '<option value="issue_date" selected', $draw( 'Day' ) );
+	}
+
+	/**
 	 * The progress text is built from the job as the batch left it: reading it
 	 * before the batch dropped the last batch from the final count.
 	 */

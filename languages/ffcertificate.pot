@@ -29200,4 +29200,9 @@ msgid "The location row grades how precise the reading is against a reference ar
 msgstr ""
 
 msgid "Holidays, global closures and the weekdays the space is closed are left out instead of refusing the booking."
+
+msgid "(optional: read only when the date comes from a column of the file)"
+msgstr ""
+
+msgid "The template ends with an optional issue_date column (YYYY-MM-DD or DD/MM/YYYY). It is read only when the issue date comes from a column of the file, where it is chosen by default, and ignored otherwise."
 msgstr ""
