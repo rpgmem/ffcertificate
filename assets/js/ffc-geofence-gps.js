@@ -496,9 +496,25 @@
                     this.showImpreciseNotice(
                         formWrapper,
                         this.getString('inaccurateAccepted', 'Your location was accepted, but with low precision (about %s m). For more precision, turn on precise location or use your phone.')
-                            .replace('%s', String(Math.round(location.accuracy)))
+                            .replace('%s', this.metres(location.accuracy))
                     );
                 }
+            }
+        },
+
+        /**
+         * Metres with one decimal when they have one, in the page's
+         * language (#2074).
+         *
+         * @param {number} value
+         * @returns {string}
+         */
+        metres: function(value) {
+            var lang = document.documentElement.getAttribute('lang') || undefined;
+            try {
+                return new Intl.NumberFormat(lang, { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(value);
+            } catch (e) {
+                return String(Math.round(value * 10) / 10);
             }
         },
 

@@ -186,6 +186,27 @@ class DeviceCheckTest extends TestCase {
 			),
 			$data['ffc-device-check'][1]['ping']
 		);
+		// The location row is graded by the forms' precision settings (#2074).
+		$this->assertSame(
+			array(
+				'reference' => 50,
+				'weakShare' => 0.5,
+				'tolerance' => 1.5,
+			),
+			$data['ffc-device-check'][1]['geo']
+		);
+
+		Functions\when( 'get_option' )->alias(
+			static fn( $name ) => 'ffc_geolocation_settings' === $name
+				? array(
+					'gps_weak_share'         => '0.3',
+					'gps_accuracy_tolerance' => '2',
+				)
+				: array()
+		);
+		DeviceCheck::enqueue_assets();
+		$this->assertSame( 0.3, $data['ffc-device-check'][1]['geo']['weakShare'] );
+		$this->assertSame( 2.0, $data['ffc-device-check'][1]['geo']['tolerance'] );
 	}
 
 	public function test_enqueue_assets_loads_the_altcha_bundle_first_where_the_site_uses_it(): void {

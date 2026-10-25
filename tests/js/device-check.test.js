@@ -55,7 +55,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-	window.ffcDeviceCheck = { strings: { accuracyResult: 'About %1$s m, read in %2$s s' } };
+	window.ffcDeviceCheck = { strings: {}, geo: { reference: 50, weakShare: 0.5, tolerance: 1.5 } };
 });
 
 afterEach(() => {
@@ -110,18 +110,53 @@ describe('device check (#2040)', () => {
 		document.querySelector('.ffc-device-check-locate').click();
 		await flush();
 		expect(row('location').state).toBe('ok');
-		expect(row('location').text).toMatch(/^Allowed · About 12 m, read in [\d.]+ s$/);
+		expect(row('location').text).toMatch(/^Allowed · About 12\.4 m \(precise\), read in \d+(\.\d)? s$/);
 		expect(document.body.textContent).not.toContain('23.55');
 		expect(document.body.textContent).not.toContain('46.63');
 	});
 
-	it('warns on a coarse reading and fails on each error', async () => {
-		await run({ position: { latitude: 1, longitude: 1, accuracy: 900 } });
+	it('grades the precision against the 50 m reference area with the forms\' settings (#2074)', async () => {
+		const read = async (accuracy) => {
+			await run({ permission: 'granted', position: { latitude: 1, longitude: 1, accuracy } });
+			document.querySelector('.ffc-device-check-locate').click();
+			await flush();
+			return row('location');
+		};
+		const fix = () => document.querySelector('[data-ffc-check="location"] .ffc-device-check-fix');
+
+		expect((await read(25)).state).toBe('ok');
+		expect(row('location').text).toContain('About 25 m (precise)');
+		expect(fix()).toBeNull();
+
+		expect((await read(25.1)).state).toBe('warn');
+		expect(row('location').text).toContain('About 25.1 m (low precision, but accepted)');
+
+		expect((await read(75)).state).toBe('warn');
+		expect((await read(75.1)).state).toBe('fail');
+		expect(row('location').text).toContain('About 75.1 m (too imprecise to confirm the area)');
+
+		// The settings move the lines.
+		window.ffcDeviceCheck.geo = { reference: 50, weakShare: 0.8, tolerance: 2 };
+		expect((await read(30)).state).toBe('ok');
+		expect((await read(90)).state).toBe('warn');
+	});
+
+	it('names the reference area in the help of a weak reading', async () => {
+		window.ffcDeviceCheck.strings = { helpAccuracyWeak: 'Area of %s m: accepted, imprecise.', helpAccuracyTooWeak: 'Area of %s m: cannot confirm.' };
+		const fix = () => document.querySelector('[data-ffc-check="location"] .ffc-device-check-fix').textContent;
+
+		await run({ permission: 'granted', position: { latitude: 1, longitude: 1, accuracy: 40 } });
 		document.querySelector('.ffc-device-check-locate').click();
 		await flush();
-		// The worse of the two: a prompt permission is no fault, the reading is.
-		expect(row('location').state).toBe('warn');
-		expect(row('location').text).toContain('About 900 m');
+		expect(fix()).toBe('Area of 50 m: accepted, imprecise.');
+
+		await run({ permission: 'granted', position: { latitude: 1, longitude: 1, accuracy: 900 } });
+		document.querySelector('.ffc-device-check-locate').click();
+		await flush();
+		expect(fix()).toBe('Area of 50 m: cannot confirm.');
+	});
+
+	it('fails on each error', async () => {
 
 		for (const [code, text] of [[1, 'Refused'], [2, 'Could not be read'], [3, 'Took too long']]) {
 			await run({ error: { code } });
@@ -195,16 +230,34 @@ describe('sections and the location step (#2065)', () => {
 		expect(['todo', 'fail']).toContain(verdictKey());
 	});
 
-	it('finishes the test once the location is read, and never closes an opened section', async () => {
+	it('finishes the test once the location is read, and closes the section it opened (#2074)', async () => {
 		await open({ permission: 'granted', position: { latitude: -23.5, longitude: -46.6, accuracy: 12 } });
 		document.querySelector('.ffc-device-check-locate').click();
 		await flush();
 		expect(row('location').state).toBe('ok');
 		expect(document.querySelector('[data-ffc-check="location"]').hasAttribute('data-ffc-todo')).toBe(false);
 		expect(chip('device').textContent).toBe('1 OK');
-		// Opened while the step was owed, it stays open.
-		expect(group('device').open).toBe(true);
+		// Opened by the script while the step was owed, it closes once green.
+		expect(group('device').open).toBe(false);
 		expect(verdictKey()).not.toBe('todo');
+	});
+
+	it('leaves a section the visitor toggled as they set it', async () => {
+		await open({ permission: 'granted', position: { latitude: -23.5, longitude: -46.6, accuracy: 12 } });
+		group('device').querySelector('summary').click();
+		group('device').open = true;
+		document.querySelector('.ffc-device-check-locate').click();
+		await flush();
+		expect(row('location').state).toBe('ok');
+		expect(group('device').open).toBe(true);
+	});
+
+	it('keeps a section open while its reading is weak', async () => {
+		await open({ permission: 'granted', position: { latitude: -23.5, longitude: -46.6, accuracy: 40 } });
+		document.querySelector('.ffc-device-check-locate').click();
+		await flush();
+		expect(group('device').open).toBe(true);
+		expect(chip('device').textContent).toBe('1 warning');
 	});
 
 	it('opens a section on a warning and names the failures', async () => {

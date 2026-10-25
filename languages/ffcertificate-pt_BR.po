@@ -28764,9 +28764,6 @@ msgstr "Este navegador não consegue gerar o comprovante"
 msgid "The receipt PDF is built in the visitor's browser, after booking or from the receipt page, and the same browser check a certificate form runs comes first: an app's own browser (Instagram, WhatsApp and others), where saving the file often fails, is asked to open the page in the phone's browser, with \"Continue anyway\", which then downloads it; a browser missing what the PDF needs is stopped. Booking itself never waits on this. Settings → Certificates → Browser check turns it off, and each stop is written to the Activity Log as a pre-flight block naming the appointment."
 msgstr "O PDF do comprovante é gerado no navegador do visitante, após o agendamento ou na página do comprovante, e antes vem a mesma verificação de navegador que um formulário de certificado executa: o navegador próprio de um aplicativo (Instagram, WhatsApp e outros), onde salvar o arquivo costuma falhar, recebe o pedido de abrir a página no navegador do celular, com \"Continuar mesmo assim\", que então faz o download; um navegador sem o que o PDF precisa é barrado. O agendamento em si nunca espera por isso. Configurações → Certificados → Verificação do navegador a desliga, e cada bloqueio é gravado no registro de atividades como um bloqueio de pré-verificação, indicando o agendamento."
 
-msgid "About %1$s m, read in %2$s s"
-msgstr "Cerca de %1$s m, lida em %2$s s"
-
 msgid "Allowed"
 msgstr "Permitido"
 
@@ -29270,3 +29267,21 @@ msgstr "Faixa: 0,1 a 1. Padrão: 0,5."
 
 msgid "Keep the default unless you have a measured reason to change it. A lower value shows the notice to visitors whose GPS is good, who learn to ignore it; a higher one hides it from readings that only barely held."
 msgstr "Mantenha o padrão, a menos que tenha um motivo medido para mudá-lo. Um valor menor mostra o aviso a visitantes cujo GPS é bom, que aprendem a ignorá-lo; um maior o esconde de leituras que só passaram por pouco."
+
+msgid "About %1$s m (precise), read in %2$s s"
+msgstr "Cerca de %1$s m (preciso), lido em %2$s s"
+
+msgid "About %1$s m (low precision, but accepted), read in %2$s s"
+msgstr "Cerca de %1$s m (pouca precisão, mas aceito), lido em %2$s s"
+
+msgid "About %1$s m (too imprecise to confirm the area), read in %2$s s"
+msgstr "Cerca de %1$s m (impreciso demais para confirmar a área), lido em %2$s s"
+
+msgid "In an area of %s m your location would be accepted, but with low precision. For more precision, turn on precise location or use your phone."
+msgstr "Em uma área de %s m sua localização seria aceita, mas com pouca precisão. Para mais precisão, ative a localização precisa ou use o celular."
+
+msgid "With this precision, a form with an area of %s m cannot confirm where you are, and access depends on the form's policy. Turn on precise location (Google Location Accuracy on Android, Precise Location on iPhone) or use a phone with GPS."
+msgstr "Com esta precisão, um formulário com área de %s m não consegue confirmar onde você está, e o acesso depende da política do formulário. Ative a localização precisa (Precisão da localização do Google no Android, Localização Precisa no iPhone) ou use um celular com GPS."
+
+msgid "The location row grades how precise the reading is against a reference area of 50 m, by the same precision settings the forms use on the Geolocation tab: precise up to the share that triggers the low-precision notice (25 m by default), accepted with low precision up to the tolerance (75 m by default), and too imprecise to confirm the area beyond it, each with an information button saying what to do. Numbers carry one decimal when they have one. A section that opened by itself closes again once its checks pass, as the device settings do after a precise reading, unless the visitor opened or closed it."
+msgstr "A linha de localização classifica a precisão da leitura em relação a uma área de referência de 50 m, pelas mesmas configurações de precisão que os formulários usam na aba Geolocalização: precisa até a fração que dispara o aviso de pouca precisão (25 m por padrão), aceita com pouca precisão até a tolerância (75 m por padrão) e imprecisa demais para confirmar a área além disso, cada caso com um botão de informação dizendo o que fazer. Os números têm uma casa decimal quando ela existe. Uma seção que se abriu sozinha volta a se fechar quando suas verificações passam, como a de configurações do dispositivo após uma leitura precisa, a menos que o visitante a tenha aberto ou fechado."

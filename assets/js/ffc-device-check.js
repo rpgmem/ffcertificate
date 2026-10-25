@@ -46,7 +46,9 @@
 		el.classList.add('is-' + state);
 		el.querySelector('.ffc-device-check-result').textContent = value;
 		var shown = 'warn' === state || 'fail' === state || (explain === true && 'info' === state);
-		showHelp(el, key, shown && help ? text(help, '') : '');
+		// A help may name the reference area the location is graded on (#2074).
+		var reference = String((cfg.geo && cfg.geo.reference) || 50);
+		showHelp(el, key, shown && help ? text(help, '').replace('%s', reference) : '');
 		el.setAttribute('data-ffc-checked', '1');
 		verdict();
 	}
@@ -125,10 +127,28 @@
 
 	/**
 	 * Each section's chip, and its opening (#2065): a section opens by
-	 * itself when a row in it warns, fails or waits on the visitor, and is
-	 * never closed again by the script, so the screen does not move under
-	 * someone reading it.
+	 * itself when a row in it warns, fails or waits on the visitor. One the
+	 * script opened closes again once everything in it passes (#2074); one
+	 * the visitor opened or closed is left as they set it, so the screen
+	 * does not move under someone reading it.
 	 */
+	/**
+	 * Mark a section the visitor toggled by hand, once, so the script stops
+	 * opening and closing it.
+	 *
+	 * @param {HTMLDetailsElement} group
+	 */
+	function watchToggle(group) {
+		var summary = group.querySelector('summary');
+		if (!summary || summary.hasAttribute('data-ffc-watched')) {
+			return;
+		}
+		summary.setAttribute('data-ffc-watched', '1');
+		summary.addEventListener('click', function () {
+			group.setAttribute('data-ffc-user', '1');
+		});
+	}
+
 	function paintGroups() {
 		var groups = document.querySelectorAll('.ffc-device-check-group');
 		for (var g = 0; g < groups.length; g++) {
@@ -161,8 +181,15 @@
 				chip.textContent = label;
 			}
 			groups[g].setAttribute('data-ffc-state', state);
+			watchToggle(groups[g]);
 			if (count.fail || count.warn || todo) {
-				groups[g].open = true;
+				if (!groups[g].open && !groups[g].hasAttribute('data-ffc-user')) {
+					groups[g].setAttribute('data-ffc-auto', '1');
+					groups[g].open = true;
+				}
+			} else if ('ok' === state && groups[g].hasAttribute('data-ffc-auto') && !groups[g].hasAttribute('data-ffc-user')) {
+				groups[g].removeAttribute('data-ffc-auto');
+				groups[g].open = false;
 			}
 		}
 	}
@@ -878,6 +905,42 @@
 		});
 	}
 
+	/**
+	 * A reading's grade against the reference area, by the forms' own
+	 * precision settings (#2074): precise up to the notice share of the
+	 * radius, accepted with low precision up to the tolerance, and too
+	 * imprecise to confirm the area beyond it.
+	 *
+	 * @param {number} accuracy Margin of error in metres.
+	 * @returns {{state: string, template: string, help: string}}
+	 */
+	function gradeAccuracy(accuracy) {
+		var geoCfg = cfg.geo || {};
+		var reference = Number(geoCfg.reference) || 50;
+		if (accuracy <= reference * (Number(geoCfg.weakShare) || 0.5)) {
+			return { state: 'ok', template: text('accuracyPrecise', 'About %1$s m (precise), read in %2$s s'), help: '' };
+		}
+		if (accuracy <= reference * (Number(geoCfg.tolerance) || 1.5)) {
+			return { state: 'warn', template: text('accuracyWeak', 'About %1$s m (low precision, but accepted), read in %2$s s'), help: 'helpAccuracyWeak' };
+		}
+		return { state: 'fail', template: text('accuracyTooWeak', 'About %1$s m (too imprecise to confirm the area), read in %2$s s'), help: 'helpAccuracyTooWeak' };
+	}
+
+	/**
+	 * A number with one decimal when it has one, in the page's language (#2074).
+	 *
+	 * @param {number} value
+	 * @returns {string}
+	 */
+	function decimal(value) {
+		var lang = document.documentElement.getAttribute('lang') || undefined;
+		try {
+			return new Intl.NumberFormat(lang, { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(value);
+		} catch (e) {
+			return String(Math.round(value * 10) / 10);
+		}
+	}
+
 	function readAccuracy() {
 		if (!navigator.geolocation) {
 			noGeolocation();
@@ -894,12 +957,13 @@
 		};
 		navigator.geolocation.getCurrentPosition(
 			function (position) {
-				var metres = Math.round(position.coords.accuracy);
-				var seconds = ((Date.now() - started) / 1000).toFixed(1);
+				var grade = gradeAccuracy(position.coords.accuracy);
 				done({
-					state: metres <= 100 ? 'ok' : 'warn',
-					value: text('accuracyResult', 'About %1$s m, read in %2$s s').replace('%1$s', String(metres)).replace('%2$s', seconds),
-					help: 'helpAccuracy'
+					state: grade.state,
+					value: grade.template
+						.replace('%1$s', decimal(position.coords.accuracy))
+						.replace('%2$s', decimal((Date.now() - started) / 1000)),
+					help: grade.help
 				});
 			},
 			function (error) {
