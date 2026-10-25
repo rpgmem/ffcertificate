@@ -72,6 +72,12 @@ final class BulkIssuePlanner {
 	/** Skip reason: the score is below the form's pass mark, which applies in the column mode. */
 	public const SKIP_BELOW_PASS_MARK = 'below_pass_mark';
 
+	/**
+	 * Optional template column for each certificate's issue date (#2076).
+	 * It is read only when the operator dates the certificates from a column.
+	 */
+	public const ISSUE_DATE_COLUMN = 'issue_date';
+
 	/** Every certificate is dated when it is issued. */
 	public const DATE_NOW = 'now';
 
@@ -105,6 +111,24 @@ final class BulkIssuePlanner {
 		}
 
 		return $names;
+	}
+
+	/**
+	 * The CSV template's header: the required identifiers, the form's other
+	 * fields, then the optional issue-date column (#2076), unless a form field
+	 * already takes that name.
+	 *
+	 * @param array<int, mixed> $fields Rows of `_ffc_form_fields`.
+	 * @return array<int, string> Column names, without duplicates.
+	 */
+	public static function template_header( array $fields ): array {
+		$header = array_values( array_unique( array_merge( self::REQUIRED_KEYS, self::template_columns( $fields ) ) ) );
+
+		if ( ! in_array( self::ISSUE_DATE_COLUMN, $header, true ) ) {
+			$header[] = self::ISSUE_DATE_COLUMN;
+		}
+
+		return $header;
 	}
 
 	/**
