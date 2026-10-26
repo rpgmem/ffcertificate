@@ -32,25 +32,6 @@ class EncryptionTest extends TestCase {
 		parent::tearDown();
 	}
 
-	/**
-	 * The helper is deprecated (#1934): calling it must emit the notice that
-	 * reaches a consumer, naming the method, the release and the replacement.
-	 *
-	 * @param string $method Method on Encryption.
-	 */
-	private function expect_deprecation( string $method ): void {
-		$replacements = array(
-			'encrypt_submission' => SensitiveFieldRegistry::class . '::encrypt_fields()',
-			'decrypt_submission' => Encryption::class . '::decrypt_field()',
-			'get_info'           => Encryption::class . '::key_health_report()',
-			'test'               => Encryption::class . '::key_health_report()',
-		);
-
-		Functions\expect( '_deprecated_function' )
-			->once()
-			->with( Encryption::class . '::' . $method, '6.41.0', $replacements[ $method ] );
-	}
-
 	// ------------------------------------------------------------------
 	// encrypt() + decrypt() round-trip
 	// ------------------------------------------------------------------
@@ -135,129 +116,6 @@ class EncryptionTest extends TestCase {
 	}
 
 	// ------------------------------------------------------------------
-	// encrypt_submission() batch
-	// ------------------------------------------------------------------
-
-	public function test_encrypt_submission_encrypts_all_fields(): void {
-		$this->expect_deprecation( 'encrypt_submission' );
-
-		$submission = array(
-			'email'   => 'user@example.com',
-			'user_ip' => '192.168.1.1',
-			'data'    => '{"name":"João"}',
-		);
-
-		$result = Encryption::encrypt_submission( $submission );
-
-		$this->assertArrayHasKey( 'email_encrypted', $result );
-		$this->assertArrayHasKey( 'email_hash', $result );
-		$this->assertArrayHasKey( 'user_ip_encrypted', $result );
-		$this->assertArrayHasKey( 'data_encrypted', $result );
-
-		// cpf_rf no longer encrypted by batch method (use split cpf/rf columns)
-		$this->assertArrayNotHasKey( 'cpf_rf_encrypted', $result );
-		$this->assertArrayNotHasKey( 'cpf_rf_hash', $result );
-
-		// Encrypted values should decrypt back
-		$this->assertSame( 'user@example.com', Encryption::decrypt( $result['email_encrypted'] ) );
-		$this->assertSame( '192.168.1.1', Encryption::decrypt( $result['user_ip_encrypted'] ) );
-		$this->assertSame( '{"name":"João"}', Encryption::decrypt( $result['data_encrypted'] ) );
-	}
-
-	public function test_encrypt_submission_skips_empty_fields(): void {
-		$this->expect_deprecation( 'encrypt_submission' );
-
-		$submission = array( 'email' => '' );
-
-		$result = Encryption::encrypt_submission( $submission );
-
-		$this->assertArrayNotHasKey( 'email_encrypted', $result );
-	}
-
-	// ------------------------------------------------------------------
-	// decrypt_submission() batch
-	// ------------------------------------------------------------------
-
-	public function test_decrypt_submission_restores_fields(): void {
-		$this->expect_deprecation( 'decrypt_submission' );
-
-		$original_email = 'user@example.com';
-		$encrypted_email = Encryption::encrypt( $original_email );
-
-		$submission = array(
-			'id'              => 1,
-			'email'           => '',
-			'email_encrypted' => $encrypted_email,
-			'cpf_rf'          => '51817842080',
-		);
-
-		$result = Encryption::decrypt_submission( $submission );
-
-		$this->assertSame( $original_email, $result['email'] );
-		$this->assertSame( '51817842080', $result['cpf_rf'] ); // plain kept
-	}
-
-	public function test_decrypt_submission_keeps_plain_when_no_encrypted(): void {
-		$this->expect_deprecation( 'decrypt_submission' );
-
-		$submission = array(
-			'email'  => 'plain@example.com',
-			'cpf_rf' => '51817842080',
-		);
-
-		$result = Encryption::decrypt_submission( $submission );
-
-		$this->assertSame( 'plain@example.com', $result['email'] );
-	}
-
-	public function test_decrypt_submission_decrypts_split_cpf_column(): void {
-		$this->expect_deprecation( 'decrypt_submission' );
-
-		$enc_cpf = Encryption::encrypt( '51817842080' );
-
-		$submission = array(
-			'cpf_encrypted' => $enc_cpf,
-		);
-
-		$result = Encryption::decrypt_submission( $submission );
-
-		$this->assertSame( '51817842080', $result['cpf'] );
-		$this->assertSame( '51817842080', $result['cpf_rf'] );
-	}
-
-	public function test_decrypt_submission_decrypts_split_rf_column(): void {
-		$this->expect_deprecation( 'decrypt_submission' );
-
-		$enc_rf = Encryption::encrypt( '1234567' );
-
-		$submission = array(
-			'rf_encrypted' => $enc_rf,
-		);
-
-		$result = Encryption::decrypt_submission( $submission );
-
-		$this->assertSame( '1234567', $result['rf'] );
-		$this->assertSame( '1234567', $result['cpf_rf'] );
-	}
-
-	public function test_decrypt_submission_split_takes_priority_over_legacy(): void {
-		$this->expect_deprecation( 'decrypt_submission' );
-
-		$enc_cpf    = Encryption::encrypt( '11111111111' );
-		$enc_legacy = Encryption::encrypt( '99999999999' );
-
-		$submission = array(
-			'cpf_encrypted'    => $enc_cpf,
-			'cpf_rf_encrypted' => $enc_legacy,
-		);
-
-		$result = Encryption::decrypt_submission( $submission );
-
-		// Split column wins over legacy
-		$this->assertSame( '11111111111', $result['cpf_rf'] );
-	}
-
-	// ------------------------------------------------------------------
 	// decrypt_field()
 	// ------------------------------------------------------------------
 
@@ -316,40 +174,11 @@ class EncryptionTest extends TestCase {
 	}
 
 	// ------------------------------------------------------------------
-	// is_configured() and get_info()
+	// is_configured()
 	// ------------------------------------------------------------------
 
 	public function test_is_configured_returns_true_when_keys_exist(): void {
 		$this->assertTrue( Encryption::is_configured() );
-	}
-
-	public function test_get_info_returns_expected_keys(): void {
-		$this->expect_deprecation( 'get_info' );
-
-		$info = Encryption::get_info();
-
-		$this->assertArrayHasKey( 'configured', $info );
-		$this->assertArrayHasKey( 'cipher', $info );
-		$this->assertArrayHasKey( 'iv_length', $info );
-		$this->assertArrayHasKey( 'key_source', $info );
-		$this->assertSame( 'AES-256-CBC', $info['cipher'] );
-		$this->assertSame( 16, $info['iv_length'] );
-	}
-
-	// ------------------------------------------------------------------
-	// test() self-test utility
-	// ------------------------------------------------------------------
-
-	public function test_self_test_returns_matching_round_trip(): void {
-		$this->expect_deprecation( 'test' );
-
-		$result = Encryption::test();
-
-		$this->assertTrue( $result['match'], 'Self-test round-trip should match' );
-		$this->assertSame( 'Test Value 123!@#', $result['original'] );
-		$this->assertSame( $result['original'], $result['decrypted'] );
-		$this->assertNotNull( $result['encrypted'] );
-		$this->assertSame( 64, $result['hash_length'] );
 	}
 
 	// ------------------------------------------------------------------
@@ -397,14 +226,6 @@ class EncryptionTest extends TestCase {
 		// Fingerprint is a 12-char hex slice — never the raw key.
 		$this->assertSame( 12, strlen( $report['fingerprint'] ) );
 		$this->assertMatchesRegularExpression( '/^[0-9a-f]{12}$/', $report['fingerprint'] );
-	}
-
-	public function test_get_info_reports_key_health(): void {
-		$this->expect_deprecation( 'get_info' );
-
-		$info = Encryption::get_info();
-		$this->assertArrayHasKey( 'key_health', $info );
-		$this->assertSame( Encryption::key_health(), $info['key_health'] );
 	}
 
 	// ------------------------------------------------------------------
@@ -583,20 +404,6 @@ class EncryptionTest extends TestCase {
 	// Batch helpers: the columns the older tests did not reach
 	// ------------------------------------------------------------------
 
-	public function test_decrypt_submission_restores_ip_and_data(): void {
-		$this->expect_deprecation( 'decrypt_submission' );
-
-		$row = array(
-			'user_ip_encrypted' => Encryption::encrypt( '203.0.113.9' ),
-			'data_encrypted'    => Encryption::encrypt( '{"a":1}' ),
-		);
-
-		$out = Encryption::decrypt_submission( $row );
-
-		$this->assertSame( '203.0.113.9', $out['user_ip'] );
-		$this->assertSame( '{"a":1}', $out['data'] );
-	}
-
 	public function test_decrypt_appointment_falls_back_to_the_rf_column(): void {
 		$out = Encryption::decrypt_appointment( array( 'rf_encrypted' => Encryption::encrypt( '5181780' ) ) );
 
@@ -666,20 +473,18 @@ class EncryptionTest extends TestCase {
 	}
 
 	/**
-	 * A decoupled key is used as given, not derived: get_info() said PBKDF2
-	 * either way.
+	 * A long enough FFC_ENCRYPTION_KEY is the active key, and the report says so.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_get_info_describes_a_decoupled_key_as_used_directly(): void {
+	public function test_key_health_report_names_a_decoupled_key(): void {
 		define( 'FFC_ENCRYPTION_KEY', str_repeat( 'K', 64 ) );
-		$this->expect_deprecation( 'get_info' );
 
-		$info = Encryption::get_info();
+		$report = Encryption::key_health_report();
 
-		$this->assertSame( 'Custom (FFC_ENCRYPTION_KEY)', $info['key_source'] );
-		$this->assertSame( 'None (FFC_ENCRYPTION_KEY used as the key)', $info['key_derivation'] );
+		$this->assertTrue( $report['encryption_decoupled'] );
+		$this->assertSame( 'FFC_ENCRYPTION_KEY', $report['key_source'] );
 	}
 
 	/**
@@ -689,13 +494,12 @@ class EncryptionTest extends TestCase {
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_get_info_does_not_credit_a_short_key_the_cipher_ignores(): void {
+	public function test_key_health_report_does_not_credit_a_short_key_the_cipher_ignores(): void {
 		define( 'FFC_ENCRYPTION_KEY', 'short' );
-		$this->expect_deprecation( 'get_info' );
 
-		$info = Encryption::get_info();
+		$report = Encryption::key_health_report();
 
-		$this->assertStringStartsWith( 'WordPress Keys', $info['key_source'] );
-		$this->assertSame( 'PBKDF2 (10000 iterations)', $info['key_derivation'] );
+		$this->assertFalse( $report['encryption_decoupled'] );
+		$this->assertStringStartsWith( 'WordPress keys', $report['key_source'] );
 	}
 }

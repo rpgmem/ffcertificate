@@ -13,6 +13,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Removed
 
+- **⚠ Breaking for external integrations — four `Encryption` helpers are gone** (#1950): `encrypt_submission()`, `decrypt_submission()`, `get_info()` and `test()`, deprecated in 6.41.0 (#1934) with a runtime notice. Nothing in the plugin called them. Use `SensitiveFieldRegistry::encrypt_fields()`, `Encryption::decrypt_field()` and `Encryption::key_health_report()`.
 - **The jQuery UI theme in `libs/css/`** (#2089). Nothing has loaded it since 6.10.0: the calendars are drawn by the plugin's own script, and the jQuery UI pieces that do load are WordPress's own, with WordPress's styles. The zip loses the stylesheet and its 11 images.
 
 ## [6.42.0] (2026-10-26) — `8241871c`
