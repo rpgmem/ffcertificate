@@ -151,7 +151,33 @@
         var $dropdown = $(this).siblings('.ffc-cal-export-dropdown');
         $('.ffc-cal-export-dropdown.is-open').not($dropdown).removeClass('is-open');
         $dropdown.toggleClass('is-open');
+        if ($dropdown.hasClass('is-open')) {
+            place($dropdown, this);
+        }
     });
+
+    /**
+     * Put an open menu under its button, right edges aligned, or above it
+     * when the screen has no room below. The menu is fixed so no table
+     * clips it, which makes its position a run-time value.
+     *
+     * @param {jQuery} $dropdown The open menu.
+     * @param {Element} button   The button that opened it.
+     */
+    function place($dropdown, button) {
+        var rect = button.getBoundingClientRect();
+        var gap = 4;
+        var height = $dropdown.outerHeight();
+        var top = rect.bottom + height + gap > window.innerHeight && rect.top - height - gap >= 0
+            ? rect.top - height - gap
+            : rect.bottom + gap;
+        var left = Math.max(gap, rect.right - $dropdown.outerWidth());
+        $dropdown.css({ top: top + 'px', left: left + 'px' });
+    }
+
+    // A fixed menu does not follow its button, so scrolling or resizing closes it.
+    window.addEventListener('scroll', function () { $('.ffc-cal-export-dropdown.is-open').removeClass('is-open'); }, true);
+    $(window).on('resize', function () { $('.ffc-cal-export-dropdown.is-open').removeClass('is-open'); });
     $(document).on('click', '.ffc-cal-export-ics', function (e) {
         e.preventDefault();
         var eventData = $(this).data('event');
