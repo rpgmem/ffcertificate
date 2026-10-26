@@ -146,16 +146,20 @@ class UserAudienceRestController {
 			$bookings = \FreeFormCertificate\Audience\AudienceQueryService::find_user_bookings( $user_id );
 
 			$bookings_formatted = array();
+			$now                = time();
+			$pending            = 0;
 
 			foreach ( $bookings as $booking ) {
-				$date_formatted = '';
-				if ( ! empty( $booking['booking_date'] ) ) {
-					// booking_date is a wall-clock DATE (Category B) — render literally, no TZ shift.
-					$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $booking['booking_date'] );
-					if ( '' === $date_formatted ) {
-						$date_formatted = (string) $booking['booking_date'];
+				// booking_date is a wall-clock DATE (Category B), rendered literally with no
+				// TZ shift. A range shows both ends of its dates; a single day has only its own.
+				$date_formatted = \FreeFormCertificate\Audience\AudienceBookingRules::date_label(
+					(string) $booking['booking_date'],
+					isset( $booking['end_date'] ) ? (string) $booking['end_date'] : null,
+					static function ( string $date ): string {
+						$formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $date );
+						return '' === $formatted ? $date : $formatted;
 					}
-				}
+				);
 
 				$time_formatted = '';
 				if ( ! empty( $booking['start_time'] ) ) {
@@ -175,8 +179,32 @@ class UserAudienceRestController {
 					'cancelled' => __( 'Cancelled', 'ffcertificate' ),
 				);
 
-				$status  = $booking['status'] ?? 'active';
-				$is_past = (string) $booking['booking_date'] < current_time( 'Y-m-d' );
+				$row = (object) $booking;
+
+				// A range is past only once its last day is: a booking running
+				// today is still upcoming, with its export button.
+				$status    = $booking['status'] ?? 'active';
+				$last_date = (string) ( $booking['end_date'] ?? '' );
+				$last_date = '' !== $last_date ? $last_date : (string) $booking['booking_date'];
+				$is_past   = $last_date < current_time( 'Y-m-d' );
+
+				// A span's start belongs to its first day and its end to its last.
+				$time_label = \FreeFormCertificate\Audience\AudienceBookingRules::time_label(
+					(string) $booking['start_time'],
+					(string) $booking['end_time'],
+					\FreeFormCertificate\Audience\AudienceBookingRules::is_span( $row ),
+					static function ( string $time ): string {
+						$formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $time );
+						return '' === $formatted ? substr( $time, 0, 5 ) : $formatted;
+					}
+				);
+
+				// The post-event form still open to them (#2028). Someone viewing
+				// as the user sees that it waits, never the user's own link.
+				$post_event = \FreeFormCertificate\Audience\AudiencePostEventPending::for_user( $row, (int) $user_id, $now, ! $ctx['is_view_as'] );
+				if ( null !== $post_event ) {
+					++$pending;
+				}
 
 				$bookings_formatted[] = array(
 					'id'               => (int) $booking['id'],
@@ -187,6 +215,15 @@ class UserAudienceRestController {
 					'booking_date_raw' => $booking['booking_date'],
 					'start_time'       => $time_formatted,
 					'end_time'         => $end_time_formatted,
+					'time_label'       => $time_label,
+					// The calendar event: every booked day of a range, not only its first.
+					'ics'              => \FreeFormCertificate\Audience\AudienceBookingRules::ics_fields(
+						(string) $booking['booking_date'],
+						isset( $booking['end_date'] ) ? (string) $booking['end_date'] : null,
+						isset( $booking['time_mode'] ) ? (string) $booking['time_mode'] : null,
+						isset( $booking['skipped_dates'] ) ? (string) $booking['skipped_dates'] : null
+					),
+					'last_date_raw'    => $last_date,
 					'description'      => $booking['description'],
 					'status'           => $status,
 					'status_label'     => $status_labels[ $status ] ?? $status,
@@ -194,13 +231,20 @@ class UserAudienceRestController {
 					// The text colour over each audience's own colour is computed here,
 					// not left to the script (#1826).
 					'audiences'        => \FreeFormCertificate\Core\BadgeHtml::with_row_colors( $booking['audiences'] ),
+					'post_event'       => $post_event,
 				);
 			}
 
 			return rest_ensure_response(
 				array(
-					'bookings' => $bookings_formatted,
-					'total'    => count( $bookings_formatted ),
+					'bookings'           => $bookings_formatted,
+					'total'              => count( $bookings_formatted ),
+					'pending_post_event' => $pending,
+					'pending_label'      => 0 === $pending ? '' : sprintf(
+						/* translators: %d: number of certificate forms */
+						_n( 'You have %d certificate form to fill in. Find it under Actions.', 'You have %d certificate forms to fill in. Find them under Actions.', $pending, 'ffcertificate' ),
+						$pending
+					),
 				)
 			);
 

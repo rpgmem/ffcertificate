@@ -653,6 +653,13 @@ details.ffc-consent-description > p {
     font-size: var(--ffc-font-size-lg);
 }
 
+/* The link to the "Test my device" mode (#2040). */
+.ffc-shortcode .ffc-verification-device-check {
+    margin: var(--ffc-spacing-xl) 0 0;
+    font-size: var(--ffc-font-size-sm);
+    text-align: center;
+}
+
 /* ============================================
    VERIFICATION MANUAL SECTION
    ============================================ */
@@ -999,6 +1006,15 @@ details.ffc-consent-description > p {
     display: block !important;
 }
 
+/* The form's scripts did not load in time (#2030): the boot watchdog shows
+   its notice and takes the form away, so nothing invites a submit that would
+   go nowhere. One class more than the rule above, which it has to beat on a
+   form the geofence already validated. */
+.ffc-shortcode.ffc-form-wrapper.ffc-boot-failed .ffc-submission-form,
+.ffc-shortcode.ffc-form-wrapper.ffc-boot-failed .ffc-geofence-loading-msg {
+    display: none !important;
+}
+
 /* Geofence loading message */
 .ffc-shortcode .ffc-geofence-loading-msg {
     text-align: center;
@@ -1062,10 +1078,18 @@ details.ffc-consent-description > p {
    ============================================ */
 @media (max-width: 768px) {
     .ffc-shortcode.ffc-form-wrapper,
-    .ffc-shortcode.ffc-verification-container,
-    .ffc-shortcode .ffc-certificate-preview {
+    .ffc-shortcode.ffc-verification-container {
         padding: var(--ffc-spacing-2xl);
         margin: var(--ffc-spacing-xl);
+    }
+
+    /* The result card is already inside the form's own padded box: a side
+       margin on top of its full width pushed it past that box on a phone,
+       and a padding of its own inset the header. Its header, body and
+       actions carry their own padding, as on a wide screen. */
+    .ffc-shortcode .ffc-certificate-preview {
+        box-sizing: border-box;
+        margin: var(--ffc-spacing-xl) 0;
     }
 
     .ffc-shortcode .ffc-form-title,
@@ -1138,6 +1162,10 @@ details.ffc-consent-description > p {
     gap: var(--ffc-spacing-sm);
     flex-wrap: wrap;
     justify-content: flex-end;
+    /* The cell holds the copy button too, which inherits its font: the
+       monospace and the tracking belong to the code alone, below. */
+    font-family: inherit;
+    letter-spacing: normal;
 }
 
 /* The <code> wrapper itself — pinned by `SuccessHtmlTest`. Inherits
@@ -1146,6 +1174,8 @@ details.ffc-consent-description > p {
    `C-YK2K-RKFA-6EQC` never splits mid-string (regression from #354). */
 .ffc-shortcode .ffc-success-code {
     white-space: nowrap;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
 }
 
 /* Helper text below the auth-code row — full-width, muted. The hint
@@ -1250,6 +1280,24 @@ details.ffc-consent-description > p {
 .ffc-preflight-try-anyway:focus {
     background: var(--ffc-warning);
     color: var(--ffc-text-on-warning);
+}
+
+/* "Continue anyway" of the browser step's in-app block (#2030): discreet on
+   purpose, a link beside the button that opens the phone's browser, since
+   going on is the exception the detection's misfires need. */
+.ffc-preflight-continue {
+    padding: var(--ffc-spacing-sm) 0;
+    background: none;
+    border: 0;
+    color: var(--ffc-warning-text);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.ffc-preflight-continue:hover,
+.ffc-preflight-continue:focus-visible {
+    text-decoration: none;
 }
 
 /* ============================================
@@ -1693,21 +1741,15 @@ details.ffc-consent-description > p {
     padding: var(--ffc-spacing-lg);
 }
 
-/* Faithful preview: the iframe renders at the real A4 page size and JS scales
-   it via transform; the stage is sized to the scaled footprint so the layout
-   matches the visual and the page centers without clipping its borders. */
-.ffc-preview-stage {
-    position: relative;
-    flex: 0 0 auto;
-    overflow: hidden;
-}
-
-#ffc-preview-iframe {
+/* The preview is a page image captured from the server's render: it keeps its
+   own aspect and never outgrows the modal. */
+#ffc-preview-modal .ffc-preview-page {
     display: block;
-    border: none;
-    /* White in both themes: the iframe shows the certificate preview, and the
-       document's paper is white by definition (#1126). */
-    background: #fff;
+    max-width: 100%;
+    max-height: 70vh;
+    width: auto;
+    height: auto;
+    box-shadow: var(--ffc-shadow-md);
 }
 
 /* The four dark-mode rules that lived here were removed in #1126: they
@@ -1733,58 +1775,6 @@ details.ffc-consent-description > p {
     .ffc-shortcode .ffc-verify-input,
     .ffc-shortcode .ffc-csv-progress-bar-fill {
         transition: none;
-    }
-}
-
-/* ============================================
-   v6.3.7 - WebView (in-app browser) warning banner.
-   Renders above [ffc_form] / [ffc_csv_download] when the page is
-   loaded inside Facebook / Instagram / WhatsApp / Android WebView,
-   inviting the user to switch to Chrome/Safari for a reliable
-   download. The banner is the shared `.ffc-notice` (#1842); only its
-   two buttons are styled here.
-   ============================================ */
-
-.ffc-webview-warning-open,
-.ffc-webview-warning-dismiss {
-    padding: var(--ffc-spacing-md) var(--ffc-spacing-xl);
-    font-size: var(--ffc-font-size-base);
-    font-weight: 600;
-    border-radius: var(--ffc-radius-sm);
-    cursor: pointer;
-    transition: background var(--ffc-transition-base), border-color var(--ffc-transition-base);
-}
-
-.ffc-webview-warning-open {
-    background: var(--ffc-primary);
-    color: var(--ffc-text-on-primary);
-    border: 1px solid var(--ffc-primary);
-}
-
-.ffc-webview-warning-open:hover,
-.ffc-webview-warning-open:focus-visible {
-    background: var(--ffc-primary-hover, var(--ffc-link-hover));
-    outline: none;
-}
-
-.ffc-webview-warning-dismiss {
-    background: transparent;
-    color: var(--ffc-text-secondary);
-    border: 1px solid var(--ffc-border);
-}
-
-.ffc-webview-warning-dismiss:hover,
-.ffc-webview-warning-dismiss:focus-visible {
-    background: var(--ffc-bg-alt);
-    border-color: var(--ffc-border-focus);
-    outline: none;
-}
-
-@media (max-width: 600px) {
-    .ffc-webview-warning-open,
-    .ffc-webview-warning-dismiss {
-        width: 100%;
-        text-align: center;
     }
 }
 

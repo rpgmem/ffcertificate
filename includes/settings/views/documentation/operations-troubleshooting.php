@@ -89,6 +89,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</td>
 			</tr>
 			<tr>
+				<td><?php esc_html_e( 'A visitor sees "The form did not load completely" or "JavaScript is off"', 'ffcertificate' ); ?></td>
+				<td>
+					• <?php esc_html_e( 'The form is sent and the PDF is drawn by scripts in the browser, so it cannot work without them', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'A content blocker or a dropped request kept a script, or the refresh of the captcha and security codes, from loading: ask the visitor to reload, then to allow the site in the blocker or use another browser', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'If every visitor sees it, check that a cache or optimisation plugin is not combining or delaying the plugin\'s scripts, and that admin-ajax.php is reachable', 'ffcertificate' ); ?>
+				</td>
+			</tr>
+			<tr>
+				<td><?php esc_html_e( 'A visitor sees "Open this page in your browser" or "This browser cannot run the form"', 'ffcertificate' ); ?></td>
+				<td>
+					• <?php esc_html_e( 'The page was opened inside an app (a link in Instagram or WhatsApp, for example): the visitor should open it in the phone\'s browser, or use "Continue anyway"', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'A browser missing what the form needs cannot issue the certificate: the message lists the browsers to use instead', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'If visitors in an ordinary browser are stopped, turn the check off under Settings → Certificates → Browser check and report the browser', 'ffcertificate' ); ?>
+				</td>
+			</tr>
+			<tr>
 				<td><?php esc_html_e( 'Short URL returns 404', 'ffcertificate' ); ?></td>
 				<td>
 					• <?php esc_html_e( 'Re-save Settings → Permalinks once to flush WordPress rewrite rules', 'ffcertificate' ); ?><br>

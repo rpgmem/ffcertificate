@@ -17,24 +17,6 @@
     Object.assign(FFCGeofence, {
 
         /**
-         * Detect if running on Safari/iOS (including iPadOS 13+ which
-         * reports a Mac desktop user-agent).
-         */
-        isSafari: function() {
-            var ua = navigator.userAgent;
-            // Classic iOS devices
-            if (/iPad|iPhone|iPod/.test(ua)) {
-                return true;
-            }
-            // iPadOS 13+ identifies as Macintosh but has touch support
-            if (/Macintosh/.test(ua) && navigator.maxTouchPoints && navigator.maxTouchPoints > 1) {
-                return true;
-            }
-            // Desktop Safari (not Chrome, Edge, or Android)
-            return /^((?!chrome|android).)*safari/i.test(ua);
-        },
-
-        /**
          * Validate geolocation
          *
          * @param {jQuery} formWrapper Form wrapper element
@@ -43,16 +25,8 @@
         validateGeolocation: function(formWrapper, config, preflightDone) {
             const self = this;
 
-            // Check HTTPS requirement (required by Safari and recommended by all browsers)
-            if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-                this.debug('Geolocation blocked: page not served over HTTPS');
-                this.handleBlocked(
-                    formWrapper,
-                    config.hideMode,
-                    this.getString('httpsRequired', 'This form requires a secure connection (HTTPS) to access your location. Please contact the site administrator.')
-                );
-                return;
-            }
+            // The page is secure by now: the `secure` pre-flight step runs
+            // before this one (#2030).
 
             // Check browser support. Honour the admin's allow/block choice
             // for the `noApi` case: 'allow' lets the user through despite
@@ -61,6 +35,7 @@
             if (!navigator.geolocation) {
                 if (this.shouldAllow(config, 'noApi')) {
                     this.debug('Geolocation API unavailable but fallback case noApi=allow, showing form');
+                    this.rememberFailure(formWrapper, 'noApi');
                     this.showForm(formWrapper);
                     return;
                 }
@@ -97,19 +72,29 @@
             // any "granted" or fallback path so we don't loop.
             if (!preflightDone
                 && navigator.permissions
-                && typeof navigator.permissions.query === 'function') {
-                try {
-                    navigator.permissions.query({ name: 'geolocation' })
-                        .then(function (status) {
-                            self.handleGpsPermissionStatus(formWrapper, config, status);
-                        })
-                        .catch(function () {
-                            self.debug('Permissions.query rejected — falling through to native flow');
-                            self.validateGeolocation(formWrapper, config, true);
-                        });
-                } catch (e) {
-                    self.validateGeolocation(formWrapper, config, true);
-                }
+                && typeof navigator.permissions.query === 'function'
+                && window.FFC && window.FFC.Preflight
+                && typeof window.FFC.Preflight.geoPermission === 'function') {
+                // The pre-flight run this query belongs to; a recheck that
+                // starts a newer one while it waits makes its answer stale.
+                const run = formWrapper.data('ffcPreflightRun');
+                const stale = function () {
+                    return formWrapper.data('ffcPreflightRun') !== run;
+                };
+                // The queue module confirms a "denied" before it is
+                // believed (#2048): Opera for Android reports it while it
+                // gives the position.
+                window.FFC.Preflight.geoPermission().then(function (answer) {
+                    if (stale()) {
+                        return;
+                    }
+                    if (!answer.status) {
+                        self.debug('Permissions API unavailable — falling through to native flow');
+                        self.validateGeolocation(formWrapper, config, true);
+                        return;
+                    }
+                    self.handleGpsPermissionStatus(formWrapper, config, answer.status, answer.state);
+                });
                 return;
             }
 
@@ -140,7 +125,7 @@
                 return;
             }
 
-            var isSafariBrowser = this.isSafari();
+            var isSafariBrowser = window.FFC.Platform.webkit();
 
             // IMPORTANT: Hide form BEFORE requesting location
             formWrapper.find('.ffc-submission-form').hide();
@@ -305,6 +290,7 @@
 
                 if (self.shouldAllow(activeConfig, caseKey)) {
                     self.debug('GPS failed but case ' + caseKey + '=allow, showing form');
+                    self.rememberFailure(formWrapper, caseKey);
                     self.showForm(formWrapper);
                     return;
                 }
@@ -353,13 +339,94 @@
         applyGpsFallback: function(formWrapper, config) {
             if (this.shouldAllow(config, 'safetyTimer')) {
                 this.debug('safetyTimer=allow, showing form despite GPS never responding');
+                this.rememberFailure(formWrapper, 'safetyTimer');
                 this.showForm(formWrapper);
                 return;
             }
-            var msg = this.isSafari()
+            var msg = window.FFC.Platform.webkit()
                 ? this.getString('safariSafetyTimeout', "Your device didn't respond to the location request. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services, then reload the page.")
                 : this.getString('safetyTimeout', "Your device didn't respond to the location request. Make sure location is enabled and reload the page.");
             this.handleBlocked(formWrapper, config.hideMode, msg, true);
+        },
+
+        /**
+         * Keep the last reading in memory for the submission (#2040).
+         *
+         * @param {jQuery} formWrapper Form wrapper element
+         * @param {object} location    {latitude, longitude, accuracy}
+         */
+        rememberReading: function(formWrapper, location) {
+            formWrapper.data('ffcGeoReading', {
+                lat: location.latitude,
+                lng: location.longitude,
+                accuracy: location.accuracy,
+                at: Date.now()
+            });
+            formWrapper.removeData('ffcGeoStatus');
+        },
+
+        /**
+         * Keep the failure the policy let through, so the server applies the
+         * same case (#2040).
+         *
+         * @param {jQuery} formWrapper Form wrapper element
+         * @param {string} caseKey     A `gpsFallback` key
+         */
+        rememberFailure: function(formWrapper, caseKey) {
+            formWrapper.removeData('ffcGeoReading');
+            formWrapper.data('ffcGeoStatus', caseKey);
+        },
+
+        /**
+         * The GPS fields a submission carries, for the server to decide the
+         * area by (#2040): the reading, or the failure the policy let
+         * through. A reading older than the cache lifetime, or none at all
+         * (the form showed from a cached pass), is read again; the browser
+         * answers from its own cache, and the permission is already given.
+         *
+         * @param {jQuery} $form The submission form
+         * @returns {Promise<string>} `&ffc_geo_…` pairs, or '' when the form has no GPS check
+         */
+        submissionFields: function($form) {
+            var self = this;
+            var formId = String($form.find('[name="form_id"]').val() || '');
+            var all = window.ffcGeofenceConfig || {};
+            var config = all[formId] && all[formId].geo;
+            if (!config || !config.enabled || !config.gpsEnabled) {
+                return Promise.resolve('');
+            }
+
+            var $wrapper = $form.closest('.ffc-form-wrapper');
+            var ttl = (config.cacheTtl || 600) * 1000;
+            var status = $wrapper.data('ffcGeoStatus');
+            var reading = $wrapper.data('ffcGeoReading');
+            var snake = function (key) { return key.replace(/[A-Z]/g, function (c) { return '_' + c.toLowerCase(); }); };
+            var fromReading = function (r) {
+                return '&ffc_geo_lat=' + encodeURIComponent(r.lat)
+                    + '&ffc_geo_lng=' + encodeURIComponent(r.lng)
+                    + '&ffc_geo_accuracy=' + encodeURIComponent(r.accuracy)
+                    + '&ffc_geo_age=' + Math.max(0, Date.now() - r.at);
+            };
+
+            if (status) {
+                return Promise.resolve('&ffc_geo_status=' + snake(status));
+            }
+            if (reading && Date.now() - reading.at <= ttl) {
+                return Promise.resolve(fromReading(reading));
+            }
+            if (!navigator.geolocation) {
+                return Promise.resolve('&ffc_geo_status=no_api');
+            }
+
+            return new Promise(function (resolve) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    self.rememberReading($wrapper, position.coords);
+                    resolve(fromReading($wrapper.data('ffcGeoReading')));
+                }, function (error) {
+                    var cases = { 1: 'permission_denied', 2: 'position_unavailable', 3: 'timeout' };
+                    resolve('&ffc_geo_status=' + (cases[error && error.code] || 'position_unavailable'));
+                }, { enableHighAccuracy: true, timeout: 10000, maximumAge: ttl });
+            });
         },
 
         getFreshGeoConfig: function(formWrapper, fallback) {
@@ -380,6 +447,10 @@
         checkLocation: function(formWrapper, location, config) {
             const areas = config.areas || [];
 
+            // Kept in memory for the submission, which the server decides
+            // by (#2040); never stored.
+            this.rememberReading(formWrapper, location);
+
             if (areas.length === 0) {
                 this.debug('No areas defined, allowing access');
                 this.cacheGeofencePass(formWrapper, config);
@@ -387,31 +458,29 @@
                 return; // No restrictions
             }
 
-            let withinAnyArea = false;
+            // Each area is judged with its own radius, as the server judges
+            // the submission (#2070): inside when the point is and the error
+            // is at most `tolerance` times the radius, unsure when the error
+            // circle still reaches the area, outside otherwise.
+            const verdict = this.areaVerdict(location, areas, Number(config.tolerance) || 1.5);
 
-            for (let i = 0; i < areas.length; i++) {
-                const area = areas[i];
-                const distance = this.calculateDistance(
-                    location.latitude,
-                    location.longitude,
-                    area.lat,
-                    area.lng
-                );
-
-                this.debug('Distance check', {
-                    area: i + 1,
-                    distance: distance.toFixed(2) + ' m',
-                    radius: area.radius + ' m',
-                    within: distance <= area.radius
-                });
-
-                if (distance <= area.radius) {
-                    withinAnyArea = true;
-                    break; // Found matching area
+            if (verdict === 'unsure') {
+                this.debug('GPS reading cannot tell inside from outside', { accuracy: location.accuracy });
+                if (this.shouldAllow(config, 'positionUnavailable')) {
+                    this.showForm(formWrapper);
+                    this.showImpreciseNotice(formWrapper);
+                    return;
                 }
+                this.handleBlocked(
+                    formWrapper,
+                    config.hideMode,
+                    this.getString('inaccurate', 'Your location is not precise enough to confirm you are in the allowed area. Move to an open area or turn on precise location, then reload the page. On a computer, open this page on your phone with location turned on.'),
+                    true
+                );
+                return;
             }
 
-            if (!withinAnyArea) {
+            if (verdict === 'outside') {
                 this.handleBlocked(
                     formWrapper,
                     config.hideMode,
@@ -421,7 +490,106 @@
                 this.debug('User within allowed area, showing form');
                 this.cacheGeofencePass(formWrapper, config);
                 this.showForm(formWrapper);
+                // Accepted, but on a weak reading: say so, with the error,
+                // so the visitor knows the location barely held (#2072).
+                if (this.weakInside(location, areas, Number(config.tolerance) || 1.5, Number(config.weakShare) || FFCGeofence.WEAK_READING_SHARE)) {
+                    this.showImpreciseNotice(
+                        formWrapper,
+                        this.getString('inaccurateAccepted', 'Your location was accepted, but with low precision (about %s m). For more precision, turn on precise location or use your phone.')
+                            .replace('%s', this.metres(location.accuracy))
+                    );
+                }
             }
+        },
+
+        /**
+         * Metres with one decimal when they have one, in the page's
+         * language (#2074).
+         *
+         * @param {number} value
+         * @returns {string}
+         */
+        metres: function(value) {
+            var lang = document.documentElement.getAttribute('lang') || undefined;
+            try {
+                return new Intl.NumberFormat(lang, { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(value);
+            } catch (e) {
+                return String(Math.round(value * 10) / 10);
+            }
+        },
+
+        /**
+         * Whether a reading that passed did so only on a weak reading: in
+         * every area that takes it as inside, its error is above `share`
+         * times the radius (#2072). One area that holds it with room to
+         * spare is enough.
+         *
+         * @param {object} location  {latitude, longitude, accuracy}
+         * @param {Array}  areas     [{lat, lng, radius}]
+         * @param {number} tolerance How many times an area's radius the error may reach.
+         * @param {number} share     Above this many times an area's radius, the error is weak.
+         * @returns {boolean}
+         */
+        weakInside: function(location, areas, tolerance, share) {
+            if (typeof location.accuracy !== 'number') {
+                return false;
+            }
+            let weak = false;
+            for (let i = 0; i < areas.length; i++) {
+                const radius = Number(areas[i].radius);
+                const distance = this.calculateDistance(location.latitude, location.longitude, areas[i].lat, areas[i].lng);
+                if (distance > radius || location.accuracy > radius * tolerance) {
+                    continue;
+                }
+                if (location.accuracy <= radius * share) {
+                    return false;
+                }
+                weak = true;
+            }
+            return weak;
+        },
+
+        /**
+         * The reading against every area (#2070).
+         *
+         * @param {object} location  {latitude, longitude, accuracy}
+         * @param {Array}  areas     [{lat, lng, radius}]
+         * @param {number} tolerance How many times an area's radius the error may reach.
+         * @returns {string} 'inside' | 'unsure' | 'outside'
+         */
+        areaVerdict: function(location, areas, tolerance) {
+            const accuracy = typeof location.accuracy === 'number' ? location.accuracy : 0;
+            let verdict = 'outside';
+            for (let i = 0; i < areas.length; i++) {
+                const radius = Number(areas[i].radius);
+                const distance = this.calculateDistance(location.latitude, location.longitude, areas[i].lat, areas[i].lng);
+                if (distance <= radius && accuracy <= radius * tolerance) {
+                    return 'inside';
+                }
+                if (distance - accuracy <= radius) {
+                    verdict = 'unsure';
+                }
+            }
+            return verdict;
+        },
+
+        /**
+         * Say that the form opened without the location being confirmed
+         * (the policy let an imprecise reading through, #2070), or with a
+         * weak confirmation (#2072).
+         *
+         * @param {jQuery} formWrapper Form wrapper element
+         * @param {string} [message]   The text; the "allowed anyway" one by default.
+         */
+        showImpreciseNotice: function(formWrapper, message) {
+            formWrapper.find('[data-ffc-notice="geofence-imprecise"]').remove();
+            formWrapper.prepend(window.FFC.notice(
+                'warning',
+                'map-pin',
+                message || this.getString('inaccurateAllowed', 'Your location is not precise enough to confirm you are in the allowed area, but this form allows access anyway.'),
+                '',
+                { role: 'note', hook: 'geofence-imprecise' }
+            ));
         },
 
         /**

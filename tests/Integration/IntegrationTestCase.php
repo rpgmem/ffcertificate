@@ -151,6 +151,7 @@ abstract class IntegrationTestCase extends TestCase {
 		// bump there cannot leave this seed stale.
 		$this->options['ffc_rate_limit_db_version']   = \FreeFormCertificate\Security\RateLimitActivator::DB_VERSION;
 		$this->options['ffc_activity_log_db_version'] = ( new \ReflectionClassConstant( \FreeFormCertificate\Core\ActivityLog::class, 'DB_VERSION' ) )->getValue();
+		$this->options['ffc_bulk_issue_db_version']   = \FreeFormCertificate\Submissions\BulkIssueActivator::DB_VERSION;
 	}
 
 	protected function tearDown(): void {
@@ -381,6 +382,8 @@ abstract class IntegrationTestCase extends TestCase {
 				'ffc_recruitment_email_hub_v1',
 				'ffc_activity_log_export_cap_v1',
 				'ffc_url_shortener_export_cap_v1',
+				'ffc_date_messages_send_cap_v1',
+				'ffc_module_role_labels_v1',
 				'ffc_export_caps_granted_v1',
 				'ffc_import_caps_granted_v1',
 				// _v1 stays seeded for installs that carry it; _v2 is what the

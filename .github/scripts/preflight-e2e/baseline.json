@@ -1,0 +1,201 @@
+{
+	"plain-math-issue": {
+		"successCard": true,
+		"platformLines": [
+			"desktop"
+		],
+		"error": "",
+		"pdf": "certificate_N_C-CODE.pdf",
+		"rowsAdded": 1
+	},
+	"plain-math-reprint": {
+		"successCard": true,
+		"platformLines": [
+			"desktop"
+		],
+		"error": "",
+		"pdf": "certificate_N_C-CODE.pdf",
+		"sameCode": true,
+		"rowsAddedTotal": 1
+	},
+	"gps-inside": {
+		"formShown": true,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": []
+	},
+	"gps-outside": {
+		"formShown": false,
+		"titleShown": false,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "geofence-blocked",
+				"text": "You are outside the allowed area for this form."
+			}
+		]
+	},
+	"gps-denied": {
+		"formShown": false,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "preflight-gps",
+				"text": "Location blocked This site needs your location, but the browser has it set to \"block\" for this site. On desktop: click the padlock in the address bar → Site Settings → Location → Allow. Try anyway"
+			}
+		]
+	},
+	"closed-period": {
+		"formShown": false,
+		"titleShown": false,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "geofence-blocked",
+				"text": "This form is no longer available."
+			}
+		]
+	},
+	"cookies-blocked": {
+		"formShown": false,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "preflight-cookies",
+				"text": "Cookies blocked Cookies are blocked in this browser. Without cookies, the form submission may fail. Enable cookies for this site, or try a different browser. On desktop: open Settings → Privacy → Cookies and allow first-party cookies for this site. Try anyway"
+			}
+		]
+	},
+	"plain-cookies-blocked": {
+		"formShown": false,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "preflight-cookies",
+				"text": "Cookies blocked Cookies are blocked in this browser. Without cookies, the form submission may fail. Enable cookies for this site, or try a different browser. On desktop: open Settings → Privacy → Cookies and allow first-party cookies for this site. Try anyway"
+			}
+		]
+	},
+	"plain-inapp": {
+		"formShown": false,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "preflight-browser",
+				"text": "Open this page in your browser You are viewing this page inside an app, where your location and the certificate download often fail. Open it in Chrome, Firefox, Edge, Opera or Samsung Internet. Or tap the menu (⋮) and choose \"Open in browser\". Open in Chrome Continue anyway"
+			}
+		]
+	},
+	"plain-inapp-continue": {
+		"formShown": true,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": []
+	},
+	"plain-inapp-check-off": {
+		"formShown": true,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": []
+	},
+	"content-inside": {
+		"formShown": false,
+		"titleShown": false,
+		"contentShown": true,
+		"notices": []
+	},
+	"content-denied": {
+		"formShown": false,
+		"titleShown": false,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "preflight-gps",
+				"text": "Location blocked This site needs your location, but the browser has it set to \"block\" for this site. On desktop: click the padlock in the address bar → Site Settings → Location → Allow. Try anyway"
+			}
+		]
+	},
+	"identity-correction-preview-wiring": {
+		"signedOut": {
+			"status": 400,
+			"body": "0"
+		},
+		"signedIn": {
+			"status": 403,
+			"body": "-1"
+		}
+	},
+	"boot-ready": {
+		"formShown": true,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [],
+		"ready": "1",
+		"submitDisabled": false
+	},
+	"boot-script-blocked": {
+		"formShown": false,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "boot-failed",
+				"text": "The form did not load completely Part of this form did not load, so it cannot be sent yet. Reload the page. If this message comes back, turn off any content blocker for this site or open the page in another browser. Reload the page"
+			}
+		],
+		"ready": null,
+		"submitDisabled": true
+	},
+	"boot-pdf-library-blocked": {
+		"formShown": false,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "boot-failed",
+				"text": "The form did not load completely Part of this form did not load, so it cannot be sent yet. Reload the page. If this message comes back, turn off any content blocker for this site or open the page in another browser. Reload the page"
+			}
+		],
+		"ready": null,
+		"submitDisabled": true
+	},
+	"boot-fragments-failed": {
+		"formShown": false,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "boot-failed",
+				"text": "The form did not load completely Part of this form did not load, so it cannot be sent yet. Reload the page. If this message comes back, turn off any content blocker for this site or open the page in another browser. Reload the page"
+			}
+		],
+		"ready": null,
+		"submitDisabled": true
+	},
+	"no-javascript": {
+		"formShown": true,
+		"titleShown": true,
+		"contentShown": false,
+		"notices": [
+			{
+				"hook": "noscript",
+				"text": "JavaScript is off This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your certificate."
+			}
+		],
+		"method": "POST",
+		"queryInUrl": false
+	},
+	"altcha-issue": {
+		"successCard": true,
+		"platformLines": [
+			"desktop"
+		],
+		"error": "",
+		"pdf": "certificate_N_C-CODE.pdf",
+		"rowsAdded": 1
+	}
+}

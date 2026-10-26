@@ -105,8 +105,9 @@ class FormRestControllerTest extends TestCase {
 		$data_sanitizer_mock->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' )->byDefault();
 
 		$this->geofence_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\Geofence' );
+		Mockery::mock( 'alias:\FreeFormCertificate\Security\GpsReading' )->shouldReceive( 'from_request' )->andReturn( array( 'reading' => null, 'status' => '' ) )->byDefault();
 		$this->geofence_mock->shouldReceive( 'get_form_config' )->andReturn( null )->byDefault();
-		$this->geofence_mock->shouldReceive( 'can_access_form' )->andReturn( array( 'allowed' => true ) )->byDefault();
+		$this->geofence_mock->shouldReceive( 'check_submission' )->andReturn( array( 'allowed' => true ) )->byDefault();
 
 		$this->rate_limiter_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
 		$this->rate_limiter_mock->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
@@ -1026,7 +1027,7 @@ class FormRestControllerTest extends TestCase {
 
 	public function test_submit_form_answers_403_when_the_geofence_blocks(): void {
 		$this->serve_form( array(), $this->plain_fields() );
-		$this->geofence_mock->shouldReceive( 'can_access_form' )->andReturn(
+		$this->geofence_mock->shouldReceive( 'check_submission' )->andReturn(
 			array( 'allowed' => false, 'message' => 'Outside window', 'reason' => 'datetime' )
 		);
 

@@ -18,8 +18,9 @@ beforeAll(async () => {
 	loadScript('assets/js/ffc-field-behaviours.js');
 	loadScript('assets/js/ffc-frontend-helpers.js');
 	loadScript('assets/js/ffc-frontend.js');
+	loadScript('assets/js/ffc-preflight.js');
 	loadScript('assets/js/ffc-geofence-frontend.js');
-	loadScript('assets/js/ffc-geofence-preflight.js');
+	loadScript('assets/js/ffc-geofence-permission.js');
 	loadScript('assets/js/ffc-csv-download.js');
 	await new Promise((r) => setTimeout(r, 0));
 });
@@ -145,7 +146,7 @@ describe('certificate-form emitters', () => {
 	it('preflight: a warning notice with a title, the how-to and the CTA', () => {
 		const $w = certForm(3);
 		const onCta = vi.fn();
-		window.FFCGeofence.renderPreflightBanner($w, 'preflight-gps', 'We need your location', 'Body.', 'How.', 'Continue', onCta);
+		window.FFC.Preflight.banner($w, 'preflight-gps', 'We need your location', 'Body.', 'How.', 'Continue', onCta);
 		const n = $w[0].querySelector('[data-ffc-notice="preflight-gps"]');
 		expectNotice(n, 'warning', 'warning', 'alert');
 		expect(n.getAttribute('aria-live')).toBe('assertive');

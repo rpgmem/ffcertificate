@@ -56,6 +56,7 @@
 .ffc-user-dashboard .ffc-profile-reveal-btn,
 .ffc-user-dashboard .ffc-cancel-appointment,
 .ffc-user-dashboard .ffc-cal-export-btn,
+.ffc-user-dashboard .ffc-btn-post-event,
 .ffc-audience-join-item .ffc-btn,
 .ffc-audience-switch-picker .ffc-btn {
     min-height: 0;
@@ -730,6 +731,25 @@
     margin-bottom: 0;
 }
 
+/* The post-event form waiting in a row's actions (#2028): the button, then
+   when it closes, stacked so a narrow column does not wrap them together. */
+.ffc-audience-bookings-table .ffc-post-event-pending {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--ffc-spacing-2xs);
+    margin-top: var(--ffc-spacing-xs);
+}
+
+.ffc-audience-bookings-table .ffc-post-event-pending:first-child {
+    margin-top: 0;
+}
+
+.ffc-audience-bookings-table .ffc-post-event-closes {
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-2xs);
+}
+
 /* ==========================================================================
    REREGISTRATIONS TABLE
    ========================================================================== */
@@ -1346,12 +1366,12 @@
     margin-right: 0;
 }
 
+/* Fixed, not absolute: the bookings tables clip to their rounded corners and
+   scroll sideways on a phone, so a menu inside a cell was cut off. The script
+   places it under the button (or above it, near the bottom of the screen). */
 .ffc-cal-export-dropdown {
     display: none;
-    position: absolute;
-    right: 0;
-    top: 100%;
-    margin-top: var(--ffc-spacing-2xs);
+    position: fixed;
     min-width: 200px;
     background: var(--ffc-bg);
     border: 1px solid var(--ffc-border-light);

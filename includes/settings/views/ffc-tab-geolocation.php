@@ -341,11 +341,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</div>
 
 
-		<!-- GPS Cache Settings Section -->
+		<!-- GPS Cache and Precision Section (precision: #2070) -->
 		<div class="card">
-			<h2 class="ffc-icon-zap"><?php esc_html_e( 'GPS Cache Settings', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-zap"><?php esc_html_e( 'GPS Cache and Precision', 'ffcertificate' ); ?></h2>
 			<p class="description">
-				<?php esc_html_e( 'Configure GPS location caching on the frontend (browser localStorage). GPS cache is always enabled for better performance.', 'ffcertificate' ); ?>
+				<?php esc_html_e( 'How long the browser keeps a GPS reading (browser localStorage, always on), and how precise a reading must be to count as inside an area.', 'ffcertificate' ); ?>
 			</p>
 
 			<table class="form-table" role="presentation"><tbody>
@@ -366,6 +366,60 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<p class="description">
 							<?php esc_html_e( 'How long to cache GPS location in browser. Range: 60-3600 seconds (1 min - 1 hour). Default: 600 (10 min).', 'ffcertificate' ); ?>
 						</p>
+					</td>
+				</tr>
+				<!-- GPS precision -->
+				<tr>
+					<th scope="row">
+						<label for="ffc_gps_accuracy_tolerance"><?php esc_html_e( 'Accepted error', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<input type="number"
+								name="gps_accuracy_tolerance"
+								id="ffc_gps_accuracy_tolerance"
+								value="<?php echo esc_attr( (string) \FreeFormCertificate\Security\GpsReading::clamp_tolerance( $settings['gps_accuracy_tolerance'] ?? null ) ); ?>"
+								min="<?php echo esc_attr( (string) \FreeFormCertificate\Security\GpsReading::TOLERANCE_MIN ); ?>"
+								max="<?php echo esc_attr( (string) \FreeFormCertificate\Security\GpsReading::TOLERANCE_MAX ); ?>"
+								step="0.1" required>
+						<?php esc_html_e( '× the area\'s radius', 'ffcertificate' ); ?>
+						<p class="description">
+							<?php esc_html_e( 'Each reading comes with a margin of error. Each area is judged with its own radius: a reading counts as inside when its point is inside the area and its error is at most this many times the area\'s radius. When its error circle still reaches an area but the reading is not inside any, the "Location unavailable" case of the fallback below decides. When it reaches no area, the visitor is outside.', 'ffcertificate' ); ?>
+						</p>
+						<p class="description">
+							<?php esc_html_e( 'Range: 1 to 3. Default: 1.5.', 'ffcertificate' ); ?>
+						</p>
+						<div class="notice notice-warning inline">
+							<p>
+								<?php esc_html_e( 'Keep the default unless you have a measured reason to change it. A higher value lets a reading count as inside while the visitor may be outside the area; a lower one refuses phones whose GPS is good but not exact.', 'ffcertificate' ); ?>
+							</p>
+						</div>
+					</td>
+				</tr>
+				<!-- Weak-reading notice (#2072) -->
+				<tr>
+					<th scope="row">
+						<label for="ffc_gps_weak_share"><?php esc_html_e( 'Low-precision notice', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<input type="number"
+								name="gps_weak_share"
+								id="ffc_gps_weak_share"
+								value="<?php echo esc_attr( (string) \FreeFormCertificate\Security\GpsReading::clamp_weak_share( $settings['gps_weak_share'] ?? null ) ); ?>"
+								min="<?php echo esc_attr( (string) \FreeFormCertificate\Security\GpsReading::WEAK_SHARE_MIN ); ?>"
+								max="<?php echo esc_attr( (string) \FreeFormCertificate\Security\GpsReading::WEAK_SHARE_MAX ); ?>"
+								step="0.1" required>
+						<?php esc_html_e( '× the area\'s radius', 'ffcertificate' ); ?>
+						<p class="description">
+							<?php esc_html_e( 'When a reading is accepted as inside but its error is above this many times the area\'s radius, the form opens with a notice saying the location was accepted with low precision, and its error in metres. It changes no decision: only what the visitor is told.', 'ffcertificate' ); ?>
+						</p>
+						<p class="description">
+							<?php esc_html_e( 'Range: 0.1 to 1. Default: 0.5.', 'ffcertificate' ); ?>
+						</p>
+						<div class="notice notice-warning inline">
+							<p>
+								<?php esc_html_e( 'Keep the default unless you have a measured reason to change it. A lower value shows the notice to visitors whose GPS is good, who learn to ignore it; a higher one hides it from readings that only barely held.', 'ffcertificate' ); ?>
+							</p>
+						</div>
 					</td>
 				</tr>
 			</tbody></table>

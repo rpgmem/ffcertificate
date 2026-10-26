@@ -86,6 +86,35 @@ class DateMessagesRecipientResolverTest extends TestCase {
 		);
 	}
 
+	public function test_an_announcement_that_ignores_the_opt_out_sends_to_them_and_marks_it_forced(): void {
+		$target = new \DateTimeImmutable( '2026-10-10' );
+		$this->source->shouldReceive( 'due' )->andReturn(
+			array(
+				$this->candidate( 1 ),
+				$this->candidate( 2 ),
+				$this->candidate( 3, 'not-an-address' ),
+			)
+		);
+		// The announcement category is the one checked, never the personal one.
+		$this->opt_out->shouldReceive( 'among' )->with( array( 1, 2, 3 ), 'announcement' )->andReturn( array( 1 => true, 3 => true ) );
+		$this->log->shouldReceive( 'delivered_among' )->andReturn( array() );
+
+		$rule = $this->rule(
+			array(
+				'kind'            => 'announcement',
+				'source'          => 'announcement',
+				'respect_opt_out' => '0',
+			)
+		);
+		$page = ( new RecipientResolver( $this->source ) )->resolve( $rule, $target, 0, 10 );
+
+		$this->assertSame( RecipientResolver::WILL_SEND, $page['rows'][0]['decision'] );
+		$this->assertTrue( $page['rows'][0]['forced'], 'Reached despite the opt-out, so it is labelled.' );
+		$this->assertSame( RecipientResolver::WILL_SEND, $page['rows'][1]['decision'] );
+		$this->assertFalse( $page['rows'][1]['forced'], 'Nobody opted out of user 2, so nothing was forced.' );
+		$this->assertSame( RecipientResolver::NO_EMAIL, $page['rows'][2]['decision'], 'Forcing does not skip a missing address.' );
+	}
+
 	public function test_decisions_and_their_precedence(): void {
 		$target = new \DateTimeImmutable( '2026-10-10' );
 		$this->source->shouldReceive( 'due' )->with( $target, 0, 10 )->andReturn(
@@ -99,7 +128,7 @@ class DateMessagesRecipientResolverTest extends TestCase {
 			)
 		);
 		// 5 is opted out AND has no address: opting out wins.
-		$this->opt_out->shouldReceive( 'among' )->with( array( 1, 2, 3, 4, 5, 6 ) )->andReturn( array( 2 => true, 5 => true ) );
+		$this->opt_out->shouldReceive( 'among' )->with( array( 1, 2, 3, 4, 5, 6 ), 'personal' )->andReturn( array( 2 => true, 5 => true ) );
 		$this->log->shouldReceive( 'delivered_among' )->with( 3, '2026-10-10', array( 1, 2, 3, 4, 5, 6 ) )->andReturn( array( 4 => true ) );
 		$this->audiences->shouldReceive( 'get_members' )->with( 9, true )->andReturn( array( '1', '2', '3', '4', '5' ) );
 
@@ -159,5 +188,113 @@ class DateMessagesRecipientResolverTest extends TestCase {
 			array( RecipientResolver::WILL_SEND, RecipientResolver::WILL_SEND, RecipientResolver::OUT_OF_AUDIENCE ),
 			array_column( $page['rows'], 'decision' )
 		);
+	}
+
+	/**
+	 * An audience with nobody in it has no members, so an announcement to it is
+	 * not run (#1949).
+	 *
+	 * @return void
+	 */
+	public function test_an_audience_with_nobody_in_it_has_no_members(): void {
+		$this->audiences->shouldReceive( 'get_members' )->andReturn( array() );
+		$this->assertFalse( ( new RecipientResolver( $this->source ) )->audience_has_members( array( 9 ) ) );
+	}
+
+	public function test_an_audience_with_a_member_has_members(): void {
+		$this->audiences->shouldReceive( 'get_members' )->andReturn( array( 1 ) );
+		$this->assertTrue( ( new RecipientResolver( $this->source ) )->audience_has_members( array( 9 ) ) );
+	}
+
+	/**
+	 * An announcement to an audience pages over the members, never over the
+	 * site (#1996): the page is the ids, so an id whose account is gone moves
+	 * the cursor and does not end the run early.
+	 */
+	public function test_an_audience_announcement_pages_over_the_members_not_the_site(): void {
+		$target = new \DateTimeImmutable( '2026-10-22' );
+		$source = Mockery::mock( 'FreeFormCertificate\DateMessages\MemberScopedSourceInterface' );
+		$source->shouldNotReceive( 'due' );
+		$source->shouldReceive( 'due_among' )->once()->with( $target, array( 7, 50 ) )->andReturn( array( $this->candidate( 7 ), $this->candidate( 50 ) ) );
+		// 900 was deleted: the second page asks for it and gets nothing back.
+		$source->shouldReceive( 'due_among' )->once()->with( $target, array( 900 ) )->andReturn( array() );
+		// Two audiences sharing member 50, listed out of order.
+		$this->audiences->shouldReceive( 'get_members' )->with( 4, true )->andReturn( array( '900', '50' ) );
+		$this->audiences->shouldReceive( 'get_members' )->with( 5, true )->andReturn( array( '50', '7' ) );
+		$this->opt_out->shouldReceive( 'among' )->andReturn( array() );
+		$this->log->shouldReceive( 'delivered_among' )->andReturn( array() );
+
+		$rule     = $this->rule(
+			array(
+				'kind'         => 'announcement',
+				'source'       => 'announcement',
+				'audience_ids' => array( 4, 5 ),
+			)
+		);
+		$resolver = new RecipientResolver( $source );
+
+		$first = $resolver->resolve( $rule, $target, 0, 2 );
+		$this->assertSame( array( 7, 50 ), array_column( $first['rows'], 'user_id' ) );
+		$this->assertSame( array( RecipientResolver::WILL_SEND, RecipientResolver::WILL_SEND ), array_column( $first['rows'], 'decision' ) );
+		$this->assertSame( 50, $first['cursor'] );
+		$this->assertFalse( $first['complete'], 'A full page of ids may have more after it.' );
+
+		$second = $resolver->resolve( $rule, $target, $first['cursor'], 2 );
+		$this->assertSame( array(), $second['rows'] );
+		$this->assertSame( 900, $second['cursor'], 'The missing account still moves the cursor past it.' );
+		$this->assertTrue( $second['complete'] );
+	}
+
+	public function test_an_announcement_to_everyone_still_pages_every_account(): void {
+		$target = new \DateTimeImmutable( '2026-10-22' );
+		$source = Mockery::mock( 'FreeFormCertificate\DateMessages\MemberScopedSourceInterface' );
+		$source->shouldNotReceive( 'due_among' );
+		$source->shouldReceive( 'due' )->once()->with( $target, 0, 2 )->andReturn( array( $this->candidate( 1 ), $this->candidate( 2 ) ) );
+		$this->audiences->shouldNotReceive( 'get_members' );
+		$this->opt_out->shouldReceive( 'among' )->andReturn( array() );
+		$this->log->shouldReceive( 'delivered_among' )->andReturn( array() );
+
+		$page = ( new RecipientResolver( $source ) )->resolve(
+			$this->rule(
+				array(
+					'kind'   => 'announcement',
+					'source' => 'announcement',
+				)
+			),
+			$target,
+			0,
+			2
+		);
+
+		$this->assertSame( array( 1, 2 ), array_column( $page['rows'], 'user_id' ) );
+		$this->assertSame( 2, $page['cursor'] );
+		$this->assertFalse( $page['complete'] );
+	}
+
+	public function test_an_announcement_to_an_empty_audience_reads_nobody(): void {
+		$target = new \DateTimeImmutable( '2026-10-22' );
+		$source = Mockery::mock( 'FreeFormCertificate\DateMessages\MemberScopedSourceInterface' );
+		$source->shouldNotReceive( 'due' );
+		$source->shouldNotReceive( 'due_among' );
+		$this->audiences->shouldReceive( 'get_members' )->with( 4, true )->andReturn( array() );
+		$this->opt_out->shouldReceive( 'among' )->andReturn( array() );
+		$this->log->shouldReceive( 'delivered_among' )->andReturn( array() );
+
+		$page = ( new RecipientResolver( $source ) )->resolve(
+			$this->rule(
+				array(
+					'kind'         => 'announcement',
+					'source'       => 'announcement',
+					'audience_ids' => array( 4 ),
+				)
+			),
+			$target,
+			0,
+			200
+		);
+
+		$this->assertSame( array(), $page['rows'] );
+		$this->assertSame( 0, $page['cursor'] );
+		$this->assertTrue( $page['complete'], 'Nobody in the audience is never "everybody".' );
 	}
 }

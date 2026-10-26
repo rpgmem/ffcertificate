@@ -68,6 +68,12 @@ final class DateMessagesAdminPage {
 	public const TEST_CAP = 'ffc_test_date_messages';
 
 	/**
+	 * Capability to send a rule now or schedule an announcement (#1949). Its own
+	 * cap: managing rules does not include it.
+	 */
+	public const SEND_CAP = 'ffc_send_date_messages';
+
+	/**
 	 * `admin_post` actions. Each nonce action equals its `admin_post`
 	 * action, keyed per rule where the action names one.
 	 */
@@ -142,6 +148,15 @@ final class DateMessagesAdminPage {
 	 */
 	public static function can_test(): bool {
 		return self::can_manage() || Capabilities::current_user_can_admin_or( self::TEST_CAP );
+	}
+
+	/**
+	 * Whether the current user may send a rule now (#1949).
+	 *
+	 * @return bool
+	 */
+	public static function can_send(): bool {
+		return Capabilities::current_user_can_admin_or( self::SEND_CAP );
 	}
 
 	/**
@@ -226,6 +241,7 @@ final class DateMessagesAdminPage {
 					'failed'    => __( 'The request failed. Reload the page and try again.', 'ffcertificate' ),
 					'truncated' => __( 'Only the first rows are listed; the totals count everyone.', 'ffcertificate' ),
 					'none'      => __( 'Nobody falls on these dates.', 'ffcertificate' ),
+					'forced'    => __( 'Forced past the opt-out (included in the total above)', 'ffcertificate' ),
 				),
 			)
 		);
@@ -241,16 +257,32 @@ final class DateMessagesAdminPage {
 		// The rule's toggles and appearance save per record (#1757).
 		\FreeFormCertificate\Core\RecordAutosave::enqueue();
 
-		$defaults = MessageBuilder::defaults();
+		// One default per kind; the editor switches between them with the kind
+		// selector (ffc-date-messages-admin.js), so both are supplied.
+		$defaults     = MessageBuilder::defaults();
+		$announcement = MessageBuilder::announcement_defaults();
+		$confirm      = __( 'Replace the current message with the default text? Your changes will be lost.', 'ffcertificate' );
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-email-restore-default' );
 		wp_localize_script(
 			'ffc-email-restore-default',
 			'ffcEmailRestoreDefaults',
 			array(
-				'date_message_body' => array(
+				'date_message_body'              => array(
 					'body'    => $defaults['body'],
-					'confirm' => __( 'Replace the current message with the default text? Your changes will be lost.', 'ffcertificate' ),
+					'confirm' => $confirm,
 				),
+				'date_message_announcement_body' => array(
+					'body'    => $announcement['body'],
+					'confirm' => $confirm,
+				),
+			)
+		);
+		wp_localize_script(
+			'ffc-date-messages-admin',
+			'ffcDateMessageDefaults',
+			array(
+				Rule::KIND_DATED        => $defaults,
+				Rule::KIND_ANNOUNCEMENT => $announcement,
 			)
 		);
 	}
@@ -301,6 +333,7 @@ final class DateMessagesAdminPage {
 		$outcome    = $this->take_outcome();
 		$can_manage = self::can_manage();
 		$can_test   = self::can_test();
+		$can_send   = self::can_send();
 		$rules      = RuleReader::all();
 		$audiences  = self::audience_options();
 		$managers   = array();
@@ -420,9 +453,21 @@ final class DateMessagesAdminPage {
 		}
 		$data['id'] = $id;
 
+		if ( self::send_at_is_unreadable( is_string( $posted['send_at'] ?? null ) ? $posted['send_at'] : '' ) ) {
+			$this->finish( 'error', __( 'Enter the send time as a date and time, or leave it empty.', 'ffcertificate' ), array( 'rule' => $id > 0 ? $id : 0 ), $data );
+		}
+
 		$rule = Rule::from_array( $data );
 		if ( is_wp_error( $rule ) ) {
 			$this->finish( 'error', $rule->get_error_message(), array( 'rule' => $id > 0 ? $id : 0 ), $data );
+		}
+
+		$previous = $id > 0 ? RuleReader::get_by_id( $id ) : null;
+
+		// Scheduling an announcement is sending it later, so it takes the
+		// right to send: a manager without it may edit the rule, not arm it.
+		if ( self::schedules_a_send( $rule, $previous ) && ! self::can_send() ) {
+			$this->finish( 'error', self::send_refusal(), array( 'rule' => $id > 0 ? $id : 0 ), $data );
 		}
 
 		$saved = RuleWriter::save( $rule );
@@ -430,7 +475,78 @@ final class DateMessagesAdminPage {
 			$this->finish( 'error', __( 'The rule could not be saved.', 'ffcertificate' ), array( 'rule' => $id > 0 ? $id : 0 ), $data );
 		}
 
+		$stored = RuleReader::get_by_id( (int) $saved );
+		if ( null !== $stored ) {
+			self::sync_schedule( $stored, $previous );
+		}
+
 		$this->finish( 'success', __( 'Rule saved.', 'ffcertificate' ), array( 'rule' => $saved ) );
+	}
+
+	/**
+	 * Keep an announcement's one send event in step with the saved rule (#1949).
+	 *
+	 * Only a change to the instant, the kind or the activation touches the
+	 * event, so saving an unchanged rule never reschedules it. An instant that
+	 * has already passed queues nothing: an announcement is not sent by saving
+	 * it, only by "Send now", so a re-save cannot send it twice.
+	 *
+	 * @param Rule      $stored   The rule as stored.
+	 * @param Rule|null $previous The rule before the save, null for a new one.
+	 * @return void
+	 */
+	public static function sync_schedule( Rule $stored, ?Rule $previous ): void {
+		if ( ! self::send_changed( $stored, $previous ) ) {
+			return;
+		}
+
+		// Scheduling clears the old event itself, so it is cleared here only
+		// when nothing replaces it.
+		if ( $stored->is_announcement() && $stored->is_active && $stored->send_at > time() ) {
+			Runner::schedule_announcement( $stored, get_current_user_id() );
+			return;
+		}
+		wp_clear_scheduled_hook( Runner::ANNOUNCE_HOOK, array( $stored->id ) );
+	}
+
+	/**
+	 * Whether a change to the instant, the kind or the activation moves the
+	 * announcement's send event. Saving an unchanged rule never does.
+	 *
+	 * @param Rule      $rule     The rule as it will be stored.
+	 * @param Rule|null $previous The rule before the save, null for a new one.
+	 * @return bool
+	 */
+	private static function send_changed( Rule $rule, ?Rule $previous ): bool {
+		return null === $previous
+			|| $previous->send_at !== $rule->send_at
+			|| $previous->kind !== $rule->kind
+			|| $previous->is_active !== $rule->is_active;
+	}
+
+	/**
+	 * Whether storing the rule queues an announcement to send later: an
+	 * active announcement with a future instant that changed in this save.
+	 *
+	 * @param Rule      $rule     The rule as it will be stored.
+	 * @param Rule|null $previous The rule before the save, null for a new one.
+	 * @return bool
+	 */
+	public static function schedules_a_send( Rule $rule, ?Rule $previous ): bool {
+		return $rule->is_announcement()
+			&& $rule->is_active
+			&& $rule->send_at > time()
+			&& self::send_changed( $rule, $previous );
+	}
+
+	/**
+	 * Why a save that would schedule a send is refused to a manager who may
+	 * not send.
+	 *
+	 * @return string
+	 */
+	public static function send_refusal(): string {
+		return __( 'Saving this would schedule the announcement to be sent, and your account cannot send messages. Leave it inactive or without a send time, or ask someone who can send.', 'ffcertificate' );
 	}
 
 	/**
@@ -445,6 +561,8 @@ final class DateMessagesAdminPage {
 		if ( $id <= 0 || ! RuleWriter::delete( $id ) ) {
 			$this->finish( 'error', __( 'The rule could not be deleted.', 'ffcertificate' ) );
 		}
+		// A scheduled announcement of the deleted rule would fire into nothing.
+		wp_clear_scheduled_hook( Runner::ANNOUNCE_HOOK, array( $id ) );
 		$this->finish( 'success', __( 'Rule deleted. Its history stays.', 'ffcertificate' ) );
 	}
 
@@ -485,7 +603,7 @@ final class DateMessagesAdminPage {
 	 * @return void
 	 */
 	public function handle_send_now(): void {
-		$this->guard( self::SEND_ACTION );
+		$this->guard_send( self::SEND_ACTION );
 
 		$back = array( 'tab' => 'send' );
 		$rule = RuleReader::get_by_id( RequestInput::get_post_int( 'rule_id' ) );
@@ -495,8 +613,17 @@ final class DateMessagesAdminPage {
 
 		$from = self::date( RequestInput::get_post_string( 'from' ) );
 		$to   = self::date( RequestInput::get_post_string( 'to' ) );
+		// An announcement goes out on one day, today: the dates are not asked (#1949).
+		if ( $rule->is_announcement() ) {
+			$from = Runner::today();
+			$to   = $from;
+		}
 		if ( null === $from || null === $to ) {
 			$this->finish( 'error', __( 'Enter both dates.', 'ffcertificate' ), $back );
+		}
+		$range_error = self::send_range_error( $rule, $from, $to );
+		if ( '' !== $range_error ) {
+			$this->finish( 'error', $range_error, $back );
 		}
 
 		$run = Runner::start( $rule, $from, $to, 'manual', get_current_user_id() );
@@ -530,12 +657,67 @@ final class DateMessagesAdminPage {
 			'subject'         => $posted['subject'] ?? '',
 			'body'            => is_string( $body ) ? wp_kses_post( $body ) : '',
 			'send_to_user'    => isset( $posted['send_to_user'] ) ? '1' : '0',
+			'kind'            => $posted['kind'] ?? Rule::KIND_DATED,
+			'send_at'         => self::send_at_from_input( is_string( $posted['send_at'] ?? null ) ? $posted['send_at'] : '' ),
+			// Unticked means respect: the checkbox is the exception, not the default.
+			'respect_opt_out' => isset( $posted['force_opt_out'] ) ? '0' : '1',
 			'is_active'       => isset( $posted['is_active'] ) ? '1' : '0',
 			'digest_enabled'  => isset( $posted['digest_enabled'] ) ? '1' : '0',
 			'digest_mode'     => $posted['digest_mode'] ?? 'summary',
 			'digest_user_ids' => is_array( $posted['digest_user_ids'] ?? null ) ? $posted['digest_user_ids'] : array(),
 			'appearance'      => is_array( $posted['appearance'] ?? null ) ? $posted['appearance'] : array(),
 		);
+	}
+
+	/**
+	 * Why a manual send's range is refused for this rule, or '' when it is fine.
+	 *
+	 * An announcement is delivered once per day it is sent, so a range that
+	 * spans more than one day would send it to everyone once for each day.
+	 *
+	 * @param Rule               $rule The rule.
+	 * @param \DateTimeImmutable $from First day.
+	 * @param \DateTimeImmutable $to   Last day.
+	 * @return string
+	 */
+	public static function send_range_error( Rule $rule, \DateTimeImmutable $from, \DateTimeImmutable $to ): string {
+		if ( $rule->is_announcement() && $from->format( 'Y-m-d' ) !== $to->format( 'Y-m-d' ) ) {
+			return __( 'An announcement is sent on one day. Give the same first and last day.', 'ffcertificate' );
+		}
+		return '';
+	}
+
+	/**
+	 * Whether a send-time value was typed but cannot be read, which would
+	 * otherwise be saved as "not scheduled" without the operator knowing.
+	 *
+	 * @param string $raw The value as posted.
+	 * @return bool
+	 */
+	public static function send_at_is_unreadable( string $raw ): bool {
+		return '' !== trim( $raw ) && 0 === self::send_at_from_input( trim( $raw ) );
+	}
+
+	/**
+	 * The instant a datetime-local value names, in the site timezone, as a
+	 * UNIX time. An empty or unreadable value is 0: sent by hand, not scheduled.
+	 *
+	 * @param string $value `Y-m-d\TH:i` as the browser posts it.
+	 * @return int
+	 */
+	public static function send_at_from_input( string $value ): int {
+		$at = \DateTimeImmutable::createFromFormat( '!Y-m-d\TH:i', $value, wp_timezone() );
+		return false === $at ? 0 : $at->getTimestamp();
+	}
+
+	/**
+	 * A stored instant as a datetime-local value in the site timezone.
+	 *
+	 * @param int $send_at UNIX time, 0 for none.
+	 * @return string Empty for none.
+	 */
+	public static function send_at_for_input( int $send_at ): string {
+		return $send_at > 0 ? (string) wp_date( 'Y-m-d\TH:i', $send_at ) : '';
 	}
 
 	/**
@@ -582,7 +764,9 @@ final class DateMessagesAdminPage {
 				if ( ! is_object( $node ) || ! isset( $node->id, $node->name ) ) {
 					continue;
 				}
-				$options[ (int) $node->id ] = str_repeat( '— ', $depth ) . (string) $node->name;
+				// The count is the reach of the audience, sub-audiences included.
+				$members                    = count( \FreeFormCertificate\Audience\AudienceReader::get_members( (int) $node->id, true ) );
+				$options[ (int) $node->id ] = str_repeat( '— ', $depth ) . (string) $node->name . ' (' . $members . ')';
 				if ( isset( $node->children ) && is_array( $node->children ) ) {
 					$walk( $node->children, $depth + 1 );
 				}
@@ -791,6 +975,19 @@ final class DateMessagesAdminPage {
 	 */
 	private function guard( string $nonce_action ): void {
 		if ( ! self::can_manage() ) {
+			wp_die( esc_html__( 'You do not have permission to do this.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+		check_admin_referer( $nonce_action );
+	}
+
+	/**
+	 * The guard for a send: its own capability, not the rules' (#1949).
+	 *
+	 * @param string $nonce_action Nonce action.
+	 * @return void
+	 */
+	private function guard_send( string $nonce_action ): void {
+		if ( ! self::can_send() ) {
 			wp_die( esc_html__( 'You do not have permission to do this.', 'ffcertificate' ), '', array( 'response' => 403 ) );
 		}
 		check_admin_referer( $nonce_action );

@@ -24,9 +24,70 @@ jQuery(function ($) {
 	});
 
 	initAppearance();
+	initKind();
+	initSendRule();
 
 	if (!$('.ffc-dm-preview').length || !window.FFC || typeof window.FFC.request !== 'function') {
 		return;
+	}
+
+	// The send tab asks for dates only when the chosen rule is dated (#1949).
+	function initSendRule() {
+		var $rule = $('.ffc-dm-rule');
+		if (!$rule.length) {
+			return;
+		}
+		function apply() {
+			var kind = String($rule.find('option:selected').attr('data-ffc-dm-kind') || '');
+			$('[data-ffc-dm-dated-only]').prop('hidden', 'announcement' === kind);
+		}
+		$rule.on('change', apply);
+		apply();
+	}
+
+	// Switching the kind swaps the default text, when the subject still holds
+	// the other kind's default: the subject is plain text, so that test is
+	// reliable where the editor's HTML is not. The restore button follows the
+	// kind, so "Restore default text" always means the right default.
+	function initKind() {
+		var $kind = $('#ffc-dm-kind');
+		if (!$kind.length) {
+			return;
+		}
+		var defaults = window.ffcDateMessageDefaults || {};
+		var keys = { dated: 'date_message_body', announcement: 'date_message_announcement_body' };
+		var $subject = $('#ffc-dm-subject');
+		var $restore = $('.ffc-email-restore-default[data-editor="ffc_dm_body"]');
+
+		function setBody(html) {
+			var editor = window.tinymce && window.tinymce.get('ffc_dm_body');
+			if (editor && !editor.isHidden()) {
+				editor.setContent(html);
+				editor.save();
+			} else {
+				$('#ffc_dm_body').val(html);
+			}
+		}
+
+		// Rows that only apply to one kind follow the selector (#1949).
+		function applyRows(kind) {
+			$('[data-ffc-dm-kind-only]').each(function () {
+				$(this).prop('hidden', $(this).attr('data-ffc-dm-kind-only') !== kind);
+			});
+		}
+
+		$kind.on('change', function () {
+			var kind = String($kind.val());
+			var other = 'announcement' === kind ? 'dated' : 'announcement';
+			var from = defaults[other];
+			var to = defaults[kind];
+			applyRows(kind);
+			$restore.attr('data-default-key', keys[kind] || keys.dated);
+			if (from && to && $subject.val() === from.subject) {
+				$subject.val(to.subject);
+				setBody(to.body);
+			}
+		});
 	}
 
 	function formPayload($box) {
@@ -66,6 +127,11 @@ jQuery(function ($) {
 		Object.keys(labels).forEach(function (key) {
 			$list.append($('<li></li>').text(labels[key] + ': ' + (totals[key] || 0)));
 		});
+		// Counted inside Will receive; shown apart so the operator sees who the
+		// opt-out no longer protects (#1949).
+		if (totals.forced) {
+			$list.append($('<li></li>').text((strings.forced || 'Forced') + ': ' + totals.forced));
+		}
 		$out.empty().append($list);
 
 		var rows = Array.isArray(data.rows) ? data.rows : [];

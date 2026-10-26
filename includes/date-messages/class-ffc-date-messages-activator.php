@@ -60,6 +60,12 @@ class DateMessagesActivator {
 	public const APPEARANCE_OPTION = 'ffc_date_messages_appearance_migrated';
 
 	/**
+	 * Marker for the announcement columns (#1949), written once they are read
+	 * back, the same way the appearance and audience moves are.
+	 */
+	public const ANNOUNCEMENTS_OPTION = 'ffc_date_messages_announcements_migrated';
+
+	/**
 	 * Rules table.
 	 *
 	 * @return string
@@ -119,6 +125,60 @@ class DateMessagesActivator {
 
 		if ( '1' !== (string) get_option( self::APPEARANCE_OPTION, '' ) ) {
 			self::migrate_appearance();
+		}
+
+		if ( '1' !== (string) get_option( self::ANNOUNCEMENTS_OPTION, '' ) ) {
+			self::migrate_announcements();
+		}
+	}
+
+	/**
+	 * Add the announcement columns to the rules and runs tables (#1949).
+	 *
+	 * A rule gains its kind, its send instant and the opt-out choice; a run
+	 * gains the count of people reached despite an opt-out. The marker is
+	 * written only when every column is read back, so a failed `ALTER` is
+	 * retried on the next request.
+	 *
+	 * @return void
+	 */
+	public static function migrate_announcements(): void {
+		$rules = self::rules_table();
+		$runs  = self::runs_table();
+
+		if ( self::table_exists( $rules ) ) {
+			self::add_columns_if_missing(
+				$rules,
+				array(
+					'kind'            => array(
+						'type'  => "VARCHAR(20) NOT NULL DEFAULT 'dated'",
+						'after' => 'is_active',
+					),
+					'send_at'         => array(
+						'type'  => 'BIGINT(20) UNSIGNED NOT NULL DEFAULT 0',
+						'after' => 'kind',
+					),
+					'respect_opt_out' => array(
+						'type'  => 'TINYINT(1) NOT NULL DEFAULT 1',
+						'after' => 'send_at',
+					),
+				)
+			);
+		}
+		if ( self::table_exists( $runs ) ) {
+			self::add_columns_if_missing(
+				$runs,
+				array(
+					'forced' => array(
+						'type'  => 'INT(10) UNSIGNED NOT NULL DEFAULT 0',
+						'after' => 'failed',
+					),
+				)
+			);
+		}
+
+		if ( self::column_exists( $rules, 'kind' ) && self::column_exists( $rules, 'send_at' ) && self::column_exists( $rules, 'respect_opt_out' ) && self::column_exists( $runs, 'forced' ) ) {
+			update_option( self::ANNOUNCEMENTS_OPTION, '1' );
 		}
 	}
 
@@ -232,6 +292,9 @@ class DateMessagesActivator {
             digest_mode varchar(20) NOT NULL DEFAULT 'summary',
             digest_user_ids longtext DEFAULT NULL,
             is_active tinyint(1) NOT NULL DEFAULT 1,
+            kind varchar(20) NOT NULL DEFAULT 'dated',
+            send_at bigint(20) unsigned NOT NULL DEFAULT 0,
+            respect_opt_out tinyint(1) NOT NULL DEFAULT 1,
             created_at bigint(20) unsigned NOT NULL DEFAULT 0,
             updated_at bigint(20) unsigned NOT NULL DEFAULT 0,
             PRIMARY KEY  (id),
@@ -271,6 +334,7 @@ class DateMessagesActivator {
             no_email int(10) unsigned NOT NULL DEFAULT 0,
             out_of_audience int(10) unsigned NOT NULL DEFAULT 0,
             failed int(10) unsigned NOT NULL DEFAULT 0,
+            forced int(10) unsigned NOT NULL DEFAULT 0,
             created_by bigint(20) unsigned DEFAULT NULL,
             PRIMARY KEY  (id),
             KEY idx_rule (rule_id),

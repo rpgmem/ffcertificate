@@ -120,6 +120,9 @@ class CapabilityManager {
 		// module to a dedicated operator without giving full WP admin.
 		'ffc_manage_certificates',
 		'ffc_export_certificates',
+		// Issue certificates in bulk from a participants file (#1945). Held by the
+		// Submissions Manager and Administrator tiers.
+		'ffc_import_certificates',
 		'ffc_manage_appointments',
 		// Capacity overbook (#941). The one manual override of the always-enforced
 		// per-slot / per-block capacity: a holder can book a full slot. Distinct
@@ -231,6 +234,9 @@ class CapabilityManager {
 		'ffc_view_date_messages',
 		'ffc_manage_date_messages',
 		'ffc_view_date_messages_pii',
+		// Sending a rule now or scheduling an announcement (#1949). Its own cap:
+		// managing rules does not include it.
+		'ffc_send_date_messages',
 		// Test tier (#1860). `test` is a flow verb: it sends one sample of a
 		// rule to the operator's own address, which `manage` also allows, so
 		// the operator tier can check a message without editing any rule.
@@ -258,6 +264,12 @@ class CapabilityManager {
 		// carries it (and `ffc_administrator` through
 		// `get_all_capabilities()`), so no grant migration seeds it.
 		'ffc_purge_appointments',
+		// Attendance tier (#1947). `checkin` is a flow verb: open and close a
+		// booking day's check-in, project its QR and mark attendance by hand.
+		// It sits on the Audience Calendars Operator tier, so
+		// `RoleRegistrar::register_module_roles()` adds it to the stored roles
+		// and no grant migration seeds it.
+		'ffc_checkin_audiences',
 
 		// Granular "export" tier (GAP G). Each `ffc_export_<domain>` cap gates
 		// the bulk CSV data-extraction path of its domain *strictly* — the
@@ -861,14 +873,14 @@ class CapabilityManager {
 	public static function module_roles_definition(): array {
 		$certificates_viewer   = array( 'ffc_view_certificates' );
 		$certificates_operator = array_merge( $certificates_viewer, array( 'ffc_edit_certificates', 'ffc_grade_certificates' ) );
-		$certificates_manager  = array_merge( $certificates_operator, array( 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_delete_certificates', 'ffc_view_certificates_pii' ) );
+		$certificates_manager  = array_merge( $certificates_operator, array( 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_import_certificates', 'ffc_delete_certificates', 'ffc_view_certificates_pii' ) );
 
 		$bookings_viewer   = array( 'ffc_view_appointments' );
 		$bookings_operator = array_merge( $bookings_viewer, array( 'ffc_manage_appointments' ) );
 		$bookings_manager  = array_merge( $bookings_operator, array( 'ffc_export_appointments', 'ffc_delete_appointments', 'ffc_view_appointments_pii' ) );
 
 		$audiences_viewer   = array( 'ffc_view_audiences' );
-		$audiences_operator = array_merge( $audiences_viewer, array( 'ffc_import_audiences' ) );
+		$audiences_operator = array_merge( $audiences_viewer, array( 'ffc_import_audiences', 'ffc_checkin_audiences' ) );
 		$audiences_manager  = array_merge( $audiences_operator, array( 'ffc_manage_audiences', 'ffc_export_audiences', 'ffc_delete_audiences', 'ffc_view_audiences_pii' ) );
 
 		$rereg_viewer   = array( 'ffc_view_reregistration' );
@@ -885,7 +897,7 @@ class CapabilityManager {
 
 		$date_messages_viewer   = array( 'ffc_view_date_messages' );
 		$date_messages_operator = array_merge( $date_messages_viewer, array( 'ffc_test_date_messages' ) );
-		$date_messages_manager  = array_merge( $date_messages_operator, array( 'ffc_manage_date_messages', 'ffc_view_date_messages_pii' ) );
+		$date_messages_manager  = array_merge( $date_messages_operator, array( 'ffc_manage_date_messages', 'ffc_view_date_messages_pii', 'ffc_send_date_messages' ) );
 
 		$settings_viewer   = array( 'ffc_view_settings', 'ffc_view_custom_fields', 'ffc_view_forms_api' );
 		$settings_operator = array_merge( $settings_viewer, array( 'ffc_test_settings_smtp' ) );
@@ -1065,19 +1077,19 @@ class CapabilityManager {
 
 			// ── Date Messages ────────────────────────────────────────────
 			'ffc_date_messages_viewer'     => array(
-				'label' => __( 'FFC Date Messages - Viewer', 'ffcertificate' ),
+				'label' => __( 'FFC Messages - Viewer', 'ffcertificate' ),
 				'caps'  => $date_messages_viewer,
 			),
 			'ffc_date_messages_operator'   => array(
-				'label' => __( 'FFC Date Messages - Operator', 'ffcertificate' ),
+				'label' => __( 'FFC Messages - Operator', 'ffcertificate' ),
 				'caps'  => $date_messages_operator,
 			),
 			'ffc_date_messages_manager'    => array(
-				'label' => __( 'FFC Date Messages - Manager', 'ffcertificate' ),
+				'label' => __( 'FFC Messages - Manager', 'ffcertificate' ),
 				'caps'  => $date_messages_manager,
 			),
 			'ffc_date_messages_admin'      => array(
-				'label' => __( 'FFC Date Messages - Administrator', 'ffcertificate' ),
+				'label' => __( 'FFC Messages - Administrator', 'ffcertificate' ),
 				'caps'  => $date_messages_manager,
 			),
 

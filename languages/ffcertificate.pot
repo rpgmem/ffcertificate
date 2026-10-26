@@ -1721,10 +1721,6 @@ msgstr ""
 msgid "All Day"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-shortcode.php:351
-msgid "All day event"
-msgstr ""
-
 #: includes/settings/views/documentation/email-texts-hub.php:45
 msgid "All default emails follow one skeleton so the communication reads as one voice:"
 msgstr ""
@@ -1993,10 +1989,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-schedule.php:54
 msgid "and must be enabled there per form."
-msgstr ""
-
-#: templates/submission-success.php:102
-msgid "Android: open the Downloads folder, or use the Files app and look for \"certificate.pdf\"."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:123
@@ -2830,6 +2822,14 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-layout-metabox.php:118 includes/admin/class-ffc-cert-template-admin-screen.php:780
 msgid "Background Image URL:"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+msgid "Background Color:"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+msgid "Painted behind the background image, and alone when there is no image."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-assets-manager.php:601
@@ -3842,6 +3842,18 @@ msgstr ""
 msgid "Certificate model 3"
 msgstr ""
 
+#: includes/admin/class-ffc-cert-template-seeder.php:277
+msgid "Certificate model 4"
+msgstr ""
+
+#: includes/admin/class-ffc-cert-template-seeder.php:283
+msgid "Certificate model 5"
+msgstr ""
+
+#: includes/admin/class-ffc-cert-template-seeder.php:289
+msgid "Certificate model 6"
+msgstr ""
+
 #: includes/api/class-ffc-operator-certificates-rest-controller.php:288
 msgid "Certificate not found"
 msgstr ""
@@ -4366,10 +4378,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:190
 msgid "Configure external IP geolocation services for backend validation. These services detect user location by IP address."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-geolocation.php:334
-msgid "Configure GPS location caching on the frontend (browser localStorage). GPS cache is always enabled for better performance."
 msgstr ""
 
 #: templates/admin/audience/self-scheduling-tab.php:57
@@ -6234,10 +6242,6 @@ msgstr ""
 msgid "Download Limit"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:181
-msgid "Download may fail in this app"
-msgstr ""
-
 #: includes/user-dashboard/class-ffc-capability-catalog.php:122
 msgid "Download own certificates"
 msgstr ""
@@ -7030,6 +7034,26 @@ msgstr ""
 
 #: templates/admin/reregistration/form.php:47
 msgid "End Date"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "%1$s – %2$s"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Hours on each day"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "The same hours every day"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Already booked on: %s"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "A booking can cover a range of days: set an end date in the booking form and the booking takes every day from its date to that one. The hours on each day are either the same every day, or run from the start time on the first day to the end time on the last, with the whole opening window in between. Every day is checked against the rules and for conflicts; a clash on any day refuses the whole booking, and the form lists the days already taken. A holiday or a weekday the space is closed inside the range refuses the booking unless \"Skip blocked days\" is ticked, and then those days are left out without a warning and recorded as skipped. A range covers at most 31 days, and an all-day booking covers one day."
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:464
@@ -8730,10 +8754,6 @@ msgstr ""
 msgid "GPS Cache Duration (TTL)"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-geolocation.php:332
-msgid "GPS Cache Settings"
-msgstr ""
-
 #: includes/settings/views/documentation/config-geolocation.php:38
 msgid "GPS cache TTL"
 msgstr ""
@@ -9536,6 +9556,26 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:88
 msgid "Invalid date format."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "The end date must be a valid date on or after the start date."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "An all-day booking covers one day."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "A booking can cover at most %d days."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "Invalid time mode."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "Every day of the range is blocked."
 msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-data-processor.php:217
@@ -12020,10 +12060,6 @@ msgstr ""
 msgid "Open form"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:183
-msgid "Open in browser"
-msgstr ""
-
 #: includes/frontend/class-ffc-frontend.php:564
 msgid "Open participant form"
 msgstr ""
@@ -12086,6 +12122,10 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:303
 msgid "Operator Certificate Issued"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Bulk Issue Finished"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:133
@@ -16541,10 +16581,6 @@ msgstr ""
 msgid "tag in the page head and the HTTP Link header, and it also backs the editor's \"Get Shortlink\" button and REST. Expose is off by default (opt-in), depends on Shorten, and only takes effect once a short URL exists for the page — otherwise WordPress falls back to its native shortlink."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:185
-msgid "Tap the menu icon (•••) at the bottom of the app and choose \"Open in Safari\"."
-msgstr ""
-
 #: includes/frontend/class-ffc-frontend.php:333
 msgid "Tap to open the PDF"
 msgstr ""
@@ -19107,7 +19143,7 @@ msgid "Warning"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-save-handler.php:629
-msgid "Warning! Missing required tags in PDF Layout:"
+msgid "The form was not saved. The PDF layout lacks these required tags:"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:118 includes/admin/class-ffc-admin-submission-edit-page.php:168
@@ -19323,7 +19359,7 @@ msgid "When checked, next submission will start from ID #1. Only works if table 
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:129
-msgid "When does this event take place? Renders as {{schedule}} on the certificate template (e.g. '9h às 12h'). When filled, the template must contain {{schedule}} — the form save will be blocked until the placeholder is present."
+msgid "When does this event take place? Renders as {{schedule}} on the certificate template (e.g. '9h às 12h'). When Settings → Certificates requires {{schedule}}, the template must contain it — the form save is blocked until the placeholder is present."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:43
@@ -19740,10 +19776,6 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:350 includes/audience/class-ffc-audience-shortcode.php:172
 msgid "You are viewing this calendar as an administrator (bypass active)."
-msgstr ""
-
-#: includes/frontend/class-ffc-frontend.php:182
-msgid "You are viewing this page inside an app browser. To make sure the certificate downloads correctly, please open the page in your main browser (Chrome or Safari)."
 msgstr ""
 
 #. %d: maximum number of groups
@@ -21769,6 +21801,58 @@ msgstr ""
 msgid "Unknown date source."
 msgstr ""
 
+#: includes/date-messages/class-ffc-announcement-source.php
+msgid "Announcement"
+msgstr ""
+
+#: includes/date-messages/class-ffc-rule.php
+msgid "Unknown kind of message."
+msgstr ""
+
+#: templates/admin/date-messages/send.php
+msgid "An announcement is sent on one day. Give the same first and last day."
+msgstr ""
+
+#: templates/admin/date-messages/send.php
+msgid "Enter the send time as a date and time, or leave it empty."
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Kind of message"
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "A dated message is sent on a date relative to each person. An announcement is one message to everyone in its audience, sent by hand or once at a chosen time."
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Send at"
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Announcements only, in the site timezone. The announcement is sent once at this time, if it is active. Leave it empty to send it by hand with Send now. A time already past queues nothing when the rule is saved."
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Announcements"
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Send it also to people who turned announcements off"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Announcements from this site"
+msgstr ""
+
+#: includes/date-messages/class-ffc-runner.php
+msgid "Only an announcement can be scheduled."
+msgstr ""
+
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Stop receiving announcements from this site at this account?"
+msgstr ""
+
 msgid "Unknown digest mode."
 msgstr ""
 
@@ -21919,7 +22003,7 @@ msgstr ""
 msgid "Sending started. The first batch went out now; the rest continues in the background. Follow it in History."
 msgstr ""
 
-msgid "Sends one rule to everyone whose date falls in a range of up to %d days. People already sent this rule for that date are skipped, so running a range twice sends nothing new."
+msgid "Sends one rule to everyone whose date falls in a range of up to %d days. People already sent this rule for that date are skipped, so running a range twice sends nothing new. An announcement has no date: it goes to everyone in its audience, on the one day it is sent."
 msgstr ""
 
 msgid "Sent"
@@ -22819,7 +22903,7 @@ msgstr ""
 msgid "Division / Sector (see the dependent-select note below for each half)"
 msgstr ""
 
-msgid "The certificate PDF a form issues on submission (the default kind). Three ready-made certificate models ship."
+msgid "The certificate PDF a form issues on submission (the default kind). Six ready-made certificate models ship."
 msgstr ""
 
 msgid "A read-only \"Current assignments\" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a \"Change\" link into that feature's own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature."
@@ -22858,7 +22942,7 @@ msgstr ""
 msgid "Before / during / after the window you can independently show a message, show the title + description + message, or hide the form. The \"during\" setting applies only in daily mode, outside that day's hours."
 msgstr ""
 
-msgid "The \"Event Schedule (Reference)\" times on the same tab are printed on the certificate via the {{schedule}} and {{schedule_total}} tokens — they do not open or close the form. Once they are filled, the certificate layout must contain {{schedule}}. The tokens use a per-participant exception first, then the Event Schedule, then the window's start/end time. See"
+msgid "The \"Event Schedule (Reference)\" times on the same tab are printed on the certificate via the {{schedule}} and {{schedule_total}} tokens — they do not open or close the form. When Settings → Certificates requires {{schedule}}, the certificate layout must contain it. The tokens use a per-participant exception first, then the Event Schedule, then the window's start/end time. See"
 msgstr ""
 
 msgid "moves the close time later on the scheduled close day, after the form has opened; the new time must stay within the same day."
@@ -22873,7 +22957,7 @@ msgstr ""
 msgid "Export the current (filtered) submissions to CSV in the background. The export contains decrypted personal data (email, IP, CPF/RF), the magic-link token and the consent record, so it is gated by its own capability."
 msgstr ""
 
-msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form)."
+msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form) and \"Send link by e-mail\", which sends a link only to the submissions that never received one."
 msgstr ""
 
 msgid "Reveal the decrypted CPF / RF / email, and the IP on the edit screen, on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
@@ -22959,7 +23043,7 @@ msgstr ""
 msgid "A Profile tab, read from the plugin's own user profile, where they edit their display name, phone, department, organization, notes and birth date (stored encrypted, and the date Date Messages uses)"
 msgstr ""
 
-msgid "Notification Preferences: an \"Appointment reminder\" toggle and, when the Date Messages module is on, a \"Date messages (such as birthday greetings)\" toggle that opts them out; both are on until turned off"
+msgid "Notification Preferences: an \"Appointment reminder\" toggle and, when the Date Messages module is on, a \"Date messages (such as birthday greetings)\" toggle and an \"Announcements from this site\" toggle, each of which opts them out; all are on until turned off"
 msgstr ""
 
 msgid "Change Password, and Privacy & Data (LGPD) buttons to request an export or the deletion of their personal data"
@@ -23010,7 +23094,7 @@ msgstr ""
 msgid "Subject and message"
 msgstr ""
 
-msgid "The e-mail body only; the header and footer come from the Email Model. A new rule starts from the \"Birthday message\" default in Settings → Email texts, and \"Restore default text\" brings it back."
+msgid "The e-mail body only; the header and footer come from the Email Model. A new dated rule starts from the \"Birthday message\" default in Settings → Email texts, a new announcement from the \"Announcement message\" default, and \"Restore default text\" brings back the default of the kind chosen."
 msgstr ""
 
 msgid "\"E-mail each person on their date\" and \"Active (the daily run sends it)\". A rule can stay active with personal e-mails off and send only the manager summary."
@@ -23040,7 +23124,11 @@ msgstr ""
 msgid "Opting out"
 msgstr ""
 
-msgid "On their dashboard, under Notification Preferences, a person can turn off \"Date messages (such as birthday greetings)\"."
+msgid "On their dashboard, under Notification Preferences, a person can turn off \"Date messages (such as birthday greetings)\" and \"Announcements from this site\". The two are separate: turning one off does not stop the other."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "An announcement sent to everyone still reaches people who turned announcements off when its rule is set to send it anyway. The history counts those sends as forced, so the choice is never silent."
 msgstr ""
 
 msgid "Every message carries a one-click unsubscribe link; a body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. The link is a signed token that stores nothing; opening it shows a confirmation page, and only confirming turns date messages off, so mail scanners that follow links change nothing."
@@ -23298,10 +23386,10 @@ msgstr ""
 msgid "Under Tools → Export Personal Data and Tools → Erase Personal Data, the plugin registers its own handlers. Each one works on the records linked to the WordPress account that has the requested e-mail address and, for records linked to no account, on those whose stored e-mail matches it — so a certificate or appointment made without logging in is found too:"
 msgstr ""
 
-msgid "an eraser clears the encrypted personal data (e-mail and its lookup hash, CPF/RF, the client IP, …) from the certificates and appointments and unlinks them from the account, deletes the person's audience memberships, booking links, schedule permissions, stored profile and FFC user settings, and unlinks their activity-log entries. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
+msgid "an eraser clears the encrypted personal data (e-mail and its lookup hash, CPF/RF, the client IP, …) from the certificates and appointments and unlinks them from the account, deletes the person's audience memberships, booking links, post-event form invitations, schedule permissions, stored profile and FFC user settings, and unlinks their attendance lines and activity-log entries. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
 msgstr ""
 
-msgid "exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings, reregistration submissions (with their answers decrypted), recruitment candidacies and their classifications, and FFC user settings."
+msgid "exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings, audience attendance, post-event form invitations, reregistration submissions (with their answers decrypted), recruitment candidacies and their classifications, and FFC user settings."
 msgstr ""
 
 msgid "A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced). When the CPF gate below is set to anything other than none — or when an operator volunteers a valid CPF — each attempt is written to a per-form audit log of the most recent attempts (timestamp, IP address stored encrypted, mode, result) that admins can export."
@@ -23721,7 +23809,7 @@ msgstr ""
 msgid "Summary"
 msgstr ""
 
-msgid "0 sends on the date itself; -7 sends seven days before it, 7 seven days after it."
+msgid "0 sends on the date itself; -7 sends seven days before it, 7 seven days after it. Not used by an announcement."
 msgstr ""
 
 msgid "A birth date given before the profile field existed reaches the profile through a migration card in Settings → Data Migrations; while it has accounts left, the Date Messages screen shows a warning, because those people are not yet in previews, upcoming dates or sends."
@@ -23742,7 +23830,7 @@ msgstr ""
 msgid "Controls the dark mode appearance of the plugin's admin screens and of its public pages (forms, user dashboard, shortcodes)."
 msgstr ""
 
-msgid "Create and edit rules and send manually. The daily send time belongs to Settings → Scheduled Tasks."
+msgid "Create, edit, duplicate and delete rules. Sending a rule takes Send date messages; the daily send time belongs to Settings → Scheduled Tasks."
 msgstr ""
 
 msgid "Dashboard → Updates shows a short summary of the release on offer, taken from that release's own readme, together with the WordPress and PHP versions it requires and the WordPress version it was tested up to, so you can read what changes before applying it."
@@ -23796,7 +23884,7 @@ msgstr ""
 msgid "Where they are assigned"
 msgstr ""
 
-msgid "create and edit rules and send manually. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings."
+msgid "create, edit, duplicate and delete rules. Sending a rule, or saving an active announcement with a send time, takes ffc_send_date_messages. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings."
 msgstr ""
 
 msgid "off by default; when \"Pre-load cache daily\" is on, a daily task pre-loads every published form into the cache. Its time is set on Settings → Scheduled Tasks."
@@ -23994,6 +24082,22 @@ msgstr ""
 msgid "Create certificate-issuance forms, generate the certificate PDF automatically on submission, and let anyone verify authenticity by QR code or validation link."
 msgstr ""
 
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "Issuing certificates in bulk"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "When the participants are already known — an attendance sheet, a course roster — open the form in the form editor and use its Bulk issue tab, the last one, which appears only to users who hold the Issue certificates in bulk capability. Download the CSV template for the form, upload your file (up to 2 MB) and map each column to a form field. Name, CPF/RF and e-mail are required, the fields marked * must be mapped, and a row that leaves one of them empty is skipped. The preview then says how many certificates would be issued and how many rows would be skipped, with the reason for each skipped row. Nothing is issued until you confirm, and the certificates are issued in batches with a progress indicator."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "On a quiz form the tab also asks for the score of each participant: take the points from a column of the file, which must not exceed the maximum and must reach the passing score, or issue every certificate with a zero score, in which case the passing score does not apply and the preview warns you first. The issue date is the day each certificate is issued, one date you choose for all of them, or a column of the file. Choose whether to send the magic-link e-mail as each certificate is issued or not at all; a link that was not sent can be sent later from the submissions list with Send link by e-mail."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "A row is skipped, and listed in the report, when its name, CPF/RF or e-mail is missing or invalid, when a CPF or RF fails its check digits, when the same identifier appears earlier in the file, or when the form already holds a certificate for that CPF or RF. The form's own restrictions — allowlist, tickets, geofence, rate limit, date window and captcha — do not apply to the import. Each job writes one Activity Log entry, and a job left unfinished for seven days is expired and its staged rows are removed."
+msgstr ""
+
 msgid "Custom fields from audience memberships. Fields are grouped by audience."
 msgstr ""
 
@@ -24081,7 +24185,7 @@ msgstr ""
 msgid "Personal appointment calendars (fixed slots) and audience calendars for shared spaces (free-form bookings), each with confirmations, reminders and ICS invites."
 msgstr ""
 
-msgid "Placeholders replaced with sample data. QR code shown as placeholder."
+msgid "Placeholders replaced with sample data."
 msgstr ""
 
 msgid "Pure relationships (audience memberships, permission grants, the stored user profile) are removed with the account."
@@ -24258,7 +24362,7 @@ msgstr ""
 msgid "All of the rule's audiences"
 msgstr ""
 
-msgid "Everyone, or the members of the audiences chosen in the two-column picker — the same one the reregistration campaign uses. Belonging to any one of them is enough, and members of their sub-audiences are included; choosing an audience brings its sub-audiences along."
+msgid "Everyone, or the members of the audiences chosen in the two-column picker — the same one the reregistration campaign uses. Belonging to any one of them is enough, and members of their sub-audiences are included; choosing an audience brings its sub-audiences along. The number beside each audience is how many people it reaches, sub-audiences included, each person counted once."
 msgstr ""
 
 msgid "QR Code in the Certificate"
@@ -25128,9 +25232,6 @@ msgid "Incorrect"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-ui.php:345
-msgid "(when the form has an Event Schedule)"
-msgstr ""
-
 #: includes/settings/views/documentation/forms-dynamic-fields.php:66
 msgid "A required field is drawn with an amber border and a \"Required field\" badge: it is always required, its variable name and type cannot change and it cannot be removed; only its label can. A form missing one shows a warning naming it, with an \"Add the required fields\" button that adds them."
 msgstr ""
@@ -26173,19 +26274,19 @@ msgid "FFC Certificates - Submissions - Viewer"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:1066
-msgid "FFC Date Messages - Administrator"
+msgid "FFC Messages - Administrator"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:1062
-msgid "FFC Date Messages - Manager"
+msgid "FFC Messages - Manager"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:1058
-msgid "FFC Date Messages - Operator"
+msgid "FFC Messages - Operator"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:1054
-msgid "FFC Date Messages - Viewer"
+msgid "FFC Messages - Viewer"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:961
@@ -26305,7 +26406,7 @@ msgid "A booking that breaks one of those rules first opens a warning listing ev
 msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
-msgid "A user whose User access row carries Override Conflicts, or a bypass holder, may book over an occupied slot. The earlier booking is then cancelled, and its owner receives the \"booking cancelled by an administrator\" email with the reason."
+msgid "A user whose User access row carries Override Conflicts, or a bypass holder, may book over an occupied slot. The earlier booking is then cancelled entirely, on every day it covers even when only one of them clashed, and its owner receives the \"booking cancelled by an administrator\" email with the reason."
 msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
@@ -26381,7 +26482,7 @@ msgid "Let bypass holders book outside the rules"
 msgstr ""
 
 #: includes/settings/views/documentation/reference-emails.php
-msgid "New scheduled activity and activity-cancelled notices, and the \"booking cancelled by an administrator\" notice sent to the owner of a booking an override replaced"
+msgid "New scheduled activity and activity-cancelled notices, the \"booking cancelled by an administrator\" notice sent to the owner of a booking an override replaced, and the post-event form invitation sent to each participant once a booking ends"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-shortcode.php
@@ -27185,4 +27286,1923 @@ msgstr ""
 
 #: includes/api/class-ffc-user-audience-rest-controller.php
 msgid "You left every group you could. Some audiences keep their members in at least one group."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue in bulk"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Map a column from the file to each of name, CPF/RF and e-mail."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose the form the certificates are issued for."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose a CSV file to upload."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "The file could not be uploaded."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "The file is larger than 2 MB."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "The file could not be read."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Check the file"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Form field"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Column in the file"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Not in this file"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Fields marked * are required: a line that leaves one empty is skipped. The file has to be uploaded again on this step."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+#, php-format
+msgid "%1$d certificate(s) would be issued and %2$d row(s) skipped. Nothing has been issued yet."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Line"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Empty row"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "No name"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "No CPF or RF"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "CPF or RF with invalid check digits"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Invalid e-mail"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Same CPF or RF as an earlier line of the file"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Date that cannot be read"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue date"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Date of each certificate"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "When each certificate is issued"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "One date for every certificate"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "From a column of the file"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Day for every certificate"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Column with the day of each certificate"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose the day the certificates are dated."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose the file column that holds the issue date."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Skipped, by reason:"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "%1$d: %2$s"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "E-mail of each certificate"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Do not send"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Send the link as each certificate is issued"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "To send later, use Send link by e-mail in the submissions list."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php
+msgid "%1$d link(s) sent. Already sent before: %2$d. Skipped: %3$d. Not handed to the mailer: %4$d."
+msgstr ""
+
+#: includes/admin/class-ffc-submissions-list.php
+msgid "Send link by e-mail"
+msgstr ""
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "The submission could not be found."
+msgstr ""
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "This quiz attempt did not pass, so it has no certificate link."
+msgstr ""
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "This submission has no e-mail address."
+msgstr ""
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "This submission has no certificate link."
+msgstr ""
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "The e-mail was not handed to the mailer. Check whether e-mails are enabled."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Issue certificates in bulk"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Issue certificates for a list of participants from a CSV file, without each of them submitting the form."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-metabox-renderer.php
+msgid "Bulk issue"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue certificates for a list of participants from a CSV file, without each of them submitting the form. Download the template, upload the file, map its columns, check the preview and issue."
+msgstr ""
+
+#: includes/settings/views/documentation/submissions-list.php
+msgid "Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped, the issue date and the link e-mail are chosen and every row is previewed. Confirm to issue the certificates in batches, with progress."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "The file could not be checked. Try again."
+msgstr ""
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Bulk issue: expire unfinished imports"
+msgstr ""
+
+#: includes/submissions/class-ffc-bulk-issue-repository.php
+msgid "The import needs the encryption key configured, so that personal data is not stored in clear text."
+msgstr ""
+
+#: includes/submissions/class-ffc-bulk-issue-repository.php
+msgid "The import could not be staged."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue %d certificate(s)"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "There is nothing to issue in this file."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "The import could not be found."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Done: %1$d certificate(s) issued, %2$d line(s) skipped."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "%1$d of %2$d line(s) handled: %3$d issued, %4$d skipped."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "%d certificate(s) will be issued with a zero score, and the pass mark does not apply to them."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose the file column that holds the score of each participant."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Column with the points of each participant"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "From a score column of the file"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue with a zero score"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "No e-mail, so no link can be sent"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "No score in the score column"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Score above the form's maximum"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Score below the pass mark"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Score of each certificate"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Score that is not a whole number of points"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "The maximum is %1$d points. A score below %2$d%% is not issued."
+msgstr ""
+
+#: templates/emails/date-message-announcement.php:20
+msgid "{{site_name}}: announcement"
+msgstr ""
+
+#: templates/emails/date-message-announcement.php:21
+#, php-format
+msgid "There is a new announcement from %s."
+msgstr ""
+
+#: templates/emails/date-message-announcement.php:22
+#, php-format
+msgid "You can read the details on your dashboard: <a href=\"%s\">open your dashboard</a>."
+msgstr ""
+
+#: templates/emails/date-message-announcement.php:23
+#, php-format
+msgid "Prefer not to receive announcements? <a href=\"%s\">Unsubscribe</a>."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:197
+msgid "Announcement message (default for new announcements)"
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "By date"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Send date messages"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Send a rule now, or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it on upgrade (#1949)."
+msgstr ""
+
+#: includes/core/class-ffc-email-source.php
+msgid "FFCertificate — Announcements"
+msgstr ""
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php
+msgid "Forced past the opt-out (included in the total above)"
+msgstr ""
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php
+msgid "Nobody is in the chosen audiences, so nothing was sent."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php:115
+msgid "send a rule now or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it when the plugin is updated."
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "What the message is, who receives it and when."
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "The subject and the body. The header and footer come from the Email Model."
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "The background and the text area of the body only."
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Who gets it, whether it is active, and when."
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "An optional summary of each run for the people who manage the messages."
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Preview the recipients and the message with the values on this form."
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "The day and the month of each person's date are the reference. The year is not used."
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Off by default: people who turned announcements off do not receive it. When on, they receive it anyway, and the history counts them as forced."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Cancel this booking?"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Read before you confirm:"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Cancel booking"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Cancel booking (%d)"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Keep booking"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "You can confirm in %d seconds."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "This cancels the booking on %s."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "This booking covers %1$d days (%2$s). Cancelling it cancels every one of them."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "A field the form requires is empty"
+msgstr ""
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "This submission is in the trash, so its link is not sent."
+msgstr ""
+
+#. translators: 1: start time on the first day of a booking, 2: end time on its last day.
+#: includes/audience/class-ffc-audience-booking-rules.php
+#, php-format
+msgid "From %1$s on the first day to %2$s on the last day"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "This time slot is already booked for this environment. Confirming cancels that booking entirely, on every day it covers."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "When the hours run from the first day to the last, the calendar, the booking details, the user dashboard and the emails show the hours each day actually takes, and the calendar file covers every booked day. Cancelling a range cancels every day it covers; the confirmation names them and enables its button after a short countdown."
+msgstr ""
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Date messages announcement (one per scheduled announcement)"
+msgstr ""
+
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Done. You will no longer receive announcements from this site. You can turn them back on in your dashboard profile."
+msgstr ""
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php
+msgid "Saving this would schedule the announcement to be sent, and your account cannot send messages. Leave it inactive or without a send time, or ask someone who can send."
+msgstr ""
+
+#: templates/admin/date-messages/history.php
+msgid "Sent despite an opt-out"
+msgstr ""
+
+#: templates/emails/date-message-digest.php
+msgid "Sent despite an opt-out (included in Sent)"
+msgstr ""
+
+#: templates/emails/date-message-digest.php
+msgid "announcement"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-save-handler.php
+msgid "Add them to the layout, or uncheck them in Settings → Certificates, and save again."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "The layout box of the form editor sets a background image and a background colour; the colour fills the page wherever the image does not cover it. Preview renders the unsaved layout on the server with sample data, through the same renderer as the PDF, so the background, the colour and the QR code are the ones the certificate prints. Save as model keeps the layout, the image and the colour, and loading the model brings all three back."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "The preview could not be rendered."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "One day"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Several days"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Until"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "All day"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Takes the space for the whole day."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Continuous"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Skip blocked days"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "For whom"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "None selected"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Done"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Search audiences"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "+%d more"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "Remove %s"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "1 person"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "%d people"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "%1$s–%2$s on each day"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "From %1$s on %2$s to %3$s on %4$s"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Choose the last day."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "The last day must come after the first."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The booking dialog asks when, where and for whom. One day or Several days sets the span; several days adds the last day, how the hours read on each day and the switch that skips blocked days. Audiences are ticked in a searchable list that shows each one's colour and how many people a booking for it reaches, a person in several sub-audiences counted once; ticking an audience ticks its sub-audiences too. One button checks the conflicts and, once the check passes, creates the booking; changing the date, the times, the space or who it is for asks for a new check. On a phone the dialog rises from the bottom of the screen and the audience list opens as a screen of its own."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "An announcement to audiences reads only their members, sub-audiences included, so its run and its preview never list anyone outside them; an announcement to everyone reads every account."
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-exporters.php:581
+msgid "Booking"
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-exporters.php:577
+msgid "FFC Audience Attendance"
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-exporters.php:594
+msgid "Marked by staff"
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-exporters.php:594
+msgid "QR check-in"
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-exporters.php:589
+msgid "Recorded at"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:298
+msgid "Run attendance check-in"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:299
+msgid "Open and close check-in for a day of a booking, project its rotating QR and mark attendance by hand (#1947)."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:212
+msgid "Attendance recorded"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:188
+msgid "Check in"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin.php:241
+msgid "Check-in for this event is closed."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:230
+msgid "Check-in not recorded"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:178
+msgid "Confirm my attendance"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:320
+msgid "Reading your location…"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:208
+#, php-format
+msgid "Recorded at %s. You can close this page."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin.php:237
+msgid "This check-in code is not valid any more. Scan the QR code shown at the event again."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:173
+msgid "This check-in confirms you are at the event: your browser will ask for your location."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin.php:239
+msgid "This check-in link has expired. Scan the QR code shown at the event again."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin.php:247
+msgid "This check-in needs your location. Allow it in your browser and try again."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin.php:243
+msgid "This event is not taking check-ins today."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:144
+msgid "This page expired. Scan the QR code shown at the event again."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin.php:245
+msgid "You are not on the participant list of this event. Ask the organiser to mark your attendance."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin.php:251
+msgid "Your attendance could not be recorded. Try again, or ask the organiser to mark it."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:206
+#, php-format
+msgid "Your attendance for today was already recorded at %s."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:319
+msgid "Your location could not be read. Move to an open area and try again."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:318
+msgid "Your location is needed to check in here. Allow it in your browser settings and try again."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-checkin.php:249
+msgid "Your location is outside the event area. Check in from the event, or ask the organiser to mark your attendance."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in is open. Project the QR code where participants can scan it."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in is closed."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance marked."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance removed."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance rule saved."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in by QR code opens only on the day itself, for an active booking."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in was not open."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance cannot be marked for a day that has not come yet."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "You do not have permission to do that."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "The change could not be saved."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Back to bookings"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in by QR code"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "This booking is cancelled, so it takes no check-in."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in by QR code opens only on the day itself. Attendance on other days can be marked by hand below."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "Closes on its own at %1$s. The code changes every %2$d seconds."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Participants must be inside one of the selected areas."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Project the QR code"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Close check-in"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "The code changes every"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Require the participant to be inside (optional)"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "The position comes from the participant's browser and can be faked: an area makes checking in from elsewhere harder, it does not prove presence."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "Check-in closes on its own at %s, 30 minutes after the booking ends today."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Open check-in"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance rule"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Any day"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Share of days"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Present on at least one day counts as attended."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Present on at least the share below of the booked days counts as attended. Skipped days do not count."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "Minimum share of days (%)"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "As saved, %1$d of the %2$d booked day(s) are required."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "%1$s of %2$s present on %3$s"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "This booking has no participants."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "This day"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Days present"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Met"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Mark present"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "by hand"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "QR"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in QR code"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Scan with your phone camera to check in."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "%1$s of %2$s present"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-attendance-ajax.php
+msgid "You do not have permission to run check-in."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-attendance-export-source.php
+msgid "Attendance rule met"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-attendance-export-source.php
+msgid "Present"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Attendance and QR check-in"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The Attendance link in a booking's row of Audience Bookings opens its attendance screen. On the day itself, until 30 minutes after the booking ends, Open check-in starts a check-in for that day: choose how often the code changes (1, 2, 3, 5 or 10 minutes) and, optionally, the saved geolocation areas the participant must be inside. Project the QR code opens a full-screen page for a projector or a screen; the code changes on its own and the page counts who is present. Check-in closes when you press Close check-in, or on its own 30 minutes after the booking ends that day. Opening it again starts a new check-in, and codes from the previous one stop working."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "A participant scans the code with the phone camera, logs in if asked and confirms. Only people on the booking (its custom users and the members of its audiences) can check in, once per day. A code shown on the screen is valid for its rotation and the one before; a link copied from it expires within minutes. The location of an area check-in comes from the participant's browser and can be faked: it makes checking in from elsewhere harder, it does not prove presence."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The participants list shows who is present on the day selected and refreshes on its own. Mark present and Remove record or delete an attendance by hand on today or an earlier day, noting who marked it. The attendance rule decides who counts as attended for a booking over several days: Any day, or a minimum share of the booked days (skipped days do not count). Export CSV lists each participant's name, a column per day, the days present and whether the rule was met, and, when a post-event form applies, when they were invited and whether they answered; it carries no e-mail or document number."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Attendance lines are records: when an account is deleted or its data erased, the line stays and loses the person. A participant's attendance is included in their privacy export."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "run attendance: open and close check-in, project the QR code and mark attendance by hand. Held by the Operator tier and above. Changing a booking's attendance rule needs ffc_manage_audiences, and its CSV needs ffc_export_audiences."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This invitation is not for a participant of this event."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This form opens when the event ends."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "The period to fill in this form has ended."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This form is only for people whose attendance at the event was recorded."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This event was cancelled."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This event has no form to fill in."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Post-event form"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Certificate form"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "When the last day of a booking ends, its participants are invited to this form, with their name and e-mail filled in; the CPF/RF they type is checked against their account. A booking can choose another form, or none, on its Attendance screen."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Days open"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "How many days after the end of the event the invitation link works."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Attendees only"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Invite only people whose attendance meets the booking's rule"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Post-event form saved."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Use settings of its own for this booking"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Off, the booking follows its calendar. On, the three settings below apply to this booking only; choose None to invite nobody."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invite only people whose attendance meets the rule"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "This booking invites nobody to a form."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Its calendar names no form, so this booking invites nobody."
+msgstr ""
+
+#. translators: 1: form title, 2: date and time the form opens, 3: date and time it closes
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Participants are invited to \"%1$s\", open from %2$s to %3$s."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Post-event certificate form"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The Post-event form tab of a calendar names the certificate form its bookings lead to, how many days it stays open after the event (1 to 90) and whether only people whose attendance meets the booking's rule are invited. The form opens when the booking's last day ends. The questions are ordinary fields of that certificate form."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The Post-event form card on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences. This card and the Attendance rule card save each change as it is made, and the sentences describing them follow; reload the page to see the invitations."
+msgstr ""
+
+#: includes/frontend/class-ffc-form-invite.php
+msgid "This invitation link is not valid."
+msgstr ""
+
+#: includes/frontend/submission/class-ffc-invite-guard.php
+msgid "This form is open by invitation only. Use the link in the e-mail you received."
+msgstr ""
+
+#. translators: 1: the invited person's name, 2: the event
+#: includes/frontend/class-ffc-shortcodes.php
+msgid "Filling in as %1$s, for %2$s. Your name and e-mail come from your registration."
+msgstr ""
+
+#. translators: %s: the invited person's name
+#: includes/frontend/class-ffc-shortcodes.php
+msgid "Filling in as %s. Your name and e-mail come from your registration."
+msgstr ""
+
+#: includes/frontend/class-ffc-shortcodes.php
+msgid "Invitation:"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-restriction-metabox.php
+msgid "Booking participants only"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-restriction-metabox.php
+msgid "Only people invited by an audience booking's post-event e-mail can submit"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-form-invite-resolver.php
+msgid "This CPF/RF belongs to another registration. Type your own, or ask the organiser."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-form-invite-resolver.php
+msgid "This CPF/RF does not match your registration. Type the one you registered with, or ask the organiser."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-security.php
+msgid "Only a person invited by an audience booking's post-event link can submit. The link fills in and locks their name and e-mail from their account, works without logging in until the booking's form window closes, and names one person: their CPF/RF is typed, and refused when it belongs to another account. Opening the link again after answering returns the same certificate. Without this restriction the form stays open, and an invitation link only fills it in."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "An invitation link opens the form with the participant's name and e-mail filled in and locked, from their account; no login is needed, so treat the link as personal. The CPF/RF is not filled in: the participant types it, and it is refused when it belongs to another account, or when it differs from the one already on record. A first CPF/RF is accepted and recorded on their profile. The submission keeps the booking it came from. To keep the form closed to everyone else, switch on its \"Booking participants only\" restriction."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "%1$s (sent %2$d times)"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Answer"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Answered"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Audience post-event form invitation"
+msgstr ""
+
+#: includes/settings/views/documentation/email-texts-hub.php
+msgid "Audience post-event form invitation:"
+msgstr ""
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Audience post-event form invitations"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Certificate issued"
+msgstr ""
+
+#: includes/core/class-ffc-email-source.php
+msgid "FFCertificate — Audience Calendars post-event forms"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invitation sent."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invitations go out on their own once the event ends, and can be sent again here while the form is open."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invitations sent to everyone eligible who has not answered."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invited"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-form-invite-mailer.php
+msgid "No published page embeds the post-event form, so there is no link to send."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "No published page embeds the post-event form. Add the form to a page, then send again."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Nobody was sent an invitation: everyone eligible has answered, or the form is not open."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Not yet"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Once an hour the plugin e-mails each eligible participant of a booking whose form has opened the personal link, once. The e-mail is \"Audience post-event form invitation\" under Settings → Email texts. It needs a published page that embeds the form, since the link points there; without one nothing is sent. The Attendance screen lists who was invited and when, who answered and whose certificate was issued, and while the form is open it resends to one person or to everyone who has not answered; this needs ffc_checkin_audiences."
+msgstr ""
+
+#: templates/emails/audience-post-event-invite.php
+msgid "Open the form"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Post-event form invitation"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Resend"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Send to everyone who has not answered"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Sent to each participant when a booking with a post-event form ends, and again on Resend — text edited globally in the hub above."
+msgstr ""
+
+#: templates/emails/audience-post-event-invite.php
+msgid "Thank you for taking part in {{event}}. Fill in the form \"{{form_title}}\" to receive your certificate."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-form-invite-mailer.php
+msgid "The e-mail could not be sent."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "The invitation could not be sent."
+msgstr ""
+
+#: templates/emails/audience-post-event-invite.php
+msgid "The link is open until {{closes_at}}. It is personal: it fills in your name and e-mail, so do not forward it."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-form-invite-mailer.php
+msgid "The participant has no valid e-mail address."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "This person cannot be invited now: the form is not open, or they are not eligible."
+msgstr ""
+
+#: templates/emails/audience-post-event-invite.php
+msgid "Your certificate for {{event}}"
+msgstr ""
+
+#: templates/emails/audience-post-event-invite.php
+msgid "Your certificate is waiting"
+msgstr ""
+
+#: includes/settings/views/documentation/email-texts-hub.php
+msgid "global only; the form a booking leads to is chosen on its calendar or its Attendance screen."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in can no longer be opened today: the booking has ended. Mark attendance by hand below."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in closed on its own at %s, 30 minutes after the booking ended today. Attendance can still be marked by hand below."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Changes save as you make them. Reload the page to see the invitations."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "Choose a published certificate form."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "The booking could not be saved."
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+#: includes/privacy/class-ffc-privacy-handler.php
+msgid "FFC Post-event Form Invitations"
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+msgid "Last sent"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-form-invite-mailer.php
+msgid "No published page embeds this form, so no invitation can be sent. Publish a page holding %s."
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+msgid "Times sent"
+msgstr ""
+
+msgid "A participant whose e-mail went astray also finds the form on their dashboard, in the bookings tab, until it closes or they answer."
+msgstr ""
+
+msgid "A post-event certificate form still waiting for them: the booking shows Fill in the form, their personal link, and when the form closes, and a notice at the top of the tab counts the forms waiting. Viewing as a user shows that a form waits, never its link."
+msgstr ""
+
+msgid "Fill in the form"
+msgstr ""
+
+#, php-format
+msgid "Form waiting: %s"
+msgstr ""
+
+#, php-format
+msgid "Open until %s"
+msgstr ""
+
+#, php-format
+msgid "You have %d certificate form to fill in. Find it under Actions."
+msgid_plural "You have %d certificate forms to fill in. Find them under Actions."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "JavaScript is off"
+msgstr ""
+
+msgid "This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your certificate."
+msgstr ""
+
+msgid "The form did not load completely"
+msgstr ""
+
+msgid "Part of this form did not load, so it cannot be sent yet. Reload the page. If this message comes back, turn off any content blocker for this site or open the page in another browser."
+msgstr ""
+
+msgid "Reload the page"
+msgstr ""
+
+msgid "A visitor sees \"The form did not load completely\" or \"JavaScript is off\""
+msgstr ""
+
+msgid "The form is sent and the PDF is drawn by scripts in the browser, so it cannot work without them"
+msgstr ""
+
+msgid "A content blocker or a dropped request kept a script, or the refresh of the captcha and security codes, from loading: ask the visitor to reload, then to allow the site in the blocker or use another browser"
+msgstr ""
+
+msgid "If every visitor sees it, check that a cache or optimisation plugin is not combining or delaying the plugin's scripts, and that admin-ajax.php is reachable"
+msgstr ""
+
+msgid "Browser check"
+msgstr ""
+
+msgid "Check the visitor's browser before the form"
+msgstr ""
+
+msgid "An app's own browser (Instagram, WhatsApp, Facebook and others) is asked to open the page in the phone's browser, with a \"Continue anyway\" link; a browser missing what the form needs to issue the certificate is stopped. Turn it off only if visitors are stopped by mistake: they then reach the form whatever browser they use."
+msgstr ""
+
+msgid "This form requires a secure connection (HTTPS). Please contact the site administrator."
+msgstr ""
+
+msgid "Chrome, Firefox, Edge, Opera or Samsung Internet"
+msgstr ""
+
+msgid "Safari, Chrome, Firefox or Edge"
+msgstr ""
+
+msgid "Chrome, Firefox, Edge or Safari"
+msgstr ""
+
+msgid "Open this page in your browser"
+msgstr ""
+
+msgid "You are viewing this page inside an app, where your location and the certificate download often fail. Open it in %s."
+msgstr ""
+
+msgid "Tap the menu (••• or the share icon) and choose \"Open in Safari\" or \"Open in browser\"."
+msgstr ""
+
+msgid "Or tap the menu (⋮) and choose \"Open in browser\"."
+msgstr ""
+
+msgid "Open in Chrome"
+msgstr ""
+
+msgid "This browser cannot run the form"
+msgstr ""
+
+msgid "This browser is missing features the form needs to issue your certificate. Open this page in %s."
+msgstr ""
+
+msgid "no HTTPS"
+msgstr ""
+
+msgid "Open the Activity Log: visitors stopped because the page is not served over HTTPS"
+msgstr ""
+
+msgid "app browser"
+msgstr ""
+
+msgid "Open the Activity Log: visitors asked to leave an app's own browser"
+msgstr ""
+
+msgid "continued in app"
+msgstr ""
+
+msgid "Open the Activity Log: visitors who chose \"Continue anyway\" in an app's browser"
+msgstr ""
+
+msgid "browser missing features"
+msgstr ""
+
+msgid "Open the Activity Log: visitors whose browser lacks what the form needs"
+msgstr ""
+
+msgid "form did not load"
+msgstr ""
+
+msgid "Open the Activity Log: forms whose scripts did not load in time"
+msgstr ""
+
+msgid "Checks before the form"
+msgstr ""
+
+msgid "Before a visitor sees a certificate form, the browser runs a short queue of checks, in this order. The first one that fails stops the queue and shows one message; nothing after it runs until the visitor fixes the cause or goes on where that is allowed."
+msgstr ""
+
+msgid "Date and time: on a form with a date window, outside it the form's closed-period message is shown."
+msgstr ""
+
+msgid "Browser: an app's own browser (Instagram, WhatsApp, Facebook, TikTok, LinkedIn and others) is asked to open the page in the phone's browser, where the location and the download work; a \"Continue anyway\" link lets the visitor go on, because the detection can misfire. A browser missing what the form needs to issue the certificate is stopped with the list of browsers to use, and cannot go on."
+msgstr ""
+
+msgid "Cookies: a browser that blocks cookies is warned, with how to allow them, and may try anyway."
+msgstr ""
+
+msgid "Location: on a form with GPS validation, the location is asked for and checked (see Geolocation / Geofence)."
+msgstr ""
+
+msgid "The location is the last of the checks a form runs before it is shown, after the date window, the secure connection, the browser and the cookies; see Certificates & Forms → Checks before the form. A page served over plain HTTP cannot ask for the location, and an app's own browser often cannot either, which is why those two are checked first."
+msgstr ""
+
+msgid "A visitor sees \"Open this page in your browser\" or \"This browser cannot run the form\""
+msgstr ""
+
+msgid "The page was opened inside an app (a link in Instagram or WhatsApp, for example): the visitor should open it in the phone's browser, or use \"Continue anyway\""
+msgstr ""
+
+msgid "A browser missing what the form needs cannot issue the certificate: the message lists the browsers to use instead"
+msgstr ""
+
+msgid "If visitors in an ordinary browser are stopped, turn the check off under Settings → Certificates → Browser check and report the browser"
+msgstr ""
+
+msgid "Download the template for this form"
+msgstr ""
+
+msgid "Download the CSV template"
+msgstr ""
+
+msgid "Columns of the template"
+msgstr ""
+
+msgid "Upload the participants file"
+msgstr ""
+
+msgid "A CSV of up to 2 MB. Name, CPF/RF and e-mail are required."
+msgstr ""
+
+msgid "Check before issuing"
+msgstr ""
+
+msgid "Nothing is issued yet: the next step maps the columns and shows a preview."
+msgstr ""
+
+msgid "Choose file"
+msgstr ""
+
+msgid "The public CSV download page ([ffc_csv_download]) runs the browser check too, under the same setting: the file is built and saved by the browser, which an app's own browser often cannot do."
+msgstr ""
+
+msgid "Activity Log: Delete Logged Locations"
+msgstr ""
+
+msgid "Delete the \"IP Geolocation Debug\" activity log entries. Until this release every geofence area check wrote the visitor's position there: the exact GPS position of each audience check-in, and the position each IP address resolved to. The entries are debug output with no audit value. A check now logs its decision only, and only while geolocation debugging is on."
+msgstr ""
+
+msgid "The visitor's position is used to decide and then discarded: it is not stored with the submission and is not written to any log. With geolocation debugging on, the debug entries say which area matched, never where the visitor was. Entries written before 6.42.0 did record the position; the \"Activity Log: Delete Logged Locations\" migration removes them."
+msgstr ""
+
+msgid "Could not delete the geolocation debug entries."
+msgstr ""
+
+msgid "Deleted %d geolocation debug entries."
+msgstr ""
+
+msgid "Secure connection: a form that asks for the location, or any form while the captcha is ALTCHA only, needs a page the browser treats as secure (HTTPS, or localhost); on any other page the visitor is asked to contact the site administrator. The browser decides, so a development host such as a .local name or a LAN address over plain HTTP is stopped too."
+msgstr ""
+
+msgid "Every form runs the browser and cookie checks, not only the ones with a restriction. The \"already submitted\" notice is drawn only after the queue passes. Settings → Certificates → Browser check turns the browser check off, should visitors be stopped by mistake. An administrator for whom the geolocation bypass is on skips the browser and cookie checks. Each stop is written to the Activity Log as a pre-flight block, naming the form, or the CSV download page the visitor was on, and the form editor counts its own form's."
+msgstr ""
+
+msgid "Booking ID"
+msgstr ""
+
+msgid "CSV download page ID"
+msgstr ""
+
+msgid "Appointment ID"
+msgstr ""
+
+msgid "This check-in needs a secure connection (HTTPS) to read your location. Please tell the event organiser."
+msgstr ""
+
+msgid "You are viewing this page inside an app, where your location often cannot be read. Open it in %s."
+msgstr ""
+
+msgid "You are viewing this page inside an app, where downloading the receipt often fails. Open it in %s."
+msgstr ""
+
+msgid "This browser is missing features needed to build your receipt. Open this page in %s."
+msgstr ""
+
+msgid "This browser cannot build the receipt"
+msgstr ""
+
+msgid "The receipt PDF is built in the visitor's browser, after booking or from the receipt page, and the same browser check a certificate form runs comes first: an app's own browser (Instagram, WhatsApp and others), where saving the file often fails, is asked to open the page in the phone's browser, with \"Continue anyway\", which then downloads it; a browser missing what the PDF needs is stopped. Booking itself never waits on this. Settings → Certificates → Browser check turns it off, and each stop is written to the Activity Log as a pre-flight block naming the appointment."
+msgstr ""
+
+msgid "Allowed"
+msgstr ""
+
+msgid "An app's own browser (%s): the location and downloads often fail. Open the page in the phone's browser."
+msgstr ""
+
+msgid "Android"
+msgstr ""
+
+msgid "Back to certificate verification"
+msgstr ""
+
+msgid "Blocked: allow it in the browser settings."
+msgstr ""
+
+msgid "Blocked: sending a form may fail."
+msgstr ""
+
+msgid "Browser"
+msgstr ""
+
+msgid "Checking…"
+msgstr ""
+
+msgid "Cookies"
+msgstr ""
+
+msgid "Copied"
+msgstr ""
+
+msgid "Copy the results"
+msgstr ""
+
+msgid "Could not be read: move to an open area and try again."
+msgstr ""
+
+msgid "Could not copy: take a screenshot instead."
+msgstr ""
+
+msgid "JavaScript is off in this browser. The forms need it: turn it on and reload this page."
+msgstr ""
+
+msgid "No: the browser gives no location here, and forms that ask for it will stop."
+msgstr ""
+
+msgid "Not decided yet: the browser will ask."
+msgstr ""
+
+msgid "Not supported: missing %s."
+msgstr ""
+
+msgid "Ordinary browser (%s)"
+msgstr ""
+
+msgid "PDF download"
+msgstr ""
+
+msgid "Problems with a form? Test your device"
+msgstr ""
+
+msgid "Refused by the browser or by you."
+msgstr ""
+
+msgid "Secure connection"
+msgstr ""
+
+msgid "Test my device"
+msgstr ""
+
+msgid "Test my location"
+msgstr ""
+
+msgid "The browser does not say until it asks."
+msgstr ""
+
+msgid "This browser cannot give a location."
+msgstr ""
+
+msgid "This page runs the checks a form runs before it is used and shows each result. Nothing is sent or stored, and your position is never shown: only how precise it is."
+msgstr ""
+
+msgid "To ask for help, send a screenshot of this page or paste the copied results."
+msgstr ""
+
+msgid "Took too long: move to an open area and try again."
+msgstr ""
+
+msgid "computer"
+msgstr ""
+
+msgid "iPhone or iPad"
+msgstr ""
+
+msgid "With ?ffc_device_check=1 in the address it shows the \"Test my device\" checks instead; the page links there from its footer."
+msgstr ""
+
+msgid "A \"Location blocked\" message appears only when the browser really refuses the location. Some browsers, Opera for Android among them, report the location as blocked while they hand it over; the plugin then reads the position once to check, and a browser that gives it is treated as allowed."
+msgstr ""
+
+msgid "Supported: this browser can build and save the PDF."
+msgstr ""
+
+msgid "Device ID"
+msgstr ""
+
+msgid "Not used on this site: the device limit is off."
+msgstr ""
+
+msgid "Not available in this browser: it needs a secure connection and a recent browser."
+msgstr ""
+
+msgid "Reading the device signals…"
+msgstr ""
+
+msgid "%1$s · %2$s of %3$s signals · stable"
+msgstr ""
+
+msgid "%1$s · %2$s of %3$s signals · changes on each read: %4$s"
+msgstr ""
+
+msgid "The device signals could not be read."
+msgstr ""
+
+msgid "%1$s (site: %2$s; system: %3$s)"
+msgstr ""
+
+msgid "Light"
+msgstr ""
+
+msgid "Dark"
+msgstr ""
+
+msgid "always light"
+msgstr ""
+
+msgid "always dark"
+msgstr ""
+
+msgid "follows the system"
+msgstr ""
+
+msgid "dark"
+msgstr ""
+
+msgid "light"
+msgstr ""
+
+msgid "not stated"
+msgstr ""
+
+msgid "A privacy setting or extension changes these signals on every read (the fingerprint protection of Brave, Firefox or Safari, for instance). A form with a device limit may then not recognise this device: use a browser without that protection, or ask the site administrator."
+msgstr ""
+
+msgid "Ahead by %s: date windows and the captcha may fail. Set the clock to automatic."
+msgstr ""
+
+msgid "Allow cookies for this site in the browser's settings (Privacy or Site settings → Cookies), or leave the private (incognito) window."
+msgstr ""
+
+msgid "Behind by %s: date windows and the captcha may fail. Set the clock to automatic."
+msgstr ""
+
+msgid "Blocked (a private window?): the \"already submitted\" notice and \"Continue anyway\" will not be remembered."
+msgstr ""
+
+msgid "Click the icon next to the address → Site settings (or Permissions) → Location → Allow, and reload this page. On Windows and macOS, the system's location services must be on too."
+msgstr ""
+
+msgid "Comparing with the server…"
+msgstr ""
+
+msgid "Connect to the internet (Wi-Fi or mobile data) and reload this page."
+msgstr ""
+
+msgid "Connection"
+msgstr ""
+
+msgid "Correct (differs by %s)"
+msgstr ""
+
+msgid "Could not compare with the server."
+msgstr ""
+
+msgid "Device clock"
+msgstr ""
+
+msgid "How to fix it"
+msgstr ""
+
+msgid "Leave the private (incognito) window, or allow site data for this site in the browser's settings."
+msgstr ""
+
+msgid "Local storage"
+msgstr ""
+
+msgid "Not supported: missing %s. A form whose captcha is ALTCHA only cannot be sent."
+msgstr ""
+
+msgid "Offline"
+msgstr ""
+
+msgid "Open the app's menu (⋮ or ···) and choose \"Open in browser\" or \"Open in Safari\". Or copy this page's address and paste it into Chrome, Safari, Firefox or Edge."
+msgstr ""
+
+msgid "Open the site by its address starting with https://. If that address does not open, tell the site administrator."
+msgstr ""
+
+msgid "Open the site by its https:// address in an up-to-date browser, and allow its scripts: a content blocker can stop them."
+msgstr ""
+
+msgid "Screen"
+msgstr ""
+
+msgid "Set the date, time and time zone to automatic in the device's settings (Date and time → Set automatically), then reload this page."
+msgstr ""
+
+msgid "Supported"
+msgstr ""
+
+msgid "Time zone and language"
+msgstr ""
+
+msgid "Turn on Settings → Privacy & Security → Location Services, then set the browser (Safari or Chrome) to \"While Using the App\". In Safari also tap \"aA\" next to the address → Website Settings → Location → Allow. Reload this page."
+msgstr ""
+
+msgid "Turn on the device's location with high accuracy (Google Location Accuracy on Android, Precise Location on iPhone), go outdoors or near a window, wait a few seconds and test again."
+msgstr ""
+
+msgid "Turn on the phone's Location in the quick settings. Then tap the icon next to the address → Permissions (or Site settings) → Location → Allow, and reload this page."
+msgstr ""
+
+msgid "Update the browser, or use an up-to-date Chrome, Safari, Firefox or Edge, and open the site by its https:// address."
+msgstr ""
+
+msgid "Update the browser, or use an up-to-date Chrome, Safari, Firefox or Edge."
+msgstr ""
+
+msgid "Use an up-to-date Chrome, Safari, Firefox or Edge: this browser cannot give a location."
+msgstr ""
+
+msgid "%1$s (%2$s s)"
+msgstr ""
+
+msgid "No answer after %s s: reload the page to test again."
+msgstr ""
+
+msgid "Asking the browser…"
+msgstr ""
+
+msgid "Window %1$s · screen %2$s · density %3$s×"
+msgstr ""
+
+msgid "Mobile data"
+msgstr ""
+
+msgid "Wired"
+msgstr ""
+
+msgid "Bluetooth"
+msgstr ""
+
+msgid "Other network"
+msgstr ""
+
+msgid "Slow (like 3G)"
+msgstr ""
+
+msgid "Very slow (like 2G)"
+msgstr ""
+
+msgid "Very slow (below 2G)"
+msgstr ""
+
+msgid "Online/Speed: %1$s / %2$s"
+msgstr ""
+
+msgid "Connection type not reported"
+msgstr ""
+
+msgid "Connection speed not reported"
+msgstr ""
+
+msgid "Fast (like 4G or better)"
+msgstr ""
+
+msgid "Data saver is on: some scripts may not load. Turn it off (Lite mode) in the browser's or the phone's settings, then reload this page."
+msgstr ""
+
+msgid "iOS gives no browser these details. This does not affect the forms."
+msgstr ""
+
+msgid "This browser does not give these details. This does not affect the forms."
+msgstr ""
+
+msgid "Server requests"
+msgstr ""
+
+msgid "Device location"
+msgstr ""
+
+msgid "Reload the page. If this message comes back, a content or script blocker, or an optimization of this site, is stopping the plugin's scripts: turn the blocker off for this site or open the page in another browser. The forms will not work here until it does."
+msgstr ""
+
+msgid "The test could not run in this browser"
+msgstr ""
+
+msgid "Sending a test request…"
+msgstr ""
+
+msgid "Reached, answered in %s ms"
+msgstr ""
+
+msgid "Refused by the server or a firewall (code %s): sending a form will fail."
+msgstr ""
+
+msgid "Did not reach the server: sending a form will fail."
+msgstr ""
+
+msgid "A firewall or security service in front of the site refused the request. Try another network (mobile data instead of Wi-Fi, or the other way round); if it keeps failing, send the copied results to the site administrator."
+msgstr ""
+
+msgid "A content blocker, a VPN or the network stopped the request. Turn the blocker off for this site, or try another network, and reload this page."
+msgstr ""
+
+msgid "Did not load: a content or script blocker may be stopping it."
+msgstr ""
+
+msgid "Turn the content or script blocker off for this site (or add the site to its allowed list) and reload this page. A form with a device limit cannot be sent while it is blocked."
+msgstr ""
+
+msgid "Did not load: a content or script blocker may be stopping it. The forms cannot be sent."
+msgstr ""
+
+msgid "Turn the content or script blocker off for this site (or add the site to its allowed list) and reload this page."
+msgstr ""
+
+msgid "%1$s · %2$s"
+msgstr ""
+
+msgid "Running the checks…"
+msgstr ""
+
+msgid "This device is ready"
+msgstr ""
+
+msgid "Every check passed: the forms should work here."
+msgstr ""
+
+msgid "Ready, with warnings"
+msgstr ""
+
+msgid "The forms should work, but the items in yellow may get in the way. Open \"How to fix it\" on each one."
+msgstr ""
+
+msgid "The forms may not work here"
+msgstr ""
+
+msgid "Fix the items in red: open \"How to fix it\" on each one, then reload this page."
+msgstr ""
+
+msgid "Plugin version: %s"
+msgstr ""
+
+msgid "Captcha mode: %s"
+msgstr ""
+
+msgid "math question"
+msgstr ""
+
+msgid "ALTCHA"
+msgstr ""
+
+msgid "ALTCHA with a math question when JavaScript is off"
+msgstr ""
+
+msgid "Device limit: %s"
+msgstr ""
+
+msgid "off"
+msgstr ""
+
+msgid "Device Test"
+msgstr ""
+
+msgid "How many times one address may run the \"Test my device\" page of the verification shortcode, and over how long. Each run sends one request to the server. Past the cap the page still runs its other checks and says how long to wait before testing again."
+msgstr ""
+
+msgid "0 disables this cap. Raise it when a whole room tests at once behind one address."
+msgstr ""
+
+msgid "Device test per IP:"
+msgstr ""
+
+msgid "the \"Test my device\" page of the verification shortcode sends one request to the server per run, and the Device Test card caps how many runs one address may make per window (default 60 per 600 seconds; 0 removes the cap). Past it, the page still runs its other checks and tells the visitor how long to wait. Raise it when a whole room tests at once behind one address."
+msgstr ""
+
+msgid "Too many tests from this network: wait %s, then reload the page."
+msgstr ""
+
+msgid "The site limits how often one network can run this test. Wait, then reload this page. If a whole room is testing at once, ask the site administrator to raise the limit."
+msgstr ""
+
+msgid "Reached in %1$s ms, but this page is an old copy (version %2$s; the site runs %3$s)."
+msgstr ""
+
+msgid "The page came from an old copy kept in a cache. Reload it; if this message comes back, the site administrator should purge the site's cache."
+msgstr ""
+
+msgid "Form protections"
+msgstr ""
+
+msgid "Device settings"
+msgstr ""
+
+msgid "%s OK"
+msgstr ""
+
+msgid "1 failure"
+msgstr ""
+
+msgid "%s failures"
+msgstr ""
+
+msgid "1 warning"
+msgstr ""
+
+msgid "%s warnings"
+msgstr ""
+
+msgid "Test pending"
+msgstr ""
+
+msgid "One step left"
+msgstr ""
+
+msgid "precision not tested yet"
+msgstr ""
+
+msgid "Press \"Test my location\" under Device settings to finish the test."
+msgstr ""
+
+msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result in sections (network, browser, form protections, device settings, display and PDF download) that stay closed while everything passes and open by themselves when a check warns or fails: secure connection, connection, whether a request reaches the server (and how long it took), the browser by name and version, cookies, local storage, the captcha (what ALTCHA needs, and whether its widget loaded), the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, the device's location (the permission and, when the visitor asks, how precise it is), screen, the theme in use and, last, PDF download. A summary above the sections says whether the device is ready, ready with warnings, or may fail; the test is finished only once the visitor presses \"Test my location\", which reads how precise the location is. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. A content or script blocker is named where it stops the server request, the device ID or the captcha; when it stops the test's own scripts, the page says so after a few seconds without them. A page served from an old cache, whose scripts belong to an earlier release, is named too, and how often one address may run the test is set on Settings → Rate Limit (default 60 runs per 10 minutes). Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the plugin's version, the captcha mode, whether the device limit is on, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
+msgstr ""
+
+msgid "Your location is not precise enough to confirm you are at the event. Move to an open area or turn on precise location, then try again. On a computer, open this page on your phone with location turned on."
+msgstr ""
+
+msgid "Your location is not precise enough to confirm you are in the allowed area. Move to an open area or turn on precise location, then reload the page. On a computer, open this page on your phone with location turned on."
+msgstr ""
+
+msgid "Your location is not precise enough to confirm you are in the allowed area, but this form allows access anyway."
+msgstr ""
+
+msgid "The browser checks the location first, to say so before the visitor fills the form, and the server decides when the form is sent: the browser sends the GPS reading with the submission, and the server checks it against the areas and combines it with the IP the way the form asks. Each area is judged with its own radius: a reading is inside an area when its point is inside it and its margin of error is at most the accepted error (1.5 times the area's radius by default, set under Settings → Geolocation → GPS Cache and Precision). A reading that is inside no area but whose error still reaches one, or that is older than the GPS cache lifetime, cannot tell inside from outside and is treated as \"Location unavailable\" in the \"When GPS fails\" policy: when that case blocks, the visitor is told to move to an open area or to use a phone, and when it allows, the form opens with a notice saying the location could not be confirmed. A reading whose error reaches no area is outside, whatever the policy; a submission that arrives without a reading follows \"Browser does not support geolocation\". With \"GPS or IP\", a visitor whose GPS is inside passes even when their IP resolves elsewhere, which mobile networks often do."
+msgstr ""
+
+msgid "When the check-in asks for a location, the page runs the same checks a certificate form runs before it is used: a page not served over HTTPS is stopped, because the browser gives no location there, and an app's own browser (Instagram, WhatsApp and others) is asked to open the page in the phone's browser, with \"Continue anyway\". A location already refused in the browser is said at once, before the tap. A reading is judged against each area as on a certificate form, with the same accepted error; one that cannot tell inside from outside is refused; there is no \"When GPS fails\" policy here: without a usable location there is no check-in, and the organiser can mark attendance by hand. Each stop is written to the Activity Log as a pre-flight block naming the booking."
+msgstr ""
+
+msgid "GPS Cache and Precision"
+msgstr ""
+
+msgid "How long the browser keeps a GPS reading (browser localStorage, always on), and how precise a reading must be to count as inside an area."
+msgstr ""
+
+msgid "Accepted error"
+msgstr ""
+
+msgid "× the area's radius"
+msgstr ""
+
+msgid "Each reading comes with a margin of error. Each area is judged with its own radius: a reading counts as inside when its point is inside the area and its error is at most this many times the area's radius. When its error circle still reaches an area but the reading is not inside any, the \"Location unavailable\" case of the fallback below decides. When it reaches no area, the visitor is outside."
+msgstr ""
+
+msgid "Range: 1 to 3. Default: 1.5."
+msgstr ""
+
+msgid "Keep the default unless you have a measured reason to change it. A higher value lets a reading count as inside while the visitor may be outside the area; a lower one refuses phones whose GPS is good but not exact."
+msgstr ""
+
+msgid "Android: open the Downloads folder, or use the Files app and look for \"%s\"."
+msgstr ""
+
+msgid "Android: open the Downloads folder, or use the Files app."
+msgstr ""
+
+msgid "Your location was accepted, but with low precision (about %s m). For more precision, turn on precise location or use your phone."
+msgstr ""
+
+msgid "A reading accepted as inside whose error is above a share of the area's radius (the Low-precision notice under Settings → Geolocation → GPS Cache and Precision, 0.5 by default) opens the form with a notice saying the location was accepted with low precision and giving the error in metres. It changes no decision."
+msgstr ""
+
+msgid "Low-precision notice"
+msgstr ""
+
+msgid "When a reading is accepted as inside but its error is above this many times the area's radius, the form opens with a notice saying the location was accepted with low precision, and its error in metres. It changes no decision: only what the visitor is told."
+msgstr ""
+
+msgid "Range: 0.1 to 1. Default: 0.5."
+msgstr ""
+
+msgid "Keep the default unless you have a measured reason to change it. A lower value shows the notice to visitors whose GPS is good, who learn to ignore it; a higher one hides it from readings that only barely held."
+msgstr ""
+
+msgid "About %1$s m (precise), read in %2$s s"
+msgstr ""
+
+msgid "About %1$s m (low precision, but accepted), read in %2$s s"
+msgstr ""
+
+msgid "About %1$s m (too imprecise to confirm the area), read in %2$s s"
+msgstr ""
+
+msgid "In an area of %s m your location would be accepted, but with low precision. For more precision, turn on precise location or use your phone."
+msgstr ""
+
+msgid "With this precision, a form with an area of %s m cannot confirm where you are, and access depends on the form's policy. Turn on precise location (Google Location Accuracy on Android, Precise Location on iPhone) or use a phone with GPS."
+msgstr ""
+
+msgid "The location row grades how precise the reading is against a reference area of 50 m, by the same precision settings the forms use on the Geolocation tab: precise up to the share that triggers the low-precision notice (25 m by default), accepted with low precision up to the tolerance (75 m by default), and too imprecise to confirm the area beyond it, each with an information button saying what to do. Numbers carry one decimal when they have one. A section that opened by itself closes again once its checks pass, as the device settings do after a precise reading, unless the visitor opened or closed it."
+msgstr ""
+
+msgid "Holidays, global closures and the weekdays the space is closed are left out instead of refusing the booking."
+
+msgid "(optional: read only when the date comes from a column of the file)"
+msgstr ""
+
+msgid "The template ends with an optional issue_date column (YYYY-MM-DD or DD/MM/YYYY). It is read only when the issue date comes from a column of the file, where it is chosen by default, and ignored otherwise."
 msgstr ""

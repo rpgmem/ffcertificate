@@ -100,6 +100,9 @@ class TypographyTokensTest extends TestCase {
 
 		// A badge that has to fit inside the day cell, with its own responsive step.
 		'ffc-audience.css'                 => 2,
+		'ffc-audience-checkin.css'         => 0,
+		'ffc-audience-attendance.css'      => 0,
+
 
 		// One `em` value relative to the parent on purpose: the component is
 		// dropped into contexts of different sizes and follows each one (the
@@ -108,6 +111,7 @@ class TypographyTokensTest extends TestCase {
 		// that makes a tag under `.ffc-shortcode` take its parent's step
 		// instead of the theme's. `SafetyNetTypographyTest` pins it.
 		'ffc-common.css'                   => 2,
+		'ffc-device-check.css'             => 0,
 
 		// `ffc-pdf-core.css` stays entirely literal, for two distinct reasons.
 		// The six h1-h6 rules redeclare the user agent's default sizes

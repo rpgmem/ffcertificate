@@ -233,6 +233,112 @@ class Geofence {
 	}
 
 	/**
+	 * The geofence check of a submission (#2040): the date window, then the
+	 * GPS reading the browser sent and the IP, combined the way the form
+	 * asks ("GPS or IP", or "GPS and IP").
+	 *
+	 * The GPS half used to be the browser's alone, so a forged request or a
+	 * script turned off passed a GPS-only form, and the IP half was checked
+	 * on its own whatever the form's logic said, so "GPS or IP" behaved as
+	 * "GPS and IP". The browser still runs its check first, to say so before
+	 * the visitor fills the form.
+	 *
+	 * @param int                  $form_id   Form ID.
+	 * @param array<string, mixed> $gps_input What the browser sent, from {@see GpsReading::from_request()}.
+	 * @return array{allowed: bool, reason: string, message: string}
+	 */
+	public static function check_submission( int $form_id, array $gps_input ): array {
+		$config = self::get_form_config( $form_id );
+		if ( empty( $config ) ) {
+			return array(
+				'allowed' => true,
+				'reason'  => 'no_restrictions',
+				'message' => '',
+			);
+		}
+
+		$context  = array( 'form_id' => $form_id );
+		$datetime = self::check_access( $config, array( 'check_geo' => false ), $context );
+		if ( ! $datetime['allowed'] ) {
+			return array(
+				'allowed' => false,
+				'reason'  => (string) ( $datetime['reason'] ?? '' ),
+				'message' => (string) ( $datetime['message'] ?? '' ),
+			);
+		}
+
+		$use_gps = $config['geo_enabled'] && $config['geo_gps_enabled'];
+		$use_ip  = $config['geo_enabled'] && $config['geo_ip_enabled'];
+		if ( ( ! $use_gps && ! $use_ip ) || self::should_bypass_geo() ) {
+			return array(
+				'allowed' => true,
+				'reason'  => 'validated',
+				'message' => '',
+			);
+		}
+
+		$gps = $use_gps
+			? GpsReading::decide(
+				self::gps_areas( $config ),
+				array(
+					'reading' => $gps_input['reading'] ?? null,
+					'status'  => (string) ( $gps_input['status'] ?? '' ),
+				),
+				self::gps_fallback_cases(),
+				\FreeFormCertificate\Settings\GeolocationSettingsReader::gps_cache_ttl(),
+				\FreeFormCertificate\Settings\GeolocationSettingsReader::gps_accuracy_tolerance()
+			)
+			: null;
+		$ip  = $use_ip ? self::validate_geolocation( $config ) : null;
+
+		if ( null !== $gps && null !== $ip ) {
+			$passed = 'and' === ( $config['geo_gps_ip_logic'] ?? 'or' )
+				? $gps['pass'] && ! empty( $ip['valid'] )
+				: $gps['pass'] || ! empty( $ip['valid'] );
+		} else {
+			$passed = null !== $gps ? $gps['pass'] : ! empty( $ip['valid'] );
+		}
+
+		if ( $passed ) {
+			return array(
+				'allowed' => true,
+				'reason'  => 'validated',
+				'message' => '',
+			);
+		}
+
+		// The reason names the GPS verdict when GPS failed, so the log tells
+		// an outside reading from an imprecise or missing one.
+		if ( null !== $gps && ! $gps['pass'] ) {
+			$reason  = $gps['reason'];
+			$message = GpsReading::REASON_OUTSIDE === $reason
+				? self::message_or_default( $config, 'msg_geo_blocked', __( 'This form is not available in your location.', 'ffcertificate' ) )
+				: self::message_or_default( $config, 'msg_geo_error', __( 'Unable to determine your location.', 'ffcertificate' ) );
+		} else {
+			$reason  = 'geolocation_invalid';
+			$message = (string) ( $ip['message'] ?? '' );
+		}
+
+		self::log_access_denied( $context, $reason );
+
+		return array(
+			'allowed' => false,
+			'reason'  => $reason,
+			'message' => $message,
+		);
+	}
+
+	/**
+	 * A form's GPS areas, from its registered locations or its own text.
+	 *
+	 * @param array<string, mixed> $config Normalized geofence config.
+	 * @return array<int, array{lat: float, lng: float, radius: float}>
+	 */
+	public static function gps_areas( array $config ): array {
+		return self::parse_areas( self::resolve_areas_text( $config, 'geo_area_source', 'geo_area_location_ids', 'geo_areas' ) );
+	}
+
+	/**
 	 * Return the operator-configured block message, or a phase-specific
 	 * default when it's missing OR empty.
 	 *
@@ -422,10 +528,11 @@ class Geofence {
 			return array(
 				'valid'   => false,
 				'message' => self::message_or_default( $config, 'msg_geo_blocked', __( 'This form is not available in your location.', 'ffcertificate' ) ),
+				// The position stays out of the result: the denial is logged
+				// from it (#2040).
 				'details' => array(
-					'reason'        => 'outside_allowed_areas',
-					'user_location' => $user_location,
-					'areas_count'   => count( $check_areas ),
+					'reason'      => 'outside_allowed_areas',
+					'areas_count' => count( $check_areas ),
 				),
 			);
 		}
@@ -433,7 +540,7 @@ class Geofence {
 		return array(
 			'valid'   => true,
 			'message' => '',
-			'details' => array( 'user_location' => $user_location ),
+			'details' => array( 'reason' => 'inside_allowed_areas' ),
 		);
 	}
 
@@ -650,7 +757,7 @@ class Geofence {
 	 * Format: "lat, lng, radius" (one per line)
 	 *
 	 * @param string $areas_text Raw textarea content.
-	 * @return array<int, array<string, float>> Array of areas with 'lat', 'lng', 'radius'
+	 * @return array<int, array{lat: float, lng: float, radius: float}> Areas with 'lat', 'lng', 'radius'.
 	 */
 	public static function parse_areas( string $areas_text ): array {
 		if ( empty( $areas_text ) ) {
@@ -777,43 +884,7 @@ class Geofence {
 		// Get global geolocation settings.
 		$gps_cache_ttl = \FreeFormCertificate\Settings\GeolocationSettingsReader::gps_cache_ttl();
 
-		// Compose the per-case allow/block map for the frontend. Source
-		// of truth is `gps_fallback_cases` from the settings tab; if it's
-		// missing (pre-fallback-presets installs that haven't re-saved
-		// settings yet) fall back to the legacy single-string field. The
-		// hybrid defaults below are kept inline (rather than calling
-		// TabGeolocation::preset_to_cases) so this method has no
-		// settings-tab dependency at unit-test time.
-		$cases = \FreeFormCertificate\Settings\GeolocationSettingsReader::get( 'gps_fallback_cases' );
-		if ( ! is_array( $cases ) ) {
-			$legacy = \FreeFormCertificate\Settings\GeolocationSettingsReader::get( 'gps_fallback', '' );
-			if ( 'block' === $legacy ) {
-				$cases = array(
-					'permission_denied'    => 'block',
-					'no_api'               => 'block',
-					'position_unavailable' => 'block',
-					'timeout'              => 'block',
-					'safety_timer'         => 'block',
-				);
-			} elseif ( 'allow' === $legacy ) {
-				$cases = array(
-					'permission_denied'    => 'allow',
-					'no_api'               => 'allow',
-					'position_unavailable' => 'allow',
-					'timeout'              => 'allow',
-					'safety_timer'         => 'allow',
-				);
-			} else {
-				// Hybrid: user-driven failures allow, technical block.
-				$cases = array(
-					'permission_denied'    => 'allow',
-					'no_api'               => 'allow',
-					'position_unavailable' => 'block',
-					'timeout'              => 'block',
-					'safety_timer'         => 'block',
-				);
-			}
-		}
+		$cases        = self::gps_fallback_cases();
 		$gps_fallback = array(
 			'permissionDenied'    => 'allow' === ( $cases['permission_denied'] ?? 'block' ),
 			'noApi'               => 'allow' === ( $cases['no_api'] ?? 'block' ),
@@ -856,6 +927,8 @@ class Geofence {
 					'gpsFallback'    => $gps_fallback, // Per-case allow/block map — honoured by frontend on GPS failure.
 					'cacheEnabled'   => true, // Always enable frontend cache.
 					'cacheTtl'       => $gps_cache_ttl, // From global settings.
+					'tolerance'      => \FreeFormCertificate\Settings\GeolocationSettingsReader::gps_accuracy_tolerance(), // Error allowed, × an area's radius (#2070).
+					'weakShare'      => \FreeFormCertificate\Settings\GeolocationSettingsReader::gps_weak_share(), // Above it an accepted reading is called weak (#2072).
 				),
 				'global'      => array(
 					'debug' => class_exists( '\FreeFormCertificate\Core\Debug' )
@@ -865,6 +938,57 @@ class Geofence {
 		);
 
 		return $frontend_config;
+	}
+
+	/**
+	 * The "When GPS fails" policy: each failure case and whether it lets the
+	 * visitor through. The browser applies it before the form shows and the
+	 * server applies it to the submission (#2040), so both read it here.
+	 *
+	 * @return array<string, string> Case => allow|block.
+	 */
+	public static function gps_fallback_cases(): array {
+		// Source of truth is `gps_fallback_cases` from the settings tab; if
+		// it's missing (pre-fallback-presets installs that haven't re-saved
+		// settings yet) fall back to the legacy single-string field. The
+		// hybrid defaults below are kept inline (rather than calling
+		// TabGeolocation::preset_to_cases) so this method has no
+		// settings-tab dependency at unit-test time.
+		$cases = \FreeFormCertificate\Settings\GeolocationSettingsReader::get( 'gps_fallback_cases' );
+		if ( ! is_array( $cases ) ) {
+			$legacy = \FreeFormCertificate\Settings\GeolocationSettingsReader::get( 'gps_fallback', '' );
+			if ( 'block' === $legacy ) {
+				$cases = array(
+					'permission_denied'    => 'block',
+					'no_api'               => 'block',
+					'position_unavailable' => 'block',
+					'timeout'              => 'block',
+					'safety_timer'         => 'block',
+				);
+			} elseif ( 'allow' === $legacy ) {
+				$cases = array(
+					'permission_denied'    => 'allow',
+					'no_api'               => 'allow',
+					'position_unavailable' => 'allow',
+					'timeout'              => 'allow',
+					'safety_timer'         => 'allow',
+				);
+			} else {
+				// Hybrid: user-driven failures allow, technical block.
+				$cases = array(
+					'permission_denied'    => 'allow',
+					'no_api'               => 'allow',
+					'position_unavailable' => 'block',
+					'timeout'              => 'block',
+					'safety_timer'         => 'block',
+				);
+			}
+		}
+		$policy = array();
+		foreach ( GpsReading::CASES as $case ) {
+			$policy[ $case ] = 'allow' === ( $cases[ $case ] ?? 'block' ) ? 'allow' : 'block';
+		}
+		return $policy;
 	}
 
 	/**

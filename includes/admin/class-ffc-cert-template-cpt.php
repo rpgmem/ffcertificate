@@ -71,6 +71,13 @@ class CertTemplateCpt {
 	public const META_BG_IMAGE = '_ffc_template_bg_image';
 
 	/**
+	 * Meta key holding the page colour a model was saved with, as `#rrggbb`
+	 * (mirrors `_ffc_form_config['bg_color']`). Absent on the shipped defaults
+	 * and on models saved before it existed, which read as the default white.
+	 */
+	public const META_BG_COLOR = '_ffc_template_bg_color';
+
+	/**
 	 * Meta key discriminating which plugin surface a template serves (#945):
 	 * `certificate` (the original pool contents) or `appointment_receipt` (the
 	 * self-scheduling comprovante). An **absent** value counts as `certificate`,

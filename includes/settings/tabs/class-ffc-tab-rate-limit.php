@@ -57,18 +57,22 @@ class TabRateLimit extends SettingsTab {
 	private function get_settings(): array {
 		$defaults = array(
 			'ip'        => array(
-				'enabled'                => true,
-				'max_per_hour'           => 5,
-				'max_per_day'            => 20,
-				'cooldown_seconds'       => 60,
-				'apply_to'               => 'all',
-				'message'                => __( 'Limit reached. Please wait {time}.', 'ffcertificate' ),
+				'enabled'                     => true,
+				'max_per_hour'                => 5,
+				'max_per_day'                 => 20,
+				'cooldown_seconds'            => 60,
+				'apply_to'                    => 'all',
+				'message'                     => __( 'Limit reached. Please wait {time}.', 'ffcertificate' ),
 				// Challenges the ALTCHA endpoint issues per address per
 				// window (#1111). Lives in the IP group because that is
 				// what it limits, and next to the submission cap an
 				// administrator raises for the same NAT reason. 0 = no cap.
-				'captcha_max_per_window' => \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_CAP_DEFAULT,
-				'captcha_window_seconds' => \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_WINDOW_DEFAULT,
+				'captcha_max_per_window'      => \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_CAP_DEFAULT,
+				'captcha_window_seconds'      => \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_WINDOW_DEFAULT,
+				// Device-test requests per address per window (#2064), the
+				// same per-address shape as the captcha cap. 0 = no cap.
+				'device_check_max_per_window' => \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_CAP_DEFAULT,
+				'device_check_window_seconds' => \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_WINDOW_DEFAULT,
 			),
 			'email'     => array(
 				'enabled'        => true,
@@ -217,22 +221,34 @@ class TabRateLimit extends SettingsTab {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
 		$settings = array(
 			'ip'        => array(
-				'enabled'                => isset( $_POST['ip_enabled'] ),
-				'max_per_hour'           => $this->post_int_or_current( 'ip_max_per_hour', $this->stored_int( $stored, 'ip', 'max_per_hour', 5 ), 1 ),
-				'max_per_day'            => $this->post_int_or_current( 'ip_max_per_day', $this->stored_int( $stored, 'ip', 'max_per_day', 20 ), 1 ),
-				'cooldown_seconds'       => $this->post_int_or_current( 'ip_cooldown_seconds', $this->stored_int( $stored, 'ip', 'cooldown_seconds', 60 ), 1 ),
-				'apply_to'               => \FreeFormCertificate\Core\RequestInput::get_post_string( 'ip_apply_to', 'all' ),
-				'message'                => sanitize_textarea_field( wp_unslash( $_POST['ip_message'] ?? '' ) ),
-				'captcha_max_per_window' => \FreeFormCertificate\Core\Captcha\CaptchaSettings::clamp_mint_cap(
+				'enabled'                     => isset( $_POST['ip_enabled'] ),
+				'max_per_hour'                => $this->post_int_or_current( 'ip_max_per_hour', $this->stored_int( $stored, 'ip', 'max_per_hour', 5 ), 1 ),
+				'max_per_day'                 => $this->post_int_or_current( 'ip_max_per_day', $this->stored_int( $stored, 'ip', 'max_per_day', 20 ), 1 ),
+				'cooldown_seconds'            => $this->post_int_or_current( 'ip_cooldown_seconds', $this->stored_int( $stored, 'ip', 'cooldown_seconds', 60 ), 1 ),
+				'apply_to'                    => \FreeFormCertificate\Core\RequestInput::get_post_string( 'ip_apply_to', 'all' ),
+				'message'                     => sanitize_textarea_field( wp_unslash( $_POST['ip_message'] ?? '' ) ),
+				'captcha_max_per_window'      => \FreeFormCertificate\Core\Captcha\CaptchaSettings::clamp_mint_cap(
 					$this->post_int_or_current(
 						'ip_captcha_max_per_window',
 						$this->stored_int( $stored, 'ip', 'captcha_max_per_window', \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_CAP_DEFAULT )
 					)
 				),
-				'captcha_window_seconds' => \FreeFormCertificate\Core\Captcha\CaptchaSettings::clamp_mint_window(
+				'captcha_window_seconds'      => \FreeFormCertificate\Core\Captcha\CaptchaSettings::clamp_mint_window(
 					$this->post_int_or_current(
 						'ip_captcha_window_seconds',
 						$this->stored_int( $stored, 'ip', 'captcha_window_seconds', \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_WINDOW_DEFAULT )
+					)
+				),
+				'device_check_max_per_window' => \FreeFormCertificate\Settings\RateLimitSettingsReader::clamp_device_check_cap(
+					$this->post_int_or_current(
+						'ip_device_check_max_per_window',
+						$this->stored_int( $stored, 'ip', 'device_check_max_per_window', \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_CAP_DEFAULT )
+					)
+				),
+				'device_check_window_seconds' => \FreeFormCertificate\Settings\RateLimitSettingsReader::clamp_device_check_window(
+					$this->post_int_or_current(
+						'ip_device_check_window_seconds',
+						$this->stored_int( $stored, 'ip', 'device_check_window_seconds', \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_WINDOW_DEFAULT )
 					)
 				),
 			),

@@ -74,19 +74,27 @@ final class AssetRegistry {
 		'ffc-working-hours'         => array( 'assets/js/ffc-working-hours', array( 'jquery', 'ffc-core' ) ),
 		'ffc-audience'              => array( 'assets/js/ffc-audience', array( 'jquery', 'ffc-core' ) ),
 		// ffc-core dep: ffc-geofence-frontend.js calls FFC.request().
-		'ffc-geofence-frontend'     => array( 'assets/js/ffc-geofence-frontend', array( 'jquery', 'ffc-core' ) ),
+		// ffc-preflight dep: it registers its steps on the pre-flight queue
+		// and runs it (#2030).
+		'ffc-geofence-frontend'     => array( 'assets/js/ffc-geofence-frontend', array( 'jquery', 'ffc-core', 'ffc-preflight' ) ),
 		// Validation modules split out of the former monolith. Each extends
 		// window.FFCGeofence (Object.assign), so each loads after it.
 		'ffc-geofence-datetime'     => array( 'assets/js/ffc-geofence-datetime', array( 'jquery', 'ffc-geofence-frontend' ) ),
 		'ffc-geofence-gps'          => array( 'assets/js/ffc-geofence-gps', array( 'jquery', 'ffc-geofence-frontend' ) ),
-		'ffc-geofence-preflight'    => array( 'assets/js/ffc-geofence-preflight', array( 'jquery', 'ffc-geofence-frontend' ) ),
+		'ffc-geofence-permission'   => array( 'assets/js/ffc-geofence-permission', array( 'jquery', 'ffc-geofence-frontend' ) ),
 		'ffc-qr-raster'             => array( 'assets/js/ffc-qr-raster', array() ),
 		'ffc-qr-design'             => array( 'assets/js/ffc-qr-design', array( 'jquery', 'ffc-core' ) ),
 		// `ffc-core` carries `window.FFC.request()`, which the QR-download click
 		// handler calls; declaring it keeps the load order through JS-combining
 		// cache plugins that would otherwise drop it from the chain (#367).
 		'ffc-url-shortener-admin'   => array( 'assets/js/ffc-url-shortener-admin', array( 'jquery', 'ffc-core', 'ffc-admin-js', 'ffc-qr-raster' ) ),
-		'ffc-pdf-generator'         => array( 'assets/js/ffc-pdf-generator', array( 'jquery', 'html2canvas', 'jspdf' ) ),
+		// ffc-core dep: the PDF path asks FFC.Platform which browser it is in (#2030).
+		'ffc-pdf-generator'         => array( 'assets/js/ffc-pdf-generator', array( 'jquery', 'ffc-core', 'html2canvas', 'jspdf' ) ),
+		'ffc-layout-preview'        => array( 'assets/js/ffc-layout-preview', array( 'html2canvas' ) ),
+		'ffc-bulk-issue'            => array( 'assets/js/ffc-bulk-issue', array() ),
+		// The boot watchdog of the certificate form (#2030). No dependencies:
+		// it has to run when the scripts it watches did not load.
+		'ffc-preflight'             => array( 'assets/js/ffc-preflight', array() ),
 	);
 
 	/**
@@ -130,7 +138,9 @@ final class AssetRegistry {
 		Captcha\AltchaCaptcha::register_assets();
 
 		// Dynamic fragments: refresh captcha + nonces on cached pages (v4.12.0).
-		\wp_register_script( 'ffc-dynamic-fragments', FFC_PLUGIN_URL . "assets/js/ffc-dynamic-fragments{$s}.js", array(), FFC_VERSION, true );
+		// ffc-preflight dep: the refresh reports to the boot watchdog (#2030),
+		// which therefore has to be on the page first.
+		\wp_register_script( 'ffc-dynamic-fragments', FFC_PLUGIN_URL . "assets/js/ffc-dynamic-fragments{$s}.js", array( 'ffc-preflight' ), FFC_VERSION, true );
 		\wp_localize_script(
 			'ffc-dynamic-fragments',
 			'ffcDynamic',
@@ -308,12 +318,15 @@ final class AssetRegistry {
 	 *
 	 * The file name carries the version, so bumping the constant without
 	 * renaming the file 404s loudly instead of serving the old bundle (#1203).
+	 * The `html2canvas` handle serves html2canvas-pro: it names the API the
+	 * bundle exposes (`window.html2canvas`), which a third-party script may
+	 * depend on, not the fork that provides it (#1952).
 	 *
 	 * @return array<non-empty-string, array{0: non-empty-string, 1: string}>
 	 */
 	private static function bundles(): array {
 		return array(
-			'html2canvas' => array( FFC_PLUGIN_URL . 'libs/js/html2canvas-' . FFC_HTML2CANVAS_VERSION . '.min.js', FFC_HTML2CANVAS_VERSION ),
+			'html2canvas' => array( FFC_PLUGIN_URL . 'libs/js/html2canvas-pro-' . FFC_HTML2CANVAS_PRO_VERSION . '.min.js', FFC_HTML2CANVAS_PRO_VERSION ),
 			'jspdf'       => array( FFC_PLUGIN_URL . 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js', FFC_JSPDF_VERSION ),
 		);
 	}

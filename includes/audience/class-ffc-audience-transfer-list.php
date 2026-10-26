@@ -66,12 +66,43 @@ final class AudienceTransferList {
 	 * @return void
 	 */
 	public static function render( array $selected_ids, string $field_name, bool $required ): void {
-		$flat          = self::flatten( AudienceReader::get_hierarchical( 'active' ) );
+		$flat          = self::with_member_counts( self::flatten( AudienceReader::get_hierarchical( 'active' ) ), AudienceReader::get_member_ids_by_audience() );
 		$selected_ids  = array_values( array_unique( array_filter( array_map( 'intval', $selected_ids ), static fn( int $id ): bool => $id > 0 ) ) );
 		$flat_json     = wp_json_encode( $flat );
 		$selected_json = wp_json_encode( $selected_ids );
 
 		include FFC_PLUGIN_DIR . 'templates/admin/audience/transfer-list.php';
+	}
+
+	/**
+	 * Give each audience of a flattened tree the number of people it reaches:
+	 * its own members and those of every sub-audience, each person once.
+	 *
+	 * That is the count a choice means, because choosing an audience brings
+	 * its whole subtree and every consumer includes sub-audience members.
+	 *
+	 * @param list<array{id: int, name: string, color: string, parent: int, depth: int, children: list<int>}> $flat    {@see flatten()}.
+	 * @param array<int, list<int>>                                                                           $members {@see AudienceReader::get_member_ids_by_audience()}.
+	 * @return list<array{id: int, name: string, color: string, parent: int, depth: int, children: list<int>, members: int}>
+	 */
+	public static function with_member_counts( array $flat, array $members ): array {
+		// Children follow their parent in the flat list, so walking it backwards
+		// meets every subtree before the audience that holds it.
+		$reach = array();
+		foreach ( array_reverse( $flat ) as $node ) {
+			$people = array_fill_keys( $members[ $node['id'] ] ?? array(), true );
+			foreach ( $node['children'] as $child_id ) {
+				$people += $reach[ $child_id ] ?? array();
+			}
+			$reach[ $node['id'] ] = $people;
+		}
+
+		$out = array();
+		foreach ( $flat as $node ) {
+			$node['members'] = count( $reach[ $node['id'] ] );
+			$out[]           = $node;
+		}
+		return $out;
 	}
 
 	/**

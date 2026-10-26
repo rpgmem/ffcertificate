@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</tr>
 			</thead>
 			<tbody>
-				<tr><td><strong><?php esc_html_e( 'Certificate', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'The certificate PDF a form issues on submission (the default kind). Three ready-made certificate models ship.', 'ffcertificate' ); ?></td></tr>
+				<tr><td><strong><?php esc_html_e( 'Certificate', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'The certificate PDF a form issues on submission (the default kind). Six ready-made certificate models ship.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Appointment receipt', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'The Personal Calendars appointment receipt. Two defaults ship — Regular and Custom.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Record', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'The reregistration record PDF.', 'ffcertificate' ); ?></td></tr>
 			</tbody>

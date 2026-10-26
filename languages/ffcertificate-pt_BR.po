@@ -1717,10 +1717,6 @@ msgstr "Todas as categorias"
 msgid "All Day"
 msgstr "Dia Todo"
 
-#: includes/audience/class-ffc-audience-shortcode.php:351
-msgid "All day event"
-msgstr "Evento que dura o dia todo"
-
 #: includes/settings/views/documentation/email-texts-hub.php:45
 msgid "All default emails follow one skeleton so the communication reads as one voice:"
 msgstr "Todos os e-mails padrão seguem uma mesma estrutura básica, para que a comunicação transmita uma voz única:"
@@ -1990,10 +1986,6 @@ msgstr "E - Exigir que tanto o GPS quanto o IP sejam válidos (mais rigoroso)"
 #: includes/settings/views/documentation/forms-schedule.php:54
 msgid "and must be enabled there per form."
 msgstr "e deve ser habilitado lá, por formulário."
-
-#: templates/submission-success.php:102
-msgid "Android: open the Downloads folder, or use the Files app and look for \"certificate.pdf\"."
-msgstr "Android: abra a pasta Downloads ou use um aplicativo que acesse os Arquivos e procure por \"certificate.pdf\"."
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:123
 msgid "Another operator changed this notice's status moments ago. Reload to see the current state."
@@ -2826,6 +2818,14 @@ msgstr "Imagem de segundo plano selecionada!"
 #: includes/admin/class-ffc-form-editor-layout-metabox.php:118 includes/admin/class-ffc-cert-template-admin-screen.php:780
 msgid "Background Image URL:"
 msgstr "URL da Imagem de Segundo Plano:"
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+msgid "Background Color:"
+msgstr "Cor de fundo:"
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+msgid "Painted behind the background image, and alone when there is no image."
+msgstr "Pintada atrás da imagem de fundo, e sozinha quando não há imagem."
 
 #: includes/admin/class-ffc-admin-assets-manager.php:601
 msgid "Bad request. Check console."
@@ -3840,6 +3840,18 @@ msgstr "Modelo de certificado 2"
 msgid "Certificate model 3"
 msgstr "Modelo de certificado 3"
 
+#: includes/admin/class-ffc-cert-template-seeder.php:277
+msgid "Certificate model 4"
+msgstr "Modelo de certificado 4"
+
+#: includes/admin/class-ffc-cert-template-seeder.php:283
+msgid "Certificate model 5"
+msgstr "Modelo de certificado 5"
+
+#: includes/admin/class-ffc-cert-template-seeder.php:289
+msgid "Certificate model 6"
+msgstr "Modelo de certificado 6"
+
 #: includes/api/class-ffc-operator-certificates-rest-controller.php:288
 msgid "Certificate not found"
 msgstr "Certificado não encontrado"
@@ -4368,10 +4380,6 @@ msgstr "Configure um SMTP personalizado com um provedor real — o servidor padr
 msgid "Configure external IP geolocation services for backend validation. These services detect user location by IP address."
 msgstr "Configure serviços externos de geolocalização por IP para validação no backend. Esses serviços detectam a localização do usuário pelo endereço IP."
 
-#: includes/settings/views/ffc-tab-geolocation.php:334
-msgid "Configure GPS location caching on the frontend (browser localStorage). GPS cache is always enabled for better performance."
-msgstr "Configure o cache de localização GPS no frontend (armazenamento local do navegador). O cache de GPS está sempre ativado para melhor desempenho."
-
 #: templates/admin/audience/self-scheduling-tab.php:57
 msgid "Configure how private calendars are displayed to non-logged-in visitors."
 msgstr "Configure como os calendários privados são exibidos para visitantes que não fizeram login."
@@ -4493,11 +4501,11 @@ msgstr "Consentimento"
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:368
 msgid "Consent given"
-msgstr "Consentimento dado"
+msgstr "Consentimento registrado"
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:375
 msgid "Consent given:"
-msgstr "Consentimento concedido:"
+msgstr "Consentimento registrado:"
 
 #: includes/admin/class-ffc-submissions-export-source.php:369 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:382
 msgid "Consent IP"
@@ -6242,10 +6250,6 @@ msgstr "Baixar submissões (CSV)"
 msgid "Download Limit"
 msgstr "Limite de Download"
 
-#: includes/frontend/class-ffc-frontend.php:181
-msgid "Download may fail in this app"
-msgstr "O download pode falhar neste aplicativo"
-
 #: includes/user-dashboard/class-ffc-capability-catalog.php:122
 msgid "Download own certificates"
 msgstr "Baixe seus próprios certificados"
@@ -7033,6 +7037,26 @@ msgstr "Fim"
 #: templates/admin/reregistration/form.php:47
 msgid "End Date"
 msgstr "Data de Término"
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "%1$s – %2$s"
+msgstr "%1$s – %2$s"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Hours on each day"
+msgstr "Horário em cada dia"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "The same hours every day"
+msgstr "O mesmo horário todos os dias"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Already booked on: %s"
+msgstr "Já reservado em: %s"
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "A booking can cover a range of days: set an end date in the booking form and the booking takes every day from its date to that one. The hours on each day are either the same every day, or run from the start time on the first day to the end time on the last, with the whole opening window in between. Every day is checked against the rules and for conflicts; a clash on any day refuses the whole booking, and the form lists the days already taken. A holiday or a weekday the space is closed inside the range refuses the booking unless \"Skip blocked days\" is ticked, and then those days are left out without a warning and recorded as skipped. A range covers at most 31 days, and an all-day booking covers one day."
+msgstr "Um agendamento pode cobrir um intervalo de dias: informe uma data final no formulário de agendamento e ele ocupa todos os dias da data inicial até essa. Os horários de cada dia são iguais todos os dias, ou vão do horário inicial no primeiro dia ao horário final no último, com a janela de funcionamento inteira entre eles. Cada dia é verificado contra as regras e quanto a conflitos; um conflito em qualquer dia recusa o agendamento inteiro, e o formulário lista os dias já ocupados. Um feriado ou um dia da semana em que o espaço fecha dentro do intervalo recusa o agendamento, a menos que \"Pular dias bloqueados\" esteja marcado; nesse caso esses dias ficam de fora sem aviso e são registrados como pulados. Um intervalo cobre no máximo 31 dias, e um agendamento de dia inteiro cobre apenas um dia."
 
 #: includes/frontend/class-ffc-frontend.php:464
 msgid "End date"
@@ -8729,10 +8753,6 @@ msgstr "GPS + Lógica IP"
 msgid "GPS Cache Duration (TTL)"
 msgstr "Duração do cache GPS (TTL)"
 
-#: includes/settings/views/ffc-tab-geolocation.php:332
-msgid "GPS Cache Settings"
-msgstr "Configurações de Cache do GPS"
-
 #: includes/settings/views/documentation/config-geolocation.php:38
 msgid "GPS cache TTL"
 msgstr "Cache GPS TTL"
@@ -9551,6 +9571,26 @@ msgstr "Dados inválidos."
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:88
 msgid "Invalid date format."
 msgstr "Formato de data inválido."
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "The end date must be a valid date on or after the start date."
+msgstr "A data final precisa ser uma data válida, igual ou posterior à data inicial."
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "An all-day booking covers one day."
+msgstr "Uma reserva de dia inteiro cobre apenas um dia."
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "A booking can cover at most %d days."
+msgstr "Uma reserva pode cobrir no máximo %d dias."
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "Invalid time mode."
+msgstr "Modo de horário inválido."
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "Every day of the range is blocked."
+msgstr "Todos os dias do intervalo estão bloqueados."
 
 #: includes/reregistration/class-ffc-reregistration-data-processor.php:217
 msgid "Invalid department for the selected division."
@@ -12040,10 +12080,6 @@ msgstr "Abra e salve a tela de edição da submissão."
 msgid "Open form"
 msgstr "Acesse formulário"
 
-#: includes/frontend/class-ffc-frontend.php:183
-msgid "Open in browser"
-msgstr "Abrir no navegador"
-
 #: includes/frontend/class-ffc-frontend.php:564
 msgid "Open participant form"
 msgstr "Abrir formulário do participante"
@@ -12107,6 +12143,10 @@ msgstr "API do Operador (emissão autenticada)"
 #: includes/admin/class-ffc-admin-activity-log-page.php:303
 msgid "Operator Certificate Issued"
 msgstr "Certificado de Operador Emitido"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Bulk Issue Finished"
+msgstr "Emissão em lote concluída"
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:133
 msgid "Operator features"
@@ -16593,10 +16633,6 @@ msgstr "Tag"
 msgid "tag in the page head and the HTTP Link header, and it also backs the editor's \"Get Shortlink\" button and REST. Expose is off by default (opt-in), depends on Shorten, and only takes effect once a short URL exists for the page — otherwise WordPress falls back to its native shortlink."
 msgstr "a tag no cabeçalho da página e o cabeçalho HTTP Link; além disso, ela dá suporte ao botão \"Obter Link Curto\" do editor e à API REST. O recurso \"Expose\" vem desativado por padrão (requer ativação), depende do plugin Shorten e só entra em ação quando já existe uma URL curta para a página — caso contrário, o WordPress utiliza seu próprio link curto nativo."
 
-#: includes/frontend/class-ffc-frontend.php:185
-msgid "Tap the menu icon (•••) at the bottom of the app and choose \"Open in Safari\"."
-msgstr "Toque no ícone de menu (•••) na parte inferior do aplicativo e escolha \"Abrir no Safari\"."
-
 #: includes/frontend/class-ffc-frontend.php:333
 msgid "Tap to open the PDF"
 msgstr "Toque para abrir o PDF"
@@ -19163,8 +19199,8 @@ msgid "Warning"
 msgstr "Aviso"
 
 #: includes/admin/class-ffc-form-editor-save-handler.php:629
-msgid "Warning! Missing required tags in PDF Layout:"
-msgstr "Atenção! Faltam tags obrigatórias no layout do PDF:"
+msgid "The form was not saved. The PDF layout lacks these required tags:"
+msgstr "O formulário não foi salvo. O layout do PDF não tem estas tags obrigatórias:"
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:118 includes/admin/class-ffc-admin-submission-edit-page.php:168
 msgid "Warning:"
@@ -19379,8 +19415,8 @@ msgid "When checked, next submission will start from ID #1. Only works if table 
 msgstr "Quando selecionada, a próxima submissão começará a partir do ID #1. Só funciona se a tabela estiver vazia."
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:129
-msgid "When does this event take place? Renders as {{schedule}} on the certificate template (e.g. '9h às 12h'). When filled, the template must contain {{schedule}} — the form save will be blocked until the placeholder is present."
-msgstr "Quando ocorre este evento? É exibido como {{schedule}} no modelo de certificado (por exemplo, '9h às 12h'). Quando preenchido, o modelo deve conter {{schedule}} — o salvamento do formulário será bloqueado até que o marcador esteja presente."
+msgid "When does this event take place? Renders as {{schedule}} on the certificate template (e.g. '9h às 12h'). When Settings → Certificates requires {{schedule}}, the template must contain it — the form save is blocked until the placeholder is present."
+msgstr "Quando ocorre este evento? É exibido como {{schedule}} no modelo de certificado (por exemplo, '9h às 12h'). Quando Configurações → Certificados exige {{schedule}}, o modelo deve conter o marcador — o salvamento do formulário é bloqueado até que ele esteja presente."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:43
 msgid "When enabled, a full slot/block lets users join a queue (with an optional waitlist capacity) instead of being turned away. Off by default."
@@ -19799,10 +19835,6 @@ msgstr "Você está fora da área permitida para este formulário."
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:350 includes/audience/class-ffc-audience-shortcode.php:172
 msgid "You are viewing this calendar as an administrator (bypass active)."
 msgstr "Você está visualizando este calendário como administrador (modo ignorar ativo)."
-
-#: includes/frontend/class-ffc-frontend.php:182
-msgid "You are viewing this page inside an app browser. To make sure the certificate downloads correctly, please open the page in your main browser (Chrome or Safari)."
-msgstr "Você está visualizando esta página dentro de um navegador de aplicativo. Para garantir que o certificado seja baixado corretamente, abra a página no seu navegador principal (Chrome ou Safari)."
 
 #. %d: maximum number of groups
 #: includes/api/class-ffc-user-audience-rest-controller.php:411
@@ -21852,6 +21884,58 @@ msgstr "Este link de cancelamento de inscrição não é válido."
 msgid "Unknown date source."
 msgstr "Fonte de data desconhecida."
 
+#: includes/date-messages/class-ffc-announcement-source.php
+msgid "Announcement"
+msgstr "Anúncio"
+
+#: includes/date-messages/class-ffc-rule.php
+msgid "Unknown kind of message."
+msgstr "Tipo de mensagem desconhecido."
+
+#: templates/admin/date-messages/send.php
+msgid "An announcement is sent on one day. Give the same first and last day."
+msgstr "Um anúncio é enviado em um dia. Informe o mesmo primeiro e último dia."
+
+#: templates/admin/date-messages/send.php
+msgid "Enter the send time as a date and time, or leave it empty."
+msgstr "Informe o horário de envio como data e hora, ou deixe vazio."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Kind of message"
+msgstr "Tipo de mensagem"
+
+#: templates/admin/date-messages/rule-form.php
+msgid "A dated message is sent on a date relative to each person. An announcement is one message to everyone in its audience, sent by hand or once at a chosen time."
+msgstr "Uma mensagem com data é enviada numa data relativa a cada pessoa. Um anúncio é uma única mensagem para todos da sua audiência, enviada manualmente ou uma vez num horário escolhido."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Send at"
+msgstr "Enviar em"
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Announcements only, in the site timezone. The announcement is sent once at this time, if it is active. Leave it empty to send it by hand with Send now. A time already past queues nothing when the rule is saved."
+msgstr "Somente para anúncios, no fuso do site. O anúncio é enviado uma vez nesse horário, se estiver ativo. Deixe vazio para enviar manualmente com Enviar agora. Um horário já passado não agenda nada ao salvar a regra."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Announcements"
+msgstr "Anúncios"
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Send it also to people who turned announcements off"
+msgstr "Enviar também a quem desligou os anúncios"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Announcements from this site"
+msgstr "Anúncios deste site"
+
+#: includes/date-messages/class-ffc-runner.php
+msgid "Only an announcement can be scheduled."
+msgstr "Só um anúncio pode ser agendado."
+
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Stop receiving announcements from this site at this account?"
+msgstr "Deixar de receber anúncios deste site nesta conta?"
+
 msgid "Unknown digest mode."
 msgstr "Modo de resumo desconhecido."
 
@@ -22002,8 +22086,8 @@ msgstr "Envio"
 msgid "Sending started. The first batch went out now; the rest continues in the background. Follow it in History."
 msgstr "Envio iniciado. O primeiro lote saiu agora; o restante continua em segundo plano. Acompanhe em Histórico."
 
-msgid "Sends one rule to everyone whose date falls in a range of up to %d days. People already sent this rule for that date are skipped, so running a range twice sends nothing new."
-msgstr "Envia uma regra a todos cuja data cai em um intervalo de até %d dias. Quem já recebeu esta regra para aquela data é pulado, então repetir um intervalo não envia nada novo."
+msgid "Sends one rule to everyone whose date falls in a range of up to %d days. People already sent this rule for that date are skipped, so running a range twice sends nothing new. An announcement has no date: it goes to everyone in its audience, on the one day it is sent."
+msgstr "Envia uma regra a todos cuja data cai em um intervalo de até %d dias. Quem já recebeu esta regra para aquela data é pulado, então repetir um intervalo não envia nada novo. Um anúncio não tem data: vai para todos da audiência, no único dia em que é enviado."
 
 msgid "Sent"
 msgstr "Enviados"
@@ -22902,8 +22986,8 @@ msgstr "URLs dos logotipos definidas em Configurações > Geral > Identidade Vis
 msgid "Division / Sector (see the dependent-select note below for each half)"
 msgstr "Divisão / Setor (veja a nota sobre seleção dependente abaixo para cada parte)"
 
-msgid "The certificate PDF a form issues on submission (the default kind). Three ready-made certificate models ship."
-msgstr "O PDF do certificado que um formulário emite no envio (o tipo padrão). Três modelos de certificado prontos acompanham o plugin."
+msgid "The certificate PDF a form issues on submission (the default kind). Six ready-made certificate models ship."
+msgstr "O PDF do certificado que um formulário emite no envio (o tipo padrão). Seis modelos de certificado prontos acompanham o plugin."
 
 msgid "A read-only \"Current assignments\" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a \"Change\" link into that feature's own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature."
 msgstr "Uma visão geral somente leitura, \"Atribuições atuais\", na aba Modelos de documento, mostra qual modelo do acervo os comprovantes de agendamento (Regular e Personalizado) e a ficha de recadastramento estão usando no momento, com um link \"Alterar\" para as configurações do próprio recurso. Cada linha aparece apenas para usuários que podem visualizar aquele recurso, e os certificados não têm linha porque cada formulário escolhe o seu. A visão geral é apenas informativa — os controles de seleção (e suas permissões) continuam em cada recurso."
@@ -22941,8 +23025,8 @@ msgstr "Um formulário pode aceitar submissões apenas dentro de uma janela de d
 msgid "Before / during / after the window you can independently show a message, show the title + description + message, or hide the form. The \"during\" setting applies only in daily mode, outside that day's hours."
 msgstr "Antes, durante ou após a janela, você pode, de forma independente, exibir uma mensagem, exibir título + descrição + mensagem, ou ocultar o formulário. A opção \"durante\" só se aplica ao modo diário, fora do horário do dia."
 
-msgid "The \"Event Schedule (Reference)\" times on the same tab are printed on the certificate via the {{schedule}} and {{schedule_total}} tokens — they do not open or close the form. Once they are filled, the certificate layout must contain {{schedule}}. The tokens use a per-participant exception first, then the Event Schedule, then the window's start/end time. See"
-msgstr "Os horários do \"Cronograma do Evento (Referência)\" na mesma aba são impressos no certificado pelos tokens {{schedule}} e {{schedule_total}} — eles não abrem nem fecham o formulário. Depois de preenchidos, o layout do certificado precisa conter {{schedule}}. Os tokens usam primeiro uma exceção individual do participante, depois o Cronograma do Evento e, por fim, o horário de início/término da janela. Veja"
+msgid "The \"Event Schedule (Reference)\" times on the same tab are printed on the certificate via the {{schedule}} and {{schedule_total}} tokens — they do not open or close the form. When Settings → Certificates requires {{schedule}}, the certificate layout must contain it. The tokens use a per-participant exception first, then the Event Schedule, then the window's start/end time. See"
+msgstr "Os horários do \"Cronograma do Evento (Referência)\" na mesma aba são impressos no certificado pelos tokens {{schedule}} e {{schedule_total}} — eles não abrem nem fecham o formulário. Quando Configurações → Certificados exige {{schedule}}, o layout do certificado precisa conter o marcador. Os tokens usam primeiro uma exceção individual do participante, depois o Cronograma do Evento e, por fim, o horário de início/término da janela. Veja"
 
 msgid "moves the close time later on the scheduled close day, after the form has opened; the new time must stay within the same day."
 msgstr "adia o horário de fechamento no dia previsto para o encerramento, depois que o formulário já abriu; o novo horário deve permanecer no mesmo dia."
@@ -22956,8 +23040,8 @@ msgstr "A tela de edição permite corrigir o e-mail do participante e os valore
 msgid "Export the current (filtered) submissions to CSV in the background. The export contains decrypted personal data (email, IP, CPF/RF), the magic-link token and the consent record, so it is gated by its own capability."
 msgstr "Exporte as submissões atuais (filtradas) para CSV em segundo plano. A exportação contém dados pessoais descriptografados (e-mail, IP, CPF/RF), o token de link mágico e o registro de consentimento, por isso é controlada por uma permissão própria."
 
-msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form)."
-msgstr "Enviar para a lixeira / restaurar e ações em massa, incluindo \"Mova para o formulário…\" (oferecida quando a lista está filtrada por um único formulário)."
+msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form) and \"Send link by e-mail\", which sends a link only to the submissions that never received one."
+msgstr "Mover para a lixeira, restaurar e ações em massa, incluindo \"Mover para formulário…\" (oferecida quando a lista está filtrada por um único formulário) e \"Enviar link por e-mail\", que envia o link apenas às submissões que nunca o receberam."
 
 msgid "Reveal the decrypted CPF / RF / email, and the IP on the edit screen, on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
 msgstr "Revelar sob demanda o CPF / RF / e-mail descriptografados, e o IP na tela de edição, em vez dos valores mascarados; cada revelação é auditada. Sem ela, a lista e a tela de edição permanecem mascaradas, independentemente de outras permissões do operador. O PDF do certificado não é mascarado: ele imprime o CPF/RF formatado com pontuação."
@@ -23042,8 +23126,8 @@ msgstr "Seus agendamentos de público-alvo e a aba Recrutamento com as suas conv
 msgid "A Profile tab, read from the plugin's own user profile, where they edit their display name, phone, department, organization, notes and birth date (stored encrypted, and the date Date Messages uses)"
 msgstr "Uma aba Perfil, lida do perfil de usuário do próprio plugin, onde edita nome de exibição, telefone, departamento, organização, observações e data de nascimento (armazenada criptografada e usada pelas Mensagens por Data)"
 
-msgid "Notification Preferences: an \"Appointment reminder\" toggle and, when the Date Messages module is on, a \"Date messages (such as birthday greetings)\" toggle that opts them out; both are on until turned off"
-msgstr "Preferências de Notificação: uma chave \"Lembrete de agendamento\" e, quando o módulo Mensagens por Data está ativo, uma chave \"Mensagens por data (como felicitações de aniversário)\" que permite deixar de recebê-las; ambas ficam ativas até serem desligadas"
+msgid "Notification Preferences: an \"Appointment reminder\" toggle and, when the Date Messages module is on, a \"Date messages (such as birthday greetings)\" toggle and an \"Announcements from this site\" toggle, each of which opts them out; all are on until turned off"
+msgstr "Preferências de Notificação: uma chave \"Lembrete de agendamento\" e, quando o módulo Mensagens por Data está ativo, uma chave \"Mensagens por data (como felicitações de aniversário)\" e outra \"Anúncios deste site\", cada uma para deixar de receber aquele tipo; todas ficam ativas até serem desligadas"
 
 msgid "Change Password, and Privacy & Data (LGPD) buttons to request an export or the deletion of their personal data"
 msgstr "Alterar a Senha e os botões de Privacidade e Dados (LGPD) para solicitar a exportação ou a exclusão dos seus dados pessoais"
@@ -23093,8 +23177,8 @@ msgstr "0 envia na própria data; um número negativo envia essa quantidade de d
 msgid "Subject and message"
 msgstr "Assunto e mensagem"
 
-msgid "The e-mail body only; the header and footer come from the Email Model. A new rule starts from the \"Birthday message\" default in Settings → Email texts, and \"Restore default text\" brings it back."
-msgstr "Apenas o corpo do e-mail; o cabeçalho e o rodapé vêm do Modelo de e-mail. Uma nova regra começa com o padrão \"Mensagem de aniversário\" de Configurações → Textos dos e-mails, e \"Restaurar texto padrão\" o traz de volta."
+msgid "The e-mail body only; the header and footer come from the Email Model. A new dated rule starts from the \"Birthday message\" default in Settings → Email texts, a new announcement from the \"Announcement message\" default, and \"Restore default text\" brings back the default of the kind chosen."
+msgstr "Apenas o corpo do e-mail; o cabeçalho e o rodapé vêm do Modelo de e-mail. Uma nova regra de data começa com o padrão \"Mensagem de aniversário\" de Configurações → Textos dos e-mails, um novo comunicado começa com o padrão \"Mensagem de comunicado\", e \"Restaurar texto padrão\" traz de volta o padrão do tipo escolhido."
 
 msgid "\"E-mail each person on their date\" and \"Active (the daily run sends it)\". A rule can stay active with personal e-mails off and send only the manager summary."
 msgstr "\"Enviar e-mail a cada pessoa na sua data\" e \"Ativa (o envio diário a envia)\". Uma regra pode ficar ativa com os e-mails pessoais desligados e enviar apenas o resumo para gestores."
@@ -23123,8 +23207,12 @@ msgstr "Agendamento diário"
 msgid "Opting out"
 msgstr "Cancelar o recebimento"
 
-msgid "On their dashboard, under Notification Preferences, a person can turn off \"Date messages (such as birthday greetings)\"."
-msgstr "No seu painel, em Preferências de Notificação, a pessoa pode desligar \"Mensagens por data (como felicitações de aniversário)\"."
+msgid "On their dashboard, under Notification Preferences, a person can turn off \"Date messages (such as birthday greetings)\" and \"Announcements from this site\". The two are separate: turning one off does not stop the other."
+msgstr "No seu painel, em Preferências de Notificação, a pessoa pode desligar \"Mensagens por data (como felicitações de aniversário)\" e \"Anúncios deste site\". As duas são independentes: desligar uma não desliga a outra."
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "An announcement sent to everyone still reaches people who turned announcements off when its rule is set to send it anyway. The history counts those sends as forced, so the choice is never silent."
+msgstr "Um anúncio enviado a todos ainda chega a quem desligou os anúncios quando a regra está configurada para enviar mesmo assim. O histórico conta esses envios como forçados, então a escolha nunca fica oculta."
 
 msgid "Every message carries a one-click unsubscribe link; a body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. The link is a signed token that stores nothing; opening it shows a confirmation page, and only confirming turns date messages off, so mail scanners that follow links change nothing."
 msgstr "Toda mensagem traz um link de cancelamento de inscrição com um clique; um corpo que não inclui {{unsubscribe_url}} recebe uma linha de cancelamento ao final. O link é um token assinado que não armazena nada; abri-lo mostra uma página de confirmação, e só a confirmação desliga as mensagens por data, de modo que os verificadores de e-mail que seguem links não alteram nada."
@@ -23381,11 +23469,11 @@ msgstr "Envios de recadastramento e candidaturas de recrutamento são exportados
 msgid "Under Tools → Export Personal Data and Tools → Erase Personal Data, the plugin registers its own handlers. Each one works on the records linked to the WordPress account that has the requested e-mail address and, for records linked to no account, on those whose stored e-mail matches it — so a certificate or appointment made without logging in is found too:"
 msgstr "Em Ferramentas → Exportar Dados Pessoais e Ferramentas → Apagar Dados Pessoais, o plugin registra seus próprios manipuladores. Cada um atua sobre os registros vinculados à conta do WordPress que tem o e-mail solicitado e, nos registros sem conta vinculada, sobre aqueles cujo e-mail armazenado corresponde a ele — assim, um certificado ou agendamento feito sem login também é encontrado:"
 
-msgid "an eraser clears the encrypted personal data (e-mail and its lookup hash, CPF/RF, the client IP, …) from the certificates and appointments and unlinks them from the account, deletes the person's audience memberships, booking links, schedule permissions, stored profile and FFC user settings, and unlinks their activity-log entries. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
-msgstr "um apagador remove os dados pessoais criptografados (e-mail e seu hash de busca, CPF/RF, o IP do cliente, …) dos certificados e agendamentos e os desvincula da conta, exclui as participações da pessoa em públicos-alvo, vínculos de reservas, permissões de agenda, perfil armazenado e configurações de usuário FFC, e desvincula suas entradas do registro de atividades. Códigos de autenticação e tokens de verificação podem ser mantidos de forma anonimizada para que certificados já emitidos continuem verificáveis depois que os dados da pessoa forem apagados."
+msgid "an eraser clears the encrypted personal data (e-mail and its lookup hash, CPF/RF, the client IP, …) from the certificates and appointments and unlinks them from the account, deletes the person's audience memberships, booking links, post-event form invitations, schedule permissions, stored profile and FFC user settings, and unlinks their attendance lines and activity-log entries. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
+msgstr "um apagador remove os dados pessoais criptografados (e-mail e seu hash de busca, CPF/RF, o IP do cliente, …) dos certificados e agendamentos e os desvincula da conta, exclui as participações da pessoa em públicos-alvo, vínculos de reservas, convites para formulários pós-evento, permissões de agenda, perfil armazenado e configurações de usuário FFC, e desvincula suas linhas de presença e suas entradas do registro de atividades. Códigos de autenticação e tokens de verificação podem ser mantidos de forma anonimizada para que certificados já emitidos continuem verificáveis depois que os dados da pessoa forem apagados."
 
-msgid "exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings, reregistration submissions (with their answers decrypted), recruitment candidacies and their classifications, and FFC user settings."
-msgstr "exportadores reúnem os dados FFC da pessoa: perfil, certificados, agendamentos, grupos de público-alvo, reservas de público-alvo, envios de recadastramento (com as respostas descriptografadas), candidaturas de recrutamento e suas classificações, e configurações de usuário FFC."
+msgid "exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings, audience attendance, post-event form invitations, reregistration submissions (with their answers decrypted), recruitment candidacies and their classifications, and FFC user settings."
+msgstr "exportadores reúnem os dados FFC da pessoa: perfil, certificados, agendamentos, grupos de público-alvo, reservas de público-alvo, presenças em reservas de público-alvo, convites para formulários pós-evento, envios de recadastramento (com as respostas descriptografadas), candidaturas de recrutamento e suas classificações, e configurações de usuário FFC."
 
 msgid "A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced). When the CPF gate below is set to anything other than none — or when an operator volunteers a valid CPF — each attempt is written to a per-form audit log of the most recent attempts (timestamp, IP address stored encrypted, mode, result) that admins can export."
 msgstr "Um formulário sem data de término nunca libera o arquivo CSV. Os downloads também estão sujeitos a uma cota por formulário (se o campo estiver em branco, aplica-se o Limite de Download Padrão global, definido em Configurações → Avançado). Quando a exigência de CPF abaixo está em qualquer modo diferente de none — ou quando um operador informa voluntariamente um CPF válido — cada tentativa é registrada em um log de auditoria do formulário com as tentativas mais recentes (data/hora, endereço IP armazenado criptografado, modo e resultado), que os administradores podem exportar."
@@ -23804,8 +23892,8 @@ msgstr "Destinatários"
 msgid "Summary"
 msgstr "Resumo"
 
-msgid "0 sends on the date itself; -7 sends seven days before it, 7 seven days after it."
-msgstr "0 envia na própria data; -7 envia sete dias antes dela, 7, sete dias depois."
+msgid "0 sends on the date itself; -7 sends seven days before it, 7 seven days after it. Not used by an announcement."
+msgstr "0 envia na própria data; -7 envia sete dias antes dela, 7, sete dias depois. Não usado por um anúncio."
 
 msgid "A birth date given before the profile field existed reaches the profile through a migration card in Settings → Data Migrations; while it has accounts left, the Date Messages screen shows a warning, because those people are not yet in previews, upcoming dates or sends."
 msgstr "Uma data de nascimento informada antes de o campo de perfil existir chega ao perfil por um cartão de migração em Configurações → Migrações de Dados; enquanto restarem contas, a tela Mensagens por Data exibe um aviso, porque essas pessoas ainda não aparecem nas prévias, nas próximas datas nem nos envios."
@@ -23825,8 +23913,8 @@ msgstr "Abaixo dele, a aba SMTP tem um interruptor para cada e-mail opcional: o 
 msgid "Controls the dark mode appearance of the plugin's admin screens and of its public pages (forms, user dashboard, shortcodes)."
 msgstr "Controla o modo escuro das telas de administração do plugin e das suas páginas públicas (formulários, painel do usuário, shortcodes)."
 
-msgid "Create and edit rules and send manually. The daily send time belongs to Settings → Scheduled Tasks."
-msgstr "Criar e editar regras e enviar manualmente. O horário do envio diário fica em Configurações → Tarefas Agendadas."
+msgid "Create, edit, duplicate and delete rules. Sending a rule takes Send date messages; the daily send time belongs to Settings → Scheduled Tasks."
+msgstr "Criar, editar, duplicar e excluir regras. Enviar uma regra exige Enviar mensagens por data; o horário do envio diário fica em Configurações → Tarefas Agendadas."
 
 msgid "Dashboard → Updates shows a short summary of the release on offer, taken from that release's own readme, together with the WordPress and PHP versions it requires and the WordPress version it was tested up to, so you can read what changes before applying it."
 msgstr "Painel → Atualizações mostra um breve resumo da versão oferecida, tirado do readme dessa própria versão, junto com as versões de WordPress e PHP que ela exige e a versão de WordPress com que foi testada, para que você leia o que muda antes de aplicá-la."
@@ -23879,8 +23967,8 @@ msgstr "Marque um ou mais locais cadastrados na lista. As coordenadas são obtid
 msgid "Where they are assigned"
 msgstr "Onde são atribuídas"
 
-msgid "create and edit rules and send manually. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings."
-msgstr "criar e editar regras e enviar manualmente. O horário do envio diário é definido em Configurações → Tarefas Agendadas, com ffc_manage_settings."
+msgid "create, edit, duplicate and delete rules. Sending a rule, or saving an active announcement with a send time, takes ffc_send_date_messages. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings."
+msgstr "criar, editar, duplicar e excluir regras. Enviar uma regra, ou salvar um anúncio ativo com horário de envio, exige ffc_send_date_messages. O horário do envio diário é definido em Configurações → Tarefas Agendadas, com ffc_manage_settings."
 
 msgid "off by default; when \"Pre-load cache daily\" is on, a daily task pre-loads every published form into the cache. Its time is set on Settings → Scheduled Tasks."
 msgstr "desativado por padrão; com \"Pré-carregar cache diariamente\" ativado, uma tarefa diária carrega no cache todos os formulários publicados. O horário dela é definido em Configurações → Tarefas Agendadas."
@@ -24077,6 +24165,22 @@ msgstr "crie públicos-alvo, agendamentos, ambientes e membros."
 msgid "Create certificate-issuance forms, generate the certificate PDF automatically on submission, and let anyone verify authenticity by QR code or validation link."
 msgstr "Crie formulários de emissão de certificados, gere o PDF do certificado automaticamente após o envio e permita que qualquer pessoa verifique a autenticidade via QR Codes ou link de validação."
 
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "Issuing certificates in bulk"
+msgstr "Emitir certificados em lote"
+
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "When the participants are already known — an attendance sheet, a course roster — open the form in the form editor and use its Bulk issue tab, the last one, which appears only to users who hold the Issue certificates in bulk capability. Download the CSV template for the form, upload your file (up to 2 MB) and map each column to a form field. Name, CPF/RF and e-mail are required, the fields marked * must be mapped, and a row that leaves one of them empty is skipped. The preview then says how many certificates would be issued and how many rows would be skipped, with the reason for each skipped row. Nothing is issued until you confirm, and the certificates are issued in batches with a progress indicator."
+msgstr "Quando os participantes já são conhecidos — uma lista de presença, uma lista de turma — abra o formulário no editor de formulários e use a aba Emitir em lote, a última, que aparece apenas para quem tem a capacidade Emitir certificados em lote. Baixe o modelo CSV do formulário, envie o seu arquivo (até 2 MB) e associe cada coluna a um campo do formulário. Nome, CPF/RF e e-mail são obrigatórios, os campos marcados com * precisam estar associados, e uma linha que deixa algum deles vazio é ignorada. A prévia informa quantos certificados seriam emitidos e quantas linhas seriam ignoradas, com o motivo de cada uma. Nada é emitido até você confirmar, e os certificados são emitidos em lotes com indicador de progresso."
+
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "On a quiz form the tab also asks for the score of each participant: take the points from a column of the file, which must not exceed the maximum and must reach the passing score, or issue every certificate with a zero score, in which case the passing score does not apply and the preview warns you first. The issue date is the day each certificate is issued, one date you choose for all of them, or a column of the file. Choose whether to send the magic-link e-mail as each certificate is issued or not at all; a link that was not sent can be sent later from the submissions list with Send link by e-mail."
+msgstr "Em um formulário de quiz, a aba também pede a pontuação de cada participante: tire os pontos de uma coluna do arquivo, que não pode passar do máximo e precisa atingir a nota de aprovação, ou emita todos os certificados com pontuação zero — nesse caso a nota de aprovação não se aplica, e a prévia avisa antes. A data de emissão pode ser o dia em que cada certificado é emitido, uma data única escolhida para todos ou uma coluna do arquivo. Escolha se o e-mail com o link é enviado conforme cada certificado é emitido ou não é enviado; um link não enviado pode ser enviado depois na lista de submissões, com Enviar link por e-mail."
+
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "A row is skipped, and listed in the report, when its name, CPF/RF or e-mail is missing or invalid, when a CPF or RF fails its check digits, when the same identifier appears earlier in the file, or when the form already holds a certificate for that CPF or RF. The form's own restrictions — allowlist, tickets, geofence, rate limit, date window and captcha — do not apply to the import. Each job writes one Activity Log entry, and a job left unfinished for seven days is expired and its staged rows are removed."
+msgstr "Uma linha é ignorada, e listada no relatório, quando nome, CPF/RF ou e-mail está ausente ou é inválido, quando um CPF ou RF não passa nos dígitos verificadores, quando o mesmo identificador já aparece antes no arquivo, ou quando o formulário já tem um certificado para aquele CPF ou RF. As restrições próprias do formulário — lista de permissão, ingressos, geofence, limite de envios, janela de datas e captcha — não se aplicam à importação. Cada job grava uma entrada no Registro de Atividades, e um job que fica sem terminar por sete dias é expirado e suas linhas temporárias são removidas."
+
 msgid "Custom fields from audience memberships. Fields are grouped by audience."
 msgstr "Campos personalizados provenientes de associações de público-alvo. Os campos são agrupados por público-alvo."
 
@@ -24164,8 +24268,8 @@ msgstr "Opcionalmente, armazene os QR Codes gerados no banco de dados (aproximad
 msgid "Personal appointment calendars (fixed slots) and audience calendars for shared spaces (free-form bookings), each with confirmations, reminders and ICS invites."
 msgstr "Agendas de compromissos pessoais (horários fixos) e agendas de público-alvo para espaços compartilhados (reservas de formato livre), cada uma com confirmações, lembretes e convites ICS."
 
-msgid "Placeholders replaced with sample data. QR code shown as placeholder."
-msgstr "Placeholders substituídos por dados de exemplo. QR Code exibido como placeholder."
+msgid "Placeholders replaced with sample data."
+msgstr "Placeholders substituídos por dados de exemplo."
 
 msgid "Pure relationships (audience memberships, permission grants, the stored user profile) are removed with the account."
 msgstr "Relacionamentos puros (associações a públicos-alvo, concessões de permissão, perfil de usuário armazenado) são removidos juntamente com a conta."
@@ -24341,8 +24445,8 @@ msgstr "Todas as regras ativas"
 msgid "All of the rule's audiences"
 msgstr "Todos os públicos da regra"
 
-msgid "Everyone, or the members of the audiences chosen in the two-column picker — the same one the reregistration campaign uses. Belonging to any one of them is enough, and members of their sub-audiences are included; choosing an audience brings its sub-audiences along."
-msgstr "Todos, ou os membros dos públicos escolhidos no seletor de duas colunas — o mesmo usado na campanha de recadastramento. Basta pertencer a um deles, e membros dos sub-públicos estão incluídos; escolher um público traz junto os sub-públicos dele."
+msgid "Everyone, or the members of the audiences chosen in the two-column picker — the same one the reregistration campaign uses. Belonging to any one of them is enough, and members of their sub-audiences are included; choosing an audience brings its sub-audiences along. The number beside each audience is how many people it reaches, sub-audiences included, each person counted once."
+msgstr "Todos, ou os membros dos públicos escolhidos no seletor de duas colunas — o mesmo usado na campanha de recadastramento. Basta pertencer a um deles, e membros dos sub-públicos estão incluídos; escolher um público traz junto os sub-públicos dele. O número ao lado de cada público é quantas pessoas ele alcança, sub-públicos incluídos, cada pessoa contada uma vez."
 
 msgid "QR Code in the Certificate"
 msgstr "QR Code no Certificado"
@@ -25211,9 +25315,6 @@ msgid "Incorrect"
 msgstr "Incorreta"
 
 #: includes/admin/class-ffc-admin-ui.php:345
-msgid "(when the form has an Event Schedule)"
-msgstr "(quando o formulário tem uma Cronograma do Evento)"
-
 #: includes/settings/views/documentation/forms-dynamic-fields.php:66
 msgid "A required field is drawn with an amber border and a \"Required field\" badge: it is always required, its variable name and type cannot change and it cannot be removed; only its label can. A form missing one shows a warning naming it, with an \"Add the required fields\" button that adds them."
 msgstr "Um campo obrigatório aparece com borda âmbar e o selo \"Campo obrigatório\": ele é sempre obrigatório, o nome da variável e o tipo não podem mudar e ele não pode ser removido; só o rótulo pode. Um formulário sem algum deles mostra um aviso com o nome, e o botão \"Adicionar os campos obrigatórios\" os adiciona."
@@ -26256,20 +26357,20 @@ msgid "FFC Certificates - Submissions - Viewer"
 msgstr "FFC Certificados - Submissões - Visualizador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:1066
-msgid "FFC Date Messages - Administrator"
-msgstr "FFC Mensagens por Data - Administrador"
+msgid "FFC Messages - Administrator"
+msgstr "FFC Mensagens - Administrador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:1062
-msgid "FFC Date Messages - Manager"
-msgstr "FFC Mensagens por Data - Gestor"
+msgid "FFC Messages - Manager"
+msgstr "FFC Mensagens - Gestor"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:1058
-msgid "FFC Date Messages - Operator"
-msgstr "FFC Mensagens por Data - Operador"
+msgid "FFC Messages - Operator"
+msgstr "FFC Mensagens - Operador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:1054
-msgid "FFC Date Messages - Viewer"
-msgstr "FFC Mensagens por Data - Visualizador"
+msgid "FFC Messages - Viewer"
+msgstr "FFC Mensagens - Visualizador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:961
 msgid "FFC Personal Calendars - Bookings - Administrator"
@@ -26388,8 +26489,8 @@ msgid "A booking that breaks one of those rules first opens a warning listing ev
 msgstr "Um agendamento que viola uma dessas regras abre antes um aviso que lista todas as regras violadas; o botão \"Concordo\" é liberado após 15 segundos, o servidor não salva nada sem essa confirmação e cada agendamento confirmado é registrado no Registro de Atividades. A capacidade nunca é ignorada."
 
 #: includes/settings/views/documentation/scheduling-audiences.php
-msgid "A user whose User access row carries Override Conflicts, or a bypass holder, may book over an occupied slot. The earlier booking is then cancelled, and its owner receives the \"booking cancelled by an administrator\" email with the reason."
-msgstr "Um usuário cuja linha em Acesso de usuários tem Sobrescrever Conflitos, ou quem tem a exceção, pode reservar sobre um horário ocupado. A reserva anterior é então cancelada, e seu responsável recebe o e-mail \"reserva cancelada por um administrador\" com o motivo."
+msgid "A user whose User access row carries Override Conflicts, or a bypass holder, may book over an occupied slot. The earlier booking is then cancelled entirely, on every day it covers even when only one of them clashed, and its owner receives the \"booking cancelled by an administrator\" email with the reason."
+msgstr "Um usuário cuja linha em Acesso de usuários tem Sobrescrever Conflitos, ou quem tem a exceção, pode reservar sobre um horário ocupado. A reserva anterior é então cancelada por inteiro, em todos os dias que cobre, mesmo que só um deles tenha conflito, e seu responsável recebe o e-mail \"reserva cancelada por um administrador\" com o motivo."
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "Admin bypass and Override Conflicts"
@@ -26464,8 +26565,8 @@ msgid "Let bypass holders book outside the rules"
 msgstr "Permitir que quem tem a exceção reserve fora das regras"
 
 #: includes/settings/views/documentation/reference-emails.php
-msgid "New scheduled activity and activity-cancelled notices, and the \"booking cancelled by an administrator\" notice sent to the owner of a booking an override replaced"
-msgstr "Avisos de nova atividade agendada e de atividade cancelada, e o aviso \"reserva cancelada por um administrador\" enviado ao responsável por uma reserva substituída por uma sobreposição"
+msgid "New scheduled activity and activity-cancelled notices, the \"booking cancelled by an administrator\" notice sent to the owner of a booking an override replaced, and the post-event form invitation sent to each participant once a booking ends"
+msgstr "Avisos de nova atividade agendada e de atividade cancelada, o aviso \"reserva cancelada por um administrador\" enviado ao responsável por uma reserva substituída por uma sobreposição, e o convite para o formulário pós-evento enviado a cada participante quando um agendamento termina"
 
 #: includes/audience/class-ffc-audience-shortcode.php
 msgid "No space is open on this date."
@@ -27269,3 +27370,1923 @@ msgstr "Você continua em \"%1$s\" porque \"%2$s\" exige pelo menos um grupo."
 #: includes/api/class-ffc-user-audience-rest-controller.php
 msgid "You left every group you could. Some audiences keep their members in at least one group."
 msgstr "Você saiu de todos os grupos possíveis. Alguns públicos-alvo mantêm seus membros em pelo menos um grupo."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue in bulk"
+msgstr "Emitir em lote"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Map a column from the file to each of name, CPF/RF and e-mail."
+msgstr "Associe uma coluna do arquivo a cada um destes: nome, CPF/RF e e-mail."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose the form the certificates are issued for."
+msgstr "Escolha o formulário para o qual os certificados serão emitidos."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose a CSV file to upload."
+msgstr "Escolha um arquivo CSV para enviar."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "The file could not be uploaded."
+msgstr "Não foi possível enviar o arquivo."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "The file is larger than 2 MB."
+msgstr "O arquivo tem mais de 2 MB."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "The file could not be read."
+msgstr "Não foi possível ler o arquivo."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Check the file"
+msgstr "Verificar o arquivo"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Form field"
+msgstr "Campo do formulário"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Column in the file"
+msgstr "Coluna no arquivo"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Not in this file"
+msgstr "Não está neste arquivo"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Fields marked * are required: a line that leaves one empty is skipped. The file has to be uploaded again on this step."
+msgstr "Os campos marcados com * são obrigatórios: uma linha que deixa algum vazio é ignorada. Nesta etapa o arquivo precisa ser enviado novamente."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+#, php-format
+msgid "%1$d certificate(s) would be issued and %2$d row(s) skipped. Nothing has been issued yet."
+msgstr "%1$d certificado(s) seriam emitidos e %2$d linha(s) seriam ignoradas. Nada foi emitido ainda."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Line"
+msgstr "Linha"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Empty row"
+msgstr "Linha vazia"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "No name"
+msgstr "Sem nome"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "No CPF or RF"
+msgstr "Sem CPF ou RF"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "CPF or RF with invalid check digits"
+msgstr "CPF ou RF com dígitos verificadores inválidos"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Invalid e-mail"
+msgstr "E-mail inválido"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Same CPF or RF as an earlier line of the file"
+msgstr "Mesmo CPF ou RF de uma linha anterior do arquivo"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Date that cannot be read"
+msgstr "Data que não pode ser lida"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue date"
+msgstr "Data de emissão"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Date of each certificate"
+msgstr "Data de cada certificado"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "When each certificate is issued"
+msgstr "Na hora em que cada certificado for emitido"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "One date for every certificate"
+msgstr "Uma data para todos os certificados"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "From a column of the file"
+msgstr "Pela coluna do arquivo"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Day for every certificate"
+msgstr "Dia de todos os certificados"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Column with the day of each certificate"
+msgstr "Coluna com o dia de cada certificado"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose the day the certificates are dated."
+msgstr "Escolha o dia da data dos certificados."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose the file column that holds the issue date."
+msgstr "Escolha a coluna do arquivo que contém a data de emissão."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Skipped, by reason:"
+msgstr "Puladas, por motivo:"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "%1$d: %2$s"
+msgstr "%1$d: %2$s"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "E-mail of each certificate"
+msgstr "E-mail de cada certificado"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Do not send"
+msgstr "Não enviar"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Send the link as each certificate is issued"
+msgstr "Enviar o link ao emitir cada certificado"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "To send later, use Send link by e-mail in the submissions list."
+msgstr "Para enviar depois, use Enviar link por e-mail na lista de submissões."
+
+#: includes/admin/class-ffc-admin.php
+msgid "%1$d link(s) sent. Already sent before: %2$d. Skipped: %3$d. Not handed to the mailer: %4$d."
+msgstr "%1$d link(s) enviado(s). Já enviados antes: %2$d. Ignorados: %3$d. Não entregues ao servidor de envio: %4$d."
+
+#: includes/admin/class-ffc-submissions-list.php
+msgid "Send link by e-mail"
+msgstr "Enviar link por e-mail"
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "The submission could not be found."
+msgstr "A submissão não foi encontrada."
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "This quiz attempt did not pass, so it has no certificate link."
+msgstr "Esta tentativa de quiz não foi aprovada, então não tem link de certificado."
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "This submission has no e-mail address."
+msgstr "Esta submissão não tem endereço de e-mail."
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "This submission has no certificate link."
+msgstr "Esta submissão não tem link de certificado."
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "The e-mail was not handed to the mailer. Check whether e-mails are enabled."
+msgstr "O e-mail não foi entregue ao servidor de envio. Verifique se os e-mails estão ativados."
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Issue certificates in bulk"
+msgstr "Emitir certificados em lote"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Issue certificates for a list of participants from a CSV file, without each of them submitting the form."
+msgstr "Emitir certificados para uma lista de participantes a partir de um arquivo CSV, sem que cada um envie o formulário."
+
+#: includes/admin/class-ffc-form-editor-metabox-renderer.php
+msgid "Bulk issue"
+msgstr "Emitir em lote"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue certificates for a list of participants from a CSV file, without each of them submitting the form. Download the template, upload the file, map its columns, check the preview and issue."
+msgstr "Emita certificados para uma lista de participantes a partir de um arquivo CSV, sem que cada um envie o formulário. Baixe o modelo, envie o arquivo, associe as colunas, confira a pré-visualização e emita."
+
+#: includes/settings/views/documentation/submissions-list.php
+msgid "Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped, the issue date and the link e-mail are chosen and every row is previewed. Confirm to issue the certificates in batches, with progress."
+msgstr "Abra um formulário e use a aba Emitir em lote para conferir um arquivo CSV de participantes contra ele: as colunas são associadas, a data de emissão e o e-mail do link são escolhidos e cada linha é pré-visualizada. Confirme para emitir os certificados em lotes, com progresso."
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "The file could not be checked. Try again."
+msgstr "Não foi possível verificar o arquivo. Tente novamente."
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Bulk issue: expire unfinished imports"
+msgstr "Emitir em lote: expirar importações não concluídas"
+
+#: includes/submissions/class-ffc-bulk-issue-repository.php
+msgid "The import needs the encryption key configured, so that personal data is not stored in clear text."
+msgstr "A importação precisa da chave de criptografia configurada, para que os dados pessoais não sejam gravados em texto puro."
+
+#: includes/submissions/class-ffc-bulk-issue-repository.php
+msgid "The import could not be staged."
+msgstr "Não foi possível preparar a importação."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue %d certificate(s)"
+msgstr "Emitir %d certificado(s)"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "There is nothing to issue in this file."
+msgstr "Não há nada a emitir neste arquivo."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "The import could not be found."
+msgstr "A importação não foi encontrada."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Done: %1$d certificate(s) issued, %2$d line(s) skipped."
+msgstr "Concluído: %1$d certificado(s) emitido(s), %2$d linha(s) ignorada(s)."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "%1$d of %2$d line(s) handled: %3$d issued, %4$d skipped."
+msgstr "%1$d de %2$d linha(s) processada(s): %3$d emitido(s), %4$d ignorado(s)."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "%d certificate(s) will be issued with a zero score, and the pass mark does not apply to them."
+msgstr "%d certificado(s) serão emitidos com pontuação zero, e a nota de corte não se aplica a eles."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose the file column that holds the score of each participant."
+msgstr "Escolha a coluna do arquivo que contém a pontuação de cada participante."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Column with the points of each participant"
+msgstr "Coluna com a pontuação de cada participante"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "From a score column of the file"
+msgstr "De uma coluna de pontuação do arquivo"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue with a zero score"
+msgstr "Emitir com pontuação zero"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "No e-mail, so no link can be sent"
+msgstr "Sem e-mail, então o link não pode ser enviado"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "No score in the score column"
+msgstr "Sem pontuação na coluna de pontuação"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Score above the form's maximum"
+msgstr "Pontuação acima do máximo do formulário"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Score below the pass mark"
+msgstr "Pontuação abaixo da nota de corte"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Score of each certificate"
+msgstr "Pontuação de cada certificado"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Score that is not a whole number of points"
+msgstr "Pontuação que não é um número inteiro de pontos"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "The maximum is %1$d points. A score below %2$d%% is not issued."
+msgstr "O máximo é %1$d pontos. Uma pontuação abaixo de %2$d%% não é emitida."
+
+#: templates/emails/date-message-announcement.php:20
+msgid "{{site_name}}: announcement"
+msgstr "{{site_name}}: comunicado"
+
+#: templates/emails/date-message-announcement.php:21
+#, php-format
+msgid "There is a new announcement from %s."
+msgstr "Há um novo comunicado de %s."
+
+#: templates/emails/date-message-announcement.php:22
+#, php-format
+msgid "You can read the details on your dashboard: <a href=\"%s\">open your dashboard</a>."
+msgstr "Você pode ler os detalhes no seu painel: <a href=\"%s\">abrir o painel</a>."
+
+#: templates/emails/date-message-announcement.php:23
+#, php-format
+msgid "Prefer not to receive announcements? <a href=\"%s\">Unsubscribe</a>."
+msgstr "Prefere não receber comunicados? <a href=\"%s\">Cancelar inscrição</a>."
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:197
+msgid "Announcement message (default for new announcements)"
+msgstr "Mensagem de comunicado (padrão para novos comunicados)"
+
+#: templates/admin/date-messages/rule-form.php
+msgid "By date"
+msgstr "Por data"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Send date messages"
+msgstr "Enviar mensagens por data"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Send a rule now, or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it on upgrade (#1949)."
+msgstr "Envia uma regra agora ou agenda um comunicado para o seu público. Gerenciar regras não inclui esta permissão; os gestores atuais a recebem na atualização (#1949)."
+
+#: includes/core/class-ffc-email-source.php
+msgid "FFCertificate — Announcements"
+msgstr "FFCertificate — Comunicados"
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php
+msgid "Forced past the opt-out (included in the total above)"
+msgstr "Enviados apesar do descadastro (já incluídos no total acima)"
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php
+msgid "Nobody is in the chosen audiences, so nothing was sent."
+msgstr "Ninguém está nos públicos escolhidos, por isso nada foi enviado."
+
+#: includes/settings/views/documentation/feature-date-messages.php:115
+msgid "send a rule now or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it when the plugin is updated."
+msgstr "envia uma regra agora ou agenda um comunicado para o seu público. Gerenciar regras não inclui esta permissão; os gestores atuais a recebem ao atualizar o plugin."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "What the message is, who receives it and when."
+msgstr "O que é a mensagem, quem a recebe e quando."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "The subject and the body. The header and footer come from the Email Model."
+msgstr "O assunto e o corpo. O cabeçalho e o rodapé vêm do Modelo de e-mail."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "The background and the text area of the body only."
+msgstr "O fundo e a área de texto, apenas do corpo."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Who gets it, whether it is active, and when."
+msgstr "Quem recebe, se está ativa e quando."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "An optional summary of each run for the people who manage the messages."
+msgstr "Um resumo opcional de cada execução para quem gerencia as mensagens."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Preview the recipients and the message with the values on this form."
+msgstr "Veja os destinatários e a mensagem com os valores deste formulário."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "The day and the month of each person's date are the reference. The year is not used."
+msgstr "A referência é o dia e o mês da data de cada pessoa. O ano não é usado."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Off by default: people who turned announcements off do not receive it. When on, they receive it anyway, and the history counts them as forced."
+msgstr "Desligado por padrão: quem desligou os anúncios não recebe. Ligado, recebe mesmo assim, e o histórico conta esses envios como forçados."
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Cancel this booking?"
+msgstr "Cancelar esta reserva?"
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Read before you confirm:"
+msgstr "Leia antes de confirmar:"
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Cancel booking"
+msgstr "Cancelar reserva"
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Cancel booking (%d)"
+msgstr "Cancelar reserva (%d)"
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Keep booking"
+msgstr "Manter reserva"
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "You can confirm in %d seconds."
+msgstr "Você poderá confirmar em %d segundos."
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "This cancels the booking on %s."
+msgstr "Isto cancela a reserva de %s."
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "This booking covers %1$d days (%2$s). Cancelling it cancels every one of them."
+msgstr "Esta reserva cobre %1$d dias (%2$s). Cancelá-la cancela todos eles."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "A field the form requires is empty"
+msgstr "Um campo obrigatório do formulário está vazio"
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "This submission is in the trash, so its link is not sent."
+msgstr "Esta submissão está na lixeira, por isso o link não é enviado."
+
+#. translators: 1: start time on the first day of a booking, 2: end time on its last day.
+#: includes/audience/class-ffc-audience-booking-rules.php
+#, php-format
+msgid "From %1$s on the first day to %2$s on the last day"
+msgstr "De %1$s no primeiro dia até %2$s no último dia"
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "This time slot is already booked for this environment. Confirming cancels that booking entirely, on every day it covers."
+msgstr "Este horário já está reservado para este ambiente. Confirmar cancela essa reserva por inteiro, em todos os dias que ela cobre."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "When the hours run from the first day to the last, the calendar, the booking details, the user dashboard and the emails show the hours each day actually takes, and the calendar file covers every booked day. Cancelling a range cancels every day it covers; the confirmation names them and enables its button after a short countdown."
+msgstr "Quando o horário vai do primeiro ao último dia, o calendário, os detalhes da reserva, o painel do usuário e os e-mails mostram o horário que cada dia de fato ocupa, e o arquivo de calendário cobre todos os dias reservados. Cancelar um período cancela todos os dias que ele cobre; a confirmação os informa e só habilita o botão após uma breve contagem regressiva."
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Date messages announcement (one per scheduled announcement)"
+msgstr "Anúncio de mensagens por data (um por anúncio agendado)"
+
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Done. You will no longer receive announcements from this site. You can turn them back on in your dashboard profile."
+msgstr "Pronto. Você não receberá mais anúncios deste site. É possível reativá-los no perfil do seu painel."
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php
+msgid "Saving this would schedule the announcement to be sent, and your account cannot send messages. Leave it inactive or without a send time, or ask someone who can send."
+msgstr "Salvar agendaria o envio do anúncio, e sua conta não pode enviar mensagens. Deixe-o inativo ou sem horário de envio, ou peça a alguém que possa enviar."
+
+#: templates/admin/date-messages/history.php
+msgid "Sent despite an opt-out"
+msgstr "Enviados apesar do descadastro"
+
+#: templates/emails/date-message-digest.php
+msgid "Sent despite an opt-out (included in Sent)"
+msgstr "Enviados apesar do descadastro (incluídos em Enviados)"
+
+#: templates/emails/date-message-digest.php
+msgid "announcement"
+msgstr "anúncio"
+
+#: includes/admin/class-ffc-form-editor-save-handler.php
+msgid "Add them to the layout, or uncheck them in Settings → Certificates, and save again."
+msgstr "Inclua-as no layout, ou desmarque-as em Configurações → Certificados, e salve novamente."
+
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "The layout box of the form editor sets a background image and a background colour; the colour fills the page wherever the image does not cover it. Preview renders the unsaved layout on the server with sample data, through the same renderer as the PDF, so the background, the colour and the QR code are the ones the certificate prints. Save as model keeps the layout, the image and the colour, and loading the model brings all three back."
+msgstr "A caixa de layout do editor de formulário define uma imagem de fundo e uma cor de fundo; a cor preenche a página onde a imagem não cobre. A pré-visualização renderiza no servidor o layout ainda não salvo, com dados de exemplo e pelo mesmo renderizador do PDF, então o fundo, a cor e o QR code são os que o certificado imprime. Salvar como modelo guarda o layout, a imagem e a cor, e carregar o modelo traz os três de volta."
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "The preview could not be rendered."
+msgstr "Não foi possível gerar a pré-visualização."
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "One day"
+msgstr "Um dia"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Several days"
+msgstr "Vários dias"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Until"
+msgstr "Até"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "All day"
+msgstr "Dia inteiro"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Takes the space for the whole day."
+msgstr "Ocupa o espaço o dia todo."
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Continuous"
+msgstr "Contínuo"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Skip blocked days"
+msgstr "Pular dias bloqueados"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "For whom"
+msgstr "Para quem"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "None selected"
+msgstr "Nenhum selecionado"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Done"
+msgstr "Concluir"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Search audiences"
+msgstr "Buscar públicos-alvo"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "+%d more"
+msgstr "+%d outros"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "Remove %s"
+msgstr "Remover %s"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "1 person"
+msgstr "1 pessoa"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "%d people"
+msgstr "%d pessoas"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "%1$s–%2$s on each day"
+msgstr "%1$s–%2$s em cada dia"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "From %1$s on %2$s to %3$s on %4$s"
+msgstr "Das %1$s de %2$s às %3$s de %4$s"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Choose the last day."
+msgstr "Escolha o último dia."
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "The last day must come after the first."
+msgstr "O último dia deve vir depois do primeiro."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The booking dialog asks when, where and for whom. One day or Several days sets the span; several days adds the last day, how the hours read on each day and the switch that skips blocked days. Audiences are ticked in a searchable list that shows each one's colour and how many people a booking for it reaches, a person in several sub-audiences counted once; ticking an audience ticks its sub-audiences too. One button checks the conflicts and, once the check passes, creates the booking; changing the date, the times, the space or who it is for asks for a new check. On a phone the dialog rises from the bottom of the screen and the audience list opens as a screen of its own."
+msgstr "O diálogo de reserva pergunta quando, onde e para quem. Um dia ou Vários dias define a duração; vários dias acrescenta o último dia, como o horário vale em cada dia e o botão que pula os dias bloqueados. Os públicos-alvo são marcados numa lista com busca que mostra a cor de cada um e quantas pessoas uma reserva para ele alcança, contando uma só vez quem está em vários subpúblicos; marcar um público-alvo marca também os seus subpúblicos. Um só botão verifica os conflitos e, passada a verificação, cria a reserva; mudar a data, o horário, o espaço ou para quem é pede uma nova verificação. No celular o diálogo sobe da parte de baixo da tela e a lista de públicos-alvo abre como uma tela própria."
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "An announcement to audiences reads only their members, sub-audiences included, so its run and its preview never list anyone outside them; an announcement to everyone reads every account."
+msgstr "Um comunicado para públicos-alvo lê apenas os membros deles, subpúblicos incluídos, então seu envio e sua prévia nunca listam ninguém fora deles; um comunicado para todos lê todas as contas."
+
+#: includes/privacy/class-ffc-privacy-exporters.php:581
+msgid "Booking"
+msgstr "Reserva"
+
+#: includes/privacy/class-ffc-privacy-exporters.php:577
+msgid "FFC Audience Attendance"
+msgstr "FFC Presença em Reservas de Públicos"
+
+#: includes/privacy/class-ffc-privacy-exporters.php:594
+msgid "Marked by staff"
+msgstr "Marcada pela equipe"
+
+#: includes/privacy/class-ffc-privacy-exporters.php:594
+msgid "QR check-in"
+msgstr "Check-in por QR"
+
+#: includes/privacy/class-ffc-privacy-exporters.php:589
+msgid "Recorded at"
+msgstr "Registrada em"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:298
+msgid "Run attendance check-in"
+msgstr "Conduzir o check-in de presença"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:299
+msgid "Open and close check-in for a day of a booking, project its rotating QR and mark attendance by hand (#1947)."
+msgstr "Abrir e fechar o check-in de um dia da reserva, projetar o QR rotativo e marcar presença manualmente (#1947)."
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:212
+msgid "Attendance recorded"
+msgstr "Presença registrada"
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:188
+msgid "Check in"
+msgstr "Check-in"
+
+#: includes/audience/class-ffc-audience-checkin.php:241
+msgid "Check-in for this event is closed."
+msgstr "O check-in deste evento está encerrado."
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:230
+msgid "Check-in not recorded"
+msgstr "Check-in não registrado"
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:178
+msgid "Confirm my attendance"
+msgstr "Confirmar minha presença"
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:320
+msgid "Reading your location…"
+msgstr "Lendo sua localização…"
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:208
+#, php-format
+msgid "Recorded at %s. You can close this page."
+msgstr "Registrada às %s. Você pode fechar esta página."
+
+#: includes/audience/class-ffc-audience-checkin.php:237
+msgid "This check-in code is not valid any more. Scan the QR code shown at the event again."
+msgstr "Este código de check-in não é mais válido. Leia novamente o QR code exibido no evento."
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:173
+msgid "This check-in confirms you are at the event: your browser will ask for your location."
+msgstr "Este check-in confirma que você está no evento: o navegador vai pedir sua localização."
+
+#: includes/audience/class-ffc-audience-checkin.php:239
+msgid "This check-in link has expired. Scan the QR code shown at the event again."
+msgstr "Este link de check-in expirou. Leia novamente o QR code exibido no evento."
+
+#: includes/audience/class-ffc-audience-checkin.php:247
+msgid "This check-in needs your location. Allow it in your browser and try again."
+msgstr "Este check-in precisa da sua localização. Permita no navegador e tente novamente."
+
+#: includes/audience/class-ffc-audience-checkin.php:243
+msgid "This event is not taking check-ins today."
+msgstr "Este evento não está recebendo check-ins hoje."
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:144
+msgid "This page expired. Scan the QR code shown at the event again."
+msgstr "Esta página expirou. Leia novamente o QR code exibido no evento."
+
+#: includes/audience/class-ffc-audience-checkin.php:245
+msgid "You are not on the participant list of this event. Ask the organiser to mark your attendance."
+msgstr "Você não está na lista de participantes deste evento. Peça ao organizador para marcar sua presença."
+
+#: includes/audience/class-ffc-audience-checkin.php:251
+msgid "Your attendance could not be recorded. Try again, or ask the organiser to mark it."
+msgstr "Não foi possível registrar sua presença. Tente novamente ou peça ao organizador para marcá-la."
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:206
+#, php-format
+msgid "Your attendance for today was already recorded at %s."
+msgstr "Sua presença de hoje já foi registrada às %s."
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:319
+msgid "Your location could not be read. Move to an open area and try again."
+msgstr "Não foi possível ler sua localização. Vá para uma área aberta e tente novamente."
+
+#: includes/audience/class-ffc-audience-checkin-endpoint.php:318
+msgid "Your location is needed to check in here. Allow it in your browser settings and try again."
+msgstr "Sua localização é necessária para fazer check-in aqui. Permita nas configurações do navegador e tente novamente."
+
+#: includes/audience/class-ffc-audience-checkin.php:249
+msgid "Your location is outside the event area. Check in from the event, or ask the organiser to mark your attendance."
+msgstr "Sua localização está fora da área do evento. Faça o check-in no evento ou peça ao organizador para marcar sua presença."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in is open. Project the QR code where participants can scan it."
+msgstr "O check-in está aberto. Projete o QR code onde os participantes possam lê-lo."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in is closed."
+msgstr "O check-in está encerrado."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance marked."
+msgstr "Presença marcada."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance removed."
+msgstr "Presença removida."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance rule saved."
+msgstr "Regra de presença salva."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in by QR code opens only on the day itself, for an active booking."
+msgstr "O check-in por QR code só abre no próprio dia, para uma reserva ativa."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in was not open."
+msgstr "O check-in não estava aberto."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance cannot be marked for a day that has not come yet."
+msgstr "Não é possível marcar presença em um dia que ainda não chegou."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "You do not have permission to do that."
+msgstr "Você não tem permissão para fazer isso."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "The change could not be saved."
+msgstr "Não foi possível salvar a alteração."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance"
+msgstr "Presença"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Back to bookings"
+msgstr "Voltar às reservas"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in by QR code"
+msgstr "Check-in por QR code"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "This booking is cancelled, so it takes no check-in."
+msgstr "Esta reserva está cancelada, então não recebe check-in."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in by QR code opens only on the day itself. Attendance on other days can be marked by hand below."
+msgstr "O check-in por QR code só abre no próprio dia. A presença em outros dias pode ser marcada manualmente abaixo."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "Closes on its own at %1$s. The code changes every %2$d seconds."
+msgstr "Encerra sozinho às %1$s. O código muda a cada %2$d segundos."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Participants must be inside one of the selected areas."
+msgstr "Os participantes precisam estar dentro de uma das áreas selecionadas."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Project the QR code"
+msgstr "Projetar o QR code"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Close check-in"
+msgstr "Encerrar check-in"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "The code changes every"
+msgstr "O código muda a cada"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Require the participant to be inside (optional)"
+msgstr "Exigir que o participante esteja dentro de (opcional)"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "The position comes from the participant's browser and can be faked: an area makes checking in from elsewhere harder, it does not prove presence."
+msgstr "A posição vem do navegador do participante e pode ser falsificada: uma área dificulta o check-in de outro lugar, mas não comprova a presença."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "Check-in closes on its own at %s, 30 minutes after the booking ends today."
+msgstr "O check-in encerra sozinho às %s, 30 minutos após o fim da reserva hoje."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Open check-in"
+msgstr "Abrir check-in"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Attendance rule"
+msgstr "Regra de presença"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Any day"
+msgstr "Qualquer dia"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Share of days"
+msgstr "Percentual de dias"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Present on at least one day counts as attended."
+msgstr "Presente em pelo menos um dia conta como participação."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Present on at least the share below of the booked days counts as attended. Skipped days do not count."
+msgstr "Presente em pelo menos o percentual abaixo dos dias reservados conta como participação. Dias pulados não contam."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "Minimum share of days (%)"
+msgstr "Percentual mínimo de dias (%)"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "As saved, %1$d of the %2$d booked day(s) are required."
+msgstr "Como está salva, a regra exige %1$d dos %2$d dia(s) reservado(s)."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "%1$s of %2$s present on %3$s"
+msgstr "%1$s de %2$s presentes em %3$s"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "This booking has no participants."
+msgstr "Esta reserva não tem participantes."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "This day"
+msgstr "Neste dia"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Days present"
+msgstr "Dias presentes"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Met"
+msgstr "Cumprida"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Mark present"
+msgstr "Marcar presença"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "by hand"
+msgstr "manual"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "QR"
+msgstr "QR"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in"
+msgstr "Check-in"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in QR code"
+msgstr "QR code de check-in"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Scan with your phone camera to check in."
+msgstr "Leia com a câmera do celular para fazer o check-in."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+#, php-format
+msgid "%1$s of %2$s present"
+msgstr "%1$s de %2$s presentes"
+
+#: includes/audience/class-ffc-audience-attendance-ajax.php
+msgid "You do not have permission to run check-in."
+msgstr "Você não tem permissão para conduzir o check-in."
+
+#: includes/audience/class-ffc-audience-attendance-export-source.php
+msgid "Attendance rule met"
+msgstr "Regra de presença cumprida"
+
+#: includes/audience/class-ffc-audience-attendance-export-source.php
+msgid "Present"
+msgstr "Presente"
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Attendance and QR check-in"
+msgstr "Presença e check-in por QR"
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The Attendance link in a booking's row of Audience Bookings opens its attendance screen. On the day itself, until 30 minutes after the booking ends, Open check-in starts a check-in for that day: choose how often the code changes (1, 2, 3, 5 or 10 minutes) and, optionally, the saved geolocation areas the participant must be inside. Project the QR code opens a full-screen page for a projector or a screen; the code changes on its own and the page counts who is present. Check-in closes when you press Close check-in, or on its own 30 minutes after the booking ends that day. Opening it again starts a new check-in, and codes from the previous one stop working."
+msgstr "O link Presença na linha de uma reserva em Agendamentos de Público-alvo abre a tela de presença. No próprio dia, até 30 minutos após o fim da reserva, Abrir check-in inicia o check-in daquele dia: escolha com que frequência o código muda (1, 2, 3, 5 ou 10 minutos) e, opcionalmente, as áreas de geolocalização salvas em que o participante precisa estar. Projetar o QR code abre uma página em tela cheia para projetor ou monitor; o código muda sozinho e a página conta quem está presente. O check-in encerra quando você clica em Encerrar check-in, ou sozinho 30 minutos após o fim da reserva naquele dia. Abrir de novo inicia um novo check-in, e os códigos do anterior deixam de valer."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "A participant scans the code with the phone camera, logs in if asked and confirms. Only people on the booking (its custom users and the members of its audiences) can check in, once per day. A code shown on the screen is valid for its rotation and the one before; a link copied from it expires within minutes. The location of an area check-in comes from the participant's browser and can be faked: it makes checking in from elsewhere harder, it does not prove presence."
+msgstr "O participante lê o código com a câmera do celular, faz login se for pedido e confirma. Só pessoas da reserva (seus usuários personalizados e os membros de seus públicos) podem fazer check-in, uma vez por dia. Um código exibido na tela vale durante sua rotação e a anterior; um link copiado dele expira em poucos minutos. A localização de um check-in com área vem do navegador do participante e pode ser falsificada: dificulta o check-in de outro lugar, mas não comprova a presença."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The participants list shows who is present on the day selected and refreshes on its own. Mark present and Remove record or delete an attendance by hand on today or an earlier day, noting who marked it. The attendance rule decides who counts as attended for a booking over several days: Any day, or a minimum share of the booked days (skipped days do not count). Export CSV lists each participant's name, a column per day, the days present and whether the rule was met, and, when a post-event form applies, when they were invited and whether they answered; it carries no e-mail or document number."
+msgstr "A lista de participantes mostra quem está presente no dia selecionado e se atualiza sozinha. Marcar presença e Remover registram ou apagam uma presença manualmente hoje ou em um dia anterior, anotando quem marcou. A regra de presença decide quem conta como participante em uma reserva de vários dias: Qualquer dia, ou um percentual mínimo dos dias reservados (dias pulados não contam). Exportar CSV lista o nome de cada participante, uma coluna por dia, os dias presentes e se a regra foi cumprida e, quando há formulário pós-evento, quando foi convidado e se respondeu; não traz e-mail nem número de documento."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Attendance lines are records: when an account is deleted or its data erased, the line stays and loses the person. A participant's attendance is included in their privacy export."
+msgstr "As linhas de presença são registros: quando uma conta é excluída ou seus dados são apagados, a linha permanece sem a pessoa. A presença de um participante entra na sua exportação de privacidade."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "run attendance: open and close check-in, project the QR code and mark attendance by hand. Held by the Operator tier and above. Changing a booking's attendance rule needs ffc_manage_audiences, and its CSV needs ffc_export_audiences."
+msgstr "conduzir a presença: abrir e encerrar o check-in, projetar o QR code e marcar presença manualmente. Dada ao nível Operador e acima. Alterar a regra de presença de uma reserva exige ffc_manage_audiences, e o CSV exige ffc_export_audiences."
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This invitation is not for a participant of this event."
+msgstr "Este convite não é para um participante deste evento."
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This form opens when the event ends."
+msgstr "Este formulário abre quando o evento termina."
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "The period to fill in this form has ended."
+msgstr "O prazo para preencher este formulário terminou."
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This form is only for people whose attendance at the event was recorded."
+msgstr "Este formulário é só para quem teve a presença no evento registrada."
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This event was cancelled."
+msgstr "Este evento foi cancelado."
+
+#: includes/audience/class-ffc-audience-post-event-form.php
+msgid "This event has no form to fill in."
+msgstr "Este evento não tem formulário para preencher."
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Post-event form"
+msgstr "Formulário pós-evento"
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Certificate form"
+msgstr "Formulário de certificado"
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "When the last day of a booking ends, its participants are invited to this form, with their name and e-mail filled in; the CPF/RF they type is checked against their account. A booking can choose another form, or none, on its Attendance screen."
+msgstr "Quando termina o último dia de uma reserva, os participantes são convidados para este formulário, com nome e e-mail já preenchidos; o CPF/RF que digitarem é conferido com a conta. Uma reserva pode escolher outro formulário, ou nenhum, na tela de Presença."
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Days open"
+msgstr "Dias aberto"
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "How many days after the end of the event the invitation link works."
+msgstr "Por quantos dias depois do fim do evento o link do convite funciona."
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Attendees only"
+msgstr "Somente presentes"
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Invite only people whose attendance meets the booking's rule"
+msgstr "Convidar só quem cumpriu a regra de presença do agendamento"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Post-event form saved."
+msgstr "Formulário pós-evento salvo."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Use settings of its own for this booking"
+msgstr "Usar configuração própria neste agendamento"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Off, the booking follows its calendar. On, the three settings below apply to this booking only; choose None to invite nobody."
+msgstr "Desligado, o agendamento segue o calendário. Ligado, as três configurações abaixo valem só para este agendamento; escolha Nenhum para não convidar ninguém."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invite only people whose attendance meets the rule"
+msgstr "Convidar só quem cumpriu a regra de presença"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "This booking invites nobody to a form."
+msgstr "Este agendamento não convida ninguém para um formulário."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Its calendar names no form, so this booking invites nobody."
+msgstr "O calendário não indica formulário, então este agendamento não convida ninguém."
+
+#. translators: 1: form title, 2: date and time the form opens, 3: date and time it closes
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Participants are invited to \"%1$s\", open from %2$s to %3$s."
+msgstr "Os participantes são convidados para \"%1$s\", aberto de %2$s a %3$s."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Post-event certificate form"
+msgstr "Formulário de certificado pós-evento"
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The Post-event form tab of a calendar names the certificate form its bookings lead to, how many days it stays open after the event (1 to 90) and whether only people whose attendance meets the booking's rule are invited. The form opens when the booking's last day ends. The questions are ordinary fields of that certificate form."
+msgstr "A aba Formulário pós-evento de um calendário indica o formulário de certificado para onde os agendamentos levam, por quantos dias ele fica aberto depois do evento (1 a 90) e se só são convidados os que cumpriram a regra de presença do agendamento. O formulário abre quando termina o último dia do agendamento. As perguntas são campos comuns desse formulário de certificado."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The Post-event form card on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences. This card and the Attendance rule card save each change as it is made, and the sentences describing them follow; reload the page to see the invitations."
+msgstr "O cartão Formulário pós-evento na tela de Presença de um agendamento diz qual formulário vale e quando está aberto. O interruptor dá a esse agendamento uma configuração própria no lugar da do calendário, inclusive Nenhum para não convidar ninguém; alterá-lo exige ffc_manage_audiences. Este cartão e o cartão Regra de presença salvam cada alteração assim que ela é feita, e as frases que os descrevem acompanham; recarregue a página para ver os convites."
+
+#: includes/frontend/class-ffc-form-invite.php
+msgid "This invitation link is not valid."
+msgstr "Este link de convite não é válido."
+
+#: includes/frontend/submission/class-ffc-invite-guard.php
+msgid "This form is open by invitation only. Use the link in the e-mail you received."
+msgstr "Este formulário é aberto só por convite. Use o link do e-mail que você recebeu."
+
+#. translators: 1: the invited person's name, 2: the event
+#: includes/frontend/class-ffc-shortcodes.php
+msgid "Filling in as %1$s, for %2$s. Your name and e-mail come from your registration."
+msgstr "Preenchendo como %1$s, para %2$s. Seu nome e e-mail vêm do seu cadastro."
+
+#. translators: %s: the invited person's name
+#: includes/frontend/class-ffc-shortcodes.php
+msgid "Filling in as %s. Your name and e-mail come from your registration."
+msgstr "Preenchendo como %s. Seu nome e e-mail vêm do seu cadastro."
+
+#: includes/frontend/class-ffc-shortcodes.php
+msgid "Invitation:"
+msgstr "Convite:"
+
+#: includes/admin/class-ffc-form-editor-restriction-metabox.php
+msgid "Booking participants only"
+msgstr "Somente participantes do agendamento"
+
+#: includes/admin/class-ffc-form-editor-restriction-metabox.php
+msgid "Only people invited by an audience booking's post-event e-mail can submit"
+msgstr "Só podem enviar as pessoas convidadas pelo e-mail pós-evento de um agendamento de público"
+
+#: includes/audience/class-ffc-audience-form-invite-resolver.php
+msgid "This CPF/RF belongs to another registration. Type your own, or ask the organiser."
+msgstr "Este CPF/RF pertence a outro cadastro. Digite o seu, ou fale com a organização."
+
+#: includes/audience/class-ffc-audience-form-invite-resolver.php
+msgid "This CPF/RF does not match your registration. Type the one you registered with, or ask the organiser."
+msgstr "Este CPF/RF não confere com o seu cadastro. Digite o que você cadastrou, ou fale com a organização."
+
+#: includes/settings/views/documentation/reference-security.php
+msgid "Only a person invited by an audience booking's post-event link can submit. The link fills in and locks their name and e-mail from their account, works without logging in until the booking's form window closes, and names one person: their CPF/RF is typed, and refused when it belongs to another account. Opening the link again after answering returns the same certificate. Without this restriction the form stays open, and an invitation link only fills it in."
+msgstr "Só pode enviar quem foi convidado pelo link pós-evento de um agendamento de público. O link preenche e bloqueia o nome e o e-mail da conta da pessoa, funciona sem login até fechar o prazo do formulário do agendamento e vale para uma única pessoa: o CPF/RF é digitado, e recusado se pertencer a outra conta. Abrir o link de novo depois de responder devolve o mesmo certificado. Sem esta restrição o formulário continua aberto, e o link de convite só o preenche."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "An invitation link opens the form with the participant's name and e-mail filled in and locked, from their account; no login is needed, so treat the link as personal. The CPF/RF is not filled in: the participant types it, and it is refused when it belongs to another account, or when it differs from the one already on record. A first CPF/RF is accepted and recorded on their profile. The submission keeps the booking it came from. To keep the form closed to everyone else, switch on its \"Booking participants only\" restriction."
+msgstr "O link de convite abre o formulário com o nome e o e-mail do participante já preenchidos e bloqueados, a partir da conta dele; não é preciso login, então o link é pessoal. O CPF/RF não vem preenchido: o participante digita, e ele é recusado se pertencer a outra conta ou se for diferente do que já consta no cadastro. Um primeiro CPF/RF é aceito e registrado no perfil. A submissão guarda o agendamento de onde veio. Para fechar o formulário a todos os demais, ligue a restrição \"Somente participantes do agendamento\"."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "%1$s (sent %2$d times)"
+msgstr "%1$s (enviado %2$d vezes)"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Answer"
+msgstr "Resposta"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Answered"
+msgstr "Respondeu"
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Audience post-event form invitation"
+msgstr "Convite para o formulário pós-evento de público"
+
+#: includes/settings/views/documentation/email-texts-hub.php
+msgid "Audience post-event form invitation:"
+msgstr "Convite para o formulário pós-evento de público:"
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Audience post-event form invitations"
+msgstr "Convites para o formulário pós-evento de público"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Certificate issued"
+msgstr "Certificado emitido"
+
+#: includes/core/class-ffc-email-source.php
+msgid "FFCertificate — Audience Calendars post-event forms"
+msgstr "FFCertificate — Formulários pós-evento dos Calendários de Público"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invitation sent."
+msgstr "Convite enviado."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invitations go out on their own once the event ends, and can be sent again here while the form is open."
+msgstr "Os convites saem sozinhos quando o evento termina, e podem ser reenviados aqui enquanto o formulário estiver aberto."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invitations sent to everyone eligible who has not answered."
+msgstr "Convites enviados a todos os elegíveis que ainda não responderam."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invited"
+msgstr "Convidado"
+
+#: includes/audience/class-ffc-audience-form-invite-mailer.php
+msgid "No published page embeds the post-event form, so there is no link to send."
+msgstr "Nenhuma página publicada contém o formulário pós-evento, então não há link para enviar."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "No published page embeds the post-event form. Add the form to a page, then send again."
+msgstr "Nenhuma página publicada contém o formulário pós-evento. Adicione o formulário a uma página e envie de novo."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Nobody was sent an invitation: everyone eligible has answered, or the form is not open."
+msgstr "Nenhum convite foi enviado: todos os elegíveis já responderam, ou o formulário não está aberto."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Not yet"
+msgstr "Ainda não"
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Once an hour the plugin e-mails each eligible participant of a booking whose form has opened the personal link, once. The e-mail is \"Audience post-event form invitation\" under Settings → Email texts. It needs a published page that embeds the form, since the link points there; without one nothing is sent. The Attendance screen lists who was invited and when, who answered and whose certificate was issued, and while the form is open it resends to one person or to everyone who has not answered; this needs ffc_checkin_audiences."
+msgstr "Uma vez por hora o plugin envia por e-mail a cada participante elegível de um agendamento cujo formulário abriu o link pessoal, uma única vez. O e-mail é \"Convite para o formulário pós-evento de público\" em Configurações → Textos de e-mail. É preciso uma página publicada que contenha o formulário, pois o link aponta para ela; sem ela nada é enviado. A tela de Presença mostra quem foi convidado e quando, quem respondeu e de quem o certificado foi emitido, e enquanto o formulário estiver aberto reenvia a uma pessoa ou a todos que ainda não responderam; isso exige ffc_checkin_audiences."
+
+#: templates/emails/audience-post-event-invite.php
+msgid "Open the form"
+msgstr "Abrir o formulário"
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Post-event form invitation"
+msgstr "Convite para o formulário pós-evento"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Resend"
+msgstr "Reenviar"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Send to everyone who has not answered"
+msgstr "Enviar a todos que ainda não responderam"
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Sent to each participant when a booking with a post-event form ends, and again on Resend — text edited globally in the hub above."
+msgstr "Enviado a cada participante quando termina um agendamento com formulário pós-evento, e de novo ao Reenviar — texto editado globalmente no painel acima."
+
+#: templates/emails/audience-post-event-invite.php
+msgid "Thank you for taking part in {{event}}. Fill in the form \"{{form_title}}\" to receive your certificate."
+msgstr "Obrigado por participar de {{event}}. Preencha o formulário \"{{form_title}}\" para receber o seu certificado."
+
+#: includes/audience/class-ffc-audience-form-invite-mailer.php
+msgid "The e-mail could not be sent."
+msgstr "Não foi possível enviar o e-mail."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "The invitation could not be sent."
+msgstr "Não foi possível enviar o convite."
+
+#: templates/emails/audience-post-event-invite.php
+msgid "The link is open until {{closes_at}}. It is personal: it fills in your name and e-mail, so do not forward it."
+msgstr "O link fica aberto até {{closes_at}}. Ele é pessoal: preenche o seu nome e e-mail, então não o encaminhe."
+
+#: includes/audience/class-ffc-audience-form-invite-mailer.php
+msgid "The participant has no valid e-mail address."
+msgstr "O participante não tem um endereço de e-mail válido."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "This person cannot be invited now: the form is not open, or they are not eligible."
+msgstr "Esta pessoa não pode ser convidada agora: o formulário não está aberto, ou ela não é elegível."
+
+#: templates/emails/audience-post-event-invite.php
+msgid "Your certificate for {{event}}"
+msgstr "Seu certificado de {{event}}"
+
+#: templates/emails/audience-post-event-invite.php
+msgid "Your certificate is waiting"
+msgstr "Seu certificado está à sua espera"
+
+#: includes/settings/views/documentation/email-texts-hub.php
+msgid "global only; the form a booking leads to is chosen on its calendar or its Attendance screen."
+msgstr "somente global; o formulário a que um agendamento leva é escolhido no calendário ou na tela de Presença dele."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in can no longer be opened today: the booking has ended. Mark attendance by hand below."
+msgstr "O check-in não pode mais ser aberto hoje: a reserva já terminou. Marque a presença à mão abaixo."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Check-in closed on its own at %s, 30 minutes after the booking ended today. Attendance can still be marked by hand below."
+msgstr "O check-in encerrou sozinho às %s, 30 minutos após o fim da reserva hoje. A presença ainda pode ser marcada à mão abaixo."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Changes save as you make them. Reload the page to see the invitations."
+msgstr "As alterações são salvas assim que feitas. Recarregue a página para ver os convites."
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "Choose a published certificate form."
+msgstr "Escolha um formulário de certificado publicado."
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "The booking could not be saved."
+msgstr "Não foi possível salvar a reserva."
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+#: includes/privacy/class-ffc-privacy-handler.php
+msgid "FFC Post-event Form Invitations"
+msgstr "Convites FFC para formulários pós-evento"
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+msgid "Last sent"
+msgstr "Último envio"
+
+#: includes/audience/class-ffc-audience-form-invite-mailer.php
+msgid "No published page embeds this form, so no invitation can be sent. Publish a page holding %s."
+msgstr "Nenhuma página publicada contém este formulário, então nenhum convite pode ser enviado. Publique uma página com %s."
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+msgid "Times sent"
+msgstr "Vezes enviado"
+
+msgid "A participant whose e-mail went astray also finds the form on their dashboard, in the bookings tab, until it closes or they answer."
+msgstr "Um participante cujo e-mail se perdeu também encontra o formulário no seu painel, na aba de agendamentos, até ele fechar ou ser respondido."
+
+msgid "A post-event certificate form still waiting for them: the booking shows Fill in the form, their personal link, and when the form closes, and a notice at the top of the tab counts the forms waiting. Viewing as a user shows that a form waits, never its link."
+msgstr "Um formulário de certificado pós-evento ainda à espera: o agendamento mostra Preencher o formulário, o link pessoal, e quando o formulário fecha, e um aviso no topo da aba conta os formulários pendentes. Ver como usuário mostra que há um formulário à espera, nunca o seu link."
+
+msgid "Fill in the form"
+msgstr "Preencher o formulário"
+
+#, php-format
+msgid "Form waiting: %s"
+msgstr "Formulário à espera: %s"
+
+#, php-format
+msgid "Open until %s"
+msgstr "Aberto até %s"
+
+#, php-format
+msgid "You have %d certificate form to fill in. Find it under Actions."
+msgid_plural "You have %d certificate forms to fill in. Find them under Actions."
+msgstr[0] "Você tem %d formulário de certificado para preencher. Ele está em Ações."
+msgstr[1] "Você tem %d formulários de certificado para preencher. Eles estão em Ações."
+
+msgid "JavaScript is off"
+msgstr "O JavaScript está desativado"
+
+msgid "This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your certificate."
+msgstr "Este formulário precisa de JavaScript, que está desativado neste navegador. Ative-o ou abra esta página em outro navegador para obter o seu certificado."
+
+msgid "The form did not load completely"
+msgstr "O formulário não carregou por completo"
+
+msgid "Part of this form did not load, so it cannot be sent yet. Reload the page. If this message comes back, turn off any content blocker for this site or open the page in another browser."
+msgstr "Parte deste formulário não carregou, por isso ele ainda não pode ser enviado. Recarregue a página. Se esta mensagem voltar, desative bloqueadores de conteúdo neste site ou abra a página em outro navegador."
+
+msgid "Reload the page"
+msgstr "Recarregar a página"
+
+msgid "A visitor sees \"The form did not load completely\" or \"JavaScript is off\""
+msgstr "Um visitante vê \"O formulário não carregou por completo\" ou \"O JavaScript está desativado\""
+
+msgid "The form is sent and the PDF is drawn by scripts in the browser, so it cannot work without them"
+msgstr "O formulário é enviado e o PDF é desenhado por scripts no navegador, por isso ele não funciona sem eles"
+
+msgid "A content blocker or a dropped request kept a script, or the refresh of the captcha and security codes, from loading: ask the visitor to reload, then to allow the site in the blocker or use another browser"
+msgstr "Um bloqueador de conteúdo ou uma requisição perdida impediu o carregamento de um script, ou a atualização do captcha e dos códigos de segurança: peça ao visitante para recarregar a página e, depois, para liberar o site no bloqueador ou usar outro navegador"
+
+msgid "If every visitor sees it, check that a cache or optimisation plugin is not combining or delaying the plugin's scripts, and that admin-ajax.php is reachable"
+msgstr "Se todos os visitantes veem a mensagem, verifique se um plugin de cache ou de otimização não está combinando ou adiando os scripts do plugin, e se o admin-ajax.php está acessível"
+
+msgid "Browser check"
+msgstr "Verificação do navegador"
+
+msgid "Check the visitor's browser before the form"
+msgstr "Verificar o navegador do visitante antes do formulário"
+
+msgid "An app's own browser (Instagram, WhatsApp, Facebook and others) is asked to open the page in the phone's browser, with a \"Continue anyway\" link; a browser missing what the form needs to issue the certificate is stopped. Turn it off only if visitors are stopped by mistake: they then reach the form whatever browser they use."
+msgstr "O navegador próprio de um aplicativo (Instagram, WhatsApp, Facebook e outros) recebe o pedido de abrir a página no navegador do celular, com um link \"Continuar mesmo assim\"; um navegador sem o que o formulário precisa para emitir o certificado é barrado. Desative apenas se visitantes forem barrados por engano: eles passam a chegar ao formulário com qualquer navegador."
+
+msgid "This form requires a secure connection (HTTPS). Please contact the site administrator."
+msgstr "Este formulário exige uma conexão segura (HTTPS). Entre em contato com o administrador do site."
+
+msgid "Chrome, Firefox, Edge, Opera or Samsung Internet"
+msgstr "Chrome, Firefox, Edge, Opera ou Samsung Internet"
+
+msgid "Safari, Chrome, Firefox or Edge"
+msgstr "Safari, Chrome, Firefox ou Edge"
+
+msgid "Chrome, Firefox, Edge or Safari"
+msgstr "Chrome, Firefox, Edge ou Safari"
+
+msgid "Open this page in your browser"
+msgstr "Abra esta página no seu navegador"
+
+msgid "You are viewing this page inside an app, where your location and the certificate download often fail. Open it in %s."
+msgstr "Você está vendo esta página dentro de um aplicativo, onde a localização e o download do certificado costumam falhar. Abra-a em um destes navegadores: %s."
+
+msgid "Tap the menu (••• or the share icon) and choose \"Open in Safari\" or \"Open in browser\"."
+msgstr "Toque no menu (••• ou no ícone de compartilhar) e escolha \"Abrir no Safari\" ou \"Abrir no navegador\"."
+
+msgid "Or tap the menu (⋮) and choose \"Open in browser\"."
+msgstr "Ou toque no menu (⋮) e escolha \"Abrir no navegador\"."
+
+msgid "Open in Chrome"
+msgstr "Abrir no Chrome"
+
+msgid "This browser cannot run the form"
+msgstr "Este navegador não consegue executar o formulário"
+
+msgid "This browser is missing features the form needs to issue your certificate. Open this page in %s."
+msgstr "Faltam neste navegador recursos de que o formulário precisa para emitir o seu certificado. Abra esta página em um destes navegadores: %s."
+
+msgid "no HTTPS"
+msgstr "sem HTTPS"
+
+msgid "Open the Activity Log: visitors stopped because the page is not served over HTTPS"
+msgstr "Abra o registro de atividades: visitantes barrados porque a página não é servida por HTTPS"
+
+msgid "app browser"
+msgstr "navegador de aplicativo"
+
+msgid "Open the Activity Log: visitors asked to leave an app's own browser"
+msgstr "Abra o registro de atividades: visitantes convidados a sair do navegador próprio de um aplicativo"
+
+msgid "continued in app"
+msgstr "continuou no aplicativo"
+
+msgid "Open the Activity Log: visitors who chose \"Continue anyway\" in an app's browser"
+msgstr "Abra o registro de atividades: visitantes que escolheram \"Continuar mesmo assim\" no navegador de um aplicativo"
+
+msgid "browser missing features"
+msgstr "navegador sem recursos"
+
+msgid "Open the Activity Log: visitors whose browser lacks what the form needs"
+msgstr "Abra o registro de atividades: visitantes cujo navegador não tem o que o formulário precisa"
+
+msgid "form did not load"
+msgstr "formulário não carregou"
+
+msgid "Open the Activity Log: forms whose scripts did not load in time"
+msgstr "Abra o registro de atividades: formulários cujos scripts não carregaram a tempo"
+
+msgid "Checks before the form"
+msgstr "Verificações antes do formulário"
+
+msgid "Before a visitor sees a certificate form, the browser runs a short queue of checks, in this order. The first one that fails stops the queue and shows one message; nothing after it runs until the visitor fixes the cause or goes on where that is allowed."
+msgstr "Antes de o visitante ver um formulário de certificado, o navegador executa uma pequena fila de verificações, nesta ordem. A primeira que falhar interrompe a fila e mostra uma única mensagem; nada depois dela é executado até o visitante corrigir a causa ou seguir adiante, quando isso é permitido."
+
+msgid "Date and time: on a form with a date window, outside it the form's closed-period message is shown."
+msgstr "Data e hora: em um formulário com janela de datas, fora dela é exibida a mensagem de período encerrado do formulário."
+
+msgid "Browser: an app's own browser (Instagram, WhatsApp, Facebook, TikTok, LinkedIn and others) is asked to open the page in the phone's browser, where the location and the download work; a \"Continue anyway\" link lets the visitor go on, because the detection can misfire. A browser missing what the form needs to issue the certificate is stopped with the list of browsers to use, and cannot go on."
+msgstr "Navegador: o navegador próprio de um aplicativo (Instagram, WhatsApp, Facebook, TikTok, LinkedIn e outros) recebe o pedido de abrir a página no navegador do celular, onde a localização e o download funcionam; um link \"Continuar mesmo assim\" permite seguir, porque a detecção pode errar. Um navegador sem o que o formulário precisa para emitir o certificado é barrado com a lista de navegadores a usar, e não pode seguir."
+
+msgid "Cookies: a browser that blocks cookies is warned, with how to allow them, and may try anyway."
+msgstr "Cookies: um navegador que bloqueia cookies recebe um aviso, com instruções para permiti-los, e pode tentar mesmo assim."
+
+msgid "Location: on a form with GPS validation, the location is asked for and checked (see Geolocation / Geofence)."
+msgstr "Localização: em um formulário com validação por GPS, a localização é solicitada e verificada (veja Geolocalização / Geocerca)."
+
+msgid "The location is the last of the checks a form runs before it is shown, after the date window, the secure connection, the browser and the cookies; see Certificates & Forms → Checks before the form. A page served over plain HTTP cannot ask for the location, and an app's own browser often cannot either, which is why those two are checked first."
+msgstr "A localização é a última das verificações que um formulário executa antes de ser exibido, depois da janela de datas, da conexão segura, do navegador e dos cookies; veja Certificados e Formulários → Verificações antes do formulário. Uma página servida por HTTP simples não pode pedir a localização, e o navegador próprio de um aplicativo muitas vezes também não, por isso esses dois são verificados antes."
+
+msgid "A visitor sees \"Open this page in your browser\" or \"This browser cannot run the form\""
+msgstr "Um visitante vê \"Abra esta página no seu navegador\" ou \"Este navegador não consegue executar o formulário\""
+
+msgid "The page was opened inside an app (a link in Instagram or WhatsApp, for example): the visitor should open it in the phone's browser, or use \"Continue anyway\""
+msgstr "A página foi aberta dentro de um aplicativo (um link no Instagram ou no WhatsApp, por exemplo): o visitante deve abri-la no navegador do celular, ou usar \"Continuar mesmo assim\""
+
+msgid "A browser missing what the form needs cannot issue the certificate: the message lists the browsers to use instead"
+msgstr "Um navegador sem o que o formulário precisa não consegue emitir o certificado: a mensagem lista os navegadores a usar no lugar dele"
+
+msgid "If visitors in an ordinary browser are stopped, turn the check off under Settings → Certificates → Browser check and report the browser"
+msgstr "Se visitantes em um navegador comum forem barrados, desligue a verificação em Configurações → Certificados → Verificação do navegador e informe o navegador"
+
+msgid "Download the template for this form"
+msgstr "Baixe o modelo deste formulário"
+
+msgid "Download the CSV template"
+msgstr "Baixar o modelo CSV"
+
+msgid "Columns of the template"
+msgstr "Colunas do modelo"
+
+msgid "Upload the participants file"
+msgstr "Envie o arquivo de participantes"
+
+msgid "A CSV of up to 2 MB. Name, CPF/RF and e-mail are required."
+msgstr "CSV de até 2 MB. Nome, CPF/RF e e-mail são obrigatórios."
+
+msgid "Check before issuing"
+msgstr "Confira antes de emitir"
+
+msgid "Nothing is issued yet: the next step maps the columns and shows a preview."
+msgstr "Nada é emitido ainda: a próxima etapa associa as colunas e mostra uma pré-visualização."
+
+msgid "Choose file"
+msgstr "Escolher arquivo"
+
+msgid "The public CSV download page ([ffc_csv_download]) runs the browser check too, under the same setting: the file is built and saved by the browser, which an app's own browser often cannot do."
+msgstr "A página pública de download do CSV ([ffc_csv_download]) também executa a verificação do navegador, sob a mesma configuração: o arquivo é montado e salvo pelo navegador, o que o navegador próprio de um aplicativo muitas vezes não consegue fazer."
+
+msgid "Activity Log: Delete Logged Locations"
+msgstr "Registro de atividades: apagar localizações registradas"
+
+msgid "Delete the \"IP Geolocation Debug\" activity log entries. Until this release every geofence area check wrote the visitor's position there: the exact GPS position of each audience check-in, and the position each IP address resolved to. The entries are debug output with no audit value. A check now logs its decision only, and only while geolocation debugging is on."
+msgstr "Apaga as entradas \"Depuração de Geolocalização de IP\" do registro de atividades. Até esta versão, cada verificação de área da geocerca gravava ali a posição do visitante: a posição GPS exata de cada check-in de público e a posição obtida a partir de cada endereço IP. As entradas são saída de depuração, sem valor de auditoria. Agora uma verificação registra apenas a sua decisão, e só enquanto a depuração de geolocalização estiver ligada."
+
+msgid "The visitor's position is used to decide and then discarded: it is not stored with the submission and is not written to any log. With geolocation debugging on, the debug entries say which area matched, never where the visitor was. Entries written before 6.42.0 did record the position; the \"Activity Log: Delete Logged Locations\" migration removes them."
+msgstr "A posição do visitante é usada para decidir e depois descartada: não é guardada com o envio e não é gravada em nenhum registro. Com a depuração de geolocalização ligada, as entradas de depuração dizem qual área foi atendida, nunca onde o visitante estava. Entradas gravadas antes da 6.42.0 registravam a posição; a migração \"Registro de atividades: apagar localizações registradas\" as remove."
+
+msgid "Could not delete the geolocation debug entries."
+msgstr "Não foi possível apagar as entradas de depuração de geolocalização."
+
+msgid "Deleted %d geolocation debug entries."
+msgstr "%d entradas de depuração de geolocalização apagadas."
+
+msgid "Secure connection: a form that asks for the location, or any form while the captcha is ALTCHA only, needs a page the browser treats as secure (HTTPS, or localhost); on any other page the visitor is asked to contact the site administrator. The browser decides, so a development host such as a .local name or a LAN address over plain HTTP is stopped too."
+msgstr "Conexão segura: um formulário que pede a localização, ou qualquer formulário enquanto o captcha for somente ALTCHA, exige uma página que o navegador considere segura (HTTPS, ou localhost); em qualquer outra página o visitante é orientado a entrar em contato com o administrador do site. Quem decide é o navegador, então um host de desenvolvimento, como um nome .local ou um endereço da rede local em HTTP simples, também é barrado."
+
+msgid "Every form runs the browser and cookie checks, not only the ones with a restriction. The \"already submitted\" notice is drawn only after the queue passes. Settings → Certificates → Browser check turns the browser check off, should visitors be stopped by mistake. An administrator for whom the geolocation bypass is on skips the browser and cookie checks. Each stop is written to the Activity Log as a pre-flight block, naming the form, or the CSV download page the visitor was on, and the form editor counts its own form's."
+msgstr "Todo formulário executa as verificações de navegador e de cookies, não apenas os que têm restrição. O aviso de \"já enviado\" só aparece depois que a fila passa. Configurações → Certificados → Verificação do navegador desliga a verificação do navegador, caso visitantes sejam barrados por engano. Um administrador com o bypass de geolocalização ativo pula as verificações de navegador e de cookies. Cada bloqueio é gravado no registro de atividades como um bloqueio de pré-verificação, indicando o formulário, ou a página de download de CSV em que o visitante estava, e o editor do formulário conta os do seu próprio formulário."
+
+msgid "Booking ID"
+msgstr "ID da reserva"
+
+msgid "CSV download page ID"
+msgstr "ID da página de download de CSV"
+
+msgid "Appointment ID"
+msgstr "ID do agendamento"
+
+msgid "This check-in needs a secure connection (HTTPS) to read your location. Please tell the event organiser."
+msgstr "Este check-in precisa de uma conexão segura (HTTPS) para ler sua localização. Avise a organização do evento."
+
+msgid "You are viewing this page inside an app, where your location often cannot be read. Open it in %s."
+msgstr "Você está vendo esta página dentro de um aplicativo, onde a localização muitas vezes não pode ser lida. Abra-a em um destes navegadores: %s."
+
+msgid "You are viewing this page inside an app, where downloading the receipt often fails. Open it in %s."
+msgstr "Você está vendo esta página dentro de um aplicativo, onde o download do comprovante costuma falhar. Abra-a em um destes navegadores: %s."
+
+msgid "This browser is missing features needed to build your receipt. Open this page in %s."
+msgstr "Faltam neste navegador recursos necessários para gerar o seu comprovante. Abra esta página em um destes navegadores: %s."
+
+msgid "This browser cannot build the receipt"
+msgstr "Este navegador não consegue gerar o comprovante"
+
+msgid "The receipt PDF is built in the visitor's browser, after booking or from the receipt page, and the same browser check a certificate form runs comes first: an app's own browser (Instagram, WhatsApp and others), where saving the file often fails, is asked to open the page in the phone's browser, with \"Continue anyway\", which then downloads it; a browser missing what the PDF needs is stopped. Booking itself never waits on this. Settings → Certificates → Browser check turns it off, and each stop is written to the Activity Log as a pre-flight block naming the appointment."
+msgstr "O PDF do comprovante é gerado no navegador do visitante, após o agendamento ou na página do comprovante, e antes vem a mesma verificação de navegador que um formulário de certificado executa: o navegador próprio de um aplicativo (Instagram, WhatsApp e outros), onde salvar o arquivo costuma falhar, recebe o pedido de abrir a página no navegador do celular, com \"Continuar mesmo assim\", que então faz o download; um navegador sem o que o PDF precisa é barrado. O agendamento em si nunca espera por isso. Configurações → Certificados → Verificação do navegador a desliga, e cada bloqueio é gravado no registro de atividades como um bloqueio de pré-verificação, indicando o agendamento."
+
+msgid "Allowed"
+msgstr "Permitido"
+
+msgid "An app's own browser (%s): the location and downloads often fail. Open the page in the phone's browser."
+msgstr "Navegador próprio de um aplicativo (%s): a localização e os downloads costumam falhar. Abra a página no navegador do celular."
+
+msgid "Android"
+msgstr "Android"
+
+msgid "Back to certificate verification"
+msgstr "Voltar à verificação de certificados"
+
+msgid "Blocked: allow it in the browser settings."
+msgstr "Bloqueada: permita nas configurações do navegador."
+
+msgid "Blocked: sending a form may fail."
+msgstr "Bloqueados: o envio de um formulário pode falhar."
+
+msgid "Browser"
+msgstr "Navegador"
+
+msgid "Checking…"
+msgstr "Verificando…"
+
+msgid "Cookies"
+msgstr "Cookies"
+
+msgid "Copied"
+msgstr "Copiado"
+
+msgid "Copy the results"
+msgstr "Copiar os resultados"
+
+msgid "Could not be read: move to an open area and try again."
+msgstr "Não foi possível ler: vá para um local aberto e tente de novo."
+
+msgid "Could not copy: take a screenshot instead."
+msgstr "Não foi possível copiar: faça uma captura de tela."
+
+msgid "JavaScript is off in this browser. The forms need it: turn it on and reload this page."
+msgstr "O JavaScript está desativado neste navegador. Os formulários precisam dele: ative-o e recarregue esta página."
+
+msgid "No: the browser gives no location here, and forms that ask for it will stop."
+msgstr "Não: o navegador não fornece a localização aqui, e os formulários que a pedem vão parar."
+
+msgid "Not decided yet: the browser will ask."
+msgstr "Ainda não decidida: o navegador vai perguntar."
+
+msgid "Not supported: missing %s."
+msgstr "Sem suporte: falta %s."
+
+msgid "Ordinary browser (%s)"
+msgstr "Navegador comum (%s)"
+
+msgid "PDF download"
+msgstr "Download do PDF"
+
+msgid "Problems with a form? Test your device"
+msgstr "Problemas com um formulário? Teste seu dispositivo"
+
+msgid "Refused by the browser or by you."
+msgstr "Recusada pelo navegador ou por você."
+
+msgid "Secure connection"
+msgstr "Conexão segura"
+
+msgid "Test my device"
+msgstr "Testar meu dispositivo"
+
+msgid "Test my location"
+msgstr "Testar minha localização"
+
+msgid "The browser does not say until it asks."
+msgstr "O navegador só informa quando perguntar."
+
+msgid "This browser cannot give a location."
+msgstr "Este navegador não consegue fornecer a localização."
+
+msgid "This page runs the checks a form runs before it is used and shows each result. Nothing is sent or stored, and your position is never shown: only how precise it is."
+msgstr "Esta página executa as verificações que um formulário faz antes de ser usado e mostra cada resultado. Nada é enviado nem guardado, e a sua posição nunca é exibida: apenas a precisão dela."
+
+msgid "To ask for help, send a screenshot of this page or paste the copied results."
+msgstr "Para pedir ajuda, envie uma captura desta página ou cole os resultados copiados."
+
+msgid "Took too long: move to an open area and try again."
+msgstr "Demorou demais: vá para um local aberto e tente de novo."
+
+msgid "computer"
+msgstr "computador"
+
+msgid "iPhone or iPad"
+msgstr "iPhone ou iPad"
+
+msgid "With ?ffc_device_check=1 in the address it shows the \"Test my device\" checks instead; the page links there from its footer."
+msgstr "Com ?ffc_device_check=1 no endereço, mostra as verificações de \"Testar meu dispositivo\" no lugar do formulário; a página tem um link para lá no rodapé."
+
+msgid "A \"Location blocked\" message appears only when the browser really refuses the location. Some browsers, Opera for Android among them, report the location as blocked while they hand it over; the plugin then reads the position once to check, and a browser that gives it is treated as allowed."
+msgstr "A mensagem \"Localização bloqueada\" só aparece quando o navegador realmente recusa a localização. Alguns navegadores, entre eles o Opera para Android, informam a localização como bloqueada enquanto a entregam; o plugin então lê a posição uma vez para conferir, e um navegador que a entrega é tratado como permitido."
+
+msgid "Supported: this browser can build and save the PDF."
+msgstr "Com suporte: este navegador consegue gerar e salvar o PDF."
+
+msgid "Device ID"
+msgstr "ID do dispositivo"
+
+msgid "Not used on this site: the device limit is off."
+msgstr "Não usado neste site: o limite por dispositivo está desligado."
+
+msgid "Not available in this browser: it needs a secure connection and a recent browser."
+msgstr "Indisponível neste navegador: é preciso uma conexão segura e um navegador recente."
+
+msgid "Reading the device signals…"
+msgstr "Lendo os sinais do dispositivo…"
+
+msgid "%1$s · %2$s of %3$s signals · stable"
+msgstr "%1$s · %2$s de %3$s sinais · estável"
+
+msgid "%1$s · %2$s of %3$s signals · changes on each read: %4$s"
+msgstr "%1$s · %2$s de %3$s sinais · muda a cada leitura: %4$s"
+
+msgid "The device signals could not be read."
+msgstr "Não foi possível ler os sinais do dispositivo."
+
+msgid "%1$s (site: %2$s; system: %3$s)"
+msgstr "%1$s (site: %2$s; sistema: %3$s)"
+
+msgid "Light"
+msgstr "Claro"
+
+msgid "Dark"
+msgstr "Escuro"
+
+msgid "always light"
+msgstr "sempre claro"
+
+msgid "always dark"
+msgstr "sempre escuro"
+
+msgid "follows the system"
+msgstr "segue o sistema"
+
+msgid "dark"
+msgstr "escuro"
+
+msgid "light"
+msgstr "claro"
+
+msgid "not stated"
+msgstr "não informado"
+
+msgid "A privacy setting or extension changes these signals on every read (the fingerprint protection of Brave, Firefox or Safari, for instance). A form with a device limit may then not recognise this device: use a browser without that protection, or ask the site administrator."
+msgstr "Uma configuração ou extensão de privacidade muda esses sinais a cada leitura (a proteção contra fingerprint do Brave, do Firefox ou do Safari, por exemplo). Um formulário com limite por dispositivo pode então não reconhecer este dispositivo: use um navegador sem essa proteção ou fale com o administrador do site."
+
+msgid "Ahead by %s: date windows and the captcha may fail. Set the clock to automatic."
+msgstr "Adiantado %s: prazos de data e o captcha podem falhar. Ajuste o relógio para automático."
+
+msgid "Allow cookies for this site in the browser's settings (Privacy or Site settings → Cookies), or leave the private (incognito) window."
+msgstr "Permita cookies para este site nas configurações do navegador (Privacidade ou Configurações do site → Cookies) ou saia da janela anônima."
+
+msgid "Behind by %s: date windows and the captcha may fail. Set the clock to automatic."
+msgstr "Atrasado %s: prazos de data e o captcha podem falhar. Ajuste o relógio para automático."
+
+msgid "Blocked (a private window?): the \"already submitted\" notice and \"Continue anyway\" will not be remembered."
+msgstr "Bloqueado (janela anônima?): o aviso de \"já enviado\" e o \"Continuar mesmo assim\" não serão lembrados."
+
+msgid "Click the icon next to the address → Site settings (or Permissions) → Location → Allow, and reload this page. On Windows and macOS, the system's location services must be on too."
+msgstr "Clique no ícone ao lado do endereço → Configurações do site (ou Permissões) → Localização → Permitir e recarregue esta página. No Windows e no macOS, os serviços de localização do sistema também precisam estar ligados."
+
+msgid "Comparing with the server…"
+msgstr "Comparando com o servidor…"
+
+msgid "Connect to the internet (Wi-Fi or mobile data) and reload this page."
+msgstr "Conecte-se à internet (Wi-Fi ou dados móveis) e recarregue esta página."
+
+msgid "Connection"
+msgstr "Conexão"
+
+msgid "Correct (differs by %s)"
+msgstr "Certo (diferença de %s)"
+
+msgid "Could not compare with the server."
+msgstr "Não foi possível comparar com o servidor."
+
+msgid "Device clock"
+msgstr "Relógio do dispositivo"
+
+msgid "How to fix it"
+msgstr "Como corrigir"
+
+msgid "Leave the private (incognito) window, or allow site data for this site in the browser's settings."
+msgstr "Saia da janela anônima ou permita dados de site para este site nas configurações do navegador."
+
+msgid "Local storage"
+msgstr "Armazenamento local"
+
+msgid "Not supported: missing %s. A form whose captcha is ALTCHA only cannot be sent."
+msgstr "Sem suporte: falta %s. Um formulário cujo captcha é só ALTCHA não pode ser enviado."
+
+msgid "Offline"
+msgstr "Sem conexão"
+
+msgid "Open the app's menu (⋮ or ···) and choose \"Open in browser\" or \"Open in Safari\". Or copy this page's address and paste it into Chrome, Safari, Firefox or Edge."
+msgstr "Abra o menu do aplicativo (⋮ ou ···) e escolha \"Abrir no navegador\" ou \"Abrir no Safari\". Ou copie o endereço desta página e cole no Chrome, Safari, Firefox ou Edge."
+
+msgid "Open the site by its address starting with https://. If that address does not open, tell the site administrator."
+msgstr "Abra o site pelo endereço que começa com https://. Se esse endereço não abrir, avise o administrador do site."
+
+msgid "Open the site by its https:// address in an up-to-date browser, and allow its scripts: a content blocker can stop them."
+msgstr "Abra o site pelo endereço https:// num navegador atualizado e permita os scripts dele: um bloqueador de conteúdo pode impedi-los."
+
+msgid "Screen"
+msgstr "Tela"
+
+msgid "Set the date, time and time zone to automatic in the device's settings (Date and time → Set automatically), then reload this page."
+msgstr "Ajuste data, hora e fuso horário para automático nas configurações do dispositivo (Data e hora → Definir automaticamente) e recarregue esta página."
+
+msgid "Supported"
+msgstr "Com suporte"
+
+msgid "Time zone and language"
+msgstr "Fuso horário e idioma"
+
+msgid "Turn on Settings → Privacy & Security → Location Services, then set the browser (Safari or Chrome) to \"While Using the App\". In Safari also tap \"aA\" next to the address → Website Settings → Location → Allow. Reload this page."
+msgstr "Ligue Ajustes → Privacidade e Segurança → Serviços de Localização e defina o navegador (Safari ou Chrome) como \"Durante o Uso do App\". No Safari, toque também em \"aA\" ao lado do endereço → Ajustes do Site → Localização → Permitir. Recarregue esta página."
+
+msgid "Turn on the device's location with high accuracy (Google Location Accuracy on Android, Precise Location on iPhone), go outdoors or near a window, wait a few seconds and test again."
+msgstr "Ligue a localização do dispositivo com alta precisão (Precisão do Local do Google no Android, Localização Precisa no iPhone), vá para um local aberto ou perto de uma janela, espere alguns segundos e teste de novo."
+
+msgid "Turn on the phone's Location in the quick settings. Then tap the icon next to the address → Permissions (or Site settings) → Location → Allow, and reload this page."
+msgstr "Ligue a Localização do celular nas configurações rápidas. Depois toque no ícone ao lado do endereço → Permissões (ou Configurações do site) → Localização → Permitir e recarregue esta página."
+
+msgid "Update the browser, or use an up-to-date Chrome, Safari, Firefox or Edge, and open the site by its https:// address."
+msgstr "Atualize o navegador ou use um Chrome, Safari, Firefox ou Edge atualizado, e abra o site pelo endereço https://."
+
+msgid "Update the browser, or use an up-to-date Chrome, Safari, Firefox or Edge."
+msgstr "Atualize o navegador ou use um Chrome, Safari, Firefox ou Edge atualizado."
+
+msgid "Use an up-to-date Chrome, Safari, Firefox or Edge: this browser cannot give a location."
+msgstr "Use um Chrome, Safari, Firefox ou Edge atualizado: este navegador não consegue fornecer a localização."
+
+msgid "%1$s (%2$s s)"
+msgstr "%1$s (%2$s s)"
+
+msgid "No answer after %s s: reload the page to test again."
+msgstr "Sem resposta após %s s: recarregue a página para testar de novo."
+
+msgid "Asking the browser…"
+msgstr "Consultando o navegador…"
+
+msgid "Window %1$s · screen %2$s · density %3$s×"
+msgstr "Janela %1$s · tela %2$s · densidade %3$s×"
+
+msgid "Mobile data"
+msgstr "Dados móveis"
+
+msgid "Wired"
+msgstr "Cabeada"
+
+msgid "Bluetooth"
+msgstr "Bluetooth"
+
+msgid "Other network"
+msgstr "Outra rede"
+
+msgid "Slow (like 3G)"
+msgstr "Lenta (equivalente a 3G)"
+
+msgid "Very slow (like 2G)"
+msgstr "Muito lenta (equivalente a 2G)"
+
+msgid "Very slow (below 2G)"
+msgstr "Muito lenta (abaixo de 2G)"
+
+msgid "Online/Speed: %1$s / %2$s"
+msgstr "Conectado/Velocidade: %1$s / %2$s"
+
+msgid "Connection type not reported"
+msgstr "Tipo de conexão não informado"
+
+msgid "Connection speed not reported"
+msgstr "Velocidade de conexão não informada"
+
+msgid "Fast (like 4G or better)"
+msgstr "Rápida (equivalente a 4G ou superior)"
+
+msgid "Data saver is on: some scripts may not load. Turn it off (Lite mode) in the browser's or the phone's settings, then reload this page."
+msgstr "Economia de dados ligada: alguns scripts podem não carregar. Desative-a (modo Lite) nas configurações do navegador ou do celular e recarregue esta página."
+
+msgid "iOS gives no browser these details. This does not affect the forms."
+msgstr "O iOS não informa estes dados a nenhum navegador. Isso não afeta os formulários."
+
+msgid "This browser does not give these details. This does not affect the forms."
+msgstr "Este navegador não informa estes dados. Isso não afeta os formulários."
+
+msgid "Server requests"
+msgstr "Envio ao servidor"
+
+msgid "Device location"
+msgstr "Localização do dispositivo"
+
+msgid "Reload the page. If this message comes back, a content or script blocker, or an optimization of this site, is stopping the plugin's scripts: turn the blocker off for this site or open the page in another browser. The forms will not work here until it does."
+msgstr "Recarregue a página. Se esta mensagem voltar, um bloqueador de conteúdo ou de scripts, ou uma otimização deste site, está impedindo os scripts do plugin: desative o bloqueador para este site ou abra a página em outro navegador. Os formulários não funcionarão aqui enquanto isso acontecer."
+
+msgid "The test could not run in this browser"
+msgstr "O teste não pôde ser executado neste navegador"
+
+msgid "Sending a test request…"
+msgstr "Enviando uma requisição de teste…"
+
+msgid "Reached, answered in %s ms"
+msgstr "Alcançado, respondeu em %s ms"
+
+msgid "Refused by the server or a firewall (code %s): sending a form will fail."
+msgstr "Recusado pelo servidor ou por um firewall (código %s): o envio de formulários vai falhar."
+
+msgid "Did not reach the server: sending a form will fail."
+msgstr "Não chegou ao servidor: o envio de formulários vai falhar."
+
+msgid "A firewall or security service in front of the site refused the request. Try another network (mobile data instead of Wi-Fi, or the other way round); if it keeps failing, send the copied results to the site administrator."
+msgstr "Um firewall ou serviço de segurança à frente do site recusou a requisição. Tente outra rede (dados móveis em vez de Wi-Fi, ou o contrário); se continuar falhando, envie os resultados copiados ao administrador do site."
+
+msgid "A content blocker, a VPN or the network stopped the request. Turn the blocker off for this site, or try another network, and reload this page."
+msgstr "Um bloqueador de conteúdo, uma VPN ou a rede impediu a requisição. Desative o bloqueador para este site, ou tente outra rede, e recarregue esta página."
+
+msgid "Did not load: a content or script blocker may be stopping it."
+msgstr "Não carregou: um bloqueador de conteúdo ou de scripts pode estar impedindo."
+
+msgid "Turn the content or script blocker off for this site (or add the site to its allowed list) and reload this page. A form with a device limit cannot be sent while it is blocked."
+msgstr "Desative o bloqueador de conteúdo ou de scripts para este site (ou adicione o site à lista de permitidos) e recarregue esta página. Um formulário com limite por dispositivo não pode ser enviado enquanto ele estiver bloqueado."
+
+msgid "Did not load: a content or script blocker may be stopping it. The forms cannot be sent."
+msgstr "Não carregou: um bloqueador de conteúdo ou de scripts pode estar impedindo. Os formulários não podem ser enviados."
+
+msgid "Turn the content or script blocker off for this site (or add the site to its allowed list) and reload this page."
+msgstr "Desative o bloqueador de conteúdo ou de scripts para este site (ou adicione o site à lista de permitidos) e recarregue esta página."
+
+msgid "%1$s · %2$s"
+msgstr "%1$s · %2$s"
+
+msgid "Running the checks…"
+msgstr "Executando as verificações…"
+
+msgid "This device is ready"
+msgstr "Este dispositivo está pronto"
+
+msgid "Every check passed: the forms should work here."
+msgstr "Todas as verificações passaram: os formulários devem funcionar aqui."
+
+msgid "Ready, with warnings"
+msgstr "Pronto, com avisos"
+
+msgid "The forms should work, but the items in yellow may get in the way. Open \"How to fix it\" on each one."
+msgstr "Os formulários devem funcionar, mas os itens em amarelo podem atrapalhar. Abra \"Como corrigir\" em cada um."
+
+msgid "The forms may not work here"
+msgstr "Os formulários podem não funcionar aqui"
+
+msgid "Fix the items in red: open \"How to fix it\" on each one, then reload this page."
+msgstr "Corrija os itens em vermelho: abra \"Como corrigir\" em cada um e recarregue esta página."
+
+msgid "Plugin version: %s"
+msgstr "Versão do plugin: %s"
+
+msgid "Captcha mode: %s"
+msgstr "Modo do captcha: %s"
+
+msgid "math question"
+msgstr "pergunta de matemática"
+
+msgid "ALTCHA"
+msgstr "ALTCHA"
+
+msgid "ALTCHA with a math question when JavaScript is off"
+msgstr "ALTCHA com pergunta de matemática quando o JavaScript está desativado"
+
+msgid "Device limit: %s"
+msgstr "Limite por dispositivo: %s"
+
+msgid "off"
+msgstr "desativado"
+
+msgid "Device Test"
+msgstr "Teste do dispositivo"
+
+msgid "How many times one address may run the \"Test my device\" page of the verification shortcode, and over how long. Each run sends one request to the server. Past the cap the page still runs its other checks and says how long to wait before testing again."
+msgstr "Quantas vezes um mesmo endereço pode executar a página \"Testar meu dispositivo\" do shortcode de verificação, e em quanto tempo. Cada execução envia uma requisição ao servidor. Passado o limite, a página continua executando as demais verificações e informa quanto tempo esperar para testar de novo."
+
+msgid "0 disables this cap. Raise it when a whole room tests at once behind one address."
+msgstr "0 desativa este limite. Aumente-o quando uma sala inteira testar ao mesmo tempo atrás de um mesmo endereço."
+
+msgid "Device test per IP:"
+msgstr "Teste do dispositivo por IP:"
+
+msgid "the \"Test my device\" page of the verification shortcode sends one request to the server per run, and the Device Test card caps how many runs one address may make per window (default 60 per 600 seconds; 0 removes the cap). Past it, the page still runs its other checks and tells the visitor how long to wait. Raise it when a whole room tests at once behind one address."
+msgstr "a página \"Testar meu dispositivo\" do shortcode de verificação envia uma requisição ao servidor por execução, e o card Teste do dispositivo limita quantas execuções um mesmo endereço pode fazer por janela (padrão: 60 a cada 600 segundos; 0 remove o limite). Passado o limite, a página continua executando as demais verificações e informa ao visitante quanto tempo esperar. Aumente-o quando uma sala inteira testar ao mesmo tempo atrás de um mesmo endereço."
+
+msgid "Too many tests from this network: wait %s, then reload the page."
+msgstr "Muitos testes a partir desta rede: aguarde %s e recarregue a página."
+
+msgid "The site limits how often one network can run this test. Wait, then reload this page. If a whole room is testing at once, ask the site administrator to raise the limit."
+msgstr "O site limita quantas vezes uma mesma rede pode executar este teste. Aguarde e recarregue esta página. Se uma sala inteira estiver testando ao mesmo tempo, peça ao administrador do site para aumentar o limite."
+
+msgid "Reached in %1$s ms, but this page is an old copy (version %2$s; the site runs %3$s)."
+msgstr "Alcançado em %1$s ms, mas esta página é uma cópia antiga (versão %2$s; o site está na %3$s)."
+
+msgid "The page came from an old copy kept in a cache. Reload it; if this message comes back, the site administrator should purge the site's cache."
+msgstr "A página veio de uma cópia antiga guardada em cache. Recarregue-a; se esta mensagem voltar, o administrador do site deve limpar o cache do site."
+
+msgid "Form protections"
+msgstr "Proteções dos formulários"
+
+msgid "Device settings"
+msgstr "Ajustes do aparelho"
+
+msgid "%s OK"
+msgstr "%s OK"
+
+msgid "1 failure"
+msgstr "1 falha"
+
+msgid "%s failures"
+msgstr "%s falhas"
+
+msgid "1 warning"
+msgstr "1 aviso"
+
+msgid "%s warnings"
+msgstr "%s avisos"
+
+msgid "Test pending"
+msgstr "Teste pendente"
+
+msgid "One step left"
+msgstr "Falta um passo"
+
+msgid "precision not tested yet"
+msgstr "precisão ainda não testada"
+
+msgid "Press \"Test my location\" under Device settings to finish the test."
+msgstr "Toque em \"Testar minha localização\" em Ajustes do aparelho para concluir o teste."
+
+msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result in sections (network, browser, form protections, device settings, display and PDF download) that stay closed while everything passes and open by themselves when a check warns or fails: secure connection, connection, whether a request reaches the server (and how long it took), the browser by name and version, cookies, local storage, the captcha (what ALTCHA needs, and whether its widget loaded), the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, the device's location (the permission and, when the visitor asks, how precise it is), screen, the theme in use and, last, PDF download. A summary above the sections says whether the device is ready, ready with warnings, or may fail; the test is finished only once the visitor presses \"Test my location\", which reads how precise the location is. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. A content or script blocker is named where it stops the server request, the device ID or the captcha; when it stops the test's own scripts, the page says so after a few seconds without them. A page served from an old cache, whose scripts belong to an earlier release, is named too, and how often one address may run the test is set on Settings → Rate Limit (default 60 runs per 10 minutes). Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the plugin's version, the captcha mode, whether the device limit is on, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
+msgstr "A página de verificação ([ffc_verification]) tem um modo \"Testar meu dispositivo\", com link no rodapé, acessado ao acrescentar ?ffc_device_check=1 ao endereço. Ele executa essas verificações no próprio dispositivo do visitante e mostra cada resultado em seções (rede, navegador, proteções dos formulários, ajustes do aparelho, exibição e download do PDF) que ficam fechadas enquanto tudo passa e abrem sozinhas quando uma verificação avisa ou falha: conexão segura, conexão, se uma requisição chega ao servidor (e quanto tempo levou), o navegador com nome e versão, cookies, armazenamento local, o captcha (o que o ALTCHA precisa e se o widget carregou), o ID do dispositivo lido pelo limite por dispositivo (um código curto, quantos sinais foram lidos e se eles se mantêm entre duas leituras), o relógio do dispositivo comparado ao do servidor, fuso horário e idioma, a localização do dispositivo (a permissão e, quando o visitante pede, a precisão), tela, o tema em uso e, por último, o download do PDF. Um resumo acima das seções diz se o dispositivo está pronto, pronto com avisos ou se pode falhar; o teste só é concluído quando o visitante toca em \"Testar minha localização\", que lê a precisão da localização. Uma linha com falha traz um botão de informação com como corrigir, e uma verificação ainda em andamento faz uma contagem regressiva de 20 segundos. Um bloqueador de conteúdo ou de scripts é apontado onde impede a requisição ao servidor, o ID do dispositivo ou o captcha; quando impede os próprios scripts do teste, a página avisa depois de alguns segundos sem eles. Uma página servida de um cache antigo, cujos scripts são de uma versão anterior, também é apontada, e quantas vezes um mesmo endereço pode executar o teste é definido em Configurações → Taxa Limite (padrão: 60 execuções a cada 10 minutos). Nada é enviado nem armazenado, e a posição em si nunca é mostrada. O botão \"Copiar os resultados\" coloca no clipboard os resultados, a versão do plugin, o modo do captcha, se o limite por dispositivo está ativado, a identificação do navegador e a hora, para uma mensagem a quem dá suporte ao visitante."
+
+msgid "Your location is not precise enough to confirm you are at the event. Move to an open area or turn on precise location, then try again. On a computer, open this page on your phone with location turned on."
+msgstr "Sua localização não é precisa o bastante para confirmar que você está no evento. Vá para um local aberto ou ative a localização precisa e tente novamente. Em um computador, abra esta página no celular com a localização ligada."
+
+msgid "Your location is not precise enough to confirm you are in the allowed area. Move to an open area or turn on precise location, then reload the page. On a computer, open this page on your phone with location turned on."
+msgstr "Sua localização não é precisa o bastante para confirmar que você está na área permitida. Vá para um local aberto ou ative a localização precisa e recarregue a página. Em um computador, abra esta página no celular com a localização ligada."
+
+msgid "Your location is not precise enough to confirm you are in the allowed area, but this form allows access anyway."
+msgstr "Sua localização não é precisa o bastante para confirmar que você está na área permitida, mas este formulário permite o acesso mesmo assim."
+
+msgid "The browser checks the location first, to say so before the visitor fills the form, and the server decides when the form is sent: the browser sends the GPS reading with the submission, and the server checks it against the areas and combines it with the IP the way the form asks. Each area is judged with its own radius: a reading is inside an area when its point is inside it and its margin of error is at most the accepted error (1.5 times the area's radius by default, set under Settings → Geolocation → GPS Cache and Precision). A reading that is inside no area but whose error still reaches one, or that is older than the GPS cache lifetime, cannot tell inside from outside and is treated as \"Location unavailable\" in the \"When GPS fails\" policy: when that case blocks, the visitor is told to move to an open area or to use a phone, and when it allows, the form opens with a notice saying the location could not be confirmed. A reading whose error reaches no area is outside, whatever the policy; a submission that arrives without a reading follows \"Browser does not support geolocation\". With \"GPS or IP\", a visitor whose GPS is inside passes even when their IP resolves elsewhere, which mobile networks often do."
+msgstr "O navegador verifica a localização primeiro, para avisar antes que o visitante preencha o formulário, e o servidor decide quando o formulário é enviado: o navegador envia a leitura do GPS com o envio, e o servidor a confere com as áreas e a combina com o IP como o formulário pede. Cada área é avaliada com o próprio raio: uma leitura está dentro de uma área quando o ponto está dentro dela e a margem de erro é no máximo o erro aceito (1,5 vez o raio da área por padrão, definido em Configurações → Geolocalização → Cache e precisão do GPS). Uma leitura que não está dentro de nenhuma área, mas cujo erro ainda alcança uma delas, ou que é mais antiga que a validade do cache de GPS, não distingue dentro de fora e é tratada como \"Localização indisponível\" na política \"Quando o GPS falha\": quando esse caso bloqueia, o visitante é orientado a ir para um local aberto ou a usar o celular, e quando permite, o formulário abre com um aviso de que a localização não pôde ser confirmada. Uma leitura cujo erro não alcança nenhuma área está fora, qualquer que seja a política; um envio que chega sem leitura segue \"O navegador não suporta geolocalização\". Com \"GPS ou IP\", um visitante cujo GPS está dentro passa mesmo quando o IP indica outro lugar, o que é comum em redes móveis."
+
+msgid "When the check-in asks for a location, the page runs the same checks a certificate form runs before it is used: a page not served over HTTPS is stopped, because the browser gives no location there, and an app's own browser (Instagram, WhatsApp and others) is asked to open the page in the phone's browser, with \"Continue anyway\". A location already refused in the browser is said at once, before the tap. A reading is judged against each area as on a certificate form, with the same accepted error; one that cannot tell inside from outside is refused; there is no \"When GPS fails\" policy here: without a usable location there is no check-in, and the organiser can mark attendance by hand. Each stop is written to the Activity Log as a pre-flight block naming the booking."
+msgstr "Quando o check-in pede a localização, a página executa as mesmas verificações que um formulário de certificado executa antes de ser usado: uma página que não é servida por HTTPS é barrada, porque o navegador não fornece a localização ali, e o navegador próprio de um aplicativo (Instagram, WhatsApp e outros) recebe o pedido de abrir a página no navegador do celular, com \"Continuar mesmo assim\". Uma localização já recusada no navegador é informada de imediato, antes do toque. Uma leitura é avaliada contra cada área como em um formulário de certificado, com o mesmo erro aceito; uma que não distingue dentro de fora é recusada; aqui não há política \"Quando o GPS falha\": sem uma localização utilizável não há check-in, e a organização pode marcar a presença manualmente. Cada bloqueio é gravado no registro de atividades como um bloqueio de pré-verificação, indicando a reserva."
+
+msgid "GPS Cache and Precision"
+msgstr "Cache e precisão do GPS"
+
+msgid "How long the browser keeps a GPS reading (browser localStorage, always on), and how precise a reading must be to count as inside an area."
+msgstr "Por quanto tempo o navegador guarda uma leitura do GPS (armazenamento local do navegador, sempre ativo) e quão precisa uma leitura precisa ser para contar como dentro de uma área."
+
+msgid "Accepted error"
+msgstr "Erro aceito"
+
+msgid "× the area's radius"
+msgstr "× o raio da área"
+
+msgid "Each reading comes with a margin of error. Each area is judged with its own radius: a reading counts as inside when its point is inside the area and its error is at most this many times the area's radius. When its error circle still reaches an area but the reading is not inside any, the \"Location unavailable\" case of the fallback below decides. When it reaches no area, the visitor is outside."
+msgstr "Cada leitura vem com uma margem de erro. Cada área é avaliada com o próprio raio: uma leitura conta como dentro quando o ponto está dentro da área e o erro é no máximo este número de vezes o raio da área. Quando o círculo de erro ainda alcança uma área, mas a leitura não está dentro de nenhuma, decide o caso \"Localização indisponível\" do Comportamento de Reserva abaixo. Quando não alcança nenhuma área, o visitante está fora."
+
+msgid "Range: 1 to 3. Default: 1.5."
+msgstr "Faixa: 1 a 3. Padrão: 1,5."
+
+msgid "Keep the default unless you have a measured reason to change it. A higher value lets a reading count as inside while the visitor may be outside the area; a lower one refuses phones whose GPS is good but not exact."
+msgstr "Mantenha o padrão, a menos que tenha um motivo medido para mudá-lo. Um valor maior deixa uma leitura contar como dentro enquanto o visitante pode estar fora da área; um menor recusa celulares cujo GPS é bom, mas não exato."
+
+msgid "Android: open the Downloads folder, or use the Files app and look for \"%s\"."
+msgstr "Android: abra a pasta Downloads ou use um aplicativo que acesse os Arquivos e procure por \"%s\"."
+
+msgid "Android: open the Downloads folder, or use the Files app."
+msgstr "Android: abra a pasta Downloads ou use um aplicativo que acesse os Arquivos."
+
+msgid "Your location was accepted, but with low precision (about %s m). For more precision, turn on precise location or use your phone."
+msgstr "Sua localização foi aceita, mas com pouca precisão (cerca de %s m). Para mais precisão, ative a localização precisa ou use o celular."
+
+msgid "A reading accepted as inside whose error is above a share of the area's radius (the Low-precision notice under Settings → Geolocation → GPS Cache and Precision, 0.5 by default) opens the form with a notice saying the location was accepted with low precision and giving the error in metres. It changes no decision."
+msgstr "Uma leitura aceita como dentro cujo erro passa de uma fração do raio da área (o Aviso de baixa precisão em Configurações → Geolocalização → Cache e precisão do GPS, 0,5 por padrão) abre o formulário com um aviso de que a localização foi aceita com pouca precisão, informando o erro em metros. Não muda nenhuma decisão."
+
+msgid "Low-precision notice"
+msgstr "Aviso de baixa precisão"
+
+msgid "When a reading is accepted as inside but its error is above this many times the area's radius, the form opens with a notice saying the location was accepted with low precision, and its error in metres. It changes no decision: only what the visitor is told."
+msgstr "Quando uma leitura é aceita como dentro, mas o erro passa deste número de vezes o raio da área, o formulário abre com um aviso de que a localização foi aceita com pouca precisão, informando o erro em metros. Não muda nenhuma decisão: só o que o visitante vê."
+
+msgid "Range: 0.1 to 1. Default: 0.5."
+msgstr "Faixa: 0,1 a 1. Padrão: 0,5."
+
+msgid "Keep the default unless you have a measured reason to change it. A lower value shows the notice to visitors whose GPS is good, who learn to ignore it; a higher one hides it from readings that only barely held."
+msgstr "Mantenha o padrão, a menos que tenha um motivo medido para mudá-lo. Um valor menor mostra o aviso a visitantes cujo GPS é bom, que aprendem a ignorá-lo; um maior o esconde de leituras que só passaram por pouco."
+
+msgid "About %1$s m (precise), read in %2$s s"
+msgstr "Cerca de %1$s m (preciso), lido em %2$s s"
+
+msgid "About %1$s m (low precision, but accepted), read in %2$s s"
+msgstr "Cerca de %1$s m (pouca precisão, mas aceito), lido em %2$s s"
+
+msgid "About %1$s m (too imprecise to confirm the area), read in %2$s s"
+msgstr "Cerca de %1$s m (impreciso demais para confirmar a área), lido em %2$s s"
+
+msgid "In an area of %s m your location would be accepted, but with low precision. For more precision, turn on precise location or use your phone."
+msgstr "Em uma área de %s m sua localização seria aceita, mas com pouca precisão. Para mais precisão, ative a localização precisa ou use o celular."
+
+msgid "With this precision, a form with an area of %s m cannot confirm where you are, and access depends on the form's policy. Turn on precise location (Google Location Accuracy on Android, Precise Location on iPhone) or use a phone with GPS."
+msgstr "Com esta precisão, um formulário com área de %s m não consegue confirmar onde você está, e o acesso depende da política do formulário. Ative a localização precisa (Precisão da localização do Google no Android, Localização Precisa no iPhone) ou use um celular com GPS."
+
+msgid "The location row grades how precise the reading is against a reference area of 50 m, by the same precision settings the forms use on the Geolocation tab: precise up to the share that triggers the low-precision notice (25 m by default), accepted with low precision up to the tolerance (75 m by default), and too imprecise to confirm the area beyond it, each with an information button saying what to do. Numbers carry one decimal when they have one. A section that opened by itself closes again once its checks pass, as the device settings do after a precise reading, unless the visitor opened or closed it."
+msgstr "A linha de localização classifica a precisão da leitura em relação a uma área de referência de 50 m, pelas mesmas configurações de precisão que os formulários usam na aba Geolocalização: precisa até a fração que dispara o aviso de pouca precisão (25 m por padrão), aceita com pouca precisão até a tolerância (75 m por padrão) e imprecisa demais para confirmar a área além disso, cada caso com um botão de informação dizendo o que fazer. Os números têm uma casa decimal quando ela existe. Uma seção que se abriu sozinha volta a se fechar quando suas verificações passam, como a de configurações do dispositivo após uma leitura precisa, a menos que o visitante a tenha aberto ou fechado."
+
+msgid "Holidays, global closures and the weekdays the space is closed are left out instead of refusing the booking."
+msgstr "Feriados, fechamentos gerais e os dias da semana em que o espaço fecha ficam de fora, em vez de recusar a reserva."
+
+msgid "(optional: read only when the date comes from a column of the file)"
+msgstr "(opcional: lida somente quando a data vem de uma coluna do arquivo)"
+
+msgid "The template ends with an optional issue_date column (YYYY-MM-DD or DD/MM/YYYY). It is read only when the issue date comes from a column of the file, where it is chosen by default, and ignored otherwise."
+msgstr "O modelo termina com a coluna opcional issue_date (AAAA-MM-DD ou DD/MM/AAAA). Ela é lida somente quando a data de emissão vem de uma coluna do arquivo, em que é escolhida por padrão, e é ignorada nos outros casos."

@@ -134,6 +134,9 @@ class Loader {
 			\FreeFormCertificate\Security\RateLimitActivator::maybe_create_tables();
 		}
 
+		// Bulk-issue staging tables (#1945). Same heal-on-request pattern.
+		\FreeFormCertificate\Submissions\BulkIssueActivator::maybe_create_tables();
+
 		// Ensure activity_log schema is healed. Installs created in a
 		// pre-`action`-column plugin version skipped dbDelta on every
 		// upgrade because create_table() used to early-return on
@@ -484,6 +487,12 @@ class Loader {
 			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffcertificate_daily_cleanup_hook', time() ), 'daily', 'ffcertificate_daily_cleanup_hook' );
 		}
 
+		// Ensure the daily expiry of unfinished bulk-issue jobs is scheduled (#1945).
+		add_action( \FreeFormCertificate\Submissions\BulkIssueRunner::PURGE_HOOK, array( \FreeFormCertificate\Submissions\BulkIssueRunner::class, 'run_purge' ) );
+		if ( ! wp_next_scheduled( \FreeFormCertificate\Submissions\BulkIssueRunner::PURGE_HOOK ) ) {
+			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( \FreeFormCertificate\Submissions\BulkIssueRunner::PURGE_HOOK, time() ), 'daily', \FreeFormCertificate\Submissions\BulkIssueRunner::PURGE_HOOK );
+		}
+
 		// Ensure reregistration expiry cron is scheduled.
 		if ( ! wp_next_scheduled( 'ffcertificate_reregistration_expire_hook' ) ) {
 			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffcertificate_reregistration_expire_hook', time() ), 'daily', 'ffcertificate_reregistration_expire_hook' );
@@ -494,6 +503,9 @@ class Loader {
 		if ( ! wp_next_scheduled( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK ) ) {
 			wp_schedule_event( time(), 'hourly', \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK );
 		}
+
+		// Ensure the hourly post-event form invitation run is scheduled (#1948).
+		\FreeFormCertificate\Audience\AudienceFormInviteScanner::schedule();
 
 		// Ensure the daily Cloudflare CIDR refresh cron is scheduled (#901).
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::schedule();
@@ -532,9 +544,11 @@ class Loader {
 		$this->ensure_recruitment_email_migrated();
 		$this->ensure_activity_log_export_cap_granted();
 		$this->ensure_url_shortener_export_cap_granted();
+		$this->ensure_date_messages_send_cap_granted();
 		$this->ensure_rbac_caps_renamed();
 		$this->ensure_rbac_roles_renamed();
 		$this->ensure_false_ffc_caps_stripped();
+		$this->ensure_import_capability_granted();
 		$this->define_admin_hooks();
 		$this->init_rest_api();
 	}
@@ -586,7 +600,25 @@ class Loader {
 			}
 
 			$this->ensure_role_tiers_applied();
+			$this->ensure_module_role_labels_applied();
 		}
+	}
+
+	/**
+	 * Rewrite the stored FFC role names after a module label changed (#1949).
+	 * Flagged by `ffc_module_role_labels_v1`; the tier migration above may
+	 * already have run on this install, so it cannot carry the rename.
+	 *
+	 * @since 6.42.0
+	 * @return void
+	 */
+	private function ensure_module_role_labels_applied(): void {
+		$flag = 'ffc_module_role_labels_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_module_role_labels();
+		update_option( $flag, '1', true );
 	}
 
 	/**
@@ -632,6 +664,28 @@ class Loader {
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\RoleRegistrar::strip_false_ffc_caps();
 		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * Grants `ffc_import_certificates` (#1945) to the roles that hold the
+	 * Submissions Manager and Administrator tiers on installs that predate it.
+	 *
+	 * Registration only adds what a role definition grants, so re-running it
+	 * here is the whole change. Flagged by `ffc_import_certificates_granted_v1`.
+	 *
+	 * @since 6.42.0
+	 * @return void
+	 */
+	private function ensure_import_capability_granted(): void {
+		$flag = 'ffc_import_certificates_granted_v1';
+
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+
+		\FreeFormCertificate\UserDashboard\RoleRegistrar::register_role();
+		\FreeFormCertificate\UserDashboard\RoleRegistrar::register_module_roles();
 		update_option( $flag, '1', true );
 	}
 
@@ -887,6 +941,23 @@ class Loader {
 	}
 
 	/**
+	 * Seed `ffc_send_date_messages` onto the current date-message managers (#1949).
+	 * Idempotent + version-flagged via `ffc_date_messages_send_cap_v1`.
+	 *
+	 * @since 6.42.0
+	 */
+	private function ensure_date_messages_send_cap_granted(): void {
+		$flag = 'ffc_date_messages_send_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_date_messages_send_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
 	 * One-time migration that seeds the granular `ffc_export_<domain>` caps
 	 * (GAP G) onto every user/role already holding the matching
 	 * `ffc_manage_<domain>` cap, preserving current bulk-export behavior when the
@@ -1114,6 +1185,8 @@ class Loader {
 	 * Define admin hooks.
 	 */
 	private function define_admin_hooks(): void {
+		// Issue in bulk (#1945, #1967): the form editor tab's preview endpoint and the template download.
+		\FreeFormCertificate\Admin\BulkIssuePage::register();
 		add_action(
 			'ffcertificate_daily_cleanup_hook',
 			function () {
@@ -1164,6 +1237,9 @@ class Loader {
 		}
 		if ( SettingsReader::module_enabled( 'self_scheduling' ) ) {
 			add_action( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::class, 'run' ) );
+		}
+		if ( SettingsReader::module_enabled( 'audiences' ) ) {
+			add_action( \FreeFormCertificate\Audience\AudienceFormInviteScanner::CRON_HOOK, array( \FreeFormCertificate\Audience\AudienceFormInviteScanner::class, 'run' ) );
 		}
 		if ( SettingsReader::module_enabled( 'date_messages' ) ) {
 			\FreeFormCertificate\DateMessages\DateMessagesCron::init();

@@ -652,4 +652,20 @@ class AdminActivityLogPageTest extends TestCase {
 		$this->assertStringContainsString( '42', $html );
 		$this->assertStringContainsString( 'bbbbbbbbbbbb', $html );
 	}
+
+	public function test_render_preflight_blocked_summary_names_a_typed_row(): void {
+		$html = AdminActivityLogPage::render_preflight_blocked_summary(
+			'preflight_blocked',
+			array(
+				'type'    => 'csv_download',
+				'id'      => 15,
+				'reason'  => 'secure',
+				'ip_hash' => '',
+			)
+		);
+
+		$this->assertStringContainsString( 'CSV download page ID', (string) $html );
+		$this->assertStringContainsString( '15', (string) $html );
+		$this->assertStringNotContainsString( 'Form ID', (string) $html );
+	}
 }

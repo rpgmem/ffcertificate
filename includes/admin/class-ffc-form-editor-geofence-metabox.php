@@ -148,7 +148,7 @@ class FormEditorGeofenceMetabox {
 			);
 			?>
 				<p class="description">
-					<?php esc_html_e( "When does this event take place? Renders as {{schedule}} on the certificate template (e.g. '9h às 12h'). When filled, the template must contain {{schedule}} — the form save will be blocked until the placeholder is present.", 'ffcertificate' ); ?>
+					<?php esc_html_e( "When does this event take place? Renders as {{schedule}} on the certificate template (e.g. '9h às 12h'). When Settings → Certificates requires {{schedule}}, the template must contain it — the form save is blocked until the placeholder is present.", 'ffcertificate' ); ?>
 				</p>
 				<table class="form-table" role="presentation"><tbody>
 					<tr>

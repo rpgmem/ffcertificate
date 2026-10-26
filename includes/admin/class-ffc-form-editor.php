@@ -58,6 +58,7 @@ class FormEditor {
 		add_action( 'wp_ajax_ffc_generate_codes', array( $this, 'ajax_generate_random_codes' ) );
 		add_action( 'wp_ajax_ffc_load_template', array( $this, 'ajax_load_template' ) );
 		add_action( 'wp_ajax_ffc_save_template', array( $this, 'ajax_save_template' ) );
+		add_action( 'wp_ajax_ffc_preview_form_layout', array( $this, 'ajax_preview_form_layout' ) );
 	}
 
 	/**
@@ -143,10 +144,7 @@ class FormEditor {
 		// FormEditorSaveHandler is the backstop for JS-disabled clients.
 		// Same list the save handler checks, {{schedule}} included only
 		// when this form has an Event Schedule (#1741).
-		$current_post  = get_post();
-		$required_tags = FormEditorSaveValidator::layout_required_tags(
-			$current_post && 'ffc_form' === $current_post->post_type ? (int) $current_post->ID : 0
-		);
+		$required_tags = FormEditorSaveValidator::layout_required_tags();
 
 		wp_localize_script(
 			AdminUI::VERTICAL_TABS_HANDLE,
@@ -346,6 +344,7 @@ class FormEditor {
 				array(
 					'html'     => $html,
 					'bg_image' => CertTemplateReader::get_bg_image( $template_id ),
+					'bg_color' => CertTemplateReader::get_bg_color( $template_id ),
 				)
 			);
 		}
@@ -355,6 +354,65 @@ class FormEditor {
 		// that posted a `filename`, so a request without a valid template id
 		// has nothing left to resolve.
 		wp_send_json_error();
+	}
+
+	/**
+	 * Renders the layout of the form being edited, with sample data, through
+	 * the PDF renderer. The layout, the background image and the background
+	 * colour are the unsaved values in the editor, so the preview shows what
+	 * the next save would print.
+	 *
+	 * @return void
+	 */
+	public function ajax_preview_form_layout(): void {
+		check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
+
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
+			wp_send_json_error( null, 403 );
+		}
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- layout HTML is filtered by wp_kses() below, as on save.
+		$raw    = isset( $_POST['html'] ) ? (string) wp_unslash( $_POST['html'] ) : '';
+		$layout = wp_kses( $raw, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
+		$title  = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+		$image  = isset( $_POST['bg_image'] ) ? esc_url_raw( wp_unslash( $_POST['bg_image'] ) ) : '';
+		$color  = isset( $_POST['bg_color'] ) ? \FreeFormCertificate\Core\FormBackground::normalize_color( sanitize_text_field( wp_unslash( $_POST['bg_color'] ) ) ) : \FreeFormCertificate\Core\FormBackground::DEFAULT_COLOR;
+
+		$fields = array();
+		foreach ( \FreeFormCertificate\Core\RequestInput::get_post_raw_array( 'fields' ) as $field ) {
+			if ( ! is_array( $field ) ) {
+				continue;
+			}
+			$name = sanitize_text_field( \FreeFormCertificate\Core\ArrayValue::string( $field, 'name' ) );
+			if ( '' === $name ) {
+				continue;
+			}
+			$fields[] = array(
+				'name'  => $name,
+				'label' => sanitize_text_field( \FreeFormCertificate\Core\ArrayValue::string( $field, 'label', $name ) ),
+			);
+		}
+
+		$size    = \FreeFormCertificate\Generators\FormLayoutPreview::page_size();
+		$samples = \FreeFormCertificate\Generators\FormLayoutPreview::with_field_labels(
+			\FreeFormCertificate\Core\CertificatePreviewSamples::get_map(),
+			$fields
+		);
+		$body    = \FreeFormCertificate\Generators\FormLayoutPreview::body(
+			$layout,
+			$title,
+			$image,
+			$color,
+			$samples
+		);
+
+		wp_send_json_success(
+			array(
+				'html'   => $body,
+				'width'  => $size['width'],
+				'height' => $size['height'],
+			)
+		);
 	}
 
 	/**
@@ -387,8 +445,9 @@ class FormEditor {
 		// Round-trip the current background so a saved model carries it back
 		// when re-loaded (#865).
 		$bg_image = isset( $_POST['bg_image'] ) ? esc_url_raw( wp_unslash( $_POST['bg_image'] ) ) : '';
+		$bg_color = isset( $_POST['bg_color'] ) ? \FreeFormCertificate\Core\FormBackground::normalize_color( sanitize_text_field( wp_unslash( $_POST['bg_color'] ) ) ) : '';
 
-		$id = CertTemplateWriter::create( $title, $html, true, $bg_image );
+		$id = CertTemplateWriter::create( $title, $html, true, $bg_image, CertTemplateCpt::KIND_CERTIFICATE, $bg_color );
 		if ( $id <= 0 ) {
 			wp_send_json_error();
 		}

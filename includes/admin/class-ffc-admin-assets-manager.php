@@ -443,6 +443,20 @@ class AdminAssetsManager {
 
 		// 2. PDF Management module.
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-admin-pdf' );
+		// The layout preview captures the page as an image: html2canvas only, no jsPDF.
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-layout-preview' );
+		// The Bulk issue tab (#1967) posts its file over AJAX: the editor is one WordPress form.
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-bulk-issue' );
+		wp_localize_script(
+			'ffc-bulk-issue',
+			'ffcBulkIssue',
+			array(
+				'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( \FreeFormCertificate\Admin\BulkIssuePage::PREVIEW_NONCE ),
+				'runNonce' => wp_create_nonce( \FreeFormCertificate\Admin\BulkIssuePage::RUN_NONCE ),
+				'error'    => __( 'The file could not be checked. Try again.', 'ffcertificate' ),
+			)
+		);
 
 		// 2b. Shared batched-export driver (#772): the start → batch → download
 		// loop for the unified `ffc_export_*` dispatcher, used by the CSV export
@@ -489,10 +503,6 @@ class AdminAssetsManager {
 			'ajax_url'              => admin_url( 'admin-ajax.php' ),
 			'nonce'                 => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
 			'export_nonce'          => wp_create_nonce( 'ffc_csv_export' ),
-			// Canonical placeholder → sample-value map for the in-editor
-			// certificate preview. Single source of truth lives in PHP so
-			// the JS can't drift from the generators' real placeholders.
-			'previewSamples'        => \FreeFormCertificate\Core\CertificatePreviewSamples::get_map( $form_id ),
 			'templates'             => self::discover_layout_templates(),
 			// Certificate field types as an ordered {value,label} list — the
 			// single source of truth shared with the server-rendered row
@@ -600,7 +610,8 @@ class AdminAssetsManager {
 				// Certificate Preview.
 				'previewTitle'            => __( 'Certificate Preview', 'ffcertificate' ),
 				'previewEmpty'            => __( 'The HTML editor is empty. Add a template first.', 'ffcertificate' ),
-				'previewSampleNote'       => __( 'Placeholders replaced with sample data. QR code shown as placeholder.', 'ffcertificate' ),
+				'previewSampleNote'       => __( 'Placeholders replaced with sample data.', 'ffcertificate' ),
+				'previewError'            => __( 'The preview could not be rendered.', 'ffcertificate' ),
 				'close'                   => __( 'Close', 'ffcertificate' ),
 			),
 		);

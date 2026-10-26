@@ -383,7 +383,7 @@
 		var reasonSel = row.querySelector('.ffc-cls-preview-reason');
 		var status = statusSel.value;
 		var reasonId = parseInt(reasonSel.value, 10) || 0;
-		// Preflight: a status that requires a reason but is left at "none"
+		// Client-side check: a status that requires a reason but is left at "none"
 		// flags the dropdown red and skips the PATCH (the server still
 		// enforces it as a backstop).
 		if (reasonRequired[status] === true && reasonId <= 0) {

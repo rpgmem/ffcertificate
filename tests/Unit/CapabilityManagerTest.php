@@ -1578,4 +1578,19 @@ class CapabilityManagerTest extends TestCase {
 		$this->assertTrue( $role_added['ffc_manage_recruitment_reasons'] ?? null );
 		$this->assertArrayNotHasKey( 'ffc_view_recruitment_reasons', $role_added );
 	}
+
+	/**
+	 * Sending is seeded from managing rules, so nobody who could send loses it on
+	 * upgrade; the map is what the migration reads (#1949).
+	 *
+	 * @return void
+	 */
+	public function test_date_messages_send_cap_grant_map_pairs_manage_to_send(): void {
+		$map = CapabilityMigrator::date_messages_send_cap_grant_map();
+		$this->assertSame( array( 'ffc_manage_date_messages' => 'ffc_send_date_messages' ), $map );
+		foreach ( $map as $manage => $send ) {
+			$this->assertContains( $manage, CapabilityManager::ADMIN_CAPABILITIES );
+			$this->assertContains( $send, CapabilityManager::ADMIN_CAPABILITIES );
+		}
+	}
 }

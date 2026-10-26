@@ -17,6 +17,7 @@
 // Complements the shallow init smoke in audience-smoke.test.js.
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
+import { bookingModalHtml, audienceRow } from './booking-modal-fixture.js';
 
 let api;
 
@@ -31,6 +32,9 @@ beforeAll(() => {
 	window.ffc_ajax = { ajax_url: '/wp-admin/admin-ajax.php', nonce: 'n', strings: {} };
 	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-audience.js');
+	// The dialog's own behaviour (#2008) lives in the booking-form module;
+	// the handlers bound here call into it.
+	loadScript('assets/js/ffc-audience-booking-form.js');
 	api = window.FFCAudience;
 });
 
@@ -66,6 +70,12 @@ describe('FFCAudience helpers — date / time / pad', () => {
 		expect(d.getFullYear()).toBe(2026);
 		expect(d.getMonth()).toBe(5);
 		expect(d.getDate()).toBe(9);
+	});
+
+	it('timesOn reads a span day from day_times and falls back to the stored hours (#1946)', () => {
+		const span = { start_time: '14:00:00', end_time: '10:00:00', day_times: { '2030-01-16': { start_time: '00:00', end_time: '23:59' } } };
+		expect(window.FFCAudience.timesOn(span, '2030-01-16')).toEqual({ start_time: '00:00', end_time: '23:59' });
+		expect(window.FFCAudience.timesOn({ start_time: '09:00', end_time: '10:00' }, '2030-01-16')).toEqual({ start_time: '09:00', end_time: '10:00' });
 	});
 
 	it('formatTime trims to HH:MM and tolerates empty', () => {
@@ -221,32 +231,11 @@ describe('FFCAudience bindEvents — handler bodies', () => {
 			<div id="ffc-calendar-days"></div>
 
 			<div id="ffc-day-modal" style="display:none"></div>
-			<div id="ffc-booking-modal" style="display:none">
-				<input type="checkbox" id="booking-all-day" />
-				<div id="booking-time-row"></div>
-				<input id="booking-start-time" />
-				<input id="booking-end-time" />
-				<select id="booking-type">
-					<option value="audience">Audience</option>
-					<option value="users">Users</option>
-				</select>
-				<div id="audience-select-group"></div>
-				<div id="user-select-group"></div>
-				<select id="booking-audiences" multiple>
-					<option value="1">Parent</option>
-					<option value="11">Sub A</option>
-					<option value="12">Sub B</option>
-				</select>
-				<textarea id="booking-description"></textarea>
-				<span id="desc-char-count"></span>
-				<input id="booking-user-search" />
-				<div id="booking-user-results"></div>
-				<div id="booking-selected-users"></div>
-				<input id="booking-user-ids" />
-				<input type="checkbox" id="ffc-conflict-acknowledge" />
-				<button id="ffc-check-conflicts-btn"></button>
-				<button id="ffc-create-booking-btn"></button>
-			</div>
+			${bookingModalHtml({
+				audiences: audienceRow(1, 'Parent') +
+					audienceRow(11, 'Sub A', { parent: 1, depth: 1 }) +
+					audienceRow(12, 'Sub B', { parent: 1, depth: 1 }),
+			})}
 			<input type="checkbox" id="ffc-show-cancelled" />
 			<button id="ffc-new-booking-btn"></button>
 		`;
@@ -267,59 +256,103 @@ describe('FFCAudience bindEvents — handler bodies', () => {
 		api.updateSelectedUsers = vi.fn();
 		api.checkConflicts = vi.fn();
 		api.createBooking = vi.fn();
+		api.submitBooking = vi.fn();
 		api.init();
 	});
 
 	it('all-day toggle on hides the time row and clears required times', () => {
 		window.$('#booking-all-day').prop('checked', true).trigger('change');
-		expect(window.$('#booking-time-row').css('display')).toBe('none');
+		expect(window.$('#booking-time-row').prop('hidden')).toBe(true);
 		expect(window.$('#booking-start-time').val()).toBe('00:00');
 		expect(window.$('#booking-end-time').val()).toBe('23:59');
-		expect(window.$('#booking-start-time').attr('required')).toBeUndefined();
+		expect(window.$('#booking-start-time').prop('required')).toBe(false);
 	});
 
 	it('all-day toggle off shows the time row and re-applies required', () => {
 		window.$('#booking-all-day').prop('checked', false).trigger('change');
-		expect(window.$('#booking-time-row').css('display')).not.toBe('none');
-		expect(window.$('#booking-start-time').attr('required')).toBe('required');
+		expect(window.$('#booking-time-row').prop('hidden')).toBe(false);
+		expect(window.$('#booking-start-time').prop('required')).toBe(true);
 		expect(window.$('#booking-start-time').val()).toBe('');
 	});
 
 	it('booking-type audience shows the audience group, hides users', () => {
-		window.$('#booking-type').val('audience').trigger('change');
-		expect(window.$('#audience-select-group').css('display')).not.toBe('none');
-		expect(window.$('#user-select-group').css('display')).toBe('none');
+		window.$('input[name="booking_type"][value="audience"]').prop('checked', true).trigger('change');
+		expect(window.$('#audience-select-group').prop('hidden')).toBe(false);
+		expect(window.$('#user-select-group').prop('hidden')).toBe(true);
 	});
 
-	it('booking-type users shows the user group, hides audiences', () => {
-		window.$('#booking-type').val('users').trigger('change');
-		expect(window.$('#user-select-group').css('display')).not.toBe('none');
-		expect(window.$('#audience-select-group').css('display')).toBe('none');
+	it('booking-type individual shows the user group, hides audiences', () => {
+		window.$('input[name="booking_type"][value="individual"]').prop('checked', true).trigger('change');
+		expect(window.$('#user-select-group').prop('hidden')).toBe(false);
+		expect(window.$('#audience-select-group').prop('hidden')).toBe(true);
 	});
 
-	it('selecting an audience parent auto-selects all descendants', () => {
-		window.$('#booking-audiences').val(['1']).trigger('change');
-		const selected = window.$('#booking-audiences').val();
-		expect(selected).toEqual(expect.arrayContaining(['1', '11', '12']));
+	it('several days shows the range fields, one day hides them (#2008)', () => {
+		window.$('input[name="booking_span"][value="range"]').prop('checked', true).trigger('change');
+		expect(window.$('#booking-end-date-group').prop('hidden')).toBe(false);
+		expect(window.$('#booking-range-options').prop('hidden')).toBe(false);
+		window.$('input[name="booking_span"][value="single"]').prop('checked', true).trigger('change');
+		expect(window.$('#booking-end-date-group').prop('hidden')).toBe(true);
+		expect(window.$('#booking-range-options').prop('hidden')).toBe(true);
 	});
 
-	it('deselecting a previously-selected parent removes its descendants', () => {
-		// First select parent (adds 11 + 12 as descendants).
-		window.$('#booking-audiences').val(['1']).trigger('change');
-		expect(window.$('#booking-audiences').val()).toEqual(expect.arrayContaining(['11', '12']));
-		// Now drop the parent but leave the children selected in the raw
-		// value; the handler's "parent just deselected" branch filters the
-		// descendants back out.
-		window.$('#booking-audiences').val(['11', '12']).trigger('change');
-		expect(window.$('#booking-audiences').val()).toEqual([]);
+	function checkedAudiences() {
+		return window.$('#booking-audiences input:checked').map((_, el) => el.value).get();
+	}
+
+	it('checking an audience parent checks all descendants', () => {
+		window.$('#booking-audiences input[value="1"]').prop('checked', true).trigger('change');
+		expect(checkedAudiences()).toEqual(['1', '11', '12']);
 	});
 
-	it('selecting only a leaf child leaves the selection unchanged (equality check)', () => {
-		// Selecting a non-parent leaf adds no descendants and toggles no
-		// parent, so newSelected === selected — the "selection changed"
-		// guard evaluates its .every() comparison and finds no change.
-		window.$('#booking-audiences').val(['11']).trigger('change');
-		expect(window.$('#booking-audiences').val()).toEqual(['11']);
+	it('unchecking a parent unchecks its descendants', () => {
+		window.$('#booking-audiences input[value="1"]').prop('checked', true).trigger('change');
+		window.$('#booking-audiences input[value="1"]').prop('checked', false).trigger('change');
+		expect(checkedAudiences()).toEqual([]);
+	});
+
+	it('checking only a leaf child leaves the others alone', () => {
+		window.$('#booking-audiences input[value="11"]').prop('checked', true).trigger('change');
+		expect(checkedAudiences()).toEqual(['11']);
+	});
+
+	it('removing a chip unchecks its audience and its descendants', () => {
+		window.$('#booking-audiences input[value="1"]').prop('checked', true).trigger('change');
+		expect(window.$('#booking-audience-chips .ffc-audience-picker-chip').length).toBe(3);
+		window.$('#booking-audience-chips .ffc-audience-picker-chip-remove[data-id="1"]').trigger('click');
+		expect(checkedAudiences()).toEqual([]);
+		expect(window.$('#booking-audience-chips').prop('hidden')).toBe(true);
+	});
+
+	it('the search keeps the audiences whose name holds it', () => {
+		window.$('#booking-audience-search').val('sub a').trigger('input');
+		const shown = window.$('#booking-audiences .ffc-audience-picker-option').filter((_, el) => !el.hidden);
+		expect(shown.length).toBe(1);
+		expect(shown.find('.ffc-audience-picker-name').text()).toBe('Sub A');
+	});
+
+	it('the summary opens the picker screen and Done closes it', () => {
+		const dialog = document.querySelector('.ffc-booking-dialog');
+		window.$('#booking-audience-summary').trigger('click');
+		expect(dialog.classList.contains('is-picking-audiences')).toBe(true);
+		expect(window.$('#booking-audience-summary').attr('aria-expanded')).toBe('true');
+		window.$('#booking-audience-picker .ffc-audience-picker-done').trigger('click');
+		expect(dialog.classList.contains('is-picking-audiences')).toBe(false);
+		expect(window.$('#booking-audience-summary').attr('aria-expanded')).toBe('false');
+	});
+
+	it('a change to what is booked turns the button back into a check', () => {
+		api.setSubmitStep('create');
+		window.$('#ffc-conflict-error').prop('hidden', false);
+		window.$('#booking-start-time').val('11:00').trigger('change');
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('check');
+		expect(window.$('#ffc-conflict-error').prop('hidden')).toBe(true);
+	});
+
+	it('typing in a search box keeps the check', () => {
+		api.setSubmitStep('create');
+		window.$('#booking-audience-search').val('x').trigger('change');
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('create');
 	});
 
 	it('description input updates the char counter', () => {
@@ -344,6 +377,7 @@ describe('FFCAudience bindEvents — handler bodies', () => {
 	});
 
 	it('clicking a user result records the user and clears the search', () => {
+		api.setSubmitStep('create');
 		window.$('#booking-user-results')
 			.html('<div class="ffc-user-result" data-id="5" data-name="Alice"></div>')
 			.addClass('is-active');
@@ -352,6 +386,8 @@ describe('FFCAudience bindEvents — handler bodies', () => {
 		expect(api.updateSelectedUsers).toHaveBeenCalled();
 		expect(window.$('#booking-user-search').val()).toBe('');
 		expect(window.$('#booking-user-results').hasClass('is-active')).toBe(false);
+		// A different set of people needs a new check.
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('check');
 	});
 
 	it('clicking a selected-user remove chip deletes the user', () => {
@@ -362,21 +398,23 @@ describe('FFCAudience bindEvents — handler bodies', () => {
 		expect(api.updateSelectedUsers).toHaveBeenCalled();
 	});
 
-	it('check-conflicts button calls checkConflicts', () => {
-		window.$('#ffc-check-conflicts-btn').trigger('click');
-		expect(api.checkConflicts).toHaveBeenCalled();
+	it('the one submit button calls submitBooking', () => {
+		window.$('#ffc-booking-submit').trigger('click');
+		expect(api.submitBooking).toHaveBeenCalled();
 	});
 
-	it('create-booking button calls createBooking', () => {
-		window.$('#ffc-create-booking-btn').trigger('click');
-		expect(api.createBooking).toHaveBeenCalled();
-	});
-
-	it('conflict-acknowledge toggle enables/disables the create button', () => {
+	it('conflict-acknowledge toggle enables/disables the create step', () => {
+		api.setSubmitStep('create');
 		window.$('#ffc-conflict-acknowledge').prop('checked', true).trigger('change');
-		expect(window.$('#ffc-create-booking-btn').prop('disabled')).toBe(false);
+		expect(window.$('#ffc-booking-submit').prop('disabled')).toBe(false);
 		window.$('#ffc-conflict-acknowledge').prop('checked', false).trigger('change');
-		expect(window.$('#ffc-create-booking-btn').prop('disabled')).toBe(true);
+		expect(window.$('#ffc-booking-submit').prop('disabled')).toBe(true);
+	});
+
+	it('the acknowledgement leaves a check step alone', () => {
+		api.setSubmitStep('check');
+		window.$('#ffc-conflict-acknowledge').prop('checked', false).trigger('change');
+		expect(window.$('#ffc-booking-submit').prop('disabled')).toBe(false);
 	});
 
 	it('new-booking button closes the day modal and opens the booking modal', () => {

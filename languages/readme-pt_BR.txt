@@ -11,8 +11,9 @@ A referência completa (cada token, shortcode, capacidade e configuração) vem 
 = Certificados =
 
 * **Construtor de formulários** - Campos de arrastar e soltar: Texto, E-mail, Número, Data, Área de texto, Seleção, Rádio, Caixa de seleção, Bloco de informação, Incorporação (mídia) e Oculto.
-* **PDF gerado no navegador** - Certificados desenhados no navegador com html2canvas e jsPDF, a partir de Modelos de documento reutilizáveis com imagens de fundo.
+* **PDF gerado no navegador** - Certificados desenhados no navegador com html2canvas-pro e jsPDF, a partir de Modelos de documento reutilizáveis com imagens de fundo.
 * **Links mágicos** - Acesso ao certificado com um clique, por um link único com um token aleatório de 32 caracteres, enviado por e-mail.
+* **Emissão em lote** - Emita certificados para uma lista de participantes a partir de um CSV: associe as colunas aos campos do formulário, veja a prévia do que será emitido e o motivo de cada linha ignorada, e emita em lotes. Formulários de quiz recebem a pontuação do arquivo, e o e-mail com o link pode ser enviado a cada emissão.
 * **Verificação** - Conferência de autenticidade pelo código de autenticação ou pelo link mágico, na página `/valid` criada na ativação.
 * **Modo questionário** - Formulários com nota, cada campo pontuado por si (opções, pontos, faixas), com os tokens `{{score}}`, `{{max_score}}`, `{{score_percent}}`, `{{correct_count}}` e `{{question_count}}`. Respostas abertas podem ser corrigidas por uma pessoa, e o questionário pode recomeçar quando o participante sai da janela.
 
@@ -40,8 +41,10 @@ A referência completa (cada token, shortcode, capacidade e configuração) vem 
 * **Gestão de públicos** - Públicos (grupos) hierárquicos com cores.
 * **Gestão de ambientes** - Espaços físicos com calendários, expediente, feriados e capacidade.
 * **Agendamentos de grupos** - Agende atividades para públicos inteiros ou para usuários individuais.
+* **Agendamentos de vários dias** - Um agendamento pode cobrir um intervalo de dias, com o mesmo horário todos os dias ou do horário inicial no primeiro dia ao horário final no último. Um feriado dentro do intervalo recusa o agendamento, a menos que o operador o pule.
 * **Importação e exportação em CSV** - Importe e exporte públicos e membros, com criação de usuários.
 * **Detecção de conflitos** - Os conflitos são verificados antes de um agendamento ser confirmado.
+* **Presença** - Os participantes registram presença lendo um QR code que muda a cada poucos minutos, com cerca geográfica opcional. O organizador acompanha a lista ao vivo, marca pessoas à mão, define uma regra para agendamentos de vários dias e exporta a presença em CSV. Depois do evento, cada participante recebe por e-mail um link pessoal para um formulário de certificado, e o organizador acompanha quem respondeu.
 * **Shortcodes** - A lista de Calendários de Público-alvo mostra o shortcode de cada calendário e de cada ambiente, com um botão de copiar.
 * **Notificações por e-mail** - Notificações automáticas de novos agendamentos e de cancelamentos.
 
@@ -67,6 +70,7 @@ A referência completa (cada token, shortcode, capacidade e configuração) vem 
 
 * **E-mails de aniversário** - E-mails automáticos montados a partir da data de nascimento de cada usuário, enviados no dia ou um número definido de dias antes. Nada é enviado até que um administrador crie e ative uma regra.
 * **Regras** - Várias regras independentes, cada uma com seu deslocamento, público opcional, assunto e corpo em HTML.
+* **Comunicados** - Uma mensagem para todos de um público escolhido, enviada agora ou uma vez num horário definido. Cada comunicado tem sua própria categoria de descadastro: desligar os e-mails de aniversário não silencia os comunicados, e o operador pode enviar também a quem se descadastrou, marcado como forçado.
 * **Prévia e Enviar agora** - Veja quem receberia uma regra, e por que alguém seria pulado, antes de qualquer envio. Rode um intervalo de datas à mão ou envie a si mesmo um teste com dados de exemplo.
 * **Resumo para gestores** - Um e-mail opcional de resumo para usuários escolhidos, 24 horas depois de cada execução.
 * **Próximas datas** - Um painel com os próximos aniversários (só dia e mês), protegido por uma capacidade própria.

@@ -262,7 +262,7 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 	}
 
 	/**
-	 * Preflight check.
+	 * Whether the migration can run now.
 	 *
 	 * @param string               $migration_key    Migration identifier.
 	 * @param array<string, mixed> $migration_config Migration configuration.

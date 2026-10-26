@@ -33,8 +33,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Registry and AJAX handler for per-record autosave.
  *
- * @phpstan-type RecordField array{type: string, options?: list<string>, map?: array<int, string>}
- * @phpstan-type RecordEntity array{cap: string, fields: array<string, RecordField>, exists: callable(int): bool, save: callable(int, string, mixed): (true|\WP_Error)}
+ * @phpstan-type RecordField array{type: string, options?: list<string>, map?: array<int, string>, min?: int, max?: int}
+ * @phpstan-type RecordEntity array{cap: string, fields: array<string, RecordField>, exists: callable(int): bool, save: callable(int, string, mixed): (true|\WP_Error), fragments?: callable(int): array<string, string>}
  */
 class RecordAutosave {
 
@@ -69,7 +69,15 @@ class RecordAutosave {
 	 * - `enum`: one of `options`;
 	 * - `map`: a checkbox whose two states mean two stored values,
 	 *   `map[1]` and `map[0]` (a status `active` / `inactive`);
-	 * - `list`: a checkbox group, saved as the subset of `options` ticked.
+	 * - `list`: a checkbox group, saved as the subset of `options` ticked;
+	 * - `int`: a whole number, refused outside `min` / `max` when given. An
+	 *   empty value is refused, never read as 0 (CLAUDE.md "Admin number
+	 *   inputs").
+	 *
+	 * An entity may also name `fragments`: given the record id after a save,
+	 * it returns the text of the elements on the screen that describe the
+	 * saved state, keyed by element id, and the widget writes each one in
+	 * (#2026). Text only -- the widget sets `textContent`, never markup.
 	 *
 	 * @param string               $entity Entity key, as the markup names it.
 	 * @param array<string, mixed> $def    Capability, fields and callbacks.
@@ -184,12 +192,15 @@ class RecordAutosave {
 			wp_send_json_error( array( 'message' => $result->get_error_message() ), 400 );
 		}
 
-		wp_send_json_success(
-			array(
-				'key'   => $key,
-				'value' => $value,
-			)
+		$response = array(
+			'key'   => $key,
+			'value' => $value,
 		);
+		if ( isset( $entity['fragments'] ) ) {
+			$response['fragments'] = ( $entity['fragments'] )( $id );
+		}
+
+		wp_send_json_success( $response );
 	}
 
 	/**
@@ -228,6 +239,16 @@ class RecordAutosave {
 				}
 				$list = array_map( static fn( $v ): string => sanitize_text_field( (string) $v ), $raw );
 				return array_values( array_intersect( $options, $list ) );
+
+			case 'int':
+				if ( ! is_scalar( $raw ) || ! preg_match( '/^-?\d+$/', trim( (string) $raw ) ) ) {
+					return null;
+				}
+				$int = (int) trim( (string) $raw );
+				if ( ( isset( $field['min'] ) && $int < $field['min'] ) || ( isset( $field['max'] ) && $int > $field['max'] ) ) {
+					return null;
+				}
+				return $int;
 		}
 
 		return null;

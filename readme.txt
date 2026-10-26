@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.8
 Tested up to: 7.1.3
-Stable tag: 6.41.0
+Stable tag: 6.42.0
 Requires PHP: 8.3
 License: AGPLv3 or later
 License URI: https://www.gnu.org/licenses/agpl-3.0.html
@@ -19,8 +19,9 @@ The full reference (every token, shortcode, capability and setting) ships inside
 = Certificates =
 
 * **Form Builder** - Drag-and-drop fields: Text, Email, Number, Date, Textarea, Select, Radio, Checkbox, Info Block, Embed (Media) and Hidden.
-* **Client-Side PDF Generation** - Certificates rendered in the browser with html2canvas and jsPDF, from reusable Document Templates with background images.
+* **Client-Side PDF Generation** - Certificates rendered in the browser with html2canvas-pro and jsPDF, from reusable Document Templates with background images.
 * **Magic Links** - One-click certificate access through a unique link carrying a random 32-character token, sent by e-mail.
+* **Bulk Issue** - Issue certificates for a list of participants from a CSV file: map its columns to the form's fields, preview what will be issued and why rows are skipped, then issue in batches. Quiz forms take each score from the file, and the magic-link e-mail can be sent as each certificate is issued.
 * **Verification** - Authenticity check by authentication code or magic link, on the `/valid` page created at activation.
 * **Quiz Mode** - Scored forms, each field scored on its own (choices, points, ranges), with `{{score}}`, `{{max_score}}`, `{{score_percent}}`, `{{correct_count}}` and `{{question_count}}` tokens. Open answers can be graded by a person, and a quiz can reset when the participant leaves the window.
 
@@ -48,8 +49,10 @@ The full reference (every token, shortcode, capability and setting) ships inside
 * **Audience Management** - Hierarchical audiences (groups) with colour coding.
 * **Environment Management** - Physical spaces with calendars, working hours, holidays and capacity.
 * **Group Bookings** - Schedule activities for whole audiences or individual users.
+* **Multi-day Bookings** - A booking can cover a range of days, with the same hours each day or from the start time on the first day to the end time on the last. A holiday inside the range refuses the booking unless the operator skips it.
 * **CSV Import & Export** - Import and export audiences and members, with user creation.
 * **Conflict Detection** - Conflicts are checked before a booking is confirmed.
+* **Attendance** - Participants check in by scanning a QR code that rotates every few minutes, optionally inside a geofence. The organiser sees the list live, marks people by hand, sets a rule for multi-day bookings and exports the attendance to CSV. After the event, each participant is e-mailed a personal link to a certificate form, and the organiser follows who answered.
 * **Shortcodes** - The Audience Calendars list shows each calendar's and each environment's shortcode with a copy button.
 * **Email Notifications** - Automatic notifications for new bookings and cancellations.
 
@@ -75,6 +78,7 @@ The full reference (every token, shortcode, capability and setting) ships inside
 
 * **Birthday E-mails** - Automatic e-mails built from each user's birth date, sent on the day or a set number of days before. Nothing is sent until an administrator creates and activates a rule.
 * **Rules** - Several independent rules, each with its own offset, optional audience, subject and HTML body.
+* **Announcements** - One message to everyone in a chosen audience, sent now or once at a set time. Each announcement has its own opt-out category, so turning off birthday messages does not silence it, and an operator can send to people who opted out, labelled as forced.
 * **Preview & Send Now** - See who would receive a rule, and why anyone would be skipped, before anything is sent. Run a date range by hand, or send yourself a test with sample data.
 * **Manager Digest** - An optional summary e-mail to chosen users 24 hours after each run.
 * **Upcoming Dates** - A panel listing the coming birthdays (day and month only), gated by its own capability.
@@ -275,8 +279,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.41.0 =
-⚠ Bookings Managers lose the calendar bulk purge, now its own capability; future bookings are cancelled, not deleted. The dashboard masks the owner's own data behind Reveal. One button family on every screen. Four stylesheet handles take a -css suffix.
+= 6.42.0 =
+⚠ GPS areas are decided by the server, per area, and "GPS or IP" passes on either. A form whose layout lacks a required tag no longer saves. New: bulk issue from CSV, announcements, multi-day audience bookings with QR attendance and post-event forms, a device test.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one

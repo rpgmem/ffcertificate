@@ -11,7 +11,7 @@ use FreeFormCertificate\Maintenance\IdentityAdoption;
 use FreeFormCertificate\Maintenance\IdentityRelink;
 use FreeFormCertificate\Maintenance\IdentityRepair;
 use FreeFormCertificate\Maintenance\IdentitySplit;
-use FreeFormCertificate\Admin\IdentityPreflightAjaxEndpoint;
+use FreeFormCertificate\Admin\IdentityCorrectionPreviewAjaxEndpoint;
 use FreeFormCertificate\Admin\IdentitySearchAjaxEndpoint;
 
 /**
@@ -51,7 +51,7 @@ class IdentityHashPrefixTest extends TestCase {
 		'IdentityRelink::LOG_PREFIX'                     => IdentityRelink::class,
 		'IdentityRepair::LOG_PREFIX'                     => IdentityRepair::class,
 		'IdentitySplit::LOG_PREFIX'                      => IdentitySplit::class,
-		'IdentityPreflightAjaxEndpoint::DISPLAY_PREFIX'  => IdentityPreflightAjaxEndpoint::class,
+		'IdentityCorrectionPreviewAjaxEndpoint::DISPLAY_PREFIX'  => IdentityCorrectionPreviewAjaxEndpoint::class,
 		'IdentitySearchAjaxEndpoint::DISPLAY_PREFIX'     => IdentitySearchAjaxEndpoint::class,
 	);
 

@@ -885,6 +885,31 @@ class SubmissionReader extends AbstractRepository {
 	}
 
 	/**
+	 * Count submissions matching `(form_id, rf_hash)`. The RF twin of
+	 * {@see self::countByFormAndCpfHash()}: the bulk issue uses both to refuse
+	 * a participant the form already issued to (#1945).
+	 *
+	 * @since 6.42.0
+	 * @param int    $form_id Form ID.
+	 * @param string $rf_hash SHA-256 hash of the RF digits.
+	 * @return int Always >= 0.
+	 */
+	public function countByFormAndRfHash( int $form_id, string $rf_hash ): int {
+		if ( $form_id <= 0 || '' === $rf_hash ) {
+			return 0;
+		}
+		$count = $this->wpdb->get_var(
+			$this->wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE form_id = %d AND rf_hash = %s',
+				$this->table,
+				$form_id,
+				$rf_hash
+			)
+		);
+		return null === $count ? 0 : (int) $count;
+	}
+
+	/**
 	 * SQL fragment for the WP_User_Query orderby rewrite that sorts
 	 * users by "non-trash certificates issued to them". Returns a
 	 * self-contained SELECT subquery — the caller wraps it as

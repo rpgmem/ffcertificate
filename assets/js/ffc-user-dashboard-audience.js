@@ -23,6 +23,34 @@
     }
 
     /**
+     * The post-event form waiting for this person (#2028): a button with
+     * their own link and when the form closes. Without a link (someone
+     * viewing as the user) it only says the form waits.
+     *
+     * @param {Object|null} postEvent The booking's `post_event` from the REST payload.
+     * @returns {string}
+     */
+    function postEventHtml(postEvent) {
+        if (!postEvent) return '';
+        var s = ffcDashboard.strings;
+        var html = '<div class="ffc-post-event-pending">';
+        if (postEvent.url) {
+            html += FFC.buttonHtml({
+                label: s.fillPostEventForm || 'Fill in the form',
+                icon: 'award',
+                category: 'primary',
+                href: postEvent.url,
+                className: 'ffc-btn-post-event',
+                attrs: { title: postEvent.form_title || '' }
+            });
+        } else {
+            html += '<span class="ffc-post-event-waiting">' + helpers.esc((s.postEventWaiting || 'Form waiting: %s').replace('%s', postEvent.form_title || '')) + '</span>';
+        }
+        html += '<small class="ffc-post-event-closes">' + helpers.esc((s.postEventCloses || 'Open until %s').replace('%s', postEvent.closes_label || '')) + '</small>';
+        return html + '</div>';
+    }
+
+    /**
      * One booking row.
      *
      * @param {Object} booking Booking row from the REST payload.
@@ -39,7 +67,7 @@
         if (booking.schedule_name) html += '<br><small class="ffc-booking-schedule">' + booking.schedule_name + '</small>';
         html += '</td>';
         html += '<td>' + booking.booking_date + '</td>';
-        html += '<td>' + booking.start_time + ' - ' + booking.end_time + '</td>';
+        html += '<td>' + (booking.time_label || (booking.start_time + ' - ' + booking.end_time)) + '</td>';
         html += '<td>' + (booking.description || '') + '</td>';
         html += '<td>';
         if (booking.audiences && booking.audiences.length > 0) {
@@ -57,12 +85,17 @@
                 summary: (booking.description || booking.environment_name),
                 description: (booking.environment_name ? (ffcDashboard.strings.environment || 'Environment') + ': ' + booking.environment_name : '') + (booking.schedule_name ? '\n' + booking.schedule_name : '') + (booking.description ? '\n' + booking.description : '') + (audienceNames ? '\n' + (ffcDashboard.strings.audiences || 'Audiences') + ': ' + audienceNames : ''),
                 location: booking.environment_name || '',
-                date: booking.booking_date_raw,
+                // A range is one event over every booked day (#1946).
+                date: (booking.ics && booking.ics.date) || booking.booking_date_raw,
+                endDate: booking.ics && booking.ics.end_date,
+                rrule: booking.ics && booking.ics.rrule,
+                exdates: booking.ics && booking.ics.exdates,
                 startTime: booking.start_time,
                 endTime: booking.end_time || booking.start_time
             };
             html += FFCDashboard.calExport.buildButton(bookingEvent);
         }
+        html += postEventHtml(booking.post_event);
         html += '</td></tr>';
         return html;
     }
@@ -90,12 +123,16 @@
             FFC.rest(url, { nonce: ffcDashboard.nonce })
                 .then(function (response) {
                     self.state = response.bookings || [];
+                    self.pendingLabel = response.pending_label || '';
                     self.render(self.state, 1);
                 })
                 .catch(function () {
                     $container.empty().append(FFC.notice('danger', 'error', ffcDashboard.strings.error, '', { role: 'alert' }));
                 });
         },
+
+        // The count of post-event forms waiting, as the server worded it.
+        pendingLabel: '',
 
         // The page each section shows; `render()` resets them, a pager
         // click moves one (core's `handleSectionPage`).
@@ -127,7 +164,8 @@
             var filtered = bookings;
             if (fromVal || toVal || searchVal) {
                 filtered = bookings.filter(function (b) {
-                    if (fromVal && b.booking_date_raw < fromVal) return false;
+                    // A range matches when any of its days falls in the filter.
+                    if (fromVal && (b.last_date_raw || b.booking_date_raw) < fromVal) return false;
                     if (toVal && b.booking_date_raw > toVal) return false;
                     if (searchVal) {
                         var hay = (b.environment_name + ' ' + b.schedule_name + ' ' + b.description).toLowerCase();
@@ -144,6 +182,9 @@
             };
 
             var html = filterHtml;
+            if (this.pendingLabel) {
+                html += FFC.notice('info', 'award', this.pendingLabel, '', { hook: 'post-event-pending' }).outerHTML;
+            }
             var self = this;
             SECTION_ORDER.forEach(function (key) {
                 html += self.buildSectionHtml(key);

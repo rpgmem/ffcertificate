@@ -192,6 +192,10 @@ final class CapabilityCatalog {
 						'label'       => __( 'Export certificates', 'ffcertificate' ),
 						'description' => __( 'Download bulk certificate exports.', 'ffcertificate' ),
 					),
+					'ffc_import_certificates'   => array(
+						'label'       => __( 'Issue certificates in bulk', 'ffcertificate' ),
+						'description' => __( 'Issue certificates for a list of participants from a CSV file, without each of them submitting the form.', 'ffcertificate' ),
+					),
 					'ffc_delete_certificates'   => array(
 						'label'       => __( 'Delete certificates', 'ffcertificate' ),
 						'description' => __( 'Permanently delete certificate submissions (bulk delete).', 'ffcertificate' ),
@@ -289,6 +293,10 @@ final class CapabilityCatalog {
 					'ffc_import_audiences'   => array(
 						'label'       => __( 'Import audiences', 'ffcertificate' ),
 						'description' => __( 'Bulk-load members and audiences from CSV.', 'ffcertificate' ),
+					),
+					'ffc_checkin_audiences'  => array(
+						'label'       => __( 'Run attendance check-in', 'ffcertificate' ),
+						'description' => __( 'Open and close check-in for a day of a booking, project its rotating QR and mark attendance by hand (#1947).', 'ffcertificate' ),
 					),
 					'ffc_export_audiences'   => array(
 						'label'       => __( 'Export audiences', 'ffcertificate' ),
@@ -393,7 +401,11 @@ final class CapabilityCatalog {
 					),
 					'ffc_manage_date_messages'   => array(
 						'label'       => __( 'Manage date messages', 'ffcertificate' ),
-						'description' => __( 'Create and edit rules and send manually. The daily send time belongs to Settings → Scheduled Tasks.', 'ffcertificate' ),
+						'description' => __( 'Create, edit, duplicate and delete rules. Sending a rule takes Send date messages; the daily send time belongs to Settings → Scheduled Tasks.', 'ffcertificate' ),
+					),
+					'ffc_send_date_messages'     => array(
+						'label'       => __( 'Send date messages', 'ffcertificate' ),
+						'description' => __( 'Send a rule now, or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it on upgrade (#1949).', 'ffcertificate' ),
 					),
 					'ffc_test_date_messages'     => array(
 						'label'       => __( 'Send date-message tests', 'ffcertificate' ),

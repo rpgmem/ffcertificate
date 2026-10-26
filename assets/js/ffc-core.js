@@ -85,10 +85,93 @@
     }
 
     /**
+     * What the visitor's browser is, asked in one place (#2030).
+     *
+     * The success card, the pre-flight banners, the GPS timings and the PDF
+     * download each used to carry their own copy of these patterns. Every
+     * answer reads the user agent at call time, so a test (or a browser that
+     * changes it) is answered as it is now. Each test is one capability or
+     * one context, never a brand: Samsung Internet is named only because its
+     * PDF download needs the placeholder tab.
+     */
+    var Platform = {
+        /** @returns {string} The user agent, or '' where there is none. */
+        ua: function() {
+            return (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+        },
+
+        /**
+         * iPhone, iPod or iPad. iPadOS 13+ reports a Mac but has touch.
+         *
+         * @returns {boolean}
+         */
+        ios: function() {
+            var ua = this.ua();
+            return /iPad|iPhone|iPod/.test(ua)
+                || (/Macintosh/.test(ua) && typeof navigator !== 'undefined' && navigator.maxTouchPoints > 1);
+        },
+
+        /** @returns {'ios'|'android'|'desktop'} */
+        os: function() {
+            if (this.ios()) {
+                return 'ios';
+            }
+            return /Android/i.test(this.ua()) ? 'android' : 'desktop';
+        },
+
+        /**
+         * WebKit's rules apply: iOS, where every browser is WebKit, and
+         * desktop Safari. Decides the GPS timings.
+         *
+         * @returns {boolean}
+         */
+        webkit: function() {
+            return this.ios() || /^((?!chrome|android).)*safari/i.test(this.ua());
+        },
+
+        /** @returns {boolean} An Android WebView (`; wv)` or `; wv;`). */
+        androidWebView: function() {
+            var ua = this.ua();
+            return /\bwv\)/.test(ua) || /; wv;/.test(ua);
+        },
+
+        /**
+         * An app's embedded browser: an Android WebView, or an iOS app that
+         * adds its own marker to the user agent. Safari and Chrome on iOS
+         * match none of these.
+         *
+         * @returns {boolean}
+         */
+        inApp: function() {
+            var ua = this.ua();
+            return this.androidWebView()
+                || /(FBAN|FBAV|FBIOS)/i.test(ua)
+                || /Instagram/i.test(ua)
+                || /TwitterIOS\/|Twitter for iPhone/i.test(ua)
+                || /WhatsApp/i.test(ua)
+                || /LinkedInApp/i.test(ua)
+                || /BytedanceWebView|musical_ly/i.test(ua)
+                || /Line\/\d/i.test(ua);
+        },
+
+        /** @returns {boolean} Samsung Internet. */
+        samsung: function() {
+            return /SamsungBrowser/i.test(this.ua());
+        },
+
+        /** @returns {boolean} A phone or tablet, by the user agent alone. */
+        mobile: function() {
+            return /Mobi|Android|iPhone|iPad|iPod/i.test(this.ua());
+        }
+    };
+
+    /**
      * Initialize global FFC namespace
      */
     var core = {
-        
+
+        Platform: Platform,
+
         /**
          * Plugin version
          */
@@ -791,6 +874,35 @@
         },
 
         /**
+         * Confirm a booking cancellation. A booking that covers a
+         * range is cancelled whole, so the dialog states every day it covers
+         * before the confirm button can be pressed. The confirm is the
+         * danger button and waits out the same countdown as the override
+         * warning.
+         *
+         * @param {Object}   options
+         * @param {number}   options.count    Days the booking covers (1 for a single day).
+         * @param {string}   options.label    The booking's dates, already formatted.
+         * @param {Object}   options.strings  `AudienceBookingRules::cancel_strings()`.
+         * @return {Promise<boolean>} True when the person agreed.
+         */
+        confirmRangeCancel: function(options) {
+            var opts = options || {};
+            var s = opts.strings || {};
+            var count = parseInt(opts.count, 10) || 1;
+            var label = String(opts.label || '');
+            var sentence = count > 1
+                ? String(s.range || '').replace('%1$d', count).replace('%2$s', label)
+                : String(s.single || '').replace('%s', label);
+
+            return core.overrideConfirm({
+                reasons: [sentence],
+                strings: s,
+                agreeCategory: 'danger'
+            });
+        },
+
+        /**
          * The override warning (#1859): one dialog listing every rule a
          * booking breaks, with an "I agree" button that stays disabled for a
          * countdown.
@@ -809,6 +921,7 @@
          * @param {Array}    options.reasons  `{code, message}` entries or plain strings.
          * @param {Object}   [options.strings] Localized words (`OverrideWarning::strings()`).
          * @param {number}   [options.seconds] Countdown length; `strings.seconds`, else 15.
+         * @param {string}   [options.agreeCategory] Button category of the confirm; `primary` by default.
          * @return {Promise<boolean>} True when the person agreed.
          */
         overrideConfirm: function(options) {
@@ -889,7 +1002,7 @@
             // The label is the countdown, which label() below rewrites.
             var agree = core.button({
                 label: words.agree,
-                category: 'primary',
+                category: opts.agreeCategory || 'primary',
                 icon: 'checkmark',
                 attrs: { 'data-ffc-override': 'agree' }
             });

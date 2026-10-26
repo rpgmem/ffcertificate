@@ -347,6 +347,12 @@ class SubmissionPersister {
 			}
 		}
 
+		// An invited submission names its booking (#1948). A reprint already
+		// carries it from the first time.
+		if ( null !== $ctx->invite && ! $is_reprint && (int) $submission_id > 0 ) {
+			$this->submission_handler->get_repository()->update( (int) $submission_id, array( 'audience_booking_id' => $ctx->invite['booking_id'] ) );
+		}
+
 		$ctx->submission_data      = $submission_data;
 		$ctx->submission_id        = (int) $submission_id;
 		$ctx->real_submission_date = (string) $real_submission_date;

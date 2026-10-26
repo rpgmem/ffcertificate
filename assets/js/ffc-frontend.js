@@ -441,31 +441,13 @@
     });
 
     /**
-     * Detect the device family for the "where is my file" hint in the
-     * success card. Mirrors the UA logic in ffc-pdf-generator.js (iPadOS
-     * reports "Macintosh" but exposes maxTouchPoints > 1).
-     *
-     * @returns {'ios'|'android'|'desktop'}
-     */
-    function detectPlatform() {
-        var ua = navigator.userAgent || '';
-        if (/iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) {
-            return 'ios';
-        }
-        if (/Android/i.test(ua)) {
-            return 'android';
-        }
-        return 'desktop';
-    }
-
-    /**
      * Hide the platform-guidance lines that don't apply to the visitor's
      * device. The matching line stays visible.
      *
      * @param {jQuery} $form Form (or success card) container.
      */
     function filterPlatformGuidance($form) {
-        var platform = detectPlatform();
+        var platform = FFC.Platform.os();
         $form.find('.ffc-success-where-is-file li[data-platform]').each(function () {
             var $li = $(this);
             if ($li.attr('data-platform') !== platform) {
@@ -575,7 +557,16 @@
             // Prepare form data (FFC.request appends action + nonce).
             var formData = $form.serialize();
 
-            FFC.request('ffc_submit_form', formData)
+            // The GPS reading goes with the submission: the server decides
+            // the area by it (#2040).
+            var geoFields = window.FFCGeofence && typeof window.FFCGeofence.submissionFields === 'function'
+                ? window.FFCGeofence.submissionFields($form)
+                : Promise.resolve('');
+
+            geoFields
+                .then(function (fields) {
+                    return FFC.request('ffc_submit_form', formData + fields);
+                })
                 .then(function (data) {
                     if (!data) {
                         FFC.Frontend.UI.showFormError($form, ffc_ajax.strings.error || 'Error occurred');
@@ -800,6 +791,17 @@
             this.style.setProperty('height', 'auto', 'important');
             this.style.setProperty('height', this.scrollHeight + 'px', 'important');
         });
+
+        // Tell the boot watchdog the form can be sent (#2030): this setup
+        // ran, and what a submit goes through is on the page — the request
+        // helper and the libraries the PDF is drawn with.
+        if (window.FFC && FFC.Preflight
+            && typeof FFC.request === 'function'
+            && typeof window.ffcGeneratePDF === 'function'
+            && typeof window.html2canvas === 'function'
+            && window.jspdf && typeof window.jspdf.jsPDF === 'function') {
+            FFC.Preflight.ready('frontend');
+        }
     });
 
     // console.log('[FFC Frontend] Script loaded v3.1.0 (cleaned up defensive code)');

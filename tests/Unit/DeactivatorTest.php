@@ -44,6 +44,7 @@ class DeactivatorTest extends TestCase {
 
 		// Default stubs — overridden per test as needed
 		Functions\when( 'wp_clear_scheduled_hook' )->justReturn( 0 );
+		Functions\when( 'wp_unschedule_hook' )->justReturn( 0 );
 		Functions\when( 'wp_next_scheduled' )->justReturn( false );
 		Functions\when( 'wp_unschedule_event' )->justReturn( true );
 		Functions\when( 'flush_rewrite_rules' )->justReturn( null );
@@ -85,6 +86,10 @@ class DeactivatorTest extends TestCase {
 		Functions\when( 'wp_clear_scheduled_hook' )->alias( function ( $hook ) use ( &$cleared ) {
 			$cleared[] = $hook;
 		});
+		// A single event carries arguments, so it is removed whatever they are.
+		Functions\when( 'wp_unschedule_hook' )->alias( function ( $hook ) use ( &$cleared ) {
+			$cleared[] = $hook;
+		});
 
 		Deactivator::deactivate();
 
@@ -98,10 +103,14 @@ class DeactivatorTest extends TestCase {
 		// The date-messages daily send and its pending batches (#1538).
 		$this->assertContains( 'ffc_date_messages_daily', $cleared );
 		$this->assertContains( 'ffc_date_messages_batch', $cleared );
+		$this->assertContains( 'ffc_date_messages_announce', $cleared );
 		$this->assertContains( 'ffc_date_messages_digest', $cleared );
 		// The form-cache warming (#1541).
 		$this->assertContains( 'ffcertificate_warm_cache_hook', $cleared );
-		$this->assertCount( 10, $cleared );
+		// The bulk-issue purge of unfinished imports (#1945).
+		$this->assertContains( 'ffcertificate_bulk_issue_purge', $cleared );
+		$this->assertContains( 'ffcertificate_audience_post_event_invites', $cleared );
+		$this->assertCount( 13, $cleared );
 	}
 
 	public function test_deactivate_flushes_rewrite_rules(): void {
@@ -193,6 +202,10 @@ class DeactivatorTest extends TestCase {
 		Functions\when( 'wp_clear_scheduled_hook' )->alias( function ( $hook ) use ( &$cleared ) {
 			$cleared[] = $hook;
 		});
+		// A single event carries arguments, so it is removed whatever they are.
+		Functions\when( 'wp_unschedule_hook' )->alias( function ( $hook ) use ( &$cleared ) {
+			$cleared[] = $hook;
+		});
 
 		Deactivator::uninstall_cleanup();
 
@@ -205,7 +218,8 @@ class DeactivatorTest extends TestCase {
 		$this->assertContains( 'ffcertificate_self_scheduling_reminder_scan', $cleared );
 		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $cleared );
 		$this->assertContains( 'ffc_cloudflare_cidr_refresh', $cleared );
-		$this->assertCount( 6, $cleared );
+		$this->assertContains( 'ffcertificate_bulk_issue_purge', $cleared );
+		$this->assertCount( 7, $cleared );
 	}
 
 	public function test_uninstall_cleanup_deletes_form_posts(): void {

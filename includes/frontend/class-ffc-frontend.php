@@ -101,6 +101,9 @@ class Frontend {
 
 		add_action( 'wp_ajax_ffc_verify_magic_token', array( $this->verification_handler, 'handle_magic_verification_ajax' ) );
 		add_action( 'wp_ajax_nopriv_ffc_verify_magic_token', array( $this->verification_handler, 'handle_magic_verification_ajax' ) );
+
+		// The device test's one server request (#2064).
+		DeviceCheck::init();
 	}
 
 	/**
@@ -175,29 +178,6 @@ class Frontend {
 			// needs this refresh too.
 			wp_enqueue_script( 'ffc-dynamic-fragments' );
 
-			// 6.3.7: WebView (in-app browser) preventive warning. Detects
-			// FB/Insta/WhatsApp/TikTok/LinkedIn/Android-WebView at page
-			// load and offers an "Open in browser" CTA before the user
-			// invests time filling the form. Pure UX layer — the v6.3.6
-			// pre-open + manual-tap fallbacks still cover anyone who
-			// dismisses the banner and proceeds.
-			if ( $has_form || $has_csv_download ) {
-				wp_enqueue_script( 'ffc-webview-warning', FFC_PLUGIN_URL . "assets/js/ffc-webview-warning{$s}.js", array( 'ffc-core' ), FFC_VERSION, true );
-				wp_localize_script(
-					'ffc-webview-warning',
-					'ffc_webview_warning',
-					array(
-						'strings' => array(
-							'title'           => __( 'Download may fail in this app', 'ffcertificate' ),
-							'body'            => __( 'You are viewing this page inside an app browser. To make sure the certificate downloads correctly, please open the page in your main browser (Chrome or Safari).', 'ffcertificate' ),
-							'openInBrowser'   => __( 'Open in browser', 'ffcertificate' ),
-							'continueAnyway'  => __( 'Continue anyway', 'ffcertificate' ),
-							'iosInstructions' => __( 'Tap the menu icon (•••) at the bottom of the app and choose "Open in Safari".', 'ffcertificate' ),
-						),
-					)
-				);
-			}
-
 			// 6.3.10: friendly "already submitted" notice. Pure client-side
 			// hint backed by localStorage; reads `ffc_submitted_forms` and,
 			// if the current form_id is in the list, shows a dismissable
@@ -251,11 +231,13 @@ class Frontend {
 			// PDF Generator (shared module).
 			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-pdf-generator' );
 
-			wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . "assets/js/ffc-frontend{$s}.js", array( 'jquery', 'ffc-core', 'ffc-pdf-generator', 'ffc-rate-limit' ), FFC_VERSION, true );
+			// ffc-preflight: the boot watchdog this script reports to (#2030).
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-preflight' );
+			wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . "assets/js/ffc-frontend{$s}.js", array( 'jquery', 'ffc-core', 'ffc-pdf-generator', 'ffc-rate-limit', 'ffc-preflight' ), FFC_VERSION, true );
 
 			// The geofence core and its validation modules; the geofence config
 			// localize stays on 'ffc-geofence-frontend'.
-			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-geofence-frontend', 'ffc-geofence-datetime', 'ffc-geofence-gps', 'ffc-geofence-preflight' );
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-geofence-frontend', 'ffc-geofence-datetime', 'ffc-geofence-gps', 'ffc-geofence-permission' );
 
 			// Pass geofence configurations to frontend.
 			$this->localize_geofence_config();
@@ -281,6 +263,13 @@ class Frontend {
 						)
 					);
 				}
+			}
+
+			// The "Test my device" mode of the verification page (#2040):
+			// its script and sheet load only when the page is in that mode,
+			// after the device-signals collector it reads (#2054).
+			if ( $has_verification && DeviceCheck::requested() ) {
+				DeviceCheck::enqueue_assets();
 			}
 
 			// 6.6.4 follow-up (#361 Sprint 1) — gate the browser-env
@@ -388,6 +377,9 @@ class Frontend {
 		}
 
 		if ( $has_csv_download ) {
+			// The certificate preview captures the page as an image (html2canvas only).
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-layout-preview', 'ffc-preflight' );
+
 			wp_enqueue_script(
 				'ffc-csv-download',
 				FFC_PLUGIN_URL . "assets/js/ffc-csv-download{$s}.js",
@@ -399,7 +391,8 @@ class Frontend {
 				// _ffc_csv_public_cpf_mode is set. 'ffc-batched-export' owns
 				// window.FFCProgressOverlay, which this core's overlay helpers
 				// (used by the info screen's "Validating…" step) delegate to (#786).
-				array( 'jquery', 'ffc-core', 'ffc-rate-limit', 'ffc-batched-export' ),
+				// 'ffc-preflight' runs the browser check before the form (#2030).
+				array( 'jquery', 'ffc-core', 'ffc-rate-limit', 'ffc-batched-export', 'ffc-preflight' ),
 				FFC_VERSION,
 				true
 			);
@@ -416,7 +409,7 @@ class Frontend {
 			foreach (
 				array(
 					'ffc-csv-info-screen'        => array( 'jquery', 'ffc-core', 'ffc-csv-download' ),
-					'ffc-csv-cert-preview'       => array( 'jquery', 'ffc-core', 'ffc-csv-download' ),
+					'ffc-csv-cert-preview'       => array( 'jquery', 'ffc-core', 'ffc-csv-download', 'ffc-layout-preview' ),
 					'ffc-csv-download-flow'      => array( 'jquery', 'ffc-core', 'ffc-csv-download', 'ffc-batched-export' ),
 					'ffc-csv-open-early'         => array( 'jquery', 'ffc-core', 'ffc-csv-download' ),
 					'ffc-csv-extend-end'         => array( 'jquery', 'ffc-core', 'ffc-csv-download' ),
@@ -437,6 +430,18 @@ class Frontend {
 				array(
 					'ajax_url'       => admin_url( 'admin-ajax.php' ),
 					'min_display_ms' => 1500,
+					// The browser check before the form (#2030), as on a
+					// certificate form: the same switch and strings.
+					'preflight'      => array(
+						'browserCheck' => BrowserGate::settings()['browserCheck'],
+						'strings'      => BrowserGate::strings(),
+						// The page a visitor was stopped on, for the
+						// pre-flight telemetry (#2040).
+						'telemetry'    => array(
+							'type' => 'csv_download',
+							'id'   => (int) $post->ID,
+						),
+					),
 					'strings'        => array(
 						// Progress overlay.
 						'validating'                     => __( 'Validating access…', 'ffcertificate' ),
@@ -527,7 +532,7 @@ class Frontend {
 						// Info screen: cert preview.
 						'previewCertificate'             => __( 'Preview Certificate', 'ffcertificate' ),
 						'certPreviewTitle'               => __( 'Certificate Preview', 'ffcertificate' ),
-						'certPreviewNote'                => __( 'Placeholders replaced with sample data. QR code shown as placeholder.', 'ffcertificate' ),
+						'certPreviewNote'                => __( 'Placeholders replaced with sample data.', 'ffcertificate' ),
 						'close'                          => __( 'Close', 'ffcertificate' ),
 						'loadingPreview'                 => __( 'Loading preview…', 'ffcertificate' ),
 
@@ -605,7 +610,7 @@ class Frontend {
 	 * Enqueue what [ffc_geofence] needs (#1668).
 	 *
 	 * The content script reuses the form geofence modules (date/time, GPS,
-	 * pre-flight) and their styles, so it loads them itself on a page that
+	 * permission banners, through the pre-flight queue) and their styles, so it loads them itself on a page that
 	 * has no form; on a page that has one, the form branch loads them and
 	 * localizes their shared configuration.
 	 *
@@ -621,7 +626,7 @@ class Frontend {
 			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-frontend-css' );
 		}
 
-		$modules = array( 'ffc-geofence-datetime', 'ffc-geofence-gps', 'ffc-geofence-preflight' );
+		$modules = array( 'ffc-geofence-datetime', 'ffc-geofence-gps', 'ffc-geofence-permission' );
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-geofence-frontend', ...$modules );
 
 		wp_enqueue_script( GeofenceContent::SCRIPT_HANDLE, FFC_PLUGIN_URL . "assets/js/ffc-geofence-content{$s}.js", array_merge( array( 'jquery', 'ffc-core' ), $modules ), FFC_VERSION, true );
@@ -699,9 +704,9 @@ class Frontend {
 		foreach ( array_unique( $form_ids ) as $form_id_int ) {
 			$config = \FreeFormCertificate\Security\Geofence::get_frontend_config( $form_id_int );
 
-			if ( null !== $config ) {
-				$geofence_configs[ $form_id_int ] = $config;
-			}
+			// A form with no restriction still runs the visitor pre-flight
+			// (#2030): the browser and cookie steps apply to every form.
+			$geofence_configs[ $form_id_int ] = null !== $config ? $config : BrowserGate::form_config( $form_id_int );
 		}
 
 		// Add global settings without re-indexing form IDs.
@@ -725,6 +730,10 @@ class Frontend {
 				'positionUnavailable'       => __( 'Location information is unavailable.', 'ffcertificate' ),
 				'timeout'                   => __( 'Location request timed out.', 'ffcertificate' ),
 				'outsideArea'               => __( 'You are outside the allowed area for this form.', 'ffcertificate' ),
+				'inaccurate'                => __( 'Your location is not precise enough to confirm you are in the allowed area. Move to an open area or turn on precise location, then reload the page. On a computer, open this page on your phone with location turned on.', 'ffcertificate' ),
+				/* translators: %s: the GPS reading's margin of error, in metres. */
+				'inaccurateAccepted'        => __( 'Your location was accepted, but with low precision (about %s m). For more precision, turn on precise location or use your phone.', 'ffcertificate' ),
+				'inaccurateAllowed'         => __( 'Your location is not precise enough to confirm you are in the allowed area, but this form allows access anyway.', 'ffcertificate' ),
 				// Safari/iOS progressive loading phases.
 				'safariPhase1'              => __( 'Requesting your location… If prompted, tap "Allow".', 'ffcertificate' ),
 				'safariPhase2'              => __( 'Waiting for location permission… Check if a browser prompt appeared.', 'ffcertificate' ),
@@ -774,6 +783,11 @@ class Frontend {
 				'gpsPromptContinue'         => __( 'Continue', 'ffcertificate' ),
 			),
 		);
+
+		// The browser and HTTPS steps of the pre-flight (#2030): their
+		// switches and strings.
+		$geofence_configs['_global']            += BrowserGate::settings();
+		$geofence_configs['_global']['strings'] += BrowserGate::strings();
 
 		// Localize script with preserved array keys.
 		/**

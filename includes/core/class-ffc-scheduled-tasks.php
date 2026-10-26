@@ -103,9 +103,17 @@ final class ScheduledTasks {
 			'recurrence' => 'hourly',
 			'module'     => 'self_scheduling',
 		),
+		'ffcertificate_audience_post_event_invites'   => array(
+			'recurrence' => 'hourly',
+			'module'     => 'audiences',
+		),
 		'ffc_cloudflare_cidr_refresh'                 => array(
 			'recurrence' => 'daily',
 			'module'     => null,
+		),
+		'ffcertificate_bulk_issue_purge'              => array(
+			'recurrence' => 'daily',
+			'module'     => 'certificates',
 		),
 		'ffcertificate_warm_cache_hook'               => array(
 			'recurrence' => 'daily',
@@ -132,6 +140,10 @@ final class ScheduledTasks {
 			'module'     => 'date_messages',
 		),
 		'ffc_date_messages_digest'                    => array(
+			'recurrence' => self::SINGLE,
+			'module'     => 'date_messages',
+		),
+		'ffc_date_messages_announce'                  => array(
 			'recurrence' => self::SINGLE,
 			'module'     => 'date_messages',
 		),
@@ -175,8 +187,12 @@ final class ScheduledTasks {
 				return __( 'Reregistration expiry, invitations and automated reminders', 'ffcertificate' );
 			case 'ffcertificate_self_scheduling_reminder_scan':
 				return __( 'Appointment reminder scan', 'ffcertificate' );
+			case 'ffcertificate_audience_post_event_invites':
+				return __( 'Audience post-event form invitations', 'ffcertificate' );
 			case 'ffc_cloudflare_cidr_refresh':
 				return __( 'Cloudflare IP range refresh', 'ffcertificate' );
+			case 'ffcertificate_bulk_issue_purge':
+				return __( 'Bulk issue: expire unfinished imports', 'ffcertificate' );
 			case 'ffcertificate_warm_cache_hook':
 				return __( 'Form cache warming (when "Pre-load cache daily" is on)', 'ffcertificate' );
 			case 'ffc_process_submission_async':
@@ -191,6 +207,8 @@ final class ScheduledTasks {
 				return __( 'Date messages batch (one per batch)', 'ffcertificate' );
 			case 'ffc_date_messages_digest':
 				return __( 'Date messages manager summary (one per run)', 'ffcertificate' );
+			case 'ffc_date_messages_announce':
+				return __( 'Date messages announcement (one per scheduled announcement)', 'ffcertificate' );
 		}
 		return $hook;
 	}

@@ -46,7 +46,7 @@ function calendarFixture() {
 		<span class="ffc-current-month"></span>
 		<select id="ffc-schedule-select"></select>
 		<select id="ffc-environment-select"><option value="0">placeholder</option></select>
-		<select id="booking-audiences" multiple></select>
+		<div id="booking-audiences"></div>
 		<div id="ffc-calendar-days"></div>
 		<div id="ffc-event-list-panel">
 			<div class="ffc-event-list-header"><h3></h3></div>
@@ -121,21 +121,55 @@ describe('ffc-audience-calendar — updateEnvironmentSelect', () => {
 });
 
 describe('ffc-audience-calendar — populateAudienceSelect', () => {
-	it('renders a nested option tree with indentation prefixes for children', () => {
-		api.state.config = {
-			audiences: [
-				{ id: 1, name: 'Parent', children: [
-					{ id: 11, name: 'Child', children: [{ id: 111, name: 'Grand' }] },
+	const tree = () => ({
+		audiences: [
+			{ id: 1, name: 'Parent', color: '#d97706', members: 20, children: [
+				{ id: 11, name: 'Child', color: 'red; background: url(x)', members: 1, children: [
+					{ id: 111, name: '<b>Grand</b>', color: '#2563eb', members: 0 },
 				] },
-			],
-		};
+			] },
+		],
+	});
+
+	it('renders one checkbox row per audience, its parent and depth (#2008)', () => {
+		api.state.config = tree();
 		api.populateAudienceSelect();
-		const opts = window.$('#booking-audiences option');
-		expect(opts.length).toBe(3);
-		// Root has no prefix; descendants get the └ marker.
-		expect(opts.eq(0).text()).toBe('Parent');
-		expect(opts.eq(1).text()).toContain('└ Child');
-		expect(opts.eq(2).text()).toContain('└ Grand');
+		const rows = window.$('#booking-audiences .ffc-audience-picker-option');
+		expect(rows.length).toBe(3);
+		expect(rows.map((_, el) => el.getAttribute('data-depth')).get()).toEqual(['0', '1', '2']);
+		const inputs = rows.find('input[type="checkbox"]');
+		expect(inputs.map((_, el) => el.value).get()).toEqual(['1', '11', '111']);
+		expect(inputs.eq(0).attr('data-parent')).toBeUndefined();
+		expect(inputs.eq(1).attr('data-parent')).toBe('1');
+		expect(inputs.eq(2).attr('data-parent')).toBe('11');
+		expect(inputs.eq(0).attr('name')).toBe('audience_ids[]');
+	});
+
+	it('names each audience as text, never as markup', () => {
+		api.state.config = tree();
+		api.populateAudienceSelect();
+		expect(window.$('#booking-audiences b').length).toBe(0);
+		expect(window.$('#booking-audiences .ffc-audience-picker-name').eq(2).text()).toBe('<b>Grand</b>');
+	});
+
+	it('carries a hex colour on the dot and drops anything else', () => {
+		api.state.config = tree();
+		api.populateAudienceSelect();
+		const dots = window.$('#booking-audiences .ffc-color-dot');
+		expect(dots.eq(0).attr('style')).toBe('--ffc-color: #d97706;');
+		expect(dots.eq(1).attr('style')).toBeUndefined();
+		expect(dots.eq(2).attr('style')).toBe('--ffc-color: #2563eb;');
+	});
+
+	it('shows the people a booking reaches, and nothing when the payload has no count', () => {
+		api.state.config = tree();
+		api.populateAudienceSelect();
+		const counts = window.$('#booking-audiences .ffc-audience-picker-count').map((_, el) => el.textContent).get();
+		expect(counts).toEqual(['20 people', '1 person', '0 people']);
+
+		api.state.config = { audiences: [{ id: 5, name: 'No count' }] };
+		api.populateAudienceSelect();
+		expect(window.$('#booking-audiences .ffc-audience-picker-count').length).toBe(0);
 	});
 });
 

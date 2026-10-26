@@ -20,6 +20,7 @@
     var escapeHtml              = api.escapeHtml;
     var getEnvironmentColor     = api.getEnvironmentColor;
     var formatTime              = api.formatTime;
+    var timesOn                 = api.timesOn;
     var collapseParentAudiences = api.collapseParentAudiences;
     var buildParentNameMap      = api.buildParentNameMap;
     var formatAudienceName      = api.formatAudienceName;
@@ -182,26 +183,43 @@
     }
 
     /**
-     * Populate audience select
+     * Fill the booking dialog's audience picker (#2008): one checkbox row per
+     * audience, indented under its parent, with its colour and the people a
+     * booking for it reaches.
      */
     function populateAudienceSelect() {
-        var $select = $('#booking-audiences');
-        $select.empty();
+        var $list = $('#booking-audiences');
+        $list.empty();
 
+        var S = ffcAudience.strings || {};
         var audiences = state.config.audiences || [];
 
-        function appendNodes(nodes, depth) {
+        function people(count) {
+            return count === 1 ? (S.onePerson || '1 person') : (S.people || '%d people').replace('%d', String(count));
+        }
+
+        function appendNodes(nodes, depth, parentId) {
             nodes.forEach(function(node) {
-                var indent = new Array(depth + 1).join('   ');
-                var prefix = depth > 0 ? indent + '└ ' : '';
-                $select.append('<option value="' + node.id + '">' + prefix + escapeHtml(node.name) + '</option>');
+                var id = parseInt(node.id, 10);
+                // The colour is an operator's choice, so it stays inline as
+                // the dot's custom property; anything not a hex colour is
+                // dropped and the dot takes the text colour.
+                var color = /^#[0-9a-f]{3,8}$/i.test(node.color || '') ? node.color : '';
+                var html = '<label class="ffc-audience-picker-option" data-depth="' + Math.min(depth, 3) + '">' +
+                    '<input type="checkbox" name="audience_ids[]" value="' + id + '"' + (parentId ? ' data-parent="' + parentId + '"' : '') + '>' +
+                    '<span class="ffc-color-dot" aria-hidden="true"' + (color ? ' style="--ffc-color: ' + color + ';"' : '') + '></span>' +
+                    '<span class="ffc-audience-picker-name">' + escapeHtml(node.name) + '</span>';
+                if (typeof node.members === 'number') {
+                    html += '<span class="ffc-audience-picker-count">' + escapeHtml(people(node.members)) + '</span>';
+                }
+                $list.append(html + '</label>');
                 if (node.children && node.children.length > 0) {
-                    appendNodes(node.children, depth + 1);
+                    appendNodes(node.children, depth + 1, id);
                 }
             });
         }
 
-        appendNodes(audiences, 0);
+        appendNodes(audiences, 0, 0);
     }
 
     /**
@@ -403,10 +421,14 @@
 
                 if (response.bookings) {
                     response.bookings.forEach(function(booking) {
-                        if (!state.bookings[booking.booking_date]) {
-                            state.bookings[booking.booking_date] = [];
-                        }
-                        state.bookings[booking.booking_date].push(booking);
+                        // A range is listed on every day it takes; a single day has just its own date.
+                        var days = booking.days && booking.days.length ? booking.days : [booking.booking_date];
+                        days.forEach(function(day) {
+                            if (!state.bookings[day]) {
+                                state.bookings[day] = [];
+                            }
+                            state.bookings[day].push(booking);
+                        });
                     });
                 }
 
@@ -502,7 +524,7 @@
             var dayBookings = state.bookings[dateStr];
             for (var i = 0; i < dayBookings.length; i++) {
                 if (dayBookings[i].status === 'active') {
-                    allEvents.push({ type: 'booking', date: dayBookings[i].booking_date, data: dayBookings[i] });
+                    allEvents.push({ type: 'booking', date: dateStr, data: dayBookings[i] });
                 }
             }
         }
@@ -529,7 +551,7 @@
             if (a.type === 'holiday' && b.type !== 'holiday') return -1;
             if (a.type !== 'holiday' && b.type === 'holiday') return 1;
             if (a.type === 'booking' && b.type === 'booking') {
-                return a.data.start_time.localeCompare(b.data.start_time);
+                return timesOn(a.data, a.date).start_time.localeCompare(timesOn(b.data, b.date).start_time);
             }
             return 0;
         });
@@ -564,13 +586,14 @@
                 // Booking item
                 var booking = evt.data;
                 var evtColor = getEnvironmentColor(booking.environment_id);
-                html += '<div class="ffc-event-list-item" data-date="' + booking.booking_date + '" style="border-left: 3px solid ' + escapeHtml(evtColor) + ';">';
+                html += '<div class="ffc-event-list-item" data-date="' + evt.date + '" style="border-left: 3px solid ' + escapeHtml(evtColor) + ';">';
 
                 // Time
                 if (parseInt(booking.is_all_day)) {
                     html += '<span class="ffc-event-list-time ffc-all-day">' + ((ffcAudience.strings || {}).allDay || 'All Day') + '</span>';
                 } else {
-                    html += '<span class="ffc-event-list-time">' + formatTime(booking.start_time) + ' - ' + formatTime(booking.end_time) + '</span>';
+                    var times = timesOn(booking, evt.date);
+                    html += '<span class="ffc-event-list-time">' + formatTime(times.start_time) + ' - ' + formatTime(times.end_time) + '</span>';
                 }
 
                 // Environment name

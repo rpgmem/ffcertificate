@@ -29,9 +29,11 @@ class EmailSourceTest extends TestCase {
 		$this->assertSame( 'plugin:ffcertificate_certificate', EmailSource::CERTIFICATE );
 		$this->assertSame( 'plugin:ffcertificate_scheduling', EmailSource::SCHEDULING );
 		$this->assertSame( 'plugin:ffcertificate_audience', EmailSource::AUDIENCE );
+		$this->assertSame( 'plugin:ffcertificate_audience_post_event', EmailSource::AUDIENCE_POST_EVENT );
 		$this->assertSame( 'plugin:ffcertificate_reregistration', EmailSource::REREGISTRATION );
 		$this->assertSame( 'plugin:ffcertificate_recruitment', EmailSource::RECRUITMENT );
 		$this->assertSame( 'plugin:ffcertificate_date_messages', EmailSource::DATE_MESSAGES );
+		$this->assertSame( 'plugin:ffcertificate_date_announcements', EmailSource::DATE_ANNOUNCEMENTS );
 		$this->assertSame( 'plugin:ffcertificate_account', EmailSource::ACCOUNT );
 		$this->assertSame( 'plugin:ffcertificate_admin', EmailSource::ADMIN );
 	}
@@ -41,9 +43,11 @@ class EmailSourceTest extends TestCase {
 			EmailSource::CERTIFICATE,
 			EmailSource::SCHEDULING,
 			EmailSource::AUDIENCE,
+			EmailSource::AUDIENCE_POST_EVENT,
 			EmailSource::REREGISTRATION,
 			EmailSource::RECRUITMENT,
 			EmailSource::DATE_MESSAGES,
+			EmailSource::DATE_ANNOUNCEMENTS,
 			EmailSource::ACCOUNT,
 			EmailSource::ADMIN,
 		);

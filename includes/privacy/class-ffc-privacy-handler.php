@@ -113,35 +113,43 @@ class PrivacyHandler {
 	 * @return array<string, array<string, mixed>> Modified exporters
 	 */
 	public static function register_exporters( array $exporters ): array {
-		$exporters['ffcertificate-profile']           = array(
+		$exporters['ffcertificate-profile']               = array(
 			'exporter_friendly_name' => __( 'FFC Profile', 'ffcertificate' ),
 			'callback'               => array( PrivacyExporters::class, 'export_profile' ),
 		);
-		$exporters['ffcertificate-certificates']      = array(
+		$exporters['ffcertificate-certificates']          = array(
 			'exporter_friendly_name' => __( 'FFC Certificates', 'ffcertificate' ),
 			'callback'               => array( PrivacyExporters::class, 'export_certificates' ),
 		);
-		$exporters['ffcertificate-appointments']      = array(
+		$exporters['ffcertificate-appointments']          = array(
 			'exporter_friendly_name' => __( 'FFC Appointments', 'ffcertificate' ),
 			'callback'               => array( PrivacyExporters::class, 'export_appointments' ),
 		);
-		$exporters['ffcertificate-audience-groups']   = array(
+		$exporters['ffcertificate-audience-groups']       = array(
 			'exporter_friendly_name' => __( 'FFC Audience Groups', 'ffcertificate' ),
 			'callback'               => array( PrivacyExporters::class, 'export_audience_groups' ),
 		);
-		$exporters['ffcertificate-audience-bookings'] = array(
+		$exporters['ffcertificate-audience-bookings']     = array(
 			'exporter_friendly_name' => __( 'FFC Audience Bookings', 'ffcertificate' ),
 			'callback'               => array( PrivacyExporters::class, 'export_audience_bookings' ),
 		);
-		$exporters['ffcertificate-reregistration']    = array(
+		$exporters['ffcertificate-audience-attendance']   = array(
+			'exporter_friendly_name' => __( 'FFC Audience Attendance', 'ffcertificate' ),
+			'callback'               => array( PrivacyExporters::class, 'export_audience_attendance' ),
+		);
+		$exporters['ffcertificate-audience-form-invites'] = array(
+			'exporter_friendly_name' => __( 'FFC Post-event Form Invitations', 'ffcertificate' ),
+			'callback'               => array( PrivacyExporters::class, 'export_audience_form_invites' ),
+		);
+		$exporters['ffcertificate-reregistration']        = array(
 			'exporter_friendly_name' => __( 'FFC Reregistration', 'ffcertificate' ),
 			'callback'               => array( PrivacyExporters::class, 'export_reregistration' ),
 		);
-		$exporters['ffcertificate-recruitment']       = array(
+		$exporters['ffcertificate-recruitment']           = array(
 			'exporter_friendly_name' => __( 'FFC Recruitment', 'ffcertificate' ),
 			'callback'               => array( PrivacyExporters::class, 'export_recruitment' ),
 		);
-		$exporters['ffcertificate-usermeta']          = array(
+		$exporters['ffcertificate-usermeta']              = array(
 			'exporter_friendly_name' => __( 'FFC User Settings', 'ffcertificate' ),
 			'callback'               => array( PrivacyExporters::class, 'export_usermeta' ),
 		);

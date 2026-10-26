@@ -277,13 +277,12 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertStringNotContainsString( '51817842080', $html );
 		$this->assertStringNotContainsString( 'foo@bar.com', $html );
 		$this->assertStringContainsString( 'C-AUTH123', $html );
-		// Dynamic fields (label fallback to key; protected auth_code field).
-		$this->assertStringContainsString( 'name="data[nome_completo]"', $html );
-		$this->assertStringContainsString( 'name="data[curso]"', $html );
 		// Array value joined.
 		$this->assertStringContainsString( 'a, b', $html );
-		// is_edited / edited_at JSON keys skipped.
-		$this->assertStringNotContainsString( 'name="data[is_edited]"', $html );
+		// Answers are locked (#1977): they read as text and are never posted,
+		// since the save keeps what is stored.
+		$this->assertStringNotContainsString( 'ffc-edit-data-', $html );
+		$this->assertStringNotContainsString( 'name="data[', $html );
 	}
 
 	public function test_render_uses_field_labels_and_linked_user(): void {
@@ -544,9 +543,9 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->page()->render( 42 );
 		$html = (string) ob_get_clean();
 
-		// Participant Data, Form answers and System Information open; consent closed.
-		$this->assertSame( 3, substr_count( $html, '<details class="ffc-section" open data-ffc-section>' ) );
-		$this->assertSame( 1, substr_count( $html, '<details class="ffc-section" data-ffc-section>' ) );
+		// Every section starts closed: the administrator opens the one they need.
+		$this->assertSame( 0, substr_count( $html, '<details class="ffc-section" open data-ffc-section>' ) );
+		$this->assertSame( 4, substr_count( $html, '<details class="ffc-section" data-ffc-section>' ) );
 		foreach ( array( 'Participant Data', 'Form answers', 'System Information', 'LGPD Consent Status' ) as $title ) {
 			$this->assertMatchesRegularExpression( '#<span class="ffc-section__icon"><svg[^>]*>.*?</svg></span><span class="ffc-section__text"><span class="ffc-section__title">' . preg_quote( $title, '#' ) . '</span>#s', $html, $title . ' has the section icon heading' );
 		}
@@ -645,24 +644,13 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$_POST['ffc_save_edit']  = '1';
 		$_POST['submission_id']  = '42';
 		$_POST['user_email']     = 'NEW@Bar.COM';
-		$_POST['data']           = array(
-			'nome_completo' => 'joão silva',
+		$stored                  = array(
+			'nome_completo' => 'João Silva',
 			'curso'         => 'PHP',
 		);
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( (array) $this->submission_row( array( 'data' => wp_json_encode_local( $stored ) ) ) );
 
-		$this->handler->shouldReceive( 'update_submission' )
-			->once()
-			->with(
-				42,
-				'new@bar.com',
-				Mockery::on(
-					static function ( $data ) {
-						return isset( $data['nome_completo'] )
-							&& 'NORM:joão silva' === $data['nome_completo']
-							&& 'PHP' === $data['curso'];
-					}
-				)
-			);
+		$this->handler->shouldReceive( 'update_submission' )->once()->with( 42, 'new@bar.com', $stored );
 
 		$msg = $this->capture( fn () => $this->page()->handle_save() );
 		$this->assertStringStartsWith( 'REDIRECT:', $msg );
@@ -745,7 +733,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( '<dt class="ffc-facts__label">Times the quiz window was left</dt>', $html );
-		$this->assertStringContainsString( '<input type="hidden" name="data[_quiz_focus_losses]" value="3">', $html );
+		$this->assertStringNotContainsString( 'name="data[_quiz_focus_losses]"', $html );
 		$this->assertStringNotContainsString( 'type="text" id="ffc-edit-data-_quiz_focus_losses"', $html );
 	}
 
@@ -756,7 +744,6 @@ class AdminSubmissionEditPageTest extends TestCase {
 	public function test_handle_save_carries_the_grading_records_over(): void {
 		$_POST['ffc_save_edit'] = '1';
 		$_POST['submission_id'] = '42';
-		$_POST['data']          = array( 'curso' => 'PHP' );
 		$stored                 = array(
 			'curso'         => 'Old',
 			'_quiz_pending' => array( 'essay' ),
@@ -764,15 +751,29 @@ class AdminSubmissionEditPageTest extends TestCase {
 		);
 		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( (array) $this->submission_row( array( 'data' => wp_json_encode_local( $stored ) ) ) );
 
-		$this->handler->shouldReceive( 'update_submission' )->once()->with(
-			42,
-			'',
-			array(
-				'curso'         => 'PHP',
-				'_quiz_pending' => array( 'essay' ),
-				'_quiz_grades'  => array( 'q1' => 2 ),
-			)
+		$this->handler->shouldReceive( 'update_submission' )->once()->with( 42, '', $stored );
+
+		$this->assertStringStartsWith( 'REDIRECT:', $this->capture( fn () => $this->page()->handle_save() ) );
+	}
+
+	/**
+	 * #1977 — the answers are locked, so a crafted post cannot rewrite them:
+	 * the save writes back what is stored and ignores the posted answers.
+	 */
+	public function test_handle_save_ignores_posted_answers(): void {
+		$_POST['ffc_save_edit'] = '1';
+		$_POST['submission_id'] = '42';
+		$_POST['data']          = array(
+			'curso'     => 'Changed',
+			'_injected' => 'x',
 		);
+		$stored                 = array(
+			'curso'     => 'PHP',
+			'is_edited' => '1',
+		);
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( (array) $this->submission_row( array( 'data' => wp_json_encode_local( $stored ) ) ) );
+
+		$this->handler->shouldReceive( 'update_submission' )->once()->with( 42, '', array( 'curso' => 'PHP' ) );
 
 		$this->assertStringStartsWith( 'REDIRECT:', $this->capture( fn () => $this->page()->handle_save() ) );
 	}
@@ -845,16 +846,16 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc-grade-form', $html );
 	}
 
-	public function test_render_reads_protected_fields_as_text_and_still_posts_them(): void {
+	public function test_render_reads_protected_fields_as_text(): void {
 		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
 
 		ob_start();
 		$this->page()->render( 42 );
 		$html = (string) ob_get_clean();
 
-		// The save handler rebuilds the data from the POST, so a protected
-		// field must still be posted, or saving would delete it.
-		$this->assertMatchesRegularExpression( '#<dd class="ffc-facts__value">[^<]*<input type="hidden" name="data\[auth_code\]" value="[^"]*"><span class="description ffc-edit-note">Protected internal field.</span></dd>#', $html );
+		// The save keeps the stored data, so a protected field is shown, not posted.
+		$this->assertMatchesRegularExpression( '#<dd class="ffc-facts__value">[^<]*<span class="description ffc-edit-note">Protected internal field.</span></dd>#', $html );
+		$this->assertStringNotContainsString( 'name="data[auth_code]"', $html );
 		$this->assertStringNotContainsString( 'readonly>', preg_replace( '/data-ffc-pii-field="[a-z]+" readonly/', '', $html ), 'only the PII value, which the reveal script writes into, stays an input' );
 		$this->assertStringContainsString( '<details class="ffc-section" data-ffc-section>', $html, 'consent is the shared section, closed' );
 	}

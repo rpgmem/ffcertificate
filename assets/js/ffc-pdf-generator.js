@@ -245,11 +245,9 @@
         // Mac Safari, Chrome (desktop or Android), Firefox, and Edge all
         // honour <a download> via pdf.save() correctly — they fall through
         // to the else branch below.
-        var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-        var isSamsungInternet = /SamsungBrowser/i.test(navigator.userAgent);
-        var isAndroidWebView = /\bwv\)/.test(navigator.userAgent) || /; wv;/.test(navigator.userAgent);
-        var needsPreOpen = isIOS || isSamsungInternet || isAndroidWebView;
+        var platform = window.FFC.Platform;
+        var isIOS = platform.ios();
+        var needsPreOpen = isIOS || platform.samsung() || platform.androidWebView();
         var pdfWindow = null;
         if (needsPreOpen) {
             pdfWindow = window.open('about:blank', '_blank');
@@ -299,7 +297,11 @@
 
         var processedHTML = pdfData.html || '';
 
-        var finalHTML = '<div class="ffc-pdf-wrapper" style="width:100%;height:100%;position:relative;">';
+        // The colour is set on the page itself, so it prints where the image does
+        // not cover it. The server sends a validated #rrggbb value (default white).
+        var finalHTML = '<div class="ffc-pdf-wrapper" style="width:100%;height:100%;position:relative;'
+            + (pdfData.bg_color ? 'background-color:' + pdfData.bg_color + ';' : '')
+            + '">';
 
         if (pdfData.bg_image) {
             finalHTML += '<img src="' + pdfData.bg_image + '" class="ffc-pdf-bg skip-lazy no-lazyload" loading="eager" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;" crossorigin="anonymous">';
@@ -459,8 +461,7 @@
                     // Reduce canvas scale on mobile to prevent memory
                     // exhaustion on low-end devices (scale 2 produces a
                     // ~14 MP image that can exceed 100 MB of RAM).
-                    var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-                    var canvasScale = isMobile ? 1.5 : 2;
+                    var canvasScale = platform.mobile() ? 1.5 : 2;
 
                     html2canvas(element, {
                         scale: canvasScale,
@@ -574,7 +575,7 @@
                                 successMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfOpenedAndroidTab)
                                     ? ffc_ajax.strings.pdfOpenedAndroidTab
                                     : 'PDF opened in a new tab. Use the menu to save or share.';
-                            } else if (/Android/i.test(navigator.userAgent)) {
+                            } else if (platform.os() === 'android') {
                                 // pdf.save() path on Android Chrome / Firefox → file in Downloads.
                                 successMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfSavedAndroid)
                                     ? ffc_ajax.strings.pdfSavedAndroid

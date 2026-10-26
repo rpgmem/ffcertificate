@@ -58,7 +58,7 @@ class FormEditorTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $_POST['qty'], $_POST['filename'], $_POST['template_id'], $_POST['title'], $_POST['html'] );
+		unset( $_POST['qty'], $_POST['filename'], $_POST['template_id'], $_POST['title'], $_POST['html'], $_POST['bg_image'], $_POST['bg_color'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -486,9 +486,13 @@ class FormEditorTest extends TestCase {
 				if ( \FreeFormCertificate\Admin\CertTemplateCpt::META_BG_IMAGE === $key ) {
 					return 'https://example.com/bg.png';
 				}
+				if ( \FreeFormCertificate\Admin\CertTemplateCpt::META_BG_COLOR === $key ) {
+					return '#f3e9d2';
+				}
 				return '<div>DB Template</div>';
 			}
 		);
+		Functions\when( 'sanitize_hex_color' )->returnArg();
 
 		$_POST['template_id'] = 5;
 
@@ -503,6 +507,7 @@ class FormEditorTest extends TestCase {
 		// #865: structured payload carries the template's stored background image.
 		$this->assertSame( '<div>DB Template</div>', $this->json_responses[0]['data']['html'] );
 		$this->assertSame( 'https://example.com/bg.png', $this->json_responses[0]['data']['bg_image'] );
+		$this->assertSame( '#f3e9d2', $this->json_responses[0]['data']['bg_color'], 'The page colour comes back with the model.' );
 	}
 
 	public function test_ajax_load_template_by_id_errors_when_not_in_pool(): void {
@@ -585,6 +590,42 @@ class FormEditorTest extends TestCase {
 			'https://example.com/bg.png',
 			$writes[ \FreeFormCertificate\Admin\CertTemplateCpt::META_BG_IMAGE ]
 		);
+	}
+
+	public function test_ajax_save_template_stores_the_page_colour_normalised(): void {
+		Functions\when( 'check_ajax_referer' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_kses' )->alias( static fn( $html ) => $html );
+		Functions\when( 'sanitize_hex_color' )->alias( static fn( $v ) => 1 === preg_match( '/^#[0-9a-f]{6}$/i', (string) $v ) ? $v : null );
+		Functions\when( 'wp_insert_post' )->justReturn( 57 );
+		$writes = array();
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( $id, $key, $value ) use ( &$writes ) {
+				$writes[ $key ] = $value;
+				return true;
+			}
+		);
+
+		$_POST['title']    = 'Coloured';
+		$_POST['html']     = '<div>{{name}}</div>';
+		$_POST['bg_color'] = '#0a3d62';
+
+		try {
+			( new FormEditor() )->ajax_save_template();
+		} catch ( \RuntimeException $e ) {
+			// Expected.
+		}
+		$this->assertSame( '#0a3d62', $writes[ \FreeFormCertificate\Admin\CertTemplateCpt::META_BG_COLOR ] );
+
+		$writes            = array();
+		$_POST['bg_color'] = 'red; x';
+		try {
+			( new FormEditor() )->ajax_save_template();
+		} catch ( \RuntimeException $e ) {
+			// Expected.
+		}
+		$this->assertSame( '#ffffff', $writes[ \FreeFormCertificate\Admin\CertTemplateCpt::META_BG_COLOR ], 'A value that is not a colour is stored as the default.' );
 	}
 
 	public function test_ajax_save_template_denies_without_permission(): void {

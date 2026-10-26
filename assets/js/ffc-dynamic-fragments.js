@@ -12,6 +12,18 @@
 (function () {
 	'use strict';
 
+	/**
+	 * Tell the boot watchdog the refresh is done (#2030). Only a refresh that
+	 * applied, or one with nothing to do, reports: a failed one leaves the
+	 * form on a nonce that may already be stale, which is what the watchdog
+	 * is there to say.
+	 */
+	function reportReady() {
+		if (window.FFC && window.FFC.Preflight) {
+			window.FFC.Preflight.ready('fragments');
+		}
+	}
+
 	function refreshFragments() {
 		// Only run if the page contains FFC elements that need refreshing.
 		// `.ffc-security-container` is the provider-independent wrapper: it
@@ -28,6 +40,7 @@
 			document.querySelector('.ffc-booking-form');
 
 		if (!needsRefresh) {
+			reportReady();
 			return;
 		}
 
@@ -38,6 +51,7 @@
 			null;
 
 		if (!ajaxUrl) {
+			reportReady();
 			return;
 		}
 
@@ -78,6 +92,7 @@
 					return;
 				}
 				applyFragments(response.data);
+				reportReady();
 			} catch (e) {
 				// Silent fail — the page still works with the server-rendered values
 			}

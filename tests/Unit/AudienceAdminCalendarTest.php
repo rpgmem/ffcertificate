@@ -28,6 +28,8 @@ class AudienceAdminCalendarTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The Post-event form tab lists the published certificate forms (#1948).
+		Functions\when( 'get_posts' )->justReturn( array() );
 		// handle_actions() acts only on its own screen (#1771).
 		$_GET['page'] = 'ffc-scheduling-calendars';
 
@@ -411,7 +413,7 @@ class AudienceAdminCalendarTest extends TestCase {
 		// icon, and the Save and Shortcode cards beside them.
 		$this->assertStringContainsString( 'ffc-page-scheduling-calendars ffc-boxed', $output );
 		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)"/', $output, $panels );
-		$this->assertSame( array( 'general', 'notifications', 'event-list', 'environments', 'user-access', 'closed-dates' ), $panels[1] );
+		$this->assertSame( array( 'general', 'notifications', 'event-list', 'post-event', 'environments', 'user-access', 'closed-dates' ), $panels[1] );
 		preg_match_all( '/<a href="#ffc-tab-([a-z-]+)" id="ffc-tabnav-\1"/', $output, $nav );
 		$this->assertSame( $panels[1], $nav[1], 'one tab per panel, in order' );
 		foreach ( array( 'calendar" aria-hidden="true"></span>General', 'email" aria-hidden="true"></span>Notifications', 'list" aria-hidden="true"></span>Event list & badges', 'building" aria-hidden="true"></span>Rooms', 'users" aria-hidden="true"></span>User access', 'lock" aria-hidden="true"></span>Closed dates' ) as $title ) {
@@ -936,7 +938,7 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertCount( 1, $selected[0], 'one tab selected' );
 	}
 
-	public function test_new_calendar_has_the_three_form_tabs_and_a_save_card(): void {
+	public function test_new_calendar_has_the_four_form_tabs_and_a_save_card(): void {
 		$_GET['action'] = 'new';
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
@@ -950,7 +952,7 @@ class AudienceAdminCalendarTest extends TestCase {
 		$output = (string) ob_get_clean();
 
 		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)"/', $output, $panels );
-		$this->assertSame( array( 'general', 'notifications', 'event-list' ), $panels[1], 'the sections that need a saved calendar wait for one' );
+		$this->assertSame( array( 'general', 'notifications', 'event-list', 'post-event' ), $panels[1], 'the sections that need a saved calendar wait for one' );
 		$this->assertStringContainsString( 'id="ffc-schedule-form"', $output );
 		$this->assertStringContainsString( '<button type="submit" class="ffc-btn ffc-btn-primary ffc-icon-plus" name="submit" value="Create Calendar" form="ffc-schedule-form">Create Calendar</button>', $output, 'the side button posts the calendar form' );
 		$this->assertStringNotContainsString( 'ffc-icon-code', $output, 'no shortcode before the calendar exists' );

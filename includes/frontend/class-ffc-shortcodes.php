@@ -98,6 +98,14 @@ class Shortcodes {
 			return $this->render_magic_link_preview( $magic_token );
 		}
 
+		// "Test my device" mode (#2040): the same page, in the site's theme,
+		// shows the checks a form runs instead of the verification form.
+		$page_url = (string) get_permalink();
+		if ( DeviceCheck::requested() ) {
+			return DeviceCheck::render( $page_url );
+		}
+		$device_check_url = '' !== $page_url ? DeviceCheck::url( $page_url ) : '';
+
 		\FreeFormCertificate\Core\Debug::log_frontend(
 			'Verification shortcode rendered',
 			array(
@@ -113,6 +121,20 @@ class Shortcodes {
 		include FFC_PLUGIN_DIR . 'templates/verification-page.php';
 		$verification_page_html = ob_get_clean();
 		return $verification_page_html ? $verification_page_html : '';
+	}
+
+	/**
+	 * What a form shows instead of itself when an invitation is refused or
+	 * required (#1948).
+	 *
+	 * @param int    $form_id Form post ID.
+	 * @param string $message Why.
+	 * @return string
+	 */
+	private function invite_refusal( int $form_id, string $message ): string {
+		return '<div class="ffc-shortcode ffc-form-wrapper" id="ffc-form-' . esc_attr( (string) $form_id ) . '">'
+			. \FreeFormCertificate\Core\Notice::render( 'warning', 'lock', $message, '', array( 'hook' => 'invite' ) )
+			. '</div>';
 	}
 
 	/**
@@ -213,6 +235,23 @@ class Shortcodes {
 		}
 
 		$form_config = get_post_meta( $form_id, '_ffc_form_config', true );
+
+		// A personal invitation fills in and locks the person's name and
+		// e-mail (#1948); a form that admits invited people only shows nothing
+		// else to whoever arrives without one.
+		$invite      = null;
+		$invite_code = \FreeFormCertificate\Core\RequestInput::get_get_string( FormInvite::QUERY_VAR );
+		if ( '' !== $invite_code ) {
+			$resolved = FormInvite::resolve( $form_id, $invite_code );
+			if ( $resolved instanceof \WP_Error ) {
+				return $this->invite_refusal( $form_id, $resolved->get_error_message() );
+			}
+			$invite = $resolved;
+			$fields = FormInvite::fill_fields( $fields, $invite );
+		} elseif ( FormInvite::invite_only( is_array( $form_config ) ? $form_config : array() ) ) {
+			return $this->invite_refusal( $form_id, __( 'This form is open by invitation only. Use the link in the e-mail you received.', 'ffcertificate' ) );
+		}
+
 		$quiz_leave  = $this->quiz_leave_questions( is_array( $form_config ) ? $form_config : array(), $fields );
 		$leave_level = \FreeFormCertificate\Core\QuizLeaveLevel::of( is_array( $form_config ) ? $form_config : array() );
 
@@ -244,10 +283,33 @@ class Shortcodes {
 			if ( null !== $quiz_leave ) {
 				echo $this->quiz_leave_notice( $leave_level ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
 			}
+			if ( null !== $invite ) {
+				$invite_notice = \FreeFormCertificate\Core\Notice::render(
+					'info',
+					'award',
+					'' !== $invite['event']
+						/* translators: 1: the invited person's name, 2: the event */
+						? sprintf( __( 'Filling in as %1$s, for %2$s. Your name and e-mail come from your registration.', 'ffcertificate' ), $invite['name'], $invite['event'] )
+						/* translators: %s: the invited person's name */
+						: sprintf( __( 'Filling in as %s. Your name and e-mail come from your registration.', 'ffcertificate' ), $invite['name'] ),
+					__( 'Invitation:', 'ffcertificate' ),
+					array( 'hook' => 'invite' )
+				);
+				echo $invite_notice; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
+			}
+
+			// What the visitor sees when this browser cannot run the form
+			// (#2030). The form below posts with POST, so a submit that reaches
+			// the browser's default action (no script ran) keeps the name,
+			// e-mail and CPF/RF out of the URL, the history and the server logs.
+			echo BrowserGate::form_markup(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() and Button::html() escape every value.
 			?>
 			<h2 class="ffc-form-title"><?php echo esc_html( $form_title ); ?></h2>
-			<form class="ffc-submission-form" id="ffc-form-element-<?php echo esc_attr( (string) $form_id ); ?>" autocomplete="off" aria-label="<?php echo esc_attr( $form_title ); ?>"<?php echo null !== $quiz_leave ? $this->quiz_leave_attributes( $quiz_leave, $leave_level ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value escaped in quiz_leave_attributes(). ?>>
+			<form class="ffc-submission-form" id="ffc-form-element-<?php echo esc_attr( (string) $form_id ); ?>" method="post" autocomplete="off" aria-label="<?php echo esc_attr( $form_title ); ?>"<?php echo null !== $quiz_leave ? $this->quiz_leave_attributes( $quiz_leave, $leave_level ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value escaped in quiz_leave_attributes(). ?>>
 				<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form_id ); ?>">
+				<?php if ( null !== $invite ) : ?>
+					<input type="hidden" name="<?php echo esc_attr( FormInvite::QUERY_VAR ); ?>" value="<?php echo esc_attr( $invite_code ); ?>">
+				<?php endif; ?>
 				<?php if ( null !== $quiz_leave ) : ?>
 					<?php $this->render_quiz_leave_dialog( $form_id ); ?>
 				<?php endif; ?>

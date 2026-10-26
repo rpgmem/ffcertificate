@@ -70,7 +70,7 @@ class MigrationRegistryTest extends TestCase {
 		// and as a live number here on purpose -- every key below is named too,
 		// so a card arriving without a test failing is what this guards against;
 		// bump the number and name the new key together.
-		$this->assertCount( 14, $all );
+		$this->assertCount( 15, $all );
 		$this->assertArrayHasKey( 'split_cpf_rf', $all );
 		$this->assertArrayHasKey( 'email_hash_rehash', $all );
 		$this->assertArrayHasKey( 'key_rotation', $all );
@@ -101,6 +101,8 @@ class MigrationRegistryTest extends TestCase {
 		$this->assertArrayHasKey( 'activity_log_clear_plaintext', $all );
 		// The encryption of client IPs older rows still hold in clear (#1574).
 		$this->assertArrayHasKey( 'activity_log_encrypt_ip', $all );
+		// The deletion of the debug rows that logged visitors' positions (#2040).
+		$this->assertArrayHasKey( 'activity_log_location_cleanup', $all );
 		$this->assertArrayHasKey( 'identity_index_backfill', $all );
 		$this->assertArrayHasKey( 'import_legacy_templates', $all );
 		$this->assertArrayHasKey( 'rewrite_html_image_refs', $all );

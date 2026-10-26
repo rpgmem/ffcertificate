@@ -95,17 +95,6 @@ final class InlineStyleTest extends TestCase {
 		'assets/js/ffc-admin-migrations.js' => array(
 			'.css(): .css("width", percent + "%"' => array( 1, self::RUNTIME_VALUE ),
 		),
-		'assets/js/ffc-admin-pdf.js' => array(
-			'style=: style="color:#0073aa;'                                                       => array( 1, self::SAMPLE_LINK ),
-			'<style>: <style'                                                                     => array( 1, self::OWN_DOCUMENT ),
-			'.style.x =: .style.backgroundImage = "url(" + JSON.stringify(String(bgImage)) + ")"' => array( 1, self::RUNTIME_VALUE ),
-			'.style.x =: .style.width = pageW + "px"'                                             => array( 1, self::RUNTIME_VALUE ),
-			'.style.x =: .style.height = pageH + "px"'                                            => array( 1, self::RUNTIME_VALUE ),
-			'.style.x =: .style.transformOrigin = "top left"'                                     => array( 1, self::RUNTIME_VALUE ),
-			'.style.x =: .style.transform = "scale(" + scale + ")"'                               => array( 1, self::RUNTIME_VALUE ),
-			'.style.x =: .style.width = Math.round(pageW * scale) + "px"'                         => array( 1, self::RUNTIME_VALUE ),
-			'.style.x =: .style.height = Math.round(pageH * scale) + "px"'                        => array( 1, self::RUNTIME_VALUE ),
-		),
 		'assets/js/ffc-admin-submissions-bulk.js' => array(
 			'.css(): .css("opacity", "0.55"' => array( 1, self::TRANSIENT_STATE ),
 			'.css(): .css("opacity", ""'     => array( 1, self::TRANSIENT_STATE ),
@@ -123,6 +112,7 @@ final class InlineStyleTest extends TestCase {
 		'assets/js/ffc-audience-calendar.js' => array(
 			'style=: style="border-left: 3px solid' => array( 1, self::OPERATOR_COLOUR ),
 			'style=: style="background-color:'      => array( 2, self::OPERATOR_COLOUR ),
+			'style=: style="--ffc-color:'           => array( 1, self::OPERATOR_COLOUR ),
 		),
 		'assets/js/ffc-audience-transfer-list.js' => array(
 			'.css(): .css("background", a.color' => array( 1, self::OPERATOR_COLOUR ),
@@ -134,16 +124,6 @@ final class InlineStyleTest extends TestCase {
 		'assets/js/ffc-calendar-frontend.js' => array(
 			'.css(): .css("overflow", "hidden"' => array( 1, self::SCROLL_LOCK ),
 			'.css(): .css("overflow", ""'       => array( 2, self::SCROLL_LOCK ),
-		),
-		'assets/js/ffc-csv-cert-preview.js' => array(
-			'style=: style="color:#0073aa;'                                => array( 1, self::SAMPLE_LINK ),
-			'<style>: <style'                                              => array( 1, self::OWN_DOCUMENT ),
-			'.style.x =: .style.width = pageW + "px"'                      => array( 1, self::RUNTIME_VALUE ),
-			'.style.x =: .style.height = pageH + "px"'                     => array( 1, self::RUNTIME_VALUE ),
-			'.style.x =: .style.transformOrigin = "top left"'              => array( 1, self::RUNTIME_VALUE ),
-			'.style.x =: .style.transform = "scale(" + scale + ")"'        => array( 1, self::RUNTIME_VALUE ),
-			'.style.x =: .style.width = Math.round(pageW * scale) + "px"'  => array( 1, self::RUNTIME_VALUE ),
-			'.style.x =: .style.height = Math.round(pageH * scale) + "px"' => array( 1, self::RUNTIME_VALUE ),
 		),
 		'assets/js/ffc-email-model.js' => array(
 			'style=: style="display:inline-block;max-width:'               => array( 1, self::OWN_DOCUMENT ),
@@ -188,6 +168,9 @@ final class InlineStyleTest extends TestCase {
 		'assets/js/ffc-user-dashboard-audience-join.js' => array(
 			'style=: style="background-color:' => array( 1, self::OPERATOR_COLOUR ),
 		),
+		'assets/js/ffc-user-dashboard-cal-export.js' => array(
+			'.css(): .css({' => array( 1, self::RUNTIME_VALUE ),
+		),
 		'assets/js/ffc-user-dashboard-core.js' => array(
 			'style=: style="--ffc-badge-row-bg:' => array( 1, self::OPERATOR_COLOUR ),
 		),
@@ -202,6 +185,11 @@ final class InlineStyleTest extends TestCase {
 		),
 		'includes/admin/class-ffc-admin-user-custom-fields.php' => array(
 			'style=: style="--ffc-color: <?php echo esc_attr( $audience->color ); ?>;' => array( 1, self::OPERATOR_COLOUR ),
+		),
+		'includes/generators/class-ffc-form-layout-preview.php' => array(
+			'style=: style = "position:relative;width:'                                                    => array( 1, self::OWN_DOCUMENT ),
+			'style=: style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover'          => array( 1, self::OWN_DOCUMENT ),
+			'style=: style="'                                                                                 => array( 1, self::OWN_DOCUMENT ),
 		),
 		'includes/admin/class-ffc-cert-template-admin-screen.php' => array(
 			'<style>: <style' => array( 1, self::OWN_DOCUMENT ),
@@ -223,7 +211,7 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="font-weight:600;'                                                 => array( 1, self::EMAIL_BODY ),
 		),
 		'includes/audience/class-ffc-audience-shortcode.php' => array(
-			'style=: style="display: none;' => array( 6, self::INITIAL_STATE ),
+			'style=: style="display: none;' => array( 2, self::INITIAL_STATE ),
 		),
 		'includes/core/captcha/class-ffc-composite-captcha.php' => array(
 			'<style>: <style' => array( 1, self::NOSCRIPT ),

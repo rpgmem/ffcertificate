@@ -10,7 +10,6 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\DateMessages;
 
-use FreeFormCertificate\Core\EmailSource;
 use FreeFormCertificate\Scheduling\SchedulingMailer;
 use FreeFormCertificate\Settings\SettingsReader;
 
@@ -48,6 +47,12 @@ final class Runner {
 	public const BATCH_HOOK = 'ffc_date_messages_batch';
 
 	/**
+	 * Single event that sends an announcement at its `send_at` (#1949). Its
+	 * argument is the rule id; the event runs once, so it is not a recurring task.
+	 */
+	public const ANNOUNCE_HOOK = 'ffc_date_messages_announce';
+
+	/**
 	 * People handled per request.
 	 */
 	public const BATCH_SIZE = 200;
@@ -69,6 +74,7 @@ final class Runner {
 	 */
 	public static function init(): void {
 		add_action( self::BATCH_HOOK, array( self::class, 'process' ), 10, 3 );
+		add_action( self::ANNOUNCE_HOOK, array( self::class, 'process_announcement' ), 10, 1 );
 	}
 
 	/**
@@ -96,7 +102,8 @@ final class Runner {
 
 		$today = self::today();
 		foreach ( RuleReader::active() as $rule ) {
-			if ( ! $rule->send_to_user ) {
+			// Announcements are sent by their own event or by hand, never by the day.
+			if ( ! $rule->send_to_user || $rule->is_announcement() ) {
 				continue;
 			}
 			// A rule sent N days BEFORE the date has a negative offset, so
@@ -104,6 +111,48 @@ final class Runner {
 			$target = $today->modify( sprintf( '%+d days', -$rule->offset_days ) );
 			self::start( $rule, $target, $target, 'cron', 0 );
 		}
+	}
+
+	/**
+	 * Send an announcement now, or once at its `send_at` (#1949).
+	 *
+	 * A `send_at` of zero means "by hand": the caller starts it with `start()`.
+	 * Scheduling clears any earlier event for the rule, so saving a new instant
+	 * moves the send rather than adding a second one.
+	 *
+	 * @param Rule $rule       The announcement rule.
+	 * @param int  $created_by Operator who scheduled it.
+	 * @return bool|\WP_Error True when an event was queued.
+	 */
+	public static function schedule_announcement( Rule $rule, int $created_by ) {
+		if ( ! $rule->is_announcement() ) {
+			return new \WP_Error( 'ffc_date_messages_kind', __( 'Only an announcement can be scheduled.', 'ffcertificate' ) );
+		}
+		wp_clear_scheduled_hook( self::ANNOUNCE_HOOK, array( $rule->id ) );
+		if ( $rule->send_at <= 0 ) {
+			$today  = self::today();
+			$result = self::start( $rule, $today, $today, 'manual', $created_by );
+			return is_wp_error( $result ) ? $result : true;
+		}
+		return false !== wp_schedule_single_event( $rule->send_at, self::ANNOUNCE_HOOK, array( $rule->id ) );
+	}
+
+	/**
+	 * The scheduled announcement event: start its run for today.
+	 *
+	 * A rule deleted or deactivated since it was scheduled sends nothing, which
+	 * `start()` already refuses.
+	 *
+	 * @param int $rule_id Rule.
+	 * @return void
+	 */
+	public static function process_announcement( int $rule_id ): void {
+		$rule = RuleReader::get_by_id( $rule_id );
+		if ( null === $rule || ! $rule->is_announcement() ) {
+			return;
+		}
+		$today = self::today();
+		self::start( $rule, $today, $today, 'announcement', 0 );
 	}
 
 	/**
@@ -130,6 +179,13 @@ final class Runner {
 					self::MAX_RANGE_DAYS
 				)
 			);
+		}
+
+		// An announcement to an audience with nobody in it is nothing to send:
+		// no run, no digest, no history line (#1949). The scheduled event just
+		// ends; a manual send says why.
+		if ( $rule->is_announcement() && array() !== $rule->audience_ids && ! ( new RecipientResolver() )->audience_has_members( $rule->audience_ids ) ) {
+			return new \WP_Error( 'ffc_date_messages_empty', __( 'Nobody is in the chosen audiences, so nothing was sent.', 'ffcertificate' ) );
 		}
 
 		$run_id = DeliveryLog::start_run( $rule->id, $trigger, $from->format( 'Y-m-d' ), $to->format( 'Y-m-d' ), $created_by );
@@ -168,7 +224,7 @@ final class Runner {
 			return;
 		}
 
-		$source = DateSources::get( $rule->source );
+		$source = DateSources::for_rule( $rule );
 		$page   = ( new RecipientResolver() )->resolve( $rule, $day, $after, self::BATCH_SIZE );
 		$today  = self::today();
 
@@ -202,12 +258,12 @@ final class Runner {
 	/**
 	 * Claim, build and send one message.
 	 *
-	 * @param int                                                                $run_id Run.
-	 * @param Rule                                                               $rule   Rule.
-	 * @param DateSourceInterface|null                                           $source Source.
-	 * @param array{user_id: int, email: string, name: string, decision: string} $row    Recipient.
-	 * @param \DateTimeImmutable                                                 $day    Target day.
-	 * @param \DateTimeImmutable                                                 $today  Today.
+	 * @param int                                                                              $run_id Run.
+	 * @param Rule                                                                             $rule   Rule.
+	 * @param DateSourceInterface|null                                                         $source Source.
+	 * @param array{user_id: int, email: string, name: string, decision: string, forced: bool} $row Recipient.
+	 * @param \DateTimeImmutable                                                               $day    Target day.
+	 * @param \DateTimeImmutable                                                               $today  Today.
 	 * @return void
 	 */
 	private static function deliver( int $run_id, Rule $rule, ?DateSourceInterface $source, array $row, \DateTimeImmutable $day, \DateTimeImmutable $today ): void {
@@ -223,10 +279,13 @@ final class Runner {
 		}
 
 		$message = MessageBuilder::build( $rule, $source, $row, $day, $today );
-		$sent    = SchedulingMailer::send( $row['email'], $message['subject'], $message['body'], array(), true, EmailSource::DATE_MESSAGES, $rule->appearance->document_args() );
+		$sent    = SchedulingMailer::send( $row['email'], $message['subject'], $message['body'], array(), true, $rule->email_source(), $rule->appearance->document_args() );
 
 		if ( $sent ) {
 			DeliveryLog::bump( $run_id, 'sent' );
+			if ( $row['forced'] ) {
+				DeliveryLog::bump( $run_id, 'forced' );
+			}
 			return;
 		}
 

@@ -40,13 +40,15 @@ if ( ! $ffcertificate_purge ) {
 	// Cron-only cleanup: leave data + structure untouched but clear
 	// scheduled events that point at code about to be removed.
 	wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
+	wp_clear_scheduled_hook( 'ffcertificate_bulk_issue_purge' );
 	wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 	// #1248's internal hook, which replaced the one above in the scheduling.
 	// The old one stays: there may be an event pending in the old shape.
-	wp_clear_scheduled_hook( 'ffc_process_submission_async' );
+	wp_unschedule_hook( 'ffc_process_submission_async' );
 	wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 	wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 	wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
+	wp_clear_scheduled_hook( 'ffcertificate_audience_post_event_invites' );
 	wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
 	wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
 	wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
@@ -54,11 +56,12 @@ if ( ! $ffcertificate_purge ) {
 	// Both were missing from this file until the Scheduled tasks register
 	// compared it against the hooks the plugin schedules (#1538).
 	wp_clear_scheduled_hook( 'ffc_daily_expired_tickets_cleanup' );
-	wp_clear_scheduled_hook( 'ffc_reregistration_reminder_batch' );
-	wp_clear_scheduled_hook( 'ffc_reregistration_invitation_batch' );
+	wp_unschedule_hook( 'ffc_reregistration_reminder_batch' );
+	wp_unschedule_hook( 'ffc_reregistration_invitation_batch' );
 	wp_clear_scheduled_hook( 'ffc_date_messages_daily' );
-	wp_clear_scheduled_hook( 'ffc_date_messages_batch' );
-	wp_clear_scheduled_hook( 'ffc_date_messages_digest' );
+	wp_unschedule_hook( 'ffc_date_messages_batch' );
+	wp_unschedule_hook( 'ffc_date_messages_digest' );
+	wp_unschedule_hook( 'ffc_date_messages_announce' );
 	return;
 }
 
@@ -124,6 +127,9 @@ $ffcertificate_tables = array(
 	// Custom fields.
 	$wpdb->prefix . 'ffc_custom_fields',
 	// Audience.
+	$wpdb->prefix . 'ffc_audience_attendance',
+	$wpdb->prefix . 'ffc_audience_form_invites',
+	$wpdb->prefix . 'ffc_audience_checkin_windows',
 	$wpdb->prefix . 'ffc_audience_booking_users',
 	$wpdb->prefix . 'ffc_audience_booking_audiences',
 	$wpdb->prefix . 'ffc_audience_bookings',
@@ -152,6 +158,9 @@ $ffcertificate_tables = array(
 	// Core.
 	$wpdb->prefix . 'ffc_activity_log',
 	$wpdb->prefix . 'ffc_submissions',
+	// Bulk-issue staging (#1945): rows hold personal data until the job ends.
+	$wpdb->prefix . 'ffc_bulk_issue_rows',
+	$wpdb->prefix . 'ffc_bulk_issue_jobs',
 );
 
 // The discovered half. `esc_like()` is load-bearing on the underscore: `_` is a
@@ -182,6 +191,7 @@ $ffcertificate_options = array(
 	'ffc_rate_limit_settings',
 	'ffc_captcha_mode_notice_dismissed',
 	'ffc_rate_limit_db_version',
+	'ffc_bulk_issue_db_version',
 	'ffc_user_access_settings',
 	'ffc_global_holidays',
 	'ffc_cleanup_days',
@@ -223,6 +233,8 @@ $ffcertificate_options = array(
 	'ffc_date_messages_settings',
 	'ffc_date_messages_audience_ids_migrated',
 	'ffc_date_messages_appearance_migrated',
+	'ffc_date_messages_announcements_migrated',
+	'ffc_date_messages_send_cap_v1',
 	// Per-feature migration completion markers (audited gap).
 	'ffc_sibling_instants_unix_migrated',
 	'ffc_submission_date_unix_migrated',
@@ -300,6 +312,7 @@ $ffcertificate_options = array(
 	'ffc_identities_cap_v1',
 	'ffc_identity_verbs_cap_v1',
 	'ffc_import_caps_granted_v1',
+	'ffc_import_certificates_granted_v1',
 	// _v2 re-runs the same idempotent seeding so `ffc_import_reregistration`
 	// (#1214) reaches installs that already flagged _v1 as done. The old flag
 	// stays listed: an install upgraded through 6.9.0 carries both.
@@ -315,6 +328,7 @@ $ffcertificate_options = array(
 	'ffc_required_data_v1',
 	'ffc_reregistration_pii_cap_v1',
 	'ffc_role_tiers_v1',
+	'ffc_module_role_labels_v1',
 	'ffc_settings_split_caps_v1',
 	'ffc_taxonomy_caps_renamed_v1',
 	'ffc_url_shortener_export_cap_v1',
@@ -343,21 +357,24 @@ $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient
 // 4. Clear scheduled cron hooks
 // ──────────────────────────────────────
 wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
+wp_clear_scheduled_hook( 'ffcertificate_bulk_issue_purge' );
 wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 // #1248's internal hook, which replaced the one above in the scheduling.
 // The old one stays: an event scheduled the old way may still be pending.
-wp_clear_scheduled_hook( 'ffc_process_submission_async' );
+wp_unschedule_hook( 'ffc_process_submission_async' );
 wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
+wp_clear_scheduled_hook( 'ffcertificate_audience_post_event_invites' );
 wp_clear_scheduled_hook( 'ffc_cloudflare_cidr_refresh' );
 // See the cron-only block above (#1538).
 wp_clear_scheduled_hook( 'ffc_daily_expired_tickets_cleanup' );
-wp_clear_scheduled_hook( 'ffc_reregistration_reminder_batch' );
-wp_clear_scheduled_hook( 'ffc_reregistration_invitation_batch' );
+wp_unschedule_hook( 'ffc_reregistration_reminder_batch' );
+wp_unschedule_hook( 'ffc_reregistration_invitation_batch' );
 wp_clear_scheduled_hook( 'ffc_date_messages_daily' );
-wp_clear_scheduled_hook( 'ffc_date_messages_batch' );
-wp_clear_scheduled_hook( 'ffc_date_messages_digest' );
+wp_unschedule_hook( 'ffc_date_messages_batch' );
+wp_unschedule_hook( 'ffc_date_messages_digest' );
+wp_unschedule_hook( 'ffc_date_messages_announce' );
 
 // Clear legacy cron hooks from pre-4.6.15 versions.
 wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );

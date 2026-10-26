@@ -17,6 +17,9 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$day_sql} is the fixed predicate from AudienceBookingRules::occupies_day_clause(), with its values bound through the spread arguments.
+// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The argument list is built by array_merge() and spread into prepare(), so the sniff cannot count its placeholders.
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -89,6 +92,11 @@ class AudienceBookingWriter {
 			'description'    => '',
 			'status'         => 'active',
 			'created_by'     => get_current_user_id(),
+			'end_date'       => '',
+			'time_mode'      => 'daily',
+			'skip_blocked'   => false,
+			'override_ids'   => array(),
+			'override_note'  => '',
 		);
 		$data     = wp_parse_args( $data, $defaults );
 
@@ -96,6 +104,22 @@ class AudienceBookingWriter {
 		if ( ! $data['environment_id'] || ! $data['booking_date'] || ! $data['start_time'] || ! $data['end_time'] || ! $data['description'] ) {
 			return false;
 		}
+
+		// A range is a booking whose end date differs from its start. Its days
+		// are planned once here; a single day is one occurrence and never skips.
+		$end_date     = '' !== (string) $data['end_date'] ? (string) $data['end_date'] : (string) $data['booking_date'];
+		$is_range     = $end_date !== (string) $data['booking_date'];
+		$time_mode    = $is_range ? (string) $data['time_mode'] : 'daily';
+		$skip_blocked = $is_range && ! empty( $data['skip_blocked'] );
+		$plan         = AudienceBookingRules::occurrences(
+			(int) $data['environment_id'],
+			(string) $data['booking_date'],
+			$end_date,
+			(string) $data['start_time'],
+			(string) $data['end_time'],
+			$time_mode,
+			$skip_blocked
+		);
 
 		// Race protection: conflict-check + insert run inside a single
 		// transaction so two concurrent requests for the same slot can't
@@ -108,15 +132,31 @@ class AudienceBookingWriter {
 		// a friendly error, but this is the authoritative check.
 		$wpdb->query( 'START TRANSACTION' );
 
-		$conflicts = self::get_conflicts_for_update(
-			(int) $data['environment_id'],
-			(string) $data['booking_date'],
-			(string) $data['start_time'],
-			(string) $data['end_time']
-		);
-		if ( ! empty( $conflicts ) ) {
-			$wpdb->query( 'ROLLBACK' );
-			return false;
+		// Every day of the range is checked, and one clash refuses the whole
+		// booking, except a clash with a booking the caller confirmed it
+		// overrides: that one is cancelled below, in this same transaction,
+		// so the slot is never held by two active bookings.
+		$override_ids = is_array( $data['override_ids'] ) ? self::numeric_ids( $data['override_ids'] ) : array();
+		foreach ( $plan['days'] as $day ) {
+			$conflicts = self::get_conflicts_for_update(
+				(int) $data['environment_id'],
+				$day['date'],
+				$day['start_time'],
+				$day['end_time']
+			);
+			foreach ( $conflicts as $conflict ) {
+				if ( ! in_array( (int) ( $conflict->id ?? 0 ), $override_ids, true ) ) {
+					$wpdb->query( 'ROLLBACK' );
+					return false;
+				}
+			}
+		}
+
+		foreach ( $override_ids as $override_id ) {
+			if ( ! self::cancel( $override_id, (string) $data['override_note'] ) ) {
+				$wpdb->query( 'ROLLBACK' );
+				return false;
+			}
 		}
 
 		$result = $wpdb->insert(
@@ -131,8 +171,11 @@ class AudienceBookingWriter {
 				'description'    => $data['description'],
 				'status'         => $data['status'],
 				'created_by'     => $data['created_by'],
+				'end_date'       => $is_range ? $end_date : null,
+				'time_mode'      => $is_range ? $time_mode : null,
+				'skipped_dates'  => ! empty( $plan['skipped'] ) ? wp_json_encode( $plan['skipped'] ) : null,
 			),
-			array( '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%d' )
+			array( '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s' )
 		);
 
 		if ( ! $result ) {
@@ -165,47 +208,53 @@ class AudienceBookingWriter {
 
 	/**
 	 * Conflict-check used by {@see self::create()} inside a transaction.
-	 * Identical predicate to {@see AudienceBookingReader::get_conflicts()} but
-	 * with the `FOR UPDATE` row + gap lock that prevents concurrent inserts in
-	 * the same `(environment_id, booking_date)` range from completing
-	 * until the holding transaction commits. Must run inside a
-	 * `START TRANSACTION ... COMMIT` block.
+	 * Same rows as {@see AudienceBookingReader::get_conflicts()}, read with
+	 * the `FOR UPDATE` row + gap lock that keeps a concurrent insert in the
+	 * same `(environment_id, booking_date)` range waiting until the holding
+	 * transaction commits. Must run inside a `START TRANSACTION ... COMMIT`
+	 * block.
+	 *
+	 * The query locks every active row that occupies the day; the hours are
+	 * compared afterwards by {@see AudienceBookingRules::overlapping_on_day()},
+	 * because a span row's stored times are not the hours it takes on a
+	 * middle day.
 	 *
 	 * @since 6.5.0
 	 * @param int    $environment_id Environment ID.
 	 * @param string $date           Booking date (Y-m-d).
 	 * @param string $start_time     Start time (H:i).
 	 * @param string $end_time       End time (H:i).
-	 * @return array<int, mixed>
+	 * @return list<object>
 	 */
 	private static function get_conflicts_for_update( int $environment_id, string $date, string $start_time, string $end_time ): array {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
+		list( $day_sql, $day_args ) = AudienceBookingRules::occupies_day_clause( $date );
+		$args                       = array_merge( array( $table, $environment_id ), $day_args );
+
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT id FROM %i
+				/**
+				 * The SQL is a literal except for `{$day_sql}`, a fixed predicate from
+				 * `AudienceBookingRules::occupies_day_clause()`. Its placeholders are bound
+				 * through the spread arguments below.
+				 *
+				 * @phpstan-ignore argument.type
+				 */
+				"SELECT id, environment_id, booking_date, end_date, time_mode, skipped_dates, start_time, end_time FROM %i
                 WHERE environment_id = %d
-                AND booking_date = %s
+                AND {$day_sql}
                 AND status = 'active'
-                AND (
-                    (start_time < %s AND end_time > %s) OR
-                    (start_time >= %s AND start_time < %s) OR
-                    (end_time > %s AND end_time <= %s)
-                )
                 FOR UPDATE",
-				$table,
-				$environment_id,
-				$date,
-				$end_time,
-				$start_time,
-				$start_time,
-				$end_time,
-				$start_time,
-				$end_time
+				...$args
 			)
 		);
-		return is_array( $results ) ? $results : array();
+		if ( ! is_array( $results ) ) {
+			return array();
+		}
+
+		return AudienceBookingRules::overlapping_on_day( array_values( array_filter( $results, 'is_object' ) ), $date, $start_time, $end_time );
 	}
 
 	/**
@@ -285,6 +334,71 @@ class AudienceBookingWriter {
 		static::cache_delete( "id_{$id}" );
 
 		return true;
+	}
+
+	/**
+	 * Store a booking's attendance rule (#1947).
+	 *
+	 * The rule is normalised by {@see AudienceAttendanceRule::normalize()}: a
+	 * *single* rule stores NULL in both columns, which is also what a booking
+	 * that never had a rule reads as.
+	 *
+	 * @param int    $id      Booking ID.
+	 * @param string $mode    `single` or `total`.
+	 * @param int    $percent Minimum share of the booking's days, for `total`.
+	 * @return bool Whether the row was written.
+	 */
+	public static function set_attendance_rule( int $id, string $mode, int $percent ): bool {
+		$rule = AudienceAttendanceRule::normalize( $mode, $percent );
+
+		$written = self::db()->update(
+			self::get_table_name(),
+			array(
+				'attendance_mode'        => AudienceAttendanceRule::TOTAL === $rule['mode'] ? AudienceAttendanceRule::TOTAL : null,
+				'attendance_min_percent' => AudienceAttendanceRule::TOTAL === $rule['mode'] ? $rule['percent'] : null,
+			),
+			array( 'id' => $id ),
+			array( '%s', '%d' ),
+			array( '%d' )
+		);
+
+		static::cache_delete( "id_{$id}" );
+
+		return false !== $written;
+	}
+
+	/**
+	 * Store a booking's own post-event form settings (#1948).
+	 *
+	 * With `$custom` off the booking follows its calendar again, and its three
+	 * columns are cleared so a stale choice cannot come back by surprise when
+	 * the switch is turned on later. With it on, a form ID of 0 means the
+	 * booking has no form even when its calendar does.
+	 *
+	 * @param int  $id             Booking ID.
+	 * @param bool $custom         Whether the booking reads its own settings.
+	 * @param int  $form_id        Form post ID, 0 for none.
+	 * @param int  $window_days    Days the form stays open after the event.
+	 * @param bool $attendees_only Whether only those present may answer.
+	 * @return bool Whether the row was written.
+	 */
+	public static function set_post_event_form( int $id, bool $custom, int $form_id, int $window_days, bool $attendees_only ): bool {
+		$written = self::db()->update(
+			self::get_table_name(),
+			array(
+				'post_event_custom'         => $custom ? 1 : 0,
+				'post_event_form_id'        => $custom ? max( 0, $form_id ) : null,
+				'post_event_window_days'    => $custom ? AudiencePostEventForm::normalize_window( $window_days ) : null,
+				'post_event_attendees_only' => $custom ? ( $attendees_only ? 1 : 0 ) : null,
+			),
+			array( 'id' => $id ),
+			array( '%d', '%d', '%d', '%d' ),
+			array( '%d' )
+		);
+
+		static::cache_delete( "id_{$id}" );
+
+		return false !== $written;
 	}
 
 	/**

@@ -63,6 +63,47 @@ class FormEditorSaveHandler {
 	}
 
 	/**
+	 * Whether the posted layout lacks a required tag, in which case the save
+	 * is refused and the missing tags are handed to the editor's notice.
+	 *
+	 * A save that posts no layout is not checked: nothing about the layout
+	 * is changing.
+	 *
+	 * @return bool True when the save must be refused.
+	 */
+	private function refuse_for_missing_tags(): bool {
+		if ( ! RequestInput::has_post( 'ffc_config' ) ) {
+			return false;
+		}
+
+		$posted_layout = wp_kses(
+			ArrayValue::string( RequestInput::get_post_raw_array( 'ffc_config' ), 'pdf_layout' ),
+			\FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags()
+		);
+		$missing_tags  = $this->validator()->missing_required_tags( $posted_layout );
+		if ( array() === $missing_tags ) {
+			return false;
+		}
+
+		set_transient( 'ffc_save_error_' . get_current_user_id(), $missing_tags, 45 );
+		// WordPress still saves the post itself and would report "Post updated";
+		// redirect_post_location is the last point before that redirect, and
+		// dropping its message leaves the refusal as the only word on the screen.
+		add_filter( 'redirect_post_location', array( self::class, 'drop_updated_message' ) );
+		return true;
+	}
+
+	/**
+	 * Remove the "Post updated" message from the redirect after a refused save.
+	 *
+	 * @param string $location Redirect URL.
+	 * @return string
+	 */
+	public static function drop_updated_message( string $location ): string {
+		return remove_query_arg( 'message', $location );
+	}
+
+	/**
 	 * Saves all form data and configurations
 	 *
 	 * @param int $post_id The post ID.
@@ -75,6 +116,14 @@ class FormEditorSaveHandler {
 			return;
 		}
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
+
+		// Refuse the whole save while the layout lacks a required tag (#1741):
+		// the check reads the schedule being saved, not the stored one, and
+		// nothing is written when it fails, so the error cannot leave a
+		// half-saved form behind.
+		if ( $this->refuse_for_missing_tags() ) {
 			return;
 		}
 
@@ -296,6 +345,7 @@ class FormEditorSaveHandler {
 			$clean_config               = array();
 			$clean_config['pdf_layout'] = wp_kses( ArrayValue::string( $config, 'pdf_layout' ), $allowed_html );
 			$clean_config['bg_image']   = esc_url_raw( ArrayValue::string( $config, 'bg_image' ) );
+			$clean_config['bg_color']   = \FreeFormCertificate\Core\FormBackground::normalize_color( ArrayValue::string( $config, 'bg_color' ) );
 
 			$clean_config['enable_restriction'] = sanitize_key( ArrayValue::string( $config, 'enable_restriction' ) );
 
@@ -323,8 +373,8 @@ class FormEditorSaveHandler {
 				$clean_config['email_admin'] = sanitize_text_field( ArrayValue::string( $config, 'email_admin' ) );
 			}
 
-			// Restrictions — 4 independent toggles. Each gates exactly one
-			// data field; when its toggle is off, the corresponding field
+			// Restrictions — 5 independent toggles. Each but the invitation
+			// gates exactly one data field; when its toggle is off, the corresponding field
 			// is not written to $clean_config so the prior value rides
 			// through `array_merge` at the end of this block.
 			$posted_restrictions          = ArrayValue::array( $config, 'restrictions' );
@@ -333,6 +383,7 @@ class FormEditorSaveHandler {
 				'allowlist' => isset( $posted_restrictions['allowlist'] ) ? '1' : '0',
 				'denylist'  => isset( $posted_restrictions['denylist'] ) ? '1' : '0',
 				'ticket'    => isset( $posted_restrictions['ticket'] ) ? '1' : '0',
+				'invite'    => isset( $posted_restrictions['invite'] ) ? '1' : '0',
 			);
 			$clean_config['restrictions'] = $restrictions;
 
@@ -362,15 +413,6 @@ class FormEditorSaveHandler {
 				// Clear the answers when the participant leaves the window
 				// (#1731): Off / Moderate / Strict since #1745.
 				$clean_config['quiz_reset_on_leave'] = \FreeFormCertificate\Core\QuizLeaveLevel::sanitize( $config['quiz_reset_on_leave'] ?? '0' );
-			}
-
-			// Tag Validation (server-side backstop): warn if the layout is
-			// missing any tag from the configurable required list. The
-			// editor also blocks the submit client-side; this catches the
-			// JS-disabled case. Non-blocking — the post still saves.
-			$missing_tags = $this->validator()->missing_required_tags( $clean_config['pdf_layout'], $post_id );
-			if ( ! empty( $missing_tags ) ) {
-				set_transient( 'ffc_save_error_' . get_current_user_id(), $missing_tags, 45 );
 			}
 
 			// Legacy html/ reference linter (#865 Phase 4): warn — non-blocking —
@@ -776,7 +818,7 @@ class FormEditorSaveHandler {
 			delete_transient( 'ffc_save_error_' . get_current_user_id() );
 			ob_start();
 			?>
-			<p><strong><?php esc_html_e( 'Warning! Missing required tags in PDF Layout:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html( implode( ', ', array_map( 'strval', array_filter( $error_tags, 'is_scalar' ) ) ) ); ?></code>.</p>
+			<p><strong><?php esc_html_e( 'The form was not saved. The PDF layout lacks these required tags:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html( implode( ', ', array_map( 'strval', array_filter( $error_tags, 'is_scalar' ) ) ) ); ?></code>. <?php esc_html_e( 'Add them to the layout, or uncheck them in Settings → Certificates, and save again.', 'ffcertificate' ); ?></p>
 			<?php
 			\FreeFormCertificate\Core\AdminNotice::render(
 				'error',

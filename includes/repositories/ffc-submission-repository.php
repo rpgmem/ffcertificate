@@ -317,6 +317,17 @@ class SubmissionRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Count submissions matching `(form_id, rf_hash)`.
+	 *
+	 * @param int    $form_id Form ID.
+	 * @param string $rf_hash SHA-256 hash of the RF digits.
+	 * @return int
+	 */
+	public function countByFormAndRfHash( int $form_id, string $rf_hash ): int {
+		return $this->reader->countByFormAndRfHash( $form_id, $rf_hash );
+	}
+
+	/**
 	 * SQL fragment for the WP_User_Query orderby rewrite.
 	 *
 	 * @since 6.6.2

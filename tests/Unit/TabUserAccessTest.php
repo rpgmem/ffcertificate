@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -62,6 +63,7 @@ class TabUserAccessTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		SettingsTab::set_resolved_active_tab( null );
 		unset( $_GET['tab'] );
 		unset( $_POST['ffc_user_access_nonce'], $_POST['block_wp_admin'], $_POST['blocked_roles'] );
 		unset( $_POST['redirect_url'], $_POST['redirect_message'] );
@@ -126,7 +128,7 @@ class TabUserAccessTest extends TestCase {
 	// ==================================================================
 
 	public function test_enqueue_styles_runs_for_correct_hook(): void {
-		$_GET['tab'] = 'user_access';
+		SettingsTab::set_resolved_active_tab( 'user_access' );
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'wp_enqueue_script' )->justReturn( null );
 		Functions\when( 'wp_localize_script' )->justReturn( null );

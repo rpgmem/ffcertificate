@@ -63,6 +63,8 @@ class AudienceBookingRepositoryTest extends TestCase {
 		});
 		Functions\when('wp_json_encode')->alias('json_encode');
 
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( string $text ): string => addcslashes( $text, '_%\\' ) );
+
 		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() {
 			return func_get_args()[0];
 		})->byDefault();
@@ -164,7 +166,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 
 		AudienceBookingReader::get_all(['booking_date' => '2026-03-15']);
 
-		$this->assertStringContainsString('b.booking_date = %s', $captured_sql);
+		$this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
 	}
 
 	public function test_get_all_filters_by_date_range(): void {
@@ -180,7 +182,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 			'end_date' => '2026-03-31',
 		]);
 
-		$this->assertStringContainsString('b.booking_date >= %s', $captured_sql);
+		$this->assertStringContainsString('COALESCE(b.end_date, b.booking_date) >= %s', $captured_sql);
 		$this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
 	}
 
@@ -421,7 +423,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 		AudienceBookingReader::get_by_date(5, '2026-03-15', 'active');
 
 		$this->assertStringContainsString('b.environment_id = %d', $captured_sql);
-		$this->assertStringContainsString('b.booking_date = %s', $captured_sql);
+		$this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
 		$this->assertStringContainsString('b.status = %s', $captured_sql);
 	}
 
@@ -440,7 +442,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 		AudienceBookingReader::get_by_date_range(5, '2026-03-01', '2026-03-31');
 
 		$this->assertStringContainsString('b.environment_id = %d', $captured_sql);
-		$this->assertStringContainsString('b.booking_date >= %s', $captured_sql);
+		$this->assertStringContainsString('COALESCE(b.end_date, b.booking_date) >= %s', $captured_sql);
 		$this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
 	}
 
@@ -521,7 +523,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 			'status' => 'active',
 		]);
 
-		$this->assertStringContainsString('b.booking_date >= %s', $captured_sql);
+		$this->assertStringContainsString('COALESCE(b.end_date, b.booking_date) >= %s', $captured_sql);
 		$this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
 		$this->assertStringContainsString('b.status = %s', $captured_sql);
 	}
@@ -637,7 +639,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 		// the SELECT ... FOR UPDATE returning an existing booking, so
 		// create() must roll back without inserting.
 		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array(
-			(object) array( 'id' => 99 ),
+			(object) array( 'id' => 99, 'booking_date' => '2026-03-15', 'start_time' => '09:30:00', 'end_time' => '10:30:00' ),
 		));
 		$this->wpdb->shouldNotReceive('insert');
 
@@ -647,6 +649,66 @@ class AudienceBookingRepositoryTest extends TestCase {
 			'start_time' => '09:00',
 			'end_time' => '10:00',
 			'description' => 'Concurrent attempt',
+		]);
+
+		$this->assertFalse($result);
+	}
+
+	public function test_create_cancels_a_confirmed_override_in_its_transaction_and_inserts(): void {
+		// The REST layer found booking 99 in the way and the person confirmed
+		// the override: the writer must not refuse on it, and must cancel it
+		// before committing (#1859). Cancelling after the insert never ran,
+		// because the insert refused first.
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array(
+			(object) array( 'id' => 99, 'booking_date' => '2026-03-15', 'start_time' => '09:30:00', 'end_time' => '10:30:00' ),
+		));
+		$order = array();
+		$this->wpdb->shouldReceive('update')->once()->withArgs(function ($table, $data, $where) use (&$order) {
+			$order[] = 'cancel';
+			return 'cancelled' === $data['status'] && 'Overridden' === $data['cancellation_reason'] && array( 'id' => 99 ) === $where;
+		})->andReturn(1);
+		$this->wpdb->shouldReceive('insert')->once()->andReturnUsing(function () use (&$order) {
+			$order[] = 'insert';
+			return 1;
+		});
+		$this->wpdb->insert_id = 120;
+		$queries = array();
+		$this->wpdb->shouldReceive('query')->andReturnUsing(function ($sql) use (&$queries) {
+			$queries[] = (string) $sql;
+			return 1;
+		});
+
+		$result = AudienceBookingWriter::create([
+			'environment_id' => 5,
+			'booking_date'   => '2026-03-15',
+			'start_time'     => '09:00',
+			'end_time'       => '10:00',
+			'description'    => 'Priority booking',
+			'override_ids'   => array( 99 ),
+			'override_note'  => 'Overridden',
+		]);
+
+		$this->assertSame(120, $result);
+		$this->assertSame(array( 'cancel', 'insert' ), $order);
+		$this->assertSame(array( 'START TRANSACTION', 'COMMIT' ), $queries);
+	}
+
+	public function test_create_still_refuses_a_clash_it_was_not_told_to_override(): void {
+		// A booking that appeared after the person confirmed is not theirs to override.
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array(
+			(object) array( 'id' => 98, 'booking_date' => '2026-03-15', 'start_time' => '09:30:00', 'end_time' => '10:30:00' ),
+		));
+		$this->wpdb->shouldNotReceive('update');
+		$this->wpdb->shouldNotReceive('insert');
+
+		$result = AudienceBookingWriter::create([
+			'environment_id' => 5,
+			'booking_date'   => '2026-03-15',
+			'start_time'     => '09:00',
+			'end_time'       => '10:00',
+			'description'    => 'Priority booking',
+			'override_ids'   => array( 99 ),
+			'override_note'  => 'Overridden',
 		]);
 
 		$this->assertFalse($result);
@@ -1471,16 +1533,21 @@ class AudienceBookingRepositoryTest extends TestCase {
 			$captured_sql = func_get_args()[0];
 			return $captured_sql;
 		});
-		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn([
+			(object) ['id' => 1, 'booking_date' => '2026-03-15', 'start_time' => '08:00:00', 'end_time' => '09:00:00'],
+			(object) ['id' => 2, 'booking_date' => '2026-03-15', 'start_time' => '09:30:00', 'end_time' => '11:00:00'],
+			(object) ['id' => 3, 'booking_date' => '2026-03-15', 'start_time' => '10:00:00', 'end_time' => '12:00:00'],
+		]);
 
-		AudienceBookingReader::get_conflicts(1, '2026-03-15', '09:00', '10:00');
+		$result = AudienceBookingReader::get_conflicts(1, '2026-03-15', '09:00', '10:00');
 
 		$this->assertStringContainsString('environment_id = %d', $captured_sql);
-		$this->assertStringContainsString('booking_date = %s', $captured_sql);
+		$this->assertStringContainsString( 'booking_date <= %s AND COALESCE(end_date, booking_date) >= %s', $captured_sql );
+		$this->assertStringContainsString( 'skipped_dates NOT LIKE %s', $captured_sql );
 		$this->assertStringContainsString("status = 'active'", $captured_sql);
-		$this->assertStringContainsString('start_time < %s AND end_time > %s', $captured_sql);
-		$this->assertStringContainsString('start_time >= %s AND start_time < %s', $captured_sql);
-		$this->assertStringContainsString('end_time > %s AND end_time <= %s', $captured_sql);
+		// The hours are compared in PHP, per day, so a span's middle day is read right (#1946).
+		$this->assertStringNotContainsString('start_time < %s', $captured_sql);
+		$this->assertSame([2], array_map(static fn($row) => $row->id, $result), 'Rows that only touch the hours do not conflict.');
 	}
 
 	public function test_get_conflicts_with_exclude_booking_id(): void {
@@ -1544,7 +1611,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 
 		AudienceBookingReader::get_audience_same_day_bookings('2026-03-15', [10, 20]);
 
-		$this->assertStringContainsString('booking_date = %s', $captured_sql);
+		$this->assertStringContainsString('booking_date <= %s', $captured_sql);
 		$this->assertStringContainsString("status = 'active'", $captured_sql);
 		$this->assertStringContainsString('audience_id IN', $captured_sql);
 		$this->assertStringContainsString('INNER JOIN', $captured_sql);
@@ -1616,7 +1683,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$result = AudienceBookingReader::count(['booking_date' => '2026-03-15']);
 
 		$this->assertSame(2, $result);
-		$this->assertStringContainsString('booking_date = %s', $captured_sql);
+		$this->assertStringContainsString('booking_date <= %s', $captured_sql);
 	}
 
 	public function test_count_filters_by_start_date(): void {
@@ -1630,7 +1697,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$result = AudienceBookingReader::count(['start_date' => '2026-05-01']);
 
 		$this->assertSame(7, $result);
-		$this->assertStringContainsString('booking_date >= %s', $captured_sql);
+		$this->assertStringContainsString('COALESCE(end_date, booking_date) >= %s', $captured_sql);
 	}
 
 	public function test_count_filters_by_end_date(): void {
@@ -1679,7 +1746,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$this->assertSame(1, $result);
 		$this->assertStringContainsString('environment_id = %d', $captured_sql);
 		$this->assertStringContainsString('status = %s', $captured_sql);
-		$this->assertStringContainsString('booking_date = %s', $captured_sql);
+		$this->assertStringContainsString('booking_date <= %s', $captured_sql);
 		$this->assertStringContainsString('created_by = %d', $captured_sql);
 		$this->assertStringContainsString('AND', $captured_sql);
 	}
@@ -1753,7 +1820,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 
 		$this->assertStringContainsString('b.environment_id = %d', $captured_sql);
 		$this->assertStringContainsString('b.status = %s', $captured_sql);
-		$this->assertStringContainsString('b.booking_date >= %s', $captured_sql);
+		$this->assertStringContainsString('COALESCE(b.end_date, b.booking_date) >= %s', $captured_sql);
 		$this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
 	}
 
@@ -1802,7 +1869,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$this->assertStringContainsString('e.schedule_id = %d', $captured_sql);
 		$this->assertStringContainsString('b.environment_id = %d', $captured_sql);
 		$this->assertStringContainsString('b.status = %s', $captured_sql);
-		$this->assertStringContainsString('b.booking_date >= %s', $captured_sql);
+		$this->assertStringContainsString('COALESCE(b.end_date, b.booking_date) >= %s', $captured_sql);
 		$this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
 	}
 

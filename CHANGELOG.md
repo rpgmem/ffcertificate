@@ -7,7 +7,62 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.41.0] (2026-10-19)
+## [6.42.0] (2026-10-26)
+
+### Added
+
+- **Certificates can be issued in bulk from a CSV** (#1945, #1967). The form editor's Bulk issue tab (capability `ffc_import_certificates`) downloads the form's template, maps the columns, previews the rows it would skip and why, and issues in batches with progress. Staged personal data is encrypted and deleted when the job ends.
+- **Bulk issue: dates, scores and links** (#1945, #2076). Certificates take one chosen day or a date column (the template's optional `issue_date`); a quiz form takes a score column or zero; each link can be e-mailed on issue, and the submissions list gains Send link by e-mail, recorded in `link_sent_at`.
+- **Form editor: background colour** (#1960). The layout box takes a colour that fills the page wherever the background image does not; it defaults to white, so existing forms print as before.
+- **Date Messages: announcements** (#1949). A rule can be one message to an audience or to everyone, sent by hand for one day or once at a chosen time, from its own default text. Announcements have their own opt-out, dashboard switch and mail-queue source; reaching people who opted out is an explicit choice, counted as forced.
+- **Date Messages: sending is its own capability** (#1949, #1998). `ffc_send_date_messages` sends a rule or arms an announcement, and current managers receive it on upgrade. The audience picker shows how many people each audience reaches.
+- **Audience Calendars: bookings over a range of days** (#1946, #2078). A booking takes an end date and the same hours each day or one span from first to last; every day is checked, and "Skip blocked days" leaves out holidays and closed weekdays. Calendar, lists, dashboard, e-mails, `.ics`, CSV and privacy export show the range.
+- **Audience Calendars: attendance by QR check-in** (#1947). The Attendance screen opens a day's check-in, projects a rotating signed QR, lists who is present, marks attendance by hand, sets the attendance rule and exports a CSV. Participants scan, log in if needed and confirm, inside a geofence when one is set. Capability `ffc_checkin_audiences`.
+- **Audience Calendars: post-event certificate forms** (#1948, #2028). A calendar or a booking names a certificate form; an hourly run e-mails each eligible participant a personal link that fills in and locks name and e-mail, and *Booking participants only* closes the form to others. Attendance tracks invitations and answers; the dashboard lists forms waiting.
+- **Every public form checks the browser first** (#2030, #2040). Certificate forms, the public CSV download, the audience check-in and the appointment receipt run one pre-flight: an app's own browser is asked to switch, with "Continue anyway", and a browser missing what the page needs is stopped. Settings → Certificates → Browser check turns it off.
+- **"Test my device" on the verification page** (#2040, #2052, #2054, #2060, #2062, #2064, #2065, #2074). `?ffc_device_check=1` checks connection, browser, cookies, captcha, device ID, clock, location precision and PDF, in sections that open on a problem, each failure with its fix and a copy for support. Settings → Rate Limit caps runs per address.
+- **An accepted GPS reading that barely held says so** (#2072). When the error is above a share of the area's radius (0.5, Settings → Geolocation), the form opens with a notice giving the error in metres; the decision is unchanged.
+
+### Changed
+
+- ⚠ **GPS precision is judged per area, and "GPS or IP" passes on either** (#2040, #2070). A reading is inside when its point is and its error is at most 1.5 × that area's radius (Settings → Geolocation); one reaching no area is outside, and an uncertain one follows "Location unavailable". The audience check-in applies the same rule.
+- **Certificate models revised and extended** (#1956, #2076). The three default models are redrawn and three join them; installs receive the new bodies on upgrade, and user templates are not changed.
+- **Date Messages: the rule form follows the kind** (#1949, #1996). Only the fields that apply show, in collapsible sections; an announcement to an audience reads only its members instead of paging every account.
+- **Audience booking dialog redesigned** (#2008). Sections for when, where and for whom, an audience list with colours, reach and search, one button that checks then creates, and a bottom sheet on phones.
+- **The Attendance screen saves each change** (#2022, #2026). The rule and post-event fields save as they change and refresh the summary; under *Any day* the rule saves again. The CSV adds Invited and Post-event form columns when a form applies.
+- **Every file field is one picker** (#2038). The bulk issue and the four other CSV imports draw the plugin's button with the upload icon; the Bulk issue tab reads as three steps.
+- **Every confirmation waits 15 seconds** (#2078). Cancelling a booking waited 5; it now waits as long as the override warning and the recruitment promotion.
+- **Integrators: one pre-flight queue and renamed handles** (#2030). `FFC.Preflight` and `FFC.Platform` replace scattered checks; the script `ffc-geofence-preflight` is now `ffc-geofence-permission`, and the identity correction dry run is `ffc_identity_correction_preview`. No behaviour change.
+- Internal (#2058) — CI runs the suite in more parallel shards, with the required check names kept.
+
+### Fixed
+
+- **PDFs no longer stretch images** (#1952). html2canvas 1.4.1 ignored `object-fit`; the maintained fork html2canvas-pro 2.5.0 replaces it, so a background prints cropped as previewed (Safari 13.4 / Chrome 80 or later). Every vendored library now ships its licence.
+- **Certificate backgrounds appear in the PDF and the template preview** (#1954, #1958). The generator read a legacy meta nothing writes; it now reads the form's configuration first.
+- **The layout preview is the PDF's page** (#1958, #1962). It is rendered by the PDF renderer, with the background, its colour, the real QR code and custom fields with their labels, and never generates a PDF.
+- **The default layouts fit the A4 page** (#1962, #2076). Footers move up so the QR code and the validation link stay on the page, models 5 and 6 included; defaults refresh on upgrade.
+- ⚠ **A save is refused while the layout lacks a required tag** (#1741, #2003). The tags are the ones Settings → Certificates requires (`{{schedule}}` by default); the refused save says "The form was not saved". Models keep their page colour.
+- **Quiz grading and the bulk issue hold up** (#1732, #1997). The grading card lists every open answer of the form and never passes 100%; answers are locked on the edit screen; the bulk issue claims each row once, re-checks required fields and stores no operator IP.
+- **A settings tab's autosave works on the first visit** (#1979). The bare menu link now loads the autosave of the tab it shows.
+- **A column added between releases reaches every install** (#1969). The schema check compares a fingerprint of the declared columns instead of the version.
+- **Audience bookings: cancellation, overrides and spans** (#1994, #2001). Cancelling a range names every day it covers; a confirmed override no longer fails; every check and screen reads the hours a span takes on each day.
+- **Date Messages announcements are scheduled and cleaned up consistently** (#2002). Their events show in Scheduled Tasks and are removed with the rule, the module, deactivation and uninstall; arming needs the send capability.
+- **Audience booking dialog: picking users and its look** (#2008, #2013). Picking or removing a user works again, and a page with a personal calendar no longer restyles the dialog.
+- **Deleting a global holiday removes that holiday** (#2010). The list deleted by position, so an out-of-order list lost a different day.
+- **Post-event invitations find the form's page and join the privacy tools** (#2024). Any `id` spelling is accepted, a missing page is warned about, and invitations join Export and Erase Personal Data.
+- **Forms no longer fail silently** (#2030). Without JavaScript the form posts with `method="post"`, keeping personal data out of the URL, and says so; scripts that did not load in 10 s show a Reload button; "Location blocked" no longer appears twice.
+- **"Location blocked" only when it really is** (#2048). Opera for Android reports a block while giving the position; a reported block is now confirmed by one quick read.
+- **Scripts run on sites that minify with LiteSpeed Cache** (#2056). Its minifier cut a regex literal ending in an escaped slash; the literals are rewritten and a test refuses the shape.
+- **The certificate's success card fits a phone and names the real file** (#2068).
+- **The dashboard's calendar export menu opens over the table** (#2081). The audience bookings table clipped it to its rounded corners, and on a phone both bookings tables scroll sideways; the menu now opens fixed under its button, or above it near the bottom of the screen, and closes on scroll.
+
+### Security
+
+- **A visitor's position is no longer written to the activity log** (#2040). Geofence checks logged the coordinates they compared; they now log the decision only, and the "Activity Log: Delete Logged Locations" migration removes old entries.
+- **The server decides the GPS area of a certificate submission** (#2040). Only the browser checked it before, so a submission posted without it passed; one with no reading, the forms API included, follows "Browser does not support geolocation".
+
+## [6.41.0] (2026-10-19) — `2a4acb0a`
+- **The bulk issue skips a line with no e-mail and lists it in the report** (#1945). Without an address the link cannot be sent, so such a certificate is not issued with no account.
 
 ### Added
 

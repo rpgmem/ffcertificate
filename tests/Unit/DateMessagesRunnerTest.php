@@ -143,7 +143,7 @@ class DateMessagesRunnerTest extends TestCase {
 	/**
 	 * @param int    $id       User id.
 	 * @param string $decision Decision.
-	 * @return array{user_id: int, email: string, name: string, decision: string}
+	 * @return array{user_id: int, email: string, name: string, decision: string, forced: bool}
 	 */
 	private function row( int $id, string $decision ): array {
 		return array(
@@ -151,6 +151,7 @@ class DateMessagesRunnerTest extends TestCase {
 			'email'    => "u{$id}@example.org",
 			'name'     => "User {$id}",
 			'decision' => $decision,
+			'forced'   => false,
 		);
 	}
 

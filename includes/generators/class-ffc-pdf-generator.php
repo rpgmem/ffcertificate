@@ -109,7 +109,7 @@ class PdfGenerator {
 		$form_id      = (int) $sub_array['form_id'];
 		$form_title   = get_the_title( $form_id );
 		$form_config  = get_post_meta( $form_id, '_ffc_form_config', true );
-		$bg_image_url = get_post_meta( $form_id, '_ffc_form_bg', true );
+		$bg_image_url = \FreeFormCertificate\Core\FormBackground::url( $form_id );
 
 		// `{{schedule}}` / `{{schedule_total}}` (#366 Sprint 7). Resolve
 		// the effective wall-clock range — per-submission override wins,
@@ -184,6 +184,7 @@ class PdfGenerator {
 			'submission_id' => $submission_id,
 			'submission'    => $data,
 			'bg_image'      => $bg_image_url,
+			'bg_color'      => \FreeFormCertificate\Core\FormBackground::color( $form_id ),
 		);
 
 		/**
@@ -269,7 +270,7 @@ class PdfGenerator {
 
 		$form_title   = $form_post->post_title;
 		$form_config  = get_post_meta( $form_id, '_ffc_form_config', true );
-		$bg_image_url = get_post_meta( $form_id, '_ffc_form_bg', true );
+		$bg_image_url = \FreeFormCertificate\Core\FormBackground::url( $form_id );
 
 		// Add formatted date.
 		if ( $submission_date ) {
@@ -304,6 +305,7 @@ class PdfGenerator {
 			'form_title' => $form_title,
 			'submission' => $submission_data,
 			'bg_image'   => $bg_image_url,
+			'bg_color'   => \FreeFormCertificate\Core\FormBackground::color( (int) $form_id ),
 		);
 	}
 

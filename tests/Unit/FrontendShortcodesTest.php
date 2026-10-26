@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -74,11 +75,16 @@ class FrontendShortcodesTest extends TestCase {
 			}
 		);
 
+		// The verification page links to its "Test my device" mode (#2040).
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/valid/' );
+		Functions\when( 'remove_query_arg' )->alias( static fn( $key, $url ) => $url );
+		Functions\when( 'add_query_arg' )->alias( static fn( $key, $value, $url ) => $url . '?' . $key . '=' . $value );
+
 		$this->shortcodes = new Shortcodes();
 	}
 
 	protected function tearDown(): void {
-		unset( $_GET['token'] );
+		unset( $_GET['token'], $_GET['ffc_invite'] );
 		$_COOKIE = array();
 		$this->reset_rate_limit_cache();
 		Monkey\tearDown();
@@ -216,6 +222,43 @@ class FrontendShortcodesTest extends TestCase {
 		foreach ( array( 'ffc-btn', 'ffc-btn-primary', 'ffc-icon-checkmark', 'ffc-btn-block' ) as $class ) {
 			$this->assertContains( $class, $buttons[0], "Verify lacks {$class}." );
 		}
+	}
+
+	/**
+	 * The verification form links to the "Test my device" mode of the same
+	 * page (#2040).
+	 *
+	 * @return void
+	 */
+	public function test_verification_page_links_to_the_device_check(): void {
+		unset( $_GET['token'], $_GET['ffc_device_check'] );
+		Functions\when( 'wp_rand' )->justReturn( 2 );
+		Functions\when( 'wp_hash' )->justReturn( 'hash' );
+
+		$html = $this->shortcodes->render_verification_page( array() );
+
+		$this->assertStringContainsString( 'ffc-verification-device-check', $html );
+		$this->assertStringContainsString( 'href="https://example.com/valid/?ffc_device_check=1"', $html );
+	}
+
+	/**
+	 * In that mode the page shows the device test instead of the form, with
+	 * a way back.
+	 *
+	 * @return void
+	 */
+	public function test_device_check_mode_replaces_the_verification_form(): void {
+		unset( $_GET['token'] );
+		$_GET['ffc_device_check'] = '1';
+		try {
+			$html = $this->shortcodes->render_verification_page( array() );
+		} finally {
+			unset( $_GET['ffc_device_check'] );
+		}
+
+		$this->assertStringContainsString( 'ffc-device-check', $html );
+		$this->assertStringNotContainsString( 'ffc-verification-form', $html );
+		$this->assertStringContainsString( 'href="https://example.com/valid/"', $html );
 	}
 
 	/**
@@ -495,6 +538,79 @@ class FrontendShortcodesTest extends TestCase {
 
 		$this->assertStringContainsString( 'ffc_ticket', $html );
 		$this->assertStringContainsString( 'Ticket Code', $html );
+	}
+
+	/**
+	 * A form with a name and an e-mail field, invite-only when asked (#1948).
+	 */
+	private function render_invite_form( bool $invite_only ): string {
+		Functions\when( 'shortcode_atts' )->alias( static fn( $defaults, $atts ) => array_merge( $defaults, $atts ) );
+		Functions\when( 'get_post_type' )->justReturn( 'ffc_form' );
+		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Evaluation' ) );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id, $key ) use ( $invite_only ) {
+				if ( '_ffc_form_fields' === $key ) {
+					return array(
+						array(
+							'type'  => 'text',
+							'name'  => 'name',
+							'label' => 'Name',
+						),
+						array(
+							'type'  => 'email',
+							'name'  => 'email',
+							'label' => 'E-mail',
+						),
+					);
+				}
+				if ( '_ffc_form_config' === $key ) {
+					return $invite_only ? array( 'restrictions' => array( 'invite' => '1' ) ) : array();
+				}
+				return '';
+			}
+		);
+
+		return $this->shortcodes->render_form( array( 'id' => 7 ) );
+	}
+
+	public function test_an_invitation_fills_and_locks_name_and_email_and_carries_the_code(): void {
+		$_GET['ffc_invite'] = '5.7.abc';
+		Filters\expectApplied( 'ffcertificate_form_invite' )->once()->with( null, 7, '5.7.abc', null )->andReturn(
+			array(
+				'booking_id' => 5,
+				'user_id'    => 7,
+				'name'       => 'Ana Souza',
+				'email'      => 'ana@example.org',
+				'event'      => 'Workshop',
+			)
+		);
+
+		$html = $this->render_invite_form( true );
+
+		$this->assertStringContainsString( 'name="ffc_invite" value="5.7.abc"', $html );
+		$this->assertSame( 2, substr_count( $html, 'readonly aria-readonly="true"' ) );
+		$this->assertStringContainsString( 'value="Ana Souza"', $html );
+		$this->assertStringContainsString( 'Filling in as Ana Souza, for Workshop.', $html );
+	}
+
+	public function test_a_refused_invitation_shows_why_and_no_form(): void {
+		$_GET['ffc_invite'] = 'bad';
+		Filters\expectApplied( 'ffcertificate_form_invite' )->andReturn( new \WP_Error( 'closed', 'The period to fill in this form has ended.' ) );
+
+		$html = $this->render_invite_form( false );
+
+		$this->assertStringContainsString( 'The period to fill in this form has ended.', $html );
+		$this->assertStringNotContainsString( '<form', $html );
+	}
+
+	public function test_an_invite_only_form_shows_nothing_without_an_invitation(): void {
+		$closed = $this->render_invite_form( true );
+		$open   = $this->render_invite_form( false );
+
+		$this->assertStringContainsString( 'open by invitation only', $closed );
+		$this->assertStringNotContainsString( '<form', $closed );
+		$this->assertStringContainsString( '<form', $open );
+		$this->assertStringNotContainsString( 'readonly', $open );
 	}
 
 	// ==================================================================
@@ -785,5 +901,179 @@ class FrontendShortcodesTest extends TestCase {
 		$this->render_form_with();
 
 		$this->assertArrayNotHasKey( 'ffc_exception_42', $_COOKIE );
+	}
+
+	// ==================================================================
+	// Visitor pre-flight baseline (#2030)
+	// ==================================================================
+
+	/**
+	 * The parts of the form's markup the pre-flight work changes, per
+	 * variant, compared with tests/fixtures/preflight-markup-baseline.json.
+	 *
+	 * The baseline is what the coming changes are proven against: each one
+	 * may alter only what the issue lists as intended. Regenerate only on
+	 * the code being frozen, with FFC_UPDATE_PREFLIGHT_BASELINE=1.
+	 */
+	public function test_the_form_markup_matches_the_preflight_baseline(): void {
+		$variants = array(
+			'plain, math captcha'     => fn() => $this->render_baseline_form( array(), array() ),
+			'ALTCHA only'             => fn() => $this->render_baseline_form( array(), array( 'captcha_provider' => 'altcha' ) ),
+			'ALTCHA with math'        => fn() => $this->render_baseline_form( array(), array( 'captcha_provider' => 'both' ) ),
+			'date window'             => fn() => $this->render_baseline_form( array( 'datetime_enabled' => '1', 'date_start' => '2027-03-01', 'date_end' => '2027-03-31' ), array() ),
+			'GPS'                     => fn() => $this->render_baseline_form( array( 'geo_enabled' => '1', 'geo_gps_enabled' => '1', 'geo_areas' => "-23.55, -46.63, 200" ), array() ),
+			'IP only'                 => fn() => $this->render_baseline_form( array( 'geo_enabled' => '1', 'geo_ip_enabled' => '1', 'geo_areas' => "-23.55, -46.63, 200" ), array() ),
+			'quiz reset on leave'     => fn() => $this->render_quiz_form( array( 'quiz_enabled' => '1', 'quiz_reset_on_leave' => '1' ) ),
+		);
+
+		$records = array();
+		foreach ( $variants as $name => $render ) {
+			$records[ $name ] = self::preflight_markup( (string) $render() );
+		}
+
+		$_GET['ffc_invite'] = '5.7.abc';
+		Filters\expectApplied( 'ffcertificate_form_invite' )->andReturn(
+			array(
+				'booking_id' => 5,
+				'user_id'    => 7,
+				'name'       => 'Ana Souza',
+				'email'      => 'ana@example.org',
+				'event'      => 'Workshop',
+			)
+		);
+		$records['invitation'] = self::preflight_markup( $this->render_invite_form( true ) );
+
+		$file = dirname( __DIR__ ) . '/fixtures/preflight-markup-baseline.json';
+		if ( '1' === getenv( 'FFC_UPDATE_PREFLIGHT_BASELINE' ) ) {
+			file_put_contents( $file, json_encode( $records, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . "\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writes a test fixture.
+		}
+		$this->assertFileExists( $file, 'Missing baseline: run with FFC_UPDATE_PREFLIGHT_BASELINE=1 on the code being frozen.' );
+		$expected = json_decode( (string) file_get_contents( $file ), true );
+
+		$this->assertCount( count( $variants ) + 1, $records, 'Every variant rendered.' );
+		$this->assertSame( self::allowed_differences( $expected ), $records );
+	}
+
+	/**
+	 * The recorded baseline with the differences #2030 meant applied, and no
+	 * other: the comparison fails when one of these is missing and when
+	 * anything else changed.
+	 *
+	 * The fixture stays what PR 0 recorded, so each PR adds its own lines
+	 * here and the list reads as the closed list of allowed differences.
+	 *
+	 * PR 1 (the fix):
+	 * - the form posts with `method="post"`;
+	 * - every form carries the "JavaScript is off" `<noscript>` notice, before
+	 *   any `<noscript>` the captcha prints;
+	 * - every form carries the boot watchdog's notice, inert in a `<template>`.
+	 *
+	 * @param array<string, array<string, mixed>> $baseline Records of the PR 0 baseline.
+	 * @return array<string, array<string, mixed>>
+	 */
+	private static function allowed_differences( array $baseline ): array {
+		$noscript = '<div class="ffc-notice ffc-notice-warning" role="status" data-ffc-notice="noscript"><span class="ffc-notice-icon ffc-icon-warning" aria-hidden="true"></span><div class="ffc-notice-body"><strong class="ffc-notice-title">JavaScript is off</strong><p class="ffc-notice-text">This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your certificate.</p></div></div>';
+
+		foreach ( $baseline as $name => $record ) {
+			$record['form'] = str_replace( '" autocomplete="off"', '" method="post" autocomplete="off"', (string) $record['form'] );
+			array_unshift( $record['noscript'], $noscript );
+
+			// `data-ffc-boot-notice` carries no value, and the extractor reads
+			// attributes that do; the notice inside it brings `data-ffc-notice`.
+			$hooks = array_values( array_unique( array_merge( $record['hooks'], array( 'data-ffc-notice' ) ) ) );
+			sort( $hooks );
+			$record['hooks'] = $hooks;
+
+			// Both notices come after the system notices above the title.
+			$record['notices'] = array_merge( $record['notices'], array( 'noscript', 'boot-failed' ) );
+
+			$baseline[ $name ] = $record;
+		}
+		return $baseline;
+	}
+
+	/**
+	 * Render a one-field form with a geofence config and plugin settings.
+	 *
+	 * @param array<string, string> $geofence `_ffc_geofence_config`.
+	 * @param array<string, mixed>  $settings `ffc_settings`.
+	 * @return string
+	 */
+	private function render_baseline_form( array $geofence, array $settings ): string {
+		$this->reset_rate_limit_cache();
+		Functions\when( 'shortcode_atts' )->alias( static fn( $defaults, $atts ) => array_merge( $defaults, $atts ) );
+		Functions\when( 'get_post_type' )->justReturn( 'ffc_form' );
+		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Course certificate' ) );
+		Functions\when( 'wp_rand' )->justReturn( 4 );
+		Functions\when( 'wp_hash' )->justReturn( 'hash' );
+		Functions\when( 'wp_enqueue_script' )->justReturn( null );
+		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
+		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.org/wp-admin/' . $path );
+		Functions\when( 'get_locale' )->justReturn( 'pt_BR' );
+		Functions\when( 'determine_locale' )->justReturn( 'pt_BR' );
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) use ( $settings ) {
+				if ( 'ffc_settings' === $key ) {
+					return $settings;
+				}
+				if ( is_string( $key ) && 0 === strpos( $key, 'ffc_sched_exc_used_' ) ) {
+					return $default;
+				}
+				return array();
+			}
+		);
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id, $key ) use ( $geofence ) {
+				if ( '_ffc_form_fields' === $key ) {
+					return array( array( 'type' => 'text', 'name' => 'name', 'label' => 'Full Name', 'required' => true ) );
+				}
+				if ( '_ffc_geofence_config' === $key ) {
+					return $geofence ? $geofence : '';
+				}
+				if ( '_ffc_form_config' === $key ) {
+					return array( 'restrictions' => array() );
+				}
+				return '';
+			}
+		);
+
+		return (string) $this->shortcodes->render_form( array( 'id' => 9 ) );
+	}
+
+	/**
+	 * The part of a rendered form the pre-flight work touches.
+	 *
+	 * @param string $html Rendered form.
+	 * @return array<string, mixed>
+	 */
+	private static function preflight_markup( string $html ): array {
+		// Per-render ids come from a counter that runs across the whole
+		// process, so they depend on test order; challenge values change on
+		// every call.
+		$stable = (string) preg_replace(
+			array( '/((?:id|for)="[a-z_-]+[_-])\d+"/', '/value="\d+\.[0-9a-f]{16}\.[0-9a-f]{64}"/', '/challenge="[^"]*"/' ),
+			array( '$1N"', 'value="TOKEN"', 'challenge="CHALLENGE"' ),
+			$html
+		);
+
+		preg_match( '/<div[^>]*class="[^"]*ffc-form-wrapper[^"]*"[^>]*>/', $stable, $wrapper );
+		preg_match( '/<form\b[^>]*>/', $stable, $form );
+		preg_match_all( '/<noscript>(.*?)<\/noscript>/s', $stable, $noscript );
+		preg_match_all( '/\b(data-ffc-[a-z-]+)=/', $stable, $hooks );
+		preg_match_all( '/data-ffc-notice="([^"]+)"/', $stable, $notices );
+		$hook_names = array_values( array_unique( $hooks[1] ) );
+		sort( $hook_names );
+
+		return array(
+			'wrapper'  => $wrapper[0] ?? null,
+			'form'     => $form[0] ?? null,
+			'noscript' => array_map( static fn( $s ) => trim( (string) preg_replace( '/\s+/', ' ', $s ) ), $noscript[1] ),
+			'hooks'    => $hook_names,
+			'notices'  => $notices[1],
+			'captcha'  => array(
+				'math'   => str_contains( $stable, 'ffc_captcha_ans' ),
+				'altcha' => str_contains( $stable, '<altcha-widget' ),
+			),
+		);
 	}
 }

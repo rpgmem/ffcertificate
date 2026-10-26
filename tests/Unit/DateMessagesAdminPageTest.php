@@ -7,6 +7,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\DateMessages\DateMessagesAdminPage;
 use FreeFormCertificate\DateMessages\Rule;
+use FreeFormCertificate\DateMessages\Runner;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -62,7 +63,7 @@ class DateMessagesAdminPageTest extends TestCase {
 
 		$_POST         = array();
 		$_GET          = array();
-		$this->caps    = array( 'ffc_manage_date_messages' );
+		$this->caps    = array( 'ffc_manage_date_messages', 'ffc_send_date_messages' );
 		$this->outcome = null;
 
 		Functions\when( '__' )->returnArg();
@@ -210,6 +211,8 @@ class DateMessagesAdminPageTest extends TestCase {
 	}
 
 	public function test_a_new_rule_is_saved_with_its_body_filtered(): void {
+		// The saved rule is read back to schedule an announcement (#1949); the new one is not stored yet.
+		$this->reader->shouldReceive( 'get_by_id' )->andReturn( null );
 		$_POST['rule'] = $this->posted();
 		$this->writer->shouldReceive( 'save' )->once()->with(
 			Mockery::on(
@@ -283,6 +286,20 @@ class DateMessagesAdminPageTest extends TestCase {
 	}
 
 	/**
+	 * Sending has its own capability: managing rules alone does not allow it,
+	 * and the send capability alone does (#1949).
+	 *
+	 * @return void
+	 */
+	public function test_sending_needs_its_own_capability_not_the_rules_one(): void {
+		$this->caps = array( 'ffc_manage_date_messages' );
+		$this->assertFalse( DateMessagesAdminPage::can_send() );
+
+		$this->caps = array( 'ffc_send_date_messages' );
+		$this->assertTrue( DateMessagesAdminPage::can_send() );
+	}
+
+	/**
 	 * @dataProvider periods
 	 */
 	public function test_upcoming_resolves_each_period_to_its_dates( string $period, string $from, string $to ): void {
@@ -349,6 +366,34 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->assertTrue( $out['truncated'] );
 	}
 
+	public function test_a_manager_who_cannot_send_may_not_arm_an_announcement(): void {
+		$this->caps                 = array( 'ffc_manage_date_messages' );
+		$this->reader->shouldReceive( 'get_by_id' )->andReturn( null );
+		$_POST['rule']              = $this->posted();
+		$_POST['rule']['kind']      = Rule::KIND_ANNOUNCEMENT;
+		$_POST['rule']['send_at']   = ( new \DateTimeImmutable( '+1 day', new \DateTimeZone( 'America/Sao_Paulo' ) ) )->format( 'Y-m-d\TH:i' );
+		$this->writer->shouldReceive( 'save' )->never();
+
+		$this->call( 'handle_save' );
+
+		$this->assertSame( 'error', $this->outcome['type'] );
+		$this->assertSame( DateMessagesAdminPage::send_refusal(), $this->outcome['message'] );
+		$this->assertSame( 'Week before', $this->outcome['draft']['name'], 'What was typed goes back to the editor.' );
+	}
+
+	public function test_a_manager_who_cannot_send_may_still_save_an_unarmed_announcement(): void {
+		$this->caps               = array( 'ffc_manage_date_messages' );
+		$this->reader->shouldReceive( 'get_by_id' )->andReturn( null );
+		$_POST['rule']            = $this->posted();
+		$_POST['rule']['kind']    = Rule::KIND_ANNOUNCEMENT;
+		$_POST['rule']['send_at'] = '';
+		$this->writer->shouldReceive( 'save' )->once()->andReturn( 12 );
+
+		$this->call( 'handle_save' );
+
+		$this->assertSame( 'success', $this->outcome['type'] );
+	}
+
 	public function test_saving_a_rule_that_was_deleted_meanwhile_fails(): void {
 		$_POST['rule']       = $this->posted();
 		$_POST['rule']['id'] = '3';
@@ -370,11 +415,19 @@ class DateMessagesAdminPageTest extends TestCase {
 			}
 		);
 		$this->writer->shouldReceive( 'delete' )->once()->with( 3 )->andReturn( true );
+		$cleared = array();
+		Functions\when( 'wp_clear_scheduled_hook' )->alias(
+			static function ( $hook, $args = array() ) use ( &$cleared ) {
+				$cleared[] = array( $hook, $args );
+			}
+		);
 
 		$this->call( 'handle_delete' );
 
 		$this->assertSame( array( DateMessagesAdminPage::DELETE_ACTION . '_3' ), $checked );
 		$this->assertSame( 'success', $this->outcome['type'] );
+		// A scheduled announcement of the deleted rule would otherwise fire into nothing.
+		$this->assertSame( array( array( Runner::ANNOUNCE_HOOK, array( 3 ) ) ), $cleared );
 	}
 
 	public function test_a_duplicate_is_an_inactive_copy_named_as_such(): void {
@@ -472,12 +525,9 @@ class DateMessagesAdminPageTest extends TestCase {
 
 	public function test_assets_load_on_this_screen_only_and_carry_both_nonces(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
-		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\MessageBuilder' )->shouldReceive( 'defaults' )->andReturn(
-			array(
-				'subject' => 'S',
-				'body'    => 'DEFAULT',
-			)
-		);
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\MessageBuilder' )
+			->shouldReceive( 'defaults' )->andReturn( array( 'subject' => 'S', 'body' => 'DEFAULT' ) )
+			->shouldReceive( 'announcement_defaults' )->andReturn( array( 'subject' => 'A', 'body' => 'ANNOUNCE' ) );
 		Functions\when( 'wp_create_nonce' )->alias( static fn( $a ) => 'nonce-' . $a );
 		$media     = 0;
 		Functions\when( 'wp_enqueue_media' )->alias(
@@ -531,12 +581,15 @@ class DateMessagesAdminPageTest extends TestCase {
 			'name'     => 'Schools',
 			'children' => array( $child, 'not a node' ),
 		);
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )->shouldReceive( 'get_hierarchical' )->with( 'active' )->andReturn( array( $parent ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
+			->shouldReceive( 'get_hierarchical' )->with( 'active' )->andReturn( array( $parent ) )
+			->shouldReceive( 'get_members' )->andReturnUsing( static fn( int $id ): array => 1 === $id ? array( 10, 11, 12 ) : array( 10 ) );
 
+		// Each label carries the reach of its audience, sub-audiences included.
 		$this->assertSame(
 			array(
-				1 => 'Schools',
-				2 => '— Teachers',
+				1 => 'Schools (3)',
+				2 => '— Teachers (1)',
 			),
 			DateMessagesAdminPage::audience_options()
 		);
@@ -905,6 +958,7 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->reader->shouldReceive( 'all' )->andReturn( array( $this->filter_rule( 7, array( 1 ) ) ) );
 		$audiences = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		$audiences->shouldReceive( 'get_hierarchical' )->andReturn( array( (object) array( 'id' => 1, 'name' => 'Schools' ) ) );
+		$audiences->shouldReceive( 'get_members' )->andReturn( array( 42 ) );
 		$audiences->shouldReceive( 'get_user_audiences' )->with( 42 )->andReturn( array( (object) array( 'id' => 1, 'name' => 'Schools' ) ) );
 		$preview = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RecipientPreview' );
 		$preview->shouldReceive( 'collect' )->once()->with(

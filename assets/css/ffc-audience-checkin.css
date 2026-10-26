@@ -1,0 +1,92 @@
+/**
+ * The participant's check-in page (#1947).
+ *
+ * A document of its own, reached from a phone camera: one centred card.
+ * Reads the palette from ffc-common.css, its declared dependency.
+ */
+
+.ffc-shortcode.ffc-checkin-page {
+    display: flex;
+    min-height: 100vh;
+    margin: 0;
+    padding: var(--ffc-spacing-xl);
+    box-sizing: border-box;
+    align-items: flex-start;
+    justify-content: center;
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text);
+    font-family: var(--ffc-font-family);
+}
+
+.ffc-checkin-page .ffc-checkin-card {
+    width: 100%;
+    max-width: 420px;
+    margin-top: 8vh;
+    padding: var(--ffc-spacing-2xl);
+    box-sizing: border-box;
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-md);
+    background: var(--ffc-bg);
+    color: var(--ffc-text);
+}
+
+.ffc-checkin-page .ffc-checkin-title {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+    margin: 0 0 var(--ffc-spacing-lg);
+    font-size: var(--ffc-font-size-2xl);
+    line-height: 1.25;
+}
+
+.ffc-checkin-page .ffc-checkin-event {
+    margin: 0 0 var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-lg);
+    font-weight: 600;
+}
+
+.ffc-checkin-page .ffc-checkin-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+    margin: 0 0 var(--ffc-spacing-xl);
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-checkin-page .ffc-checkin-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ffc-spacing-xs);
+    margin: 0 0 var(--ffc-spacing-lg);
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-checkin-page .ffc-checkin-message {
+    margin: 0;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
+    border-radius: var(--ffc-radius-sm);
+    font-size: var(--ffc-font-size-base);
+}
+
+.ffc-checkin-page .ffc-checkin-success {
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+}
+
+.ffc-checkin-page .ffc-checkin-error,
+.ffc-checkin-page .ffc-checkin-geo-error {
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+}
+
+.ffc-checkin-page .ffc-checkin-geo-error {
+    margin: 0 0 var(--ffc-spacing-lg);
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
+    border-radius: var(--ffc-radius-sm);
+}
+
+.ffc-checkin-page .ffc-checkin-geo-error[hidden] {
+    display: none;
+}

@@ -87,6 +87,7 @@ $ffc_dm_int = static fn( $v ): int => is_numeric( $v ) ? (int) $v : 0;
 				<th scope="col"><?php esc_html_e( 'Trigger', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'Dates', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'Sent', 'ffcertificate' ); ?></th>
+				<th scope="col"><?php esc_html_e( 'Sent despite an opt-out', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'Opted out', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'No valid e-mail', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'Outside the audience', 'ffcertificate' ); ?></th>
@@ -123,7 +124,13 @@ $ffc_dm_int = static fn( $v ): int => is_numeric( $v ) ? (int) $v : 0;
 								</span>
 							<?php endif; ?>
 						<?php else : ?>
-							<?php echo esc_html( 'manual' === $ffc_dm_trigger ? __( 'Manual', 'ffcertificate' ) : __( 'Daily', 'ffcertificate' ) ); ?>
+							<?php
+							$ffc_dm_trigger_labels = array(
+								'manual'       => __( 'Manual', 'ffcertificate' ),
+								'announcement' => __( 'Announcement', 'ffcertificate' ),
+							);
+							echo esc_html( $ffc_dm_trigger_labels[ $ffc_dm_trigger ] ?? __( 'Daily', 'ffcertificate' ) );
+							?>
 						<?php endif; ?>
 					</td>
 					<td>
@@ -133,7 +140,7 @@ $ffc_dm_int = static fn( $v ): int => is_numeric( $v ) ? (int) $v : 0;
 						echo esc_html( DateFormatter::format_wallclock_date( $ffc_dm_from ) . ( $ffc_dm_to !== $ffc_dm_from ? ' – ' . DateFormatter::format_wallclock_date( $ffc_dm_to ) : '' ) );
 						?>
 					</td>
-					<?php foreach ( array( 'sent', 'opted_out', 'no_email', 'out_of_audience', 'failed' ) as $ffc_dm_counter ) : ?>
+					<?php foreach ( array( 'sent', 'forced', 'opted_out', 'no_email', 'out_of_audience', 'failed' ) as $ffc_dm_counter ) : ?>
 						<td><?php echo esc_html( number_format_i18n( $ffc_dm_int( $ffc_dm_run[ $ffc_dm_counter ] ?? 0 ) ) ); ?></td>
 					<?php endforeach; ?>
 					<td><?php echo esc_html( $ffc_dm_int( $ffc_dm_run['finished_at'] ?? 0 ) > 0 ? __( 'Finished', 'ffcertificate' ) : __( 'Running', 'ffcertificate' ) ); ?></td>

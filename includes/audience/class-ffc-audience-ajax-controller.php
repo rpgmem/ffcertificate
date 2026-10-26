@@ -144,6 +144,10 @@ final class AudienceAjaxController {
 				array(
 					'id'               => $booking->id,
 					'booking_date'     => $booking->booking_date,
+					'end_date'         => $booking->end_date ?? null,
+					'time_mode'        => $booking->time_mode ?? null,
+					'days'             => AudienceBookingRules::booked_days( (string) $booking->booking_date, $booking->end_date ?? null, $booking->skipped_dates ?? null ),
+					'time_label'       => AudienceBookingRules::time_label( (string) $booking->start_time, (string) $booking->end_time, AudienceBookingRules::is_span( $booking ) ),
 					'start_time'       => $booking->start_time,
 					'end_time'         => $booking->end_time,
 					'is_all_day'       => (int) ( $booking->is_all_day ?? 0 ),

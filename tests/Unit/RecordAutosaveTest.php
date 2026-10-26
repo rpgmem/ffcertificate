@@ -118,6 +118,34 @@ class RecordAutosaveTest extends TestCase {
 		$this->assertSame( array( 'key' => 'flag', 'value' => 1 ), $this->responses[0]['data'] );
 	}
 
+	public function test_an_entity_with_fragments_sends_the_screen_text_back_after_the_save(): void {
+		RecordAutosave::register(
+			'described',
+			array(
+				'cap'       => 'ffc_manage_things',
+				'fields'    => array( 'flag' => array( 'type' => 'bool' ) ),
+				'exists'    => static fn( int $id ): bool => 7 === $id,
+				'save'      => function ( int $id, string $key, $value ) {
+					$this->saved[] = array( $id, $key, $value );
+					return true;
+				},
+				'fragments' => fn( int $id ): array => array( 'summary-' . $id => 'Saved ' . count( $this->saved ) ),
+			)
+		);
+
+		$this->dispatch( array( 'entity' => 'described', 'id' => '7', 'key' => 'flag', 'value' => '1' ) );
+
+		$this->assertSame(
+			array(
+				'key'       => 'flag',
+				'value'     => 1,
+				'fragments' => array( 'summary-7' => 'Saved 1' ),
+			),
+			$this->responses[0]['data'],
+			'The fragments are read after the save, so they describe what was stored.'
+		);
+	}
+
 	public function test_a_mapped_checkbox_saves_the_stored_value_its_state_means(): void {
 		$this->dispatch( array( 'entity' => 'thing', 'id' => '7', 'key' => 'status', 'value' => '0' ) );
 
@@ -214,9 +242,26 @@ class RecordAutosaveTest extends TestCase {
 	}
 
 	public function test_an_unknown_field_type_sanitizes_to_null(): void {
-		$this->assertNull( RecordAutosave::sanitize( '1', array( 'type' => 'int' ) ) );
+		$this->assertNull( RecordAutosave::sanitize( '1', array( 'type' => 'float' ) ) );
 		$this->assertNull( RecordAutosave::sanitize( array( 'x' ), array( 'type' => 'enum', 'options' => array( 'x' ) ) ) );
 		$this->assertNull( RecordAutosave::sanitize( 'x', array( 'type' => 'list', 'options' => array( 'x' ) ) ) );
+	}
+
+	public function test_an_int_field_is_a_whole_number_inside_its_bounds(): void {
+		$field = array(
+			'type' => 'int',
+			'min'  => 1,
+			'max'  => 100,
+		);
+
+		$this->assertSame( 75, RecordAutosave::sanitize( '75', $field ) );
+		$this->assertSame( 1, RecordAutosave::sanitize( ' 1 ', $field ) );
+		$this->assertNull( RecordAutosave::sanitize( '', $field ), 'A cleared field is not 0.' );
+		$this->assertNull( RecordAutosave::sanitize( '0', $field ) );
+		$this->assertNull( RecordAutosave::sanitize( '101', $field ) );
+		$this->assertNull( RecordAutosave::sanitize( '7.5', $field ) );
+		$this->assertNull( RecordAutosave::sanitize( array( '7' ), $field ) );
+		$this->assertSame( -3, RecordAutosave::sanitize( '-3', array( 'type' => 'int' ) ), 'Without bounds any whole number is accepted.' );
 	}
 
 	public function test_entities_lists_what_was_registered(): void {

@@ -48,6 +48,13 @@ final class EmailSource {
 	public const AUDIENCE = 'plugin:ffcertificate_audience';
 
 	/**
+	 * Post-event certificate form invitations of an audience booking (#1948):
+	 * attributed apart from the booking notices, so the mail queue shows
+	 * which messages lead to a certificate.
+	 */
+	public const AUDIENCE_POST_EVENT = 'plugin:ffcertificate_audience_post_event';
+
+	/**
 	 * Re-registration campaign emails.
 	 */
 	public const REREGISTRATION = 'plugin:ffcertificate_reregistration';
@@ -61,6 +68,12 @@ final class EmailSource {
 	 * Date-based messages, such as birthdays (#1538).
 	 */
 	public const DATE_MESSAGES = 'plugin:ffcertificate_date_messages';
+
+	/**
+	 * Announcements to an audience (#1949): attributed apart from the dated
+	 * messages, so the mail queue shows what a one-off notice was.
+	 */
+	public const DATE_ANNOUNCEMENTS = 'plugin:ffcertificate_date_announcements';
 
 	/**
 	 * Account / capability notifications (access granted, etc.).
@@ -89,12 +102,16 @@ final class EmailSource {
 				return __( 'FFCertificate — Personal Calendars', 'ffcertificate' );
 			case self::AUDIENCE:
 				return __( 'FFCertificate — Audience Calendars', 'ffcertificate' );
+			case self::AUDIENCE_POST_EVENT:
+				return __( 'FFCertificate — Audience Calendars post-event forms', 'ffcertificate' );
 			case self::REREGISTRATION:
 				return __( 'FFCertificate — Reregistration', 'ffcertificate' );
 			case self::RECRUITMENT:
 				return __( 'FFCertificate — Recruitment', 'ffcertificate' );
 			case self::DATE_MESSAGES:
 				return __( 'FFCertificate — Date Messages', 'ffcertificate' );
+			case self::DATE_ANNOUNCEMENTS:
+				return __( 'FFCertificate — Announcements', 'ffcertificate' );
 			case self::ACCOUNT:
 				return __( 'FFCertificate — Account', 'ffcertificate' );
 			case self::ADMIN:

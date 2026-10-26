@@ -259,10 +259,10 @@ final class RecruitmentNoticeEditPageRenderer {
 				),
 				'cta'          => __( 'Promote to definitive', 'ffcertificate' ),
 				'style'        => 'primary',
-				// 15s countdown — issue #262 item 2. The promote step
-				// locks the classification list as final, so the modal
-				// adds a forced read pause before the CTA enables.
-				'countdown'    => 15,
+				// The promote step locks the classification list as final,
+				// so the modal adds a forced read pause before the CTA
+				// enables (#262), as long as every other confirm (#2078).
+				'countdown'    => \FreeFormCertificate\Core\ConfirmCountdown::SECONDS,
 			),
 			'closed'      => array(
 				'title'        => __( 'Close this notice?', 'ffcertificate' ),

@@ -183,7 +183,11 @@ class AssetRegistryTest extends TestCase {
 
 		$dynamic = $this->registration( 'ffc-dynamic-fragments' );
 		$this->assertStringContainsString( 'ffc-dynamic-fragments.min.js', $dynamic['src'] );
-		$this->assertSame( array(), $dynamic['deps'], 'ffc-dynamic-fragments has no dependencies.' );
+		// Only the boot watchdog it reports to (#2030), which has no
+		// dependencies of its own: the refresh still runs without jQuery.
+		$this->assertSame( array( 'ffc-preflight' ), $dynamic['deps'], 'ffc-dynamic-fragments depends on the boot watchdog alone.' );
+		$watchdog = $this->registration( 'ffc-preflight' );
+		$this->assertSame( array(), $watchdog['deps'], 'The boot watchdog has no dependencies: it runs when the scripts it watches did not load.' );
 		$this->assertTrue( $dynamic['in_footer'] );
 
 		$l10n = $this->localizations( 'ffc-dynamic-fragments' );
@@ -264,8 +268,8 @@ class AssetRegistryTest extends TestCase {
 		AssetRegistry::register_admin();
 
 		$canvas = $this->registration( 'html2canvas' );
-		$this->assertStringEndsWith( 'libs/js/html2canvas-' . FFC_HTML2CANVAS_VERSION . '.min.js', $canvas['src'] );
-		$this->assertSame( FFC_HTML2CANVAS_VERSION, $canvas['ver'] );
+		$this->assertStringEndsWith( 'libs/js/html2canvas-pro-' . FFC_HTML2CANVAS_PRO_VERSION . '.min.js', $canvas['src'] );
+		$this->assertSame( FFC_HTML2CANVAS_PRO_VERSION, $canvas['ver'] );
 
 		$pdf = $this->registration( 'jspdf' );
 		$this->assertStringEndsWith( 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js', $pdf['src'] );
@@ -282,7 +286,7 @@ class AssetRegistryTest extends TestCase {
 			'autosave reaches FFC.request and the FFC.Admin namespace' => array( 'ffc-admin-autosave', array( 'jquery', 'ffc-core', 'ffc-admin-js' ) ),
 			'the admin script carries the export button driver'       => array( 'ffc-admin-js', array( 'jquery', 'ffc-core', 'ffc-batched-export' ) ),
 			'the field behaviours build on FFC'                       => array( 'ffc-field-behaviours', array( 'jquery', 'ffc-core' ) ),
-			'the PDF generator needs both bundles and jQuery'         => array( 'ffc-pdf-generator', array( 'jquery', 'html2canvas', 'jspdf' ) ),
+			'the PDF generator needs both bundles, jQuery and FFC.Platform' => array( 'ffc-pdf-generator', array( 'jquery', 'ffc-core', 'html2canvas', 'jspdf' ) ),
 			'the calendar core needs nothing of FFC'                  => array( 'ffc-calendar-core', array( 'jquery' ) ),
 			'the geofence modules extend the geofence core'           => array( 'ffc-geofence-gps', array( 'jquery', 'ffc-geofence-frontend' ) ),
 			'the URL shortener script calls FFC.request and the QR raster' => array( 'ffc-url-shortener-admin', array( 'jquery', 'ffc-core', 'ffc-admin-js', 'ffc-qr-raster' ) ),

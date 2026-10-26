@@ -137,15 +137,16 @@ class SubmissionHandler {
 	 *
 	 * @uses Repository::insert()
 	 *
-	 * @param int                              $form_id         Form ID.
-	 * @param string                           $form_title      Form title.
-	 * @param array<string, mixed>             $submission_data Submission data (passed by reference).
-	 * @param string                           $user_email      User email.
-	 * @param array<int, array<string, mixed>> $fields_config   Fields configuration (list of field definitions).
-	 * @param array<string, mixed>             $form_config     Form configuration.
+	 * @param int                                                               $form_id         Form ID.
+	 * @param string                                                            $form_title      Form title.
+	 * @param array<string, mixed>                                              $submission_data Submission data (passed by reference).
+	 * @param string                                                            $user_email      User email.
+	 * @param array<int, array<string, mixed>>                                  $fields_config   Fields configuration (list of field definitions).
+	 * @param array<string, mixed>                                              $form_config     Form configuration.
+	 * @param array{submission_date?: int, send_email?: bool, record_ip?: bool} $options Optional. `submission_date` overrides the issue time (unix UTC, default now); `send_email` set to false skips the async e-mail pipeline (default true); `record_ip` set to false stores no IP (default true), since an operator's request is not the participant's — the bulk issue uses all three (#1945).
 	 * @return int|\WP_Error
 	 */
-	public function process_submission( int $form_id, string $form_title, array &$submission_data, string $user_email, array $fields_config, array $form_config ) {
+	public function process_submission( int $form_id, string $form_title, array &$submission_data, string $user_email, array $fields_config, array $form_config, array $options = array() ) {
 		/**
 		 * Fires before a submission is saved to the database.
 		 *
@@ -193,8 +194,9 @@ class SubmissionHandler {
 			$data_json = '{}';
 		}
 
-		// 5. Get user IP.
-		$user_ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
+		// 5. Get user IP. An issue made on the participant's behalf records none:
+		// the request is the operator's.
+		$user_ip = ( $options['record_ip'] ?? true ) ? \FreeFormCertificate\Core\RequestInput::get_user_ip() : null;
 
 		// 5b. Extract ticket value (for hash-based lookup)
 		$ticket_value = isset( $extra_data['ticket'] ) ? strtoupper( trim( (string) $extra_data['ticket'] ) ) : null;
@@ -268,6 +270,9 @@ class SubmissionHandler {
 			}
 		}
 
+		$issued_at  = isset( $options['submission_date'] ) ? (int) $options['submission_date'] : time();
+		$send_email = $options['send_email'] ?? true;
+
 		// 9. Prepare insert data.
 		$insert_data = array(
 			'form_id'           => $form_id,
@@ -275,7 +280,7 @@ class SubmissionHandler {
 			// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
 			// `time()` is TZ-neutral by construction so we don't go through
 			// `current_time()` here.
-			'submission_date'   => time(),
+			'submission_date'   => $issued_at,
 			'auth_code'         => $clean_auth_code,
 			'status'            => 'publish',
 			'magic_token'       => $magic_token,
@@ -339,7 +344,7 @@ class SubmissionHandler {
 		// `dispatch_async_pipeline()` rehydrates the eight values from the row
 		// and the form and fires the public hook with them, so no external
 		// listener notices the change.
-		if ( function_exists( 'wp_schedule_single_event' ) ) {
+		if ( $send_email && function_exists( 'wp_schedule_single_event' ) ) {
 			wp_schedule_single_event(
 				time() + 1,
 				self::ASYNC_PIPELINE_HOOK,
@@ -372,6 +377,19 @@ class SubmissionHandler {
 	 */
 	public function register_async_pipeline(): void {
 		add_action( self::ASYNC_PIPELINE_HOOK, array( $this, 'dispatch_async_pipeline' ), 10, 1 );
+		add_action( 'ffcertificate_link_sent', array( $this, 'record_link_sent' ), 10, 1 );
+	}
+
+	/**
+	 * Stores when the link e-mail for a submission was handed to the mailer (#1967).
+	 *
+	 * Fired by EmailHandler after a successful send that carries the magic link.
+	 *
+	 * @param int $submission_id Submission ID.
+	 * @return void
+	 */
+	public function record_link_sent( int $submission_id ): void {
+		$this->repository->update( $submission_id, array( 'link_sent_at' => time() ) );
 	}
 
 	/**
@@ -443,7 +461,7 @@ class SubmissionHandler {
 		$user_email  = isset( $submission['email'] ) ? (string) $submission['email'] : '';
 		$magic_token = isset( $submission['magic_token'] ) ? (string) $submission['magic_token'] : '';
 
-		$submission_data = $this->rebuild_submission_data( $submission );
+		$submission_data = self::submission_data( $submission );
 
 		$fields_config = $form_id > 0 ? get_post_meta( $form_id, '_ffc_form_fields', true ) : array();
 		$form_config   = $form_id > 0 ? get_post_meta( $form_id, '_ffc_form_config', true ) : array();
@@ -485,7 +503,7 @@ class SubmissionHandler {
 	 * @param array<string, mixed> $submission The already decrypted row.
 	 * @return array<string, mixed>
 	 */
-	private function rebuild_submission_data( array $submission ): array {
+	public static function submission_data( array $submission ): array {
 		$data = array();
 
 		$email = isset( $submission['email'] ) ? (string) $submission['email'] : '';

@@ -144,7 +144,7 @@ class AudienceActivatorTest extends TestCase {
 
 		AudienceActivator::create_tables();
 
-		$this->assertSame( 9, $delta_count, 'dbDelta should be called 9 times for 9 audience tables' );
+		$this->assertSame( 12, $delta_count, 'dbDelta should be called 12 times for 12 audience tables' );
 	}
 
 	// ==================================================================
@@ -260,7 +260,7 @@ class AudienceActivatorTest extends TestCase {
 	// drop_tables()
 	// ==================================================================
 
-	public function test_drop_tables_drops_all_nine(): void {
+	public function test_drop_tables_drops_all_twelve(): void {
 		$prepared_queries = [];
 		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$prepared_queries ) {
 			$args = func_get_args();
@@ -275,7 +275,7 @@ class AudienceActivatorTest extends TestCase {
 			return stripos( $args[0], 'DROP TABLE IF EXISTS' ) !== false;
 		} );
 
-		$this->assertCount( 9, $drop_queries, 'Should prepare DROP TABLE for all 9 audience tables' );
+		$this->assertCount( 12, $drop_queries, 'Should prepare DROP TABLE for all 12 audience tables' );
 	}
 
 	// ==================================================================
@@ -299,7 +299,7 @@ class AudienceActivatorTest extends TestCase {
 
 		$status = AudienceActivator::get_tables_status();
 
-		$this->assertCount( 9, $status, 'Should return status for 9 tables' );
+		$this->assertCount( 12, $status, 'Should return status for 12 tables' );
 
 		foreach ( $status as $key => $info ) {
 			$this->assertTrue( $info['exists'], "Table '$key' should be reported as existing" );
@@ -327,7 +327,7 @@ class AudienceActivatorTest extends TestCase {
 
 		$status = AudienceActivator::get_tables_status();
 
-		$this->assertCount( 9, $status, 'Should return status for 9 tables' );
+		$this->assertCount( 12, $status, 'Should return status for 12 tables' );
 
 		foreach ( $status as $key => $info ) {
 			$this->assertFalse( $info['exists'], "Table '$key' should be reported as not existing" );
@@ -408,16 +408,20 @@ class AudienceActivatorTest extends TestCase {
 				return preg_match( "/SHOW TABLES LIKE\s+'([^']+)'/", $query, $m ) ? $m[1] : null;
 			}
 		);
-		// SHOW COLUMNS answers nothing: both columns are missing.
+		// SHOW COLUMNS finds a column only once an ALTER added it: both start missing.
+		$added = array();
 		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
-			static function ( $query ) use ( &$queries ) {
+			static function ( $query ) use ( &$queries, &$added ) {
 				$queries[] = $query;
-				return array();
+				return preg_match( "/SHOW COLUMNS FROM .* LIKE '([^']+)'/", (string) $query, $m ) && in_array( stripslashes( $m[1] ), $added, true ) ? array( (object) array( 'Field' => $m[1] ) ) : array();
 			}
 		);
 		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
-			static function ( $query ) use ( &$queries ) {
+			static function ( $query ) use ( &$queries, &$added ) {
 				$queries[] = $query;
+				if ( preg_match( "/ADD COLUMN '([^']+)'/", (string) $query, $m ) ) {
+					$added[] = $m[1];
+				}
 				return 1;
 			}
 		);
@@ -434,6 +438,44 @@ class AudienceActivatorTest extends TestCase {
 		AudienceActivator::maybe_migrate();
 
 		$this->assertSame( array(), $queries, 'a second request is a no-op' );
+	}
+
+	/**
+	 * An ALTER that fails leaves the revision unwritten, so the next request
+	 * tries again; writing it anyway left the install without the column for
+	 * good, and every write naming the column failed.
+	 */
+	public function test_a_failed_alter_leaves_the_revision_unwritten(): void {
+		$options = array(
+			'ffc_audience_schema_version' => FFC_VERSION,
+		);
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, $default_value = false ) use ( &$options ) {
+				return $options[ $key ] ?? $default_value;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, $value ) use ( &$options ): bool {
+				$options[ $key ] = $value;
+				return true;
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+		$this->wpdb->shouldReceive( 'suppress_errors' )->andReturn( false );
+		$this->wpdb->shouldReceive( 'print_error' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $query ) {
+				if ( false !== stripos( (string) $query, 'ALTER TABLE' ) ) {
+					$this->wpdb->last_error = 'ALTER command denied';
+					return false;
+				}
+				return 1;
+			}
+		);
+
+		AudienceActivator::maybe_migrate();
+
+		$this->assertArrayNotHasKey( AudienceActivator::SCHEMA_REVISION_OPTION, $options );
 	}
 
 	// ==================================================================

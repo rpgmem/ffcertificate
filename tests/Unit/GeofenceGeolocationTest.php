@@ -165,7 +165,8 @@ class GeofenceGeolocationTest extends TestCase {
 		$result = Geofence::validate_geolocation( $config, $user_location );
 
 		$this->assertTrue( $result['valid'] );
-		$this->assertSame( $user_location, $result['details']['user_location'] );
+		// The position is not carried in the result, which a denial logs (#2040).
+		$this->assertSame( array( 'reason' => 'inside_allowed_areas' ), $result['details'] );
 	}
 
 	/**

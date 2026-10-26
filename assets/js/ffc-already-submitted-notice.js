@@ -166,7 +166,19 @@
 		if ( $form.length === 0 ) {
 			return;
 		}
-		maybeRenderNotice( $form );
 		bindSubmissionSuccessTracker( $form );
+
+		// After the visitor pre-flight (#2030): the notice must not stack
+		// with a block, so it waits for the queue to pass. A form the queue
+		// does not run on (no pre-flight script) takes it at once.
+		var $wrapper = $form.closest( '.ffc-form-wrapper' );
+		var queued   = $wrapper.length && window.ffcGeofenceConfig && window.FFC && window.FFC.Preflight;
+		if ( ! queued || $wrapper.hasClass( 'ffc-validated' ) ) {
+			maybeRenderNotice( $form );
+			return;
+		}
+		$wrapper.one( 'ffc:preflight-passed', function () {
+			maybeRenderNotice( $form );
+		} );
 	} );
 }( jQuery ));

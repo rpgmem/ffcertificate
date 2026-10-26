@@ -21,7 +21,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Core\Captcha;
 
-use FreeFormCertificate\Core\RequestInput;
+use FreeFormCertificate\Core\WindowThrottle;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -107,43 +107,6 @@ class AltchaChallengeEndpoint {
 	 * @return bool True when the caller may mint another challenge.
 	 */
 	private static function allow_mint(): bool {
-		$cap = CaptchaSettings::mint_cap();
-		if ( $cap <= 0 ) {
-			return true;
-		}
-
-		$ip = RequestInput::get_user_ip();
-		if ( '' === $ip ) {
-			return true;
-		}
-
-		/*
-		 * Fixed windows, not a sliding one: the key carries the window number,
-		 * so a steady caller crosses into a fresh bucket instead of holding
-		 * one open. Re-setting a single transient on every mint would renew
-		 * its expiry each time and never reset the count. This is the same
-		 * bucketing `RateLimitChecker::check_global_limit()` already uses.
-		 *
-		 * The address is hashed and never stored raw — an option name is
-		 * readable by anything that can list options, and a visitor IP is
-		 * personal data.
-		 *
-		 * The window length is part of the bucket number, so shortening or
-		 * lengthening it in the settings simply moves callers into a fresh
-		 * bucket rather than reinterpreting counts taken under the old one.
-		 */
-		$window = CaptchaSettings::mint_window();
-		$bucket = (int) floor( time() / $window );
-		$key    = self::PREFIX . substr( hash( 'sha256', $ip ), 0, 32 ) . '_' . $bucket;
-		$count  = \get_transient( $key );
-		$count  = is_numeric( $count ) ? (int) $count : 0;
-
-		if ( $count >= $cap ) {
-			return false;
-		}
-
-		\set_transient( $key, $count + 1, $window );
-
-		return true;
+		return WindowThrottle::take( self::PREFIX, CaptchaSettings::mint_cap(), CaptchaSettings::mint_window() );
 	}
 }

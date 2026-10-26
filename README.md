@@ -26,7 +26,7 @@ Forms can be restricted by allowlist, denylist, single-use tickets, a date and t
 
 ## Scheduling
 
-**Personal calendars** let people book a time slot with a person or a service: business hours, slot length, capacity, approval, waitlists, reminders and PDF receipts. **Audience calendars** book rooms and other shared spaces for whole groups, with conflict detection and holidays.
+**Personal calendars** let people book a time slot with a person or a service: business hours, slot length, capacity, approval, waitlists, reminders and PDF receipts. **Audience calendars** book rooms and other shared spaces for whole groups, with conflict detection, holidays, QR self-check-in attendance and a post-event certificate form each participant is invited to by e-mail.
 
 | Booking calendar | Room calendar |
 | --- | --- |

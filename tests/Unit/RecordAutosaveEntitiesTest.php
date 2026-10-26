@@ -82,6 +82,118 @@ class RecordAutosaveEntitiesTest extends TestCase {
 		);
 	}
 
+	public function test_the_booking_registers_its_attendance_and_post_event_fields(): void {
+		AudienceRecordAutosave::register();
+
+		$booking = $this->registered['audience_booking'];
+		$this->assertSame( 'ffc_manage_audiences', $booking['cap'] );
+		$this->assertSame(
+			array( 'attendance_mode', 'attendance_min_percent', 'post_event_custom', 'post_event_form_id', 'post_event_window_days', 'post_event_attendees_only' ),
+			array_keys( $booking['fields'] )
+		);
+		$this->assertSame( 1, $booking['fields']['attendance_min_percent']['min'] );
+		$this->assertSame( 90, $booking['fields']['post_event_window_days']['max'] );
+		$this->assertSame( array( AudienceRecordAutosave::class, 'booking_fragments' ), $booking['fragments'] );
+	}
+
+	public function test_the_booking_fragments_are_the_attendance_screen_s_for_the_stored_row(): void {
+		$this->booking_world( array( 'attendance_mode' => 'total' ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceAdminAttendance' )
+			->shouldReceive( 'fragments' )->once()
+			->with( Mockery::on( static fn( $b ): bool => 5 === $b->id && 'total' === $b->attendance_mode ) )
+			->andReturn( array( 'ffc-attendance-rule-summary' => 'As saved' ) );
+
+		$this->assertSame( array( 'ffc-attendance-rule-summary' => 'As saved' ), AudienceRecordAutosave::booking_fragments( 5 ) );
+	}
+
+	public function test_a_booking_gone_has_no_fragments(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' )
+			->shouldReceive( 'get_by_id' )->andReturn( null );
+
+		$this->assertSame( array(), AudienceRecordAutosave::booking_fragments( 5 ) );
+	}
+
+	/**
+	 * The booking reader and writer, the booking it answers, and the
+	 * calendar the booking follows.
+	 *
+	 * @param array<string, mixed> $booking Booking columns.
+	 * @return \Mockery\MockInterface The writer.
+	 */
+	private function booking_world( array $booking ) {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' )
+			->shouldReceive( 'get_by_id' )->andReturn( (object) array_merge( array( 'id' => 5, 'schedule_id' => 3 ), $booking ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' )
+			->shouldReceive( 'get_by_id' )->andReturn(
+				(object) array(
+					'post_event_form_id'        => '40',
+					'post_event_window_days'    => '10',
+					'post_event_attendees_only' => '1',
+				)
+			);
+		Functions\when( 'get_post' )->alias(
+			static function ( $id ) {
+				if ( 40 !== (int) $id && 41 !== (int) $id ) {
+					return null;
+				}
+				$post              = new \WP_Post();
+				$post->post_type   = 'ffc_form';
+				$post->post_status = 'publish';
+				return $post;
+			}
+		);
+		return Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingWriter' );
+	}
+
+	public function test_choosing_share_of_days_keeps_the_stored_share_or_starts_from_the_default(): void {
+		$writer = $this->booking_world( array( 'attendance_mode' => null, 'attendance_min_percent' => null ) );
+		$writer->shouldReceive( 'set_attendance_rule' )->once()->with( 5, 'total', 75 )->andReturn( true );
+
+		$this->assertTrue( AudienceRecordAutosave::save_booking( 5, 'attendance_mode', 'total' ) );
+	}
+
+	public function test_a_share_typed_saves_under_share_of_days(): void {
+		$writer = $this->booking_world( array( 'attendance_mode' => 'total', 'attendance_min_percent' => '75' ) );
+		$writer->shouldReceive( 'set_attendance_rule' )->once()->with( 5, 'total', 50 )->andReturn( true );
+
+		$this->assertTrue( AudienceRecordAutosave::save_booking( 5, 'attendance_min_percent', 50 ) );
+	}
+
+	public function test_switching_to_own_settings_starts_from_the_calendar_s(): void {
+		$writer = $this->booking_world( array( 'post_event_custom' => '0' ) );
+		$writer->shouldReceive( 'set_post_event_form' )->once()->with( 5, true, 40, 10, true )->andReturn( true );
+
+		$this->assertTrue( AudienceRecordAutosave::save_booking( 5, 'post_event_custom', 1 ) );
+	}
+
+	public function test_one_own_setting_changes_and_the_others_keep_their_value(): void {
+		$writer = $this->booking_world(
+			array(
+				'post_event_custom'         => '1',
+				'post_event_form_id'        => '40',
+				'post_event_window_days'    => '7',
+				'post_event_attendees_only' => '0',
+			)
+		);
+		$writer->shouldReceive( 'set_post_event_form' )->once()->with( 5, true, 41, 7, false )->andReturn( true );
+
+		$this->assertTrue( AudienceRecordAutosave::save_booking( 5, 'post_event_form_id', 41 ) );
+	}
+
+	public function test_a_form_that_is_not_a_published_form_is_refused_and_nothing_written(): void {
+		$writer = $this->booking_world( array( 'post_event_custom' => '1' ) );
+		$writer->shouldNotReceive( 'set_post_event_form' );
+
+		$this->assertInstanceOf( \WP_Error::class, AudienceRecordAutosave::save_booking( 5, 'post_event_form_id', 99 ) );
+	}
+
+	public function test_a_failed_booking_write_is_an_error(): void {
+		$writer = $this->booking_world( array() );
+		$writer->shouldReceive( 'set_attendance_rule' )->andReturn( false );
+
+		$this->assertInstanceOf( \WP_Error::class, AudienceRecordAutosave::save_booking( 5, 'attendance_mode', 'single' ) );
+	}
+
 	public function test_a_calendar_field_is_a_one_column_update(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' )
 			->shouldReceive( 'update' )->once()->with( 4, array( 'visibility' => 'public' ) )->andReturn( true );
@@ -361,6 +473,67 @@ class RecordAutosaveEntitiesTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleWriter' )->shouldReceive( 'save' )->andReturn( false );
 
 		$this->assertInstanceOf( \WP_Error::class, DateMessagesRecordAutosave::save( 6, 'send_to_user', 0 ) );
+	}
+
+	/**
+	 * An inactive announcement with a future send time.
+	 *
+	 * @param bool $active Whether it is active.
+	 * @return \FreeFormCertificate\DateMessages\Rule
+	 */
+	private function announcement( bool $active ) {
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => trim( (string) $v ) );
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+
+		$rule = \FreeFormCertificate\DateMessages\Rule::from_array(
+			array(
+				'id'        => 6,
+				'name'      => 'Closing',
+				'kind'      => 'announcement',
+				'subject'   => 'Closed',
+				'body'      => '<p>x</p>',
+				'send_at'   => time() + 3600,
+				'is_active' => $active ? '1' : '0',
+			)
+		);
+		$this->assertInstanceOf( \FreeFormCertificate\DateMessages\Rule::class, $rule );
+		return $rule;
+	}
+
+	public function test_switching_an_announcement_on_schedules_its_send(): void {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_send_date_messages' === $cap );
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		$before = $this->announcement( false );
+		$after  = $this->announcement( true );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleReader' )->shouldReceive( 'get_by_id' )->with( 6 )->andReturn( $before, $after );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleWriter' )->shouldReceive( 'save' )->once()->andReturn( 6 );
+		Functions\expect( 'wp_clear_scheduled_hook' )->once();
+		Functions\expect( 'wp_schedule_single_event' )->once()->with( $after->send_at, \FreeFormCertificate\DateMessages\Runner::ANNOUNCE_HOOK, array( 6 ) )->andReturn( true );
+
+		$this->assertTrue( DateMessagesRecordAutosave::save( 6, 'is_active', 1 ) );
+	}
+
+	public function test_switching_an_announcement_on_needs_the_right_to_send(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleReader' )->shouldReceive( 'get_by_id' )->andReturn( $this->announcement( false ) );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleWriter' )->shouldNotReceive( 'save' );
+		Functions\expect( 'wp_schedule_single_event' )->never();
+
+		$result = DateMessagesRecordAutosave::save( 6, 'is_active', 1 );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( \FreeFormCertificate\DateMessages\DateMessagesAdminPage::send_refusal(), $result->get_error_message() );
+	}
+
+	public function test_switching_an_announcement_off_clears_its_send(): void {
+		$before = $this->announcement( true );
+		$after  = $this->announcement( false );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleReader' )->shouldReceive( 'get_by_id' )->andReturn( $before, $after );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleWriter' )->shouldReceive( 'save' )->once()->andReturn( 6 );
+		Functions\expect( 'wp_clear_scheduled_hook' )->once()->with( \FreeFormCertificate\DateMessages\Runner::ANNOUNCE_HOOK, array( 6 ) );
+		Functions\expect( 'wp_schedule_single_event' )->never();
+
+		$this->assertTrue( DateMessagesRecordAutosave::save( 6, 'is_active', 0 ) );
 	}
 
 	// ------------------------------------------------------------------

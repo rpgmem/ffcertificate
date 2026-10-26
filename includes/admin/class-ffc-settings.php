@@ -84,6 +84,8 @@ class Settings {
 		// dropped every tab's script enqueue. admin_init fires after init
 		// (so __() in tab metadata is safe) and before admin_enqueue_scripts.
 		add_action( 'admin_init', array( $this, 'load_tabs' ), 5 );
+		// Before the tabs' own enqueue callbacks (priority 10), so is_active() sees the tab shown.
+		add_action( 'admin_enqueue_scripts', array( $this, 'record_active_tab' ), 1 );
 		add_action( 'admin_init', array( $this, 'handle_settings_submission' ) );
 		add_action( 'admin_init', array( $this, 'handle_clear_qr_cache' ) );
 		add_action( 'admin_init', array( $this, 'handle_send_test_email' ) );
@@ -287,6 +289,8 @@ class Settings {
 			'validate_rf_check_digit'    => false,
 			'cleanup_days'               => 365,
 			'quiz_focus_grace_ms'        => 1000,
+			// Settings → Certificates: check the visitor's browser (#2030).
+			'browser_check'              => true,
 			// The "Required data" table on Settings → Certificates (#1759).
 			// Empty reads as "not built yet": RequiredData::maybe_migrate()
 			// builds it from the two legacy keys, and until then the readers
@@ -489,6 +493,18 @@ class Settings {
 					|| \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( $this->tab_manage_cap( $tab ) );
 			}
 		);
+	}
+
+	/**
+	 * Record which tab this request shows, for the tabs' enqueue gates.
+	 *
+	 * @param string $hook Current admin page hook suffix.
+	 */
+	public function record_active_tab( string $hook ): void {
+		if ( \FreeFormCertificate\Settings\SettingsTab::SETTINGS_PAGE_HOOK !== $hook ) {
+			return;
+		}
+		\FreeFormCertificate\Settings\SettingsTab::set_resolved_active_tab( $this->resolve_active_tab( $this->visible_tabs() ) );
 	}
 
 	/**

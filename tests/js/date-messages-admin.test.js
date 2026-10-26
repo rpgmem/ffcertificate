@@ -255,4 +255,77 @@ describe('ffc-date-messages-admin', () => {
 		expect(window.$('.ffc-dm-image-preview').hasClass('ffc-hidden')).toBe(false);
 		delete window.wp;
 	});
+
+	it('swaps to the announcement default when the kind changes and the subject still holds the dated one', async () => {
+		installEditorDom();
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			'<select id="ffc-dm-kind"><option value="dated" selected>D</option><option value="announcement">A</option></select>' +
+				'<input id="ffc-dm-subject" value="Happy birthday!">' +
+				'<textarea id="ffc_dm_body">dated body</textarea>' +
+				'<button type="button" class="ffc-email-restore-default" data-editor="ffc_dm_body" data-default-key="date_message_body">R</button>'
+		);
+		window.ffcDateMessageDefaults = {
+			dated: { subject: 'Happy birthday!', body: 'dated body' },
+			announcement: { subject: 'Site: announcement', body: 'announcement body' },
+		};
+		await loadOnReady();
+
+		window.$('#ffc-dm-kind').val('announcement').trigger('change');
+		expect(window.$('#ffc-dm-subject').val()).toBe('Site: announcement');
+		expect(window.$('#ffc_dm_body').val()).toBe('announcement body');
+		expect(window.$('.ffc-email-restore-default').attr('data-default-key')).toBe('date_message_announcement_body');
+
+		// A subject the operator typed is left alone.
+		window.$('#ffc-dm-subject').val('Mine');
+		window.$('#ffc_dm_body').val('mine');
+		window.$('#ffc-dm-kind').val('dated').trigger('change');
+		expect(window.$('#ffc-dm-subject').val()).toBe('Mine');
+		expect(window.$('.ffc-email-restore-default').attr('data-default-key')).toBe('date_message_body');
+		delete window.ffcDateMessageDefaults;
+	});
+
+	it('shows the people who opted out and receive it anyway, apart from the total', async () => {
+		installSendDom();
+		window.ffcDateMessages.strings.forced = 'Forced past the opt-out';
+		request.mockResolvedValue({ totals: { will_send: 3, opted_out: 1, forced: 2 }, rows: [], pii: false });
+		await loadOnReady();
+
+		window.$('.ffc-dm-preview-button').trigger('click');
+		await flush();
+		expect(window.$('.ffc-dm-preview-result').text()).toContain('Forced past the opt-out: 2');
+	});
+
+	it('shows the rows of the chosen kind and hides the others', async () => {
+		installEditorDom();
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			'<select id="ffc-dm-kind"><option value="dated" selected>D</option><option value="announcement">A</option></select>' +
+				'<input id="ffc-dm-subject" value="x"><textarea id="ffc_dm_body">b</textarea>' +
+				'<table><tr data-ffc-dm-kind-only="dated"><td>offset</td></tr><tr data-ffc-dm-kind-only="announcement" hidden><td>send at</td></tr></table>'
+		);
+		window.ffcDateMessageDefaults = { dated: { subject: 'd', body: 'd' }, announcement: { subject: 'a', body: 'a' } };
+		await loadOnReady();
+
+		window.$('#ffc-dm-kind').val('announcement').trigger('change');
+		expect(window.$('[data-ffc-dm-kind-only="dated"]').prop('hidden')).toBe(true);
+		expect(window.$('[data-ffc-dm-kind-only="announcement"]').prop('hidden')).toBe(false);
+		delete window.ffcDateMessageDefaults;
+	});
+
+	it('asks for dates only when the rule chosen on the send tab is dated', async () => {
+		document.body.innerHTML = '';
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			'<select class="ffc-dm-rule"><option value="1" data-ffc-dm-kind="announcement" selected>A</option><option value="2" data-ffc-dm-kind="dated">D</option></select>' +
+				'<table><tr data-ffc-dm-dated-only><td>dates</td></tr></table>'
+		);
+		await loadOnReady();
+
+		expect(window.$('[data-ffc-dm-dated-only]').prop('hidden')).toBe(true);
+		window.$('.ffc-dm-rule').val('2').trigger('change');
+		expect(window.$('[data-ffc-dm-dated-only]').prop('hidden')).toBe(false);
+		window.$('.ffc-dm-rule').val('1').trigger('change');
+		expect(window.$('[data-ffc-dm-dated-only]').prop('hidden')).toBe(true);
+	});
 });

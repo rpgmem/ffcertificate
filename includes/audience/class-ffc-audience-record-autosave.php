@@ -38,6 +38,7 @@ class AudienceRecordAutosave {
 		'show_event_list',
 		'is_isolated',
 		'admin_bypass',
+		'post_event_attendees_only',
 	);
 
 	/**
@@ -95,6 +96,40 @@ class AudienceRecordAutosave {
 				),
 				'exists' => static fn( int $id ): bool => null !== AudienceReader::get_by_id( $id ),
 				'save'   => array( self::class, 'save_audience' ),
+			)
+		);
+		// The Attendance screen's rule and post-event cards (#2022). A booking
+		// is edited by the module's managers, the same capability its Save
+		// buttons checked.
+		RecordAutosave::register(
+			'audience_booking',
+			array(
+				'cap'       => 'ffc_manage_audiences',
+				'fields'    => array(
+					'attendance_mode'           => array(
+						'type'    => 'enum',
+						'options' => array( AudienceAttendanceRule::SINGLE, AudienceAttendanceRule::TOTAL ),
+					),
+					'attendance_min_percent'    => array(
+						'type' => 'int',
+						'min'  => 1,
+						'max'  => 100,
+					),
+					'post_event_custom'         => array( 'type' => 'bool' ),
+					'post_event_form_id'        => array(
+						'type' => 'int',
+						'min'  => 0,
+					),
+					'post_event_window_days'    => array(
+						'type' => 'int',
+						'min'  => 1,
+						'max'  => AudiencePostEventForm::MAX_WINDOW_DAYS,
+					),
+					'post_event_attendees_only' => array( 'type' => 'bool' ),
+				),
+				'exists'    => static fn( int $id ): bool => null !== AudienceBookingReader::get_by_id( $id ),
+				'save'      => array( self::class, 'save_booking' ),
+				'fragments' => array( self::class, 'booking_fragments' ),
 			)
 		);
 	}
@@ -162,6 +197,86 @@ class AudienceRecordAutosave {
 
 		if ( ! AudienceWriter::update( $id, array( $key => $value ) ) ) {
 			return new \WP_Error( 'ffc_record_not_saved', __( 'The audience could not be saved.', 'ffcertificate' ) );
+		}
+		return true;
+	}
+
+	/**
+	 * What the Attendance screen shows about a booking after a save (#2026),
+	 * read back from the stored row.
+	 *
+	 * @param int $id Booking id.
+	 * @return array<string, string>
+	 */
+	public static function booking_fragments( int $id ): array {
+		$booking = AudienceBookingReader::get_by_id( $id );
+
+		return null === $booking ? array() : AudienceAdminAttendance::fragments( $booking );
+	}
+
+	/**
+	 * Save one field of a booking's attendance rule or post-event form.
+	 *
+	 * Both are written as a whole, so the field changed is merged into what
+	 * the booking holds now. The rule keeps its share when the mode changes,
+	 * and *Share of days* starts from the default share when none was set.
+	 * The post-event settings start from the calendar's while the booking
+	 * still follows it, so switching it to its own settings keeps what was
+	 * shown; a field changed while it follows its calendar switches it.
+	 *
+	 * @param int    $id    Booking id.
+	 * @param string $key   Field.
+	 * @param mixed  $value Typed value.
+	 * @return true|\WP_Error
+	 */
+	public static function save_booking( int $id, string $key, $value ) {
+		$booking = AudienceBookingReader::get_by_id( $id );
+		if ( null === $booking ) {
+			return new \WP_Error( 'ffc_record_not_saved', __( 'The booking could not be saved.', 'ffcertificate' ) );
+		}
+
+		if ( 'attendance_mode' === $key || 'attendance_min_percent' === $key ) {
+			$rule    = AudienceAttendanceRule::of( $booking );
+			$mode    = 'attendance_mode' === $key ? (string) $value : AudienceAttendanceRule::TOTAL;
+			$percent = 'attendance_min_percent' === $key ? (int) $value : ( $rule['percent'] > 0 ? $rule['percent'] : AudienceAttendanceRule::DEFAULT_PERCENT );
+			if ( ! AudienceBookingWriter::set_attendance_rule( $id, $mode, $percent ) ) {
+				return new \WP_Error( 'ffc_record_not_saved', __( 'The booking could not be saved.', 'ffcertificate' ) );
+			}
+			return true;
+		}
+
+		if ( 'post_event_form_id' === $key && 0 !== (int) $value && ! AudiencePostEventForm::is_form( (int) $value ) ) {
+			return new \WP_Error( 'ffc_record_not_saved', __( 'Choose a published certificate form.', 'ffcertificate' ) );
+		}
+
+		$custom = AudiencePostEventForm::is_custom( $booking );
+		if ( $custom ) {
+			$settings = AudiencePostEventForm::settings( $booking );
+		} else {
+			$schedule_id = (int) ( $booking->schedule_id ?? 0 );
+			$settings    = AudiencePostEventForm::of_schedule( $schedule_id > 0 ? AudienceScheduleRepository::get_by_id( $schedule_id ) : null );
+		}
+
+		switch ( $key ) {
+			case 'post_event_custom':
+				$custom = (bool) $value;
+				break;
+			case 'post_event_form_id':
+				$custom              = true;
+				$settings['form_id'] = (int) $value;
+				break;
+			case 'post_event_window_days':
+				$custom                  = true;
+				$settings['window_days'] = (int) $value;
+				break;
+			case 'post_event_attendees_only':
+				$custom                     = true;
+				$settings['attendees_only'] = (bool) $value;
+				break;
+		}
+
+		if ( ! AudienceBookingWriter::set_post_event_form( $id, $custom, $settings['form_id'], $settings['window_days'], $settings['attendees_only'] ) ) {
+			return new \WP_Error( 'ffc_record_not_saved', __( 'The booking could not be saved.', 'ffcertificate' ) );
 		}
 		return true;
 	}

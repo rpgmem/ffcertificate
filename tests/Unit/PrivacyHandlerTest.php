@@ -214,10 +214,12 @@ class PrivacyHandlerTest extends TestCase {
 	// register_exporters()
 	// ==================================================================
 
-	public function test_register_exporters_adds_eight_entries(): void {
+	public function test_register_exporters_adds_every_entry(): void {
 		$result = PrivacyHandler::register_exporters(array());
 
-		$this->assertCount(8, $result);
+		$this->assertCount(10, $result);
+		$this->assertArrayHasKey('ffcertificate-audience-attendance', $result);
+		$this->assertArrayHasKey('ffcertificate-audience-form-invites', $result);
 		// Reregistration and recruitment joined in #1574.
 		$this->assertArrayHasKey('ffcertificate-reregistration', $result);
 		$this->assertArrayHasKey('ffcertificate-recruitment', $result);
@@ -239,7 +241,7 @@ class PrivacyHandlerTest extends TestCase {
 
 		$result = PrivacyHandler::register_exporters($existing);
 
-		$this->assertCount(9, $result);
+		$this->assertCount(11, $result);
 		$this->assertArrayHasKey('other-plugin', $result);
 	}
 
@@ -884,6 +886,47 @@ class PrivacyHandlerTest extends TestCase {
 		$this->assertSame('09:00 - 10:00', $time_data['value']);
 	}
 
+	public function test_export_audience_form_invites_returns_empty_without_a_user_or_a_table(): void {
+		Functions\when('get_user_by')->justReturn(false);
+		$this->assertSame(array('data' => array(), 'done' => true), PrivacyExporters::export_audience_form_invites('nobody@example.com'));
+
+		Functions\when('get_user_by')->justReturn($this->make_user());
+		$this->mock_no_tables_exist();
+		$this->assertSame(array('data' => array(), 'done' => true), PrivacyExporters::export_audience_form_invites('user@example.com'));
+	}
+
+	public function test_export_audience_form_invites_lists_each_invitation(): void {
+		Functions\when('get_user_by')->justReturn($this->make_user());
+		Functions\when('get_the_title')->justReturn('Evaluation');
+		$this->mock_all_tables_exist();
+		// The real DateFormatter: an alias mock would outlive this test, which
+		// does not run in a process of its own.
+		Functions\when('get_option')->justReturn(array());
+		Functions\when('wp_date')->alias(static fn($format, $ts) => gmdate('Y-m-d H:i', (int) $ts));
+		Functions\when('wp_timezone')->justReturn(new \DateTimeZone('UTC'));
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn(
+			array(
+				array(
+					'id'          => 7,
+					'form_id'     => 40,
+					'sent_at'     => 1800000000,
+					'send_count'  => 2,
+					'description' => 'Workshop',
+				),
+			)
+		);
+
+		$result = PrivacyExporters::export_audience_form_invites('user@example.com');
+
+		$this->assertTrue($result['done']);
+		$this->assertSame('ffc-audience-form-invites', $result['data'][0]['group_id']);
+		$this->assertSame('ffc-form-invite-7', $result['data'][0]['item_id']);
+		$values = array_column($result['data'][0]['data'], 'value');
+		$this->assertSame(array('Workshop', 'Evaluation'), array_slice($values, 0, 2));
+		$this->assertStringContainsString('2027', $values[2], 'The last send, formatted.');
+		$this->assertSame('2', $values[3]);
+	}
+
 	public function test_export_audience_bookings_shows_all_day_label(): void {
 		$user = $this->make_user();
 		Functions\when('get_user_by')->justReturn($user);
@@ -1205,6 +1248,25 @@ class PrivacyHandlerTest extends TestCase {
 		$this->assertTrue($found_membership_msg, 'Expected message about audience memberships removed');
 	}
 
+	public function test_erase_deletes_post_event_form_invitations(): void {
+		Functions\when('get_user_by')->justReturn($this->make_user());
+		$this->mock_erase_dependencies();
+		$this->mock_all_tables_exist();
+		$this->wpdb->shouldReceive('query')->andReturn(0);
+		$deleted = array();
+		$this->wpdb->shouldReceive('delete')->andReturnUsing(
+			static function ($table, $where) use (&$deleted) {
+				$deleted[$table] = $where;
+				return 'wp_ffc_audience_form_invites' === $table ? 2 : 0;
+			}
+		);
+
+		$result = PrivacyErasers::erase_personal_data('user@example.com');
+
+		$this->assertSame(array('user_id' => 42), $deleted['wp_ffc_audience_form_invites'] ?? null);
+		$this->assertTrue($result['items_removed']);
+	}
+
 	public function test_erase_deletes_user_profile_and_reports_message(): void {
 		$user = $this->make_user();
 		Functions\when('get_user_by')->justReturn($user);
@@ -1215,16 +1277,10 @@ class PrivacyHandlerTest extends TestCase {
 		$this->wpdb->shouldReceive('query')
 			->andReturn(0);
 
-		// wpdb->delete: members=0, booking_users=0, permissions=0, profiles=1
-		$delete_call = 0;
+		// wpdb->delete: only the profile row exists. Keyed on the table, so a
+		// new relationship erased in between does not shift it (#2024).
 		$this->wpdb->shouldReceive('delete')
-			->andReturnUsing(function () use (&$delete_call) {
-				$delete_call++;
-				if ($delete_call === 4) {
-					return 1; // user profile deleted
-				}
-				return 0;
-			});
+			->andReturnUsing(static fn($table) => 'wp_ffc_user_profiles' === $table ? 1 : 0);
 
 		$result = PrivacyErasers::erase_personal_data('user@example.com');
 

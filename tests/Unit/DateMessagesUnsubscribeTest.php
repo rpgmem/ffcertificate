@@ -176,10 +176,27 @@ class DateMessagesUnsubscribeTest extends TestCase {
 			'_wpnonce' => 'good',
 		);
 		Functions\expect( 'wp_verify_nonce' )->once()->with( 'good', Unsubscribe::ACTION . '_42' )->andReturn( 1 );
-		$this->opt_out->shouldReceive( 'set' )->once()->with( 42, false );
+		$this->opt_out->shouldReceive( 'set' )->once()->with( 42, false, 'personal' );
 
 		$this->handle();
 
 		$this->assertSame( 200, $this->died[1] );
+		$this->assertStringContainsString( 'date messages', $this->died[0] );
+	}
+
+	public function test_an_announcement_opt_out_confirms_announcements(): void {
+		$_POST = array(
+			'u'        => '42',
+			't'        => Unsubscribe::token( 42, 'announcement' ),
+			'c'        => 'announcement',
+			'_wpnonce' => 'good',
+		);
+		Functions\expect( 'wp_verify_nonce' )->once()->with( 'good', Unsubscribe::ACTION . '_42_announcement' )->andReturn( 1 );
+		$this->opt_out->shouldReceive( 'set' )->once()->with( 42, false, 'announcement' );
+
+		$this->handle();
+
+		$this->assertSame( 200, $this->died[1] );
+		$this->assertStringContainsString( 'no longer receive announcements', $this->died[0], 'The page names what was turned off.' );
 	}
 }

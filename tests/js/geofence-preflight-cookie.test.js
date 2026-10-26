@@ -14,10 +14,11 @@ import { loadScript } from './helpers.js';
 
 beforeAll(() => {
 	loadScript('assets/js/ffc-core.js');
+	loadScript('assets/js/ffc-preflight.js');
 	loadScript('assets/js/ffc-geofence-frontend.js');
 	loadScript('assets/js/ffc-geofence-datetime.js');
 	loadScript('assets/js/ffc-geofence-gps.js');
-	loadScript('assets/js/ffc-geofence-preflight.js');
+	loadScript('assets/js/ffc-geofence-permission.js');
 });
 
 beforeEach(() => {
@@ -57,16 +58,16 @@ function setupGeofenceForm(formId, config) {
 	};
 }
 
-describe('checkCookieSupport probe', () => {
+describe('the cookie probe (FFC.Preflight.cookiesWork)', () => {
 	it('returns true when cookieEnabled is true and the probe roundtrips', () => {
 		// jsdom's document.cookie roundtrips for first-party.
-		const ok = window.FFCGeofence.checkCookieSupport();
+		const ok = window.FFC.Preflight.cookiesWork();
 		expect(ok).toBe(true);
 	});
 
 	it('returns false when navigator.cookieEnabled is explicitly false', () => {
 		Object.defineProperty(navigator, 'cookieEnabled', { configurable: true, value: false });
-		const ok = window.FFCGeofence.checkCookieSupport();
+		const ok = window.FFC.Preflight.cookiesWork();
 		expect(ok).toBe(false);
 	});
 
@@ -79,7 +80,7 @@ describe('checkCookieSupport probe', () => {
 			get: () => '',
 			set: () => { throw new Error('sandboxed'); },
 		});
-		const ok = window.FFCGeofence.checkCookieSupport();
+		const ok = window.FFC.Preflight.cookiesWork();
 		expect(ok).toBe(false);
 		// Restore for subsequent tests.
 		if (original) Object.defineProperty(document, 'cookie', original);

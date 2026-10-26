@@ -143,6 +143,8 @@ if ( ! class_exists( __NAMESPACE__ . '\AdminUI', false ) ) {
 		/** @param array<string,mixed> $args */
 		public static function render_toggle( array $args ): void { echo '<input type="checkbox">'; }
 		/** @param array<string,mixed> $args */
+		public static function render_file_picker( array $args ): void { echo '<input type="file" id="' . htmlspecialchars( (string) ( $args['id'] ?? '' ) ) . '">'; }
+		/** @param array<string,mixed> $args */
 		public static function render_save_button( string $label = '', array $args = array() ): void { echo '<p class="submit"><button type="submit">' . htmlspecialchars( '' !== $label ? $label : 'Save Changes' ) . '</button></p>'; }
 		/** @param array<string,mixed> $args */
 		public static function render_steps( array $args ): void {

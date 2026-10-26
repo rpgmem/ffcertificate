@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use FreeFormCertificate\DateMessages\DateSourceInterface;
 use FreeFormCertificate\DateMessages\MessageBuilder;
 use FreeFormCertificate\DateMessages\Rule;
+use FreeFormCertificate\DateMessages\Unsubscribe;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -101,6 +102,39 @@ class DateMessagesMessageBuilderTest extends TestCase {
 		$this->assertSame( 'Hi Ana !', $message['subject'], 'The first name falls back to the first word; the subject is plain text.' );
 	}
 
+	public function test_an_announcement_unsubscribe_link_names_the_announcement_category(): void {
+		// An announcement's "unsubscribe" must stop announcements, not birthdays.
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'first_name' => '', 'last_name' => '' ) );
+		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.org/wp-admin/' . $p );
+		Functions\when( 'add_query_arg' )->alias( static fn( array $args, string $url ) => $url . '?' . http_build_query( $args ) );
+
+		$rule = Rule::from_array(
+			array(
+				'name'    => 'Closing',
+				'kind'    => 'announcement',
+				'subject' => 'Closed on Friday',
+				'body'    => '<p>Details.</p><a href="{{unsubscribe_url}}">u</a>',
+			)
+		);
+		$this->assertInstanceOf( Rule::class, $rule );
+
+		$message = MessageBuilder::build(
+			$rule,
+			$this->source(),
+			array(
+				'user_id' => 9,
+				'email'   => 'a@b.c',
+				'name'    => 'Ana',
+			),
+			new \DateTimeImmutable( '2026-10-10' ),
+			new \DateTimeImmutable( '2026-10-03' )
+		);
+
+		$this->assertStringContainsString( 'c=announcement', $message['body'] );
+		$this->assertStringContainsString( 't=' . Unsubscribe::token( 9, 'announcement' ), $message['body'] );
+	}
+
 	public function test_a_body_without_the_link_gets_it_appended(): void {
 		Functions\when( 'get_userdata' )->justReturn( (object) array( 'first_name' => 'Ana', 'last_name' => '' ) );
 
@@ -172,5 +206,21 @@ class DateMessagesMessageBuilderTest extends TestCase {
 		$message = MessageBuilder::sample( 'S', '<p>{{last_name}}/{{full_name}}</p>', $this->source(), new \DateTimeImmutable( '2026-10-10' ), new \DateTimeImmutable( '2026-10-03' ) );
 
 		$this->assertStringContainsString( 'da Silva/Maria da Silva', $message['body'] );
+	}
+
+	/**
+	 * An announcement starts from its own default text, not the birthday one,
+	 * and that text still carries the unsubscribe link (#1949).
+	 *
+	 * @return void
+	 */
+	public function test_an_announcement_starts_from_its_own_default_text(): void {
+		$announcement = MessageBuilder::announcement_defaults();
+		$dated        = MessageBuilder::defaults();
+
+		$this->assertSame( '{{site_name}}: announcement', $announcement['subject'] );
+		$this->assertNotSame( $dated['subject'], $announcement['subject'] );
+		$this->assertStringContainsString( '{{unsubscribe_url}}', $announcement['body'] );
+		$this->assertStringNotContainsString( '{{first_name}}', $announcement['body'] );
 	}
 }

@@ -62,8 +62,18 @@ class CertTemplateSeeder {
 	 * Version 5 seeds the **record** default (#951 phase 2) — tagged
 	 * `META_KIND = record`, so the reregistration record can be chosen from the
 	 * pool. Same non-destructive bump: adds the one missing record default.
+	 *
+	 * Version 6 replaces the three certificate defaults with a revised set and adds
+	 * three more (#1956). The bump refreshes the body and background of the existing
+	 * slugs and adds the new ones; no user template is touched.
+	 *
+	 * Version 7 moves the footer of three defaults up so the QR code and the
+	 * validation link fit inside the A4 page; the bump refreshes those bodies.
+	 *
+	 * Version 8 sizes model 5's QR code to its 170 px box and moves model 6's
+	 * signatures and footer up, so its QR code stays inside the frame (#2076).
 	 */
-	private const SEED_VERSION = 5;
+	private const SEED_VERSION = 8;
 
 	/**
 	 * Directory (relative to the plugin root) holding the default background
@@ -272,7 +282,25 @@ class CertTemplateSeeder {
 			'default_certificate_3'               => array(
 				'title' => __( 'Certificate model 3', 'ffcertificate' ),
 				'file'  => 'default_certificate_3.html',
-				'bg'    => 'default_background_certificate_3.png',
+				'bg'    => '',
+				'kind'  => CertTemplateCpt::KIND_CERTIFICATE,
+			),
+			'default_certificate_4'               => array(
+				'title' => __( 'Certificate model 4', 'ffcertificate' ),
+				'file'  => 'default_certificate_4.html',
+				'bg'    => '',
+				'kind'  => CertTemplateCpt::KIND_CERTIFICATE,
+			),
+			'default_certificate_5'               => array(
+				'title' => __( 'Certificate model 5', 'ffcertificate' ),
+				'file'  => 'default_certificate_5.html',
+				'bg'    => '',
+				'kind'  => CertTemplateCpt::KIND_CERTIFICATE,
+			),
+			'default_certificate_6'               => array(
+				'title' => __( 'Certificate model 6', 'ffcertificate' ),
+				'file'  => 'default_certificate_6.html',
+				'bg'    => '',
 				'kind'  => CertTemplateCpt::KIND_CERTIFICATE,
 			),
 			// Appointment-receipt defaults (#945) — HTML under templates/documents/,

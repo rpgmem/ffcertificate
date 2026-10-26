@@ -203,30 +203,32 @@ class TabGeolocation extends SettingsTab {
 	private function get_default_settings(): array {
 		return array(
 			// IP Geolocation API Settings.
-			'ip_api_enabled'        => false,
-			'ip_api_service'        => 'ip-api', // 'ip-api' or 'ipinfo'
-			'ip_api_cascade'        => false, // Use both with fallback.
-			'ipinfo_api_key'        => '',
-			'ip_cache_enabled'      => true,
-			'ip_cache_ttl'          => 600, // 10 minutes in seconds (300-3600)
+			'ip_api_enabled'         => false,
+			'ip_api_service'         => 'ip-api', // 'ip-api' or 'ipinfo'
+			'ip_api_cascade'         => false, // Use both with fallback.
+			'ipinfo_api_key'         => '',
+			'ip_cache_enabled'       => true,
+			'ip_cache_ttl'           => 600, // 10 minutes in seconds (300-3600)
 
 			// GPS Cache Settings.
-			'gps_cache_ttl'         => 600, // 10 minutes in seconds (60-3600)
+			'gps_cache_ttl'          => 600, // 10 minutes in seconds (60-3600)
+			'gps_accuracy_tolerance' => \FreeFormCertificate\Security\GpsReading::TOLERANCE_DEFAULT, // × an area's radius (1-3).
+			'gps_weak_share'         => \FreeFormCertificate\Security\GpsReading::WEAK_SHARE_DEFAULT, // × an area's radius (0.1-1).
 
 			// Fallback behavior when API fails.
-			'api_fallback'          => 'gps_only', // 'allow', 'block', 'gps_only'
+			'api_fallback'           => 'gps_only', // 'allow', 'block', 'gps_only'
 
 			// Per-case GPS fallback (preset is a UX hint, cases are
 			// canonical at runtime). New installs default to 'hybrid';
 			// legacy installs are migrated in get_settings().
-			'gps_fallback_preset'   => 'hybrid',
-			'gps_fallback_cases'    => self::preset_to_cases( 'hybrid' ),
+			'gps_fallback_preset'    => 'hybrid',
+			'gps_fallback_cases'     => self::preset_to_cases( 'hybrid' ),
 
-			'both_fail_fallback'    => 'block', // When GPS + IP both fail: 'allow' or 'block'.
+			'both_fail_fallback'     => 'block', // When GPS + IP both fail: 'allow' or 'block'.
 
 			// Admin Bypass (independent of debug mode).
-			'admin_bypass_datetime' => false, // Admins bypass datetime restrictions.
-			'admin_bypass_geo'      => false, // Admins bypass geolocation restrictions.
+			'admin_bypass_datetime'  => false, // Admins bypass datetime restrictions.
+			'admin_bypass_geo'       => false, // Admins bypass geolocation restrictions.
 		);
 	}
 
@@ -316,29 +318,39 @@ class TabGeolocation extends SettingsTab {
 			$cases = self::preset_to_cases( $preset );
 		}
 
+		$ffc_gps_tolerance  = \FreeFormCertificate\Core\RequestInput::get_post_string( 'gps_accuracy_tolerance' );
+		$ffc_gps_weak_share = \FreeFormCertificate\Core\RequestInput::get_post_string( 'gps_weak_share' );
+
 		$settings = array(
-			'ip_api_enabled'        => isset( $_POST['ip_api_enabled'] ),
-			'ip_api_service'        => in_array( $ffc_ip_api_service, array( 'ip-api', 'ipinfo' ), true )
+			'ip_api_enabled'         => isset( $_POST['ip_api_enabled'] ),
+			'ip_api_service'         => in_array( $ffc_ip_api_service, array( 'ip-api', 'ipinfo' ), true )
 				? $ffc_ip_api_service
 				: 'ip-api',
-			'ip_api_cascade'        => isset( $_POST['ip_api_cascade'] ),
-			'ipinfo_api_key'        => \FreeFormCertificate\Core\RequestInput::get_post_string( 'ipinfo_api_key' ),
-			'ip_cache_enabled'      => isset( $_POST['ip_cache_enabled'] ),
-			'ip_cache_ttl'          => max( 300, min( 3600, \FreeFormCertificate\Core\RequestInput::get_post_int( 'ip_cache_ttl', 600 ) ) ),
+			'ip_api_cascade'         => isset( $_POST['ip_api_cascade'] ),
+			'ipinfo_api_key'         => \FreeFormCertificate\Core\RequestInput::get_post_string( 'ipinfo_api_key' ),
+			'ip_cache_enabled'       => isset( $_POST['ip_cache_enabled'] ),
+			'ip_cache_ttl'           => max( 300, min( 3600, \FreeFormCertificate\Core\RequestInput::get_post_int( 'ip_cache_ttl', 600 ) ) ),
 
-			'gps_cache_ttl'         => max( 60, min( 3600, \FreeFormCertificate\Core\RequestInput::get_post_int( 'gps_cache_ttl', 600 ) ) ),
+			'gps_cache_ttl'          => max( 60, min( 3600, \FreeFormCertificate\Core\RequestInput::get_post_int( 'gps_cache_ttl', 600 ) ) ),
+			// A cleared field is "not supplied", never the floor (#1114).
+			'gps_accuracy_tolerance' => '' === $ffc_gps_tolerance
+				? \FreeFormCertificate\Settings\GeolocationSettingsReader::gps_accuracy_tolerance()
+				: \FreeFormCertificate\Security\GpsReading::clamp_tolerance( $ffc_gps_tolerance ),
+			'gps_weak_share'         => '' === $ffc_gps_weak_share
+				? \FreeFormCertificate\Settings\GeolocationSettingsReader::gps_weak_share()
+				: \FreeFormCertificate\Security\GpsReading::clamp_weak_share( $ffc_gps_weak_share ),
 
-			'api_fallback'          => in_array( $ffc_api_fallback, array( 'allow', 'block', 'gps_only' ), true )
+			'api_fallback'           => in_array( $ffc_api_fallback, array( 'allow', 'block', 'gps_only' ), true )
 				? $ffc_api_fallback
 				: 'gps_only',
-			'gps_fallback_preset'   => $preset,
-			'gps_fallback_cases'    => $cases,
-			'both_fail_fallback'    => in_array( $ffc_both_fail_fallback, array( 'allow', 'block' ), true )
+			'gps_fallback_preset'    => $preset,
+			'gps_fallback_cases'     => $cases,
+			'both_fail_fallback'     => in_array( $ffc_both_fail_fallback, array( 'allow', 'block' ), true )
 				? $ffc_both_fail_fallback
 				: 'block',
 
-			'admin_bypass_datetime' => isset( $_POST['admin_bypass_datetime'] ),
-			'admin_bypass_geo'      => isset( $_POST['admin_bypass_geo'] ),
+			'admin_bypass_datetime'  => isset( $_POST['admin_bypass_datetime'] ),
+			'admin_bypass_geo'       => isset( $_POST['admin_bypass_geo'] ),
 		);
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 

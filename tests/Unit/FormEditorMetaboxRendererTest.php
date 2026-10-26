@@ -22,6 +22,12 @@ class FormEditorMetaboxRendererTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The layout box normalises the form's background colour on render; null falls back to white.
+		Functions\when( 'sanitize_hex_color' )->justReturn( null );
+		// The Bulk issue tab (#1967) is listed only for users who may import certificates.
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_nonce_url' )->returnArg();
+		Functions\when( 'admin_url' )->returnArg();
 		// Shared scripts are enqueued through AssetRegistry, which registers
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).

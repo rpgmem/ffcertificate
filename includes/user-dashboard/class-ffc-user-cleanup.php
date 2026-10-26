@@ -137,6 +137,17 @@ class UserCleanup {
 		// (LGPD erasure) path, kept distinct from routine account deletion.
 		self::anonymize_authorship( $user_id, $anonymized );
 
+		// Post-event invitations (#1948): a relationship, deleted with the
+		// person. Outside the footprint short-circuit, because a participant
+		// may have left every audience since the invitation was sent.
+		$invites_table = $wpdb->prefix . 'ffc_audience_form_invites';
+		if ( self::table_exists( $invites_table ) ) {
+			$rows = $wpdb->delete( $invites_table, array( 'user_id' => $user_id ), array( '%d' ) );
+			if ( $rows > 0 ) {
+				$anonymized['form_invites'] = $rows;
+			}
+		}
+
 		// Log the anonymization only when something actually changed.
 		if ( ! empty( $anonymized ) && class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			\FreeFormCertificate\Core\ActivityLog::log(
@@ -195,6 +206,11 @@ class UserCleanup {
 			// operator who started it.
 			'ffc_date_message_log'              => array( 'user_id' ),
 			'ffc_date_message_runs'             => array( 'created_by' ),
+			// Audience attendance (#1947): a check-in line is a record, so it
+			// stays and loses the person, and the operator who marked it or
+			// ran the window.
+			'ffc_audience_attendance'           => array( 'user_id', 'marked_by' ),
+			'ffc_audience_checkin_windows'      => array( 'opened_by', 'closed_by' ),
 		);
 
 		foreach ( $map as $basename => $columns ) {

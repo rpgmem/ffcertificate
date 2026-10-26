@@ -1301,6 +1301,36 @@ class AudienceRepositoryTest extends TestCase {
 		$this->assertSame(0, $count);
 	}
 
+	public function test_get_member_ids_by_audience_groups_existing_members_in_two_queries(): void {
+		$this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
+		$this->wpdb->shouldReceive('get_results')->once()->with('QUERY', ARRAY_A)->andReturn([
+			['audience_id' => '1', 'user_id' => '10'],
+			['audience_id' => '1', 'user_id' => '20'],
+			['audience_id' => '2', 'user_id' => '10'],
+			['audience_id' => '3', 'user_id' => '20'],
+		]);
+		$asked = null;
+		Functions\when('get_users')->alias(function ($args) use (&$asked) {
+			$asked = $args;
+			return ['10'];
+		});
+
+		$by_audience = AudienceReader::get_member_ids_by_audience();
+
+		$this->assertSame([1 => [10], 2 => [10]], $by_audience, 'user 20 no longer exists, so audience 3 has nobody');
+		$this->assertSame([10, 20], $asked['include'], 'each user is checked once');
+		$this->assertSame(0, $asked['blog_id']);
+	}
+
+	public function test_get_member_ids_by_audience_skips_the_user_lookup_without_members(): void {
+		$this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+		// An empty `include` would mean "every user" to get_users().
+		Functions\expect('get_users')->never();
+
+		$this->assertSame([], AudienceReader::get_member_ids_by_audience());
+	}
+
 	public function test_get_member_count_includes_children_when_requested(): void {
 		$child = (object) ['id' => 3, 'name' => 'Child', 'parent_id' => 1];
 

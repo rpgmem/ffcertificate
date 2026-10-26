@@ -441,6 +441,7 @@
             html += buildToggle('notify_appointment_reminder', s.notifAppointmentReminder || 'Appointment reminder', prefs, true);
             if (ffcDashboard.dateMessagesEnabled) {
                 html += buildToggle('notify_date_messages', s.notifDateMessages || 'Date messages (such as birthday greetings)', prefs, true);
+                html += buildToggle('notify_date_announcements', s.notifDateAnnouncements || 'Announcements from this site', prefs, true);
             }
             html += '</div>';
             html += '<span class="ffc-notif-status ffc-status" role="status" aria-live="polite" hidden></span>';

@@ -14,16 +14,16 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
-use FreeFormCertificate\Core\ActivityLog;
 use FreeFormCertificate\Core\Icons;
+use FreeFormCertificate\Frontend\PreflightTelemetry;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Counts the three pre-flight reasons (cookies / gps_denied /
- * gps_prompt) per form over a rolling window. In-memory aggregation
+ * Counts the pre-flight reasons (`PreflightTelemetry::ALLOWED_REASONS`)
+ * per form over a rolling window. In-memory aggregation
  * — the context column is JSON, so filtering by form_id in SQL would
  * need JSON_EXTRACT (not portable across MySQL versions). Volumes
  * are bounded by the LIMIT cap below; admins with > 5k pre-flight
@@ -68,15 +68,11 @@ class PreflightStatsService {
 	 *
 	 * @param int $form_id Form post ID to filter.
 	 * @param int $days    Rolling-window size in days (default 30).
-	 * @return array{cookies:int, gps_denied:int, gps_prompt:int, total:int}
+	 * @return array<string, int> One count per reason, plus `total`.
 	 */
 	public static function get_form_stats( int $form_id, int $days = 30 ): array {
-		$counts = array(
-			'cookies'    => 0,
-			'gps_denied' => 0,
-			'gps_prompt' => 0,
-			'total'      => 0,
-		);
+		$counts          = array_fill_keys( PreflightTelemetry::ALLOWED_REASONS, 0 );
+		$counts['total'] = 0;
 
 		if ( $form_id <= 0 ) {
 			return $counts;
@@ -85,14 +81,15 @@ class PreflightStatsService {
 		$cache_key = self::STATS_CACHE_PREFIX . $form_id . '_' . max( 1, $days );
 
 		/**
-		 * Um transiente e `mixed` por construcao -- `is_array()` estreita o
-		 * recipiente, nunca os valores.
+		 * A transient is `mixed` by construction -- `is_array()` narrows the
+		 * container, never the values. A cached entry written before a reason
+		 * was added lacks its key, so the fresh shape is laid under it.
 		 *
-		 * @var array{cookies:int, gps_denied:int, gps_prompt:int, total:int}|false $cached
+		 * @var array<string, int>|false $cached
 		 */
 		$cached = \get_transient( $cache_key );
 		if ( is_array( $cached ) ) {
-			return $cached;
+			return array_merge( $counts, $cached );
 		}
 
 		$date_from = gmdate( 'Y-m-d H:i:s', time() - max( 1, $days ) * DAY_IN_SECONDS );
@@ -151,29 +148,35 @@ class PreflightStatsService {
 			'admin.php?page=ffc-settings&tab=activity_log&log_action=preflight_blocked'
 		);
 
+		$badges = array(
+			'cookies'                => array( 'cookie', 'cookies', __( 'cookie wall', 'ffcertificate' ), __( 'Open the Activity Log filtered by cookie-wall hits', 'ffcertificate' ) ),
+			'gps_denied'             => array( 'map-pin', 'gps-denied', __( 'GPS denied', 'ffcertificate' ), __( 'Open the Activity Log filtered by GPS-denied hits', 'ffcertificate' ) ),
+			'gps_prompt'             => array( 'clipboard', 'gps-prompt', __( 'GPS prompt', 'ffcertificate' ), __( 'Open the Activity Log filtered by GPS-prompt explainer renders', 'ffcertificate' ) ),
+			'secure'                 => array( 'lock', 'secure', __( 'no HTTPS', 'ffcertificate' ), __( 'Open the Activity Log: visitors stopped because the page is not served over HTTPS', 'ffcertificate' ) ),
+			'browser_inapp'          => array( 'phone', 'browser-inapp', __( 'app browser', 'ffcertificate' ), __( 'Open the Activity Log: visitors asked to leave an app\'s own browser', 'ffcertificate' ) ),
+			'browser_inapp_continue' => array( 'skip', 'browser-inapp-continue', __( 'continued in app', 'ffcertificate' ), __( 'Open the Activity Log: visitors who chose "Continue anyway" in an app\'s browser', 'ffcertificate' ) ),
+			'browser_features'       => array( 'monitor', 'browser-features', __( 'browser missing features', 'ffcertificate' ), __( 'Open the Activity Log: visitors whose browser lacks what the form needs', 'ffcertificate' ) ),
+			'browser_boot'           => array( 'sync', 'browser-boot', __( 'form did not load', 'ffcertificate' ), __( 'Open the Activity Log: forms whose scripts did not load in time', 'ffcertificate' ) ),
+		);
+
 		?>
 		<ul class="ffc-preflight-stats-badges">
-			<li class="ffc-preflight-badge ffc-preflight-badge-cookies">
-				<a href="<?php echo esc_url( $activity_log_url ); ?>" title="<?php esc_attr_e( 'Open the Activity Log filtered by cookie-wall hits', 'ffcertificate' ); ?>">
-					<span class="ffc-preflight-badge-icon"><?php echo Icons::svg( 'cookie', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?></span>
-					<strong><?php echo esc_html( (string) $stats['cookies'] ); ?></strong>
-					<?php esc_html_e( 'cookie wall', 'ffcertificate' ); ?>
+			<?php
+			foreach ( $badges as $reason => $badge ) :
+				// The first three always show, as before; a newer reason only
+				// when it happened, so a form without it keeps a short row.
+				if ( ! in_array( $reason, array( 'cookies', 'gps_denied', 'gps_prompt' ), true ) && 0 === (int) ( $stats[ $reason ] ?? 0 ) ) {
+					continue;
+				}
+				?>
+			<li class="ffc-preflight-badge ffc-preflight-badge-<?php echo esc_attr( $badge[1] ); ?>">
+				<a href="<?php echo esc_url( $activity_log_url ); ?>" title="<?php echo esc_attr( $badge[3] ); ?>">
+					<span class="ffc-preflight-badge-icon"><?php echo Icons::svg( $badge[0], 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?></span>
+					<strong><?php echo esc_html( (string) ( $stats[ $reason ] ?? 0 ) ); ?></strong>
+					<?php echo esc_html( $badge[2] ); ?>
 				</a>
 			</li>
-			<li class="ffc-preflight-badge ffc-preflight-badge-gps-denied">
-				<a href="<?php echo esc_url( $activity_log_url ); ?>" title="<?php esc_attr_e( 'Open the Activity Log filtered by GPS-denied hits', 'ffcertificate' ); ?>">
-					<span class="ffc-preflight-badge-icon"><?php echo Icons::svg( 'map-pin', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?></span>
-					<strong><?php echo esc_html( (string) $stats['gps_denied'] ); ?></strong>
-					<?php esc_html_e( 'GPS denied', 'ffcertificate' ); ?>
-				</a>
-			</li>
-			<li class="ffc-preflight-badge ffc-preflight-badge-gps-prompt">
-				<a href="<?php echo esc_url( $activity_log_url ); ?>" title="<?php esc_attr_e( 'Open the Activity Log filtered by GPS-prompt explainer renders', 'ffcertificate' ); ?>">
-					<span class="ffc-preflight-badge-icon"><?php echo Icons::svg( 'clipboard', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?></span>
-					<strong><?php echo esc_html( (string) $stats['gps_prompt'] ); ?></strong>
-					<?php esc_html_e( 'GPS prompt', 'ffcertificate' ); ?>
-				</a>
-			</li>
+			<?php endforeach; ?>
 		</ul>
 		<p class="description">
 			<?php esc_html_e( 'Counts visitors who hit a pre-flight banner on this form (last 30 days). High numbers may indicate a setup issue — e.g. GPS denied dominating means visitors can\'t pass the geofence, cookie wall dominating means cached HTML is being served with wrong nonces.', 'ffcertificate' ); ?>

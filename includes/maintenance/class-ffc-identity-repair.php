@@ -106,8 +106,8 @@ class IdentityRepair {
 	 * they commit it -- above all that the value they confirmed already
 	 * belongs to somebody else, which is a different finding rather than a
 	 * failed correction. Answering that from a second copy of these checks is
-	 * how a preflight and a write come to disagree about who owns a number, so
-	 * there is one path: `repair()` is this plus the write, and the preflight
+	 * how a correction preview and a write come to disagree about who owns a number, so
+	 * there is one path: `repair()` is this plus the write, and the correction preview
 	 * calls this.
 	 *
 	 * It reads and hashes; it writes nothing. The hash of the confirmed value

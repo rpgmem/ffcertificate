@@ -189,7 +189,7 @@
                     var $htmlField = $('#ffc_pdf_layout');
                     if ($htmlField.length) {
                         // #865: the load response is a structured payload
-                        // { html, bg_image }. Tolerate the legacy bare-string
+                        // { html, bg_image, bg_color }. Tolerate the legacy bare-string
                         // shape (older responses) by using response.data as-is.
                         var data = response.data;
                         var html = (data && typeof data === 'object') ? (data.html || '') : data;
@@ -199,6 +199,11 @@
                         // its background with it (empty clears any prior value).
                         if (data && typeof data === 'object' && 'bg_image' in data) {
                             $('#ffc_bg_image_input').val(data.bg_image || '').trigger('change');
+                        }
+                        // The page colour travels the same way; a model saved
+                        // without one is white, as the defaults are drawn.
+                        if (data && typeof data === 'object' && 'bg_color' in data) {
+                            $('#ffc_bg_color_input').val(data.bg_color || '#ffffff').trigger('change');
                         }
                         var successTemplate = strings.templateLoadedSuccess || 'Template "%s" loaded successfully!';
                         var successMsg = successTemplate.replace('%s', displayName || '');
@@ -258,7 +263,8 @@
             html: html,
             // Round-trip the current background so a saved model carries it back
             // when re-loaded (#865).
-            bg_image: $('#ffc_bg_image_input').val() || ''
+            bg_image: $('#ffc_bg_image_input').val() || '',
+            bg_color: $('#ffc_bg_color_input').val() || ''
         })
             .done(function(response) {
                 if (response && response.success) {
@@ -363,54 +369,9 @@
     // CERTIFICATE PREVIEW
     // ==========================================================================
 
-    // Sample data for placeholder replacement.
-    //
-    // Source of truth is PHP: AdminAssetsManager localizes
-    // CertificatePreviewSamples::get_map() as ffc_ajax.previewSamples, so
-    // this preview stays in sync with the placeholders the real generators
-    // fill. The JS only overlays values PHP can't know at enqueue time —
-    // the live form title and custom builder field names.
-    function getSampleFieldData() {
-        var ajax = (typeof ffc_ajax !== 'undefined') ? ffc_ajax : {};
-        var fieldData = $.extend({}, ajax.previewSamples || {});
-        // Live form title overrides the PHP placeholder default.
-        var liveTitle = $('#title').val();
-        if (liveTitle) {
-            fieldData['form_title'] = liveTitle;
-        }
-        // Scan form builder fields for custom variables
-        $('#ffc-fields-container .ffc-field-row').each(function() {
-            var fieldName = $(this).find('input[name*="[name]"]').val();
-            var fieldLabel = $(this).find('input[name*="[label]"]').val();
-            if (fieldName && !fieldData[fieldName]) {
-                fieldData[fieldName] = fieldLabel || fieldName;
-            }
-        });
-        return fieldData;
-    }
-
-    // Replace placeholders in HTML with sample data
-    function replacePlaceholders(html, data) {
-        // Replace simple {{variable}} placeholders
-        html = html.replace(/\{\{(\w+)\}\}/g, function(match, key) {
-            return data[key] !== undefined ? data[key] : match;
-        });
-        // Replace {{qr_code}} and variants with a placeholder SVG
-        html = html.replace(/\{\{qr_code[^}]*\}\}/g,
-            '<svg width="150" height="150" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg">' +
-            '<rect width="150" height="150" fill="#f0f0f0" stroke="#ccc" stroke-width="1"/>' +
-            '<text x="75" y="70" text-anchor="middle" font-size="12" fill="#999">QR Code</text>' +
-            '<text x="75" y="90" text-anchor="middle" font-size="10" fill="#bbb">(preview)</text>' +
-            '</svg>'
-        );
-        // Replace {{validation_url}} and variants with a sample link
-        html = html.replace(/\{\{validation_url[^}]*\}\}/g,
-            '<a href="#" style="color:#0073aa;">https://example.com/valid/#token=abc123</a>'
-        );
-        return html;
-    }
-
-    // Preview button click handler
+    // Preview button click handler. The server fills the placeholders with
+    // CertificatePreviewSamples; the page sends only what it alone knows —
+    // the unsaved layout, background, colour and the builder's field labels.
     $(document).on('click', '#ffc_btn_preview', function(e) {
         e.preventDefault();
 
@@ -428,34 +389,13 @@
             return;
         }
 
-        var bgImage = $('#ffc_bg_image_input').val() || '';
-        var data = getSampleFieldData();
-        var processedHtml = replacePlaceholders(htmlContent, data);
-
-        // Build the iframe content. Background-image is applied AFTER the
-        // iframe loads (via DOM properties on document.body, not via string
-        // concatenation into CSS) so the user-controlled URL never flows
-        // through a "DOM text reinterpreted as HTML" sink. CodeQL flagged
-        // the old `iframeHtml += 'url(' + bgImage + ')'` pattern even though
-        // bgImage already filters through esc_url on save; routing through
-        // the .style setter side-steps the rule and adds a real layer of
-        // CSS-context escaping for free.
-        // Faithful preview: render at the real PDF page size (A4) and scale the
-        // iframe to fit the modal (fitPreview below). Certificates default to
-        // landscape — the generator treats an unset orientation as landscape —
-        // so `background-size: cover` crops exactly like the generated PDF
-        // instead of being cropped by the modal's own aspect ratio.
-        var pageW = 1123;
-        var pageH = 794;
-        var iframeHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
-        iframeHtml += '<style>';
-        iframeHtml += 'html, body { margin: 0; padding: 0; width: ' + pageW + 'px; height: ' + pageH + 'px; overflow: hidden; }';
-        iframeHtml += 'body { font-family: Arial, Helvetica, sans-serif; position: relative;';
-        iframeHtml += bgImage ? ' background-size: cover; background-position: center; background-repeat: no-repeat;' : '';
-        iframeHtml += '}';
-        iframeHtml += '</style></head><body>';
-        iframeHtml += processedHtml;
-        iframeHtml += '</body></html>';
+        // The form editor names its field `#ffc_bg_image_input`; the template
+        // screen names it `#ffc_template_bg_image`. Read whichever is on the page.
+        var ajaxData = (typeof ffc_ajax !== 'undefined') ? ffc_ajax : {};
+        var showNotification = window.FFC.Admin.notify || function() {};
+        var bgImage = $('#ffc_bg_image_input, #ffc_template_bg_image').first().val() || '';
+        // The form editor's colour field; a template screen has none, so it stays white.
+        var bgColor = $('#ffc_bg_color_input').val() || '#ffffff';
 
         // Build modal. Localized strings (previewTitle/closeText/sampleDataNote)
         // come from wp_localize_script — admin-controlled, but CodeQL's taint
@@ -478,16 +418,9 @@
                     '</div>' +
                     '<div class="ffc-preview-note"></div>' +
                     '<div class="ffc-preview-body">' +
-                        '<div class="ffc-preview-stage">' +
-                        // sandbox="" — most-restrictive sandbox; rendered HTML
-                        // can't execute scripts, navigate the parent, run
-                        // plugins, etc. The preview only needs to paint the
-                        // layout's static markup, so the empty sandbox is the
-                        // right ceiling. Operators previewing their own
-                        // template stay safe even if a teammate sneaked a
-                        // <script> tag into the layout.
-                        '<iframe id="ffc-preview-iframe" frameborder="0" sandbox=""></iframe>' +
-                        '</div>' +
+                        // The page arrives as a PNG captured from the server's render,
+                        // so the preview is an image: no frame, and no markup runs.
+                        '<img class="ffc-preview-page" alt="">' +
                     '</div>' +
                 '</div>' +
             '</div>'
@@ -495,65 +428,67 @@
         $modal.find('.ffc-preview-header h2').text(previewTitle);
         $modal.find('.ffc-preview-close').attr({ 'aria-label': closeText, title: closeText });
         $modal.find('.ffc-preview-note').text(sampleDataNote);
+        var $page = $modal.find('.ffc-preview-page').attr('alt', previewTitle);
 
         $('body').append($modal);
-
-        // Hand the iframe its HTML via the `srcdoc` attribute rather than
-        // document.write so CodeQL's "DOM text reinterpreted as HTML" sink
-        // (and the equivalent runtime risk) goes through a single declarative
-        // entry point. The sandbox="" attribute set above stops any script
-        // tag in the template from executing inside the preview frame.
-        var iframe = document.getElementById('ffc-preview-iframe');
-        iframe.setAttribute('srcdoc', iframeHtml);
-
-        // Apply background-image via the DOM property setter — runs after
-        // the sandboxed frame finishes loading so the body element exists.
-        // The setter only accepts values that parse as a CSS <image>, so a
-        // tampered URL can't escape the property to inject markup or JS.
-        if (bgImage) {
-            iframe.addEventListener('load', function () {
-                var iframeDoc = iframe.contentDocument;
-                if (iframeDoc && iframeDoc.body && iframeDoc.body.style) {
-                    iframeDoc.body.style.backgroundImage = 'url(' + JSON.stringify(String(bgImage)) + ')';
-                }
-            });
-        }
-
-        // Scale the A4-sized iframe down to fit the modal body, preserving the
-        // page aspect (no crop, no distortion). The stage wrapper takes the
-        // scaled footprint so the page centers cleanly.
-        function fitPreview() {
-            var bodyEl  = $modal.find('.ffc-preview-body')[0];
-            var stageEl = $modal.find('.ffc-preview-stage')[0];
-            if (!bodyEl || !stageEl) { return; }
-            var availW = bodyEl.clientWidth - 24;
-            var availH = bodyEl.clientHeight - 24;
-            if (availW <= 0 || availH <= 0) { return; }
-            var scale = Math.min(availW / pageW, availH / pageH, 1);
-            iframe.style.width           = pageW + 'px';
-            iframe.style.height          = pageH + 'px';
-            iframe.style.transformOrigin = 'top left';
-            iframe.style.transform       = 'scale(' + scale + ')';
-            stageEl.style.width  = Math.round(pageW * scale) + 'px';
-            stageEl.style.height = Math.round(pageH * scale) + 'px';
-        }
-
-        // Show with fade
+        // A close before the first frame must not be undone by the fade-in.
+        var closed = false;
         requestAnimationFrame(function() {
-            $modal.addClass('ffc-preview-visible');
-            fitPreview();
+            if (!closed) {
+                $modal.addClass('ffc-preview-visible');
+            }
         });
-        $(window).on('resize.ffcAdminCertPreview', fitPreview);
 
-        // Close handlers
         function closePreview() {
+            closed = true;
             $modal.removeClass('ffc-preview-visible');
             setTimeout(function() { $modal.remove(); }, 200);
-            $(window).off('resize.ffcAdminCertPreview');
+        }
+
+        function failPreview() {
+            closePreview();
+            showNotification((strings.previewError || 'The preview could not be rendered.'), 'error', 3000);
         }
 
         $modal.find('.ffc-preview-close').on('click', closePreview);
         $modal.find('.ffc-preview-backdrop').on('click', closePreview);
+
+        // The server renders the page through the PDF renderer, so the QR code,
+        // the validation link, the background and the colour are the ones the
+        // certificate prints. The browser then draws that page to a PNG with the
+        // PDF's own canvas step, and stops there: no jsPDF, no download.
+        // The form's own fields: a field's label stands in for its value, as the
+        // preview has always shown custom variables (#1958 follow-up).
+        var fields = [];
+        $('#ffc-fields-container .ffc-field-row').each(function() {
+            var name = $(this).find('input[name*="[name]"]').val();
+            if (name) {
+                fields.push({
+                    name: name,
+                    label: $(this).find('input[name*="[label]"]').val() || name
+                });
+            }
+        });
+
+        var ajaxUrl = ajaxData.ajax_url || (typeof ajaxurl !== 'undefined' ? ajaxurl : '');
+        $.post(ajaxUrl, {
+            action: 'ffc_preview_form_layout',
+            nonce: ajaxData.nonce || '',
+            html: htmlContent,
+            title: $('#title').val() || '',
+            bg_image: bgImage,
+            bg_color: bgColor,
+            fields: fields
+        })
+            .done(function(response) {
+                if (!response || !response.success || !response.data || !window.FFCLayoutPreview) {
+                    failPreview();
+                    return;
+                }
+                window.FFCLayoutPreview.capture(response.data.html, response.data.width, response.data.height)
+                    .then(function(src) { $page.attr('src', src); }, failPreview);
+            })
+            .fail(failPreview);
 
         // ESC key to close
         $(document).on('keydown.ffcPreview', function(e) {

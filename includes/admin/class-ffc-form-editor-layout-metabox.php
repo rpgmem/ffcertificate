@@ -34,6 +34,7 @@ class FormEditorLayoutMetabox {
 		$config   = get_post_meta( $post->ID, '_ffc_form_config', true );
 		$layout   = isset( $config['pdf_layout'] ) ? $config['pdf_layout'] : '';
 		$bg_image = isset( $config['bg_image'] ) ? $config['bg_image'] : '';
+		$bg_color = \FreeFormCertificate\Core\FormBackground::normalize_color( (string) ( $config['bg_color'] ?? '' ) );
 
 		// The Load button opens a modal built from the same DB-backed pool
 		// (#865), localized as `ffc_ajax.templates`; it is drawn only when the
@@ -122,6 +123,12 @@ class FormEditorLayoutMetabox {
 						<input type="text" name="ffc_config[bg_image]" id="ffc_bg_image_input" value="<?php echo esc_url( $bg_image ); ?>" class="ffc-w100">
 						<?php // Filled in by `ffc-admin-pdf.js` when the "Background Image" button picks an image; empty until then. ?>
 						<div id="ffc_bg_image_preview"></div>
+					</div>
+
+					<div class="ffc-input-group ffc-mt-xl">
+						<label class="ffc-block-label" for="ffc_bg_color_input"><strong><?php esc_html_e( 'Background Color:', 'ffcertificate' ); ?></strong></label>
+						<input type="color" name="ffc_config[bg_color]" id="ffc_bg_color_input" value="<?php echo esc_attr( $bg_color ); ?>">
+						<p class="description"><?php esc_html_e( 'Painted behind the background image, and alone when there is no image.', 'ffcertificate' ); ?></p>
 					</div>
 				</td>
 			</tr>

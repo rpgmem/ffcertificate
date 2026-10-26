@@ -211,6 +211,16 @@ class SubmissionsList extends \WP_List_Table {
 	 * @return string
 	 */
 	private function render_actions( array $item ): string {
+		return '<div class="ffc-submission-actions">' . $this->action_buttons( $item ) . '</div>';
+	}
+
+	/**
+	 * The row's action buttons, by what the viewer may do.
+	 *
+	 * @param array<string, mixed> $item Item.
+	 * @return string
+	 */
+	private function action_buttons( array $item ): string {
 		$base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions' );
 
 		// 3-state model: read-only viewers (ffc_view_certificates) get the PDF
@@ -454,7 +464,10 @@ class SubmissionsList extends \WP_List_Table {
 			);
 		}
 
-		$actions = array( 'bulk_trash' => __( 'Move to Trash', 'ffcertificate' ) );
+		$actions = array(
+			'bulk_trash'     => __( 'Move to Trash', 'ffcertificate' ),
+			'bulk_send_link' => __( 'Send link by e-mail', 'ffcertificate' ),
+		);
 
 		// "Move to form…" is only meaningful when the list is filtered by a
 		// single source form — otherwise the source form is ambiguous and

@@ -6,6 +6,7 @@
 // window.FFCAudience by the module.
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
+import { bookingModalHtml, audienceRow } from './booking-modal-fixture.js';
 
 let api;
 
@@ -18,6 +19,7 @@ beforeAll(() => {
 		locale: 'pt-BR',
 		strings: {
 			createBooking: 'Create booking',
+			checkConflicts: 'Check Conflicts',
 			loading: 'Loading…',
 			error: 'Error',
 			invalidTime: 'End must be after start.',
@@ -42,38 +44,9 @@ beforeAll(() => {
 });
 
 function modalFixture() {
-	document.body.innerHTML = `
-		<form id="ffc-booking-form">
-			<div id="ffc-booking-modal" style="display:none">
-				<button class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="Close"></button>
-				<input type="checkbox" id="booking-all-day" />
-				<div id="booking-time-row"></div>
-				<input id="booking-start-time" value="09:00" />
-				<input id="booking-end-time" value="10:00" />
-				<input id="booking-date" />
-				<span class="ffc-booking-date-display"></span>
-				<select id="booking-environment-id"></select>
-				<label for="booking-environment-id">Env *</label>
-				<select id="booking-type">
-					<option value="audience">Audience</option>
-					<option value="users">Users</option>
-				</select>
-				<select id="booking-audiences" multiple><option value="11">Sub</option></select>
-				<input id="booking-user-search" />
-				<div id="booking-user-results"></div>
-				<div id="booking-selected-users"></div>
-				<input id="booking-user-ids" />
-				<textarea id="booking-description">A valid description here</textarea>
-				<span id="desc-char-count"></span>
-				<div id="ffc-conflict-warning" style="display:none">
-					<label class="ffc-conflict-acknowledge"><input type="checkbox" id="ffc-conflict-acknowledge" /> I am aware</label>
-				</div>
-				<div id="ffc-conflict-error" style="display:none"></div>
-				<button id="ffc-check-conflicts-btn">Check</button>
-				<button id="ffc-create-booking-btn" style="display:none">Create</button>
-			</div>
-		</form>
-	`;
+	document.body.innerHTML = bookingModalHtml({
+		audiences: audienceRow(1, 'Group') + audienceRow(11, 'Sub', { parent: 1, depth: 1 }),
+	});
 }
 
 function setValidAudienceForm() {
@@ -81,10 +54,26 @@ function setValidAudienceForm() {
 	window.$('#booking-start-time').val('09:00');
 	window.$('#booking-end-time').val('10:00');
 	window.$('#booking-description').val('A valid description here');
-	window.$('#booking-type').val('audience');
-	window.$('#booking-audiences').val(['11']);
+	window.$('input[name="booking_type"][value="audience"]').prop('checked', true);
+	window.$('#booking-audiences input[value="11"]').prop('checked', true);
 	window.$('#booking-environment-id').html('<option value="10">A</option>').val('10');
 	window.$('#booking-date').val('2026-06-10');
+}
+
+/**
+ * Choose several days, a last day and how the hours read.
+ */
+function setRange(endDate, mode) {
+	window.$('input[name="booking_span"][value="range"]').prop('checked', true);
+	window.$('#booking-end-date').val(endDate);
+	window.$('input[name="time_mode"][value="' + mode + '"]').prop('checked', true);
+}
+
+/**
+ * Choose the individual-users booking type.
+ */
+function chooseUsers() {
+	window.$('input[name="booking_type"][value="individual"]').prop('checked', true);
 }
 
 beforeEach(() => {
@@ -240,6 +229,37 @@ describe('ffc-audience-booking-form — validation guards (via checkConflicts)',
 		expect(document.activeElement).toBe(window.$('#booking-end-time')[0]);
 	});
 
+	it('lets a span end earlier in the day than it starts and sends the range to the check (#1946)', () => {
+		setValidAudienceForm();
+		setRange('2026-06-12', 'span');
+		window.$('#booking-skip-blocked').prop('checked', true);
+		window.$('#booking-start-time').val('14:00');
+		window.$('#booking-end-time').val('10:00');
+		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true, conflicts: {} });
+
+		api.checkConflicts();
+
+		expect(messageFor('#booking-end-time').length).toBe(0);
+		expect(restSpy).toHaveBeenCalled();
+		const data = restSpy.mock.calls[0][1].data;
+		expect(data.end_date).toBe('2026-06-12');
+		expect(data.time_mode).toBe('span');
+		expect(data.skip_blocked).toBe(1);
+	});
+
+	it('still refuses an end before the start on a daily range', () => {
+		setValidAudienceForm();
+		window.$('#ffc-booking-modal').show();
+		setRange('2026-06-12', 'daily');
+		window.$('#booking-end-time').val('08:00');
+		const restSpy = vi.spyOn(window.FFC, 'rest');
+
+		api.checkConflicts();
+
+		expect(restSpy).not.toHaveBeenCalled();
+		expect(messageFor('#booking-end-time').text()).toBe('End must be after start.');
+	});
+
 	it('blocks when the description is too short', () => {
 		setValidAudienceForm();
 		window.$('#booking-description').val('too short');
@@ -251,16 +271,19 @@ describe('ffc-audience-booking-form — validation guards (via checkConflicts)',
 
 	it('blocks an audience booking with no audience selected', () => {
 		setValidAudienceForm();
-		window.$('#booking-audiences').val([]);
+		window.$('#booking-audiences input').prop('checked', false);
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		api.checkConflicts();
 		expect(alertSpy).not.toHaveBeenCalled();
-		expect(messageFor('#booking-audiences').text()).toBe('Select an audience.');
+		// Said under the list, where the choice is made.
+		const $msg = messageFor('#booking-audience-search');
+		expect($msg.text()).toBe('Select an audience.');
+		expect(window.$('#booking-audiences').next()[0]).toBe($msg[0]);
 	});
 
 	it('blocks a user booking with no users selected, after the chosen list', () => {
 		setValidAudienceForm();
-		window.$('#booking-type').val('users');
+		chooseUsers();
 		window.$('#booking-user-ids').val('');
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		api.checkConflicts();
@@ -301,13 +324,13 @@ describe('ffc-audience-booking-form — validation guards (via checkConflicts)',
 describe('ffc-audience-booking-form — getBookingFormData (via createBooking payload)', () => {
 	it('maps comma-separated user ids to an int array for a user booking', async () => {
 		setValidAudienceForm();
-		window.$('#booking-type').val('users');
+		chooseUsers();
 		window.$('#booking-user-ids').val('5, 7, ');
 		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true });
 		api.createBooking();
 		await Promise.resolve().then(() => Promise.resolve());
 		expect(restSpy.mock.calls[0][1].data.user_ids).toEqual([5, 7]);
-		expect(restSpy.mock.calls[0][1].data.booking_type).toBe('users');
+		expect(restSpy.mock.calls[0][1].data.booking_type).toBe('individual');
 	});
 
 	it('maps selected audience ids to an int array for an audience booking', async () => {
@@ -322,21 +345,23 @@ describe('ffc-audience-booking-form — getBookingFormData (via createBooking pa
 describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 	beforeEach(setValidAudienceForm);
 
-	it('shows the hard-conflict error and hides the create button', async () => {
+	it('shows the hard-conflict error and keeps the button a check', async () => {
 		vi.spyOn(window.FFC, 'rest').mockResolvedValue({
 			success: true,
 			conflicts: { type: 'environment', bookings: [{ start_time: '09:00', end_time: '10:00' }] },
 		});
 		api.checkConflicts();
 		await Promise.resolve().then(() => Promise.resolve());
-		expect(window.$('#ffc-conflict-error').css('display')).not.toBe('none');
+		expect(window.$('#ffc-conflict-error').prop('hidden')).toBe(false);
 		const notice = document.querySelector('#ffc-conflict-error [data-ffc-notice="conflict-error"]');
 		expect(notice.className).toBe('ffc-notice ffc-notice-danger');
 		expect(notice.getAttribute('role')).toBe('alert');
 		expect(notice.querySelector('.ffc-icon-error')).not.toBeNull();
 		expect(notice.querySelector('.ffc-notice-title').textContent).toBe('Already booked for this environment.');
 		expect(notice.querySelector('.ffc-notice-text').textContent).toBe('09:00–10:00');
-		expect(window.$('#ffc-create-booking-btn').css('display')).toBe('none');
+		// No booking here: the one button stays a check (#2008).
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('check');
+		expect(window.$('#ffc-booking-submit').prop('disabled')).toBe(false);
 	});
 
 	it('shows a soft audience-same-day warning and a disabled create button', async () => {
@@ -346,7 +371,7 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		});
 		api.checkConflicts();
 		await Promise.resolve().then(() => Promise.resolve());
-		expect(window.$('#ffc-conflict-warning').css('display')).not.toBe('none');
+		expect(window.$('#ffc-conflict-warning').prop('hidden')).toBe(false);
 		const notice = document.querySelector('#ffc-conflict-warning [data-ffc-notice="conflict-warning"]');
 		expect(notice.className).toBe('ffc-notice ffc-notice-warning');
 		expect(notice.querySelector('.ffc-icon-warning')).not.toBeNull();
@@ -355,7 +380,8 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		// The acknowledgement moved into the notice, once, still the same node.
 		expect(notice.querySelectorAll('#ffc-conflict-acknowledge').length).toBe(1);
 		expect(document.querySelectorAll('#ffc-conflict-acknowledge').length).toBe(1);
-		expect(window.$('#ffc-create-booking-btn').prop('disabled')).toBe(true);
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('create');
+		expect(window.$('#ffc-booking-submit').prop('disabled')).toBe(true);
 	});
 
 	it('shows a soft user-overlap warning', async () => {
@@ -365,7 +391,7 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		});
 		api.checkConflicts();
 		await Promise.resolve().then(() => Promise.resolve());
-		expect(window.$('#ffc-conflict-warning').css('display')).not.toBe('none');
+		expect(window.$('#ffc-conflict-warning').prop('hidden')).toBe(false);
 		expect(window.$('#ffc-conflict-warning .ffc-notice-text').text()).toContain('2 member(s) overlap.');
 	});
 
@@ -391,8 +417,13 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true, conflicts: {} });
 		api.checkConflicts();
 		await Promise.resolve().then(() => Promise.resolve());
-		expect(window.$('#ffc-create-booking-btn').css('display')).not.toBe('none');
-		expect(window.$('#ffc-create-booking-btn').prop('disabled')).toBe(false);
+		const $btn = window.$('#ffc-booking-submit');
+		expect($btn.attr('data-step')).toBe('create');
+		expect($btn.prop('disabled')).toBe(false);
+		expect($btn.hasClass('ffc-btn-create')).toBe(true);
+		expect($btn.hasClass('ffc-icon-plus')).toBe(true);
+		expect($btn.hasClass('ffc-btn-primary')).toBe(false);
+		expect($btn.text()).toBe('Create booking');
 	});
 
 	it('alerts when the server reports failure', async () => {
@@ -478,7 +509,8 @@ describe('ffc-audience-booking-form — createBooking', () => {
 		api.createBooking();
 		await Promise.resolve().then(() => Promise.resolve());
 		expect(alertSpy).toHaveBeenCalledWith('Nope');
-		expect(window.$('#ffc-create-booking-btn').prop('disabled')).toBe(false);
+		expect(window.$('#ffc-booking-submit').prop('disabled')).toBe(false);
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('create');
 	});
 
 	it('alerts on a rejected create request', async () => {
@@ -487,5 +519,143 @@ describe('ffc-audience-booking-form — createBooking', () => {
 		api.createBooking();
 		await Promise.resolve().then(() => Promise.resolve());
 		expect(alertSpy).toHaveBeenCalledWith('Error');
+	});
+});
+
+describe('ffc-audience-booking-form — the dialog of #2008', () => {
+	function messageFor(selector) {
+		const id = window.$(selector).attr('data-ffc-message-id');
+		return id ? window.$('#' + id) : window.$();
+	}
+
+	it('opens on one day, with the audience type, nothing chosen and the button a check', () => {
+		window.$('input[name="booking_span"][value="range"]').prop('checked', true);
+		window.$('input[name="booking_type"][value="individual"]').prop('checked', true);
+		window.$('#booking-audiences input[value="11"]').prop('checked', true);
+		api.setSubmitStep('create');
+		window.$('#ffc-conflict-error').prop('hidden', false);
+		window.$('.ffc-booking-dialog').addClass('is-picking-audiences');
+
+		api.openBookingModal('2099-06-10');
+
+		expect(window.$('input[name="booking_span"]:checked').val()).toBe('single');
+		expect(window.$('#booking-end-date-group').prop('hidden')).toBe(true);
+		expect(window.$('input[name="booking_type"]:checked').val()).toBe('audience');
+		expect(window.$('#audience-select-group').prop('hidden')).toBe(false);
+		expect(window.$('#user-select-group').prop('hidden')).toBe(true);
+		expect(window.$('#booking-audiences input:checked').length).toBe(0);
+		expect(window.$('#booking-audience-summary-value').text()).toBe('None selected');
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('check');
+		expect(window.$('#ffc-conflict-error').prop('hidden')).toBe(true);
+		expect(window.$('.ffc-booking-dialog').hasClass('is-picking-audiences')).toBe(false);
+	});
+
+	it('routes the one button to the check, then to the create', async () => {
+		setValidAudienceForm();
+		const rest = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true, conflicts: {} });
+		vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+		expect(rest.mock.calls[0][0]).toContain('/conflicts');
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('create');
+
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+		expect(rest.mock.calls[1][0]).toContain('/bookings');
+	});
+
+	it('keeps the label while busy, and comes back as a check after a failed check', async () => {
+		setValidAudienceForm();
+		let reject;
+		vi.spyOn(window.FFC, 'rest').mockReturnValue(new Promise((_, r) => { reject = r; }));
+		vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const $btn = window.$('#ffc-booking-submit');
+
+		api.checkConflicts();
+		expect($btn.hasClass('ffc-btn-loading')).toBe(true);
+		expect($btn.prop('disabled')).toBe(true);
+		expect($btn.text()).toBe('Check Conflicts');
+
+		reject({ message: 'x', xhr: null });
+		await Promise.resolve().then(() => Promise.resolve());
+		expect($btn.hasClass('ffc-btn-loading')).toBe(false);
+		expect($btn.attr('data-step')).toBe('check');
+		expect($btn.prop('disabled')).toBe(false);
+	});
+
+	it('asks for a last day when several days are chosen, under the field', () => {
+		setValidAudienceForm();
+		setRange('', 'daily');
+		const rest = vi.spyOn(window.FFC, 'rest');
+
+		api.checkConflicts();
+
+		expect(rest).not.toHaveBeenCalled();
+		expect(messageFor('#booking-end-date').text()).toBe('Choose the last day.');
+	});
+
+	it('refuses a last day on or before the first', () => {
+		setValidAudienceForm();
+		setRange('2026-06-10', 'daily');
+		const rest = vi.spyOn(window.FFC, 'rest');
+
+		api.checkConflicts();
+
+		expect(rest).not.toHaveBeenCalled();
+		expect(messageFor('#booking-end-date').text()).toBe('The last day must come after the first.');
+	});
+
+	it('sends no last day for one day, even with one left in the field', () => {
+		setValidAudienceForm();
+		window.$('#booking-end-date').val('2026-06-12');
+		const rest = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true, conflicts: {} });
+
+		api.checkConflicts();
+
+		expect(rest.mock.calls[0][1].data.end_date).toBe('');
+		expect(rest.mock.calls[0][1].data.time_mode).toBe('daily');
+	});
+
+	it('sums up the choice: two names, then how many more', () => {
+		document.getElementById('booking-audiences').innerHTML =
+			audienceRow(1, 'Kitchen') + audienceRow(2, 'Mathematics') + audienceRow(3, 'Coordinators') + audienceRow(4, 'Staff');
+		window.$('#booking-audiences input').prop('checked', true);
+
+		api.updateAudienceSummary();
+
+		const $value = window.$('#booking-audience-summary-value');
+		expect($value.find('.ffc-audience-picker-summary-item').map((_, el) => el.textContent).get()).toEqual(['Kitchen', 'Mathematics']);
+		expect($value.find('.ffc-audience-picker-summary-more').text()).toBe('+2 more');
+		const $chips = window.$('#booking-audience-chips');
+		expect($chips.prop('hidden')).toBe(false);
+		expect($chips.find('.ffc-audience-picker-chip').length).toBe(4);
+		// Each chip carries its audience's dot and an icon-only remove button.
+		const $remove = $chips.find('.ffc-audience-picker-chip-remove').first();
+		expect($remove.attr('aria-label')).toBe('Remove Kitchen');
+		expect($remove.hasClass('ffc-btn-icon')).toBe(true);
+		expect($chips.find('.ffc-color-dot').length).toBe(4);
+	});
+
+	it('finds an audience whatever its accents or case', () => {
+		document.getElementById('booking-audiences').innerHTML =
+			audienceRow(1, 'Coordenação') + audienceRow(2, 'Cozinha');
+
+		api.filterAudiences('COORDENACAO');
+
+		const hidden = window.$('#booking-audiences .ffc-audience-picker-option').map((_, el) => el.hidden).get();
+		expect(hidden).toEqual([false, true]);
+
+		api.filterAudiences('');
+		expect(window.$('#booking-audiences .ffc-audience-picker-option[hidden]').length).toBe(0);
+	});
+
+	it('leaves a check step alone when nothing was checked yet', () => {
+		window.$('#ffc-conflict-error').prop('hidden', false);
+		api.setSubmitStep('check');
+
+		api.invalidateCheck();
+
+		expect(window.$('#ffc-conflict-error').prop('hidden')).toBe(false);
 	});
 });

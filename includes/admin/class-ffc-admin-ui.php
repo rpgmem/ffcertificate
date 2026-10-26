@@ -493,6 +493,57 @@ class AdminUI {
 	}
 
 	/**
+	 * The plugin's one file field (#2038): a neutral family button with the
+	 * `upload` icon, and beside it the name of the chosen file.
+	 *
+	 * The browser's own "Choose File" button cannot carry an icon, so it is
+	 * hidden and a `<label>` for the input is drawn as the button; the input
+	 * stays in the form, focusable and visible as the file name the browser
+	 * prints. No script is needed: the label opens the picker, and the browser
+	 * updates the name.
+	 *
+	 * @param array<string, mixed> $args `id` (required, the label points at it),
+	 *                                   `name`, `accept`, `required` (bool),
+	 *                                   `class` (extra classes on the input, the
+	 *                                   hooks scripts read) and `label`
+	 *                                   (defaults to "Choose file").
+	 * @return string
+	 */
+	public static function file_picker( array $args ): string {
+		$id = (string) ( $args['id'] ?? '' );
+		if ( '' === $id ) {
+			$id = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'ffc-file-' ) : 'ffc-file-' . wp_rand();
+		}
+		$label   = (string) ( $args['label'] ?? '' );
+		$classes = trim( 'ffc-file-picker-input ' . (string) ( $args['class'] ?? '' ) );
+
+		$input = '<input type="file" id="' . esc_attr( $id ) . '" class="' . esc_attr( $classes ) . '"';
+		foreach ( array( 'name', 'accept' ) as $key ) {
+			if ( isset( $args[ $key ] ) && '' !== (string) $args[ $key ] ) {
+				$input .= ' ' . $key . '="' . esc_attr( (string) $args[ $key ] ) . '"';
+			}
+		}
+		if ( ! empty( $args['required'] ) ) {
+			$input .= ' required';
+		}
+		$input .= '>';
+
+		return '<span class="ffc-file-picker">' . $input
+			. '<label for="' . esc_attr( $id ) . '" class="ffc-btn ffc-btn-neutral ffc-icon-upload ffc-file-picker-button">'
+			. esc_html( '' !== $label ? $label : __( 'Choose file', 'ffcertificate' ) )
+			. '</label></span>';
+	}
+
+	/**
+	 * Print {@see self::file_picker()}.
+	 *
+	 * @param array<string, mixed> $args See {@see self::file_picker()}.
+	 */
+	public static function render_file_picker( array $args ): void {
+		echo self::file_picker( $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every attribute and the label are escaped in file_picker().
+	}
+
+	/**
 	 * The save button of a settings form: the screen's primary action, in a
 	 * `p.submit` like the `submit_button()` it replaces (#1874).
 	 *
@@ -943,9 +994,7 @@ class AdminUI {
 	 */
 	public static function get_required_tags_line(): string {
 		$tags = array_map(
-			static fn( string $tag ): string => '<code>' . esc_html( $tag ) . '</code>'
-				// Asked only of a form with an Event Schedule (#1741).
-				. ( '{{schedule}}' === $tag ? ' ' . esc_html__( '(when the form has an Event Schedule)', 'ffcertificate' ) : '' ),
+			static fn( string $tag ): string => '<code>' . esc_html( $tag ) . '</code>',
 			\FreeFormCertificate\Settings\SettingsReader::required_certificate_tags()
 		);
 		return sprintf(

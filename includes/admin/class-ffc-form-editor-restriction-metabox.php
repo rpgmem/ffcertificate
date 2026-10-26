@@ -65,6 +65,7 @@ class FormEditorRestrictionMetabox {
 		$allowlist_active = ! empty( $restrictions['allowlist'] ) && '1' === $restrictions['allowlist'];
 		$denylist_active  = ! empty( $restrictions['denylist'] ) && '1' === $restrictions['denylist'];
 		$ticket_active    = ! empty( $restrictions['ticket'] ) && '1' === $restrictions['ticket'];
+		$invite_active    = \FreeFormCertificate\Frontend\FormInvite::invite_only( is_array( $config ) ? $config : array() );
 
 		// Legacy fields.
 		$vcode     = isset( $config['validation_code'] ) ? $config['validation_code'] : '';
@@ -88,6 +89,7 @@ class FormEditorRestrictionMetabox {
 						'allowlist' => array( 'ffc_restriction_allowlist', $allowlist_active, __( 'Allowlist (CPF/RF)', 'ffcertificate' ), __( 'Only approved CPF/RF can submit', 'ffcertificate' ), '[name="ffc_config[allowed_users_list]"]' ),
 						'denylist'  => array( 'ffc_restriction_denylist', $denylist_active, __( 'Denylist (CPF/RF)', 'ffcertificate' ), __( 'Blocked CPF/RF cannot submit', 'ffcertificate' ), '[name="ffc_config[denied_users_list]"]' ),
 						'ticket'    => array( 'ffc_restriction_ticket', $ticket_active, __( 'Ticket (Unique Codes)', 'ffcertificate' ), __( 'Requires valid ticket (consumed after use)', 'ffcertificate' ), '#ffc_generated_list' ),
+						'invite'    => array( 'ffc_restriction_invite', $invite_active, __( 'Booking participants only', 'ffcertificate' ), __( 'Only people invited by an audience booking\'s post-event e-mail can submit', 'ffcertificate' ), '' ),
 					);
 					foreach ( $ffc_restriction_rows as $ffc_key => $ffc_row ) :
 						list( $ffc_id, $ffc_active, $ffc_title, $ffc_hint, $ffc_requires ) = $ffc_row;
@@ -100,9 +102,13 @@ class FormEditorRestrictionMetabox {
 									'id'      => $ffc_id,
 									'checked' => (bool) $ffc_active,
 									'label'   => $ffc_title,
-									'data'    => array(
-										'ffc-autosave-form-key' => 'restriction_' . $ffc_key,
-										'ffc-requires' => $ffc_requires,
+									// A restriction with no field of its own (the
+									// invitation) carries no `ffc-requires`.
+									'data'    => array_filter(
+										array(
+											'ffc-autosave-form-key' => 'restriction_' . $ffc_key,
+											'ffc-requires' => $ffc_requires,
+										)
 									),
 								)
 							);

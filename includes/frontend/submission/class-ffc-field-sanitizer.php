@@ -104,7 +104,7 @@ class FieldSanitizer {
 		}
 
 		// Defensive: after the field loop ran, the email field may have
-		// failed sanitize_email() despite passing the preflight presence
+		// failed sanitize_email() despite passing the RequiredPresenceGuard presence
 		// check (e.g. user typed "not an email"). Keep this gate as a
 		// fallback so $user_email is never empty downstream.
 		if ( empty( $user_email ) ) {
@@ -119,7 +119,7 @@ class FieldSanitizer {
 			);
 		}
 
-		// LGPD already validated up-front (PreflightGuard); just stamp the
+		// LGPD already validated up-front (RequiredPresenceGuard); just stamp the
 		// consent on the submission data.
 		$submission_data['ffc_lgpd_consent'] = '1';
 

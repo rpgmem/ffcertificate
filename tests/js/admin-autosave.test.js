@@ -122,6 +122,31 @@ describe('FFC.Admin.autoSaveField', () => {
 		expect(seen).toEqual([{ key: 'dark_mode', value: '1', response: { share_link: '?x' }, field: document.getElementById('t') }]);
 	});
 
+	// A record save may send back the text of what describes it (#2026).
+	it('writes the fragments a save returns, text only, and hides an emptied one', async () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" />'
+			+ '<p id="summary">old</p>'
+			+ '<div id="warn" class="notice" data-ffc-fragment-hide-empty><p data-ffc-fragment-text>was shown</p></div>'
+			+ '<div id="later" class="hidden" data-ffc-fragment-hide-empty><p data-ffc-fragment-text></p></div>';
+		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true,
+			data: { fragments: { summary: '<b>3 of 4</b>', warn: '', later: 'Now shown', missing: 'x' } },
+		})));
+
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'flag' });
+		window.$('#t').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(document.getElementById('summary').textContent).toBe('<b>3 of 4</b>');
+		expect(document.querySelector('#summary b')).toBeNull();
+		expect(document.getElementById('warn').classList.contains('hidden')).toBe(true);
+		expect(document.querySelector('#warn p').textContent).toBe('');
+		expect(document.getElementById('later').classList.contains('hidden')).toBe(false);
+		expect(document.querySelector('#later p').textContent).toBe('Now shown');
+	});
+
 	it('stays silent when the save fails', async () => {
 		document.body.innerHTML = '<input type="checkbox" id="t" />';
 		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({

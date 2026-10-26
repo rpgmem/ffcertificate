@@ -6,7 +6,13 @@
  * every `this.method()` call still resolves against the single instance:
  *  - ffc-geofence-datetime.js  → date/time window validation
  *  - ffc-geofence-gps.js       → GPS acquisition, distance check, cache, fallback
- *  - ffc-geofence-preflight.js → cookie + GPS-permission pre-flight banners
+ *  - ffc-geofence-permission.js → the GPS-permission banners
+ *
+ * The checks before a form is shown run as FFC.Preflight's queue
+ * (ffc-preflight.js, #2030). This file registers the steps that are
+ * geofence's — `datetime` and `geo` — and runs the queue on
+ * every certificate form: one with no restriction arrives with a minimal
+ * configuration (`Frontend\BrowserGate::form_config()`).
  *
  * Handles client-side geolocation and date/time validation for forms.
  *
@@ -25,6 +31,11 @@
         // object so unit tests can pin the value without monkey-patching
         // setTimeout.
         MIN_LOADING_MS: 600,
+
+        // An accepted GPS reading whose error is above this share of the
+        // accepting area's radius is called weak to the visitor (#2072);
+        // the default when the server sends no `weakShare`.
+        WEAK_READING_SHARE: 0.5,
 
         /**
          * Initialize geofence validation
@@ -82,50 +93,49 @@
                 this.debug('Admin bypass active for some restrictions');
             }
 
-            // PRIORITY 1: Validate Date/Time (server timestamp is trusted)
-            // Only validate if datetime is enabled (not bypassed)
-            if (config.datetime && config.datetime.enabled) {
-                const datetimeValid = this.validateDateTime(config.datetime);
+            window.FFC.Preflight.run(['datetime', 'secure', 'browser', 'cookies', 'geo'], this.preflightContext(formWrapper, config));
+        },
 
-                if (!datetimeValid.valid) {
-                    // Per-phase hide mode (#159 S4). validateDateTime returns
-                    // phase ∈ {'before','during','after'} on a fail; pick the
-                    // matching config.datetime.hideMode<Phase>. Fall back to
-                    // hideModeBefore when phase is unset (defensive — should
-                    // not happen, but keeps the previous "always block"
-                    // semantic intact).
-                    const phaseMode = this.pickHideMode(config.datetime, datetimeValid.phase);
-                    this.handleBlocked(formWrapper, phaseMode, config.datetime.message || datetimeValid.message);
-                    return; // Stop here, don't check geo
+        /**
+         * What the pre-flight steps receive.
+         *
+         * @param {jQuery} formWrapper Form or content wrapper.
+         * @param {object} config      Its geofence configuration.
+         * @returns {object}
+         */
+        preflightContext: function(formWrapper, config) {
+            const self = this;
+            const global = (window.ffcGeofenceConfig && window.ffcGeofenceConfig._global) || {};
+            return {
+                wrapper: formWrapper,
+                config: config,
+                content: false,
+                // On unless the setting says otherwise.
+                browserCheck: global.browserCheck !== false,
+                altchaOnly: global.altchaOnly === true,
+                // Browsers give the location only to a secure page, and the
+                // ALTCHA widget refuses to run outside one. The composite
+                // captcha mode is not stopped: its math half works on any
+                // page. The queue's `secure` step decides; the message is
+                // the geofence's.
+                needsSecure: function(ctx) {
+                    return self.needsGps(ctx.config) || (!ctx.content && ctx.altchaOnly === true);
+                },
+                onInsecure: function(ctx) {
+                    self.debug('Blocked: page is not a secure context');
+                    const gps = self.needsGps(ctx.config);
+                    self.handleBlocked(
+                        ctx.wrapper,
+                        gps ? ctx.config.geo.hideMode : 'message',
+                        gps
+                            ? ctx.text('httpsRequired', 'This form requires a secure connection (HTTPS) to access your location. Please contact the site administrator.')
+                            : ctx.text('secureRequired', 'This form requires a secure connection (HTTPS). Please contact the site administrator.')
+                    );
+                },
+                text: function(key, fallback) {
+                    return self.getString(key, fallback);
                 }
-                // DateTime validation passed, continue...
-            }
-
-            // PRIORITY 2: Cookie sanity check (6.6.4 Sprint 2).
-            // Probes `document.cookie` write+read roundtrip to surface
-            // visitors with cookies fully blocked at the browser level.
-            // Cookies are required by:
-            //   - the WP session token that wp_verify_nonce reads on
-            //     submit (otherwise the auto-recover in #356 will also
-            //     fail since the cookie is what binds the fresh nonce),
-            //   - the per-visitor identity that gates ITP-affected
-            //     downloads in 6.6.2.
-            // Skipped on adminBypass (operators don't get the banner).
-            // Does NOT catch ITP partitioning that strips cookies later
-            // mid-session — that case is covered by the server-side
-            // refresh_nonce auto-recover (6.6.3 #356).
-            if (config.adminBypass !== true && ! this.checkCookieSupport()) {
-                this.handleCookieBlocked(formWrapper);
-                return; // Stop here, don't check geo
-            }
-
-            // PRIORITY 3: Validate Geolocation (if enabled)
-            // Only validate if geo is enabled (not bypassed). The
-            // implementation is extracted into processGeoOrShow so the
-            // cookie-blocked "try anyway" path (Sprint 2) and the
-            // permission-denied "try anyway" path (Sprint 3) can re-enter
-            // it without duplicating the branch table.
-            this.processGeoOrShow(formWrapper, config);
+            };
         },
 
         /**
@@ -157,9 +167,18 @@
         },
 
         /**
-         * 6.6.4 Sprint 2 — extracted from processForm so the
-         * "try anyway" path on the cookie banner can re-enter just
-         * the geo step without re-running datetime + cookies.
+         * Whether a configuration asks the browser for the location.
+         *
+         * @param {object} config Form or content geofence configuration.
+         * @returns {boolean}
+         */
+        needsGps: function(config) {
+            return !!(config && config.geo && config.geo.enabled && config.geo.gpsEnabled);
+        },
+
+        /**
+         * The `geo` step: GPS when it is on, otherwise the form (an IP-only
+         * check runs on the server).
          *
          * @param {jQuery} formWrapper Form wrapper element.
          * @param {object} config Form geofence configuration.
@@ -182,27 +201,6 @@
         },
 
         /**
-         * 6.6.4 Sprint 2 — detect device family for platform-specific
-         * instructions in the cookies / GPS banners. Returns
-         * 'ios' | 'android' | 'desktop'. iPadOS reports "Macintosh" in
-         * the UA but exposes maxTouchPoints > 1; the same heuristic
-         * the PDF generator uses.
-         *
-         * @returns {'ios'|'android'|'desktop'}
-         */
-        detectPlatformFamily: function() {
-            const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
-            if (/iPad|iPhone|iPod/.test(ua)
-                || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) {
-                return 'ios';
-            }
-            if (/Android/i.test(ua)) {
-                return 'android';
-            }
-            return 'desktop';
-        },
-
-        /**
          * Show form after successful validation
          * Adds 'ffc-validated' class to override CSS hiding
          *
@@ -220,12 +218,16 @@
             // form becomes visible the moment we add `.ffc-validated`.
             formWrapper.find('.ffc-submission-form').show();
             this.debug('Form validation passed, showing form');
+            // The queue passed: what waits for it (the "already submitted"
+            // notice) may draw now.
+            formWrapper.trigger('ffc:preflight-passed');
         },
 
         resetForm: function(formWrapper) {
             formWrapper.removeClass('ffc-validated');
             formWrapper.find('[data-ffc-notice="geofence-blocked"]').remove();
             formWrapper.find('[data-ffc-notice="geofence-bypass"]').remove();
+            formWrapper.find('[data-ffc-notice="geofence-imprecise"]').remove();
             // processForm draws the pre-flight banner again when it is
             // still needed; leaving the old one stacks a second (#1668).
             formWrapper.find('[data-ffc-notice^="preflight"]').remove();
@@ -442,6 +444,37 @@
     };
 
     window.FFCGeofence = FFCGeofence;
+
+    /*
+     * The pre-flight steps that are geofence's (#2030). They run in the
+     * order the caller gives FFC.Preflight.run().
+     */
+    window.FFC.Preflight.register('datetime', {
+        // The server's timestamp is trusted; a bypassed window arrives
+        // disabled.
+        applies: function(ctx) {
+            return !!(ctx.config.datetime && ctx.config.datetime.enabled);
+        },
+        run: function(ctx, next) {
+            const result = FFCGeofence.validateDateTime(ctx.config.datetime);
+            if (result.valid) {
+                next();
+                return;
+            }
+            // Per-phase hide mode (#159 S4): before, during or after.
+            FFCGeofence.handleBlocked(
+                ctx.wrapper,
+                FFCGeofence.pickHideMode(ctx.config.datetime, result.phase),
+                ctx.config.datetime.message || result.message
+            );
+        }
+    });
+
+    window.FFC.Preflight.register('geo', {
+        run: function(ctx) {
+            FFCGeofence.processGeoOrShow(ctx.wrapper, ctx.config);
+        }
+    });
 
     $(document).ready(function() {
         FFCGeofence.init();

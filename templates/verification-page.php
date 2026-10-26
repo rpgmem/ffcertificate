@@ -7,6 +7,7 @@
  * Variables available:
  *
  * @var string $security_fields Generated security fields HTML
+ * @var string $device_check_url Address of the "Test my device" mode, or empty (#2040).
  *
  * @package FreeFormCertificate
  * @since 3.1.0
@@ -70,4 +71,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<!-- Verification result -->
 	<div class="ffc-verify-result" role="region" aria-live="polite"></div>
+	<?php if ( ! empty( $device_check_url ) ) : ?>
+		<p class="ffc-verification-device-check">
+			<a href="<?php echo esc_url( $device_check_url ); ?>"><?php esc_html_e( 'Problems with a form? Test your device', 'ffcertificate' ); ?></a>
+		</p>
+	<?php endif; ?>
 </div>

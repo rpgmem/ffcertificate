@@ -122,9 +122,19 @@ class DateMessagesCronTest extends TestCase {
 			}
 		);
 
+		$unscheduled = array();
+		Functions\when( 'wp_unschedule_hook' )->alias(
+			static function ( $hook ) use ( &$unscheduled ) {
+				$unscheduled[] = $hook;
+			}
+		);
+
 		DateMessagesCron::unschedule();
 
-		$this->assertSame( array( DateMessagesCron::CRON_HOOK, Runner::BATCH_HOOK, \FreeFormCertificate\DateMessages\Digest::HOOK ), $cleared );
+		$this->assertSame( array( DateMessagesCron::CRON_HOOK ), $cleared );
+		// The single events carry arguments; only wp_unschedule_hook() removes
+		// them whatever the arguments are.
+		$this->assertSame( array( Runner::BATCH_HOOK, \FreeFormCertificate\DateMessages\Digest::HOOK, Runner::ANNOUNCE_HOOK ), $unscheduled );
 	}
 
 	public function test_init_attaches_the_daily_job_and_the_batch_continuation(): void {
@@ -143,6 +153,7 @@ class DateMessagesCronTest extends TestCase {
 				DateMessagesCron::CRON_HOOK                         => 1,
 				\FreeFormCertificate\DateMessages\Digest::HOOK => 1,
 				Runner::BATCH_HOOK                                  => 3,
+				Runner::ANNOUNCE_HOOK                               => 1,
 			),
 			$added
 		);

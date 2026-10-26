@@ -28,7 +28,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * - `out_of_audience` -- the rule names audiences and the person is in none
  *   of them (sub-audiences count; any one is enough, #1648). The filter reads the membership whether or not the
  *   Audiences module is toggled on: a rule restricted to an audience must
- *   never widen to everyone because a toggle moved;
+ *   never widen to everyone because a toggle moved. A source that reads the
+ *   members it is given (`MemberScopedSourceInterface`, the announcement) is
+ *   paged over the members instead, so for it this decision never occurs
+ *   (#1996); a dated source stays selective by its date and keeps it;
  * - `opted_out`       -- the person turned date messages off;
  * - `no_email`        -- the account's address is empty or not an address;
  * - `already_sent`    -- the log already holds this delivery;
@@ -66,10 +69,10 @@ final class RecipientResolver {
 	 * @param \DateTimeImmutable $target The day the date falls on.
 	 * @param int                $after  Keyset cursor (user id).
 	 * @param int                $limit  Page size.
-	 * @return array{rows: array<int, array{user_id: int, email: string, name: string, decision: string}>, cursor: int, complete: bool}
+	 * @return array{rows: array<int, array{user_id: int, email: string, name: string, decision: string, forced: bool}>, cursor: int, complete: bool}
 	 */
 	public function resolve( Rule $rule, \DateTimeImmutable $target, int $after, int $limit ): array {
-		$source = $this->source ?? DateSources::get( $rule->source );
+		$source = $this->source ?? DateSources::for_rule( $rule );
 		if ( null === $source ) {
 			return array(
 				'rows'     => array(),
@@ -78,24 +81,37 @@ final class RecipientResolver {
 			);
 		}
 
-		$limit      = max( 1, $limit );
-		$candidates = $source->due( $target, $after, $limit );
+		$limit   = max( 1, $limit );
+		$members = array() === $rule->audience_ids ? null : $this->members_of_any( $rule->audience_ids );
+
+		if ( null !== $members && $source instanceof MemberScopedSourceInterface ) {
+			// Page over the audience members, not over the site (#1996). The
+			// page is the ids, so an id whose account is gone neither stops
+			// the run early nor holds the cursor back.
+			$page       = $this->member_page( $members, $after, $limit );
+			$candidates = array() === $page ? array() : $source->due_among( $target, $page );
+			$cursor     = array() === $page ? $after : (int) end( $page );
+			$complete   = count( $page ) < $limit;
+		} else {
+			$candidates = $source->due( $target, $after, $limit );
+			$cursor     = $after;
+			$complete   = count( $candidates ) < $limit;
+		}
+
 		$ids        = array_map( static fn( array $c ): int => $c['user_id'], $candidates );
 		$occurrence = $target->format( 'Y-m-d' );
 
-		$opted_out = OptOut::among( $ids );
+		$opted_out = OptOut::among( $ids, $rule->opt_out_category() );
 		$delivered = DeliveryLog::delivered_among( $rule->id, $occurrence, $ids );
-		$members   = array() === $rule->audience_ids ? null : $this->members_of_any( $rule->audience_ids );
 
-		$rows   = array();
-		$cursor = $after;
+		$rows = array();
 		foreach ( $candidates as $candidate ) {
 			$id     = $candidate['user_id'];
 			$cursor = max( $cursor, $id );
 
 			if ( null !== $members && ! isset( $members[ $id ] ) ) {
 				$decision = self::OUT_OF_AUDIENCE;
-			} elseif ( isset( $opted_out[ $id ] ) ) {
+			} elseif ( isset( $opted_out[ $id ] ) && $rule->respect_opt_out ) {
 				$decision = self::OPTED_OUT;
 			} elseif ( ! is_email( $candidate['email'] ) ) {
 				$decision = self::NO_EMAIL;
@@ -105,14 +121,46 @@ final class RecipientResolver {
 				$decision = self::WILL_SEND;
 			}
 
-			$rows[] = $candidate + array( 'decision' => $decision );
+			// Forced: an opted-out person an announcement reaches anyway, because
+			// the operator chose "send to everyone". Labelled, so it is never silent.
+			$forced = self::WILL_SEND === $decision && isset( $opted_out[ $id ] );
+
+			$rows[] = $candidate + array(
+				'decision' => $decision,
+				'forced'   => $forced,
+			);
 		}
 
 		return array(
 			'rows'     => $rows,
 			'cursor'   => $cursor,
-			'complete' => count( $candidates ) < $limit,
+			'complete' => $complete,
 		);
+	}
+
+	/**
+	 * One page of member ids after the cursor, ascending.
+	 *
+	 * @param array<int, true> $members Member ids as a set.
+	 * @param int              $after   Keyset cursor.
+	 * @param int              $limit   Page size.
+	 * @return array<int, int>
+	 */
+	private function member_page( array $members, int $after, int $limit ): array {
+		$ids = array_filter( array_keys( $members ), static fn( int $id ): bool => $id > $after );
+		sort( $ids, SORT_NUMERIC );
+		return array_slice( $ids, 0, $limit );
+	}
+
+	/**
+	 * Whether any of the audiences has a member, sub-audiences included (#1949).
+	 * An announcement to an audience with nobody in it has nothing to send.
+	 *
+	 * @param array<int> $audience_ids Audiences.
+	 * @return bool
+	 */
+	public function audience_has_members( array $audience_ids ): bool {
+		return array() !== $this->members_of_any( $audience_ids );
 	}
 
 	/**

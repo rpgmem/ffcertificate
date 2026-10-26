@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '1';
+	public const SCHEMA_REVISION = '5';
 
 	/**
 	 * Option holding the revision last applied.
@@ -67,6 +67,9 @@ class AudienceActivator {
 		self::create_bookings_table();
 		self::create_booking_audiences_table();
 		self::create_booking_users_table();
+		self::create_attendance_table();
+		self::create_checkin_windows_table();
+		self::create_form_invites_table();
 		self::register_capabilities();
 		self::add_composite_indexes();
 	}
@@ -139,6 +142,9 @@ class AudienceActivator {
             audience_badge_format enum('name','parent_name') DEFAULT 'name' COMMENT 'How audience badges display: name only or parent: child',
             is_isolated tinyint(1) DEFAULT 0 COMMENT 'Ignore conflicts from other schedules',
             admin_bypass tinyint(1) DEFAULT 1 COMMENT 'Audience bypass holders may book outside the rules',
+            post_event_form_id bigint(20) unsigned DEFAULT NULL,
+            post_event_window_days smallint(5) unsigned DEFAULT NULL,
+            post_event_attendees_only tinyint(1) DEFAULT 0,
             PRIMARY KEY (id),
             KEY idx_status (status),
             KEY idx_created_by (created_by)
@@ -346,12 +352,132 @@ class AudienceActivator {
             cancelled_by bigint(20) unsigned DEFAULT NULL,
             cancelled_at datetime DEFAULT NULL,
             cancellation_reason varchar(500) DEFAULT NULL COMMENT 'Required when cancelling',
+            end_date date DEFAULT NULL COMMENT 'Last day of a range, NULL for a single day',
+            time_mode enum('daily','span') DEFAULT NULL COMMENT 'Hours of a range: daily or span',
+            skipped_dates text DEFAULT NULL COMMENT 'JSON list of blocked days a range left out',
+            attendance_mode enum('single','total') DEFAULT NULL,
+            attendance_min_percent tinyint(3) unsigned DEFAULT NULL,
+            post_event_custom tinyint(1) DEFAULT 0,
+            post_event_form_id bigint(20) unsigned DEFAULT NULL,
+            post_event_window_days smallint(5) unsigned DEFAULT NULL,
+            post_event_attendees_only tinyint(1) DEFAULT NULL,
             PRIMARY KEY (id),
             KEY idx_environment (environment_id),
             KEY idx_date (booking_date),
             KEY idx_status (status),
             KEY idx_created_by (created_by),
             KEY idx_env_date_status (environment_id, booking_date, status)
+        ) {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Create the attendance table (#1947).
+	 *
+	 * One row per person, booking and day they were present. `user_id` is
+	 * nullable because a row is a record: deleting the account drops the link
+	 * and keeps the line (CLAUDE.md "Security & PII conventions"). The unique
+	 * key is what makes a second check-in on the same day a no-op.
+	 *
+	 * @return void
+	 */
+	private static function create_attendance_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_audience_attendance';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		$sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            booking_id bigint(20) unsigned NOT NULL,
+            user_id bigint(20) unsigned DEFAULT NULL,
+            attendance_date date NOT NULL,
+            checked_at bigint(20) unsigned NOT NULL,
+            method enum('qr','manual') NOT NULL DEFAULT 'qr',
+            marked_by bigint(20) unsigned DEFAULT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_booking_user_date (booking_id,user_id,attendance_date),
+            KEY idx_user (user_id),
+            KEY idx_booking_date (booking_id,attendance_date)
+        ) {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Create the check-in windows table (#1947).
+	 *
+	 * A window is one opening of check-in for one day of a booking. Its id
+	 * enters the QR signature, so reopening invalidates every code shown
+	 * before; `closes_at` is the automatic close, `closed_at` the actual one.
+	 * `geofence_locations` lists the saved geofence locations a check-in must
+	 * fall inside (comma-separated registry ids), NULL for none.
+	 *
+	 * @return void
+	 */
+	private static function create_checkin_windows_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_audience_checkin_windows';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		$sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            booking_id bigint(20) unsigned NOT NULL,
+            window_date date NOT NULL,
+            rotation_seconds smallint(5) unsigned NOT NULL DEFAULT 60,
+            opened_at bigint(20) unsigned NOT NULL,
+            opened_by bigint(20) unsigned DEFAULT NULL,
+            closes_at bigint(20) unsigned NOT NULL,
+            closed_at bigint(20) unsigned DEFAULT NULL,
+            closed_by bigint(20) unsigned DEFAULT NULL,
+            geofence_locations varchar(255) DEFAULT NULL,
+            PRIMARY KEY (id),
+            KEY idx_booking_date (booking_id,window_date)
+        ) {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Create the post-event invitations table (#1948).
+	 *
+	 * One row per person and booking whose post-event form invitation was
+	 * sent; the unique key is what makes a second send update the row rather
+	 * than add one. A row is a relationship, not a record: it is deleted with
+	 * the account.
+	 *
+	 * @return void
+	 */
+	private static function create_form_invites_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_audience_form_invites';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		$sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            booking_id bigint(20) unsigned NOT NULL,
+            user_id bigint(20) unsigned NOT NULL,
+            form_id bigint(20) unsigned NOT NULL,
+            sent_at bigint(20) unsigned NOT NULL,
+            send_count smallint(5) unsigned NOT NULL DEFAULT 1,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_booking_user (booking_id,user_id),
+            KEY idx_user (user_id)
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -769,8 +895,10 @@ class AudienceActivator {
 	 *
 	 * Tables only, never activation's side effects (CLAUDE.md "Schema-
 	 * reachability guard"): `add_column_if_missing()` and nothing else. The
-	 * option is written even when the table is missing, because the table's
-	 * `CREATE` already carries every column listed here.
+	 * option is written when a table is missing, because the table's `CREATE`
+	 * already carries every column listed here; it is not written when an
+	 * `ALTER` failed, so the next request tries again instead of the install
+	 * running for good without the column.
 	 *
 	 * @return void
 	 */
@@ -779,9 +907,127 @@ class AudienceActivator {
 			return;
 		}
 
-		self::migrate_audience_tree_access_columns();
+		global $wpdb;
 
-		update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
+		$healed = self::migrate_audience_tree_access_columns();
+		$healed = self::migrate_booking_range_columns() && $healed;
+		$healed = self::migrate_booking_attendance_columns() && $healed;
+		$healed = self::migrate_post_event_form_columns() && $healed;
+
+		// The attendance tables of #1947 and the invitations of #1948 reach
+		// upgraded installs here: the version-gated chain below never creates
+		// a table (#1311).
+		self::create_attendance_table();
+		self::create_checkin_windows_table();
+		self::create_form_invites_table();
+		$healed = $healed
+			&& self::table_exists( $wpdb->prefix . 'ffc_audience_attendance' )
+			&& self::table_exists( $wpdb->prefix . 'ffc_audience_checkin_windows' )
+			&& self::table_exists( $wpdb->prefix . 'ffc_audience_form_invites' );
+
+		if ( $healed ) {
+			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
+		}
+	}
+
+	/**
+	 * Whether a table holds every column named, after the heal ran.
+	 * `add_column_if_missing()` answers `false` both for a column that was
+	 * already there and for an `ALTER` that failed, so its answer cannot say
+	 * whether the schema is complete; reading the columns back can.
+	 *
+	 * @param string   $table_name Table name.
+	 * @param string[] $columns    Column names.
+	 * @return bool
+	 */
+	private static function has_columns( string $table_name, array $columns ): bool {
+		foreach ( $columns as $column ) {
+			if ( ! self::column_exists( $table_name, $column ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Add the range columns to bookings (#1946).
+	 *
+	 * All three default to NULL, so a stored single-day booking reads exactly as
+	 * before: `end_date` NULL means one day, `time_mode` and `skipped_dates` apply
+	 * only to a range.
+	 *
+	 * @return bool Whether the table now has the columns, or does not exist yet.
+	 */
+	private static function migrate_booking_range_columns(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_bookings';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing( $table_name, 'end_date', 'date DEFAULT NULL', 'booking_date' );
+		self::add_column_if_missing( $table_name, 'time_mode', "enum('daily','span') DEFAULT NULL", 'end_date' );
+		self::add_column_if_missing( $table_name, 'skipped_dates', 'text DEFAULT NULL', 'time_mode' );
+
+		return self::has_columns( $table_name, array( 'end_date', 'time_mode', 'skipped_dates' ) );
+	}
+
+	/**
+	 * Add the attendance rule to bookings (#1947).
+	 *
+	 * Both default to NULL, which reads as the *single* rule: one day of
+	 * attendance is enough.
+	 *
+	 * @return bool Whether the table now has the columns, or does not exist yet.
+	 */
+	private static function migrate_booking_attendance_columns(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_bookings';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing( $table_name, 'attendance_mode', "enum('single','total') DEFAULT NULL", 'skipped_dates' );
+		self::add_column_if_missing( $table_name, 'attendance_min_percent', 'tinyint(3) unsigned DEFAULT NULL', 'attendance_mode' );
+
+		return self::has_columns( $table_name, array( 'attendance_mode', 'attendance_min_percent' ) );
+	}
+
+	/**
+	 * Add the post-event form to calendars and bookings (#1948).
+	 *
+	 * A calendar names the certificate form its bookings lead to, how many
+	 * days it stays open after the event and whether only those present may
+	 * answer. A booking follows its calendar until `post_event_custom` is set,
+	 * and then reads its own three columns instead. Everything defaults to
+	 * NULL or 0, which reads as no form: an existing calendar invites nobody.
+	 *
+	 * @return bool Whether both tables now have the columns, or do not exist yet.
+	 */
+	private static function migrate_post_event_form_columns(): bool {
+		global $wpdb;
+		$schedules = $wpdb->prefix . 'ffc_audience_schedules';
+		$bookings  = $wpdb->prefix . 'ffc_audience_bookings';
+		$healed    = true;
+
+		if ( self::table_exists( $schedules ) ) {
+			self::add_column_if_missing( $schedules, 'post_event_form_id', 'bigint(20) unsigned DEFAULT NULL' );
+			self::add_column_if_missing( $schedules, 'post_event_window_days', 'smallint(5) unsigned DEFAULT NULL', 'post_event_form_id' );
+			self::add_column_if_missing( $schedules, 'post_event_attendees_only', 'tinyint(1) DEFAULT 0', 'post_event_window_days' );
+			$healed = self::has_columns( $schedules, array( 'post_event_form_id', 'post_event_window_days', 'post_event_attendees_only' ) );
+		}
+
+		if ( self::table_exists( $bookings ) ) {
+			self::add_column_if_missing( $bookings, 'post_event_custom', 'tinyint(1) DEFAULT 0', 'attendance_min_percent' );
+			self::add_column_if_missing( $bookings, 'post_event_form_id', 'bigint(20) unsigned DEFAULT NULL', 'post_event_custom' );
+			self::add_column_if_missing( $bookings, 'post_event_window_days', 'smallint(5) unsigned DEFAULT NULL', 'post_event_form_id' );
+			self::add_column_if_missing( $bookings, 'post_event_attendees_only', 'tinyint(1) DEFAULT NULL', 'post_event_window_days' );
+			$healed = self::has_columns( $bookings, array( 'post_event_custom', 'post_event_form_id', 'post_event_window_days', 'post_event_attendees_only' ) ) && $healed;
+		}
+
+		return $healed;
 	}
 
 	/**
@@ -793,14 +1039,14 @@ class AudienceActivator {
 	 * member from leaving the last group they hold in it. Both default off, so
 	 * an existing tree behaves as before.
 	 *
-	 * @return void
+	 * @return bool Whether the table now has the columns, or does not exist yet.
 	 */
-	private static function migrate_audience_tree_access_columns(): void {
+	private static function migrate_audience_tree_access_columns(): bool {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'ffc_audiences';
 
 		if ( ! self::table_exists( $table_name ) ) {
-			return;
+			return true;
 		}
 
 		self::add_column_if_missing(
@@ -813,6 +1059,8 @@ class AudienceActivator {
 			'require_membership',
 			"tinyint(1) DEFAULT 0 COMMENT 'Top-level: a member cannot leave the last group of the tree'"
 		);
+
+		return self::has_columns( $table_name, array( 'members_only', 'require_membership' ) );
 	}
 
 	/**
@@ -825,6 +1073,9 @@ class AudienceActivator {
 
 		// Drop in reverse order of dependencies.
 		$tables = array(
+			$wpdb->prefix . 'ffc_audience_form_invites',
+			$wpdb->prefix . 'ffc_audience_attendance',
+			$wpdb->prefix . 'ffc_audience_checkin_windows',
 			$wpdb->prefix . 'ffc_audience_booking_users',
 			$wpdb->prefix . 'ffc_audience_booking_audiences',
 			$wpdb->prefix . 'ffc_audience_bookings',
@@ -860,6 +1111,9 @@ class AudienceActivator {
 			'bookings'          => 'ffc_audience_bookings',
 			'booking_audiences' => 'ffc_audience_booking_audiences',
 			'booking_users'     => 'ffc_audience_booking_users',
+			'attendance'        => 'ffc_audience_attendance',
+			'checkin_windows'   => 'ffc_audience_checkin_windows',
+			'form_invites'      => 'ffc_audience_form_invites',
 		);
 
 		$status = array();

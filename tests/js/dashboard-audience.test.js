@@ -154,6 +154,33 @@ describe('FFCDashboard.panels.audience.render', () => {
 		expect(cell.textContent).toContain('Morning slot');
 	});
 
+	it('keeps a range that started before the From date but runs into it (#1946)', () => {
+		const bookings = [
+			makeBooking({ booking_date_raw: '2026-02-25', last_date_raw: '2026-03-03', environment_name: 'RunningHall' }),
+			makeBooking({ booking_date_raw: '2026-02-01', last_date_raw: '2026-02-02', environment_name: 'EndedHall' }),
+		];
+		panel().render(bookings, 1);
+		document.querySelector('#ffc-tabpanel-audience .ffc-filter-from').value = '2026-03-01';
+		panel().render(bookings, 1);
+		const text = document.querySelector('#ffc-tabpanel-audience').textContent;
+		expect(text).toContain('RunningHall');
+		expect(text).not.toContain('EndedHall');
+	});
+
+	it('shows the time label and exports every day of a range (#1946)', () => {
+		panel().render([
+			makeBooking({
+				time_label: 'From 14:00 on the first day to 10:00 on the last day',
+				ics: { date: '2999-01-01', end_date: '2999-01-03' },
+			}),
+		], 1);
+		const row = document.querySelector('#ffc-tabpanel-audience table tbody tr');
+		expect(row.textContent).toContain('From 14:00 on the first day to 10:00 on the last day');
+		const event = JSON.parse(row.querySelector('.ffc-cal-export-ics').getAttribute('data-event'));
+		expect(event.date).toBe('2999-01-01');
+		expect(event.endDate).toBe('2999-01-03');
+	});
+
 	it('filters out rows outside the from/to date range', () => {
 		const bookings = [
 			makeBooking({ booking_date_raw: '2026-01-01', environment_name: 'EarlyHall' }),
@@ -173,6 +200,54 @@ describe('FFCDashboard.panels.audience.render', () => {
 // ----------------------------------------------------------------------
 // load() — guard / AJAX flow
 // ----------------------------------------------------------------------
+
+// The post-event form waiting for the person (#2028).
+describe('FFCDashboard.panels.audience post-event form', () => {
+	afterEach(() => { panel().pendingLabel = ''; });
+
+	const waiting = (over = {}) => Object.assign({
+		form_title: 'Evaluation <b>',
+		url: 'https://x.test/form/?ffc_invite=abc',
+		closes_label: '15/01/2027 12:00',
+	}, over);
+
+	it('offers the person their own link and says when the form closes', () => {
+		window.ffcDashboard.strings.fillPostEventForm = 'Fill in the form';
+		window.ffcDashboard.strings.postEventCloses = 'Open until %s';
+		panel().render([makeBooking({ is_past: true, post_event: waiting() })], 1);
+
+		const link = document.querySelector('#ffc-tabpanel-audience a.ffc-btn-post-event');
+		expect(link).not.toBeNull();
+		expect(link.getAttribute('href')).toBe('https://x.test/form/?ffc_invite=abc');
+		expect(link.classList.contains('ffc-btn-primary')).toBe(true);
+		expect(link.textContent).toBe('Fill in the form');
+		expect(document.querySelector('.ffc-post-event-closes').textContent).toBe('Open until 15/01/2027 12:00');
+	});
+
+	it('only says the form waits, escaped, when there is no link (view as user)', () => {
+		window.ffcDashboard.strings.postEventWaiting = 'Form waiting: %s';
+		panel().render([makeBooking({ is_past: true, post_event: waiting({ url: '' }) })], 1);
+
+		expect(document.querySelector('.ffc-btn-post-event')).toBeNull();
+		const text = document.querySelector('.ffc-post-event-waiting');
+		expect(text.textContent).toBe('Form waiting: Evaluation <b>');
+		expect(text.querySelector('b')).toBeNull();
+	});
+
+	it('draws nothing for a booking with no form waiting', () => {
+		panel().render([makeBooking({ is_past: true, post_event: null })], 1);
+		expect(document.querySelector('.ffc-post-event-pending')).toBeNull();
+	});
+
+	it('counts the forms waiting in a notice above the sections', () => {
+		panel().pendingLabel = 'You have 1 certificate form to fill in.';
+		panel().render([makeBooking({ is_past: true, post_event: waiting() })], 1);
+
+		const notice = document.querySelector('#ffc-tabpanel-audience [data-ffc-notice="post-event-pending"]');
+		expect(notice).not.toBeNull();
+		expect(notice.textContent).toContain('You have 1 certificate form to fill in.');
+	});
+});
 
 describe('FFCDashboard.panels.audience.load', () => {
 	afterEach(() => {
@@ -222,7 +297,7 @@ describe('FFCDashboard.panels.audience.load', () => {
 			const xhr = { setRequestHeader: vi.fn() };
 			opts.beforeSend(xhr);
 			expect(xhr.setRequestHeader).toHaveBeenCalledWith('X-WP-Nonce', 'rest-nonce');
-			opts.success({ bookings: [makeBooking({ environment_name: 'LoadedHall' })] });
+			opts.success({ bookings: [makeBooking({ environment_name: 'LoadedHall' })], pending_label: 'Waiting: 1' });
 			return {};
 		});
 
@@ -232,7 +307,9 @@ describe('FFCDashboard.panels.audience.load', () => {
 		const opts = ajaxSpy.mock.calls[0][0];
 		expect(opts.url).toBe('https://x.test/wp-json/ffc/v1/user/audience-bookings');
 		expect(panel().state.length).toBe(1);
+		expect(panel().pendingLabel).toBe('Waiting: 1');
 		expect(document.getElementById('ffc-tabpanel-audience').textContent).toContain('LoadedHall');
+		panel().pendingLabel = '';
 	});
 
 	it('appends viewAsUserId query string when impersonating', async () => {

@@ -17,6 +17,7 @@
     var trapFocus                   = api.trapFocus;
     var getEnvironmentColor         = api.getEnvironmentColor;
     var formatTime                  = api.formatTime;
+    var timesOn                     = api.timesOn;
     var escapeHtml                  = api.escapeHtml;
     var getEnvironmentLabelForBooking = api.getEnvironmentLabelForBooking;
     var collapseParentAudiences     = api.collapseParentAudiences;
@@ -74,7 +75,7 @@
 
         var html = '';
         bookings.sort(function(a, b) {
-            return a.start_time.localeCompare(b.start_time);
+            return timesOn(a, date).start_time.localeCompare(timesOn(b, date).start_time);
         });
 
         bookings.forEach(function(booking) {
@@ -88,7 +89,8 @@
             if (parseInt(booking.is_all_day)) {
                 html += '<div class="ffc-booking-time ffc-all-day">' + ((ffcAudience.strings || {}).allDay || 'All Day') + '</div>';
             } else {
-                html += '<div class="ffc-booking-time">' + formatTime(booking.start_time) + ' - ' + formatTime(booking.end_time) + '</div>';
+                var times = timesOn(booking, date);
+                html += '<div class="ffc-booking-time">' + formatTime(times.start_time) + ' - ' + formatTime(times.end_time) + '</div>';
             }
             html += '<div class="ffc-booking-description">' + escapeHtml(booking.description) + '</div>';
 
@@ -116,7 +118,11 @@
                     category: 'danger',
                     icon: 'cross',
                     className: 'ffc-cancel-booking',
-                    attrs: { 'data-id': booking.id }
+                    attrs: {
+                        'data-id': booking.id,
+                        'data-days': (booking.days || []).length,
+                        'data-date-label': booking.date_label || booking.booking_date
+                    }
                 });
                 html += '</div>';
             }
@@ -128,37 +134,49 @@
 
         // Bind cancel handlers
         $container.find('.ffc-cancel-booking').on('click', function() {
-            var bookingId = $(this).data('id');
-            cancelBooking(bookingId, date);
+            cancelBooking($(this), date);
         });
     }
 
     /**
-     * Cancel booking
+     * Cancel booking. The person confirms what is cancelled first: a range is
+     * cancelled whole, so the dialog names every day of it.
      */
-    function cancelBooking(bookingId, date) {
-        var reason = prompt(ffcAudience.strings.cancelReason);
-        if (!reason || reason.trim() === '') {
-            return;
-        }
+    function cancelBooking($button, date) {
+        var bookingId = $button.data('id');
 
-        FFC.rest(ffcAudience.restUrl + 'bookings/' + bookingId, {
-            method: 'DELETE',
-            data: { reason: reason },
-            nonce: ffcAudience.nonce
-        })
-            .then(function(response) {
-                if (response && response.success) {
-                    alert(ffcAudience.strings.bookingCancelled);
-                    api.renderCalendar();
-                    loadDayBookings(date);
-                } else {
-                    alert((response && response.message) || ffcAudience.strings.error);
-                }
+        FFC.confirmRangeCancel({
+            count: $button.attr('data-days'),
+            label: $button.attr('data-date-label'),
+            strings: ffcAudience.strings.cancelConfirm
+        }).then(function(agreed) {
+            if (!agreed) {
+                return;
+            }
+
+            var reason = prompt(ffcAudience.strings.cancelReason);
+            if (!reason || reason.trim() === '') {
+                return;
+            }
+
+            FFC.rest(ffcAudience.restUrl + 'bookings/' + bookingId, {
+                method: 'DELETE',
+                data: { reason: reason },
+                nonce: ffcAudience.nonce
             })
-            .catch(function() {
-                alert(ffcAudience.strings.error);
-            });
+                .then(function(response) {
+                    if (response && response.success) {
+                        alert(ffcAudience.strings.bookingCancelled);
+                        api.renderCalendar();
+                        loadDayBookings(date);
+                    } else {
+                        alert((response && response.message) || ffcAudience.strings.error);
+                    }
+                })
+                .catch(function() {
+                    alert(ffcAudience.strings.error);
+                });
+        });
     }
 
     api.openDayModal   = openDayModal;

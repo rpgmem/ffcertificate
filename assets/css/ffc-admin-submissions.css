@@ -55,6 +55,27 @@
     padding: var(--ffc-spacing-lg) var(--ffc-spacing-md);
 }
 
+/* The fixed layout gave every column an equal share, so Status and Date
+   took far more than they hold while the action buttons wrapped. The two
+   short columns take what they hold and Actions what three buttons need;
+   the text columns share the rest. */
+.ffc-table-responsive table.wp-list-table .column-status,
+.ffc-table-responsive table.wp-list-table .column-submission_date {
+    width: 9em;
+}
+
+.ffc-table-responsive table.wp-list-table .column-actions {
+    width: 22em;
+}
+
+/* The buttons sit on one line when they fit and wrap with an even gap when
+   they do not (a trashed row has four). */
+.ffc-submission-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs);
+}
+
 .ffc-table-responsive table.wp-list-table {
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm);

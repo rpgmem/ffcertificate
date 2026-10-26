@@ -68,8 +68,9 @@ class FormProcessorGeofenceBeforeRateLimitTest extends TestCase {
 
 		// Geofence: rejects.
 		$geofence_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\Geofence' );
+		Mockery::mock( 'alias:\FreeFormCertificate\Security\GpsReading' )->shouldReceive( 'from_request' )->andReturn( array( 'reading' => null, 'status' => '' ) )->byDefault();
 		$geofence_mock->shouldReceive( 'get_form_config' )->andReturn( array( 'geo_enabled' => true, 'geo_ip_enabled' => true ) )->byDefault();
-		$geofence_mock->shouldReceive( 'can_access_form' )->andReturn( array(
+		$geofence_mock->shouldReceive( 'check_submission' )->andReturn( array(
 			'allowed' => false,
 			'message' => 'You are outside the allowed area.',
 			'reason'  => 'geo_outside_radius',

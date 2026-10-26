@@ -210,6 +210,12 @@ class SettingsSaveHandler {
 			$clean['quiz_focus_grace_ms'] = \FreeFormCertificate\Core\QuizLeaveLevel::clamp_grace( absint( $raw_settings['quiz_focus_grace_ms'] ) );
 		}
 
+		// The browser check (#2030). A checkbox, so rebuilt from presence on
+		// every Certificates save (the no-clobber invariant).
+		if ( 'certificates' === $ffc_tab ) {
+			$clean['browser_check'] = ! empty( $new['browser_check'] );
+		}
+
 		if ( 'advanced' === $ffc_tab ) {
 			$clean['enable_activity_log'] = isset( $new['enable_activity_log'] ) ? 1 : 0;
 

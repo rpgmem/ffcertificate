@@ -137,6 +137,9 @@ class AudienceLoader {
 			}
 		);
 
+		// The live state the attendance screen and the projected QR poll (#1947).
+		AudienceAttendanceAjax::init();
+
 		// Load admin assets.
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 	}
@@ -154,6 +157,13 @@ class AudienceLoader {
 
 		// Enqueue frontend assets.
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
+
+		// The URL a check-in QR opens (#1947).
+		AudienceCheckinEndpoint::init();
+
+		// Who a post-event invitation is for, asked by the certificate form
+		// on its page and on admin-ajax alike (#1948).
+		AudienceFormInviteResolver::register();
 	}
 
 	/**
@@ -215,7 +225,7 @@ class AudienceLoader {
 		wp_enqueue_script(
 			'ffc-audience-admin',
 			FFC_PLUGIN_URL . "assets/js/ffc-audience-admin{$s}.js",
-			array( 'jquery', 'wp-util' ),
+			array( 'jquery', 'wp-util', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);
@@ -267,6 +277,11 @@ class AudienceLoader {
 			);
 		}
 
+		// Attendance screen of one booking (#1947).
+		if ( AudienceAdminPage::MENU_SLUG . '-attendance' === $page ) {
+			( new AudienceAdminAttendance( AudienceAdminPage::MENU_SLUG ) )->maybe_enqueue();
+		}
+
 		// Bookings page: the batched CSV export button drives the shared
 		// window.FFCBatchedExport engine (#772) via the unified dispatcher.
 		if ( 'ffc-scheduling-bookings' === $page ) {
@@ -290,6 +305,7 @@ class AudienceLoader {
 				'adminNonce'               => wp_create_nonce( 'ffc_admin_nonce' ),
 				'exportNonce'              => wp_create_nonce( 'ffc_audience_bookings_export' ),
 				'strings'                  => $this->get_admin_strings(),
+				'cancelConfirm'            => AudienceBookingRules::cancel_strings(),
 			)
 		);
 

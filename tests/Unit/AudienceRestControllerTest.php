@@ -108,6 +108,12 @@ class AudienceRestControllerTest extends TestCase {
 		$this->date_blocking_mock->shouldReceive( 'is_global_holiday' )->andReturn( false )->byDefault();
 
 		Functions\when( 'current_time' )->justReturn( '2026-03-01' );
+
+		// A booking's dates are rendered for the response (date_label): the
+		// formatter reads the site settings and wp_date(), which these tests stub here.
+		$settings = Mockery::mock( 'alias:\FreeFormCertificate\Settings\SettingsReader' );
+		$settings->shouldReceive( 'all' )->andReturn( array() )->byDefault();
+		Functions\when( 'wp_date' )->alias( static fn( string $format, int $ts ): string => gmdate( $format, $ts ) );
 	}
 
 	protected function tearDown(): void {
@@ -864,6 +870,60 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( 'none', $result->get_data()['conflicts']['type'] );
 	}
 
+	public function test_check_conflicts_checks_every_day_of_a_range_with_each_days_hours(): void {
+		// The form's "Check" button used to send the first day only, so a range
+		// that clashed on a later day was offered and then refused on submit.
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		$this->schedule_repo_mock->shouldReceive( 'get_by_user_access' )->andReturn( array( (object) array( 'id' => 20 ) ) );
+		$this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 10 )->andReturn( (object) array( 'id' => 10, 'schedule_id' => 20 ) );
+
+		$asked = array();
+		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->andReturnUsing(
+			static function ( $env, $date, $start, $end ) use ( &$asked ) {
+				$asked[] = array( $date, $start, $end );
+				return '2026-04-02' === $date ? array( (object) array( 'id' => 7, 'start_time' => '08:00', 'end_time' => '09:00' ) ) : array();
+			}
+		);
+
+		$result = ( new AudienceRestController() )->check_conflicts(
+			$this->make_request(
+				array(
+					'environment_id' => 10,
+					'booking_date'   => '2026-04-01',
+					'end_date'       => '2026-04-02',
+					'time_mode'      => 'span',
+					'start_time'     => '14:00',
+					'end_time'       => '10:00',
+					'audience_ids'   => array(),
+					'user_ids'       => array(),
+				)
+			)
+		);
+
+		$this->assertSame(
+			array( array( '2026-04-01', '14:00', '23:59' ), array( '2026-04-02', '00:00', '10:00' ) ),
+			$asked,
+			'A span is checked from its start on the first day to its end on the last.'
+		);
+		$this->assertSame( 'environment', $result->get_data()['conflicts']['type'] );
+	}
+
+	public function test_check_conflicts_refuses_an_invalid_date(): void {
+		$result = ( new AudienceRestController() )->check_conflicts(
+			$this->make_request(
+				array(
+					'environment_id' => 10,
+					'booking_date'   => '2026-02-30',
+					'start_time'     => '09:00',
+					'end_time'       => '10:00',
+				)
+			)
+		);
+
+		$this->assertSame( 400, $result->get_status() );
+	}
+
 	// ------------------------------------------------------------------
 	// Booking rules for every caller (#1859)
 	// ------------------------------------------------------------------
@@ -1114,8 +1174,13 @@ class AudienceRestControllerTest extends TestCase {
 		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->andReturn(
 			array( (object) array( 'id' => 99, 'start_time' => '09:00', 'end_time' => '10:00', 'description' => 'Earlier' ) )
 		);
-		$this->booking_writer_mock->shouldReceive( 'create' )->once()->andReturn( 56 );
-		$this->booking_writer_mock->shouldReceive( 'cancel' )->once()->with( 99, Mockery::type( 'string' ) )->andReturn( true );
+		// The writer cancels the overridden booking inside the transaction that
+		// inserts this one; the controller only names it. Cancelling it after
+		// create() never happened, because create() refused on it first.
+		$this->booking_writer_mock->shouldReceive( 'create' )->once()->withArgs(
+			static fn( array $data ): bool => array( 99 ) === $data['override_ids'] && '' !== $data['override_note']
+		)->andReturn( 56 );
+		$this->booking_writer_mock->shouldReceive( 'cancel' )->never();
 
 		$actions = array();
 		Functions\when( 'do_action' )->alias(
@@ -1202,5 +1267,73 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( array( 'start' => '08:00', 'end' => '18:00' ), $data['environments'][1]['hours'][6] );
 		$this->assertSame( array( '2026-04-21' ), $data['schedule_holidays']['20'] );
 		$this->assertContains( '2026-04-21', array_column( $data['holidays'], 'holiday_date' ) );
+	}
+
+	// ------------------------------------------------------------------
+	// Ranges (#1946 AC5): a clash on any day, and the end date's order
+	// ------------------------------------------------------------------
+
+	public function test_a_range_clashing_on_its_last_day_is_refused_and_names_that_day(): void {
+		$this->given_an_open_space();
+		// Wed 1 to Fri 3 April: the first two days are free, the last is taken.
+		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->with( 10, '2026-04-03', '09:00', '10:00' )->andReturn(
+			array( (object) array( 'id' => 99, 'start_time' => '09:00', 'end_time' => '10:00', 'description' => 'Earlier' ) )
+		);
+		$this->booking_writer_mock->shouldReceive( 'create' )->never();
+
+		$result = ( new AudienceRestController() )->create_booking(
+			$this->booking_request( array( 'end_date' => '2026-04-03' ) )
+		);
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertSame( 'conflict', $result->get_data()['code'] );
+		$this->assertSame( array( '2026-04-03' ), $result->get_data()['colliding_dates'] );
+	}
+
+	public function test_a_range_clashing_on_one_day_with_override_permission_asks_to_confirm_and_names_the_day(): void {
+		$this->given_an_open_space();
+		$this->schedule_repo_mock->shouldReceive( 'user_can_override_conflicts' )->with( 20, 5 )->andReturn( true );
+		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->with( 10, '2026-04-02', '09:00', '10:00' )->andReturn(
+			array( (object) array( 'id' => 99, 'start_time' => '09:00', 'end_time' => '10:00', 'description' => 'Earlier' ) )
+		);
+		$this->booking_writer_mock->shouldReceive( 'create' )->never();
+
+		$result = ( new AudienceRestController() )->create_booking(
+			$this->booking_request( array( 'end_date' => '2026-04-03' ) )
+		);
+
+		$this->assertSame( 409, $result->get_status() );
+		$this->assertSame( 'override_confirmation_required', $result->get_data()['code'] );
+		$this->assertSame( array( '2026-04-02' ), $result->get_data()['colliding_dates'] );
+	}
+
+	public function test_a_range_that_ends_before_it_starts_is_refused_before_anything_is_checked(): void {
+		$this->given_an_open_space();
+		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->never();
+		$this->booking_writer_mock->shouldReceive( 'create' )->never();
+
+		$result = ( new AudienceRestController() )->create_booking(
+			$this->booking_request(
+				array(
+					'booking_date' => '2026-04-03',
+					'end_date'     => '2026-04-01',
+				)
+			)
+		);
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertStringContainsString( 'on or after the start date', $result->get_data()['message'] );
+	}
+
+	public function test_a_range_with_an_unreadable_end_date_is_refused(): void {
+		$this->given_an_open_space();
+		$this->booking_writer_mock->shouldReceive( 'create' )->never();
+
+		$result = ( new AudienceRestController() )->create_booking(
+			$this->booking_request( array( 'end_date' => '2026-02-31' ) )
+		);
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertStringContainsString( 'on or after the start date', $result->get_data()['message'] );
 	}
 }

@@ -82,7 +82,16 @@ class AudienceAdminImport {
 									<label for="members_csv"><?php esc_html_e( 'CSV File', 'ffcertificate' ); ?></label>
 								</th>
 								<td>
-									<input class="ffc-file-input" type="file" name="members_csv" id="members_csv" accept=".csv" required>
+									<?php
+									\FreeFormCertificate\Admin\AdminUI::render_file_picker(
+										array(
+											'id'       => 'members_csv',
+											'name'     => 'members_csv',
+											'accept'   => '.csv',
+											'required' => true,
+										)
+									);
+									?>
 									<p class="description">
 										<?php esc_html_e( 'Required columns: email. Optional: name, audience_id or audience_name, cpf, rf. When a row carries a CPF or RF, the person is matched by it first, so someone already registered under a different address is not given a second account.', 'ffcertificate' ); ?>
 									</p>
@@ -176,7 +185,16 @@ class AudienceAdminImport {
 									<label for="audiences_csv"><?php esc_html_e( 'CSV File', 'ffcertificate' ); ?></label>
 								</th>
 								<td>
-									<input class="ffc-file-input" type="file" name="audiences_csv" id="audiences_csv" accept=".csv" required>
+									<?php
+									\FreeFormCertificate\Admin\AdminUI::render_file_picker(
+										array(
+											'id'       => 'audiences_csv',
+											'name'     => 'audiences_csv',
+											'accept'   => '.csv',
+											'required' => true,
+										)
+									);
+									?>
 									<p class="description">
 										<?php esc_html_e( 'Required columns: name. Optional: color, parent (parent audience name).', 'ffcertificate' ); ?>
 									</p>

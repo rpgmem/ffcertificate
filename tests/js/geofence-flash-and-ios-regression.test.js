@@ -20,10 +20,12 @@ import path from 'node:path';
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
+	loadScript('assets/js/ffc-core.js');
+	loadScript('assets/js/ffc-preflight.js');
 	loadScript('assets/js/ffc-geofence-frontend.js');
 	loadScript('assets/js/ffc-geofence-datetime.js');
 	loadScript('assets/js/ffc-geofence-gps.js');
-	loadScript('assets/js/ffc-geofence-preflight.js');
+	loadScript('assets/js/ffc-geofence-permission.js');
 });
 
 beforeEach(() => {
@@ -193,10 +195,10 @@ describe('geofence iOS — firstMaxAge tightened to 5 s', () => {
 });
 
 // ----------------------------------------------------------------------
-// detectPlatformFamily — UA → 'ios' | 'android' | 'desktop'
+// FFC.Platform.os() — UA → 'ios' | 'android' | 'desktop'
 // ----------------------------------------------------------------------
 
-describe('FFCGeofence.detectPlatformFamily', () => {
+describe('FFC.Platform.os (was FFCGeofence.detectPlatformFamily)', () => {
 	const origUA = navigator.userAgent;
 
 	function setUa(ua) {
@@ -209,16 +211,16 @@ describe('FFCGeofence.detectPlatformFamily', () => {
 
 	it('returns ios for an iPhone UA', () => {
 		setUa('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1');
-		expect(window.FFCGeofence.detectPlatformFamily()).toBe('ios');
+		expect(window.FFC.Platform.os()).toBe('ios');
 	});
 
 	it('returns android for an Android UA', () => {
 		setUa('Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36');
-		expect(window.FFCGeofence.detectPlatformFamily()).toBe('android');
+		expect(window.FFC.Platform.os()).toBe('android');
 	});
 
 	it('returns desktop for a Windows Chrome UA', () => {
 		setUa('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36');
-		expect(window.FFCGeofence.detectPlatformFamily()).toBe('desktop');
+		expect(window.FFC.Platform.os()).toBe('desktop');
 	});
 });

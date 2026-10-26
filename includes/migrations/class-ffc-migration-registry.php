@@ -184,6 +184,16 @@ class MigrationRegistry {
 			'order'       => 4,
 		);
 
+		// #2040: area checks logged the visitor's coordinates as debug rows;
+		// delete them now that the check logs its decision only.
+		$this->migrations['activity_log_location_cleanup'] = array(
+			'name'        => __( 'Activity Log: Delete Logged Locations', 'ffcertificate' ),
+			'description' => __( 'Delete the "IP Geolocation Debug" activity log entries. Until this release every geofence area check wrote the visitor\'s position there: the exact GPS position of each audience check-in, and the position each IP address resolved to. The entries are debug output with no audit value. A check now logs its decision only, and only while geolocation debugging is on.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-lock',
+			'batch_size'  => 500,
+			'order'       => 4,
+		);
+
 		// v6.18.0 (#865): import certificate layouts left in the legacy `html/`
 		// drop-folder into the database-backed template pool, then retire the glob.
 		$this->migrations['import_legacy_templates'] = array(

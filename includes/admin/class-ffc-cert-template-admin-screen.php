@@ -323,14 +323,15 @@ class CertTemplateAdminScreen {
 			wp_die( esc_html__( 'Template not found.', 'ffcertificate' ) );
 		}
 
-		$html = (string) get_post_meta( $post_id, CertTemplateCpt::META_HTML, true );
-		$bg   = (string) get_post_meta( $post_id, CertTemplateCpt::META_BG_IMAGE, true );
-		$kind = CertTemplateReader::get_kind( $post_id );
+		$html  = (string) get_post_meta( $post_id, CertTemplateCpt::META_HTML, true );
+		$bg    = (string) get_post_meta( $post_id, CertTemplateCpt::META_BG_IMAGE, true );
+		$kind  = CertTemplateReader::get_kind( $post_id );
+		$color = (string) get_post_meta( $post_id, CertTemplateCpt::META_BG_COLOR, true );
 		/* translators: %s: source template title */
 		$title = sprintf( __( '%s (copy)', 'ffcertificate' ), (string) $post->post_title );
 		// Preserve the source's kind + background so a duplicated receipt stays a
 		// receipt (#945) and a duplicated certificate keeps its background.
-		$new_id = CertTemplateWriter::create( $title, $html, true, $bg, $kind );
+		$new_id = CertTemplateWriter::create( $title, $html, true, $bg, $kind, $color );
 
 		// Open the new copy for editing; fall back to the list on failure.
 		$redirect = $new_id > 0
@@ -542,9 +543,14 @@ class CertTemplateAdminScreen {
 		}
 
 		$html     = (string) get_post_meta( $post_id, CertTemplateCpt::META_HTML, true );
+		$bg       = (string) get_post_meta( $post_id, CertTemplateCpt::META_BG_IMAGE, true );
 		$rendered = $this->render_sample( $html, (string) $post->post_title );
 
-		$this->emit_preview_page( (string) $post->post_title, $rendered );
+		// The background sits behind the body as the PDF draws it; a template
+		// carries no colour of its own, so none is painted.
+		$page = '' === $bg ? $rendered : \FreeFormCertificate\Generators\FormLayoutPreview::wrap( $rendered, $bg, '' );
+
+		$this->emit_preview_page( (string) $post->post_title, $page );
 	}
 
 	/**

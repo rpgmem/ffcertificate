@@ -101,6 +101,13 @@ class AudienceAdminPage {
 	private AudienceAdminImport $import;
 
 	/**
+	 * Attendance screen of one booking (#1947).
+	 *
+	 * @var AudienceAdminAttendance
+	 */
+	private AudienceAdminAttendance $attendance;
+
+	/**
 	 * Initialize admin page
 	 *
 	 * @return void
@@ -116,6 +123,7 @@ class AudienceAdminPage {
 		$this->calendar    = new AudienceAdminCalendar( self::MENU_SLUG, $this->environment );
 		$this->audience    = new AudienceAdminAudience( self::MENU_SLUG );
 		$this->bookings    = new AudienceAdminBookings( self::MENU_SLUG );
+		$this->attendance  = new AudienceAdminAttendance( self::MENU_SLUG );
 		$this->import      = new AudienceAdminImport( self::MENU_SLUG );
 		$this->settings    = new AudienceAdminSettings( self::MENU_SLUG, $this->import );
 
@@ -210,6 +218,17 @@ class AudienceAdminPage {
 			'ffc_view_audiences',
 			self::MENU_SLUG . '-bookings',
 			array( $this->bookings, 'render_page' )
+		);
+
+		// Attendance of one booking (#1947): reached from the bookings list's
+		// row action, so it has no menu row (no parent), like Environments.
+		add_submenu_page(
+			'',
+			__( 'Attendance', 'ffcertificate' ),
+			__( 'Attendance', 'ffcertificate' ),
+			AudienceAdminAttendance::CAP,
+			self::MENU_SLUG . '-attendance',
+			array( $this->attendance, 'render_page' )
 		);
 
 		// Import & Export used to be its own submenu here; it is now the
@@ -383,5 +402,6 @@ class AudienceAdminPage {
 		$this->calendar->handle_actions();
 		$this->environment->handle_actions();
 		$this->audience->handle_actions();
+		$this->attendance->handle_actions();
 	}
 }

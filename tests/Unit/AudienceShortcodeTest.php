@@ -353,6 +353,8 @@ class AudienceShortcodeTest extends TestCase {
 
 		$audRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceReader');
 		$audRepoMock->shouldReceive('get_hierarchical')->andReturn(array());
+		// A visitor who is not logged in gets no member counts (#2008).
+		$audRepoMock->shouldNotReceive('get_member_ids_by_audience');
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
 		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
@@ -573,6 +575,12 @@ class AudienceShortcodeTest extends TestCase {
 		$audRepoMock->shouldReceive('get_hierarchical')->with('active')->andReturn(array(
 			(object) array('id' => 2, 'name' => 'Teachers', 'color' => '#222222', 'children' => array($child)),
 		));
+		// Teacher 50 is in both audiences: the parent reaches two people,
+		// not three (#2008).
+		$audRepoMock->shouldReceive('get_member_ids_by_audience')->once()->andReturn(array(
+			2 => array(50, 51),
+			3 => array(50),
+		));
 
 		$result = AudienceShortcode::render(array());
 
@@ -585,6 +593,25 @@ class AudienceShortcodeTest extends TestCase {
 		$this->assertStringContainsString('ffc-booking-modal', $result);
 		$this->assertStringContainsString('ffc-new-booking-btn', $result);
 
+		// The dialog of #2008: one button that checks, then creates; the
+		// span and the type as segmented controls; the audience picker.
+		$this->assertMatchesRegularExpression('/<button[^>]*id="ffc-booking-submit"[^>]*data-step="check"/', $result);
+		$this->assertStringNotContainsString('ffc-check-conflicts-btn', $result);
+		$this->assertStringNotContainsString('ffc-create-booking-btn', $result);
+		$this->assertStringContainsString('name="booking_span" value="single" checked', $result);
+		$this->assertStringContainsString('name="booking_type" value="audience" checked', $result);
+		$this->assertStringContainsString('name="time_mode" value="daily" checked', $result);
+		$this->assertStringContainsString('id="booking-audiences" role="group"', $result);
+		$this->assertStringContainsString('id="booking-audience-summary"', $result);
+		$this->assertStringContainsString('<div id="ffc-conflict-error" hidden></div>', $result);
+		$dialog = substr( $result, (int) strpos( $result, 'ffc-booking-dialog' ) );
+		$dialog = substr( $dialog, 0, (int) strpos( $dialog, 'ffc-day-modal' ) );
+		$this->assertStringNotContainsString('style=', $dialog, 'The dialog takes its look from the sheet, never inline.');
+		// `ffc-booking-form` is the personal calendar's form: on a page with
+		// both shortcodes its sheet would restyle this dialog (#2013).
+		$this->assertStringContainsString('<form id="ffc-booking-form" class="ffc-audience-booking-form">', $dialog);
+		$this->assertDoesNotMatchRegularExpression('/class="[^"]*\bffc-booking-form\b/', $dialog);
+
 		$config = $this->configOf($result);
 		$this->assertTrue($config['canBook']);
 		$this->assertSame('parent_name', $config['audienceBadgeFormat']);
@@ -595,6 +622,8 @@ class AudienceShortcodeTest extends TestCase {
 		$this->assertSame('#ff0000', $config['schedules'][1]['environments'][0]['color']);
 		$this->assertSame('Class A', $config['audiences'][0]['children'][0]['name']);
 		$this->assertNull($config['audiences'][0]['parent_id']);
+		$this->assertSame(2, $config['audiences'][0]['members'], 'A person in both audiences is counted once.');
+		$this->assertSame(1, $config['audiences'][0]['children'][0]['members']);
 
 		$this->assertSame('reservation', $localized['strings']['booking']);
 		$this->assertSame('reservations', $localized['strings']['bookings']);
@@ -629,6 +658,7 @@ class AudienceShortcodeTest extends TestCase {
 
 		$audRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceReader');
 		$audRepoMock->shouldReceive('get_hierarchical')->andReturn(array());
+		$audRepoMock->shouldReceive('get_member_ids_by_audience')->andReturn(array());
 
 		$result = AudienceShortcode::render(array('schedule_id' => 8));
 
@@ -700,6 +730,7 @@ class AudienceShortcodeTest extends TestCase {
 			(object) array('id' => 9, 'name' => 'Mine', 'color' => '#000000', 'parent_id' => 4),
 		));
 		$audRepoMock->shouldNotReceive('get_hierarchical');
+		$audRepoMock->shouldReceive('get_member_ids_by_audience')->andReturn(array(9 => array(70, 71, 72)));
 
 		$result = AudienceShortcode::render(array('schedule_id' => 2));
 
@@ -708,6 +739,7 @@ class AudienceShortcodeTest extends TestCase {
 		$this->assertSame(2, $config['schedules'][0]['id']);
 		$this->assertTrue($config['canBook']);
 		$this->assertSame(4, $config['audiences'][0]['parent_id']);
+		$this->assertSame(3, $config['audiences'][0]['members']);
 	}
 
 	/**
@@ -740,6 +772,7 @@ class AudienceShortcodeTest extends TestCase {
 
 		$audRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceReader');
 		$audRepoMock->shouldReceive('get_user_audiences')->andReturn(array());
+		$audRepoMock->shouldReceive('get_member_ids_by_audience')->andReturn(array());
 
 		$result = AudienceShortcode::render(array());
 

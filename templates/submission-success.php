@@ -17,6 +17,7 @@
  * @var string $date_formatted Formatted submission date
  * @var string $auth_code Authentication code (optional)
  * @var string $magic_link Magic-link URL for re-issuing the certificate later (optional)
+ * @var string $pdf_filename Name the PDF is saved under (optional)
  *
  * @package FreeFormCertificate
  * @since 3.1.0
@@ -28,6 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $ffc_magic_link = isset( $magic_link ) ? (string) $magic_link : '';
 $ffc_auth_code  = isset( $auth_code ) ? (string) $auth_code : '';
+$ffc_filename   = isset( $pdf_filename ) ? (string) $pdf_filename : '';
 ?>
 
 <div class="ffc-certificate-preview ffc-success-response" role="status" aria-live="polite">
@@ -124,10 +126,17 @@ $ffc_auth_code  = isset( $auth_code ) ? (string) $auth_code : '';
 			<ul>
 				<li data-platform="android">
 					<?php
-					echo esc_html__(
-						'Android: open the Downloads folder, or use the Files app and look for "certificate.pdf".',
-						'ffcertificate'
-					);
+					if ( '' !== $ffc_filename ) {
+						echo esc_html(
+							sprintf(
+								/* translators: %s: the name the certificate PDF was saved under. */
+								__( 'Android: open the Downloads folder, or use the Files app and look for "%s".', 'ffcertificate' ),
+								$ffc_filename
+							)
+						);
+					} else {
+						esc_html_e( 'Android: open the Downloads folder, or use the Files app.', 'ffcertificate' );
+					}
 					?>
 				</li>
 				<li data-platform="ios">

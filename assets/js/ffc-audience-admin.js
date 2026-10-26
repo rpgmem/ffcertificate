@@ -232,13 +232,14 @@
 
                 FFC.request('ffc_audience_get_booking', { booking_id: bookingId }, { nonce: adminNonce })
                     .then(function(b) {
-                        var timeDisplay = parseInt(b.is_all_day) ? (strings.allDay || 'All Day') : (b.start_time + ' - ' + b.end_time);
+                        var timeDisplay = parseInt(b.is_all_day) ? (strings.allDay || 'All Day') : (b.time_label || (b.start_time + ' - ' + b.end_time));
                         var typeDisplay = b.booking_type === 'audience' ? (strings.audience || 'Audience') : (strings.customUsers || 'Custom Users');
                         var statusDisplay = b.status === 'active' ? (strings.active || 'Active') : (strings.cancelled || 'Cancelled');
                         var statusClass = b.status === 'active' ? 'ffc-booking-status-active' : 'ffc-booking-status-cancelled';
 
                         var html = '<table class="widefat fixed"><tbody>';
-                        html += '<tr><th>' + esc(strings.date || 'Date') + '</th><td>' + esc(b.booking_date) + '</td></tr>';
+                        var dateLabel = b.end_date && b.end_date !== b.booking_date ? b.booking_date + ' – ' + b.end_date : b.booking_date;
+                        html += '<tr><th>' + esc(strings.date || 'Date') + '</th><td>' + esc(dateLabel) + '</td></tr>';
                         html += '<tr><th>' + esc(strings.time || 'Time') + '</th><td>' + esc(timeDisplay) + '</td></tr>';
                         html += '<tr><th>' + esc(strings.environmentLabel || 'Environment') + '</th><td>' + esc(b.environment_name) + '</td></tr>';
                         html += '<tr><th>' + esc(strings.description || 'Description') + '</th><td>' + esc(b.description) + '</td></tr>';
@@ -289,30 +290,37 @@
                 var $link = $(this);
                 var bookingId = $link.data('booking-id');
 
-                if (!confirm(strings.confirmCancel || 'Are you sure you want to cancel this booking?')) {
-                    return;
-                }
+                // A range is cancelled whole: the confirmation names every day of it.
+                FFC.confirmRangeCancel({
+                    count: $link.attr('data-days'),
+                    label: $link.attr('data-date-label'),
+                    strings: typeof ffcAudienceAdmin !== 'undefined' ? ffcAudienceAdmin.cancelConfirm : {}
+                }).then(function(agreed) {
+                    if (!agreed) {
+                        return;
+                    }
 
-                var reason = prompt(strings.cancelReason || 'Please provide a reason for cancellation:');
-                if (reason === null) {
-                    return;
-                }
+                    var reason = prompt(strings.cancelReason || 'Please provide a reason for cancellation:');
+                    if (reason === null) {
+                        return;
+                    }
 
-                $link.css('pointer-events', 'none').css('opacity', '0.5');
+                    $link.css('pointer-events', 'none').css('opacity', '0.5');
 
-                FFC.request('ffc_audience_cancel_booking', { booking_id: bookingId, reason: reason }, { nonce: adminNonce })
-                    .then(function() {
-                        // Update the row status and remove cancel link
-                        var $row = $link.closest('tr');
-                        $row.find('.ffc-booking-status-active').removeClass('ffc-booking-status-active').addClass('ffc-booking-status-cancelled').text(strings.cancelled || 'Cancelled');
-                        $link.prev().remove(); // remove "|" separator
-                        $link.remove();
-                    })
-                    .catch(function(err) {
-                        var msg = (err && err.fromServer) ? err.message : (strings.error || 'An error occurred.');
-                        alert(msg);
-                        $link.css('pointer-events', '').css('opacity', '');
-                    });
+                    FFC.request('ffc_audience_cancel_booking', { booking_id: bookingId, reason: reason }, { nonce: adminNonce })
+                        .then(function() {
+                            // Update the row status and remove cancel link
+                            var $row = $link.closest('tr');
+                            $row.find('.ffc-booking-status-active').removeClass('ffc-booking-status-active').addClass('ffc-booking-status-cancelled').text(strings.cancelled || 'Cancelled');
+                            $link.prev().remove(); // remove "|" separator
+                            $link.remove();
+                        })
+                        .catch(function(err) {
+                            var msg = (err && err.fromServer) ? err.message : (strings.error || 'An error occurred.');
+                            alert(msg);
+                            $link.css('pointer-events', '').css('opacity', '');
+                        });
+                });
             });
         },
 

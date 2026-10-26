@@ -255,6 +255,15 @@ class SettingsReaderTest extends TestCase {
 		$this->assertFalse( SettingsReader::url_shortener_enabled() );
 	}
 
+	public function test_browser_check_enabled_defaults_to_true(): void {
+		// Key absent → on (#2030): the switch exists for a false positive.
+		$this->stub_option( array() );
+		$this->assertTrue( SettingsReader::browser_check_enabled() );
+
+		$this->stub_option( array( 'browser_check' => 0 ) );
+		$this->assertFalse( SettingsReader::browser_check_enabled() );
+	}
+
 	public function test_url_shortener_auto_create_enabled_defaults_to_true(): void {
 		$this->stub_option( array() );
 		$this->assertTrue( SettingsReader::url_shortener_auto_create_enabled() );

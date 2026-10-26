@@ -4,7 +4,8 @@
  *
  * AJAX endpoint that records `ActivityLog` rows for every pre-flight
  * banner the client renders (cookie wall, GPS denied wall, GPS prompt
- * pre-explainer). Lets admins see the volume of visitors hit by each
+ * pre-explainer, HTTPS block, the browser step's blocks, the boot
+ * watchdog). Lets admins see the volume of visitors hit by each
  * gate from a single screen instead of relying on user reports.
  *
  * @package FreeFormCertificate\Frontend
@@ -36,13 +37,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 class PreflightTelemetry {
 
 	/**
-	 * Allowed `reason` values. Mirrors the three pre-flight banners in
-	 * ffc-geofence-frontend.js: cookie probe, GPS denied, GPS prompt.
+	 * Allowed `reason` values: the pre-flight steps that stop a visitor
+	 * (ffc-preflight.js and the geofence steps). `browser_inapp_continue` is
+	 * the visitor going on from the in-app block; `browser_boot` is the boot
+	 * watchdog taking the form away.
 	 */
-	private const ALLOWED_REASONS = array(
+	public const ALLOWED_REASONS = array(
 		'cookies',
 		'gps_denied',
 		'gps_prompt',
+		'secure',
+		'browser_inapp',
+		'browser_inapp_continue',
+		'browser_features',
+		'browser_boot',
+	);
+
+	/**
+	 * What a row is about (#2040): a certificate form, an audience booking's
+	 * check-in, a public CSV download page or an appointment receipt. A
+	 * request with no type is a form's, which is what every row written
+	 * before the types existed is.
+	 */
+	public const ALLOWED_TYPES = array(
+		'form',
+		'booking',
+		'csv_download',
+		'receipt',
 	);
 
 	/**
@@ -82,11 +103,16 @@ class PreflightTelemetry {
 			);
 		}
 
-		$form_id = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
-		$reason  = RequestInput::get_post_string( 'reason' );
+		// A page cached before the types existed posts `form_id` alone.
+		$type   = RequestInput::get_post_string( 'type', 'form' );
+		$id     = absint( RequestInput::get_post_string( 'id', RequestInput::get_post_string( 'form_id' ) ) );
+		$reason = RequestInput::get_post_string( 'reason' );
 
-		if ( $form_id <= 0 ) {
-			wp_send_json_error( array( 'message' => 'invalid_form_id' ) );
+		if ( ! in_array( $type, self::ALLOWED_TYPES, true ) ) {
+			wp_send_json_error( array( 'message' => 'invalid_type' ) );
+		}
+		if ( $id <= 0 ) {
+			wp_send_json_error( array( 'message' => 'invalid_id' ) );
 		}
 		if ( ! in_array( $reason, self::ALLOWED_REASONS, true ) ) {
 			wp_send_json_error( array( 'message' => 'invalid_reason' ) );
@@ -115,13 +141,33 @@ class PreflightTelemetry {
 		ActivityLog::log(
 			'preflight_blocked',
 			'info',
-			array(
-				'form_id' => $form_id,
-				'reason'  => $reason,
-				'ip_hash' => $ip_hash,
-			)
+			self::row_context( $type, $id, $reason, $ip_hash )
 		);
 
 		wp_send_json_success( array( 'logged' => true ) );
+	}
+
+	/**
+	 * The context a row stores. A form's keeps `form_id`, which the form
+	 * editor's badges count; every other type names itself, so a form's
+	 * badges never count a booking or a download page that shares its ID.
+	 *
+	 * @param string $type    One of {@see self::ALLOWED_TYPES}.
+	 * @param int    $id      The form, booking, page or appointment ID.
+	 * @param string $reason  One of {@see self::ALLOWED_REASONS}.
+	 * @param string $ip_hash Truncated, salted hash of the visitor's IP.
+	 * @return array<string, int|string>
+	 */
+	public static function row_context( string $type, int $id, string $reason, string $ip_hash ): array {
+		$about = 'form' === $type
+			? array( 'form_id' => $id )
+			: array(
+				'type' => $type,
+				'id'   => $id,
+			);
+		return $about + array(
+			'reason'  => $reason,
+			'ip_hash' => $ip_hash,
+		);
 	}
 }

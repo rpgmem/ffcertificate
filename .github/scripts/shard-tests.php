@@ -2,7 +2,8 @@
 /**
  * Emit a PHPUnit configuration for one CI coverage shard.
  *
- * The Unit test files are partitioned into N shards; this prints a PHPUnit XML
+ * The test files of both suites in phpunit.xml.dist (Unit and Integration)
+ * are partitioned into N shards; this prints a PHPUnit XML
  * config whose <testsuite> lists only the current shard's files (as explicit
  * <file> entries — passing many paths on the CLI is unreliable, PHPUnit 9 only
  * honours the first). The <coverage> include/exclude mirrors phpunit.xml.dist
@@ -44,7 +45,10 @@ if ( $shard < 1 || $total < 1 || $shard > $total ) {
 }
 
 $root  = dirname( __DIR__, 2 );
-$files = glob( $root . '/tests/Unit/*Test.php' );
+$files = array_merge(
+	(array) glob( $root . '/tests/Unit/*Test.php' ),
+	(array) glob( $root . '/tests/Integration/*Test.php' )
+);
 sort( $files );
 
 /**
@@ -114,12 +118,13 @@ $pack( $inline );
 $mine = $buckets[ $shard ];
 sort( $mine );
 
-// Emit absolute paths so the generated config is location-independent: it can
-// live in a temp dir and every separate-process test child resolves bootstrap,
-// files and coverage dirs the same way regardless of CWD.
+// Emit absolute paths (glob already returns them) so the generated config is
+// location-independent: it can live in a temp dir and every separate-process
+// test child resolves bootstrap, files and coverage dirs the same way
+// regardless of CWD.
 $entries = '';
 foreach ( $mine as $file ) {
-	$abs      = $root . '/tests/Unit/' . basename( $file );
+	$abs      = $file;
 	$entries .= "            <file>" . htmlspecialchars( $abs, ENT_XML1 ) . "</file>\n";
 }
 $bootstrap = htmlspecialchars( $root . '/tests/bootstrap.php', ENT_XML1 );

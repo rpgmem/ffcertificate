@@ -25,18 +25,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class OverrideWarning {
 
 	/**
-	 * Seconds the "I agree" button stays disabled.
-	 */
-	public const COUNTDOWN_SECONDS = 15;
-
-	/**
 	 * The strings `FFC.overrideConfirm()` reads.
 	 *
 	 * @return array<string, string|int>
 	 */
 	public static function strings(): array {
 		return array(
-			'seconds'        => self::COUNTDOWN_SECONDS,
+			'seconds'        => ConfirmCountdown::SECONDS,
 			'title'          => __( 'Book outside the rules?', 'ffcertificate' ),
 			'intro'          => __( 'This booking breaks the following rules:', 'ffcertificate' ),
 			'logged'         => __( 'If you confirm, the booking is saved and recorded in the activity log with these reasons.', 'ffcertificate' ),

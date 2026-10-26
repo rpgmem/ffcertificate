@@ -9,10 +9,11 @@ import { loadScript } from './helpers.js';
 
 beforeAll(() => {
 	loadScript('assets/js/ffc-core.js');
+	loadScript('assets/js/ffc-preflight.js');
 	loadScript('assets/js/ffc-geofence-frontend.js');
 	loadScript('assets/js/ffc-geofence-datetime.js');
 	loadScript('assets/js/ffc-geofence-gps.js');
-	loadScript('assets/js/ffc-geofence-preflight.js');
+	loadScript('assets/js/ffc-geofence-permission.js');
 });
 
 beforeEach(() => {
@@ -68,7 +69,39 @@ function setupForm(formId, geoConfig) {
 	};
 }
 
+// The read that confirms a "denied" (#2048) asks for any cached position.
+const isConfirmRead = (options) => Boolean(options) && options.maximumAge === Infinity;
+
+/**
+ * A device whose block is real: the confirming read is refused at once, as
+ * a browser does for a site it blocks. Every other read is left pending.
+ */
+function stubRealBlock() {
+	Object.defineProperty(navigator, 'geolocation', {
+		configurable: true,
+		value: {
+			getCurrentPosition: vi.fn((success, error, options) => {
+				if (isConfirmRead(options)) {
+					error({ code: 1 });
+				}
+			}),
+		},
+	});
+}
+
+const settle = async () => {
+	for (let i = 0; i < 6; i++) {
+		await Promise.resolve();
+	}
+};
+
+/** Calls of getCurrentPosition other than the confirming read. */
+const nativeReads = () => navigator.geolocation.getCurrentPosition.mock.calls.filter((call) => !isConfirmRead(call[2]));
+
 function stubPermissions(state, { rejects = false } = {}) {
+	if ('denied' === state) {
+		stubRealBlock();
+	}
 	const status = { state, onchange: null };
 	Object.defineProperty(navigator, 'permissions', {
 		configurable: true,
@@ -86,8 +119,7 @@ describe('GPS Permissions API pre-check', () => {
 		stubPermissions('granted');
 		setupForm(7);
 		window.FFCGeofence.init();
-		await Promise.resolve();
-		await Promise.resolve();
+		await settle();
 
 		expect(document.querySelector('[data-ffc-notice="preflight-gps"]')).toBeNull();
 		// validateGeolocation continued — form is now in loading state.
@@ -98,24 +130,22 @@ describe('GPS Permissions API pre-check', () => {
 		stubPermissions('denied');
 		setupForm(7);
 		window.FFCGeofence.init();
-		await Promise.resolve();
-		await Promise.resolve();
+		await settle();
 
 		const banner = document.querySelector('[data-ffc-notice="preflight-gps"]');
 		expect(banner).not.toBeNull();
 		expect(banner.getAttribute('role')).toBe('alert');
 		expect(banner.querySelector('.ffc-notice-title').textContent).toBe('Location blocked');
 		expect(banner.querySelector('.ffc-notice-text + .ffc-notice-text').textContent).toBe('Desktop instructions');
-		// getCurrentPosition was NOT called.
-		expect(navigator.geolocation.getCurrentPosition).not.toHaveBeenCalled();
+		// Only the confirming read ran; the native flow did not.
+		expect(nativeReads()).toHaveLength(0);
 	});
 
 	it('denied → "Try anyway" re-enters the native flow (preflight skipped)', async () => {
 		stubPermissions('denied');
 		setupForm(7);
 		window.FFCGeofence.init();
-		await Promise.resolve();
-		await Promise.resolve();
+		await settle();
 
 		expect(document.querySelector('[data-ffc-notice="preflight-gps"]')).not.toBeNull();
 		window.$('.ffc-preflight-try-anyway').trigger('click');
@@ -135,8 +165,7 @@ describe('GPS Permissions API pre-check', () => {
 		stubPermissions('denied');
 		setupForm(7);
 		window.FFCGeofence.init();
-		await Promise.resolve();
-		await Promise.resolve();
+		await settle();
 
 		expect(document.querySelector('.ffc-notice-text + .ffc-notice-text').textContent).toBe('iOS instructions');
 	});
@@ -145,8 +174,7 @@ describe('GPS Permissions API pre-check', () => {
 		stubPermissions('prompt');
 		setupForm(7);
 		window.FFCGeofence.init();
-		await Promise.resolve();
-		await Promise.resolve();
+		await settle();
 
 		const banner = document.querySelector('[data-ffc-notice="preflight-gps"]');
 		expect(banner).not.toBeNull();
@@ -160,8 +188,7 @@ describe('GPS Permissions API pre-check', () => {
 		stubPermissions('prompt');
 		setupForm(7);
 		window.FFCGeofence.init();
-		await Promise.resolve();
-		await Promise.resolve();
+		await settle();
 
 		window.$('.ffc-preflight-try-anyway').trigger('click');
 
@@ -175,8 +202,7 @@ describe('GPS Permissions API pre-check', () => {
 		stubPermissions('denied', { rejects: true });
 		setupForm(7);
 		window.FFCGeofence.init();
-		await Promise.resolve();
-		await Promise.resolve();
+		await settle();
 
 		expect(document.querySelector('[data-ffc-notice="preflight-gps"]')).toBeNull();
 		expect(document.querySelector('.ffc-form-wrapper').classList.contains('ffc-geofence-loading')).toBe(true);
@@ -186,7 +212,7 @@ describe('GPS Permissions API pre-check', () => {
 		Object.defineProperty(navigator, 'permissions', { configurable: true, value: undefined });
 		setupForm(7);
 		window.FFCGeofence.init();
-		await Promise.resolve();
+		await settle();
 
 		expect(document.querySelector('[data-ffc-notice="preflight-gps"]')).toBeNull();
 		expect(document.querySelector('.ffc-form-wrapper').classList.contains('ffc-geofence-loading')).toBe(true);
@@ -196,8 +222,7 @@ describe('GPS Permissions API pre-check', () => {
 		const status = stubPermissions('denied');
 		setupForm(7);
 		window.FFCGeofence.init();
-		await Promise.resolve();
-		await Promise.resolve();
+		await settle();
 
 		expect(document.querySelector('[data-ffc-notice="preflight-gps"]')).not.toBeNull();
 		expect(typeof status.onchange).toBe('function');
@@ -214,32 +239,29 @@ describe('GPS Permissions API pre-check', () => {
 		const status = stubPermissions('prompt');
 		setupForm(7);
 		window.FFCGeofence.init();
-		await Promise.resolve();
-		await Promise.resolve();
+		await settle();
 
 		// The visitor clicks "Continue": the banner goes and the check runs.
 		document.querySelector('[data-ffc-notice="preflight-gps"] .ffc-preflight-try-anyway').click();
-		expect(navigator.geolocation.getCurrentPosition).toHaveBeenCalledTimes(1);
+		expect(nativeReads()).toHaveLength(1);
 
 		// Allowing the browser prompt is the change that fires onchange.
 		status.state = 'granted';
 		status.onchange();
 
-		expect(navigator.geolocation.getCurrentPosition).toHaveBeenCalledTimes(1);
+		expect(nativeReads()).toHaveLength(1);
 	});
 
 	it('a recheck while the prompt banner waits leaves one banner', async () => {
 		stubPermissions('prompt');
 		setupForm(7);
 		window.FFCGeofence.init();
-		await Promise.resolve();
-		await Promise.resolve();
+		await settle();
 		expect(document.querySelectorAll('[data-ffc-notice^="preflight"]')).toHaveLength(1);
 
 		// The cached-page fragment refresh rechecks every form (#1668).
 		window.FFCGeofence.recheck();
-		await Promise.resolve();
-		await Promise.resolve();
+		await settle();
 
 		expect(document.querySelectorAll('[data-ffc-notice^="preflight"]')).toHaveLength(1);
 	});
@@ -252,5 +274,79 @@ describe('GPS Permissions API pre-check', () => {
 		window.FFCGeofence.handleBlocked($w, 'message', 'Outside the area.');
 
 		expect($w.find('[data-ffc-notice="geofence-blocked"]')).toHaveLength(1);
+	});
+
+	// A cached page refreshes its fragments and calls recheck() while the
+	// first permission query is still pending; both queries answered and
+	// each drew a banner, so the visitor saw "Location blocked" twice.
+	it.each(['denied', 'prompt'])('a recheck while the query is pending draws one %s banner, not two', async (state) => {
+		if ('denied' === state) {
+			stubRealBlock();
+		}
+		const status = { state, onchange: null };
+		let release;
+		const pending = new Promise((resolve) => { release = resolve; });
+		Object.defineProperty(navigator, 'permissions', {
+			configurable: true,
+			value: { query: vi.fn(() => pending) },
+		});
+		setupForm(7);
+		window.FFCGeofence.init();
+		window.FFCGeofence.recheck();
+		release(status);
+		await pending;
+		await settle();
+
+		expect(navigator.permissions.query).toHaveBeenCalledTimes(2);
+		expect(document.querySelectorAll('[data-ffc-notice="preflight-gps"]').length).toBe(1);
+	});
+});
+
+// Opera for Android answers "denied" to the Permissions API while it hands
+// the position to getCurrentPosition (#2048): the confirming read decides.
+describe('a "denied" that the device contradicts (#2048)', () => {
+	function stubDevice(answer) {
+		Object.defineProperty(navigator, 'geolocation', {
+			configurable: true,
+			value: {
+				getCurrentPosition: vi.fn((success, error, options) => {
+					if (!isConfirmRead(options)) {
+						return;
+					}
+					if ('position' === answer) {
+						success({ coords: { latitude: -23.55, longitude: -46.63, accuracy: 20 } });
+					} else {
+						error({ code: 'timeout' === answer ? 3 : 2 });
+					}
+				}),
+			},
+		});
+		Object.defineProperty(navigator, 'permissions', {
+			configurable: true,
+			value: { query: vi.fn(() => Promise.resolve({ state: 'denied', onchange: null })) },
+		});
+	}
+
+	it('a position read means granted: no banner, the check goes on', async () => {
+		stubDevice('position');
+		setupForm(7);
+		window.FFCGeofence.init();
+		await settle();
+
+		expect(document.querySelector('[data-ffc-notice="preflight-gps"]')).toBeNull();
+		expect(document.querySelector('.ffc-form-wrapper').classList.contains('ffc-geofence-loading')).toBe(true);
+		expect(nativeReads()).toHaveLength(1);
+	});
+
+	it.each(['timeout', 'unavailable'])('a %s says nothing about the permission: the explainer, not the block', async (answer) => {
+		stubDevice(answer);
+		setupForm(7);
+		window.FFCGeofence.init();
+		await settle();
+
+		const banner = document.querySelector('[data-ffc-notice="preflight-gps"]');
+		expect(banner).not.toBeNull();
+		expect(banner.querySelector('.ffc-notice-title').textContent).toBe('We need your location');
+		expect(nativeReads()).toHaveLength(0);
 	});
 });

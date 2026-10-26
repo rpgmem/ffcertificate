@@ -226,6 +226,9 @@ class AudienceAdminBookings {
 						// View and Cancel call AJAX handlers gated on
 						// `ffc_manage_audiences` (AudienceAjaxController, #1769).
 						$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
+						// Attendance opens the booking's check-in screen (#1947).
+						$can_checkin = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( AudienceAdminAttendance::CAP );
+						$attendance  = new AudienceAdminAttendance( $this->menu_slug );
 						?>
 						<?php foreach ( $bookings as $booking ) : ?>
 							<?php
@@ -234,8 +237,8 @@ class AudienceAdminBookings {
 							?>
 							<tr>
 								<td><?php echo esc_html( $booking->id ); ?></td>
-								<td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $booking->booking_date ) ); ?></td>
-								<td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $booking->start_time ) . ' - ' . \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $booking->end_time ) ); ?></td>
+								<td><?php echo esc_html( AudienceBookingRules::date_label( (string) $booking->booking_date, isset( $booking->end_date ) ? (string) $booking->end_date : null, static fn( string $date ): string => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $date ) ) ); ?></td>
+								<td><?php echo esc_html( AudienceBookingRules::time_label( (string) $booking->start_time, (string) $booking->end_time, AudienceBookingRules::is_span( $booking ), static fn( string $time ): string => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $time ) ) ); ?></td>
 								<td><?php echo esc_html( $booking->environment_name ); ?></td>
 								<td><?php echo esc_html( wp_trim_words( $booking->description, 10 ) ); ?></td>
 								<td>
@@ -263,10 +266,16 @@ class AudienceAdminBookings {
 										</a>
 										<?php if ( 'active' === $booking->status ) : ?>
 											|
-											<a href="#" class="ffc-cancel-booking ffc-delete-link" data-booking-id="<?php echo esc_attr( $booking->id ); ?>">
+											<a href="#" class="ffc-cancel-booking ffc-delete-link" data-booking-id="<?php echo esc_attr( $booking->id ); ?>" data-days="<?php echo esc_attr( (string) count( AudienceBookingRules::booked_days( (string) $booking->booking_date, isset( $booking->end_date ) ? (string) $booking->end_date : null, isset( $booking->skipped_dates ) ? (string) $booking->skipped_dates : null ) ) ); ?>" data-date-label="<?php echo esc_attr( AudienceBookingRules::date_label( (string) $booking->booking_date, isset( $booking->end_date ) ? (string) $booking->end_date : null, static fn( string $date ): string => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $date ) ) ); ?>">
 												<?php esc_html_e( 'Cancel', 'ffcertificate' ); ?>
 											</a>
 										<?php endif; ?>
+									<?php endif; ?>
+									<?php if ( $can_checkin && 'active' === $booking->status ) : ?>
+										<?php echo $can_manage ? '|' : ''; ?>
+										<a href="<?php echo esc_url( $attendance->url( (int) $booking->id ) ); ?>" class="ffc-attendance-link">
+											<?php esc_html_e( 'Attendance', 'ffcertificate' ); ?>
+										</a>
 									<?php endif; ?>
 								</td>
 							</tr>

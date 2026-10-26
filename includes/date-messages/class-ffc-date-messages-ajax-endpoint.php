@@ -10,7 +10,6 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\DateMessages;
 
-use FreeFormCertificate\Core\EmailSource;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Scheduling\SchedulingMailer;
 
@@ -80,7 +79,7 @@ final class DateMessagesAjaxEndpoint {
 		if ( is_wp_error( $rule ) ) {
 			wp_send_json_error( array( 'message' => $rule->get_error_message() ), 400 );
 		}
-		$source = DateSources::get( $rule->source );
+		$source = DateSources::for_rule( $rule );
 		if ( null === $source ) {
 			wp_send_json_error( array( 'message' => __( 'Unknown date source.', 'ffcertificate' ) ), 400 );
 		}
@@ -117,6 +116,11 @@ final class DateMessagesAjaxEndpoint {
 
 		$from = DateMessagesAdminPage::date( RequestInput::get_post_string( 'from' ) );
 		$to   = DateMessagesAdminPage::date( RequestInput::get_post_string( 'to' ) );
+		// An announcement goes out on one day, today: the dates are not asked (#1949).
+		if ( $rule->is_announcement() ) {
+			$from = Runner::today();
+			$to   = $from;
+		}
 		if ( null === $from || null === $to ) {
 			wp_send_json_error( array( 'message' => __( 'Enter both dates.', 'ffcertificate' ) ), 400 );
 		}
@@ -153,7 +157,7 @@ final class DateMessagesAjaxEndpoint {
 			wp_send_json_error( array( 'message' => $rule->get_error_message() ), 400 );
 		}
 
-		$source = DateSources::get( $rule->source );
+		$source = DateSources::for_rule( $rule );
 		$user   = wp_get_current_user();
 		if ( null === $source || ! is_email( $user->user_email ) ) {
 			wp_send_json_error( array( 'message' => __( 'Your account has no valid e-mail address.', 'ffcertificate' ) ), 400 );
@@ -169,7 +173,7 @@ final class DateMessagesAjaxEndpoint {
 			$message['body'],
 			array(),
 			true,
-			EmailSource::DATE_MESSAGES,
+			$rule->email_source(),
 			$rule->appearance->document_args()
 		);
 

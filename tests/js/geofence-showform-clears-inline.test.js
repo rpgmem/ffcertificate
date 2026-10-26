@@ -26,10 +26,12 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
+	loadScript('assets/js/ffc-core.js');
+	loadScript('assets/js/ffc-preflight.js');
 	loadScript('assets/js/ffc-geofence-frontend.js');
 	loadScript('assets/js/ffc-geofence-datetime.js');
 	loadScript('assets/js/ffc-geofence-gps.js');
-	loadScript('assets/js/ffc-geofence-preflight.js');
+	loadScript('assets/js/ffc-geofence-permission.js');
 });
 
 function installLocationHttps() {
@@ -91,7 +93,7 @@ describe('FFCGeofence.showForm — clears inline display:none from validateGeolo
 
 		window.FFCGeofence.validateGeolocation($w, {
 			hideMode: 'message',
-			areas: [{ lat: 0, lng: 0, radius: 1 }],
+			areas: [{ lat: 0, lng: 0, radius: 100 }],
 		});
 
 		// Wrapper has the validated class.
@@ -125,7 +127,7 @@ describe('FFCGeofence.showForm — clears inline display:none from validateGeolo
 
 		window.FFCGeofence.validateGeolocation($w, {
 			hideMode: 'message',
-			areas: [{ lat: 0, lng: 0, radius: 1 }],
+			areas: [{ lat: 0, lng: 0, radius: 100 }],
 		});
 
 		// Cache-hit now mounts the spinner first and only resolves to
