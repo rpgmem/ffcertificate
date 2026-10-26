@@ -609,7 +609,7 @@ class Loader {
 	 * Flagged by `ffc_module_role_labels_v1`; the tier migration above may
 	 * already have run on this install, so it cannot carry the rename.
 	 *
-	 * @since 6.33.0
+	 * @since 6.42.0
 	 * @return void
 	 */
 	private function ensure_module_role_labels_applied(): void {
@@ -944,7 +944,7 @@ class Loader {
 	 * Seed `ffc_send_date_messages` onto the current date-message managers (#1949).
 	 * Idempotent + version-flagged via `ffc_date_messages_send_cap_v1`.
 	 *
-	 * @since 6.33.0
+	 * @since 6.42.0
 	 */
 	private function ensure_date_messages_send_cap_granted(): void {
 		$flag = 'ffc_date_messages_send_cap_v1';

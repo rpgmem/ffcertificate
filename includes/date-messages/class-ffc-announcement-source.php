@@ -3,7 +3,7 @@
  * Announcement recipients.
  *
  * @package FreeFormCertificate\DateMessages
- * @since 6.33.0
+ * @since 6.42.0
  */
 
 declare(strict_types=1);

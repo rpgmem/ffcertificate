@@ -889,7 +889,7 @@ class SubmissionReader extends AbstractRepository {
 	 * {@see self::countByFormAndCpfHash()}: the bulk issue uses both to refuse
 	 * a participant the form already issued to (#1945).
 	 *
-	 * @since 6.44.0
+	 * @since 6.42.0
 	 * @param int    $form_id Form ID.
 	 * @param string $rf_hash SHA-256 hash of the RF digits.
 	 * @return int Always >= 0.
