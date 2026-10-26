@@ -209,6 +209,48 @@ describe('ffc-user-dashboard-cal-export — dropdown interactions', () => {
 		expect(wraps[0].querySelector('.ffc-cal-export-dropdown').classList.contains('is-open')).toBe(false);
 	});
 
+	it('places the open menu under its button, fixed, so no table clips it', () => {
+		document.body.insertAdjacentHTML('beforeend', window.FFCDashboard.calExport.buildButton(makeEvent()));
+		const btn = document.querySelector('.ffc-cal-export-btn');
+		btn.getBoundingClientRect = () => ({ top: 100, bottom: 130, left: 300, right: 460 });
+		const h = vi.spyOn(window.$.fn, 'outerHeight').mockReturnValue(120);
+		const w = vi.spyOn(window.$.fn, 'outerWidth').mockReturnValue(200);
+		window.innerHeight = 800;
+
+		window.$(btn).trigger('click');
+		const menu = document.querySelector('.ffc-cal-export-dropdown');
+
+		expect(menu.style.top).toBe('134px');
+		expect(menu.style.left).toBe('260px');
+		h.mockRestore();
+		w.mockRestore();
+	});
+
+	it('opens the menu above its button near the bottom of the screen', () => {
+		document.body.insertAdjacentHTML('beforeend', window.FFCDashboard.calExport.buildButton(makeEvent()));
+		const btn = document.querySelector('.ffc-cal-export-btn');
+		btn.getBoundingClientRect = () => ({ top: 700, bottom: 730, left: 300, right: 460 });
+		const h = vi.spyOn(window.$.fn, 'outerHeight').mockReturnValue(120);
+		const w = vi.spyOn(window.$.fn, 'outerWidth').mockReturnValue(200);
+		window.innerHeight = 800;
+
+		window.$(btn).trigger('click');
+
+		expect(document.querySelector('.ffc-cal-export-dropdown').style.top).toBe('576px');
+		h.mockRestore();
+		w.mockRestore();
+	});
+
+	it('closes an open menu when the page scrolls, since a fixed menu does not follow its button', () => {
+		document.body.insertAdjacentHTML('beforeend', window.FFCDashboard.calExport.buildButton(makeEvent()));
+		const menu = document.querySelector('.ffc-cal-export-dropdown');
+		menu.classList.add('is-open');
+
+		window.dispatchEvent(new Event('scroll'));
+
+		expect(menu.classList.contains('is-open')).toBe(false);
+	});
+
 	it('handles an ICS download for an event with an empty summary (escapeIcsText empty-string guard)', () => {
 		document.body.innerHTML = window.FFCDashboard.calExport.buildButton(
 			makeEvent({ summary: '', description: '', location: '' })

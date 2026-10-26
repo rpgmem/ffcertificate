@@ -168,6 +168,9 @@ final class InlineStyleTest extends TestCase {
 		'assets/js/ffc-user-dashboard-audience-join.js' => array(
 			'style=: style="background-color:' => array( 1, self::OPERATOR_COLOUR ),
 		),
+		'assets/js/ffc-user-dashboard-cal-export.js' => array(
+			'.css(): .css({' => array( 1, self::RUNTIME_VALUE ),
+		),
 		'assets/js/ffc-user-dashboard-core.js' => array(
 			'style=: style="--ffc-badge-row-bg:' => array( 1, self::OPERATOR_COLOUR ),
 		),

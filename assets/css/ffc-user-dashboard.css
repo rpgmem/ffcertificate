@@ -1366,12 +1366,12 @@
     margin-right: 0;
 }
 
+/* Fixed, not absolute: the bookings tables clip to their rounded corners and
+   scroll sideways on a phone, so a menu inside a cell was cut off. The script
+   places it under the button (or above it, near the bottom of the screen). */
 .ffc-cal-export-dropdown {
     display: none;
-    position: absolute;
-    right: 0;
-    top: 100%;
-    margin-top: var(--ffc-spacing-2xs);
+    position: fixed;
     min-width: 200px;
     background: var(--ffc-bg);
     border: 1px solid var(--ffc-border-light);
