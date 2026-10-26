@@ -10,7 +10,7 @@
  *   that holds personal data, encrypted, and emptied when the job ends.
  *
  * @package FreeFormCertificate\Submissions
- * @since 6.43.0
+ * @since 6.42.0
  */
 
 declare(strict_types=1);

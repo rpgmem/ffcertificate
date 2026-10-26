@@ -466,7 +466,7 @@ class CapabilityMigrator {
 	 * audience at once. The migration seeds `ffc_send_date_messages` onto every
 	 * current `ffc_manage_date_messages` holder, so nobody loses the ability to send.
 	 *
-	 * @since 6.33.0
+	 * @since 6.42.0
 	 * @return array<string, string> Manage cap => the send cap it seeds.
 	 */
 	public static function date_messages_send_cap_grant_map(): array {
@@ -481,7 +481,7 @@ class CapabilityMigrator {
 	 * source cap. Runs once per install via the Loader, flagged by
 	 * `ffc_date_messages_send_cap_v1`.
 	 *
-	 * @since 6.33.0
+	 * @since 6.42.0
 	 * @return array<string, int> Send-cap count of users seeded.
 	 */
 	public static function migrate_date_messages_send_cap_grant(): array {
@@ -1302,7 +1302,7 @@ class CapabilityMigrator {
 	 * Renames only, so it is safe to run on its own (#1949: "Date Messages"
 	 * became "Messages").
 	 *
-	 * @since 6.33.0
+	 * @since 6.42.0
 	 * @return int Roles renamed.
 	 */
 	public static function rename_stored_role_labels(): int {
@@ -1328,7 +1328,7 @@ class CapabilityMigrator {
 	 * Role-label rename on its own, for installs whose tier migration already ran
 	 * before a label changed. Flagged by `ffc_module_role_labels_v1` (#1949).
 	 *
-	 * @since 6.33.0
+	 * @since 6.42.0
 	 * @return array<string, int> `roles_renamed` => count.
 	 */
 	public static function migrate_module_role_labels(): array {

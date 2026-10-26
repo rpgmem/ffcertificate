@@ -11,7 +11,7 @@
  * job keeps only its counters, which is what the audit trail needs.
  *
  * @package FreeFormCertificate\Submissions
- * @since 6.44.0
+ * @since 6.42.0
  */
 
 declare(strict_types=1);

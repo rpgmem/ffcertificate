@@ -8,7 +8,7 @@
  * plaintext. A job whose rows are gone holds only counters and dates.
  *
  * @package FreeFormCertificate\Submissions
- * @since 6.43.0
+ * @since 6.42.0
  */
 
 declare(strict_types=1);
