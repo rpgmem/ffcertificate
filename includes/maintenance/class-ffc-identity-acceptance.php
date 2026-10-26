@@ -393,8 +393,13 @@ class IdentityAcceptance {
 	 * @param string $field   The identifier, `rf` or `cpf`.
 	 * @param string $subject The finding's subject.
 	 * @return string|null
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function accepted_tier( string $check, string $field, string $subject ): ?string {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$record = $this->record( $check, $field, $subject );
 
 		if ( null === $record ) {

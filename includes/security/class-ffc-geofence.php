@@ -152,8 +152,13 @@ class Geofence {
 	 * @param int                  $form_id Form ID.
 	 * @param array<string, mixed> $options Validation options.
 	 * @return array{allowed: bool, reason?: string, message?: string}
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function can_access_form( int $form_id, array $options = array() ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$config = self::get_form_config( $form_id );
 
 		if ( empty( $config ) ) {

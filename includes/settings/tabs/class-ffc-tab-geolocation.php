@@ -180,13 +180,17 @@ class TabGeolocation extends SettingsTab {
 	 * Derive the preset name from a per-case matrix.
 	 *
 	 * Returns 'tolerant' / 'hybrid' / 'strict' if the matrix exactly
-	 * matches one of those, otherwise 'custom'. Used by the admin UI to
-	 * pre-select the right combobox option on page load.
+	 * matches one of those, otherwise 'custom'.
 	 *
 	 * @param array<string, string> $cases case key → 'allow' | 'block'.
 	 * @return string
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function cases_to_preset( array $cases ): string {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		foreach ( array( 'tolerant', 'hybrid', 'strict' ) as $preset ) {
 			if ( self::preset_to_cases( $preset ) === $cases ) {
 				return $preset;

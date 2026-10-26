@@ -354,8 +354,13 @@ class AudienceBookingReader {
 	 * @param string      $date Date (Y-m-d).
 	 * @param string|null $status Optional status filter.
 	 * @return list<BookingRow>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_by_date( int $environment_id, string $date, ?string $status = null ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return self::get_all(
 			array(
 				'environment_id' => $environment_id,
@@ -373,8 +378,13 @@ class AudienceBookingReader {
 	 * @param string      $end_date End date (Y-m-d).
 	 * @param string|null $status Optional status filter.
 	 * @return list<BookingRow>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_by_date_range( int $environment_id, string $start_date, string $end_date, ?string $status = null ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return self::get_all(
 			array(
 				'environment_id' => $environment_id,
@@ -391,8 +401,13 @@ class AudienceBookingReader {
 	 * @param int                  $user_id User ID.
 	 * @param array<string, mixed> $args Additional query arguments.
 	 * @return list<BookingRow>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_by_creator( int $user_id, array $args = array() ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$args['created_by'] = $user_id;
 		return self::get_all( $args );
 	}
@@ -403,8 +418,13 @@ class AudienceBookingReader {
 	 * @param int                  $user_id User ID.
 	 * @param array<string, mixed> $args Additional query arguments.
 	 * @return list<BookingRow>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_by_participant( int $user_id, array $args = array() ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$wpdb            = self::db();
 		$table           = self::get_table_name();
 		$users_table     = self::get_booking_users_table_name();

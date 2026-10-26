@@ -97,8 +97,13 @@ final class FieldMessage {
 	 * @param string $text The message; '' means no state.
 	 * @param string $kind `error` or `warning`.
 	 * @return string
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function control_class( string $text, string $kind = 'error' ): string {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return '' === $text ? '' : self::spec( $kind )['control'];
 	}
 

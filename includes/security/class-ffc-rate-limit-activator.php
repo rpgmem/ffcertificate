@@ -159,8 +159,13 @@ class RateLimitActivator {
 	 * Tables exist.
 	 *
 	 * @return bool
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function tables_exist(): bool {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		global $wpdb;
 
 		return self::table_exists( $wpdb->prefix . 'ffc_rate_limits' )
@@ -172,8 +177,13 @@ class RateLimitActivator {
 	 * Drop tables.
 	 *
 	 * @return bool
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function drop_tables(): bool {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		global $wpdb;
 
 		$table_limits  = $wpdb->prefix . 'ffc_rate_limits';

@@ -7,6 +7,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Deprecated
+
+- **65 public methods nothing in the plugin calls** (#2089). Readers, writers, activators' `drop_tables()`, debug helpers and accessors left behind by earlier refactors now emit a deprecation notice and leave in 6.45.0; none has a replacement because nothing used it. Six of them claimed callers that never existed, and their docblocks say so now.
+
+### Removed
+
+- **The jQuery UI theme in `libs/css/`** (#2089). Nothing has loaded it since 6.10.0: the calendars are drawn by the plugin's own script, and the jQuery UI pieces that do load are WordPress's own, with WordPress's styles. The zip loses the stylesheet and its 11 images.
+
 ## [6.42.0] (2026-10-26) — `8241871c`
 
 ### Added

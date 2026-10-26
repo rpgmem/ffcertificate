@@ -260,8 +260,13 @@ class PdfGenerator {
 	 * @param int                  $form_id Form ID.
 	 * @param int|null             $submission_date Submission instant (unix UTC seconds since 6.6.0).
 	 * @return array<string, mixed>|\WP_Error PDF data array
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function generate_pdf_data_from_form( array $submission_data, int $form_id, ?int $submission_date = null ) {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		// Get form data.
 		$form_post = get_post( $form_id );
 		if ( ! $form_post ) {

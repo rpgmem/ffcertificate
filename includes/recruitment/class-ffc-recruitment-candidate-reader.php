@@ -205,8 +205,13 @@ class RecruitmentCandidateReader {
 	 *
 	 * @param string $email_hash Hash produced by `SensitiveFieldRegistry::hash_identifier()`.
 	 * @return CandidateRow|null
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_by_email_hash( string $email_hash ): ?object {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
@@ -348,8 +353,13 @@ class RecruitmentCandidateReader {
 	 * @param string $name_search  Optional substring filter on name.
 	 * @param int    $adjutancy_id Adjutancy id.
 	 * @return int
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function count_paginated_for_adjutancy( string $name_search, int $adjutancy_id ): int {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$wpdb      = self::db();
 		$table     = self::get_table_name();
 		$cls_table = $wpdb->prefix . 'ffc_recruitment_classification';
@@ -376,8 +386,13 @@ class RecruitmentCandidateReader {
 	 *
 	 * @param string $name_search Optional substring filter on name.
 	 * @return int
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function count_paginated( string $name_search ): int {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 

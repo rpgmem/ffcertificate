@@ -481,8 +481,13 @@ class AudienceCsvImporter {
 	 * @param string $file_path Path to CSV file.
 	 * @param string $type Import type ('members' or 'audiences').
 	 * @return array{valid: bool, rows: int, errors: array<string>}
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function validate_csv( string $file_path, string $type = 'members' ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$result = array(
 			'valid'  => false,
 			'rows'   => 0,

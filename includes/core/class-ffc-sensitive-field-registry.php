@@ -352,8 +352,13 @@ final class SensitiveFieldRegistry {
 	 *
 	 * @since 6.26.0
 	 * @return list<string>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function hashed_field_keys(): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$keys = array();
 
 		foreach ( self::FIELDS as $fields ) {

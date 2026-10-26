@@ -65,8 +65,13 @@ class BlockedDateRepository extends AbstractRepository {
 	 * Get all global blocks (applies to all calendars)
 	 *
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function getGlobalBlocks(): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare( 'SELECT * FROM %i WHERE calendar_id IS NULL ORDER BY start_date ASC', $this->table ),
 			ARRAY_A
@@ -257,8 +262,13 @@ class BlockedDateRepository extends AbstractRepository {
 	 *
 	 * @param int $days_old Number of days past end date.
 	 * @return int|false Number of deleted rows
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function deleteExpiredBlocks( int $days_old = 30 ) {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$cutoff_ts   = strtotime( "-{$days_old} days" );
 		$cutoff_date = gmdate( 'Y-m-d', $cutoff_ts ? $cutoff_ts : time() );
 
@@ -330,8 +340,13 @@ class BlockedDateRepository extends AbstractRepository {
 	 * @param int $calendar_id Calendar ID.
 	 * @param int $days Number of days to look ahead.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function getUpcomingBlocks( int $calendar_id, int $days = 30 ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$start_date = gmdate( 'Y-m-d' );
 		$end_ts     = strtotime( "+{$days} days" );
 		$end_date   = gmdate( 'Y-m-d', $end_ts ? $end_ts : time() );

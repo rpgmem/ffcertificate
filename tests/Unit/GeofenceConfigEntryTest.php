@@ -41,6 +41,10 @@ class GeofenceConfigEntryTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		Functions\when( 'wp_parse_args' )->alias( 'array_merge' );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );

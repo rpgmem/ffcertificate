@@ -183,8 +183,13 @@ class RecruitmentNoticeAdjutancyRepository {
 	 *
 	 * @param int $notice_id Notice ID.
 	 * @return int Number of pairs removed.
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function detach_all_for_notice( int $notice_id ): int {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 

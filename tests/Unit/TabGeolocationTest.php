@@ -31,6 +31,10 @@ class TabGeolocationTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 		// Shared scripts are enqueued through AssetRegistry, which registers
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).

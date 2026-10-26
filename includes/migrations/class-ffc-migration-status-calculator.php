@@ -501,8 +501,13 @@ class MigrationStatusCalculator {
 	 * Useful for debugging and testing.
 	 *
 	 * @return array<string, \FreeFormCertificate\Migrations\Strategies\MigrationStrategyInterface> Strategy instances
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function get_strategies(): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return $this->strategies;
 	}
 }

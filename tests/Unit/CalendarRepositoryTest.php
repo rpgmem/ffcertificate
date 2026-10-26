@@ -32,6 +32,10 @@ class CalendarRepositoryTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		// Mock global $wpdb BEFORE constructing the repository
 		global $wpdb;
@@ -147,6 +151,10 @@ class CalendarRepositoryTest extends TestCase {
 		// We need a fresh Brain\Monkey context to override wp_cache_get.
 		Monkey\tearDown();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		Functions\when( 'wp_cache_get' )->alias( function ( $key, $group ) use ( $cached_row ) {
 			if ( $key === 'post_42' && $group === 'ffc_self_scheduling_calendars' ) {
@@ -710,6 +718,10 @@ class CalendarRepositoryTest extends TestCase {
 		// Re-setup with a different get_the_title mock to verify it gets called
 		Monkey\tearDown();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
