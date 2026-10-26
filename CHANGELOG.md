@@ -54,6 +54,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **"Location blocked" only when it really is** (#2048). Opera for Android reports a block while giving the position; a reported block is now confirmed by one quick read.
 - **Scripts run on sites that minify with LiteSpeed Cache** (#2056). Its minifier cut a regex literal ending in an escaped slash; the literals are rewritten and a test refuses the shape.
 - **The certificate's success card fits a phone and names the real file** (#2068).
+- **The dashboard's calendar export menu opens over the table** (#2081). The audience bookings table clipped it to its rounded corners, and on a phone both bookings tables scroll sideways; the menu now opens fixed under its button, or above it near the bottom of the screen, and closes on scroll.
 
 ### Security
 

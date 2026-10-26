@@ -34,18 +34,7 @@ define( 'FFC_ALTCHA_VERSION', '3.4.0' );        // ALTCHA widget - https://githu
 define( 'FFC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FFC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
-/**
- * PSR-4 Autoloader — namespace migration complete.
- *
- * Load the PSR-4 autoloader to enable namespace support.
- * All classes use FreeFormCertificate\* namespace.
- *
- * ⚠️ BREAKING CHANGE (v4.0.0): Old class names (FFC_*) removed.
- * Use namespaced classes: FreeFormCertificate\Core\Utils, etc.
- *
- * @since 3.2.0
- * @since 4.0.0 BC aliases removed
- */
+// Load the PSR-4 autoloader for the FreeFormCertificate\* namespace.
 require_once FFC_PLUGIN_DIR . 'includes/class-ffc-autoloader.php';
 
 // Register the autoloader.
