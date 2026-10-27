@@ -121,7 +121,7 @@ class RateLimitLoggerTest extends TestCase {
 	// log_attempt() — identifier hashing (LGPD/GDPR)
 	// ------------------------------------------------------------------
 
-	public function test_log_attempt_keeps_ip_identifier_plaintext(): void {
+	public function test_log_attempt_stores_an_address_by_fingerprint_and_encrypts_it(): void {
 		$this->stub_settings();
 
 		global $wpdb;
@@ -133,7 +133,11 @@ class RateLimitLoggerTest extends TestCase {
 
 		RateLimitLogger::log_attempt( 'ip', '203.0.113.42', 'blocked', 'ip_hour_limit', 7 );
 
-		$this->assertSame( '203.0.113.42', $captured['identifier'] );
+		// Nothing in clear (#2109): the identifier is the address fingerprint,
+		// and the request address is kept only encrypted.
+		$this->assertSame( \FreeFormCertificate\Core\IpAddress::fingerprint( '203.0.113.42' ), $captured['identifier'] );
+		$this->assertArrayNotHasKey( 'ip_address', $captured );
+		$this->assertStringNotContainsString( '203.0.113.42', (string) json_encode( $captured ) );
 	}
 
 	public function test_log_attempt_hashes_non_ip_identifier(): void {

@@ -319,7 +319,7 @@ class PublicFormsExportSourceTest extends TestCase {
 		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		// No throw → passed.
-		$this->source->authorize_batch( array( 'ip_hash' => sha1( '203.0.113.7' ) ) );
+		$this->source->authorize_batch( array( 'ip_hash' => \FreeFormCertificate\Core\IpAddress::fingerprint( '203.0.113.7' ) ) );
 		$this->assertTrue( true );
 	}
 
@@ -379,7 +379,7 @@ class PublicFormsExportSourceTest extends TestCase {
 
 		$fields = $this->source->job_owner_fields();
 
-		$this->assertSame( sha1( '203.0.113.7' ), $fields['ip_hash'] );
+		$this->assertSame( \FreeFormCertificate\Core\IpAddress::fingerprint( '203.0.113.7' ), $fields['ip_hash'] );
 		$this->assertSame( 12, $fields['form_id'] );
 		$this->assertSame( '12345678900', $fields['cpf_digits'] );
 	}
