@@ -15,7 +15,6 @@ use FreeFormCertificate\Settings\Tabs\TabQrCode;
  * The QR Code settings tab (#1563): properties, the real view, and the assets.
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabQrCode
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class TabQrCodeTest extends TestCase {
@@ -118,6 +117,9 @@ class TabQrCodeTest extends TestCase {
 		$this->assertStringContainsString( 'data-ffc-autosave-key="qr_design_on_short_urls"', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_error_when_view_missing(): void {
 		Functions\when( 'FreeFormCertificate\\Settings\\Tabs\\file_exists' )->justReturn( false );
 		Functions\when( 'wp_admin_notice' )->alias(
@@ -138,6 +140,9 @@ class TabQrCodeTest extends TestCase {
 		$this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_enqueue_scripts_localises_the_preview_endpoint(): void {
 		SettingsTab::set_resolved_active_tab( 'qr_code' );
 

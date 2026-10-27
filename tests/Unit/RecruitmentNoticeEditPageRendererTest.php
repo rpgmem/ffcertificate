@@ -24,7 +24,6 @@ use FreeFormCertificate\Recruitment\RecruitmentNoticeEditPageRenderer;
  *    assert the captured markup contains a handful of load-bearing substrings.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentNoticeEditPageRenderer
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class RecruitmentNoticeEditPageRendererTest extends TestCase {
@@ -171,6 +170,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_groups_empties_by_adjutancy_slug_sorted_by_rank_excluding_non_empty(): void {
 		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
 		$adj->shouldReceive( 'get_by_id' )->andReturnUsing(
@@ -212,6 +214,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertSame( array(), $this->invoke( $rows ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_falls_back_to_hashed_id_key_when_adjutancy_slug_missing(): void {
 		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
 		$adj->shouldReceive( 'get_by_id' )->andReturn( null );
@@ -264,6 +269,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	// render_general_section() — exercises render_columns_toggles + template
 	// ------------------------------------------------------------------
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_general_section_renders_code_name_and_toggles_grid(): void {
 		$this->declare_template_facade_stubs();
 
@@ -289,6 +297,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'public_columns[preview_reason]', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_general_section_tolerates_invalid_columns_json(): void {
 		$this->declare_template_facade_stubs();
 
@@ -309,6 +320,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	// render_status_section() — preliminary / definitive / closed branches
 	// ------------------------------------------------------------------
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_status_section_preliminary_renders_promote_options_no_definitive(): void {
 		$cls = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationRepository' );
 		$cls->shouldReceive( 'get_for_notice' )->with( 7, 'definitive' )->andReturn( array() );
@@ -327,6 +341,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'target_status', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_status_section_preliminary_with_existing_definitive_single_button(): void {
 		$cls = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationRepository' );
 		$cls->shouldReceive( 'get_for_notice' )->with( 7, 'definitive' )->andReturn(
@@ -344,6 +361,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffcRecruitmentSnapshotPromote', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_status_section_definitive_renders_close_transition(): void {
 		$page = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdminPage' );
 		$page->shouldReceive( 'notice_status_badge' )->andReturn( '<span class="badge">definitive</span>' );
@@ -357,6 +377,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'ffc_recruitment_transition_notice', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_status_section_closed_renders_reopen_and_reopened_note(): void {
 		$page = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdminPage' );
 		$page->shouldReceive( 'notice_status_badge' )->andReturn( '<span class="badge">closed</span>' );
@@ -373,6 +396,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'previously reopened', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_status_section_draft_renders_single_transition(): void {
 		$page = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdminPage' );
 		$page->shouldReceive( 'notice_status_badge' )->andReturn( '<span class="badge">draft</span>' );
@@ -388,6 +414,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	// render_adjutancies_section()
 	// ------------------------------------------------------------------
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_adjutancies_section_partitions_attached_and_detached(): void {
 		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
 		$adj->shouldReceive( 'get_all' )->andReturn(
@@ -412,6 +441,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'ffcAttachAdjutancy', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_adjutancies_section_no_attached_shows_empty_note(): void {
 		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
 		$adj->shouldReceive( 'get_all' )->andReturn(
@@ -503,6 +535,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_classifications_section_with_definitive_rows_renders_actions_table(): void {
 		$this->wire_classifications_collaborators(
 			array( $this->cls_row( 50, 1, 'empty', 1, 500 ) ),
@@ -531,6 +566,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'data-ffc-empties', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_classifications_section_empty_lists_render_no_rows_notice(): void {
 		$this->wire_classifications_collaborators( array(), array() );
 

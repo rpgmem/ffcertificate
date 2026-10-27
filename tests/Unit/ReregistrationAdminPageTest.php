@@ -15,11 +15,10 @@ use FreeFormCertificate\Reregistration\ReregistrationAdmin;
  * campaign save transitions and the editor-only import assets.
  *
  * The renderer and the repositories are aliased, and a save ends in
- * `exit` after its redirect, so every test runs in its own process and the
- * redirect is made to throw.
+ * `exit` after its redirect, so the tests that alias run in their own process
+ * and the redirect is made to throw; the rest share the process (#2091).
  *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationAdmin
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class ReregistrationAdminPageTest extends TestCase {
@@ -98,6 +97,9 @@ class ReregistrationAdminPageTest extends TestCase {
 		return $html;
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_a_viewer_cannot_open_the_campaign_editor(): void {
 		$this->grant( array( 'ffc_view_reregistration' ) );
 		$_GET['view'] = 'edit';
@@ -109,6 +111,9 @@ class ReregistrationAdminPageTest extends TestCase {
 		$this->renderPage();
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_a_viewer_gets_the_read_only_list(): void {
 		$this->grant( array( 'ffc_view_reregistration' ) );
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationAdminRenderer' )
@@ -119,6 +124,9 @@ class ReregistrationAdminPageTest extends TestCase {
 		$this->assertSame( '<div class="wrap ffc-admin-page ffc-page-reregistration "></div>', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_a_manager_gets_the_boxed_editor_for_a_new_campaign(): void {
 		// Manage alone opens the screen: the 3-state model does not ask a
 		// manage role to hold the view cap as well (#1698).
@@ -132,6 +140,9 @@ class ReregistrationAdminPageTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-page-reregistration ffc-boxed', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_a_manage_only_role_gets_the_editable_list(): void {
 		$this->grant( array( 'ffc_manage_reregistration' ) );
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationAdminRenderer' )
@@ -140,6 +151,9 @@ class ReregistrationAdminPageTest extends TestCase {
 		$this->renderPage();
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_a_role_with_neither_tier_is_refused(): void {
 		$this->grant( array( 'ffc_view_audiences' ) );
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationAdminRenderer' )->shouldNotReceive( 'render_list' );
@@ -170,6 +184,7 @@ class ReregistrationAdminPageTest extends TestCase {
 	 *
 	 * @param list<string> $caps     Capabilities held.
 	 * @param string       $expected Capability the campaign menu is registered with.
+	 * @runInSeparateProcess
 	 */
 	public function test_the_menu_is_registered_under_the_tier_the_user_holds( array $caps, string $expected ): void {
 		$this->grant( $caps );
@@ -195,6 +210,9 @@ class ReregistrationAdminPageTest extends TestCase {
 		$this->assertSame( 'ffc_manage_reregistration', $registered['sub:ffc-custom-fields'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_the_submissions_view_carries_the_id_and_the_edit_tier(): void {
 		$this->grant( array( 'manage_options' ) );
 		$_GET['view'] = 'submissions';
@@ -254,6 +272,9 @@ class ReregistrationAdminPageTest extends TestCase {
 	// handle_actions() — messages and delegation
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_handle_actions_reports_a_known_message_and_delegates_the_workflow(): void {
 		$this->grant( array( 'ffc_manage_reregistration' ) );
 		$_GET['page']    = 'ffc-reregistration';
@@ -274,6 +295,9 @@ class ReregistrationAdminPageTest extends TestCase {
 		$this->assertSame( array( array( 'Reminder emails sent.', 'success' ) ), $notices );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_handle_actions_ignores_an_unknown_message(): void {
 		$this->grant( array( 'ffc_manage_reregistration' ) );
 		$_GET['page']    = 'ffc-reregistration';
@@ -294,6 +318,7 @@ class ReregistrationAdminPageTest extends TestCase {
 	/**
 	 * After an activation the screen says nobody was mailed yet and names the
 	 * daily run that will do it (#1762).
+	 * @runInSeparateProcess
 	 */
 	public function test_handle_actions_announces_the_next_daily_run_after_activation(): void {
 		$this->grant( array( 'ffc_manage_reregistration' ) );
@@ -356,6 +381,9 @@ class ReregistrationAdminPageTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_saving_a_draft_campaign_as_active_reopens_and_seeds_in_order_without_mailing(): void {
 		$this->postSave( 9, 'active', array( 'rereg_auto_approve' => '1', 'rereg_email_reminder' => '1' ) );
 		$order = array();
@@ -380,6 +408,9 @@ class ReregistrationAdminPageTest extends TestCase {
 		$this->assertSame( array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=edit&id=9&message=updated' ), $this->redirects );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_saving_an_already_active_campaign_does_not_invite_again(): void {
 		$this->postSave( 9, 'active' );
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );
@@ -394,6 +425,9 @@ class ReregistrationAdminPageTest extends TestCase {
 		$this->assertCount( 1, $this->redirects );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_creating_an_active_campaign_seeds_and_announces_the_daily_invitations(): void {
 		$this->postSave( 0, 'active', array( 'rereg_email_invitation' => '1' ) );
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );
@@ -409,6 +443,9 @@ class ReregistrationAdminPageTest extends TestCase {
 		$this->assertSame( array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=edit&id=41&message=created&invitations=scheduled' ), $this->redirects );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_a_failed_create_neither_links_audiences_nor_redirects(): void {
 		$this->postSave( 0, 'draft' );
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );

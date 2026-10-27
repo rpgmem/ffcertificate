@@ -16,7 +16,6 @@ use FreeFormCertificate\Settings\Tabs\TabEmailModel;
  * SMTP tab in #976).
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabEmailModel
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class TabEmailModelTest extends TestCase {
@@ -59,6 +58,9 @@ class TabEmailModelTest extends TestCase {
 		$this->tab->enqueue_scripts( 'edit.php' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_enqueue_scripts_enqueues_model_assets_when_active(): void {
 		SettingsTab::set_resolved_active_tab( 'email_model' );
 		Functions\when( 'wp_unslash' )->returnArg();
@@ -93,6 +95,7 @@ class TabEmailModelTest extends TestCase {
 	 * @param bool               $prints Whether the card renders.
 	 *
 	 * @dataProvider unlocked_card_cases
+	 * @runInSeparateProcess
 	 */
 	public function test_the_test_card_renders_for_the_caps_that_may_send( array $caps, bool $prints ): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )

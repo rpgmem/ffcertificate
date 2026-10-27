@@ -18,7 +18,6 @@ use FreeFormCertificate\Settings\Tabs\TabUrlShortener;
  * real enqueue_scripts() so the tab class body is covered end-to-end.
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabUrlShortener
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class TabUrlShortenerTest extends TestCase {
@@ -102,6 +101,9 @@ class TabUrlShortenerTest extends TestCase {
 	// render() — real view partial include (happy path)
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_includes_real_view(): void {
 		// The shipped view reads SettingsReader::all() and iterates the
 		// public post types; stub both so the include runs cleanly.
@@ -149,6 +151,9 @@ class TabUrlShortenerTest extends TestCase {
 	// render() — error branch (view file missing)
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_error_when_view_missing(): void {
 		// Force the real render()'s file_exists() guard to fail so its error
 		// branch (the "view file not found" notice) executes.
@@ -177,6 +182,9 @@ class TabUrlShortenerTest extends TestCase {
 		$this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_enqueue_scripts_enqueues_autosave_on_url_shortener_tab(): void {
 		SettingsTab::set_resolved_active_tab( 'url_shortener' );
 
@@ -203,6 +211,9 @@ class TabUrlShortenerTest extends TestCase {
 	// Inherited get_option()
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_get_option_returns_default_for_missing_key(): void {
 		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
 		$reader->shouldReceive( 'get' )->with( 'missing', 'fallback' )->andReturn( 'fallback' );

@@ -18,7 +18,6 @@ use FreeFormCertificate\Settings\Tabs\TabGeneral;
  * real enqueue_scripts() so the tab class body is covered end-to-end.
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabGeneral
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class TabGeneralTest extends TestCase {
@@ -102,6 +101,9 @@ class TabGeneralTest extends TestCase {
 	// render() — real view partial include (happy path)
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_includes_real_view(): void {
 		// The shipped view resolves every $ffcertificate_get_option(...) call
 		// through SettingsReader::get (via the bound $settings->get_option
@@ -157,6 +159,9 @@ class TabGeneralTest extends TestCase {
 	// render() — happy path with divergence notice shown
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_shows_divergence_notice(): void {
 		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
 		$reader->shouldReceive( 'get' )->andReturnUsing(
@@ -205,6 +210,9 @@ class TabGeneralTest extends TestCase {
 	// render() — smart-match legacy combined date format -> custom
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_smart_matches_legacy_date_format(): void {
 		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
 		$reader->shouldReceive( 'get' )->andReturnUsing(
@@ -239,6 +247,9 @@ class TabGeneralTest extends TestCase {
 	// render() — error branch (view file missing)
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_error_when_view_missing(): void {
 		// Force the real render()'s file_exists() guard to fail so its error
 		// branch (the "view file not found" notice) executes.
@@ -267,6 +278,9 @@ class TabGeneralTest extends TestCase {
 		$this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_enqueue_scripts_enqueues_autosave_on_general_tab(): void {
 		SettingsTab::set_resolved_active_tab( 'general' );
 
@@ -291,6 +305,9 @@ class TabGeneralTest extends TestCase {
 	// Inherited get_option()
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_get_option_returns_default_for_missing_key(): void {
 		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
 		$reader->shouldReceive( 'get' )->with( 'missing', 'fallback' )->andReturn( 'fallback' );

@@ -13,12 +13,12 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\FormListColumns;
 
 /**
- * Process-isolated tests for FormListColumns paths that need alias mocks:
- * init() hook registration, the conditional enqueue, and the batch
- * submission-count loader (alias SubmissionRepository + $wpdb).
+ * Tests for FormListColumns paths that need alias mocks: init() hook
+ * registration, the conditional enqueue, and the batch submission-count loader
+ * (alias SubmissionRepository + $wpdb). The tests that declare an alias run in
+ * their own process; the rest share it (#2091).
  *
  * @covers \FreeFormCertificate\Admin\FormListColumns
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class FormListColumnsHooksTest extends TestCase {
@@ -108,6 +108,9 @@ class FormListColumnsHooksTest extends TestCase {
 		$this->assertSame( array(), $enqueued );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_enqueue_features_script_loads_on_ffc_form_list_screen(): void {
 		$enqueued = array();
 		Functions\when( 'get_current_screen' )->justReturn(
@@ -136,6 +139,9 @@ class FormListColumnsHooksTest extends TestCase {
 	// get_submission_count() => load_submission_counts() (DB batch path)
 	// ------------------------------------------------------------------
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_submission_count_batch_loads_from_db(): void {
 		Functions\when( 'number_format_i18n' )->alias( function ( $n ) {
 			return (string) $n;
@@ -173,6 +179,9 @@ class FormListColumnsHooksTest extends TestCase {
 		$this->assertStringContainsString( '<strong>11</strong>', $out7 );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_submission_count_handles_empty_db_result(): void {
 		Functions\when( 'number_format_i18n' )->alias( function ( $n ) {
 			return (string) $n;

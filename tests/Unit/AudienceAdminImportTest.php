@@ -17,7 +17,6 @@ use FreeFormCertificate\Tests\Support\CallLog;
  * @covers \FreeFormCertificate\Audience\AudienceAdminImport
  * @covers \FreeFormCertificate\Audience\AudienceMembersExportSource
  * @covers \FreeFormCertificate\Audience\AudienceAudiencesExportSource
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class AudienceAdminImportTest extends TestCase {
@@ -212,6 +211,9 @@ class AudienceAdminImportTest extends TestCase {
 		};
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_export_members_csv_streams_header_and_rows(): void {
 		$download = $this->buffered_download();
 
@@ -244,6 +246,9 @@ class AudienceAdminImportTest extends TestCase {
 		$this->assertStringContainsString( 'Turma A', $download->output, 'audience name row present' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_export_audiences_csv_streams_hierarchical_rows(): void {
 		$download = $this->buffered_download();
 
@@ -273,6 +278,9 @@ class AudienceAdminImportTest extends TestCase {
 	// render_content() — child audiences in both selects
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_content_lists_child_audiences_in_both_selects(): void {
 		$child  = (object) array( 'id' => 21, 'name' => 'Class 1B' );
 		$parent = (object) array( 'id' => 20, 'name' => 'Grade 1', 'children' => array( $child ) );
@@ -432,6 +440,9 @@ class AudienceAdminImportTest extends TestCase {
 		$this->assertFalse( $download->finished );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_export_members_through_the_handler_filters_by_audience(): void {
 		$this->grant( array( 'ffc_export_audiences' ) );
 		$_POST['ffc_action']         = 'export_members';
@@ -453,6 +464,9 @@ class AudienceAdminImportTest extends TestCase {
 		$this->assertStringContainsString( 'email;name;audience_name', $download->output );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_export_audiences_through_the_handler_streams(): void {
 		$this->grant( array( 'ffc_export_audiences' ) );
 		$_POST['ffc_action'] = 'export_audiences';
@@ -530,6 +544,7 @@ class AudienceAdminImportTest extends TestCase {
 
 	/**
 	 * @dataProvider import_actions
+	 * @runInSeparateProcess
 	 */
 	public function test_import_refuses_a_file_php_did_not_upload( string $action, string $file_key ): void {
 		$this->grant( array( 'ffc_import_audiences' ) );
@@ -548,6 +563,7 @@ class AudienceAdminImportTest extends TestCase {
 
 	/**
 	 * @dataProvider import_actions
+	 * @runInSeparateProcess
 	 */
 	public function test_import_success_reports_counts_and_the_first_five_errors( string $action, string $file_key ): void {
 		$this->grant( array( 'ffc_import_audiences' ) );
@@ -588,6 +604,7 @@ class AudienceAdminImportTest extends TestCase {
 
 	/**
 	 * @dataProvider import_actions
+	 * @runInSeparateProcess
 	 */
 	public function test_import_success_without_errors_reports_only_counts( string $action, string $file_key ): void {
 		$this->grant( array( 'manage_options' ) );
@@ -610,6 +627,7 @@ class AudienceAdminImportTest extends TestCase {
 
 	/**
 	 * @dataProvider import_actions
+	 * @runInSeparateProcess
 	 */
 	public function test_import_failure_joins_errors_into_one_notice( string $action, string $file_key ): void {
 		$this->grant( array( 'ffc_import_audiences' ) );

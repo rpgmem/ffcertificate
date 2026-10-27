@@ -12,7 +12,6 @@ use FreeFormCertificate\Audience\AudienceCsvImporter;
 
 /**
  * Tests for AudienceCsvImporter: CSV validation, sample generation, and import logic.
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class AudienceCsvImporterTest extends TestCase {

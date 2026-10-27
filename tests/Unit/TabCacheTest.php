@@ -18,7 +18,6 @@ use FreeFormCertificate\Settings\Tabs\TabCache;
  * script it localises) and both branches of the real render().
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabCache
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class TabCacheTest extends TestCase {
@@ -111,6 +110,9 @@ class TabCacheTest extends TestCase {
 		$this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_enqueue_scripts_enqueues_on_cache_tab(): void {
 		SettingsTab::set_resolved_active_tab( 'cache' );
 
@@ -138,6 +140,9 @@ class TabCacheTest extends TestCase {
 	// render() — error branch (view file missing)
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_outputs_error_when_view_missing(): void {
 		// Force the real render()'s file_exists() guard to fail so the
 		// error-notice branch executes.
@@ -155,6 +160,9 @@ class TabCacheTest extends TestCase {
 	// Inherited get_option()
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_get_option_returns_default_for_missing_key(): void {
 		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
 		$reader->shouldReceive( 'get' )->with( 'cache_expiration', '' )->andReturn( '' );

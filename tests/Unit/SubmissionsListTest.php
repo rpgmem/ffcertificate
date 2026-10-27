@@ -13,7 +13,6 @@ use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * @covers \FreeFormCertificate\Admin\SubmissionsList
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class SubmissionsListTest extends TestCase {
@@ -200,6 +199,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringContainsString( 'value="9"', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_column_default_id(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
@@ -225,10 +227,16 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringContainsString( 'data-field="email" data-submission-id="42" data-nonce="test_nonce"', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_column_default_email_unmasked_tier_is_masked_with_reveal_button(): void {
 		$this->assertMaskedWithReveal( $this->emailCellFor( 'unmasked' ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_column_email_certificates_admin_role_without_the_pii_cap_gets_no_reveal_button(): void {
 		// The role alone unmasks nothing since #1863: its PII cap is what
 		// reveals, and this user holds the role without it.
@@ -237,16 +245,25 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc-reveal-pii', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_column_default_email_reveal_tier_is_masked_with_reveal_button(): void {
 		$this->assertMaskedWithReveal( $this->emailCellFor( 'reveal' ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_column_default_email_masked_tier_masks_without_button(): void {
 		$out = $this->emailCellFor( 'masked' );
 		$this->assertSame( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
 		$this->assertStringNotContainsString( 'ffc-reveal-pii', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_column_default_email_owner_gets_reveal_button(): void {
 		$this->stubStaticCollaborators( true, true, 'masked' );
 		$list = $this->makeList();
@@ -254,6 +271,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertMaskedWithReveal( $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_column_default_email_empty_returns_empty_without_button(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
@@ -261,6 +281,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertSame( '', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_reveal_nonce_is_created_once_per_render(): void {
 		$this->stubStaticCollaborators();
 		$nonces = CallLog::record( 'wp_create_nonce', 'test_nonce' );
@@ -272,6 +295,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertSame( 1, $nonces->count() );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_column_default_unknown_returns_empty(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
@@ -279,6 +305,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertSame( '', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_column_default_submission_date_uses_formatter(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
@@ -286,6 +315,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertSame( 'DATE:123', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_column_default_form_with_cached_title(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
@@ -294,6 +326,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringContainsString( 'My Form', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_column_default_form_deleted_when_no_title(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
@@ -305,6 +340,9 @@ class SubmissionsListTest extends TestCase {
 	// format_data_preview (via column_default 'data')
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_format_data_preview_null_returns_mandatory(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
@@ -312,6 +350,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringContainsString( 'Only mandatory fields', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_format_data_preview_literal_null_string(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
@@ -319,6 +360,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringContainsString( 'Only mandatory fields', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_format_data_preview_skips_sensitive_and_limits_to_three(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
@@ -339,6 +383,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringNotContainsString( 'overflow', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_format_data_preview_array_value_imploded(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
@@ -347,6 +394,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringContainsString( 'a, b', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_format_data_preview_only_skipped_fields_returns_mandatory(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
@@ -355,6 +405,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringContainsString( 'Only mandatory fields', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_format_data_preview_invalid_json_returns_mandatory(): void {
 		$this->stubStaticCollaborators();
 		Functions\when( 'wp_unslash' )->returnArg();
@@ -367,6 +420,9 @@ class SubmissionsListTest extends TestCase {
 	// render_status_badge (via column_default 'status')
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_status_badge_publish(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
@@ -375,6 +431,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringContainsString( 'Published', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_status_badge_publish_with_quiz_score(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
@@ -383,6 +442,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringContainsString( '85%', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_status_badge_trash(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
@@ -390,6 +452,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-badge-muted', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_status_badge_quiz_in_progress(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
@@ -397,6 +462,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-badge-warning', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_status_badge_quiz_failed(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
@@ -404,6 +472,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-badge-danger', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_status_badge_unknown_default(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
@@ -416,6 +487,9 @@ class SubmissionsListTest extends TestCase {
 	// render_actions / render_pdf_button (via column_default 'actions')
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_actions_manage_publish_shows_edit_pdf_trash(): void {
 		$this->stubStaticCollaborators( true, true );
 		$list = $this->makeList();
@@ -430,6 +504,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertMatchesRegularExpression( '#^<div class="ffc-submission-actions">.*</div>$#s', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_actions_manage_trash_shows_restore_delete(): void {
 		$this->stubStaticCollaborators( true, true );
 		$list = $this->makeList();
@@ -440,6 +517,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringNotContainsString( '>Trash<', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_actions_view_only_no_edit_no_write(): void {
 		// Neither manage nor edit → only PDF button.
 		$this->stubStaticCollaborators( false, false );
@@ -452,6 +532,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringNotContainsString( 'Restore', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_actions_edit_only_shows_edit_pdf_no_write(): void {
 		// edit but not manage → Edit + PDF, no trash/restore.
 		$this->stubStaticCollaborators( false, true );
@@ -463,6 +546,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringNotContainsString( 'Trash', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_pdf_button_fallback_to_handler_when_no_token(): void {
 		$this->stubStaticCollaborators( false, false );
 		$list = $this->makeList();
@@ -472,6 +558,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringContainsString( 'byid/7', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_pdf_button_no_token_message_when_link_empty(): void {
 		$this->stubStaticCollaborators( false, false );
 		$list = $this->makeList();
@@ -485,12 +574,18 @@ class SubmissionsListTest extends TestCase {
 	// get_bulk_actions (capability gate + status branches)
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_bulk_actions_empty_without_manage(): void {
 		$this->stubStaticCollaborators( false, false );
 		$list = $this->makeList();
 		$this->assertSame( array(), $this->call_protected( $list, 'get_bulk_actions' ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_bulk_actions_publish_default(): void {
 		$this->stubStaticCollaborators( true, true );
 		$list = $this->makeList();
@@ -499,6 +594,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertArrayNotHasKey( 'bulk_restore', $actions );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_bulk_actions_trash_status(): void {
 		$this->stubStaticCollaborators( true, true );
 		$_GET['status'] = 'trash';
@@ -508,6 +606,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertArrayHasKey( 'bulk_delete', $actions );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_bulk_actions_move_to_form_when_single_form_filter_string(): void {
 		$this->stubStaticCollaborators( true, true );
 		$_GET['filter_form_id'] = '15';
@@ -516,6 +617,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertArrayHasKey( 'move_to_form', $actions );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_bulk_actions_move_to_form_when_single_form_filter_array(): void {
 		$this->stubStaticCollaborators( true, true );
 		$_GET['filter_form_id'] = array( '22' );
@@ -524,6 +628,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertArrayHasKey( 'move_to_form', $actions );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_bulk_actions_no_move_when_multiple_forms(): void {
 		$this->stubStaticCollaborators( true, true );
 		$_GET['filter_form_id'] = array( '1', '2' );
@@ -545,6 +652,9 @@ class SubmissionsListTest extends TestCase {
 	// prepare_items
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_prepare_items_populates_items_and_pagination(): void {
 		$this->stubStaticCollaborators( true, true );
 
@@ -574,6 +684,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertSame( 1, $items[0]['id'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_prepare_items_empty_result(): void {
 		$this->stubStaticCollaborators( true, true );
 
@@ -591,6 +704,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertSame( array(), $this->get_prop( $list, 'items' ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_prepare_items_with_filters_from_request(): void {
 		$this->stubStaticCollaborators( true, true );
 		$_GET['status']         = 'trash';
@@ -624,6 +740,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertTrue( true );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_prepare_items_single_form_filter_string(): void {
 		$this->stubStaticCollaborators( true, true );
 		$_GET['filter_form_id'] = '7';
@@ -771,6 +890,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringContainsString( 'No submissions yet', $list->get_empty_state() );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_empty_state_after_a_search_names_the_view_and_clears_the_filter(): void {
 		$_GET['status'] = 'trash';
 		$_REQUEST['s']  = 'maria';
@@ -791,6 +913,9 @@ class SubmissionsListTest extends TestCase {
 		$this->assertSame( array( 's', 'filter_form_id', 'paged' ), $cleared, 'the view is kept; only the search, the form filter and the page go' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_empty_state_after_a_form_filter_offers_to_clear_it(): void {
 		$_GET['filter_form_id'] = '7';
 

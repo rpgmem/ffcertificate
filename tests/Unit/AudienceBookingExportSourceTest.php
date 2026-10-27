@@ -16,11 +16,10 @@ use FreeFormCertificate\Audience\AudienceBookingExportSource;
  * lifecycle it plugs into is tested in BatchedCsvExportTest. Migrated from the
  * former synchronous AudienceBookingCsvExporter (issue #772).
  *
- * Process isolation is used so the delegation tests can alias-mock the static
- * AudienceBookingReader without the alias leaking across the suite.
+ * The delegation tests alias-mock the static AudienceBookingReader, so those
+ * run in their own process; the rest share it (#2091).
  *
  * @covers \FreeFormCertificate\Audience\AudienceBookingExportSource
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCase {
@@ -113,6 +112,9 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 	// format_row()
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_format_row_maps_columns_in_order(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceBookingReader' )
 			->shouldReceive( 'get_booking_audiences' )->andReturn(
@@ -144,6 +146,9 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 		$this->assertSame( '', $result[17] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_format_row_all_day_and_unknown_labels(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceBookingReader' )
 			->shouldReceive( 'get_booking_audiences' )->andReturn( array() )
@@ -206,6 +211,9 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 		$this->assertSame( array(), $this->source->sanitize_filters() );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_count_delegates_to_reader(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceBookingReader' )
 			->shouldReceive( 'count_for_export' )->once()
@@ -214,6 +222,9 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 		$this->assertSame( 12, $this->source->count( array( 'status' => 'active' ) ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_fetch_page_casts_reader_objects_to_arrays(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceBookingReader' )
 			->shouldReceive( 'find_by_cursor' )->once()

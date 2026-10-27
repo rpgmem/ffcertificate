@@ -16,12 +16,11 @@ use FreeFormCertificate\Admin\ActivityLogExportSource;
  * in BatchedCsvExportTest. Migrated from the former synchronous
  * AdminActivityLogPage::handle_csv_export (issue #772).
  *
- * Process isolation is used so the count()/fetch_page() delegation tests can
- * alias-mock the static ActivityLogQuery without the alias leaking across the
- * suite.
+ * The count()/fetch_page() delegation tests alias-mock the static
+ * ActivityLogQuery, so those two run in their own process; the rest share it
+ * (#2091).
  *
  * @covers \FreeFormCertificate\Admin\ActivityLogExportSource
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
@@ -178,6 +177,9 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->assertSame( 'needle', $filters['search'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_count_delegates_to_query(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLogQuery' )
 			->shouldReceive( 'count_activities' )->once()
@@ -186,6 +188,9 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->assertSame( 12, $this->source->count( array( 'level' => 'error' ) ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_fetch_page_delegates_keyset_to_query(): void {
 		$rows = array( array( 'id' => 5 ), array( 'id' => 4 ) );
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLogQuery' )

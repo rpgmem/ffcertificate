@@ -17,7 +17,6 @@ use FreeFormCertificate\Audience\AudienceNotificationHandler;
  * SchedulingMailer alias-mocked to capture the outbound admin emails.
  *
  * @covers \FreeFormCertificate\Audience\AudienceNotificationHandler
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class AudienceAdminNotificationTest extends TestCase {
@@ -97,6 +96,9 @@ class AudienceAdminNotificationTest extends TestCase {
 	// maybe_notify_admin_of_booking()
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_booking_admin_notification_sends_when_enabled(): void {
 		$sent = array();
 		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' )
@@ -120,6 +122,9 @@ class AudienceAdminNotificationTest extends TestCase {
 		$this->assertStringContainsString( 'Group A', $sent[0]['body'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_booking_admin_notification_skips_when_disabled(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' )
 			->shouldNotReceive( 'send' );
@@ -137,6 +142,9 @@ class AudienceAdminNotificationTest extends TestCase {
 	// maybe_notify_admin_of_cancellation()
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_cancellation_admin_notification_sends_with_fallback_recipient(): void {
 		$sent = array();
 		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' )
@@ -159,6 +167,9 @@ class AudienceAdminNotificationTest extends TestCase {
 		$this->assertStringContainsString( 'Conflict', $sent[0]['body'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_cancellation_admin_notification_skips_when_disabled(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' )
 			->shouldNotReceive( 'send' );

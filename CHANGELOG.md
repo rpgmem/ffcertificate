@@ -12,6 +12,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Tests: duplicates removed, `UtilsTest` split by subject** (#2092). Four pairs of identical tests now each build the case their name describes, which found that the `{{schedule}}` test only passed through the legacy reader. `UtilsTest` keeps its 19 `Utils` cases; 37 that repeated another file were removed and the rest moved to their class's file. Coverage unchanged.
 - **Tests: eleven classes run in the shared process** (#2091). They started a PHP process per test for no reason they declare; a new guard refuses that. Taking it off fourteen showed three protected later files, so they stay isolated with the reason written down. The full suite ran 23:38 → 20:34 locally.
 - **Tests: the recruitment admin page renders against its real classes** (#2091). Its fixture declared stand-ins for eleven classes, `AdminUI` and `Capabilities` among them, which forced every test into its own process; it is deleted, the gates and list tables are exercised for real, and the guard's allowlist is empty.
+- **Tests: process isolation moves from the class to the test that needs it** (#2091). In 38 classes only some tests declare an `alias:` or `overload:` mock or a `define()`; those now carry `@runInSeparateProcess` and the other ~370 run in the shared process. Two that read process state are isolated with the reason written beside them.
 
 ### Deprecated
 

@@ -12,11 +12,10 @@ use PHPUnit\Framework\TestCase;
 /**
  * The attendance rule of a booking (#1947).
  *
- * `has_attended()` reads two repositories through alias mocks, so each test
- * runs in its own process.
+ * `has_attended()` reads two repositories through alias mocks, so the tests
+ * that reach it run in their own process; the rest share it (#2091).
  *
  * @covers \FreeFormCertificate\Audience\AudienceAttendanceRule
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class AudienceAttendanceRuleTest extends TestCase {
@@ -115,6 +114,9 @@ class AudienceAttendanceRuleTest extends TestCase {
 		$this->assertTrue( AudienceAttendanceRule::satisfied_by( $range, array( '2027-03-01', '2027-03-05' ) ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_has_attended_reads_the_booking_and_the_days_present(): void {
 		$bookings = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
 		$bookings->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
@@ -134,6 +136,9 @@ class AudienceAttendanceRuleTest extends TestCase {
 		$this->assertFalse( AudienceAttendanceRule::has_attended( 5, 43 ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_nobody_attended_a_cancelled_or_unknown_booking(): void {
 		$bookings = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
 		$bookings->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $this->booking( array( 'status' => 'cancelled' ) ) );

@@ -15,7 +15,6 @@ use FreeFormCertificate\Core\PiiExport;
  * module's PII cap, masked otherwise, and a clear export recorded.
  *
  * @covers \FreeFormCertificate\Core\PiiExport
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class PiiExportTest extends TestCase {
@@ -70,6 +69,9 @@ class PiiExportTest extends TestCase {
 		$this->assertSame( '', PiiExport::cell( 'cpf', '', false ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_log_records_the_export_and_its_rows(): void {
 		Mockery::getConfiguration()->setConstantsMap(
 			array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_INFO' => 'info' ) )

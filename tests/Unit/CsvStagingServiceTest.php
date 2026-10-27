@@ -18,7 +18,6 @@ use FreeFormCertificate\Recruitment\CsvStagingService;
  * partial mock. Covers each phase's happy path plus its guard/error branches.
  *
  * @covers \FreeFormCertificate\Recruitment\CsvStagingService
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class CsvStagingServiceTest extends TestCase {
@@ -129,6 +128,9 @@ class CsvStagingServiceTest extends TestCase {
 
 	// ───────────────────────── ingest_job ─────────────────────────
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ingest_returns_error_when_notice_missing(): void {
 		$this->mock_notice_reader( null );
 		$r = CsvStagingService::ingest_job( 5, 'csv', 'preview' );
@@ -136,6 +138,9 @@ class CsvStagingServiceTest extends TestCase {
 		$this->assertContains( 'recruitment_notice_not_found', $r['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ingest_rejects_preview_in_wrong_state(): void {
 		$this->mock_notice_reader( $this->notice( 'definitive' ) );
 		$r = CsvStagingService::ingest_job( 5, 'csv', 'preview' );
@@ -143,6 +148,9 @@ class CsvStagingServiceTest extends TestCase {
 		$this->assertContains( 'recruitment_invalid_state_for_preview_import', $r['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ingest_propagates_parse_errors(): void {
 		$this->mock_notice_reader( $this->notice() );
 		$this->mock_parser( array( 'ok' => false, 'errors' => array( 'bad_header' ) ) );
@@ -151,6 +159,9 @@ class CsvStagingServiceTest extends TestCase {
 		$this->assertSame( array( 'bad_header' ), $r['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ingest_rejects_empty_rows(): void {
 		$this->mock_notice_reader( $this->notice() );
 		$this->mock_parser( array( 'ok' => true, 'rows' => array() ) );
@@ -159,6 +170,9 @@ class CsvStagingServiceTest extends TestCase {
 		$this->assertContains( 'recruitment_csv_empty', $r['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ingest_rejects_notice_without_adjutancies(): void {
 		$this->mock_notice_reader( $this->notice() );
 		$this->mock_parser( array( 'ok' => true, 'rows' => array( $this->valid_row() ) ) );
@@ -168,6 +182,9 @@ class CsvStagingServiceTest extends TestCase {
 		$this->assertContains( 'recruitment_notice_has_no_adjutancies', $r['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ingest_returns_error_when_job_insert_fails(): void {
 		$this->mock_notice_reader( $this->notice() );
 		$this->mock_parser( array( 'ok' => true, 'rows' => array( $this->valid_row() ) ) );
@@ -178,6 +195,9 @@ class CsvStagingServiceTest extends TestCase {
 		$this->assertContains( 'recruitment_import_job_insert_failed', $r['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ingest_rolls_back_when_staging_insert_fails(): void {
 		$this->mock_notice_reader( $this->notice() );
 		$this->mock_parser( array( 'ok' => true, 'rows' => array( $this->valid_row() ) ) );
@@ -191,6 +211,9 @@ class CsvStagingServiceTest extends TestCase {
 		$this->assertContains( 'recruitment_import_staging_insert_failed', $r['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ingest_happy_path_returns_job_id_and_total(): void {
 		$this->mock_notice_reader( $this->notice( 'preliminary' ) );
 		$this->mock_parser(
@@ -224,6 +247,9 @@ class CsvStagingServiceTest extends TestCase {
 		$this->assertContains( 'recruitment_import_job_invalid_state_for_validate', $r['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_validate_marks_validated_when_no_errors(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->andReturn( (object) array( 'status' => 'ingested' ) );
 		// All rule queries return empty → no errors.
@@ -234,6 +260,9 @@ class CsvStagingServiceTest extends TestCase {
 		$this->assertSame( array(), $r['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_validate_collects_errors_and_marks_invalid(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->andReturn( (object) array( 'status' => 'ingested' ) );
 		$this->mock_validator();
@@ -293,6 +322,9 @@ class CsvStagingServiceTest extends TestCase {
 		$this->assertSame( 3, $r['processed'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_promote_happy_path_processes_rows(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
 			(object) array(
@@ -332,6 +364,9 @@ class CsvStagingServiceTest extends TestCase {
 		$this->assertTrue( $r['done'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_promote_returns_error_when_upsert_fails(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
 			(object) array(
@@ -389,6 +424,9 @@ class CsvStagingServiceTest extends TestCase {
 		$this->assertContains( 'recruitment_import_job_not_finished', $r['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_commit_happy_path_swaps_and_cleans_up(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
 			(object) array(
@@ -411,6 +449,9 @@ class CsvStagingServiceTest extends TestCase {
 		$this->assertArrayHasKey( 'inserted', $r );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_commit_rolls_back_when_swap_fails(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
 			(object) array(

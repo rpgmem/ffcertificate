@@ -21,7 +21,6 @@ use FreeFormCertificate\Submissions\SubmissionLifecycleService;
  * stubbed.
  *
  * @covers \FreeFormCertificate\Submissions\SubmissionLifecycleService
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class SubmissionLifecycleServiceTest extends TestCase {
@@ -157,6 +156,9 @@ class SubmissionLifecycleServiceTest extends TestCase {
 		$this->assertSame( 0, $this->service->bulk_trash_submissions( array() ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_bulk_trash_delegates_and_logs(): void {
 		$this->stubActivityLog();
 		$this->repository->shouldReceive( 'bulkUpdateStatus' )->once()->with( array( 1, 2 ), 'trash' )->andReturn( 2 );
@@ -172,6 +174,9 @@ class SubmissionLifecycleServiceTest extends TestCase {
 		$this->assertSame( 0, $this->service->bulk_restore_submissions( array() ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_bulk_restore_delegates_and_logs(): void {
 		$this->stubActivityLog();
 		$this->repository->shouldReceive( 'bulkUpdateStatus' )->once()->with( array( 3, 4 ), 'publish' )->andReturn( 2 );
@@ -183,6 +188,9 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	// move_submissions_between_forms()
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_move_between_forms_delegates_and_logs(): void {
 		$this->stubActivityLog();
 		$expected = array( 'moved' => array( 1, 2 ), 'conflicts' => array( 3 ) );
@@ -202,6 +210,9 @@ class SubmissionLifecycleServiceTest extends TestCase {
 		$this->assertSame( 0, $this->service->bulk_delete_submissions( array() ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_bulk_delete_delegates_and_logs(): void {
 		$this->stubActivityLog();
 		$this->repository->shouldReceive( 'bulkDelete' )->once()->with( array( 5, 6 ) )->andReturn( 2 );
@@ -244,6 +255,9 @@ class SubmissionLifecycleServiceTest extends TestCase {
 		$this->assertSame( 12, $result );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_delete_all_all_forms_truncate_resets_counters(): void {
 		$this->stubActivityLog();
 		global $wpdb;
@@ -292,6 +306,9 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	// run_data_cleanup()
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_run_data_cleanup_returns_zero_when_toggle_off(): void {
 		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
 		$reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( false );
@@ -299,6 +316,9 @@ class SubmissionLifecycleServiceTest extends TestCase {
 		$this->assertSame( 0, $this->service->run_data_cleanup() );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_run_data_cleanup_returns_zero_when_days_below_one(): void {
 		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
 		$reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( true );
@@ -307,6 +327,9 @@ class SubmissionLifecycleServiceTest extends TestCase {
 		$this->assertSame( 0, $this->service->run_data_cleanup() );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_run_data_cleanup_deletes_and_logs(): void {
 		$reader = $this->stubActivityLog();
 		$reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( true );
@@ -320,6 +343,9 @@ class SubmissionLifecycleServiceTest extends TestCase {
 		$this->assertSame( 8, $result );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_run_data_cleanup_query_false_returns_zero(): void {
 		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
 		$reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( true );
@@ -339,6 +365,7 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	 * holds the table for as long as it takes to delete years of submissions --
 	 * and that day is exactly when the backlog is largest, because the scan has
 	 * never run before (#936).
+	 * @runInSeparateProcess
 	 */
 	public function test_run_data_cleanup_bounds_each_delete(): void {
 		$reader = $this->stubActivityLog();
@@ -366,6 +393,7 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	 * run deletes 500 rows and stops, and the backlog takes an eternity of days
 	 * to drain; without the stop, an already-clean table would cost twenty
 	 * DELETEs a day to delete nothing.
+	 * @runInSeparateProcess
 	 */
 	public function test_run_data_cleanup_continues_only_after_a_full_page(): void {
 		$reader = $this->stubActivityLog();
@@ -384,6 +412,7 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	 *
 	 * Without it the loop would turn the unbounded `DELETE` back on, only in
 	 * instalments -- and the visitor would pay the sum.
+	 * @runInSeparateProcess
 	 */
 	public function test_run_data_cleanup_stops_at_the_chunk_cap(): void {
 		$reader = $this->stubActivityLog();

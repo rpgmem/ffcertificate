@@ -22,7 +22,6 @@ use FreeFormCertificate\Tests\Support\CallLog;
  * a setUp() preload to record the coverage (the #563 pcov gotcha).
  *
  * @covers \FreeFormCertificate\UserDashboard\UserDashboardActivator
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class UserDashboardActivatorTest extends TestCase {
@@ -255,6 +254,9 @@ class UserDashboardActivatorTest extends TestCase {
 			->andReturnNull();
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_full_activation_registers_role_grants_caps_and_creates_tables(): void {
 		$this->stub_role_deps();
 
@@ -304,6 +306,9 @@ class UserDashboardActivatorTest extends TestCase {
 		$this->assertSame( 'dashboard', $inserted['post_name'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_tables_and_page_skipped_when_already_present(): void {
 		$this->stub_role_deps();
 
@@ -343,6 +348,9 @@ class UserDashboardActivatorTest extends TestCase {
 		$this->assertFalse( $insert_called, 'no page insert when the page already exists' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_admin_caps_skipped_when_no_administrator_role(): void {
 		$this->stub_role_deps();
 		Functions\when( 'get_role' )->justReturn( null ); // no admin role → cap loop skipped.
@@ -365,6 +373,9 @@ class UserDashboardActivatorTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_dashboard_page_insert_error_skips_meta(): void {
 		$this->stub_role_deps();
 		Functions\when( 'get_page_by_path' )->justReturn( null );
