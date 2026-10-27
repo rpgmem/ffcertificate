@@ -58,8 +58,8 @@ final class RateLimitStats {
 				continue;
 			}
 
-			$identifier = (string) ( $row['identifier'] ?? '' );
-			$ciphertext = (string) ( $row['ip_encrypted'] ?? '' );
+			$identifier = \FreeFormCertificate\Core\ArrayValue::string( $row, 'identifier' );
+			$ciphertext = \FreeFormCertificate\Core\ArrayValue::string( $row, 'ip_encrypted' );
 			$address    = '' !== $ciphertext ? (string) \FreeFormCertificate\Core\Encryption::decrypt( $ciphertext ) : '';
 			if ( '' === $address && null !== \FreeFormCertificate\Core\IpAddress::canonical( $identifier ) ) {
 				$address = $identifier;
@@ -67,7 +67,7 @@ final class RateLimitStats {
 
 			$top[] = array(
 				'identifier' => $identifier,
-				'count'      => (int) ( $row['count'] ?? 0 ),
+				'count'      => \FreeFormCertificate\Core\ArrayValue::int( $row, 'count' ),
 				'label'      => '' !== $address
 					? \FreeFormCertificate\Core\DocumentFormatter::mask_ip( $address )
 					: substr( $identifier, 0, 12 ),
