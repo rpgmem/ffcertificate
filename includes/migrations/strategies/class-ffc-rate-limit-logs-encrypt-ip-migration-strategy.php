@@ -168,12 +168,17 @@ class RateLimitLogsEncryptIpMigrationStrategy implements MigrationStrategyInterf
 				continue;
 			}
 
-			$update  = $this->cleaned( $row );
+			list( $ciphertext, $identifier ) = $this->cleaned( $row );
+
 			$updated = $wpdb->update(
 				$this->table,
-				$update,
+				array(
+					'ip_address'           => null,
+					'ip_address_encrypted' => $ciphertext,
+					'identifier'           => $identifier,
+				),
 				array( 'id' => ArrayValue::int( $row, 'id' ) ),
-				array_fill( 0, count( $update ), '%s' ),
+				array( '%s', '%s', '%s' ),
 				array( '%d' )
 			);
 
@@ -210,32 +215,32 @@ class RateLimitLogsEncryptIpMigrationStrategy implements MigrationStrategyInterf
 	}
 
 	/**
-	 * The columns to write for one row: the plaintext address cleared,
-	 * encrypted when there is no ciphertext yet, and an address identifier
-	 * replaced by the fingerprint of that address.
+	 * What one row keeps: its ciphertext, or the address encrypted when
+	 * there is none yet, and its identifier, or the fingerprint of the
+	 * address when the identifier is an address. The plaintext is always
+	 * cleared by the caller.
 	 *
 	 * @param array<mixed> $row Row as selected.
-	 * @return array<string, string|null>
+	 * @return array{0: string|null, 1: string}
 	 */
 	private function cleaned( array $row ): array {
 		$type       = ArrayValue::string( $row, 'type' );
 		$identifier = ArrayValue::string( $row, 'identifier' );
+		$ciphertext = ArrayValue::string( $row, 'ip_address_encrypted' );
 		$address    = ArrayValue::string( $row, 'ip_address' );
 		if ( '' === $address && 'ip' === $type ) {
 			$address = $identifier;
 		}
 
-		$update = array( 'ip_address' => null );
-
-		if ( '' !== $address && '' === ArrayValue::string( $row, 'ip_address_encrypted' ) ) {
-			$update['ip_address_encrypted'] = Encryption::is_configured() ? Encryption::encrypt( $address ) : null;
+		if ( '' === $ciphertext && '' !== $address && Encryption::is_configured() ) {
+			$ciphertext = (string) Encryption::encrypt( $address );
 		}
 
 		if ( '' !== $address && in_array( $type, self::ADDRESS_TYPES, true ) ) {
-			$update['identifier'] = IpAddress::fingerprint( $address );
+			$identifier = IpAddress::fingerprint( $address );
 		}
 
-		return $update;
+		return array( '' === $ciphertext ? null : $ciphertext, $identifier );
 	}
 
 	/**
