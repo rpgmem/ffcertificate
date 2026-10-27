@@ -178,6 +178,49 @@ class QuizScorerTest extends TestCase {
 		$this->assertSame( array( 'q' => true, 'n' => false ), $result['results'] );
 	}
 
+	/**
+	 * A field the scorer skips must not end the scoring: every question after
+	 * it still counts, whatever kind of skip it was (#2098).
+	 */
+	public function test_a_skipped_field_does_not_stop_the_questions_after_it(): void {
+		$scored = $this->choice( 'radio', array( 'quiz_scored' => '1', 'quiz_mode' => 'correct', 'correct' => array( 'A' ) ) );
+
+		$cases = array(
+			'unscored field'          => array( array( 'type' => 'text', 'name' => 'free' ), array() ),
+			'scored field, no name'   => array( array( 'type' => 'textarea', 'name' => '', 'quiz_scored' => '1', 'quiz_text' => 'answered', 'quiz_points' => '2' ), array() ),
+			'pending manual question' => array( array( 'type' => 'textarea', 'name' => 'essay', 'quiz_scored' => '1', 'quiz_text' => 'manual', 'quiz_points' => '4' ), array() ),
+			'graded manual question'  => array( array( 'type' => 'textarea', 'name' => 'essay', 'quiz_scored' => '1', 'quiz_text' => 'manual', 'quiz_points' => '4' ), array( 'essay' => 4 ) ),
+		);
+
+		foreach ( $cases as $label => list( $first, $grades ) ) {
+			$result = $this->scorer->score( array( $first, $scored ), array( 'q' => 'A' ), $grades );
+
+			$this->assertTrue( $result['results']['q'] ?? false, "The question after a {$label} must still be scored." );
+		}
+	}
+
+	public function test_the_percentage_rounds_to_the_nearest_whole_number(): void {
+		$question = static fn( string $name ): array => array(
+			'type'        => 'radio',
+			'name'        => $name,
+			'choices'     => array( 'A', 'B' ),
+			'quiz_scored' => '1',
+			'quiz_mode'   => 'correct',
+			'correct'     => array( 'A' ),
+		);
+		$fields   = array( $question( 'q1' ), $question( 'q2' ), $question( 'q3' ) );
+
+		$this->assertSame( 67, $this->scorer->score( $fields, array( 'q1' => 'A', 'q2' => 'A', 'q3' => 'B' ) )['percent'], '2 of 3 is 66.7%, which rounds up.' );
+		$this->assertSame( 33, $this->scorer->score( $fields, array( 'q1' => 'A', 'q2' => 'B', 'q3' => 'B' ) )['percent'], '1 of 3 is 33.3%, which rounds down.' );
+	}
+
+	public function test_checkbox_exact_set_ignores_the_order_of_the_correct_options_and_repeated_answers(): void {
+		$field = $this->choice( 'checkbox', array( 'quiz_scored' => '1', 'quiz_mode' => 'correct', 'correct' => array( 'C', 'A' ) ) );
+
+		$this->assertTrue( $this->scorer->score( array( $field ), array( 'q' => array( 'A', 'C' ) ) )['results']['q'], 'The correct options are a set, whatever order they were saved in.' );
+		$this->assertTrue( $this->scorer->score( array( $field ), array( 'q' => array( 'A', 'C', 'A' ) ) )['results']['q'], 'An answer posted twice is still one ticked box.' );
+	}
+
 	public function test_no_scored_question_gives_zero_without_dividing(): void {
 		$result = $this->scorer->score( array( array( 'type' => 'text', 'name' => 't' ) ), array() );
 

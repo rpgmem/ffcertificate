@@ -15,6 +15,11 @@ use FreeFormCertificate\Core\SensitiveFieldRegistry;
  */
 class EncryptionTest extends TestCase {
 
+	/**
+	 * A 64-character key in which no character repeats.
+	 */
+	private const DISTINCT_KEY = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/';
+
 	use MockeryPHPUnitIntegration;
 
 	protected function setUp(): void {
@@ -301,15 +306,17 @@ class EncryptionTest extends TestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_decrypt_falls_back_to_previous_ffc_key_during_rekey(): void {
-		define( 'FFC_ENCRYPTION_KEY', str_repeat( 'B', 64 ) );          // new active key
-		define( 'FFC_ENCRYPTION_KEY_PREVIOUS', str_repeat( 'A', 64 ) ); // prior FFC key
+		// No character repeats, so a different 32-byte slice is a different key (#2098).
+		$previous = strrev( self::DISTINCT_KEY );
+		define( 'FFC_ENCRYPTION_KEY', self::DISTINCT_KEY ); // new active key
+		define( 'FFC_ENCRYPTION_KEY_PREVIOUS', $previous ); // prior FFC key
 
-		// Forge a row as it was written when key A was active, via the same
-		// encrypt-with-keys seam the code derives the previous pair from.
+		// Forge a row as it was written when the previous key was active, via
+		// the same encrypt-with-keys seam the code derives the previous pair from.
 		$encrypt  = new \ReflectionMethod( Encryption::class, 'encrypt_with_keys' );
 		$encrypt->setAccessible( true );
-		$prev_enc = substr( str_repeat( 'A', 64 ), 0, 32 );
-		$prev_mac = hash_hmac( 'sha256', 'ffc-hmac-key', str_repeat( 'A', 64 ), true );
+		$prev_enc = substr( $previous, 0, 32 );
+		$prev_mac = hash_hmac( 'sha256', 'ffc-hmac-key', $previous, true );
 		$old_row  = $encrypt->invoke( null, 'secret-cpf-000', $prev_enc, $prev_mac );
 		$this->assertNotNull( $old_row );
 
@@ -326,6 +333,30 @@ class EncryptionTest extends TestCase {
 		$this->assertTrue( $report['rekey_in_progress'] );
 		$this->assertMatchesRegularExpression( '/^[0-9a-f]{12}$/', $report['previous_fingerprint'] );
 		$this->assertNotSame( $report['fingerprint'], $report['previous_fingerprint'] );
+	}
+
+	/**
+	 * The active key is the first 32 bytes of FFC_ENCRYPTION_KEY, and the
+	 * HMAC key is derived from the whole constant. Pinned against a key with no
+	 * repeated character, so any other slice is a different key: a change to
+	 * which bytes form the key would leave every stored record unreadable
+	 * (#2098). Separate process for the define.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_the_active_key_is_the_first_32_bytes_of_the_constant(): void {
+		define( 'FFC_ENCRYPTION_KEY', self::DISTINCT_KEY );
+
+		$ciphertext = Encryption::encrypt( 'secret-cpf-000' );
+		$this->assertNotNull( $ciphertext );
+
+		$decrypt = new \ReflectionMethod( Encryption::class, 'try_decrypt' );
+		$decrypt->setAccessible( true );
+		$mac = hash_hmac( 'sha256', 'ffc-hmac-key', self::DISTINCT_KEY, true );
+
+		$this->assertSame( 'secret-cpf-000', $decrypt->invoke( null, $ciphertext, substr( self::DISTINCT_KEY, 0, 32 ), $mac ) );
+		$this->assertNull( $decrypt->invoke( null, $ciphertext, substr( self::DISTINCT_KEY, 1, 32 ), $mac ), 'A shifted slice is another key.' );
 	}
 
 	public function test_key_health_report_reports_no_rekey_by_default(): void {
