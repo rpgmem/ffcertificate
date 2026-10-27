@@ -177,7 +177,8 @@ class RateLimitLoggerTest extends TestCase {
 		$this->assertSame( 'cpf', $captured['type'] );
 		$this->assertSame( 9, $captured['form_id'] );
 		$this->assertSame( 'cpf_threshold', $captured['reason'] );
-		$this->assertSame( '198.51.100.7', $captured['ip_address'] );
+		$this->assertArrayNotHasKey( 'ip_address', $captured, 'the plaintext column is no longer written (#2109)' );
+		$this->assertSame( '198.51.100.7', \FreeFormCertificate\Core\Encryption::decrypt( (string) $captured['ip_address_encrypted'] ) );
 		$this->assertSame( 'TestAgent/1.0', $captured['user_agent'] );
 		$this->assertSame( 0, $captured['current_count'] );
 		$this->assertSame( 0, $captured['max_allowed'] );
