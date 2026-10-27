@@ -616,7 +616,7 @@ final class RecruitmentPublicShortcode {
 		$ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 
 		$bucket = gmdate( 'Y-m-d-H-i' );
-		$key    = self::RATE_PREFIX . md5( $ip . '|' . $bucket );
+		$key    = self::RATE_PREFIX . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $ip ) . '|' . $bucket );
 
 		$count = get_transient( $key );
 		$count = is_int( $count ) ? $count : 0;

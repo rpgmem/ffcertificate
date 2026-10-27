@@ -34,6 +34,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The ALTCHA and device-test throttles count IPv6 by subscriber and let an unidentified address choose** (#2106). An address is canonicalised and an IPv6 caller counted by its /64 (`Core\IpAddress`); a visitor whose address cannot be read is let through by default, or counted together, per card on the Rate Limit tab. It used to share one bucket.
 - **The Rate Limit IP allow and deny lists accept IPv6 and CIDR ranges** (#2109). Lines are validated on save, stored canonical and matched by range through `Core\IpAddress`, shared with the trusted proxies; a line that is not an address or range is named on screen. An IPv4 address inside IPv6 masks as IPv4.
 
+### Security
+
+- **Rate limiting no longer stores client addresses in clear** (#2109). Counters, logs, recruitment, export ownership, telemetry and captcha key a caller by a keyed fingerprint (HMAC of its IPv4 address or IPv6 /64); the log keeps the address encrypted, and a migration card cleans older rows. Counters restart once.
+
 ## [6.42.0] (2026-10-26) — `8241871c`
 
 ### Added

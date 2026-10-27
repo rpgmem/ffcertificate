@@ -2927,9 +2927,6 @@ msgstr "Bloquear acesso do WP-Admin"
 msgid "Blocked (30 days):"
 msgstr "Bloqueado (30 dias):"
 
-#: includes/settings/views/documentation/config-rate-limit.php:56
-msgid "blocked (and optionally allowed) events, with a retention window and a row cap. IPs are stored in the clear; every other identifier is hashed for privacy."
-msgstr "eventos bloqueados (e, opcionalmente, permitidos), com um período de retenção e um limite de registros. Os endereços IP são armazenados em texto simples; todos os outros identificadores passam por hash para garantir a privacidade."
 
 #: includes/settings/views/documentation/forms-schedule.php:37
 msgid "Blocked behavior"
@@ -2951,9 +2948,6 @@ msgstr "Mensagem Bloqueada"
 msgid "Blocked Roles"
 msgstr "Funções Bloqueadas"
 
-#: includes/settings/views/documentation/config-rate-limit.php:58
-msgid "blocked today, blocked in the last 30 days, a breakdown by type, and the top blocked IPs."
-msgstr "bloqueados hoje, bloqueados nos últimos 30 dias, um detalhamento por tipo e os principais IPs bloqueados."
 
 #: includes/settings/views/ffc-tab-rate-limit.php:594
 msgid "Blocked today:"
@@ -29321,3 +29315,22 @@ msgstr "Estas linhas das listas de IP não são um endereço IPv4 ou IPv6 nem um
 
 msgid "An IP line is an IPv4 or IPv6 address, or a range in CIDR notation, such as 203.0.113.0/24 or 2804:14c::/48. Saving stores each line in a single standard spelling, so an address matches however the visitor's request writes it, and an IPv4 address written inside IPv6 matches its IPv4 line. A line that is neither an address nor a range is not saved, and the screen names it."
 msgstr "Uma linha de IP é um endereço IPv4 ou IPv6, ou uma faixa em notação CIDR, como 203.0.113.0/24 ou 2804:14c::/48. Ao salvar, cada linha é guardada numa única grafia padrão, de modo que o endereço é reconhecido seja qual for a forma como a requisição do visitante o escreve, e um endereço IPv4 escrito dentro de IPv6 corresponde à sua linha IPv4. Uma linha que não é endereço nem faixa não é salva, e a tela a aponta."
+
+msgid "Rate limit log table is not available — nothing to migrate."
+msgstr "A tabela de log do rate limit não está disponível — nada a migrar."
+
+#. translators: %d: number of rate limit log rows whose address was encrypted.
+msgid "Removed the plaintext address from %d rate limit log rows."
+msgstr "Endereço em texto puro removido de %d linhas do log do rate limit."
+
+msgid "Rate Limit Log: Encrypt Addresses"
+msgstr "Log do Rate Limit: Criptografar Endereços"
+
+msgid "Encrypt the request address of rate limit log rows written before addresses were stored encrypted, clear the plaintext copy, and identify blocked addresses by a keyed fingerprint instead of the address. An address that cannot be encrypted is cleared all the same. The log keeps 30 days by default, so the plaintext would also leave on its own."
+msgstr "Criptografa o endereço da requisição nas linhas do log do rate limit gravadas antes de os endereços serem guardados criptografados, apaga a cópia em texto puro e identifica os endereços bloqueados por uma impressão digital com chave em vez do endereço. Um endereço que não puder ser criptografado é apagado do mesmo jeito. O log guarda 30 dias por padrão, então o texto puro também sairia sozinho."
+
+msgid "blocked (and optionally allowed) events, with a retention window and a row cap. Nothing is stored in the clear: an address is identified by a keyed fingerprint, which counts an IPv6 visitor by their /64 block, and kept itself only encrypted; every other identifier is hashed. Rows written before this change keep the address in clear until the \"Rate Limit Log: Encrypt Addresses\" migration runs."
+msgstr "eventos bloqueados (e, opcionalmente, permitidos), com uma janela de retenção e um limite de linhas. Nada é guardado em texto puro: um endereço é identificado por uma impressão digital com chave, que conta um visitante IPv6 pelo seu bloco /64, e o próprio endereço só é guardado criptografado; todo outro identificador vira hash. Linhas gravadas antes desta mudança mantêm o endereço em texto puro até a migração \"Log do Rate Limit: Criptografar Endereços\" rodar."
+
+msgid "blocked today, blocked in the last 30 days, a breakdown by type, and the top blocked IPs, shown masked."
+msgstr "bloqueados hoje, bloqueados nos últimos 30 dias, a divisão por tipo e os IPs mais bloqueados, mostrados mascarados."

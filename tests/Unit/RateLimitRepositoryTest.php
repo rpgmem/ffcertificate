@@ -139,7 +139,7 @@ class RateLimitRepositoryTest extends TestCase {
 		RateLimitRepository::increment_counter( 'email', $email, 'day', null );
 	}
 
-	public function test_increment_counter_keeps_ip_identifier_plaintext(): void {
+	public function test_increment_counter_stores_an_address_by_fingerprint(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
 		$this->wpdb->shouldReceive( 'insert' )
 			->once()
@@ -147,7 +147,8 @@ class RateLimitRepositoryTest extends TestCase {
 				'wp_ffc_rate_limits',
 				Mockery::on(
 					static function ( $data ) {
-						return '203.0.113.9' === $data['identifier'];
+						// Never the address itself (#2109).
+						return \FreeFormCertificate\Core\IpAddress::fingerprint( '203.0.113.9' ) === $data['identifier'];
 					}
 				),
 				Mockery::type( 'array' )

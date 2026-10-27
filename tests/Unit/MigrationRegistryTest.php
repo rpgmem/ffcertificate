@@ -61,7 +61,8 @@ class MigrationRegistryTest extends TestCase {
 		$all = $registry->get_all_migrations();
 
 		$this->assertIsArray( $all );
-		// Fourteen since the activity-log IP encryption joined (#1574),
+		// Sixteen since the rate-limit log address encryption joined (#2109).
+		// Fourteen once the activity-log IP encryption joined (#1574),
 		// thirteen once the name-parts backfill did (#1552), twelve once the
 		// birth-date backfill did (#1538), both in 6.33.0. Eleven
 		// from 6.30.0, when the display-name backfill joined the card list
@@ -70,7 +71,7 @@ class MigrationRegistryTest extends TestCase {
 		// and as a live number here on purpose -- every key below is named too,
 		// so a card arriving without a test failing is what this guards against;
 		// bump the number and name the new key together.
-		$this->assertCount( 15, $all );
+		$this->assertCount( 16, $all );
 		$this->assertArrayHasKey( 'split_cpf_rf', $all );
 		$this->assertArrayHasKey( 'email_hash_rehash', $all );
 		$this->assertArrayHasKey( 'key_rotation', $all );
@@ -103,6 +104,8 @@ class MigrationRegistryTest extends TestCase {
 		$this->assertArrayHasKey( 'activity_log_encrypt_ip', $all );
 		// The deletion of the debug rows that logged visitors' positions (#2040).
 		$this->assertArrayHasKey( 'activity_log_location_cleanup', $all );
+		// The plaintext addresses of the rate-limit log (#2109).
+		$this->assertArrayHasKey( 'rate_limit_logs_encrypt_ip', $all );
 		$this->assertArrayHasKey( 'identity_index_backfill', $all );
 		$this->assertArrayHasKey( 'import_legacy_templates', $all );
 		$this->assertArrayHasKey( 'rewrite_html_image_refs', $all );

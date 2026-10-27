@@ -118,18 +118,16 @@ class PreflightTelemetry {
 			wp_send_json_error( array( 'message' => 'invalid_reason' ) );
 		}
 
-		// Don't write the raw IP — hash it so the audit row doesn't
-		// hold PII. Admins doing analysis can still group by IP-hash
-		// to see "is this the same visitor bouncing 3 times" without
-		// learning the IP itself.
-		$ip      = RequestInput::get_user_ip();
-		$ip_hash = '' !== $ip ? substr( hash( 'sha256', $ip . wp_salt( 'auth' ) ), 0, 12 ) : '';
+		// Don't write the raw IP: the audit row carries the start of the
+		// address fingerprint (#2109), so admins can still see "is this the
+		// same visitor bouncing 3 times" without learning the IP itself.
+		$ip_hash = substr( \FreeFormCertificate\Core\IpAddress::fingerprint( RequestInput::get_user_ip() ), 0, 12 );
 
 		// Persistent per-visitor throttle (a transient, so it holds without
 		// an object cache). Over the cap the request still succeeds -- the
 		// banner is telemetry, nothing the visitor should see fail -- but
 		// writes nothing.
-		$throttle_key = 'ffc_preflight_log_' . ( '' !== $ip_hash ? $ip_hash : 'unknown' );
+		$throttle_key = 'ffc_preflight_log_' . $ip_hash;
 		if ( RateCounter::get( $throttle_key ) >= self::MAX_PER_WINDOW ) {
 			wp_send_json_success( array( 'logged' => false ) );
 		}

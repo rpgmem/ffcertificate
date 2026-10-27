@@ -513,6 +513,25 @@ class Encryption {
 	}
 
 	/**
+	 * Keyed hash (HMAC-SHA256) of a value within a named context (#2109).
+	 *
+	 * `hash()` appends the salt to the value, which is enough for values
+	 * drawn from a large space. A value drawn from a small one — every IPv4
+	 * address fits in four bytes — can be enumerated against a salted digest
+	 * whenever the salt is known, so the key here is the same secret
+	 * `hash()` uses, which lives in `wp-config.php` and never in the
+	 * database, and the context keeps one use's digests from matching
+	 * another's.
+	 *
+	 * @param string $value   Value to hash.
+	 * @param string $context Name of the use, such as `ip`.
+	 * @return string 64 hex characters.
+	 */
+	public static function keyed_hash( string $value, string $context ): string {
+		return hash_hmac( 'sha256', $value, self::get_hash_salt() . '|' . $context );
+	}
+
+	/**
 	 * Decrypt a single field with encrypted-first + plain fallback.
 	 *
 	 * Eliminates the repeated pattern across CSV exporters, REST controllers

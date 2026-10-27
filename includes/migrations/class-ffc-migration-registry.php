@@ -184,6 +184,16 @@ class MigrationRegistry {
 			'order'       => 4,
 		);
 
+		// #2109: the rate-limit log wrote the request address in clear and
+		// used it as the identifier of IP rows; encrypt it and re-key them.
+		$this->migrations['rate_limit_logs_encrypt_ip'] = array(
+			'name'        => __( 'Rate Limit Log: Encrypt Addresses', 'ffcertificate' ),
+			'description' => __( 'Encrypt the request address of rate limit log rows written before addresses were stored encrypted, clear the plaintext copy, and identify blocked addresses by a keyed fingerprint instead of the address. An address that cannot be encrypted is cleared all the same. The log keeps 30 days by default, so the plaintext would also leave on its own.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-lock',
+			'batch_size'  => 200,
+			'order'       => 4,
+		);
+
 		// #2040: area checks logged the visitor's coordinates as debug rows;
 		// delete them now that the check logs its decision only.
 		$this->migrations['activity_log_location_cleanup'] = array(

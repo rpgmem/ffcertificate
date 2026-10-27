@@ -66,9 +66,14 @@ class RateLimitStatsTest extends TestCase {
 			array( 'type' => 'ip', 'count' => 8 ),
 			array( 'type' => 'email', 'count' => 3 ),
 		);
-		$top_ips = array(
-			array( 'identifier' => '203.0.113.1', 'count' => 6 ),
-			array( 'identifier' => '203.0.113.2', 'count' => 4 ),
+		$fingerprint = \FreeFormCertificate\Core\IpAddress::fingerprint( '198.51.100.9' );
+		$top_ips     = array(
+			// A row written before #2109: the address is the identifier.
+			array( 'identifier' => '203.0.113.1', 'count' => '6' ),
+			// A current row: a fingerprint, with the address encrypted beside it.
+			array( 'identifier' => $fingerprint, 'count' => '4', 'ip_encrypted' => \FreeFormCertificate\Core\Encryption::encrypt( '198.51.100.9' ) ),
+			// A current row whose address could not be encrypted.
+			array( 'identifier' => $fingerprint . 'x', 'count' => '1', 'ip_encrypted' => null ),
 		);
 
 		$wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
@@ -78,7 +83,15 @@ class RateLimitStatsTest extends TestCase {
 		$stats = RateLimitStats::get_stats();
 
 		$this->assertSame( $by_type, $stats['by_type'] );
-		$this->assertSame( $top_ips, $stats['top_ips'] );
+		$this->assertSame(
+			array(
+				array( 'identifier' => '203.0.113.1', 'count' => 6, 'label' => '203.0.***.***' ),
+				array( 'identifier' => $fingerprint, 'count' => 4, 'label' => '198.51.***.***' ),
+				array( 'identifier' => $fingerprint . 'x', 'count' => 1, 'label' => substr( $fingerprint, 0, 12 ) ),
+			),
+			$stats['top_ips'],
+			'every address is masked; a row without one shows the start of its fingerprint'
+		);
 	}
 
 	public function test_get_stats_uses_prefixed_logs_table_in_every_query(): void {

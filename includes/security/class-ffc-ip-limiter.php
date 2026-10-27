@@ -45,8 +45,9 @@ class IpLimiter implements RateLimitStrategy {
 	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
 	 */
 	public function check( string $identifier, ?int $form_id = null ): array {
-		$ip = $identifier;
-		$s  = $this->support->settings()['ip'];
+		$ip  = $identifier;
+		$who = \FreeFormCertificate\Core\IpAddress::fingerprint( $ip );
+		$s   = $this->support->settings()['ip'];
 
 		// Respect the operator's master toggle. The form-submission DoS gate
 		// (FormProcessor entry pipeline) calls this DIRECTLY at the top of the
@@ -58,7 +59,7 @@ class IpLimiter implements RateLimitStrategy {
 		}
 
 		// Persistent with or without an object cache (#1861).
-		$hc = RateCounter::get( 'ffc_rate_ip_' . md5( $ip . $form_id ) . '_hour' );
+		$hc = RateCounter::get( 'ffc_rate_ip_' . md5( $who . $form_id ) . '_hour' );
 		if ( $hc >= $s['max_per_hour'] ) {
 			return array(
 				'allowed'      => false,
@@ -78,7 +79,7 @@ class IpLimiter implements RateLimitStrategy {
 			);
 		}
 
-		$last = RateCounter::get( 'ffc_rate_ip_' . md5( $ip . $form_id ) . '_last' );
+		$last = RateCounter::get( 'ffc_rate_ip_' . md5( $who . $form_id ) . '_last' );
 		if ( $last && ( time() - $last ) < $s['cooldown_seconds'] ) {
 			$w = $s['cooldown_seconds'] - ( time() - $last );
 			return array(

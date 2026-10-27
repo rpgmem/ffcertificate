@@ -726,7 +726,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 <?php if ( ! empty( $ffcertificate_stats['top_ips'] ) ) : ?>
 	<h3><?php esc_html_e( 'Top blocked IPs:', 'ffcertificate' ); ?></h3>
 	<ol><?php foreach ( $ffcertificate_stats['top_ips'] as $ffcertificate_ip ) : ?>
-		<li><?php echo esc_html( $ffcertificate_ip['identifier'] ); ?> (<?php echo esc_html( number_format( $ffcertificate_ip['count'] ) ); ?>x)</li>
+		<li><code><?php echo esc_html( $ffcertificate_ip['label'] ); ?></code> (<?php echo esc_html( number_format( $ffcertificate_ip['count'] ) ); ?>x)</li>
 	<?php endforeach; ?></ol>
 <?php endif; ?>
 </div>
