@@ -29206,3 +29206,27 @@ msgstr ""
 
 msgid "The template ends with an optional issue_date column (YYYY-MM-DD or DD/MM/YYYY). It is read only when the issue date comes from a column of the file, where it is chosen by default, and ignored otherwise."
 msgstr ""
+
+msgid "Unidentified address"
+msgstr ""
+
+msgid "Let through"
+msgstr ""
+
+msgid "Count together"
+msgstr ""
+
+msgid "A visitor whose address cannot be read is not counted. Recommended when visitors reach the site from private addresses, such as an internal network."
+msgstr ""
+
+msgid "Every visitor whose address cannot be read shares one count. Stricter, but on an internal network it puts everyone under a single cap."
+msgstr ""
+
+msgid "IPv4 addresses are counted one by one, IPv6 addresses by their /64 block, which belongs to one subscriber."
+msgstr ""
+
+msgid "Unidentified address:"
+msgstr ""
+
+msgid "both cards say what happens to a visitor whose address cannot be read — every visitor on an internal network of private addresses, for example. \"Let through\" (the default) does not count them; \"Count together\" puts all of them under one shared cap. IPv4 addresses are counted one by one, IPv6 addresses by their /64 block, which belongs to one subscriber."
+msgstr ""

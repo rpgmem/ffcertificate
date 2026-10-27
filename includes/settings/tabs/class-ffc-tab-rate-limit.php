@@ -73,6 +73,11 @@ class TabRateLimit extends SettingsTab {
 				// same per-address shape as the captcha cap. 0 = no cap.
 				'device_check_max_per_window' => \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_CAP_DEFAULT,
 				'device_check_window_seconds' => \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_WINDOW_DEFAULT,
+				// What each throttle does with a caller the resolver could
+				// not read (#2106): let it through, or count it with every
+				// other unresolved caller.
+				'captcha_unresolved'          => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW,
+				'device_check_unresolved'     => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW,
 			),
 			'email'     => array(
 				'enabled'        => true,
@@ -251,6 +256,8 @@ class TabRateLimit extends SettingsTab {
 						$this->stored_int( $stored, 'ip', 'device_check_window_seconds', \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_WINDOW_DEFAULT )
 					)
 				),
+				'captcha_unresolved'          => $this->post_unresolved_policy( 'ip_captcha_unresolved', $stored['ip']['captcha_unresolved'] ?? null ),
+				'device_check_unresolved'     => $this->post_unresolved_policy( 'ip_device_check_unresolved', $stored['ip']['device_check_unresolved'] ?? null ),
 			),
 			'email'     => array(
 				'enabled'        => isset( $_POST['email_enabled'] ),
@@ -344,6 +351,21 @@ class TabRateLimit extends SettingsTab {
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		update_option( 'ffc_rate_limit_settings', $settings );
+	}
+
+	/**
+	 * A posted policy for an unresolved address, or the stored one when the
+	 * field was not sent. Anything else falls back to the default.
+	 *
+	 * @param string $key    POST key.
+	 * @param mixed  $stored Stored value.
+	 * @return string
+	 */
+	private function post_unresolved_policy( string $key, $stored ): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
+		$posted = isset( $_POST[ $key ] ) ? \FreeFormCertificate\Core\RequestInput::get_post_string( $key ) : $stored;
+
+		return \FreeFormCertificate\Settings\RateLimitSettingsReader::clamp_unresolved_policy( $posted );
 	}
 
 	/**

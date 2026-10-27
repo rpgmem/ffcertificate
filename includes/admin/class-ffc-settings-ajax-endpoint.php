@@ -480,6 +480,16 @@ class SettingsAjaxEndpoint {
 					'max' => \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_WINDOW_MAX,
 				),
 			),
+			'ip_captcha_unresolved'          => array(
+				array( 'ip', 'captcha_unresolved' ),
+				'enum',
+				array( 'options' => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_POLICIES ),
+			),
+			'ip_device_check_unresolved'     => array(
+				array( 'ip', 'device_check_unresolved' ),
+				'enum',
+				array( 'options' => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_POLICIES ),
+			),
 			'ip_apply_to'                    => array( array( 'ip', 'apply_to' ), 'string', array() ),
 			'ip_message'                     => array( array( 'ip', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
 			'email_max_per_day'              => array( array( 'email', 'max_per_day' ), 'int', array( 'min' => 1 ) ),

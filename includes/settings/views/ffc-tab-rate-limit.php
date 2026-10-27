@@ -84,6 +84,32 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 				</p>
 			</td>
 		</tr>
+		<tr>
+			<th scope="row"><?php esc_html_e( 'Unidentified address', 'ffcertificate' ); ?></th>
+			<td>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_segmented(
+					array(
+						'name'         => 'ip_captcha_unresolved',
+						'id'           => 'ip_captcha_unresolved',
+						'value'        => \FreeFormCertificate\Settings\RateLimitSettingsReader::clamp_unresolved_policy( $ffcertificate_s['ip']['captcha_unresolved'] ?? null ),
+						'default'      => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW,
+						'legend'       => __( 'Unidentified address', 'ffcertificate' ),
+						'options'      => array(
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW => __( 'Let through', 'ffcertificate' ),
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_SHARE => __( 'Count together', 'ffcertificate' ),
+						),
+						'descriptions' => array(
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW => __( 'A visitor whose address cannot be read is not counted. Recommended when visitors reach the site from private addresses, such as an internal network.', 'ffcertificate' ),
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_SHARE => __( 'Every visitor whose address cannot be read shares one count. Stricter, but on an internal network it puts everyone under a single cap.', 'ffcertificate' ),
+						),
+						'data'         => array( 'ffc-autosave-key' => 'ip_captcha_unresolved' ),
+					)
+				);
+				?>
+				<p class="description"><?php esc_html_e( 'IPv4 addresses are counted one by one, IPv6 addresses by their /64 block, which belongs to one subscriber.', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
 	</tbody></table>
 </div>
 
@@ -113,6 +139,32 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 					max="<?php echo esc_attr( (string) \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_WINDOW_MAX ); ?>"
 					data-ffc-autosave-key="ip_device_check_window_seconds" required>
 				<p class="description"><?php esc_html_e( 'Fixed windows, not sliding: the count resets on the boundary, so an address that hits the cap waits at most one window.', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><?php esc_html_e( 'Unidentified address', 'ffcertificate' ); ?></th>
+			<td>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_segmented(
+					array(
+						'name'         => 'ip_device_check_unresolved',
+						'id'           => 'ip_device_check_unresolved',
+						'value'        => \FreeFormCertificate\Settings\RateLimitSettingsReader::clamp_unresolved_policy( $ffcertificate_s['ip']['device_check_unresolved'] ?? null ),
+						'default'      => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW,
+						'legend'       => __( 'Unidentified address', 'ffcertificate' ),
+						'options'      => array(
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW => __( 'Let through', 'ffcertificate' ),
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_SHARE => __( 'Count together', 'ffcertificate' ),
+						),
+						'descriptions' => array(
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW => __( 'A visitor whose address cannot be read is not counted. Recommended when visitors reach the site from private addresses, such as an internal network.', 'ffcertificate' ),
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_SHARE => __( 'Every visitor whose address cannot be read shares one count. Stricter, but on an internal network it puts everyone under a single cap.', 'ffcertificate' ),
+						),
+						'data'         => array( 'ffc-autosave-key' => 'ip_device_check_unresolved' ),
+					)
+				);
+				?>
+				<p class="description"><?php esc_html_e( 'IPv4 addresses are counted one by one, IPv6 addresses by their /64 block, which belongs to one subscriber.', 'ffcertificate' ); ?></p>
 			</td>
 		</tr>
 	</tbody></table>
