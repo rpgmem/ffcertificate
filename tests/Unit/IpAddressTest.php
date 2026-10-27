@@ -61,4 +61,82 @@ class IpAddressTest extends TestCase {
 		$this->assertNull( IpAddress::rate_key( '' ) );
 		$this->assertNull( IpAddress::rate_key( 'unknown' ) );
 	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string|null}>
+	 */
+	public function range_cases(): array {
+		return array(
+			'IPv4 address'                => array( '203.0.113.7', '203.0.113.7' ),
+			'IPv4 address, padded'        => array( "  203.0.113.7\t", '203.0.113.7' ),
+			'IPv6 address, upper case'    => array( '2804:14C:0:0::1', '2804:14c::1' ),
+			'IPv4 inside IPv6'            => array( '::ffff:203.0.113.7', '203.0.113.7' ),
+			'IPv4 range'                  => array( '203.0.113.0/24', '203.0.113.0/24' ),
+			'IPv4 range, host bits set'   => array( '10.1.2.3/8', '10.0.0.0/8' ),
+			'IPv4 range, odd length'      => array( '203.0.113.200/26', '203.0.113.192/26' ),
+			'IPv4 /32'                    => array( '203.0.113.7/32', '203.0.113.7/32' ),
+			'IPv4 /0'                     => array( '1.2.3.4/0', '0.0.0.0/0' ),
+			'IPv6 range'                  => array( '2804:14C:1:2::/48', '2804:14c:1::/48' ),
+			'IPv6 /64'                    => array( '2804:14c:1:2:3::9/64', '2804:14c:1:2::/64' ),
+			'IPv4-mapped range'           => array( '::ffff:10.0.0.0/104', '10.0.0.0/8' ),
+			'IPv4 prefix too long'        => array( '203.0.113.0/33', null ),
+			'IPv6 prefix too long'        => array( '2804:14c::/129', null ),
+			'prefix not a number'         => array( '203.0.113.0/abc', null ),
+			'negative prefix'             => array( '203.0.113.0/-1', null ),
+			'empty prefix'                => array( '203.0.113.0/', null ),
+			'two slashes'                 => array( '203.0.113.0/24/8', null ),
+			'a typo'                      => array( '203.0.113', null ),
+			'a hostname'                  => array( 'example.com', null ),
+			'a wildcard'                  => array( '203.0.113.*', null ),
+			'empty'                       => array( '', null ),
+		);
+	}
+
+	/**
+	 * @dataProvider range_cases
+	 */
+	public function test_a_list_entry_is_stored_canonical( string $entry, ?string $expected ): void {
+		$this->assertSame( $expected, IpAddress::range( $entry ) );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string, 2: bool}>
+	 */
+	public function match_cases(): array {
+		return array(
+			'same IPv4 address'                   => array( '203.0.113.7', '203.0.113.7', true ),
+			'another IPv4 address'                => array( '203.0.113.8', '203.0.113.7', false ),
+			'IPv6 spelled another way'            => array( '2804:14C:0:0::1', '2804:14c::1', true ),
+			'IPv4 inside IPv6 against IPv4'       => array( '::ffff:203.0.113.7', '203.0.113.7', true ),
+			'IPv4 against an entry inside IPv6'   => array( '203.0.113.7', '::ffff:203.0.113.7', true ),
+			'inside an IPv4 range'                => array( '203.0.113.250', '203.0.113.0/24', true ),
+			'outside an IPv4 range'               => array( '203.0.114.1', '203.0.113.0/24', false ),
+			'odd length, inside'                  => array( '203.0.113.200', '203.0.113.192/26', true ),
+			'odd length, outside'                 => array( '203.0.113.191', '203.0.113.192/26', false ),
+			'range stored with host bits'         => array( '10.9.9.9', '10.1.2.3/8', true ),
+			'inside an IPv6 range'                => array( '2804:14c:1:ffff::1', '2804:14c:1::/48', true ),
+			'outside an IPv6 range'               => array( '2804:14c:2::1', '2804:14c:1::/48', false ),
+			'IPv4 never matches an IPv6 range'    => array( '203.0.113.7', '::/0', false ),
+			'IPv6 never matches an IPv4 range'    => array( '2804:14c::1', '0.0.0.0/0', false ),
+			'unresolved never matches'            => array( '0.0.0.0', '0.0.0.0/0', false ),
+			'an invalid entry never matches'      => array( '203.0.113.7', '203.0.113.*', false ),
+			'an invalid address never matches'    => array( 'not-an-ip', '0.0.0.0/0', false ),
+		);
+	}
+
+	/**
+	 * @dataProvider match_cases
+	 */
+	public function test_an_address_matches_an_entry_by_range( string $ip, string $entry, bool $expected ): void {
+		$this->assertSame( $expected, IpAddress::in_range( $ip, $entry ) );
+	}
+
+	public function test_a_list_matches_when_any_entry_does(): void {
+		$list = array( 'junk', 42, '198.51.100.0/24', '2804:14c::/32' );
+
+		$this->assertTrue( IpAddress::in_any( '198.51.100.9', $list ) );
+		$this->assertTrue( IpAddress::in_any( '2804:14c:9::1', $list ) );
+		$this->assertFalse( IpAddress::in_any( '203.0.113.7', $list ) );
+		$this->assertFalse( IpAddress::in_any( '203.0.113.7', array() ) );
+	}
 }

@@ -171,6 +171,27 @@ class RateLimitCheckerTest extends TestCase {
 		$this->assertFalse( RateLimitChecker::check_all( '203.0.113.9', 'nobody@example.org' )['allowed'], 'not whitelisted: the IP limit refuses' );
 	}
 
+	public function test_ip_lists_match_by_range_and_by_canonical_address(): void {
+		$this->configure(
+			array(
+				'ip'        => array( 'max_per_hour' => 0 ),
+				'blacklist' => array( 'ips' => array( '198.51.100.0/24', '2804:14c:bad::/48' ) ),
+				'whitelist' => array( 'ips' => array( '203.0.113.0/26', '2804:14C:0:0::1' ) ),
+			)
+		);
+
+		$this->assertSame( 'ip_blacklisted', RateLimitChecker::check_all( '198.51.100.77' )['reason'] );
+		$this->assertSame( 'ip_blacklisted', RateLimitChecker::check_all( '::ffff:198.51.100.77' )['reason'], 'an IPv4 address written inside IPv6' );
+		$this->assertSame( 'ip_blacklisted', RateLimitChecker::check_all( '2804:14c:bad:1::9' )['reason'] );
+		$this->assertTrue( RateLimitChecker::check_all( '203.0.113.63' )['allowed'] );
+		$this->assertTrue( RateLimitChecker::check_all( '2804:14c::1' )['allowed'], 'an IPv6 entry spelled another way' );
+		$this->assertFalse( RateLimitChecker::check_all( '203.0.113.64' )['allowed'], 'outside the /26: the IP limit refuses' );
+
+		$this->assertTrue( RateLimitChecker::is_ip_whitelisted( '203.0.113.1' ) );
+		$this->assertTrue( RateLimitChecker::is_ip_whitelisted( '2804:14c:0::1' ) );
+		$this->assertFalse( RateLimitChecker::is_ip_whitelisted( '203.0.113.64' ) );
+	}
+
 	public function test_a_device_already_seen_is_refused_and_logged_by_its_cookie(): void {
 		$this->configure(
 			array(

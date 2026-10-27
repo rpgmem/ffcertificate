@@ -12016,9 +12016,6 @@ msgstr "os metadados de um formulário."
 msgid "One or more selected rows would skip a higher-ranked candidate (out of order)."
 msgstr "Uma ou mais linhas selecionadas ignoram um candidato de classificação superior (fora de ordem)."
 
-#: includes/settings/views/ffc-tab-rate-limit.php:475
-msgid "One per line"
-msgstr "Um por linha"
 
 #: includes/admin/class-ffc-form-editor-restriction-metabox.php:150
 msgid "One per line..."
@@ -29314,3 +29311,13 @@ msgstr "Endereço não identificado:"
 
 msgid "both cards say what happens to a visitor whose address cannot be read — every visitor on an internal network of private addresses, for example. \"Let through\" (the default) does not count them; \"Count together\" puts all of them under one shared cap. IPv4 addresses are counted one by one, IPv6 addresses by their /64 block, which belongs to one subscriber."
 msgstr "os dois cartões definem o que acontece com um visitante cujo endereço não pode ser lido — por exemplo, todos os visitantes de uma rede interna de endereços privados. \"Liberar\" (o padrão) não os conta; \"Contar juntos\" coloca todos sob um único limite compartilhado. Endereços IPv4 são contados um a um; endereços IPv6, pelo bloco /64, que pertence a um único assinante."
+
+msgid "One per line: an IPv4 or IPv6 address, or a range in CIDR notation, such as 203.0.113.0/24 or 2804:14c::/48."
+msgstr "Um por linha: um endereço IPv4 ou IPv6, ou uma faixa em notação CIDR, como 203.0.113.0/24 ou 2804:14c::/48."
+
+#. translators: %s: comma-separated lines that are not addresses
+msgid "These lines of the IP lists are not an IPv4 or IPv6 address or a CIDR range, so they are not used: %s"
+msgstr "Estas linhas das listas de IP não são um endereço IPv4 ou IPv6 nem uma faixa CIDR, por isso não são usadas: %s"
+
+msgid "An IP line is an IPv4 or IPv6 address, or a range in CIDR notation, such as 203.0.113.0/24 or 2804:14c::/48. Saving stores each line in a single standard spelling, so an address matches however the visitor's request writes it, and an IPv4 address written inside IPv6 matches its IPv4 line. A line that is neither an address nor a range is not saved, and the screen names it."
+msgstr "Uma linha de IP é um endereço IPv4 ou IPv6, ou uma faixa em notação CIDR, como 203.0.113.0/24 ou 2804:14c::/48. Ao salvar, cada linha é guardada numa única grafia padrão, de modo que o endereço é reconhecido seja qual for a forma como a requisição do visitante o escreve, e um endereço IPv4 escrito dentro de IPv6 corresponde à sua linha IPv4. Uma linha que não é endereço nem faixa não é salva, e a tela a aponta."

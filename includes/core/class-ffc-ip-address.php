@@ -11,7 +11,9 @@
  *
  * It identifies a caller for counting; it does not decide what is shown,
  * stored as an audit record or geolocated, where the full address is the
- * right value.
+ * right value. It also owns the range comparison every address list uses
+ * — trusted proxies and the Rate Limit allow and deny lists (#2109) — so
+ * a list and a counter agree on what one address is.
  *
  * @package FreeFormCertificate\Core
  */
@@ -70,6 +72,153 @@ final class IpAddress {
 	}
 
 	/**
+	 * A list entry in canonical form, or null when it is neither an address
+	 * nor a CIDR range (#2109).
+	 *
+	 * An address comes back as `canonical()` writes it. A range comes back
+	 * as its network address and prefix length, so `10.1.2.3/8` reads
+	 * `10.0.0.0/8`, and an IPv4-mapped IPv6 range of /96 or longer reads as
+	 * the IPv4 range it covers.
+	 *
+	 * @param string $entry One line of an allow or deny list.
+	 * @return string|null
+	 */
+	public static function range( string $entry ): ?string {
+		$parsed = self::parse_range( $entry );
+		if ( null === $parsed ) {
+			return null;
+		}
+
+		list( $network, $bits ) = $parsed;
+
+		$text = inet_ntop( $network );
+		if ( false === $text ) {
+			return null;
+		}
+
+		return null === $bits ? $text : $text . '/' . $bits;
+	}
+
+	/**
+	 * Whether an address falls inside a list entry, an address or a CIDR
+	 * range, IPv4 or IPv6 (#2109).
+	 *
+	 * Both sides are canonicalised first, so spelling never decides a match
+	 * and an IPv4 address written inside IPv6 matches an IPv4 entry. An
+	 * IPv4 address never matches an IPv6 range, nor the other way round.
+	 *
+	 * @param string $ip    Address as resolved.
+	 * @param string $entry Address or CIDR range.
+	 * @return bool
+	 */
+	public static function in_range( string $ip, string $entry ): bool {
+		$address = self::binary( $ip );
+		$parsed  = self::parse_range( $entry );
+		if ( null === $address || null === $parsed ) {
+			return false;
+		}
+
+		list( $network, $bits ) = $parsed;
+		if ( strlen( $address ) !== strlen( $network ) ) {
+			return false;
+		}
+
+		return null === $bits
+			? $address === $network
+			: self::mask( $address, $bits ) === $network;
+	}
+
+	/**
+	 * Whether an address falls inside any entry of a list.
+	 *
+	 * @param string            $ip      Address as resolved.
+	 * @param array<int, mixed> $entries Addresses or CIDR ranges.
+	 * @return bool
+	 */
+	public static function in_any( string $ip, array $entries ): bool {
+		foreach ( $entries as $entry ) {
+			if ( is_string( $entry ) && self::in_range( $ip, $entry ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Packed network address and prefix length of a list entry; the length
+	 * is null for a single address.
+	 *
+	 * @param string $entry Address or CIDR range.
+	 * @return array{0: string, 1: int|null}|null
+	 */
+	private static function parse_range( string $entry ): ?array {
+		$entry = trim( $entry );
+		$bits  = null;
+
+		if ( false !== strpos( $entry, '/' ) ) {
+			list( $entry, $length ) = explode( '/', $entry, 2 );
+			if ( ! preg_match( '/^\d{1,3}$/', $length ) ) {
+				return null;
+			}
+			$bits = (int) $length;
+		}
+
+		if ( ! filter_var( $entry, FILTER_VALIDATE_IP ) ) {
+			return null;
+		}
+
+		$packed = inet_pton( $entry );
+		if ( false === $packed ) {
+			return null;
+		}
+
+		if ( self::is_mapped( $packed ) && ( null === $bits || $bits >= 96 ) ) {
+			$packed = substr( $packed, 12 );
+			$bits   = null === $bits ? null : $bits - 96;
+		}
+
+		if ( null === $bits ) {
+			return array( $packed, null );
+		}
+
+		if ( $bits > strlen( $packed ) * 8 ) {
+			return null;
+		}
+
+		return array( self::mask( $packed, $bits ), $bits );
+	}
+
+	/**
+	 * The first `$bits` bits of a packed address, the rest zeroed.
+	 *
+	 * @param string $packed Packed address.
+	 * @param int    $bits   Prefix length.
+	 * @return string
+	 */
+	private static function mask( string $packed, int $bits ): string {
+		$whole     = intdiv( $bits, 8 );
+		$remainder = $bits % 8;
+		$masked    = substr( $packed, 0, $whole );
+
+		if ( $remainder > 0 ) {
+			$masked .= chr( ord( $packed[ $whole ] ) & ( 0xFF << ( 8 - $remainder ) & 0xFF ) );
+		}
+
+		return str_pad( $masked, strlen( $packed ), "\0" );
+	}
+
+	/**
+	 * Whether a packed IPv6 address is an IPv4 address written inside it.
+	 *
+	 * @param string $packed Packed address.
+	 * @return bool
+	 */
+	private static function is_mapped( string $packed ): bool {
+		return 16 === strlen( $packed ) && str_repeat( "\0", 10 ) . "\xff\xff" === substr( $packed, 0, 12 );
+	}
+
+	/**
 	 * Packed address, with an IPv4-mapped IPv6 address reduced to IPv4.
 	 *
 	 * @param string $ip Address as resolved.
@@ -85,7 +234,7 @@ final class IpAddress {
 			return null;
 		}
 
-		if ( 16 === strlen( $binary ) && str_repeat( "\0", 10 ) . "\xff\xff" === substr( $binary, 0, 12 ) ) {
+		if ( self::is_mapped( $binary ) ) {
 			$binary = substr( $binary, 12 );
 		}
 

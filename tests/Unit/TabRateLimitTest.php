@@ -479,6 +479,76 @@ class TabRateLimitTest extends TestCase {
 		);
 	}
 
+	public function test_save_stores_each_ip_line_canonical_and_refuses_the_rest(): void {
+		$this->stub_save_funcs();
+
+		$_POST['whitelist_ips'] = "2804:14C:0:0::1\n10.1.2.3/8\n::ffff:203.0.113.7\n203.0.113.7\n203.0.113.*\n\n";
+		$_POST['blacklist_ips'] = "2804:14c:1:2::/48\nexample.com";
+
+		$saved = null;
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$saved ) {
+				if ( 'ffc_rate_limit_settings' === $key ) {
+					$saved = $value;
+				}
+				return true;
+			}
+		);
+
+		try {
+			$this->invoke_private( 'save_settings' );
+		} finally {
+			unset( $_POST['whitelist_ips'], $_POST['blacklist_ips'] );
+		}
+
+		$this->assertSame( array( '2804:14c::1', '10.0.0.0/8', '203.0.113.7' ), $saved['whitelist']['ips'], 'canonical, a range by its network, one line per address' );
+		$this->assertSame( array( '2804:14c:1::/48' ), $saved['blacklist']['ips'] );
+
+		$refused = new \ReflectionProperty( TabRateLimit::class, 'refused_ip_lines' );
+		$refused->setAccessible( true );
+		$this->assertSame( array( '203.0.113.*', 'example.com' ), $refused->getValue( $this->tab ) );
+	}
+
+	public function test_the_screen_names_refused_and_stored_invalid_ip_lines(): void {
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+
+		$refused = new \ReflectionProperty( TabRateLimit::class, 'refused_ip_lines' );
+		$refused->setAccessible( true );
+		$refused->setValue( $this->tab, array( '203.0.113.*' ) );
+
+		ob_start();
+		$this->invoke_private(
+			'render_refused_ip_lines',
+			array(
+				array(
+					'whitelist' => array( 'ips' => array( '203.0.113.7', 'legacy typo' ) ),
+					'blacklist' => array( 'ips' => array( '203.0.113.*' ) ),
+				),
+			)
+		);
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'notice-warning', $output );
+		$this->assertStringContainsString( '203.0.113.*, legacy typo', $output, 'each line once, a stored one included' );
+		$this->assertStringNotContainsString( '203.0.113.7', $output );
+	}
+
+	public function test_valid_ip_lists_print_no_notice(): void {
+		ob_start();
+		$this->invoke_private(
+			'render_refused_ip_lines',
+			array(
+				array(
+					'whitelist' => array( 'ips' => array( '203.0.113.0/24' ) ),
+					'blacklist' => array( 'ips' => array() ),
+				),
+			)
+		);
+
+		$this->assertSame( '', ob_get_clean() );
+	}
+
 	public function test_save_settings_defaults_when_post_empty(): void {
 		$this->stub_save_funcs();
 

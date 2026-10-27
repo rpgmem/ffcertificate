@@ -479,7 +479,7 @@ final class RateLimitChecker {
 		$s  = self::get_settings();
 		$bl = $s['blacklist'];
 
-		if ( in_array( $ip, $bl['ips'], true ) ) {
+		if ( \FreeFormCertificate\Core\IpAddress::in_any( $ip, (array) $bl['ips'] ) ) {
 			return array(
 				'allowed' => false,
 				'reason'  => 'ip_blacklisted',
@@ -529,7 +529,7 @@ final class RateLimitChecker {
 		$s  = self::get_settings();
 		$wl = $s['whitelist'];
 
-		if ( in_array( $ip, $wl['ips'], true ) ) {
+		if ( \FreeFormCertificate\Core\IpAddress::in_any( $ip, (array) $wl['ips'] ) ) {
 			return true;
 		}
 
@@ -703,7 +703,7 @@ final class RateLimitChecker {
 	public static function is_ip_whitelisted( string $ip ): bool {
 		$wl  = self::get_settings()['whitelist'] ?? array();
 		$ips = is_array( $wl ) && isset( $wl['ips'] ) && is_array( $wl['ips'] ) ? $wl['ips'] : array();
-		return in_array( $ip, $ips, true );
+		return \FreeFormCertificate\Core\IpAddress::in_any( $ip, $ips );
 	}
 
 	/**

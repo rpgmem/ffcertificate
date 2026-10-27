@@ -610,6 +610,11 @@ class DocumentFormatterTest extends TestCase {
 		$this->assertSame('0:0:0:0:****:****:****:****', DocumentFormatter::mask_ip('::1'));
 	}
 
+	public function test_mask_ip_masks_an_ipv4_address_written_inside_ipv6_as_ipv4(): void {
+		$this->assertSame('203.0.***.***', DocumentFormatter::mask_ip('::ffff:203.0.113.7'));
+		$this->assertSame('203.0.***.***', DocumentFormatter::mask_ip('::FFFF:cb00:7107'));
+	}
+
 	public function test_mask_ip_masks_a_value_that_is_not_an_ip_whole(): void {
 		$this->assertSame('***', DocumentFormatter::mask_ip('not-an-ip'));
 	}
