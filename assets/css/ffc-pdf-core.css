@@ -292,48 +292,11 @@ body.wp-admin .ffc-pdf-temp-wrapper {
    ========================================================================== */
 
 /* ==========================================================================
-   11. PROGRESS OVERLAY (Mobile optimized)
-   ========================================================================== */
-.ffc-pdf-progress-overlay {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    background: rgba(0, 0, 0, 0.92) !important;
-    z-index: 2147483647 !important; /* Maximum z-index */
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: center !important;
-    align-items: center !important;
-    color: #ffffff !important;
-    font-family: sans-serif !important;
-    pointer-events: all !important; /* Blocks background clicks */
-}
-
-/* Larger spinner for mobile visibility */
-.ffc-progress-spinner {
-    width: 60px;
-    height: 60px;
-    border: 6px solid rgba(255,255,255,0.1);
-    border-top: 6px solid #3498db;
-    border-radius: 50%;
-    animation: ffc-spin 1s linear infinite;
-    margin-bottom: 20px;
-}
-
-/* ==========================================================================
    12. ANIMATIONS
    ========================================================================== */
 @keyframes ffc-spin {
     to {
         transform: rotate(360deg);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .ffc-progress-spinner {
-        animation: none;
     }
 }
 

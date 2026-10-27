@@ -2556,7 +2556,6 @@ body.wp-admin .ffc-btn-icon::before {
    UTILITY CLASSES — Layout, spacing, typography
    Sprint 2: Replace common inline style="" patterns
    ========================================================================== */
-.ffc-flex          { display: flex; }
 .ffc-mb-md         { margin-bottom: var(--ffc-spacing-lg); }
 .ffc-color-dot     { display: inline-block; width: 12px; height: 12px; border-radius: var(--ffc-radius-full); vertical-align: middle; background-color: var(--ffc-color, currentColor); }
 

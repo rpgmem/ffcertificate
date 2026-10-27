@@ -16,6 +16,17 @@
     'use strict';
 
     /**
+     * Warn that a public function is deprecated and leaves in 6.45.0 (#2089).
+     *
+     * @param {string} name - Qualified function name.
+     */
+    function warnDeprecated(name) {
+        if (window.console && typeof window.console.warn === 'function') {
+            window.console.warn('FFC: ' + name + '() is deprecated since 6.43.0 and will be removed in 6.45.0.');
+        }
+    }
+
+    /**
      * What each message kind puts on the message and on its control (#1844).
      * The classes are written out whole so a scan for who emits them finds
      * them; `Core\FieldMessage` carries the same map for the server side.
@@ -205,8 +216,12 @@
          * 
          * @param {string} moduleName - Module name (e.g., 'Utils', 'Frontend', 'Admin')
          * @return {boolean} True if module is loaded
+         *
+         * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+         * @removal 6.45.0
          */
         isModuleLoaded: function(moduleName) {
+            warnDeprecated('FFC.isModuleLoaded');
             return typeof this[moduleName] !== 'undefined' && this[moduleName] !== null;
         },
         
@@ -253,8 +268,12 @@
          * Get AJAX URL
          * 
          * @return {string} AJAX URL
+         *
+         * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+         * @removal 6.45.0
          */
         getAjaxUrl: function() {
+            warnDeprecated('FFC.getAjaxUrl');
             return this.config.ajaxUrl;
         },
         
@@ -1289,8 +1308,12 @@
      * Get all registered modules
      * 
      * @return {Array} Array of registered modules
+     *
+     * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+     * @removal 6.45.0
      */
     window.FFC.getModules = function() {
+        warnDeprecated('FFC.getModules');
         return this._modules;
     };
     
