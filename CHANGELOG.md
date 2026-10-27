@@ -14,6 +14,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Tests: the recruitment admin page renders against its real classes** (#2091). Its fixture declared stand-ins for eleven classes, `AdminUI` and `Capabilities` among them, which forced every test into its own process; it is deleted, the gates and list tables are exercised for real, and the guard's allowlist is empty.
 - **Tests: process isolation moves from the class to the test that needs it** (#2091). In 38 classes only some tests declare an `alias:` or `overload:` mock or a `define()`; those now carry `@runInSeparateProcess` and the other ~370 run in the shared process. Two that read process state are isolated with the reason written beside them.
 - **Tests: the classes that still isolate every test are frozen** (#2091). A ratchet in the isolation guard fails when a new class runs every test in its own process, and when a listed one stops, so the remaining debt can only shrink.
+- **Tests: gaps found by mutation testing are closed** (#2098). The quiz scorer is now tested for a question that follows a skipped field, for percentage rounding and for the exact-set checkbox mode with options in any order. Encryption tests pin which 32 bytes of `FFC_ENCRYPTION_KEY` form the key, using a key with no repeated character.
 
 ### Deprecated
 
