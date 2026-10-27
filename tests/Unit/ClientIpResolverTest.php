@@ -16,12 +16,10 @@ use FreeFormCertificate\Core\ClientIpResolver;
  * mode) and the `secure` trusted-proxy decision tree (Cloudflare header,
  * right→left XFF walk, direct-connection fallback, spoof rejection).
  *
- * Runs in isolated processes so a prior suite test that left wp_unslash under
- * Brain Monkey management can't surface as "not defined nor mocked" here.
+ * Each test stubs the WordPress functions it reaches, so it runs in the
+ * shared process whatever an earlier class left defined (#2091).
  *
  * @covers \FreeFormCertificate\Core\ClientIpResolver
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class ClientIpResolverTest extends TestCase {
 

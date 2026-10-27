@@ -15,13 +15,13 @@ use FreeFormCertificate\Settings\Tabs\TabModulos;
  * Covers init() tab metadata and both branches of render() (the real view
  * include on success, the error notice when the view file is missing).
  *
- * Runs in separate processes as defence: it preloads `Admin\AdminUI`, which
+ * It preloads `Admin\AdminUI`, which
  * tests/fixtures/recruitment-admin-page-renderer-stubs.php shadows with a stub
- * for the rest of any process that has required it (#1432).
+ * for the rest of any process that has required it (#1432); that fixture is
+ * only ever required inside RecruitmentAdminPageRendererTest's own processes,
+ * so this class runs in the shared one (#2091).
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabModulos
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class TabModulosTest extends TestCase {
 
@@ -114,6 +114,14 @@ class TabModulosTest extends TestCase {
 		$this->assertStringContainsString( 'expired-ticket cleanup is paused', $output );
 	}
 
+	/**
+	 * Its own process: a namespaced `file_exists` stub only takes effect where
+	 * that call site has not yet resolved to the global function, and an
+	 * earlier render in a shared process has already resolved it.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_render_outputs_error_when_view_missing(): void {
 		// Force the real render()'s file_exists() guard to fail so the
 		// error-notice branch executes.

@@ -634,11 +634,11 @@ class MigrationStatusCalculatorTest extends TestCase {
 	// ==================================================================
 
 	public function test_rearm_returns_wp_error_when_strategy_is_missing(): void {
-		// `split_cpf_rf` for the same reason the sibling `execute` test uses it:
-		// resolution is LAZY, so a key the calculator can build reaches the real
-		// strategy instead. This one cannot be built in this environment, which
-		// is what makes it the missing-strategy case.
-		$result = $this->calculator->rearm( 'split_cpf_rf' );
+		// A key no case of try_create_strategy() builds. `split_cpf_rf` was used
+		// here once and is the missing case only in a fresh process: in a shared
+		// one an earlier test has loaded what its constructor needs, so the lazy
+		// resolution succeeds and the verb check answers instead.
+		$result = $this->calculator->rearm( 'no_such_card' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'strategy_not_found', $result->get_error_code() );

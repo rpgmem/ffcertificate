@@ -31,8 +31,6 @@ use FreeFormCertificate\Maintenance\IdentityRepair;
  * assert is that the decision is written, which is what the alias measures.
  *
  * @covers \FreeFormCertificate\Maintenance\IdentityAcceptance
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class IdentityAcceptanceTest extends TestCase {
 

@@ -16,12 +16,9 @@ use FreeFormCertificate\Core\RequestInput;
  * walk + private/reserved filtering + fallback here.
  *
  * The wp_unslash / sanitize_text_field stubs live in each test (not setUp) to
- * match the proven RateLimiterTest get_user_ip pattern; the class also runs in
- * isolated processes so a prior suite test that left wp_unslash under Brain
- * Monkey/Patchwork management can't surface as "not defined nor mocked" here.
+ * match the proven RateLimiterTest get_user_ip pattern, which is also what
+ * lets the class run in the shared process (#2091).
  *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RequestInputTest extends TestCase {
 

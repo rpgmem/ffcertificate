@@ -14,12 +14,11 @@ use FreeFormCertificate\Core\AuthCodeService;
  * Tests for AuthCodeService: random string generation, auth code formatting,
  * and globally unique code generation across multiple database tables.
  *
- * Runs in separate processes because earlier tests in the suite pollute
- * Brain/Monkey state for wp_rand and namespaced function fallbacks.
+ * setUp() stubs `wp_rand`, so each test chooses the branch rather than
+ * inheriting it, and the class runs in the shared process (#2091). The one
+ * test that needs a fresh process carries its own annotation.
  *
  * @covers \FreeFormCertificate\Core\AuthCodeService
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AuthCodeServiceTest extends TestCase {
 
