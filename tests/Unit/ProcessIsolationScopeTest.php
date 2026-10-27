@@ -8,6 +8,10 @@ use PHPUnit\Framework\TestCase;
 /**
  * A class runs every test in its own process only for a reason it carries (#2091).
  *
+ * The purpose is to keep the number of tests that pay for their own process
+ * as small as the tests themselves allow, and never let it grow unnoticed:
+ * the cost below is paid on every CI run and every local full run.
+ *
  * `@runTestsInSeparateProcesses` starts a fresh PHP process per test, which
  * cost about a quarter of a second each when this guard was written: 3,363
  * tests ran that way, and three files measured with and without it took
