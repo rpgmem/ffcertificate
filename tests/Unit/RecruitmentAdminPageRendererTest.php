@@ -136,6 +136,9 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 		);
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
+		// LabelSorter takes the WordPress branch only when get_locale() exists, and
+		// whether it does depends on what ran earlier in the process: choose it here.
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
 	}
 
 	/**
