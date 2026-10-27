@@ -454,7 +454,7 @@ final class DeviceCheck {
 		nocache_headers();
 
 		$window = RateLimitSettingsReader::device_check_window();
-		if ( ! WindowThrottle::take( self::PING_PREFIX, RateLimitSettingsReader::device_check_cap(), $window ) ) {
+		if ( ! WindowThrottle::take( self::PING_PREFIX, RateLimitSettingsReader::device_check_cap(), $window, RateLimitSettingsReader::device_check_counts_unresolved() ) ) {
 			wp_send_json_error( array( 'retryAfter' => WindowThrottle::seconds_left( $window ) ), 429 );
 		}
 

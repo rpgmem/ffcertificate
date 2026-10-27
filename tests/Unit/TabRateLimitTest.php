@@ -182,6 +182,7 @@ class TabRateLimitTest extends TestCase {
 			->byDefault();
 		Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' )
 			->shouldReceive( 'render_toggle' )->andReturnNull()->byDefault()
+			->shouldReceive( 'render_segmented' )->andReturnNull()->byDefault()
 			->getMock()
 			->shouldReceive( 'render_save_button' )
 			->andReturnUsing(
@@ -227,6 +228,39 @@ class TabRateLimitTest extends TestCase {
 		$this->assertTrue( $saved, 'Manage-capable user must persist rate-limit settings' );
 		$this->assertStringContainsString( 'Settings saved!', $output );
 		$this->assertStringContainsString( 'name="ffc_save_rate_limit"', $output, 'render() must go on to include the shipped view after saving' );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_save_keeps_each_unresolved_policy_and_refuses_an_unknown_one(): void {
+		$_POST['ffc_save_rate_limit']        = '1';
+		$_POST['ip_captcha_unresolved']      = 'share';
+		$_POST['ip_device_check_unresolved'] = 'block';
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$this->stub_save_funcs();
+		$this->stub_rate_limit_view();
+
+		$saved = array();
+		Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$saved ) {
+			if ( \FreeFormCertificate\Settings\RateLimitSettingsReader::OPTION_KEY === $key ) {
+				$saved = $value;
+			}
+			return true;
+		} );
+
+		ob_start();
+		try {
+			$this->tab->render();
+		} finally {
+			ob_end_clean();
+			unset( $_POST['ip_captcha_unresolved'], $_POST['ip_device_check_unresolved'] );
+		}
+
+		$this->assertSame( 'share', $saved['ip']['captcha_unresolved'] );
+		$this->assertSame( 'allow', $saved['ip']['device_check_unresolved'], 'an unknown value falls back to the default' );
 	}
 
 	/**

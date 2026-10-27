@@ -29,6 +29,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **⚠ Breaking for external integrations — four `Encryption` helpers are gone** (#1950): `encrypt_submission()`, `decrypt_submission()`, `get_info()` and `test()`, deprecated in 6.41.0 (#1934) with a runtime notice. Nothing in the plugin called them. Use `SensitiveFieldRegistry::encrypt_fields()`, `Encryption::decrypt_field()` and `Encryption::key_health_report()`.
 - **Unused styles** (#2089). The jQuery UI theme in `libs/css/` and its 11 images, loaded by nothing since 6.10.0 (the calendars draw themselves; the jQuery UI pieces that do load are WordPress's own, with its styles), and four CSS rules no markup emitted: the old PDF progress overlay and spinner, `.ffc-cap-chip--color` and `.ffc-flex`.
 
+### Fixed
+
+- **The ALTCHA and device-test throttles count IPv6 by subscriber and let an unidentified address choose** (#2106). An address is canonicalised and an IPv6 caller counted by its /64 (`Core\IpAddress`); a visitor whose address cannot be read is let through by default, or counted together, per card on the Rate Limit tab. It used to share one bucket.
+
 ## [6.42.0] (2026-10-26) — `8241871c`
 
 ### Added

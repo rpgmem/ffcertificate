@@ -5,7 +5,6 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\DeviceCheck;
@@ -14,17 +13,20 @@ use FreeFormCertificate\Settings\RateLimitSettingsReader;
 /**
  * The device test's one server request and its per-address limit (#2064).
  *
- * Alias-mocks `RequestInput`, so this runs in its own process.
+ * The address comes from `$_SERVER`, read by the real resolver, so these
+ * tests see what a visitor with no readable address really sends (#2106).
  *
  * @covers \FreeFormCertificate\Frontend\DeviceCheck
  * @covers \FreeFormCertificate\Core\WindowThrottle
  * @covers \FreeFormCertificate\Settings\RateLimitSettingsReader
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class DeviceCheckPingTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/** @var array<string, mixed> */
+	private array $server_snapshot = array();
 
 	/** @var array<string, mixed> */
 	private array $transients = array();
@@ -41,6 +43,15 @@ class DeviceCheckPingTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// RequestInput resolves the address for real: the default `legacy`
+		// mode, through these, over a $_SERVER this test owns.
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		$this->server_snapshot = $_SERVER;
+		foreach ( array( 'HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR' ) as $header ) {
+			unset( $_SERVER[ $header ] );
+		}
 
 		$this->transients          = array();
 		$this->responses           = array();
@@ -77,13 +88,17 @@ class DeviceCheckPingTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		$_SERVER = $this->server_snapshot;
 		Monkey\tearDown();
 		parent::tearDown();
 	}
 
 	private function mock_ip( string $ip ): void {
-		$request = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
-		$request->shouldReceive( 'get_user_ip' )->andReturn( $ip );
+		if ( '' === $ip ) {
+			unset( $_SERVER['REMOTE_ADDR'] );
+			return;
+		}
+		$_SERVER['REMOTE_ADDR'] = $ip;
 	}
 
 	private function ping(): void {
@@ -185,14 +200,57 @@ class DeviceCheckPingTest extends TestCase {
 
 	public function test_each_address_has_its_own_count(): void {
 		$this->rate_limit_settings = array( 'ip' => array( 'device_check_max_per_window' => 1 ) );
-		$request                   = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
-		$request->shouldReceive( 'get_user_ip' )->andReturn( '203.0.113.7', '203.0.113.7', '198.51.100.9' );
 
+		$this->mock_ip( '203.0.113.7' );
 		$this->ping();
 		$this->ping();
+		$this->mock_ip( '198.51.100.9' );
 		$this->ping();
 
 		$this->assertSame( array( true, false, true ), array_column( $this->responses, 0 ) );
+	}
+
+	public function test_an_ipv6_subscriber_counts_once_across_its_64(): void {
+		// One subscriber holds the whole /64 and can rotate through it, so
+		// moving to the next address is not a fresh count (#2106).
+		$this->rate_limit_settings = array( 'ip' => array( 'device_check_max_per_window' => 1 ) );
+
+		$this->mock_ip( '2804:14c:1:2::1' );
+		$this->ping();
+		$this->mock_ip( '2804:14C:1:2:ffff::9' );
+		$this->ping();
+		$this->mock_ip( '2804:14c:1:3::1' );
+		$this->ping();
+
+		$this->assertSame( array( true, false, true ), array_column( $this->responses, 0 ) );
+	}
+
+	public function test_unidentified_callers_share_one_count_when_the_setting_says_so(): void {
+		$this->mock_ip( '' );
+		$this->rate_limit_settings = array(
+			'ip' => array(
+				'device_check_max_per_window' => 1,
+				'device_check_unresolved'     => 'share',
+			),
+		);
+
+		$this->ping();
+		$this->ping();
+
+		$this->assertSame( array( true, false ), array_column( $this->responses, 0 ) );
+	}
+
+	public function test_a_private_address_is_unidentified(): void {
+		// An internal network reaches the site from private addresses, which
+		// the legacy resolver does not accept as a client address.
+		$this->mock_ip( '10.0.0.5' );
+		$this->rate_limit_settings = array( 'ip' => array( 'device_check_max_per_window' => 1 ) );
+
+		$this->ping();
+		$this->ping();
+
+		$this->assertSame( array( true, true ), array_column( $this->responses, 0 ) );
+		$this->assertSame( array(), $this->transients );
 	}
 
 	public function test_the_cap_and_window_are_bounded_on_read(): void {

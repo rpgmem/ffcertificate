@@ -29290,3 +29290,27 @@ msgstr "(opcional: lida somente quando a data vem de uma coluna do arquivo)"
 
 msgid "The template ends with an optional issue_date column (YYYY-MM-DD or DD/MM/YYYY). It is read only when the issue date comes from a column of the file, where it is chosen by default, and ignored otherwise."
 msgstr "O modelo termina com a coluna opcional issue_date (AAAA-MM-DD ou DD/MM/AAAA). Ela é lida somente quando a data de emissão vem de uma coluna do arquivo, em que é escolhida por padrão, e é ignorada nos outros casos."
+
+msgid "Unidentified address"
+msgstr "Endereço não identificado"
+
+msgid "Let through"
+msgstr "Liberar"
+
+msgid "Count together"
+msgstr "Contar juntos"
+
+msgid "A visitor whose address cannot be read is not counted. Recommended when visitors reach the site from private addresses, such as an internal network."
+msgstr "Um visitante cujo endereço não pode ser lido não é contado. Recomendado quando os visitantes acessam o site a partir de endereços privados, como uma rede interna."
+
+msgid "Every visitor whose address cannot be read shares one count. Stricter, but on an internal network it puts everyone under a single cap."
+msgstr "Todos os visitantes cujo endereço não pode ser lido dividem uma única contagem. É mais rígido, mas numa rede interna coloca todos sob um único limite."
+
+msgid "IPv4 addresses are counted one by one, IPv6 addresses by their /64 block, which belongs to one subscriber."
+msgstr "Endereços IPv4 são contados um a um; endereços IPv6, pelo bloco /64, que pertence a um único assinante."
+
+msgid "Unidentified address:"
+msgstr "Endereço não identificado:"
+
+msgid "both cards say what happens to a visitor whose address cannot be read — every visitor on an internal network of private addresses, for example. \"Let through\" (the default) does not count them; \"Count together\" puts all of them under one shared cap. IPv4 addresses are counted one by one, IPv6 addresses by their /64 block, which belongs to one subscriber."
+msgstr "os dois cartões definem o que acontece com um visitante cujo endereço não pode ser lido — por exemplo, todos os visitantes de uma rede interna de endereços privados. \"Liberar\" (o padrão) não os conta; \"Contar juntos\" coloca todos sob um único limite compartilhado. Endereços IPv4 são contados um a um; endereços IPv6, pelo bloco /64, que pertence a um único assinante."
