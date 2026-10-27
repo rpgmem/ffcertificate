@@ -247,4 +247,42 @@ class DataSanitizerTest extends TestCase {
 	public function test_normalize_cpf_rf_keeps_long_digit_strings(): void {
 		$this->assertSame( '1234567890123456', DataSanitizer::normalize_cpf_rf( '1234-5678-9012-3456' ) );
 	}
+
+	// ==================================================================
+	// Moved from UtilsTest (#2092)
+	// ==================================================================
+
+	public function test_normalize_name_all_uppercase(): void {
+		$this->assertSame( 'Alex Pereira da Silva', DataSanitizer::normalize_brazilian_name( 'ALEX PEREIRA DA SILVA' ) );
+	}
+
+	public function test_normalize_name_all_lowercase(): void {
+		$this->assertSame( 'Maria dos Santos e Oliveira', DataSanitizer::normalize_brazilian_name( 'maria dos santos e oliveira' ) );
+	}
+
+	public function test_normalize_name_connectives_lowercase(): void {
+		$result = DataSanitizer::normalize_brazilian_name( 'JOÃO DE SOUZA FILHO' );
+		$this->assertSame( 'João de Souza Filho', $result );
+	}
+
+	public function test_normalize_name_first_word_connective_capitalized(): void {
+		// Even if the first word is a connective, it gets capitalized
+		$this->assertSame( 'Da Silva', DataSanitizer::normalize_brazilian_name( 'da silva' ) );
+	}
+
+	public function test_normalize_name_italian_connectives(): void {
+		$this->assertSame( 'Marco di Pietro du Valle', DataSanitizer::normalize_brazilian_name( 'MARCO DI PIETRO DU VALLE' ) );
+	}
+
+	public function test_normalize_name_empty(): void {
+		$this->assertSame( '', DataSanitizer::normalize_brazilian_name( '' ) );
+	}
+
+	public function test_normalize_name_accented_characters(): void {
+		$this->assertSame( 'José das Neves', DataSanitizer::normalize_brazilian_name( 'JOSÉ DAS NEVES' ) );
+	}
+
+	public function test_normalize_name_extra_spaces(): void {
+		$this->assertSame( 'Ana Clara', DataSanitizer::normalize_brazilian_name( '  ANA   CLARA  ' ) );
+	}
 }

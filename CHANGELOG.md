@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Tests: duplicates removed, `UtilsTest` split by subject** (#2092). Four pairs of identical tests now each build the case their name describes, which found that the `{{schedule}}` test only passed through the legacy reader. `UtilsTest` keeps its 19 `Utils` cases; 37 that repeated another file were removed and the rest moved to their class's file. Coverage unchanged.
+
 ### Deprecated
 
 - **65 PHP methods and 11 JavaScript functions nothing in the plugin calls** (#2089). Readers, writers, activators' `drop_tables()`, debug helpers, accessors, `FFCCalendarCore` setters and `FFC` helpers left by earlier refactors now warn (a PHP notice, a console warning) and leave in 6.45.0; none has a replacement because nothing used them. Six docblocks that named callers that never existed are corrected.
