@@ -12,7 +12,8 @@ use PHPUnit\Framework\TestCase;
  * as small as the tests themselves allow, and never let it grow unnoticed:
  * the cost below is paid on every CI run and every local full run.
  *
- * `@runTestsInSeparateProcesses` starts a fresh PHP process per test, which
+ * The class-level runTestsInSeparateProcesses annotation starts a fresh PHP
+ * process per test, which
  * cost about a quarter of a second each when this guard was written: 3,363
  * tests ran that way, and three files measured with and without it took
  * 10.9 s against 0.26 s, 5.2 s against 0.13 s and 3.9 s against 0.37 s.
@@ -30,9 +31,14 @@ use PHPUnit\Framework\TestCase;
  * a function the code under test guards with function_exists(), and was
  * fixed by having every test that reaches it stub it too.
  *
- * `@runClassInSeparateProcess` is no cheaper: under PHPUnit 9.6 it measured
+ * The runClassInSeparateProcess annotation is no cheaper: under PHPUnit 9.6 it measured
  * the same as one process per test, so it is not the alternative. A single
- * test that needs its own process carries `@runInSeparateProcess` itself.
+ * test that needs its own process carries the method-level runInSeparateProcess
+ * annotation itself.
+ *
+ * This docblock names those annotations without their at-sign on purpose:
+ * PHPUnit reads an annotation anywhere in a docblock, prose included, so
+ * writing one here would isolate this very class.
  *
  * It sees presence, never need: a file that declares an `overload:` mock in
  * one of sixty tests passes, although the other fifty-nine do not need the
@@ -59,12 +65,40 @@ class ProcessIsolationScopeTest extends TestCase {
 	private const BASELINE_FILE = __DIR__ . '/../fixtures/class-isolation-baseline.php';
 
 	/**
+	 * Whether the class isolates every test, read the way PHPUnit reads it.
+	 *
+	 * PHPUnit takes an annotation from anywhere in the class docblock, prose
+	 * included, so a sentence that merely names the annotation isolates the
+	 * class too. That happened twice before this read it so (#2091).
+	 *
+	 * @param string $source PHP source of one test file.
+	 */
+	private static function isolates_every_test( string $source ): bool {
+		$tokens = token_get_all( $source );
+		foreach ( $tokens as $i => $token ) {
+			if ( ! is_array( $token ) || T_CLASS !== $token[0] ) {
+				continue;
+			}
+			for ( $j = $i - 1; $j >= 0; $j-- ) {
+				$prev = $tokens[ $j ];
+				if ( is_array( $prev ) && in_array( $prev[0], array( T_WHITESPACE, T_FINAL, T_ABSTRACT ), true ) ) {
+					continue;
+				}
+				return is_array( $prev ) && T_DOC_COMMENT === $prev[0]
+					&& 1 === preg_match( '/@runTestsInSeparateProcesses\b/', $prev[1] );
+			}
+			return false;
+		}
+		return false;
+	}
+
+	/**
 	 * Whether the source isolates every test without a reason it shows.
 	 *
 	 * @param string $source PHP source of one test file.
 	 */
 	private static function isolates_without_reason( string $source ): bool {
-		if ( ! preg_match( '/^ \* @runTestsInSeparateProcesses$/m', $source ) ) {
+		if ( ! self::isolates_every_test( $source ) ) {
 			return false;
 		}
 		$reasons = array(
@@ -114,13 +148,13 @@ class ProcessIsolationScopeTest extends TestCase {
 	 * of its tests, almost always because setUp() declares an alias: mock. The
 	 * register is that debt, and the ratchet only lets it shrink — a new class
 	 * cannot join it unnoticed, and a class that moved its tests to the shared
-	 * process (a $wpdb double instead of an alias, or @runInSeparateProcess on
-	 * the few tests that need it) must leave it, so the gain is locked in.
+	 * process (a $wpdb double instead of an alias, or the method-level
+	 * annotation on the few tests that need it) must leave it, so the gain is locked in.
 	 */
 	public function test_class_level_isolation_matches_the_baseline(): void {
 		$current = array();
 		foreach ( self::test_files() as $file ) {
-			if ( preg_match( '/^ \* @runTestsInSeparateProcesses$/m', (string) file_get_contents( $file ) ) ) {
+			if ( self::isolates_every_test( (string) file_get_contents( $file ) ) ) {
 				$current[] = basename( $file );
 			}
 		}
@@ -208,5 +242,9 @@ class ProcessIsolationScopeTest extends TestCase {
 		$this->assertFalse( self::isolates_without_reason( $bare . "eval( 'class A {}' );\n" ) );
 		$this->assertTrue( self::isolates_without_reason( $bare . "Functions\\when( 'fn' )->justReturn( 1 );\n" ) );
 		$this->assertFalse( self::isolates_without_reason( "<?php\nclass ProbeTest {\n\t/**\n\t * @runInSeparateProcess\n\t */\n\tpublic function test_x() {}\n}\n" ) );
+		$this->assertTrue(
+			self::isolates_without_reason( "<?php\n/**\n * Avoids an alias mock, which would force `@runTestsInSeparateProcesses`.\n */\nclass ProbeTest {}\n" ),
+			'A prose mention in the class docblock isolates the class too, and must be read as such.'
+		);
 	}
 }
