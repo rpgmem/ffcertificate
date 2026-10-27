@@ -13,7 +13,6 @@ use FreeFormCertificate\Settings\Tabs\TabAdvanced;
 
 /**
  * @covers \FreeFormCertificate\Settings\Tabs\TabAdvanced
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class TabAdvancedTest extends TestCase {
@@ -100,6 +99,9 @@ class TabAdvancedTest extends TestCase {
 	// Inherited get_option()
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_get_option_delegates_to_settings_reader(): void {
 		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
 		$reader->shouldReceive( 'get' )->with( 'enable_activity_log', '0' )->andReturn( '1' );
@@ -111,6 +113,9 @@ class TabAdvancedTest extends TestCase {
 	// render() — happy path: includes the REAL view file
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_includes_real_view(): void {
 		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
 		$reader->shouldReceive( 'get' )->andReturnUsing(
@@ -144,6 +149,9 @@ class TabAdvancedTest extends TestCase {
 	// render() — error branch when view file missing
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_error_when_view_missing(): void {
 		// Safe under @runTestsInSeparateProcesses — the namespaced stub does
 		// not leak across tests.
@@ -172,6 +180,9 @@ class TabAdvancedTest extends TestCase {
 		$this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_enqueue_scripts_enqueues_autosave_on_tab(): void {
 		SettingsTab::set_resolved_active_tab( 'advanced' );
 

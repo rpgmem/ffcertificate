@@ -23,7 +23,6 @@ use FreeFormCertificate\Core\CsvDownloadInterface;
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentNoticeEditPage
  * @covers \FreeFormCertificate\Recruitment\RecruitmentExampleCsvSource
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class RecruitmentNoticeEditPageHandlersTest extends TestCase {
@@ -110,6 +109,9 @@ class RecruitmentNoticeEditPageHandlersTest extends TestCase {
 		$this->assertStringNotContainsString( 'action=edit-notice', $msg );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_handle_save_persists_name_and_columns_then_flashes_saved(): void {
 		$_POST['notice_id']      = '5';
 		$_POST['name']           = 'New Name';
@@ -174,6 +176,9 @@ class RecruitmentNoticeEditPageHandlersTest extends TestCase {
 		$this->assertStringContainsString( 'ffc_msg=transition-invalid-target', $msg );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_handle_transition_flashes_transitioned_on_success(): void {
 		$_POST['notice_id']     = '5';
 		$_POST['target_status'] = 'preliminary';
@@ -193,6 +198,7 @@ class RecruitmentNoticeEditPageHandlersTest extends TestCase {
 
 	/**
 	 * @dataProvider error_code_provider
+	 * @runInSeparateProcess
 	 */
 	public function test_handle_transition_maps_state_machine_errors_to_flash_keys( string $error_code, string $expected_flash ): void {
 		$_POST['notice_id']     = '5';
@@ -223,6 +229,9 @@ class RecruitmentNoticeEditPageHandlersTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_handle_transition_passes_reason_through_to_state_machine(): void {
 		$_POST['notice_id']     = '5';
 		$_POST['target_status'] = 'closed';

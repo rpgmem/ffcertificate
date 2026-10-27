@@ -13,7 +13,6 @@ use FreeFormCertificate\Admin\ExpiredTicketsCleanup;
 /**
  * Tests for the ExpiredTicketsCleanup daily cron introduced in 6.5.6.
  *
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  * @covers \FreeFormCertificate\Admin\ExpiredTicketsCleanup
  */
@@ -124,12 +123,18 @@ class ExpiredTicketsCleanupTest extends TestCase {
 	// purge_form_if_eligible() — rejection branches
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_skip_when_config_missing(): void {
 		$this->stub_geofence();
 		// No meta at all → get_post_meta returns '' → not array.
 		$this->assertFalse( ExpiredTicketsCleanup::purge_form_if_eligible( 1 ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_skip_when_ticket_gate_off(): void {
 		$this->stub_geofence();
 		$this->meta_store[1]['_ffc_form_config'] = array(
@@ -140,6 +145,9 @@ class ExpiredTicketsCleanupTest extends TestCase {
 		$this->assertFalse( ExpiredTicketsCleanup::purge_form_if_eligible( 1 ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_skip_when_form_not_expired(): void {
 		$this->stub_geofence();
 		$this->meta_store[1]['_ffc_form_config'] = array(
@@ -150,6 +158,9 @@ class ExpiredTicketsCleanupTest extends TestCase {
 		$this->assertFalse( ExpiredTicketsCleanup::purge_form_if_eligible( 1 ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_skip_when_codes_list_empty(): void {
 		$this->stub_geofence();
 		$this->meta_store[1]['_ffc_form_config'] = array(
@@ -164,6 +175,9 @@ class ExpiredTicketsCleanupTest extends TestCase {
 	// purge_form_if_eligible() — happy path
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_purge_wipes_codes_and_returns_true(): void {
 		$this->stub_geofence();
 		$this->meta_store[1]['_ffc_form_config'] = array(
@@ -184,6 +198,9 @@ class ExpiredTicketsCleanupTest extends TestCase {
 	// run() — sweep loop
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_run_counts_purged_forms(): void {
 		$this->stub_geofence();
 		$this->stub_get_posts( array( 1, 2, 3 ) );
@@ -212,6 +229,9 @@ class ExpiredTicketsCleanupTest extends TestCase {
 		$this->assertSame( 2, ExpiredTicketsCleanup::run() );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_run_returns_zero_when_no_forms(): void {
 		$this->stub_geofence();
 		$this->stub_get_posts( array() );

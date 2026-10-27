@@ -19,7 +19,6 @@ use FreeFormCertificate\Audience\AudienceAjaxController;
  * they were the only previously-tested part of this surface).
  *
  * @covers \FreeFormCertificate\Audience\AudienceAjaxController
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class AudienceAjaxControllerTest extends TestCase {
@@ -114,6 +113,9 @@ class AudienceAjaxControllerTest extends TestCase {
 
 	// ── cancel_booking ─────────────────────────────────────────────────
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_cancel_booking_rejects_invalid_id(): void {
 		$this->mockUtils();
 		$_POST = array( 'nonce' => 'n' );
@@ -124,6 +126,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Invalid booking ID', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_cancel_booking_reports_not_found(): void {
 		$this->mockUtils();
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
@@ -139,6 +144,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Booking not found', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_cancel_booking_rejects_already_cancelled(): void {
 		$this->mockUtils();
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
@@ -154,6 +162,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'already cancelled', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_cancel_booking_reports_failure(): void {
 		$this->mockUtils();
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
@@ -170,6 +181,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Failed to cancel', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_cancel_booking_succeeds(): void {
 		$this->mockUtils();
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
@@ -189,6 +203,9 @@ class AudienceAjaxControllerTest extends TestCase {
 
 	// ── get_booking ────────────────────────────────────────────────────
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_get_booking_rejects_invalid_id(): void {
 		$this->mockUtils();
 		$_POST = array( 'nonce' => 'n' );
@@ -199,6 +216,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Invalid booking ID', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_get_booking_reports_not_found(): void {
 		$this->mockUtils();
 		$_POST = array( 'nonce' => 'n', 'booking_id' => '4' );
@@ -213,6 +233,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Booking not found', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_get_booking_maps_full_payload(): void {
 		$this->mockUtils();
 		$_POST = array( 'nonce' => 'n', 'booking_id' => '4' );
@@ -260,6 +283,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertSame( 'm@e.com', $data['users'][0]['email'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_get_booking_unknown_creator_and_empty_relations(): void {
 		$this->mockUtils();
 		$_POST = array( 'nonce' => 'n', 'booking_id' => '4' );
@@ -297,6 +323,9 @@ class AudienceAjaxControllerTest extends TestCase {
 
 	// ── search_users ───────────────────────────────────────────────────
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_search_users_short_query_returns_empty(): void {
 		$this->mockUtils();
 		$_POST = array( 'nonce' => 'n', 'query' => 'a' );
@@ -307,6 +336,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertSame( array(), $this->responses[0]['data'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_search_users_maps_results(): void {
 		$this->mockUtils();
 		$_POST = array( 'nonce' => 'n', 'query' => 'john' );
@@ -328,6 +360,9 @@ class AudienceAjaxControllerTest extends TestCase {
 
 	// ── get_environments ───────────────────────────────────────────────
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_get_environments_empty_for_invalid_schedule(): void {
 		$this->mockUtils();
 		$_POST = array( 'nonce' => 'n', 'schedule_id' => '0' );
@@ -338,6 +373,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertSame( array(), $this->responses[0]['data'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_get_environments_maps_results(): void {
 		$this->mockUtils();
 		$_POST = array( 'nonce' => 'n', 'schedule_id' => '5' );
@@ -355,6 +393,9 @@ class AudienceAjaxControllerTest extends TestCase {
 
 	// ── add_user_permission ────────────────────────────────────────────
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_add_user_permission_rejects_missing_params(): void {
 		$this->mockUtils();
 		$_POST = array( '_wpnonce' => 'n' );
@@ -365,6 +406,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Missing required parameters', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_add_user_permission_reports_calendar_not_found(): void {
 		$this->mockUtils();
 		$_POST = array( '_wpnonce' => 'n', 'schedule_id' => '5', 'user_id' => '7' );
@@ -378,6 +422,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Calendar not found', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_add_user_permission_reports_user_not_found(): void {
 		$this->mockUtils();
 		$_POST = array( '_wpnonce' => 'n', 'schedule_id' => '5', 'user_id' => '7' );
@@ -392,6 +439,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'User not found', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_add_user_permission_rejects_existing_access(): void {
 		$this->mockUtils();
 		$_POST = array( '_wpnonce' => 'n', 'schedule_id' => '5', 'user_id' => '7' );
@@ -407,6 +457,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'already has access', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_add_user_permission_reports_set_failure(): void {
 		$this->mockUtils();
 		$_POST = array( '_wpnonce' => 'n', 'schedule_id' => '5', 'user_id' => '7' );
@@ -453,6 +506,7 @@ class AudienceAjaxControllerTest extends TestCase {
 	 * @dataProvider reveal_tiers
 	 *
 	 * @param bool $can_reveal What the policy answers.
+	 * @runInSeparateProcess
 	 */
 	public function test_add_user_permission_succeeds_with_html( bool $can_reveal ): void {
 		$this->mockUtils();
@@ -482,6 +536,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_add_user_permission_row_uses_the_toggle_markup_of_the_page(): void {
 		$this->mockUtils();
 		$this->stubAccountEmail( false );
@@ -510,6 +567,9 @@ class AudienceAjaxControllerTest extends TestCase {
 
 	// ── update_user_permission ─────────────────────────────────────────
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_update_user_permission_rejects_missing_params(): void {
 		$this->mockUtils();
 		$_POST = array( '_wpnonce' => 'n', 'schedule_id' => '5' );
@@ -520,6 +580,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Missing required parameters', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_update_user_permission_rejects_invalid_permission(): void {
 		$this->mockUtils();
 		$_POST = array( '_wpnonce' => 'n', 'schedule_id' => '5', 'user_id' => '7', 'permission' => 'bad' );
@@ -530,6 +593,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Invalid permission', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_update_user_permission_reports_no_access(): void {
 		$this->mockUtils();
 		$_POST = array( '_wpnonce' => 'n', 'schedule_id' => '5', 'user_id' => '7', 'permission' => 'can_book' );
@@ -543,6 +609,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'does not have access', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_update_user_permission_succeeds(): void {
 		$this->mockUtils();
 		$_POST = array(
@@ -566,6 +635,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertTrue( $this->responses[0]['ok'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_update_user_permission_reports_set_failure(): void {
 		$this->mockUtils();
 		$_POST = array(
@@ -590,6 +662,9 @@ class AudienceAjaxControllerTest extends TestCase {
 
 	// ── remove_user_permission ─────────────────────────────────────────
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_remove_user_permission_rejects_missing_params(): void {
 		$this->mockUtils();
 		$_POST = array( '_wpnonce' => 'n' );
@@ -600,6 +675,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Missing required parameters', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_remove_user_permission_reports_failure(): void {
 		$this->mockUtils();
 		$_POST = array( '_wpnonce' => 'n', 'schedule_id' => '5', 'user_id' => '7' );
@@ -613,6 +691,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Error removing user access', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_remove_user_permission_succeeds(): void {
 		$this->mockUtils();
 		$_POST = array( '_wpnonce' => 'n', 'schedule_id' => '5', 'user_id' => '7' );
@@ -627,6 +708,9 @@ class AudienceAjaxControllerTest extends TestCase {
 
 	// ── delete_custom_field ────────────────────────────────────────────
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_delete_custom_field_rejects_invalid_id(): void {
 		$this->mockUtils();
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -638,6 +722,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Invalid field ID', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_delete_custom_field_reports_not_found(): void {
 		$this->mockUtils();
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -653,6 +740,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Field not found', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_delete_custom_field_blocks_standard(): void {
 		$this->mockUtils();
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -668,6 +758,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'cannot be deleted', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_delete_custom_field_reports_failure(): void {
 		$this->mockUtils();
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -684,6 +777,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Failed to delete', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_delete_custom_field_succeeds(): void {
 		$this->mockUtils();
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -702,6 +798,9 @@ class AudienceAjaxControllerTest extends TestCase {
 
 	// ── replicate_field_options ────────────────────────────────────────
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_replicate_field_options_rejects_invalid_id(): void {
 		$this->mockUtils();
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -713,6 +812,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Invalid data', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_replicate_field_options_reports_audience_not_found(): void {
 		$this->mockUtils();
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -727,6 +829,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Audience not found', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_replicate_field_options_succeeds(): void {
 		$this->mockUtils();
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -747,6 +852,9 @@ class AudienceAjaxControllerTest extends TestCase {
 
 	// ── save_custom_fields ─────────────────────────────────────────────
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_save_custom_fields_rejects_invalid_json(): void {
 		$this->mockUtils();
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -760,6 +868,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Invalid field data format', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_save_custom_fields_rejects_missing_audience(): void {
 		$this->mockUtils();
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -772,6 +883,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Invalid data', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_save_custom_fields_reports_audience_not_found(): void {
 		$this->mockUtils();
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -787,6 +901,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Audience not found', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_save_custom_fields_creates_new_field(): void {
 		$this->mockUtils();
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -819,6 +936,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertSame( array( 99 ), $this->responses[0]['data']['saved_ids'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_save_custom_fields_reports_label_error(): void {
 		$this->mockUtils();
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -843,6 +963,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'label is required', $this->responses[0]['data']['message'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_save_custom_fields_updates_existing_field(): void {
 		$this->mockUtils();
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -870,6 +993,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertSame( array( 12 ), $this->responses[0]['data']['saved_ids'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_save_custom_fields_locks_standard_field(): void {
 		$this->mockUtils();
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -913,6 +1039,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertTrue( $this->responses[0]['ok'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_save_custom_fields_reports_create_failure(): void {
 		$this->mockUtils();
 		Functions\when( 'current_user_can' )->justReturn( true );

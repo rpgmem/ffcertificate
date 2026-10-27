@@ -20,15 +20,14 @@ use FreeFormCertificate\Reregistration\ReregistrationImportStagingService;
  * promote phase writes through `process_submission()` with both e-mails
  * suppressed.
  *
- * The three collaborators are alias mocks, so each test needs a process in
- * which the real class was never loaded — Mockery refuses an alias for a class
+ * The three collaborators are alias mocks, so each test that declares one
+ * needs a process in which the real class was never loaded — Mockery refuses an alias for a class
  * that already exists, and in the full suite something earlier loads all three.
  * Under `--filter` nothing does, which is why these passed filtered and errored
  * thirteen times in the full run. Same annotation every sibling that alias-mocks
  * `CustomFieldReader` carries.
  *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationImportStagingService
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class ReregistrationImportStagingServiceTest extends TestCase {
@@ -183,6 +182,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	// map_header() — the decision: unknown column ignored and reported
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_header_matches_on_field_key_and_on_label(): void {
 		$this->with_campaign(
 			array(
@@ -197,6 +199,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertSame( array(), $map['ignored'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_matching_ignores_case_and_surrounding_space(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
 
@@ -209,6 +214,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * The #1214 decision, stated as a test: a column matching no field is
 	 * ignored and reported — never a reason to refuse the file. An operator's
 	 * spreadsheet carries notes and working columns that are none of ours.
+	 * @runInSeparateProcess
 	 */
 	public function test_unknown_column_is_ignored_and_reported(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
@@ -224,6 +230,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * reported like any other column we cannot place. Letting the later one
 	 * overwrite would make the import depend on column order, which the
 	 * operator has no reason to think matters.
+	 * @runInSeparateProcess
 	 */
 	public function test_duplicate_column_for_one_field_keeps_the_first(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
@@ -234,6 +241,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertSame( array( 'CPF' ), $map['ignored'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_required_field_without_a_column_is_reported_by_the_map(): void {
 		$this->with_campaign(
 			array(
@@ -256,6 +266,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * before anything is staged. An absent COLUMN means every row would fail,
 	 * so one line beats staging the file to say it once per row — and the
 	 * outcome is the same all-or-nothing the issue asked for.
+	 * @runInSeparateProcess
 	 */
 	public function test_required_column_absent_refuses_before_staging(): void {
 		$this->with_campaign(
@@ -273,6 +284,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertNull( $this->staging_insert(), 'Nothing may be staged when a required column is absent.' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_audience_outside_the_campaign_is_refused(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ), array( 99 ) );
 
@@ -282,6 +296,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertSame( array( 'rereg_import_audience_not_in_campaign' ), $result['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_a_header_matching_nothing_is_refused(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
 
@@ -291,6 +308,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertSame( array( 'rereg_import_no_column_matched' ), $result['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_a_header_with_no_body_rows_is_refused(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
 
@@ -304,6 +324,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	// ingest_job() — the staged row
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_the_row_is_staged_as_json_under_its_field_keys(): void {
 		$this->with_campaign(
 			array(
@@ -335,6 +358,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * The resolution columns are lifted out of the payload and normalised,
 	 * because validation and promotion query on them. The payload keeps what
 	 * the operator typed, so "this CPF is malformed" can quote it back.
+	 * @runInSeparateProcess
 	 */
 	public function test_identifiers_are_lifted_out_and_normalised(): void {
 		$this->with_campaign(
@@ -357,6 +381,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * `line_no` is the line in the file the operator opens; `row_no` counts
 	 * body rows. They differ by the header, which is exactly the off-by-one
 	 * an error message gets wrong.
+	 * @runInSeparateProcess
 	 */
 	public function test_row_and_line_numbers_differ_by_the_header(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
@@ -371,6 +396,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertSame( 3, $values[12] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_a_missing_cell_stages_as_empty_rather_than_shifting_the_row(): void {
 		$this->with_campaign(
 			array(
@@ -440,6 +468,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		return (string) ( $this->updates[ $index ]['row_status'] ?? '' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_a_clean_job_validates_and_is_ready_to_promote(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
 		$this->with_validation( array( 'h:51817842080' => 42 ), array( 42 => $this->submission( 900, 'pending' ) ) );
@@ -458,6 +489,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * The #1214 decision: one bad row blocks the whole job. Promotion is
 	 * batched across requests and cannot roll back an earlier batch, so this
 	 * boundary is the only place all-or-nothing can hold.
+	 * @runInSeparateProcess
 	 */
 	public function test_one_invalid_row_blocks_the_entire_job(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ), $this->field( 'idade', 'Idade' ) ) );
@@ -485,6 +517,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * The other half of the decision: "already submitted" is expected state,
 	 * not a defect in the spreadsheet, so it skips its row and does NOT block.
 	 * The person got there first and their own answers are theirs to keep.
+	 * @runInSeparateProcess
 	 */
 	public function test_an_already_submitted_row_skips_without_blocking(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
@@ -511,6 +544,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertSame( 'ready', $this->row_status( 1 ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_a_draft_submission_is_still_fillable(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
 		$this->with_validation( array( 'h:111' => 42 ), array( 42 => $this->submission( 900, 'draft' ) ) );
@@ -525,6 +561,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * how a shared institutional mailbox presents: e-mail matching binds every
 	 * one of them to whichever account that address hits (#1295). Catching it
 	 * here means the operator sees it before a single write.
+	 * @runInSeparateProcess
 	 */
 	public function test_two_rows_resolving_to_one_user_block_the_job(): void {
 		$this->with_campaign( array( $this->field( 'email', 'E-mail' ) ) );
@@ -547,6 +584,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * A row that matches nobody and carries no e-mail cannot be promoted:
 	 * `wp_create_user` rejects an empty address, so it fails here rather than
 	 * halfway through a batch.
+	 * @runInSeparateProcess
 	 */
 	public function test_a_row_with_no_identifier_and_no_email_fails(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
@@ -562,6 +600,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * A row for somebody who does not exist yet is valid — promotion creates
 	 * them. Recording `user_id` as 0 is what lets the operator see, before any
 	 * write, how many accounts the import would open.
+	 * @runInSeparateProcess
 	 */
 	public function test_a_row_that_would_create_a_user_is_ready_and_visible(): void {
 		$this->with_campaign( array( $this->field( 'email', 'E-mail' ) ) );
@@ -574,6 +613,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertSame( 0, $this->updates[0]['user_id'], '0 means "promotion would create this one".' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_an_unknown_job_is_refused(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
 		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
@@ -747,6 +789,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		return $rows[ $index ] ?? array();
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_a_ready_row_is_written_through_the_processor(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
 
@@ -765,6 +810,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * The load-bearing rule of the whole phase (#1214): promotion writes through
 	 * `process_submission()` and never touches the `data` JSON itself, because
 	 * that method is where every `is_sensitive` value is encrypted.
+	 * @runInSeparateProcess
 	 */
 	public function test_the_import_never_writes_the_submission_json_itself(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
@@ -782,6 +828,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * it does NOT sanitize — the public form's sanitizer lives in
 	 * `collect_form_data()`. Handing it the raw staged payload would write past
 	 * a boundary the form submit never skips.
+	 * @runInSeparateProcess
 	 */
 	public function test_the_payload_is_sanitized_the_way_a_form_submit_is(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
@@ -803,6 +850,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * an operator filed it for them. The campaign's invitation still reaches
 	 * them (`get_awaiting_invitation()` selects on `invited_at IS NULL`,
 	 * whatever the status).
+	 * @runInSeparateProcess
 	 */
 	public function test_promotion_sends_no_email(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
@@ -816,6 +864,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	/**
 	 * A user this import creates has no seeded row — saving the campaign seeds
 	 * one per audience member (#1234), and they were not a member then.
+	 * @runInSeparateProcess
 	 */
 	public function test_a_missing_seeded_row_is_created_before_the_write(): void {
 		$this->with_promotion( 42, null );
@@ -840,6 +889,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * because `generate_username()` and `sync_user_metadata()` look for
 	 * `nome_completo` and its siblings AT THE TOP LEVEL. Wrapping it would give
 	 * every created account a random username with no visible failure.
+	 * @runInSeparateProcess
 	 */
 	public function test_the_payload_reaches_the_resolver_flat(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
@@ -853,6 +903,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_the_audience_the_operator_chose_gets_the_member(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
 
@@ -864,6 +917,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	/**
 	 * A skipped row is counted so the progress bar reaches the end, and written
 	 * nowhere so the person who submitted first keeps their own answers.
+	 * @runInSeparateProcess
 	 */
 	public function test_a_skipped_row_advances_progress_and_writes_nothing(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
@@ -885,6 +939,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * The flip the `row_update()` helper exists to look past: a job moves to
 	 * `promoting` on its first non-empty batch, so a `commit_job()` or a second
 	 * `validate_job()` arriving mid-promote sees the phase it is really in.
+	 * @runInSeparateProcess
 	 */
 	public function test_the_first_batch_moves_the_job_to_promoting(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
@@ -899,6 +954,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * The request-level half of all-or-nothing: `validate_job()` refuses to
 	 * label a job with any failure as `validated`, and this refuses to promote
 	 * anything that is not.
+	 * @runInSeparateProcess
 	 */
 	public function test_a_blocked_job_cannot_promote(): void {
 		$this->with_promotion();
@@ -910,6 +966,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertEmpty( $this->calls['process_submission'] ?? array() );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_a_failed_resolution_aborts_the_batch_naming_the_file_line(): void {
 		$this->with_promotion( 0, $this->submission( 900, 'pending' ) );
 
@@ -928,6 +987,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	/**
 	 * An over-iterating client gets the job's own counters back rather than
 	 * whatever it thought it had sent.
+	 * @runInSeparateProcess
 	 */
 	public function test_an_exhausted_job_answers_with_its_own_counters(): void {
 		$this->with_promotion();
@@ -1040,6 +1100,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	// coverage-aware PR — so each is exercised rather than deferred.
 	// ------------------------------------------------------------------
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_promote_refuses_an_unknown_job(): void {
 		$this->with_promotion();
 		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
@@ -1054,6 +1117,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	/**
 	 * The campaign can be deleted between validate and promote — the job
 	 * carries its id, not the row.
+	 * @runInSeparateProcess
 	 */
 	public function test_promote_refuses_when_the_campaign_is_gone(): void {
 		$this->with_promotion();
@@ -1091,6 +1155,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * With no row to write into, promotion of that row aborts the batch rather
 	 * than calling `process_submission()` with a null — which would write the
 	 * campaign's answers onto whatever id a null happened to cast to.
+	 * @runInSeparateProcess
 	 */
 	public function test_a_seed_that_leaves_no_row_aborts_the_batch(): void {
 		$this->with_promotion( 42, null, 'nothing_there' );
@@ -1108,6 +1173,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * promote, or the campaign being saved in a second tab (#1234) — fail this
 	 * INSERT while leaving the row there. Aborting on `false` would refuse a
 	 * row that exists.
+	 * @runInSeparateProcess
 	 */
 	public function test_a_seed_that_lost_the_unique_race_still_promotes(): void {
 		$this->with_promotion( 42, null, 'lost_the_race' );

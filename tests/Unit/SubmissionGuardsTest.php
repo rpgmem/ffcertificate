@@ -27,10 +27,10 @@ use FreeFormCertificate\Frontend\Submission\ScheduleExceptionGuard;
  *
  * Each guard is exercised in isolation against a SubmissionContext: this is
  * the testability win the pipeline split delivers (the legacy monolith could
- * only be driven end-to-end). Static collaborators are alias-mocked, so each
- * test runs in its own process.
+ * only be driven end-to-end). Static collaborators are alias-mocked, so the
+ * tests that declare an alias run in their own process; the rest share it
+ * (#2091).
  *
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class SubmissionGuardsTest extends TestCase {
@@ -70,6 +70,9 @@ class SubmissionGuardsTest extends TestCase {
 
 	// ===================== IpRateLimitGuard =====================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ip_guard_throws_when_over_limit(): void {
 		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
 		$rl->shouldReceive( 'check_ip_limit' )->andReturn(
@@ -87,6 +90,9 @@ class SubmissionGuardsTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ip_guard_passes_when_allowed(): void {
 		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
 		$rl->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) );
@@ -95,6 +101,9 @@ class SubmissionGuardsTest extends TestCase {
 		$this->assertFalse( $ctx->has_exception );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ip_guard_skipped_on_exception_path(): void {
 		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
 		$rl->shouldNotReceive( 'check_ip_limit' );
@@ -133,6 +142,9 @@ class SubmissionGuardsTest extends TestCase {
 
 	// ===================== SecurityFieldsGuard =====================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_security_guard_throws_with_new_captcha_on_failure(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )
 			->shouldReceive( 'log_form' )->andReturnNull()->byDefault();
@@ -159,6 +171,9 @@ class SubmissionGuardsTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_security_guard_passes_when_valid(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )
 			->shouldReceive( 'log_form' )->andReturnNull()->byDefault();
@@ -238,6 +253,9 @@ class SubmissionGuardsTest extends TestCase {
 
 	// ===================== FieldSanitizer =====================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_field_sanitizer_rejects_bad_cpf_length(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
 			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault()
@@ -255,6 +273,9 @@ class SubmissionGuardsTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_field_sanitizer_says_invalid_when_an_address_was_typed(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
 			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault()
@@ -275,6 +296,7 @@ class SubmissionGuardsTest extends TestCase {
 
 	/**
 	 * #1734 — an invalid address was reported as a missing one.
+	 * @runInSeparateProcess
 	 */
 	public function test_field_sanitizer_says_required_only_when_nothing_was_typed(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
@@ -291,6 +313,9 @@ class SubmissionGuardsTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_field_sanitizer_refuses_an_address_is_email_rejects(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
 			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault()
@@ -306,6 +331,9 @@ class SubmissionGuardsTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_field_sanitizer_populates_context_on_happy_path(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
 			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault()
@@ -321,6 +349,9 @@ class SubmissionGuardsTest extends TestCase {
 		$this->assertSame( 'ABC', $ctx->val_ticket );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_field_sanitizer_takes_a_hidden_field_from_the_form_never_the_request(): void {
 		// #1574: a hidden field has no visible control, so a different value
 		// in the request can only come from an edited page.
@@ -344,6 +375,9 @@ class SubmissionGuardsTest extends TestCase {
 
 	// ===================== DeviceSignalsResolver =====================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_device_resolver_null_when_globally_disabled(): void {
 		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
 		$rl->shouldReceive( 'get_settings' )->andReturn( array( 'device' => array( 'enabled' => false ) ) );
@@ -354,6 +388,9 @@ class SubmissionGuardsTest extends TestCase {
 		$this->assertFalse( $ctx->skip_device );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_device_resolver_sets_skip_on_manager_bypass(): void {
 		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
 		$rl->shouldReceive( 'get_settings' )->andReturn( array( 'device' => array( 'enabled' => true ) ) );
@@ -368,6 +405,9 @@ class SubmissionGuardsTest extends TestCase {
 
 	// ===================== GeofenceGuard =====================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_geofence_guard_throws_when_blocked(): void {
 		$gf = Mockery::mock( 'alias:\FreeFormCertificate\Security\Geofence' );
 		Mockery::mock( 'alias:\FreeFormCertificate\Security\GpsReading' )->shouldReceive( 'from_request' )->andReturn( array( 'reading' => null, 'status' => '' ) )->byDefault();
@@ -385,6 +425,9 @@ class SubmissionGuardsTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_geofence_guard_passes_when_allowed(): void {
 		$gf = Mockery::mock( 'alias:\FreeFormCertificate\Security\Geofence' );
 		Mockery::mock( 'alias:\FreeFormCertificate\Security\GpsReading' )->shouldReceive( 'from_request' )->andReturn( array( 'reading' => null, 'status' => '' ) )->byDefault();
@@ -396,6 +439,9 @@ class SubmissionGuardsTest extends TestCase {
 
 	// ===================== RateLimitGuard =====================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_rate_limit_guard_throws_when_blocked(): void {
 		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
 		$rl->shouldReceive( 'check_all' )->andReturn(
@@ -412,6 +458,9 @@ class SubmissionGuardsTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_rate_limit_guard_records_when_allowed(): void {
 		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
 		$rl->shouldReceive( 'check_all' )->andReturn( array( 'allowed' => true ) );
@@ -424,6 +473,9 @@ class SubmissionGuardsTest extends TestCase {
 
 	// ===================== AccessRestrictionGuard =====================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_access_restriction_guard_throws_when_denied(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Frontend\AccessRestrictionChecker' )
 			->shouldReceive( 'check' )->andReturn( array( 'allowed' => false, 'message' => 'nope' ) );
@@ -435,6 +487,9 @@ class SubmissionGuardsTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_access_restriction_guard_stores_result_when_allowed(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Frontend\AccessRestrictionChecker' )
 			->shouldReceive( 'check' )->andReturn( array( 'allowed' => true, 'is_ticket' => true ) );

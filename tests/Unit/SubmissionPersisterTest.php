@@ -20,7 +20,8 @@ use FreeFormCertificate\Frontend\Submission\SubmissionRejected;
  * AccessRestrictionChecker, Encryption, ScheduleExceptionSession, ActivityLog,
  * RequestInput, SubmissionRepository, DataSanitizer) plus an injected
  * SubmissionHandler instance. Statics are replaced with Mockery `alias:` mocks
- * (requires process isolation so the aliases do not leak); the handler and its
+ * (the tests that declare one run in their own process, so the aliases do not
+ * leak); the handler and its
  * repository are plain mocks injected/returned.
  *
  * Coverage:
@@ -36,7 +37,6 @@ use FreeFormCertificate\Frontend\Submission\SubmissionRejected;
  *   - persist_schedule_exception(): full override + audit pair, no-op update.
  *
  * @covers \FreeFormCertificate\Frontend\Submission\SubmissionPersister
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class SubmissionPersisterTest extends TestCase {
@@ -125,6 +125,9 @@ class SubmissionPersisterTest extends TestCase {
 	// Normal (non-quiz) flow
 	// =====================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_normal_flow_fresh_insert_populates_context(): void {
 		$this->stubReprintDetector( $this->noReprint() );
 		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'My Form' ) );
@@ -144,6 +147,9 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertNull( $ctx->quiz_score );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_an_invited_submission_names_its_booking_and_a_reprint_does_not_write(): void {
 		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'My Form' ) );
 		Functions\when( 'is_wp_error' )->justReturn( false );
@@ -179,6 +185,9 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertTrue( $again->is_reprint, 'Opening the link again after answering reprints the certificate.' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_normal_flow_consumes_ticket(): void {
 		$this->stubReprintDetector( $this->noReprint() );
 		Functions\when( 'get_post' )->justReturn( null );
@@ -202,6 +211,9 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertSame( 7, $ctx->submission_id );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_normal_flow_persists_schedule_exception(): void {
 		$this->stubReprintDetector( $this->noReprint() );
 		Functions\when( 'get_post' )->justReturn( null );
@@ -240,6 +252,9 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertSame( 88, $ctx->submission_id );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_normal_flow_reprint_surfaces_auth_code(): void {
 		$this->stubReprintDetector(
 			array(
@@ -265,6 +280,9 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertSame( 'AUTH-XYZ', $ctx->submission_data['auth_code'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_normal_flow_db_failure_throws_rejected(): void {
 		$this->stubReprintDetector( $this->noReprint() );
 		Functions\when( 'get_post' )->justReturn( null );
@@ -305,6 +323,9 @@ class SubmissionPersisterTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_quiz_passing_inserts_and_publishes(): void {
 		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Quiz' ) );
 		Functions\when( 'is_wp_error' )->justReturn( false );
@@ -343,6 +364,7 @@ class SubmissionPersisterTest extends TestCase {
 	 * capped; a quiz without the reset records nothing.
 	 *
 	 * @dataProvider provider_focus_losses
+	 * @runInSeparateProcess
 	 */
 	public function test_quiz_records_the_window_leave_count_only_when_reset( string $reset, $posted, ?int $expected ): void {
 		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Quiz' ) );
@@ -391,6 +413,9 @@ class SubmissionPersisterTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_quiz_failing_in_progress_throws_feedback(): void {
 		Functions\when( 'get_post' )->justReturn( null );
 		Functions\when( 'is_wp_error' )->justReturn( false );
@@ -431,6 +456,7 @@ class SubmissionPersisterTest extends TestCase {
 	/**
 	 * #1732 — an open answer a person grades holds the result back: the
 	 * attempt is stored awaiting grading, with no feedback and no certificate.
+	 * @runInSeparateProcess
 	 */
 	public function test_quiz_with_an_open_answer_waits_for_grading(): void {
 		Functions\when( 'get_post' )->justReturn( null );
@@ -475,6 +501,9 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertSame( 10, $ctx->submission_data['_quiz_score'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_quiz_refuses_a_new_attempt_while_the_last_awaits_grading(): void {
 		Functions\when( 'get_post' )->justReturn( null );
 
@@ -522,6 +551,9 @@ class SubmissionPersisterTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_quiz_attempts_exhausted_throws_before_insert(): void {
 		Functions\when( 'get_post' )->justReturn( null );
 
@@ -573,6 +605,9 @@ class SubmissionPersisterTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_quiz_update_existing_in_progress_failed_status(): void {
 		Functions\when( 'get_post' )->justReturn( null );
 
@@ -641,6 +676,9 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertArrayHasKey( 'data_encrypted', $captured[1] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_quiz_already_passed_is_reprint(): void {
 		Functions\when( 'get_post' )->justReturn( null );
 
@@ -688,6 +726,9 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertSame( 'PREVAUTH', $ctx->submission_data['auth_code'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_quiz_insert_db_failure_throws_rejected(): void {
 		Functions\when( 'get_post' )->justReturn( null );
 		Functions\when( 'is_wp_error' )->justReturn( true );
@@ -802,6 +843,9 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertNull( $persister->find_quiz_submission( 5, '' ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_find_quiz_submission_uses_rf_column_for_7_digits(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
 		$enc->shouldReceive( 'is_configured' )->andReturn( true );
@@ -827,6 +871,9 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertSame( $row, $persister->find_quiz_submission( 5, '1234567' ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_find_quiz_submission_null_when_encryption_unconfigured(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
 		$enc->shouldReceive( 'is_configured' )->andReturn( false );
@@ -846,6 +893,9 @@ class SubmissionPersisterTest extends TestCase {
 	// maybe_persist_schedule_exception
 	// =====================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_maybe_persist_returns_false_when_claim_lost(): void {
 		$ses = Mockery::mock( 'alias:FreeFormCertificate\\Frontend\\ScheduleExceptionSession' );
 		$ses->shouldReceive( 'try_consume_jti' )->once()->andReturn( false );
@@ -861,6 +911,9 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertFalse( $result );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_maybe_persist_returns_true_when_claim_won(): void {
 		$ses = Mockery::mock( 'alias:FreeFormCertificate\\Frontend\\ScheduleExceptionSession' );
 		$ses->shouldReceive( 'try_consume_jti' )->once()->andReturn( true );
@@ -884,6 +937,9 @@ class SubmissionPersisterTest extends TestCase {
 	// persist_schedule_exception — audit pair
 	// =====================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_persist_schedule_exception_logs_audit_pair(): void {
 		$handler = $this->handlerWithRepo( $repo );
 		$repo->shouldReceive( 'update' )->once()->with(
@@ -914,6 +970,9 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertTrue( true );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_persist_schedule_exception_skips_update_when_no_overrides(): void {
 		$handler = $this->handlerWithRepo( $repo );
 		// Empty overrides -> no repo update.

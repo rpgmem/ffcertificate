@@ -15,11 +15,11 @@ use FreeFormCertificate\Loader;
  * the constructor/asset tests don't reach: ensure_admin_capabilities(),
  * init_rest_api(), and define_admin_hooks().
  *
- * These alias/overload the concrete collaborators (CapabilityManager,
- * UserManager, RestController, …) so they run in isolated processes.
+ * The tests that alias or overload a concrete collaborator (CapabilityManager,
+ * UserManager, RestController, …) run in their own process; the rest share it
+ * (#2091).
  *
  * @covers \FreeFormCertificate\Loader
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class LoaderCapabilitiesTest extends TestCase {
@@ -216,6 +216,9 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->assertArrayNotHasKey( 'ffc_admin_role_assigned_v2', $updated );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ensure_admin_role_assigned_delegates_and_writes_flag(): void {
 		$loader = new Loader();
 		Functions\when( 'get_option' )->justReturn( '' );
@@ -259,6 +262,9 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->assertArrayNotHasKey( 'ffc_rbac_caps_renamed_v1', $updated );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ensure_rbac_caps_renamed_delegates_and_writes_flag(): void {
 		$loader = new Loader();
 		Functions\when( 'get_option' )->justReturn( '' );
@@ -299,6 +305,9 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->assertArrayNotHasKey( 'ffc_rbac_roles_renamed_v1', $updated );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ensure_rbac_roles_renamed_delegates_and_writes_flag(): void {
 		$loader = new Loader();
 		Functions\when( 'get_option' )->justReturn( '' );
@@ -323,6 +332,9 @@ class LoaderCapabilitiesTest extends TestCase {
 	// init_rest_api()
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_init_rest_api_instantiates_controller(): void {
 		$loader = new Loader();
 
@@ -452,6 +464,9 @@ class LoaderCapabilitiesTest extends TestCase {
 	// init_plugin() — the full orchestration path (frontend context)
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_init_plugin_wires_the_full_module_graph(): void {
 		// Overload every collaborator init_plugin news up / calls statically so
 		// the orchestration runs end-to-end without touching WP or the real
@@ -568,6 +583,9 @@ class LoaderCapabilitiesTest extends TestCase {
 	// init_plugin() — module toggles skip disabled bootstraps
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_init_plugin_skips_disabled_module_bootstraps(): void {
 		// Every feature module toggled OFF in `ffc_settings`: init_plugin() must
 		// skip each gated bootstrap. The orchestrator-level lifecycle (activator

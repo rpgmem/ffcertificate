@@ -26,7 +26,6 @@ use PHPUnit\Framework\TestCase;
  *    not match must NOT call `reset_password`, or a typo burns the invitation.
  *
  * @covers \FreeFormCertificate\Core\PasswordInvite
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class PasswordInviteTest extends TestCase {
@@ -97,6 +96,9 @@ class PasswordInviteTest extends TestCase {
 		$this->assertSame( 48, PasswordInvite::clamp_hours( 48 ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_expiration_is_clamped_on_read_not_only_on_write(): void {
 		// A value written before a bound moved still has to land somewhere the
 		// code can use.
@@ -115,6 +117,9 @@ class PasswordInviteTest extends TestCase {
 		$this->assertSame( '', PasswordInvite::issue_for( 404 ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_issue_for_returns_empty_when_the_key_cannot_be_issued(): void {
 		$this->mockSettings();
 		Functions\when( 'get_userdata' )->justReturn( $this->makeUser() );
@@ -123,6 +128,9 @@ class PasswordInviteTest extends TestCase {
 		$this->assertSame( '', PasswordInvite::issue_for( 7 ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_issue_for_builds_a_url_carrying_key_and_login(): void {
 		$this->mockSettings();
 		Functions\when( 'get_userdata' )->justReturn( $this->makeUser( 7, 'maria' ) );
@@ -138,6 +146,9 @@ class PasswordInviteTest extends TestCase {
 	// validate — o filtro escopado
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_validate_registers_and_removes_the_expiration_filter(): void {
 		$this->mockSettings( 48 );
 		Functions\expect( 'add_filter' )->once()->with( 'password_reset_expiration', Mockery::type( 'callable' ) );
@@ -147,6 +158,9 @@ class PasswordInviteTest extends TestCase {
 		PasswordInvite::validate( 'ABC123', 'maria' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_validate_removes_the_filter_even_when_the_key_is_rejected(): void {
 		// A filter that survives the rejection leaks into the password reset of
 		// every other user on the site.
@@ -190,6 +204,9 @@ class PasswordInviteTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_handle_submit_refuses_a_bad_nonce(): void {
 		$this->mockSettings();
 		Functions\when( 'wp_verify_nonce' )->justReturn( false );
@@ -202,6 +219,9 @@ class PasswordInviteTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_handle_submit_refuses_an_expired_key(): void {
 		$this->mockSettings();
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
@@ -220,6 +240,9 @@ class PasswordInviteTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_handle_submit_does_not_spend_the_token_when_the_passwords_differ(): void {
 		// The token MUST survive: a typo cannot burn the invitation.
 		// `reset_password` is what would spend it.
@@ -243,6 +266,9 @@ class PasswordInviteTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_handle_submit_refuses_a_password_under_the_minimum(): void {
 		$this->mockSettings();
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
@@ -265,6 +291,9 @@ class PasswordInviteTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_handle_submit_sets_the_password_and_opens_the_session(): void {
 		$this->mockSettings();
 		$user = $this->makeUser( 7, 'maria' );
@@ -290,6 +319,9 @@ class PasswordInviteTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_handle_submit_ignores_a_posted_user_id(): void {
 		// The user comes from the token. If anybody ever reads `user_id` from the
 		// POST, this test breaks: the posted id (99) is not the token's (7).

@@ -16,7 +16,6 @@ use FreeFormCertificate\Audience\AudienceAccountEmail;
  * roles are what the stubs vary.
  *
  * @covers \FreeFormCertificate\Audience\AudienceAccountEmail
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class AudienceAccountEmailTest extends TestCase {
@@ -101,6 +100,12 @@ class AudienceAccountEmailTest extends TestCase {
 		}
 	}
 
+	/**
+	 * Its own process: the nonce is memoised in a static for the request, so
+	 * a render earlier in the process would already have created it.
+	 *
+	 * @runInSeparateProcess
+	 */
 	public function test_the_nonce_is_created_once_for_every_row(): void {
 		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'get_user_by' )->justReturn( (object) array( 'roles' => array() ) );
@@ -126,6 +131,9 @@ class AudienceAccountEmailTest extends TestCase {
 		$this->assertSame( '', AudienceAccountEmail::render( self::MEMBER, '' ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_an_account_is_listed_as_a_member_or_a_calendar_user(): void {
 		$reader = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		$reader->shouldReceive( 'is_member_of_any' )->andReturnUsing( static fn( int $id ) => 7 === $id );

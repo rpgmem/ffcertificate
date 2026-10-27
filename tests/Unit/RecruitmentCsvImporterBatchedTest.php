@@ -16,12 +16,11 @@ use FreeFormCertificate\Recruitment\RecruitmentCsvImporter;
  * commit_job, plus the import_definitive entry point.
  *
  * These exercise the SQL-driven state machine against a mocked `$wpdb`
- * and alias-stubbed recruitment repositories. Process-isolated so the
- * alias mocks for the static repositories / Encryption / PcdHasher don't
- * leak into sibling tests.
+ * and alias-stubbed recruitment repositories. The tests that alias the static
+ * repositories / Encryption / PcdHasher run in their own process; the rest
+ * share it (#2091).
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentCsvImporter
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class RecruitmentCsvImporterBatchedTest extends TestCase {
@@ -104,6 +103,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	// ingest_job()
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ingest_job_rejects_unknown_notice(): void {
 		$this->wire_repos( null );
 
@@ -113,6 +115,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->assertContains( 'recruitment_notice_not_found', $out['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ingest_job_rejects_preview_when_notice_not_eligible(): void {
 		$this->wire_repos( $this->notice_stub( 'active' ) );
 
@@ -122,6 +127,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->assertContains( 'recruitment_invalid_state_for_preview_import', $out['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ingest_job_rejects_parse_errors(): void {
 		$this->wire_repos( $this->notice_stub( 'draft' ) );
 
@@ -131,6 +139,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->assertStringContainsString( 'recruitment_csv_missing_headers', $out['errors'][0] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ingest_job_rejects_empty_rows(): void {
 		$this->wire_repos( $this->notice_stub( 'draft' ) );
 
@@ -141,6 +152,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->assertContains( 'recruitment_csv_empty', $out['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ingest_job_rejects_when_notice_has_no_adjutancies(): void {
 		$this->wire_repos( $this->notice_stub( 'draft' ), array() );
 
@@ -150,6 +164,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->assertContains( 'recruitment_notice_has_no_adjutancies', $out['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ingest_job_inserts_job_and_staging_rows(): void {
 		$this->wire_repos( $this->notice_stub( 'draft' ) );
 
@@ -169,6 +186,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->assertSame( 2, $out['total'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ingest_job_returns_error_when_job_insert_fails(): void {
 		$this->wire_repos( $this->notice_stub( 'draft' ) );
 
@@ -181,6 +201,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->assertContains( 'recruitment_import_job_insert_failed', $out['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_ingest_job_rolls_back_when_staging_insert_fails(): void {
 		$this->wire_repos( $this->notice_stub( 'draft' ) );
 
@@ -343,6 +366,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->assertSame( 2, $out['total'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_promote_batch_processes_rows_and_flips_state(): void {
 		// upsert_candidate path → no existing candidate, then create.
 		$cand_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
@@ -447,6 +473,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->assertContains( 'recruitment_import_job_not_finished', $out['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_commit_job_swaps_staging_into_classifications(): void {
 		$cls_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationRepository' );
 		$cls_repo->shouldReceive( 'delete_all_for_notice_list' )->andReturn( 0 );
@@ -474,6 +503,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->assertSame( 4, $out['inserted'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_commit_job_rolls_back_on_swap_failure(): void {
 		$cls_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationRepository' );
 		$cls_repo->shouldReceive( 'delete_all_for_notice_list' )->andReturn( 0 );
@@ -500,6 +532,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	// import_definitive()
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_import_definitive_rejects_unknown_notice(): void {
 		$this->wire_repos( null );
 
@@ -548,6 +583,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$user_creator->shouldReceive( 'get_or_create_user_dual' )->andReturn( 0 );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_import_definitive_commits_rows_on_happy_path(): void {
 		$this->wire_repos( $this->notice_stub( 'definitive' ) );
 		$this->wire_run_writers( 200 );
@@ -566,6 +604,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->assertSame( array(), $out['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_import_definitive_rolls_back_when_classification_insert_fails(): void {
 		$this->wire_repos( $this->notice_stub( 'definitive' ) );
 		// ClassificationRepository::create returns false → rollback.
@@ -583,6 +624,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->assertContains( 'recruitment_classification_insert_failed', $out['errors'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_import_definitive_propagates_validation_errors(): void {
 		$this->wire_repos( $this->notice_stub( 'definitive' ) );
 

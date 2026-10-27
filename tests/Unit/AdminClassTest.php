@@ -13,7 +13,6 @@ use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * @covers \FreeFormCertificate\Admin\Admin
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class AdminClassTest extends TestCase {
@@ -245,6 +244,12 @@ class AdminClassTest extends TestCase {
 		$this->assertFalse( $added );
 	}
 
+	/**
+	 * Its own process: the guard reads function_exists( 'get_current_screen' ),
+	 * and any earlier test that stubbed it leaves it defined.
+	 *
+	 * @runInSeparateProcess
+	 */
 	public function test_maybe_register_tinymce_filter_handles_missing_function(): void {
 		// get_current_screen left undefined -> function_exists() guard returns.
 		// The only thing the method does past that guard is register the
@@ -280,6 +285,9 @@ class AdminClassTest extends TestCase {
 		$this->assertTrue( true );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_display_submissions_page_dispatches_to_list_render(): void {
 		list( $admin ) = $this->makeAdmin();
 		// No action -> default 'list' -> render_list_page news up SubmissionsList.
@@ -301,6 +309,9 @@ class AdminClassTest extends TestCase {
 	// render_list_page() filter/button branches (via display)
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_list_page_export_all_button_default(): void {
 		list( $admin ) = $this->makeAdmin();
 		$list = Mockery::mock( 'overload:FreeFormCertificate\Admin\SubmissionsList' );
@@ -317,6 +328,9 @@ class AdminClassTest extends TestCase {
 		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-neutral ffc-icon-download" id="ffc-csv-export-btn"', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_list_page_export_filtered_button_with_filters(): void {
 		list( $admin ) = $this->makeAdmin();
 		$_GET['status'] = 'trash';
@@ -338,6 +352,9 @@ class AdminClassTest extends TestCase {
 		$this->assertStringContainsString( 'data-status="trash"', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_list_page_handles_scalar_filter_form_id(): void {
 		list( $admin ) = $this->makeAdmin();
 		$_GET['filter_form_id'] = '5';
@@ -763,6 +780,9 @@ class AdminClassTest extends TestCase {
 		$admin->handle_migration_action();
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_handle_migration_action_dies_on_invalid_key(): void {
 		$_GET['ffc_migration'] = 'nope';
 		Functions\when( 'wp_die' )->alias( function ( $msg ) { throw new \DomainException( (string) $msg ); } );
@@ -775,6 +795,9 @@ class AdminClassTest extends TestCase {
 		$admin->handle_migration_action();
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_handle_migration_action_success_redirects(): void {
 		$_GET['ffc_migration'] = 'cpf';
 
@@ -788,6 +811,9 @@ class AdminClassTest extends TestCase {
 		$admin->handle_migration_action();
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_handle_migration_action_error_redirects(): void {
 		$_GET['ffc_migration'] = 'cpf';
 		Functions\when( 'is_wp_error' )->justReturn( true );

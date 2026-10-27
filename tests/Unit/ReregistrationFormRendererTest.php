@@ -12,7 +12,6 @@ use FreeFormCertificate\Reregistration\ReregistrationFormRenderer;
 
 /**
  * @covers \FreeFormCertificate\Reregistration\ReregistrationFormRenderer
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class ReregistrationFormRendererTest extends TestCase {
@@ -136,6 +135,9 @@ class ReregistrationFormRendererTest extends TestCase {
 	// render() — basic rendering
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_returns_form_html(): void {
 		$this->mockRepositories();
 
@@ -155,6 +157,9 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringContainsString( 'Default termo de ciência', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_offers_the_import_when_a_previous_approval_exists(): void {
 		self::$mockImportSource = (object) array( 'reregistration_title' => 'Recadastramento 2024' );
 		$this->mockRepositories();
@@ -170,6 +175,9 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringContainsString( 'Recadastramento 2024', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_omits_the_import_offer_without_a_previous_approval(): void {
 		$this->mockRepositories();
 
@@ -181,6 +189,9 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringNotContainsString( 'data-ffc-notice="rereg-import"', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_acknowledgment_field_outputs_its_html(): void {
 		$this->mockRepositories( array(
 			$this->makeField( array(
@@ -212,6 +223,9 @@ class ReregistrationFormRendererTest extends TestCase {
 	// render() — with saved draft data
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_populates_from_saved_draft(): void {
 		$this->mockRepositories( array(
 			$this->makeField( array(
@@ -264,6 +278,7 @@ class ReregistrationFormRendererTest extends TestCase {
 	 * in place.
 	 *
 	 * @return void
+	 * @runInSeparateProcess
 	 */
 	public function test_render_decrypts_a_sensitive_draft_value(): void {
 		$encryptionMock = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
@@ -325,6 +340,9 @@ class ReregistrationFormRendererTest extends TestCase {
 	// render() — deadline is displayed
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_shows_deadline(): void {
 		$this->mockRepositories();
 
@@ -390,6 +408,9 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertSame( '<textarea id="fid" name="fields[notes]" rows="3"></textarea>', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_input_select_lists_choices_and_selects_the_value(): void {
 		$this->stubRealSelectedAndChecked();
 		$field = $this->makeField( array( 'field_key' => 'shift', 'field_type' => 'select' ) );
@@ -458,6 +479,9 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertSame( '<input type="text" id="fid" name="fields[misc]" value="v">', $this->renderInput( $field, 'v' ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_input_dependent_select_restores_parent_and_child(): void {
 		$this->stubRealSelectedAndChecked();
 		$field = $this->makeField( array(
@@ -478,6 +502,9 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringNotContainsString( 'value="S1"', $html, 'Only the chosen parent\'s children are listed.' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_input_dependent_select_without_value_uses_default_labels(): void {
 		$this->stubRealSelectedAndChecked();
 		$field = $this->makeField( array( 'field_key' => 'unit', 'field_type' => 'dependent_select' ) );
@@ -491,6 +518,9 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringNotContainsString( 'value="N1"', $html, 'No parent chosen, so no child is listed.' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_input_working_hours_renders_stored_rows(): void {
 		$this->stubRealSelectedAndChecked();
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationFieldOptions' )
@@ -505,6 +535,9 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringContainsString( 'value="13:00"', $html );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_input_working_hours_falls_back_to_the_default_schedule(): void {
 		$this->stubRealSelectedAndChecked();
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationFieldOptions' )
@@ -522,6 +555,9 @@ class ReregistrationFormRendererTest extends TestCase {
 	// render_field() / render_group_fieldset() / acknowledgment fallback
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_field_acknowledgment_without_html_uses_the_default_notice(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationFieldOptions' )
 			->shouldReceive( 'get_default_acknowledgment_html' )->once()->andReturn( '<p>Shipped notice</p>' );
@@ -608,6 +644,9 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertSame( '', ob_get_clean() );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_acknowledgment_fieldset_prints_the_default_notice(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationFieldOptions' )
 			->shouldReceive( 'get_default_acknowledgment_html' )->andReturn( '<p>Shipped notice</p>' );
@@ -624,6 +663,9 @@ class ReregistrationFormRendererTest extends TestCase {
 	// build_field_values() — resolution order
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_build_field_values_follows_draft_profile_email_default_order(): void {
 		$user_manager = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' );
 		$user_manager->shouldReceive( 'get_extended_profile' )
@@ -658,6 +700,9 @@ class ReregistrationFormRendererTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_build_field_values_skips_the_profile_for_a_guest(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' )
 			->shouldNotReceive( 'get_extended_profile' );

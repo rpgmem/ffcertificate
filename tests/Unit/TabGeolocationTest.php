@@ -18,7 +18,6 @@ use FreeFormCertificate\Settings\Tabs\TabGeolocation;
  * Reflection, get_default_settings, and get_settings.
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabGeolocation
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class TabGeolocationTest extends TestCase {
@@ -644,6 +643,9 @@ class TabGeolocationTest extends TestCase {
 		unset( $_GET['ffc_delete_location'], $_GET['_wpnonce'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_handle_location_delete_deletes_and_redirects_on_valid_nonce(): void {
 		$_GET['ffc_delete_location'] = 'loc1';
 		$_GET['_wpnonce']            = 'good';
@@ -674,6 +676,9 @@ class TabGeolocationTest extends TestCase {
 		unset( $_GET['ffc_delete_location'], $_GET['_wpnonce'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_handle_location_delete_blocks_view_only_user(): void {
 		// A valid nonce but no manage capability (view-only user): the delete
 		// must wp_die before touching the registry.
@@ -703,6 +708,9 @@ class TabGeolocationTest extends TestCase {
 	// save_locations() — new + existing location CRUD
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_save_locations_saves_new_and_updates_existing(): void {
 		$_POST['ffc_location_new'] = array(
 			'name'   => 'HQ',
@@ -754,6 +762,9 @@ class TabGeolocationTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_save_locations_skips_blank_new_name(): void {
 		$_POST['ffc_location_new'] = array( 'name' => '   ' );
 		Functions\when( 'sanitize_text_field' )->returnArg();
@@ -804,6 +815,9 @@ class TabGeolocationTest extends TestCase {
 	// render() — POST submission through the REAL render()
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_real_post_submission_saves_and_shows_notice(): void {
 		$_POST['ffc_save_geolocation'] = '1';
 		$_POST['ip_api_service']       = 'ip-api';
@@ -850,6 +864,9 @@ class TabGeolocationTest extends TestCase {
 		$this->assertStringContainsString( 'name="ffc_save_geolocation"', $output, 'render() must go on to include the shipped view after saving' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_does_not_save_for_view_only_user(): void {
 		// A view-only user (ffc_view_settings, no ffc_manage_settings) POSTs
 		// the form nonce directly; render() must NOT persist and must NOT show
@@ -905,6 +922,9 @@ class TabGeolocationTest extends TestCase {
 		$this->assertStringNotContainsString( 'Geolocation settings saved successfully!', $output );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_render_without_post_includes_view(): void {
 		unset( $_POST['ffc_save_geolocation'] );
 

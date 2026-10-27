@@ -17,11 +17,10 @@ use FreeFormCertificate\Reregistration\ReregistrationExportSource;
  * into is tested in BatchedCsvExportTest. Migrated from the former synchronous
  * ReregistrationCsvExporter (issue #772).
  *
- * Process isolation is used so the count()/build_context()/fetch_page()
- * delegation tests can alias-mock the static readers without leaking.
+ * The count()/build_context()/fetch_page() delegation tests alias-mock the
+ * static readers, so those run in their own process; the rest share it (#2091).
  *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationExportSource
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase {
@@ -147,6 +146,9 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		$this->assertSame( 'North / HQ', $result[7] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_format_row_masks_the_email_and_sensitive_fields_without_the_pii_cap(): void {
 		$enc = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
 		$enc->shouldReceive( 'looks_like_envelope' )->andReturn( false );
@@ -166,6 +168,9 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		$this->assertSame( 'TI', $result[7] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_a_clear_export_is_recorded_and_a_masked_one_is_not(): void {
 		$calls = array();
 		Mockery::getConfiguration()->setConstantsMap(
@@ -187,6 +192,9 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		$this->assertSame( array( array( 'pii_exported', 'info', array( 'export' => 'reregistration', 'rows' => 12 ), 1, 0 ) ), $calls );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_format_row_decrypts_sensitive(): void {
 		// The reader asks the VALUE whether it is an envelope before attempting
 		// (#1509), so the double answers that too.
@@ -211,6 +219,7 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 	 *
 	 * Before the reader decided from the value, this row exported the CIPHERTEXT
 	 * into the CSV column where the CPF belongs -- no failure, no log line.
+	 * @runInSeparateProcess
 	 */
 	public function test_format_row_decrypts_even_when_the_field_is_no_longer_sensitive(): void {
 		$enc = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
@@ -255,6 +264,9 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		$this->assertSame( array( 'reregistration_id' => 5 ), $this->source->sanitize_filters() );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_count_delegates(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
 			->shouldReceive( 'count_by_reregistration' )->once()->with( 5 )->andReturn( 12 );
@@ -262,6 +274,9 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		$this->assertSame( 12, $this->source->count( array( 'reregistration_id' => 5 ) ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_build_context_resolves_fields_and_title(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationRepository' )
 			->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'id' => 5, 'title' => 'Campaign X' ) )
@@ -275,6 +290,9 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		$this->assertCount( 1, $context['fields'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_build_context_empty_for_missing_campaign(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationRepository' )
 			->shouldReceive( 'get_by_id' )->with( 99 )->andReturn( null );
@@ -284,6 +302,9 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		$this->assertSame( '', $context['title'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_fetch_page_casts_reader_objects_to_arrays(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
 			->shouldReceive( 'find_by_cursor_for_export' )->once()->with( 5, 10, 50 )

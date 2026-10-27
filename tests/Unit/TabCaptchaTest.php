@@ -14,11 +14,10 @@ use PHPUnit\Framework\TestCase;
 /**
  * Tests for TabCaptcha: the captcha settings tab (#1053).
  *
- * Runs in separate processes for the AssetHelper alias mock, like the other
- * settings-tab tests.
+ * The test that alias-mocks AssetHelper runs in its own process; the rest
+ * share it (#2091).
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabCaptcha
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class TabCaptchaTest extends TestCase {
@@ -90,6 +89,9 @@ class TabCaptchaTest extends TestCase {
 		$this->assertSame( array(), $enqueued );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_the_script_loads_on_the_captcha_tab(): void {
 		SettingsTab::set_resolved_active_tab( 'captcha' );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )->shouldReceive( 'asset_suffix' )->andReturn( '.min' );

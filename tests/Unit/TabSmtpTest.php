@@ -15,7 +15,6 @@ use FreeFormCertificate\Settings\Tabs\TabSMTP;
  * Tests for TabSMTP: SMTP settings tab.
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabSMTP
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class TabSmtpTest extends TestCase {
@@ -130,6 +129,9 @@ class TabSmtpTest extends TestCase {
 	// enqueue_scripts() — correct hook and correct tab
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_enqueue_scripts_enqueues_script_when_tab_is_smtp(): void {
 		SettingsTab::set_resolved_active_tab( 'smtp' );
 		Functions\when( 'wp_unslash' )->returnArg();

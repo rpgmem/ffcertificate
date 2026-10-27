@@ -16,7 +16,6 @@ use FreeFormCertificate\Settings\Tabs\TabEmailTexts;
  * directory (split out of the SMTP tab in #976).
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabEmailTexts
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class TabEmailTextsTest extends TestCase {
@@ -168,6 +167,9 @@ class TabEmailTextsTest extends TestCase {
 		$this->assertStringContainsString( '<noscript>', $out );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_maybe_save_persists_edited_override(): void {
 		$_POST['ffc_save_email_bodies'] = '1';
 		$_POST['ffc_email_bodies']      = array(
@@ -201,6 +203,9 @@ class TabEmailTextsTest extends TestCase {
 		$this->assertTrue( $ref->invoke( $this->tab ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_maybe_save_clears_override_when_equal_to_file_default(): void {
 		$_POST['ffc_save_email_bodies'] = '1';
 		$_POST['ffc_email_bodies']      = array(
@@ -244,6 +249,9 @@ class TabEmailTextsTest extends TestCase {
 	// enqueue_scripts() — the selector JS + editor API (#976 B2)
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_enqueue_scripts_loads_editor_and_selector_when_cap_held(): void {
 		SettingsTab::set_resolved_active_tab( 'email_texts' );
 		Functions\when( 'wp_unslash' )->returnArg();

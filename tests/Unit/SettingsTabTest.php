@@ -18,7 +18,6 @@ use FreeFormCertificate\Settings\SettingsTab;
  * enqueue_autosave_infra).
  *
  * @covers \FreeFormCertificate\Settings\SettingsTab
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class SettingsTabTest extends TestCase {
@@ -438,6 +437,9 @@ class SettingsTabTest extends TestCase {
 	// enqueue_autosave_infra() — enqueues ffc-core + autosave + collapse
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_enqueue_autosave_infra_enqueues_core_and_localizes_nonce(): void {
 		$tab = new class() extends SettingsTab {
 			protected function init(): void {
