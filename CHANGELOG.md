@@ -16,6 +16,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Tests: the classes that still isolate every test are frozen** (#2091). A ratchet in the isolation guard fails when a new class runs every test in its own process, and when a listed one stops, so the remaining debt can only shrink.
 - **Tests: gaps found by mutation testing are closed** (#2098). The quiz scorer is now tested for a question that follows a skipped field, for percentage rounding and for the exact-set checkbox mode with options in any order. Encryption tests pin which 32 bytes of `FFC_ENCRYPTION_KEY` form the key, using a key with no repeated character.
 - **Tests: `DocumentFormatter` gaps found by mutation testing are closed** (#2100). CPF check digits (the first digit alone, a remainder of 10), accented first letters, the prefix of an auth code, the boundary length of the RF, CIN and phone masks, an invalid e-mail with one `@`, a padded e-mail, and the deprecation notice of `clean_identifier()`.
+- **Tests: a second mutation-testing round closes gaps in the captcha, the quiz editor and GPS readings** (#2102). An ALTCHA solution at counter 0 and at the largest counter, a counter sent as a string, the spent-proof lifetime, the widget's challenge URL, the no-JavaScript notice and the registered scripts; the quiz sanitizer's one-bound range and full result; GPS readings at the edges of every range.
 
 ### Deprecated
 

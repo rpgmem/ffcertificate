@@ -247,4 +247,15 @@ class GpsReadingTest extends TestCase {
 
 		$this->assertSame( array( 'reading' => null, 'status' => 'timeout' ), GpsReading::from_request() );
 	}
+
+	public function test_parse_accepts_the_edges_of_every_range(): void {
+		// A reading taken this very second, with a perfect fix, at the poles
+		// and on the antimeridian, is a reading (#2102).
+		foreach ( array( array( '-90', '-180' ), array( '90', '180' ) ) as list( $lat, $lng ) ) {
+			$this->assertSame(
+				array( 'lat' => (float) $lat, 'lng' => (float) $lng, 'accuracy' => 0.0, 'age' => 0 ),
+				GpsReading::parse( array( 'lat' => $lat, 'lng' => $lng, 'accuracy' => '0', 'age' => '0' ) )
+			);
+		}
+	}
 }

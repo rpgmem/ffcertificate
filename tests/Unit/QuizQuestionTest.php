@@ -140,4 +140,51 @@ class QuizQuestionTest extends TestCase {
 		$this->assertFalse( QuizQuestion::is_manual( array( 'quiz_scored' => '0' ) + $manual ), 'A question left out is not graded.' );
 		$this->assertFalse( QuizQuestion::is_manual( array( 'type' => 'radio' ) + $manual ), 'Only an open answer is graded by a person.' );
 	}
+
+	// ==================================================================
+	// Gaps found by mutation testing (#2102)
+	// ==================================================================
+
+	public function test_a_range_with_one_bound_keeps_it_where_it_was_typed(): void {
+		$clean = QuizQuestion::sanitize(
+			array(
+				'quiz_block'      => '1',
+				'quiz_answer_min' => '12',
+				'quiz_answer_max' => '',
+			),
+			'number',
+			array()
+		);
+
+		$this->assertSame( '12', $clean['quiz_answer_min'], 'Only a range with both bounds can be reversed.' );
+		$this->assertSame( '', $clean['quiz_answer_max'] );
+	}
+
+	public function test_a_single_option_row_without_points_stores_no_points(): void {
+		$clean = QuizQuestion::sanitize(
+			array(
+				'choices'        => array( 'A' ),
+				'choice_points'  => array( '' ),
+				'choice_correct' => array( '0' ),
+			),
+			'radio',
+			array( 'A' )
+		);
+
+		$this->assertSame( '', $clean['points'] );
+	}
+
+	public function test_a_row_without_the_quiz_block_keeps_its_points_and_its_correct_options(): void {
+		$clean = QuizQuestion::sanitize(
+			array(
+				'choices'        => array( 'A', 'B' ),
+				'choice_points'  => array( '3', '' ),
+				'choice_correct' => array( '0', '1' ),
+			),
+			'radio',
+			array( 'A', 'B' )
+		);
+
+		$this->assertSame( array( 'points' => '3,0', 'correct' => array( 'B' ) ), $clean );
+	}
 }
