@@ -37,6 +37,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Security
 
 - **Rate limiting no longer stores client addresses in clear** (#2109). Counters, logs, recruitment, export ownership, telemetry and captcha key a caller by a keyed fingerprint (HMAC of its IPv4 address or IPv6 /64); the log keeps the address encrypted, and a migration card cleans older rows. Counters restart once.
+- **Client addresses are masked on the activity log and the Rate Limit tab** (#2109). The log's table, entry details and CSV, and the top blocked addresses, show an address masked; new capabilities `ffc_view_activity_log_pii` (FFC Administrator) and `ffc_view_settings_pii` (FFC Settings Manager and Administrator) reveal it, audited, and are seeded on upgrade to current viewers.
 
 ## [6.42.0] (2026-10-26) — `8241871c`
 

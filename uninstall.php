@@ -317,6 +317,7 @@ $ffcertificate_options = array(
 	// (#1214) reaches installs that already flagged _v1 as done. The old flag
 	// stays listed: an install upgraded through 6.9.0 carries both.
 	'ffc_import_caps_granted_v2',
+	'ffc_ip_pii_caps_v1',
 	'ffc_migration_custom_fields_tables_completed',
 	'ffc_migration_dynamic_rereg_fields_completed',
 	'ffc_migration_rename_capabilities_completed',

@@ -23,6 +23,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class TabRateLimit extends SettingsTab {
 
 	/**
+	 * Capability that reveals a blocked address in the statistics (#2109).
+	 */
+	public const PII_CAP = 'ffc_view_settings_pii';
+
+	/**
 	 * Lines of the address lists the last save refused.
 	 *
 	 * @var array<int, string>
@@ -54,6 +59,8 @@ class TabRateLimit extends SettingsTab {
 			return;
 		}
 		$this->enqueue_autosave_infra();
+		// The Reveal beside a top blocked address (#2109).
+		\FreeFormCertificate\Core\PiiReveal::enqueue_assets();
 	}
 
 	/**

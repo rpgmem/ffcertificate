@@ -158,7 +158,10 @@ class ActivityLogExportSource implements BatchedExportSourceInterface {
 	 */
 	public function build_context( array $filters ): array {
 		unset( $filters );
-		return array();
+		// Whether the client address goes out in clear, frozen for the job (#2109).
+		return array(
+			'pii' => \FreeFormCertificate\Core\PiiExport::allowed( AdminActivityLogPage::PII_CAP ),
+		);
 	}
 
 	/**
@@ -224,13 +227,14 @@ class ActivityLogExportSource implements BatchedExportSourceInterface {
 	 * @return array<int, string>
 	 */
 	public function format_row( array $row, array $context ): array {
-		unset( $context );
+		$clear = ! empty( $context['pii'] );
 
 		$log_context = '';
 		if ( ! empty( $row['context'] ) ) {
-			$log_context = is_array( $row['context'] )
-				? (string) wp_json_encode( $row['context'], JSON_UNESCAPED_UNICODE )
-				: (string) $row['context'];
+			$details     = $clear ? $row['context'] : AdminActivityLogPage::mask_addresses( $row['context'] );
+			$log_context = is_array( $details )
+				? (string) wp_json_encode( $details, JSON_UNESCAPED_UNICODE )
+				: (string) $details;
 		}
 
 		return array(
@@ -238,7 +242,7 @@ class ActivityLogExportSource implements BatchedExportSourceInterface {
 			strtoupper( (string) ( $row['level'] ?? '' ) ),
 			AdminActivityLogPage::get_action_label( (string) ( $row['action'] ?? '' ) ),
 			$this->user_display( (int) ( $row['user_id'] ?? 0 ) ),
-			(string) ( $row['user_ip'] ?? '' ),
+			(string) \FreeFormCertificate\Core\PiiExport::cell( 'user_ip', (string) ( $row['user_ip'] ?? '' ), $clear ),
 			$log_context,
 		);
 	}
@@ -263,7 +267,11 @@ class ActivityLogExportSource implements BatchedExportSourceInterface {
 	 * @return void
 	 */
 	public function on_complete( string $job_id, array $job ): void {
-		unset( $job_id, $job );
+		unset( $job_id );
+		// An export with addresses in clear is a bulk reveal (#2109).
+		if ( ! empty( $job['context']['pii'] ) ) {
+			\FreeFormCertificate\Core\PiiExport::log( self::TYPE, (int) ( $job['processed'] ?? 0 ) );
+		}
 	}
 
 	/**

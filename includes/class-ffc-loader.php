@@ -540,6 +540,7 @@ class Loader {
 		$this->ensure_grade_cap_granted();
 		$this->ensure_reregistration_pii_cap_granted();
 		$this->ensure_audiences_pii_cap_granted();
+		$this->ensure_ip_pii_caps_granted();
 		$this->ensure_forms_api_submit_cap_granted();
 		$this->ensure_recruitment_email_migrated();
 		$this->ensure_activity_log_export_cap_granted();
@@ -858,6 +859,25 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_audiences_pii_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration seeding the address reveal caps (#2109):
+	 * `ffc_view_activity_log_pii` onto activity log viewers and
+	 * `ffc_view_settings_pii` onto settings managers.
+	 *
+	 * @since 6.43.0
+	 * @return void
+	 */
+	private function ensure_ip_pii_caps_granted(): void {
+		$flag = 'ffc_ip_pii_caps_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_ip_pii_caps_grant();
 		}
 		update_option( $flag, '1', true );
 	}

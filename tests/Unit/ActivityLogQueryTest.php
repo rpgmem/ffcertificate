@@ -662,4 +662,18 @@ class ActivityLogQueryTest extends TestCase {
 		$this->assertArrayNotHasKey( 'context_decrypted', $logs[2], 'an undecryptable context is left alone' );
 		$this->assertNull( $logs[2]['user_ip'], 'an undecryptable IP reads as null, never as the ciphertext' );
 	}
+
+	public function test_ip_of_reads_one_entrys_address_for_a_reveal(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
+			array( 'id' => 5, 'user_ip' => null, 'user_ip_encrypted' => \FreeFormCertificate\Core\Encryption::encrypt( '2804:14c::9' ) ),
+			array( 'id' => 6, 'user_ip' => '203.0.113.5', 'user_ip_encrypted' => null ),
+			null
+		);
+
+		$this->assertSame( '2804:14c::9', ActivityLogQuery::ip_of( 5 ), 'the encrypted address, decrypted' );
+		$this->assertSame( '203.0.113.5', ActivityLogQuery::ip_of( 6 ), 'a row older than the encryption' );
+		$this->assertSame( '', ActivityLogQuery::ip_of( 7 ), 'a missing entry' );
+		$this->assertSame( '', ActivityLogQuery::ip_of( 0 ), 'no id, no query' );
+	}
 }

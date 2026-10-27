@@ -112,6 +112,7 @@ class LoaderMigrationsTest extends TestCase {
 			'date messages send' => array( 'ensure_date_messages_send_cap_granted', 'ffc_date_messages_send_cap_v1', 'migrate_date_messages_send_cap_grant' ),
 			'reregistration pii'   => array( 'ensure_reregistration_pii_cap_granted', 'ffc_reregistration_pii_cap_v1', 'migrate_reregistration_pii_cap_grant' ),
 			'audiences pii'        => array( 'ensure_audiences_pii_cap_granted', 'ffc_audiences_pii_cap_v1', 'migrate_audiences_pii_cap_grant' ),
+			'ip pii'               => array( 'ensure_ip_pii_caps_granted', 'ffc_ip_pii_caps_v1', 'migrate_ip_pii_caps_grant' ),
 			'forms api submit'     => array( 'ensure_forms_api_submit_cap_granted', 'ffc_forms_api_submit_cap_v1', 'migrate_forms_api_submit_cap_grant' ),
 			// #1860: run from register_ffc_roles_safe() on init, after the seeds.
 			'role tiers'           => array( 'ensure_role_tiers_applied', 'ffc_role_tiers_v1', 'migrate_role_tiers' ),

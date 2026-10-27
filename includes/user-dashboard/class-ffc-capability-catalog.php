@@ -446,6 +446,10 @@ final class CapabilityCatalog {
 						'label'       => __( 'Manage email templates', 'ffcertificate' ),
 						'description' => __( 'Edit the global default body and subject of the plugin emails.', 'ffcertificate' ),
 					),
+					'ffc_view_settings_pii'          => array(
+						'label'       => __( 'Reveal settings PII', 'ffcertificate' ),
+						'description' => __( 'Reveal a blocked address listed on the Rate Limit tab (audited). Without it the address stays masked (#2109).', 'ffcertificate' ),
+					),
 				),
 			),
 			array(
@@ -453,37 +457,41 @@ final class CapabilityCatalog {
 				'label' => __( 'System & tools', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
-					'ffc_view_activity_log'   => array(
+					'ffc_view_activity_log'     => array(
 						'label'       => __( 'View activity log', 'ffcertificate' ),
 						'description' => __( 'Inspect the audit trail.', 'ffcertificate' ),
 					),
-					'ffc_export_activity_log' => array(
+					'ffc_export_activity_log'   => array(
 						'label'       => __( 'Export activity log', 'ffcertificate' ),
 						'description' => __( 'Download the audit trail as CSV.', 'ffcertificate' ),
 					),
-					'ffc_view_as_user'        => array(
+					'ffc_view_activity_log_pii' => array(
+						'label'       => __( 'Reveal activity log PII', 'ffcertificate' ),
+						'description' => __( 'Reveal the client address of an activity log entry, and export it in clear (audited). Without it the address stays masked (#2109).', 'ffcertificate' ),
+					),
+					'ffc_view_as_user'          => array(
 						'label'       => __( 'View as user', 'ffcertificate' ),
 						'description' => __( "Open the dashboard from another user's perspective.", 'ffcertificate' ),
 					),
-					'ffc_view_forms_api'      => array(
+					'ffc_view_forms_api'        => array(
 						'label'       => __( 'Read forms via REST API', 'ffcertificate' ),
 						'description' => __( 'For external integrators authenticating with Application Passwords.', 'ffcertificate' ),
 						'surface'     => 'api',
 					),
-					'ffc_submit_forms_api'    => array(
+					'ffc_submit_forms_api'      => array(
 						'label'       => __( 'Submit forms via REST API', 'ffcertificate' ),
 						'description' => __( 'Lets an integration submit a form through the REST API, with the same checks as the public form. Creates submissions and may create accounts and send email.', 'ffcertificate' ),
 						'surface'     => 'api',
 					),
-					'ffc_manage_identities'   => array(
+					'ffc_manage_identities'     => array(
 						'label'       => __( 'Resolve identity conflicts', 'ffcertificate' ),
 						'description' => __( 'Work the identity queue: correct a stored CPF/RF, and move records to the account they belong to. Does not reveal a stored identifier — that stays with the PII capability. Opening an account and merging two are separate capabilities.', 'ffcertificate' ),
 					),
-					'ffc_split_identities'    => array(
+					'ffc_split_identities'      => array(
 						'label'       => __( 'Open an account from the identity queue', 'ffcertificate' ),
 						'description' => __( 'Give records carrying one identifier an account of their own. Creates a WordPress user, so it is granted apart from the queue itself.', 'ffcertificate' ),
 					),
-					'ffc_merge_identities'    => array(
+					'ffc_merge_identities'      => array(
 						'label'       => __( 'Merge two identity accounts', 'ffcertificate' ),
 						'description' => __( 'Consolidate two logins that are one person. The only action on this screen that no other undoes: afterwards nothing can say which record came from which login.', 'ffcertificate' ),
 					),
