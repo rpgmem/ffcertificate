@@ -14,11 +14,7 @@ use FreeFormCertificate\UserDashboard\UserCleanup;
  * Tests for UserCleanup: hook registration, user data anonymization
  * on deletion, and email change handling with hash reindexing.
  *
- * Alias mocks for ActivityLog and Utils are created in setUp to prevent
- * autoloading of the real classes.
- *
  * @covers \FreeFormCertificate\UserDashboard\UserCleanup
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class UserCleanupTest extends TestCase {
@@ -37,9 +33,6 @@ class UserCleanupTest extends TestCase {
 		$wpdb->prefix = 'wp_';
 		$this->wpdb = $wpdb;
 
-		// Utils alias mock: prevent real autoloading; we only need static stubs.
-		$utilsMock = Mockery::mock('alias:\FreeFormCertificate\Core\Utils');
-		$utilsMock->shouldReceive('debug_log')->byDefault();
 		// UserService::get_user_statistics() (reached via the #322
 		// short-circuit `user_has_ffc_data` guard at the top of
 		// anonymize_user_data) calls this for the certificate count.
