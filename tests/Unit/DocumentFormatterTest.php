@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\DocumentFormatter;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * Tests for DocumentFormatter: document validation, formatting, masking,
@@ -1007,5 +1008,61 @@ class DocumentFormatterTest extends TestCase {
 	public function test_mask_email_valid(): void {
 		Functions\when( 'is_email' )->justReturn( true );
 		$this->assertSame( 'j***@gmail.com', DocumentFormatter::mask_email( 'joao@gmail.com' ) );
+	}
+
+	// ==================================================================
+	// Gaps found by mutation testing (#2100)
+	// ==================================================================
+
+	public function test_validate_cpf_checks_the_first_check_digit_on_its_own(): void {
+		// The first check digit of 529.982.247 is 2; with a 3 there, the second
+		// digit that follows from it is 3, so only the first check catches it.
+		$this->assertFalse( DocumentFormatter::validate_cpf( '52998224733' ) );
+	}
+
+	public function test_validate_cpf_maps_a_remainder_of_ten_to_zero(): void {
+		// Both check digits of 100.000.001 come from a remainder of 10.
+		$this->assertTrue( DocumentFormatter::validate_cpf( '10000000108' ) );
+	}
+
+	public function test_mask_generic_keeps_an_accented_first_letter_whole(): void {
+		$this->assertSame( 'É***', DocumentFormatter::mask_generic( 'Érica' ) );
+	}
+
+	public function test_mask_name_counts_letters_not_bytes(): void {
+		$this->assertSame( 'Z*', DocumentFormatter::mask_name( 'Zé' ), 'Two letters keep one asterisk, although é is two bytes.' );
+	}
+
+	public function test_parse_prefixed_code_reads_the_prefix_from_the_first_character(): void {
+		$this->assertSame(
+			array( 'prefix' => 'C', 'code' => '1BCD2345EFGH' ),
+			DocumentFormatter::parse_prefixed_code( 'C-1BCD-2345-EFGH' ),
+			'The second character is a digit, so it cannot pass for the prefix.'
+		);
+	}
+
+	public function test_masks_take_their_shape_from_the_shortest_length_that_has_one(): void {
+		$this->assertSame( '123.***-6', DocumentFormatter::mask_rf( '123456' ), 'Six digits is an RF.' );
+		$this->assertSame( '12.***.***-*', DocumentFormatter::mask_cin( '123456' ), 'Six characters is a CIN.' );
+		$this->assertSame( '**34', DocumentFormatter::mask_phone( '1234' ), 'Four digits is a phone.' );
+	}
+
+	public function test_mask_email_masks_an_invalid_address_with_one_at_sign_as_generic(): void {
+		Functions\when( 'is_email' )->justReturn( false );
+
+		$this->assertSame( 'j***', DocumentFormatter::mask_email( 'joao@gmail' ), 'An address WordPress rejects must not show its domain.' );
+	}
+
+	public function test_mask_email_trims_surrounding_spaces_before_validating(): void {
+		Functions\when( 'is_email' )->alias( static fn( $email ) => false !== strpos( $email, '@' ) && trim( $email ) === $email );
+
+		$this->assertSame( 'j***@gmail.com', DocumentFormatter::mask_email( '  joao@gmail.com ' ) );
+	}
+
+	public function test_clean_identifier_still_announces_its_deprecation(): void {
+		$deprecated = CallLog::record( '_deprecated_function' );
+
+		$this->assertSame( 'ABC123', DocumentFormatter::clean_identifier( 'abc-123' ) );
+		$this->assertSame( 1, $deprecated->count() );
 	}
 }
