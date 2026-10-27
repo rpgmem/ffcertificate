@@ -45,6 +45,9 @@ class RoleCapabilityEditorTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_option' )->justReturn( array() );
+		// LabelSorter guards on function_exists( 'get_locale' ), so in the
+		// shared process its branch would depend on which test ran before.
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
 		Functions\when( 'wp_admin_notice' )->alias(
 			static function ( $message, $args = array() ) {
 				$classes = implode( ' ', $args['additional_classes'] ?? array() );
