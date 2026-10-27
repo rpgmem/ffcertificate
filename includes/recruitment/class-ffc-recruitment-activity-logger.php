@@ -86,8 +86,13 @@ final class RecruitmentActivityLogger {
 	 * @param string $list_type `preview` or `definitive`.
 	 * @param int    $error_count Number of validation/DB errors.
 	 * @return void
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function csv_import_failed( int $notice_id, string $list_type, int $error_count ): void {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		ActivityLog::log(
 			'recruitment_csv_import_failed',
 			ActivityLog::LEVEL_WARNING,

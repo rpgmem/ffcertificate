@@ -19,12 +19,22 @@ class AutoloaderTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
+		\Brain\Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 		$this->autoloader = new \FFC_Autoloader( FFC_PLUGIN_DIR . 'includes' );
 	}
 
 	// ------------------------------------------------------------------
 	// Helper: invoke private method via Reflection
 	// ------------------------------------------------------------------
+
+	protected function tearDown(): void {
+		\Brain\Monkey\tearDown();
+		parent::tearDown();
+	}
 
 	private function invoke_private( string $method, array $args = [] ) {
 		$ref = new \ReflectionMethod( \FFC_Autoloader::class, $method );

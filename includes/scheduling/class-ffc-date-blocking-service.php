@@ -130,6 +130,9 @@ class DateBlockingService {
 	 * @param int|null                    $calendar_id Self-scheduling calendar ID (null to skip check).
 	 * @param int|null                    $environment_id Audience environment ID (null to skip check).
 	 * @return bool
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function is_date_available(
 		string $date,
@@ -138,6 +141,8 @@ class DateBlockingService {
 		?int $calendar_id = null,
 		?int $environment_id = null
 	): bool {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		// Check global holidays first (applies to all systems).
 		if ( self::is_global_holiday( $date ) ) {
 			return false;

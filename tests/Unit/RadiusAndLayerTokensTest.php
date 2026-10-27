@@ -66,8 +66,9 @@ final class RadiusAndLayerTokensTest extends TestCase {
 	/**
 	 * Radius literals still allowed per stylesheet. `0` is not a radius.
 	 *
-	 * 40 remained of 186 when this was written, and #1881 took one more (the
-	 * loading spinner that left ffc-pdf-core.css). The frequent ones were
+	 * 40 remained of 186 when this was written, #1881 took one more (the
+	 * loading spinner that left ffc-pdf-core.css) and #2089 another (the
+	 * unemitted spinner section of that sheet). The frequent ones were
 	 * `10px` (10), `5px` (6), `2px` (5) and `11px` (5) — near-misses that a step would have to be invented for, and
 	 * inventing a step per value is how a scale becomes a dictionary.
 	 */
@@ -80,7 +81,6 @@ final class RadiusAndLayerTokensTest extends TestCase {
 		'ffc-common.css'                 => 2,
 		'ffc-custom-fields-admin.css'    => 1,
 		'ffc-frontend.css'               => 1,
-		'ffc-pdf-core.css'               => 1,
 		'ffc-recruitment-admin.css'      => 2,
 		'ffc-recruitment-public.css'     => 1,
 		// Screenshot viewer (#1716): no ffc-common in core's modal.
@@ -92,13 +92,13 @@ final class RadiusAndLayerTokensTest extends TestCase {
 	 * `z-index` literals still allowed per stylesheet.
 	 *
 	 * They are the debt this guard exists to keep visible: `ffc-pdf-core.css`
-	 * carries five (it cannot read tokens at all), and the rest are the
+	 * carries the most (it cannot read tokens at all), and the rest are the
 	 * escalation values described in the class docblock.
 	 */
 	private const LAYER_BUDGET = array(
 		'ffc-admin-settings.css'      => 1,
 		'ffc-frontend.css'            => 1,
-		'ffc-pdf-core.css'            => 5,
+		'ffc-pdf-core.css'            => 4,
 		// Screenshot viewer (#1716): above core's own modal, which sits at
 		// 100000+, and with no ffc-common in that iframe to read a layer from.
 		'ffc-screenshots.css'         => 1,

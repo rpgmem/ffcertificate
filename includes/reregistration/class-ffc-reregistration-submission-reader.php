@@ -449,8 +449,13 @@ class ReregistrationSubmissionReader {
 	 * @param int                  $reregistration_id Reregistration ID.
 	 * @param array<string, mixed> $filters           Optional filters (status, search).
 	 * @return list<ReregistrationSubmissionRow>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_for_export( int $reregistration_id, array $filters = array() ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$filters['limit']  = 0;
 		$filters['offset'] = 0;
 		return self::get_by_reregistration( $reregistration_id, $filters );
@@ -466,8 +471,13 @@ class ReregistrationSubmissionReader {
 	 * @param array<string, mixed> $filters           Filters (status, search, orderby, order).
 	 * @param int                  $chunk_size        Rows per database round-trip.
 	 * @return \Generator<int, ReregistrationSubmissionRow>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function stream_for_export( int $reregistration_id, array $filters = array(), int $chunk_size = 500 ): \Generator {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$offset = 0;
 		while ( true ) {
 			$filters['limit']  = $chunk_size;

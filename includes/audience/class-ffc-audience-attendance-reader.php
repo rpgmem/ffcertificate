@@ -97,8 +97,13 @@ class AudienceAttendanceReader {
 	 * @param int    $user_id    User ID.
 	 * @param string $date       Day (Y-m-d).
 	 * @return bool
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function is_present( int $booking_id, int $user_id, string $date ): bool {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$wpdb = self::db();
 
 		return null !== $wpdb->get_var(

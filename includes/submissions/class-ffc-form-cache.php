@@ -140,8 +140,13 @@ class FormCache {
 	 *
 	 * @param int $form_id Form ID.
 	 * @return \WP_Post|false Post object or false if not found
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_form_post( int $form_id ) {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$cache_key = 'post_' . $form_id;
 		$post      = wp_cache_get( $cache_key, self::CACHE_GROUP );
 
@@ -503,8 +508,13 @@ class FormCache {
 	 *
 	 * @param int $form_id Form ID.
 	 * @return array<string, bool> Cache status per key
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function check_form_cache_status( int $form_id ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$keys = array(
 			'config'     => 'config_' . $form_id,
 			'fields'     => 'fields_' . $form_id,
@@ -529,8 +539,13 @@ class FormCache {
 	 * @param int    $form_id Form ID.
 	 * @param string $type    Cache type (config, fields, bg, complete, post).
 	 * @return string Cache key string.
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_cache_key( int $form_id, string $type = 'config' ): string {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$keys = array(
 			'config'     => 'config_' . $form_id,
 			'fields'     => 'fields_' . $form_id,

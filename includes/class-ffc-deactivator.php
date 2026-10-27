@@ -48,8 +48,13 @@ class Deactivator {
 	 * Destructive Cleanup.
 	 * WARNING: This deletes all plugin data.
 	 * Ideally, this should be called from an uninstall.php file or a specific action.
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function uninstall_cleanup(): void {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		if ( ! current_user_can( 'activate_plugins' ) ) {
 			return;
 		}

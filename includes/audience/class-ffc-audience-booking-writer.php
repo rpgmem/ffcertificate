@@ -481,8 +481,13 @@ class AudienceBookingWriter {
 	 * @param int $booking_id Booking ID.
 	 * @param int $audience_id Audience ID.
 	 * @return bool
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function remove_booking_audience( int $booking_id, int $audience_id ): bool {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$wpdb  = self::db();
 		$table = self::get_booking_audiences_table_name();
 
@@ -573,8 +578,13 @@ class AudienceBookingWriter {
 	 * @param int $booking_id Booking ID.
 	 * @param int $user_id User ID.
 	 * @return bool
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function remove_booking_user( int $booking_id, int $user_id ): bool {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$wpdb  = self::db();
 		$table = self::get_booking_users_table_name();
 

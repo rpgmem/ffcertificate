@@ -390,8 +390,13 @@ class CustomFieldWriter {
 	 * @param int    $field_id Field ID.
 	 * @param string $group    New group key.
 	 * @return bool
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function update_field_group( int $field_id, string $group ): bool {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return self::update( $field_id, array( 'field_group' => $group ) );
 	}
 

@@ -25,6 +25,10 @@ class AudienceCsvImporterTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		$this->temp_dir = sys_get_temp_dir() . '/ffc_csv_test_' . uniqid();
 		mkdir( $this->temp_dir, 0777, true );

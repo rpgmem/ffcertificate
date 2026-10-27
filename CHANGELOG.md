@@ -7,9 +7,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Deprecated
+
+- **65 PHP methods and 11 JavaScript functions nothing in the plugin calls** (#2089). Readers, writers, activators' `drop_tables()`, debug helpers, accessors, `FFCCalendarCore` setters and `FFC` helpers left by earlier refactors now warn (a PHP notice, a console warning) and leave in 6.45.0; none has a replacement because nothing used them. Six docblocks that named callers that never existed are corrected.
+
 ### Removed
 
 - **⚠ Breaking for external integrations — four `Encryption` helpers are gone** (#1950): `encrypt_submission()`, `decrypt_submission()`, `get_info()` and `test()`, deprecated in 6.41.0 (#1934) with a runtime notice. Nothing in the plugin called them. Use `SensitiveFieldRegistry::encrypt_fields()`, `Encryption::decrypt_field()` and `Encryption::key_health_report()`.
+- **Unused styles** (#2089). The jQuery UI theme in `libs/css/` and its 11 images, loaded by nothing since 6.10.0 (the calendars draw themselves; the jQuery UI pieces that do load are WordPress's own, with its styles), and four CSS rules no markup emitted: the old PDF progress overlay and spinner, `.ffc-cap-chip--color` and `.ffc-flex`.
 
 ## [6.42.0] (2026-10-26) — `8241871c`
 

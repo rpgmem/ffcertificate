@@ -50,6 +50,10 @@ class IdentityHashBoundaryTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		class_exists( '\FreeFormCertificate\Core\SensitiveFieldRegistry' );
 		class_exists( '\FreeFormCertificate\Core\DataSanitizer' );

@@ -422,8 +422,13 @@ class UserManager {
 	 *
 	 * @param int $user_id WordPress user ID.
 	 * @return string|null Masked CPF/RF or null
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_user_cpf_masked( int $user_id ): ?string {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$cpfs = self::get_user_cpfs_masked( $user_id );
 		return ! empty( $cpfs ) ? $cpfs[0] : null;
 	}

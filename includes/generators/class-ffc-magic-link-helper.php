@@ -116,8 +116,13 @@ class MagicLinkHelper {
 	 * @param mixed       $submission Submission array with 'magic_token' key.
 	 * @param object|null $handler Submission handler (optional, for generating if missing).
 	 * @return string Complete magic link URL
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_magic_link_from_submission( $submission, ?object $handler = null ): string {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$token = isset( $submission['magic_token'] ) ? $submission['magic_token'] : '';
 
 		// If no token and handler provided, try to generate (convert id to int - wpdb returns strings).
@@ -149,8 +154,13 @@ class MagicLinkHelper {
 	 *
 	 * @param string $url URL to parse.
 	 * @return string Token or empty string
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function extract_token_from_url( string $url ): string {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		// Try query string parameters.
 		$query = wp_parse_url( $url, PHP_URL_QUERY );
 		if ( $query ) {
@@ -210,8 +220,13 @@ class MagicLinkHelper {
 	 *
 	 * @param string $token Magic token.
 	 * @return array<string, mixed> Debug information
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function debug_info( string $token ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return array(
 			'token'            => $token,
 			'token_valid'      => self::is_valid_token( $token ),

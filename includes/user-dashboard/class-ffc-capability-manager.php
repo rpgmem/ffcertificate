@@ -774,8 +774,13 @@ class CapabilityManager {
 	 * @param string $capability Capability name.
 	 * @param bool   $grant      Whether to grant (true) or revoke (false).
 	 * @return bool True on success
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function set_user_capability( int $user_id, string $capability, bool $grant ): bool {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$user = get_userdata( $user_id );
 
 		if ( ! $user ) {
@@ -814,8 +819,13 @@ class CapabilityManager {
 	 * @since 4.4.0
 	 * @param int $user_id WordPress user ID.
 	 * @return void
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function reset_user_ffc_capabilities( int $user_id ): void {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$user = get_userdata( $user_id );
 
 		if ( ! $user ) {

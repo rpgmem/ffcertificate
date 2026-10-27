@@ -124,8 +124,13 @@ class CalendarRepository extends AbstractRepository {
 	 * @param int                  $id Record ID.
 	 * @param array<string, mixed> $working_hours Working hours.
 	 * @return int|false
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function updateWorkingHours( int $id, array $working_hours ) {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return $this->update(
 			$id,
 			array(
@@ -142,8 +147,13 @@ class CalendarRepository extends AbstractRepository {
 	 * @param int                  $id Record ID.
 	 * @param array<string, mixed> $email_config Email config.
 	 * @return int|false
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function updateEmailConfig( int $id, array $email_config ) {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return $this->update(
 			$id,
 			array(

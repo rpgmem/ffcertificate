@@ -132,8 +132,13 @@ class RecruitmentCallReader {
 	 *
 	 * @param int $classification_id Classification ID.
 	 * @return list<CallRow>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_history_for_classification( int $classification_id ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
@@ -200,8 +205,13 @@ class RecruitmentCallReader {
 	 *
 	 * @param int $classification_id Classification ID.
 	 * @return int
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function count_for_classification( int $classification_id ): int {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 

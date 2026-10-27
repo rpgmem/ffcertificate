@@ -1067,8 +1067,13 @@ class AudienceActivator {
 	 * Drop all audience tables (for uninstall)
 	 *
 	 * @return void
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function drop_tables(): void {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		global $wpdb;
 
 		// Drop in reverse order of dependencies.
@@ -1097,8 +1102,13 @@ class AudienceActivator {
 	 * Get table status information
 	 *
 	 * @return array<string, array{exists: bool, count: int}>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_tables_status(): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		global $wpdb;
 
 		$tables = array(
