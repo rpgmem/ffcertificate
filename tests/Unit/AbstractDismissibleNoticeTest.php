@@ -5,7 +5,6 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\AbstractDismissibleNotice;
@@ -24,7 +23,6 @@ use FreeFormCertificate\Admin\AbstractDismissibleNotice;
  * #563 pcov attribution fix + #912 precedent).
  *
  * @covers \FreeFormCertificate\Admin\AbstractDismissibleNotice
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class AbstractDismissibleNoticeTest extends TestCase {
@@ -60,8 +58,6 @@ class AbstractDismissibleNoticeTest extends TestCase {
 			}
 		);
 
-		Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )
-			->shouldReceive( 'asset_suffix' )->andReturn( '.min' )->byDefault();
 	}
 
 	protected function tearDown(): void {
@@ -108,8 +104,6 @@ class AbstractDismissibleNoticeTest extends TestCase {
 
 	public function test_does_not_render_when_user_cannot_manage(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
 
 		$this->assertSame( '', $this->rendered_output() );
 	}
@@ -141,9 +135,7 @@ class AbstractDismissibleNoticeTest extends TestCase {
 
 	public function test_renders_via_ffc_capability_when_not_admin(): void {
 		// Not a WP admin, but holds the FFC settings cap → gate passes.
-		Functions\when( 'current_user_can' )->justReturn( false );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_settings' === $cap );
 
 		$this->assertStringContainsString( 'stub notice body', $this->rendered_output() );
 	}
@@ -179,8 +171,6 @@ class AbstractDismissibleNoticeTest extends TestCase {
 	public function test_ajax_dismiss_forbidden_when_cannot_manage(): void {
 		Functions\when( 'check_ajax_referer' )->justReturn( true );
 		Functions\when( 'current_user_can' )->justReturn( false );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
 
 		$code = null;
 		Functions\when( 'wp_send_json_error' )->alias(

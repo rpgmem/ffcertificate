@@ -16,7 +16,6 @@ use FreeFormCertificate\Tests\Support\CallLog;
  * verification page creation, and schema migration.
  *
  * @covers \FreeFormCertificate\Activator
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class ActivatorTest extends TestCase {
@@ -25,9 +24,6 @@ class ActivatorTest extends TestCase {
 
 	/** @var Mockery\MockInterface */
 	private $wpdb;
-
-	/** @var Mockery\MockInterface */
-	private $utils_mock;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -42,9 +38,6 @@ class ActivatorTest extends TestCase {
 		$wpdb->posts = 'wp_posts';
 		$wpdb->postmeta = 'wp_postmeta';
 		$this->wpdb = $wpdb;
-
-		// Utils alias mock for get_submissions_table
-		$this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
 
 		// Default wpdb stubs — most tests need these
 		$this->wpdb->shouldReceive( 'get_charset_collate' )
