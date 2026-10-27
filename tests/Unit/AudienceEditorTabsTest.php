@@ -15,8 +15,6 @@ use FreeFormCertificate\Audience\AudienceEditorTabs;
  *
  * @covers \FreeFormCertificate\Audience\AudienceEditorTabs
  * @covers \FreeFormCertificate\Admin\AdminUI
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AudienceEditorTabsTest extends TestCase {
 

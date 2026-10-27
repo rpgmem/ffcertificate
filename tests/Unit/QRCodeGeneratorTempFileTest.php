@@ -13,14 +13,13 @@ use PHPUnit\Framework\TestCase;
  * QRCodeGenerator::generate() through `wp_tempnam()`.
  *
  * The generator prefers `wp_tempnam()` when the function exists. Stubbing it
- * makes Patchwork DEFINE it for the rest of the process, after which every
- * other test that reaches generate() without a stub fails with "not defined
- * nor mocked" — the function_exists() trap described in CLAUDE.md. So these
- * tests run in their own processes.
+ * makes Patchwork DEFINE it for the rest of the process, so every test that
+ * reaches generate() stubs it too and chooses the branch rather than
+ * inheriting it -- the function_exists() rule in CLAUDE.md. That is what lets
+ * this class run in the shared process (#2091); only the fallback, which
+ * needs the function never to have been defined, takes a process of its own.
  *
  * @covers \FreeFormCertificate\Generators\QRCodeGenerator
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class QRCodeGeneratorTempFileTest extends TestCase {
 
@@ -29,12 +28,18 @@ class QRCodeGeneratorTempFileTest extends TestCase {
 	 */
 	private string $log_file = '';
 
+	/**
+	 * The error_log setting before the test pointed it at $log_file.
+	 */
+	private string $previous_error_log = '';
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
 		$this->log_file = (string) tempnam( sys_get_temp_dir(), 'ffc-log' );
-		ini_set( 'error_log', $this->log_file ); // phpcs:ignore WordPress.PHP.IniSet.Risky -- Child process only: captures Debug::log() output for assertion.
+		$this->previous_error_log = (string) ini_get( 'error_log' );
+		ini_set( 'error_log', $this->log_file ); // phpcs:ignore WordPress.PHP.IniSet.Risky -- Captures Debug::log() output for assertion; tearDown() restores it.
 
 		// QR Code debug area on; no other setting.
 		Functions\when( 'get_option' )->justReturn( array( Debug::AREA_QRCODE => 1 ) );
@@ -42,6 +47,7 @@ class QRCodeGeneratorTempFileTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		ini_set( 'error_log', $this->previous_error_log ); // phpcs:ignore WordPress.PHP.IniSet.Risky -- Restores what setUp() changed.
 		if ( '' !== $this->log_file && file_exists( $this->log_file ) ) {
 			unlink( $this->log_file );
 		}
@@ -120,5 +126,25 @@ class QRCodeGeneratorTempFileTest extends TestCase {
 		$log = $this->log();
 		$this->assertStringContainsString( 'QR Code generation fatal error', $log );
 		$this->assertStringContainsString( 'temp dir vanished', $log );
+	}
+
+	/**
+	 * Its own process: the fallback runs only where wp_tempnam() was never
+	 * defined, and any earlier stub of it in a shared process defines it.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_generate_falls_back_to_tempnam_without_wp_tempnam(): void {
+		Functions\when( 'wp_delete_file' )->alias(
+			static function ( $file ) {
+				unlink( $file );
+			}
+		);
+
+		$this->assertFalse( function_exists( 'wp_tempnam' ) );
+		$base64 = ( new QRCodeGenerator() )->generate( 'https://example.org/valid/' );
+
+		$this->assertStringStartsWith( "\x89PNG", (string) base64_decode( $base64, true ) );
 	}
 }
