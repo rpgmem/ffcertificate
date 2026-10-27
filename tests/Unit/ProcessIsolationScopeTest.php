@@ -38,10 +38,14 @@ class ProcessIsolationScopeTest extends TestCase {
 
 	/**
 	 * Files that isolate every test for a reason no token in them shows.
+	 *
+	 * Empty since RecruitmentAdminPageRendererTest moved to the real classes
+	 * and its stand-in fixture was deleted (#2091). An entry added here is a
+	 * reason to defend, not a line to add.
+	 *
+	 * @var array<string, string>
 	 */
-	private const ALLOWED = array(
-		'RecruitmentAdminPageRendererTest.php' => 'requires a fixture that declares stub classes for the rest of the process, shadowing the real Admin\AdminUI',
-	);
+	private const ALLOWED = array();
 
 	/**
 	 * Whether the source isolates every test without a reason it shows.
