@@ -14,7 +14,7 @@ use FreeFormCertificate\Frontend\ScheduleExceptionAction;
  *
  * We deliberately avoid `Mockery::mock('alias:\FreeFormCertificate\
  * Security\Geofence')`: alias mocks are single-shot per PHP process
- * and would force `@runTestsInSeparateProcesses`. Instead we stub
+ * and would force a process per test. Instead we stub
  * `get_post_meta` + `wp_timezone` so the REAL `Geofence::get_form_*_
  * timestamp()` helpers compute meaningful values from the seeded
  * geofence config — closer to production behaviour and free of
