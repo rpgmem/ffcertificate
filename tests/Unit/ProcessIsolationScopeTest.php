@@ -109,6 +109,13 @@ class ProcessIsolationScopeTest extends TestCase {
 
 	/**
 	 * The files that isolate every test match the frozen register exactly.
+	 *
+	 * Why it exists: each listed class pays a fresh PHP process for every one
+	 * of its tests, almost always because setUp() declares an alias: mock. The
+	 * register is that debt, and the ratchet only lets it shrink — a new class
+	 * cannot join it unnoticed, and a class that moved its tests to the shared
+	 * process (a $wpdb double instead of an alias, or @runInSeparateProcess on
+	 * the few tests that need it) must leave it, so the gain is locked in.
 	 */
 	public function test_class_level_isolation_matches_the_baseline(): void {
 		$current = array();
@@ -124,6 +131,8 @@ class ProcessIsolationScopeTest extends TestCase {
 				. " * Regenerate: FFC_UPDATE_ISOLATION_BASELINE=1 vendor/bin/phpunit --filter ProcessIsolationScope\n"
 				. " * Each entry is a test file that runs every test in its own process,\n"
 				. " * almost always because setUp() declares an alias: or overload: mock.\n"
+				. " * The purpose is to reduce the tests that pay for their own process:\n"
+				. " * this list may only shrink.\n"
 				. " * A file not listed here fails; a listed file that stopped isolating\n"
 				. " * fails until it is removed.\n"
 				. " *\n * This list is a debt register, not a target to grow.\n */\n\nreturn array(\n";
