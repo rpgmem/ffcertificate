@@ -143,7 +143,6 @@ return array(
 	'ReregistrationLoaderTest.php',
 	'ReregistrationSubmissionActionsFlowTest.php',
 	'ReregistrationSubmissionDetailsRendererTest.php',
-	'RoleCapabilityEditorTest.php',
 	'ScheduleExceptionGuardTest.php',
 	'SchedulingFrameControlsTest.php',
 	'SelfSchedulingLoaderTest.php',

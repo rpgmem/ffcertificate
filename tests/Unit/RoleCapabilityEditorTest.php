@@ -17,13 +17,13 @@ use FreeFormCertificate\Admin\RoleCapabilityEditor;
  * a render smoke test, and the AJAX persistence handler with its guards
  * (cap- + role-whitelist, manage_options).
  *
- * Runs in separate processes for what it declares itself: an `alias:` mock of
- * `Core\AssetHelper` and a class through `eval()`, neither of which the
- * process can undo. It once also ran that way as defence against a fixture
- * that shadowed `Admin\AdminUI` (#1432); that fixture is gone (#2091).
+ * Two tests run in their own process, for what each declares: an `alias:`
+ * mock of `Core\AssetHelper` and core's `WP_User_Query` through `eval()`,
+ * neither of which a process can undo. The rest share the suite's process,
+ * where `WP_User_Query` does not exist; it leaked into that process from a
+ * file-scope declaration in another test until #2104.
  *
  * @covers \FreeFormCertificate\Admin\RoleCapabilityEditor
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class RoleCapabilityEditorTest extends TestCase {
@@ -309,6 +309,9 @@ class RoleCapabilityEditorTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_enqueue_loads_only_on_the_user_access_tab(): void {
 		$asset_helper = \Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
 		$asset_helper->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
@@ -349,6 +352,9 @@ class RoleCapabilityEditorTest extends TestCase {
 		$this->assertSame( array(), $localized['ffcRoleEditor']['roleCaps'], 'a role missing on this install is left out of the map' );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function test_editable_roles_count_their_members(): void {
 		// Declared here, in this test's own process: core's query class with a fixed total.
 		// phpcs:ignore Squiz.PHP.Eval.Discouraged -- Declares a WordPress core class inside this test's own process.

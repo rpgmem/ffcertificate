@@ -10,17 +10,6 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\AdminUserColumns;
 
-// Local stub — kept in this file (rather than bootstrap.php) so it doesn't
-// race with `Mockery::mock( 'overload:\WP_User_Query' )` that other tests
-// use. Each AdminUserColumnsTest method runs in a separate process, so the
-// stub gets a fresh definition every time without leaking globally. eval()
-// keeps the class in the global namespace despite the test file's own
-// namespace declaration above.
-if ( ! class_exists( '\WP_User_Query', false ) ) {
-	// phpcs:ignore Squiz.PHP.Eval.Discouraged -- Test-only inline stub; safer than splitting into a separate file that AdminAjaxTest's overload mock would conflict with.
-	eval( 'class WP_User_Query { public $query_from = ""; public $query_where = ""; public $query_orderby = ""; public $query_vars = array(); }' );
-}
-
 /**
  * Tests for AdminUserColumns: custom user list columns for certificates,
  * appointments, and user actions (login-as-user link).
@@ -382,10 +371,27 @@ class AdminUserColumnsTest extends TestCase {
 	// apply_sort_to_user_query()
 	// ==================================================================
 
+	/**
+	 * Declares core's user query class inside the calling test's own process.
+	 *
+	 * Called from a test, never at file scope: PHPUnit loads every test file
+	 * in its parent process to build the suite, so a file-scope declaration
+	 * gave the parent a `WP_User_Query` with no constructor arguments and no
+	 * `get_total()`, which broke any test there that counts users (#2104).
+	 * The class runs in its own process, so each test gets a fresh one.
+	 */
+	private function declare_user_query(): void {
+		if ( ! class_exists( '\WP_User_Query', false ) ) {
+			// phpcs:ignore Squiz.PHP.Eval.Discouraged -- Declares a WordPress core class inside this test's own process.
+			eval( 'class WP_User_Query { public $query_from = ""; public $query_where = ""; public $query_orderby = ""; public $query_vars = array(); }' );
+		}
+	}
+
 	public function test_apply_sort_to_user_query_skips_unknown_orderby(): void {
 		global $wpdb;
 		$wpdb->users = 'wp_users';
 
+		$this->declare_user_query();
 		$query                = new \WP_User_Query();
 		$query->query_vars    = array( 'orderby' => 'login', 'order' => 'ASC' );
 		$query->query_from    = 'FROM wp_users';
@@ -402,6 +408,7 @@ class AdminUserColumnsTest extends TestCase {
 		global $wpdb;
 		$wpdb->users = 'wp_users';
 
+		$this->declare_user_query();
 		$query                = new \WP_User_Query();
 		$query->query_vars    = array( 'orderby' => 'ffc_certificates', 'order' => 'DESC' );
 		$query->query_from    = 'FROM wp_users';
@@ -422,6 +429,7 @@ class AdminUserColumnsTest extends TestCase {
 		// table_exists returns the table name → exists
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_recruitment_classification' )->byDefault();
 
+		$this->declare_user_query();
 		$query                = new \WP_User_Query();
 		$query->query_vars    = array( 'orderby' => 'ffc_notices', 'order' => 'ASC' );
 		$query->query_from    = 'FROM wp_users';
