@@ -32,7 +32,12 @@ use PHPUnit\Framework\TestCase;
  *
  * It sees presence, never need: a file that declares an `overload:` mock in
  * one of sixty tests passes, although the other fifty-nine do not need the
- * process. That is the method-level half of #2091.
+ * process. The files that isolate every test are therefore frozen in
+ * tests/fixtures/class-isolation-baseline.php, a ratchet both ways: a new
+ * file that isolates its whole class fails (isolate the tests that need it,
+ * or argue it in the baseline), and one that stopped doing so fails until it
+ * leaves the list. Regenerate after an intentional change:
+ *   FFC_UPDATE_ISOLATION_BASELINE=1 vendor/bin/phpunit --filter ProcessIsolationScope
  */
 class ProcessIsolationScopeTest extends TestCase {
 
@@ -46,6 +51,8 @@ class ProcessIsolationScopeTest extends TestCase {
 	 * @var array<string, string>
 	 */
 	private const ALLOWED = array();
+
+	private const BASELINE_FILE = __DIR__ . '/../fixtures/class-isolation-baseline.php';
 
 	/**
 	 * Whether the source isolates every test without a reason it shows.
@@ -93,6 +100,51 @@ class ProcessIsolationScopeTest extends TestCase {
 			"These classes run every test in its own process with no overload:, alias: or define() in them.\n"
 			. "Drop the annotation, isolate the one test that needs it with @runInSeparateProcess,\n"
 			. "or name the file in ALLOWED with the reason:\n  " . implode( "\n  ", $found )
+		);
+	}
+
+	/**
+	 * The files that isolate every test match the frozen register exactly.
+	 */
+	public function test_class_level_isolation_matches_the_baseline(): void {
+		$current = array();
+		foreach ( self::test_files() as $file ) {
+			if ( preg_match( '/^ \* @runTestsInSeparateProcesses$/m', (string) file_get_contents( $file ) ) ) {
+				$current[] = basename( $file );
+			}
+		}
+		sort( $current );
+
+		if ( getenv( 'FFC_UPDATE_ISOLATION_BASELINE' ) ) {
+			$body = "<?php\n/**\n * Class-level isolation baseline — generated (#2091).\n"
+				. " * Regenerate: FFC_UPDATE_ISOLATION_BASELINE=1 vendor/bin/phpunit --filter ProcessIsolationScope\n"
+				. " * Each entry is a test file that runs every test in its own process,\n"
+				. " * almost always because setUp() declares an alias: or overload: mock.\n"
+				. " * A file not listed here fails; a listed file that stopped isolating\n"
+				. " * fails until it is removed.\n"
+				. " *\n * This list is a debt register, not a target to grow.\n */\n\nreturn array(\n";
+			foreach ( $current as $entry ) {
+				$body .= "\t'" . $entry . "',\n";
+			}
+			$body .= ");\n";
+			file_put_contents( self::BASELINE_FILE, $body );
+			$this->markTestSkipped( 'Isolation baseline regenerated (' . count( $current ) . ' entries).' );
+		}
+
+		/** @var list<string> $baseline */
+		$baseline = require self::BASELINE_FILE;
+
+		$this->assertNotEmpty( $current, 'The scan found no isolated class; it read nothing.' );
+		$this->assertSame(
+			array(),
+			array_values( array_diff( $current, $baseline ) ),
+			"These classes newly run every test in its own process. Isolate only the tests that need it\n"
+			. "with @runInSeparateProcess, or add the file to the baseline with the reason in its docblock."
+		);
+		$this->assertSame(
+			array(),
+			array_values( array_diff( $baseline, $current ) ),
+			'These classes no longer isolate every test; remove them from the baseline to lock the win in.'
 		);
 	}
 
