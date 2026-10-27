@@ -341,9 +341,12 @@ class ClientIpResolverTest extends TestCase {
 
 		$this->assertSame( '8.8.8.8', ClientIpResolver::resolve(), 'legacy stays effective' );
 		$this->assertStringContainsString( 'divergence', $captured );
-		// Raw IPs must never appear in the log — only 16-char sha256 prefixes.
+		// Raw IPs must never appear in the log — only 16-char keyed-hash prefixes.
 		$this->assertStringNotContainsString( '8.8.8.8', $captured );
 		$this->assertStringNotContainsString( '198.51.100.7', $captured );
+		// Keyed, not a bare digest a 2^32 table reverses (#2109).
+		$this->assertStringContainsString( substr( \FreeFormCertificate\Core\Encryption::keyed_hash( '8.8.8.8', 'debug_ip' ), 0, 16 ), $captured );
+		$this->assertStringNotContainsString( substr( hash( 'sha256', '8.8.8.8' ), 0, 16 ), $captured );
 	}
 
 	// ---- classify() — environment verdict (#901 phase 2) --------------------

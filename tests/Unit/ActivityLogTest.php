@@ -1183,12 +1183,15 @@ class ActivityLogTest extends TestCase {
 	public function test_log_access_denied_logs_warning_level(): void {
 		$this->enableActivityLog();
 
-		$result = ActivityLog::log_access_denied('unauthorized', 'user@example.com');
+		$result = ActivityLog::log_access_denied('unauthorized');
 		$this->assertTrue($result);
 
 		$buffer = $this->getWriteBuffer();
 		$this->assertSame('access_denied', $buffer[0]['action']);
 		$this->assertSame('warning', $buffer[0]['level']);
+		// The refused address is the row's own column, encrypted; the context
+		// carries the reason only, never a copy of the address (#2109).
+		$this->assertSame(json_encode(array('reason' => 'unauthorized')), $buffer[0]['context']);
 	}
 
 	// ==================================================================
@@ -1369,7 +1372,7 @@ class ActivityLogTest extends TestCase {
 		$this->assertFalse(ActivityLog::log_submission_trashed(1));
 		$this->assertFalse(ActivityLog::log_submission_restored(1));
 		$this->assertFalse(ActivityLog::log_data_accessed(1));
-		$this->assertFalse(ActivityLog::log_access_denied('reason', 'id'));
+		$this->assertFalse(ActivityLog::log_access_denied('reason'));
 		$this->assertFalse(ActivityLog::log_settings_changed('key', 1));
 		$this->assertFalse(ActivityLog::log_password_changed(1));
 		$this->assertFalse(ActivityLog::log_profile_updated(1));

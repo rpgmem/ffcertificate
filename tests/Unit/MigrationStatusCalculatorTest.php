@@ -580,6 +580,7 @@ class MigrationStatusCalculatorTest extends TestCase {
 			'activity_log_encrypt_ip'         => array( 'activity_log_encrypt_ip', $ns . 'ActivityLogEncryptIpMigrationStrategy' ),
 			'activity_log_location_cleanup'   => array( 'activity_log_location_cleanup', $ns . 'ActivityLogLocationCleanupMigrationStrategy' ),
 			'rate_limit_logs_encrypt_ip'      => array( 'rate_limit_logs_encrypt_ip', $ns . 'RateLimitLogsEncryptIpMigrationStrategy' ),
+			'activity_log_access_denied_ip'   => array( 'activity_log_access_denied_ip', $ns . 'ActivityLogAccessDeniedIpMigrationStrategy' ),
 			'key_rotation_remaining'          => array( 'key_rotation_remaining', $ns . 'KeyRotationRemainingMigrationStrategy' ),
 			'identity_normalization'          => array( 'identity_normalization', $ns . 'IdentityNormalizationMigrationStrategy' ),
 			'identity_index_backfill'         => array( 'identity_index_backfill', $ns . 'IdentityIndexBackfillMigrationStrategy' ),

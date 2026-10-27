@@ -760,16 +760,18 @@ class ActivityLog {
 	/**
 	 * Log access denied
 	 *
+	 * The refused address is the row's own, kept encrypted like every
+	 * other row's; the context carries the reason only. It carried the
+	 * address in clear too until #2109.
+	 *
 	 * @param string $reason Reason.
-	 * @param string $identifier Identifier.
 	 */
-	public static function log_access_denied( string $reason, string $identifier ): bool {
+	public static function log_access_denied( string $reason ): bool {
 		return self::log(
 			'access_denied',
 			self::LEVEL_WARNING,
 			array(
-				'reason'     => $reason,
-				'identifier' => $identifier,
+				'reason' => $reason,
 			)
 		);
 	}
