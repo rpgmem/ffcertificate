@@ -38,6 +38,9 @@ class CptTest extends TestCase {
 		Functions\when( 'add_filter' )->justReturn( true );
 		Functions\when( 'esc_url' )->returnArg();
 
+		// Debug reads the settings only when get_option() exists, which in the
+		// shared process depends on what ran earlier: choose it, with debug off.
+		Functions\when( 'get_option' )->justReturn( array() );
 		// Capabilities runs for real: the form manager's capability, not manage_options.
 		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_forms' === $cap );
 	}
