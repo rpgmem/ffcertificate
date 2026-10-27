@@ -645,7 +645,19 @@ class FormEditorSaveHandlerTest extends TestCase {
 	}
 
 	public function test_missing_required_tags_does_not_ask_schedule_when_not_configured(): void {
-		Functions\when( 'get_option' )->alias( static fn( $key ) => 'ffc_settings' === $key ? self::REQUIRED_TAGS_SETTINGS : array() );
+		// The counterpart of the test above, with the settings stated here
+		// rather than read from REQUIRED_TAGS_SETTINGS. `required_form_fields`
+		// is what marks an install saved after the two settings split (#1741):
+		// without it the legacy reader adds {{schedule}} on its own, so a list
+		// that does not name it asks for it anyway.
+		Functions\when( 'get_option' )->alias( function ( $key ) {
+			return ( 'ffc_settings' === $key )
+				? array(
+					'required_certificate_tags' => "{{auth_code}}\n{{name}}\n{{cpf_rf}}",
+					'required_form_fields'      => array(),
+				)
+				: array();
+		} );
 
 		$layout  = '{{auth_code}} {{name}} {{cpf_rf}}';
 		$missing = $this->invoke( 'missing_required_tags', array( $layout ) );

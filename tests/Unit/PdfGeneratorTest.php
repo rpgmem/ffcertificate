@@ -432,7 +432,6 @@ class PdfGeneratorTest extends TestCase {
 		Functions\when( 'esc_url' )->returnArg();
 		// build_pdf_filename() (Utils, Core namespace) uses _x().
 		Functions\when( '_x' )->returnArg();
-		Functions\when( '_x' )->returnArg();
 	}
 
 	public function test_generate_html_falls_back_to_default_when_no_layout(): void {

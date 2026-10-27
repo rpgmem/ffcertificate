@@ -40,12 +40,10 @@ use FreeFormCertificate\UserDashboard\RoleRegistrar;
  * page-less write actions are held to the capability their handler checks, in
  * both directions (#1781).
  *
- * Each test runs in its own process: registering the menus stubs WordPress
- * functions that must not stay defined for later classes.
+ * The registrations it stubs leave no later class depending on them: the
+ * whole suite ran green with these tests in the shared process (#2091).
  *
  * @covers \FreeFormCertificate\Admin\AdminMenuVisibility
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AdminMenuVisibilityReachTest extends TestCase {
 

@@ -874,4 +874,138 @@ class DocumentFormatterTest extends TestCase {
 	public function test_clean_identifier_already_clean(): void {
 		$this->assertSame('ABC123', DocumentFormatter::clean_identifier('ABC123'));
 	}
+
+	// ==================================================================
+	// Moved from UtilsTest (#2092)
+	// ==================================================================
+
+	public function test_validate_cpf_valid(): void {
+		// Known valid CPF: 529.982.247-25
+		$this->assertTrue( DocumentFormatter::validate_cpf( '52998224725' ) );
+	}
+
+	public function test_validate_cpf_valid_with_formatting(): void {
+		$this->assertTrue( DocumentFormatter::validate_cpf( '529.982.247-25' ) );
+	}
+
+	public function test_validate_cpf_invalid_check_digit(): void {
+		$this->assertFalse( DocumentFormatter::validate_cpf( '52998224700' ) );
+	}
+
+	public function test_validate_cpf_all_same_digits(): void {
+		$this->assertFalse( DocumentFormatter::validate_cpf( '11111111111' ) );
+		$this->assertFalse( DocumentFormatter::validate_cpf( '00000000000' ) );
+		$this->assertFalse( DocumentFormatter::validate_cpf( '99999999999' ) );
+	}
+
+	public function test_validate_cpf_wrong_length(): void {
+		$this->assertFalse( DocumentFormatter::validate_cpf( '1234567' ) );
+		$this->assertFalse( DocumentFormatter::validate_cpf( '123456789012' ) );
+	}
+
+	public function test_validate_cpf_empty(): void {
+		$this->assertFalse( DocumentFormatter::validate_cpf( '' ) );
+	}
+
+	public function test_validate_cpf_another_valid(): void {
+		// Another known valid CPF: 111.444.777-35
+		$this->assertTrue( DocumentFormatter::validate_cpf( '11144477735' ) );
+	}
+
+	public function test_validate_phone_mobile_formatted(): void {
+		$this->assertTrue( DocumentFormatter::validate_phone( '(11) 99876-5432' ) );
+	}
+
+	public function test_validate_phone_landline_formatted(): void {
+		$this->assertTrue( DocumentFormatter::validate_phone( '(11) 3456-7890' ) );
+	}
+
+	public function test_validate_phone_no_formatting(): void {
+		$this->assertTrue( DocumentFormatter::validate_phone( '11998765432' ) );
+	}
+
+	public function test_validate_phone_without_parentheses(): void {
+		$this->assertTrue( DocumentFormatter::validate_phone( '11 99876-5432' ) );
+	}
+
+	public function test_validate_phone_invalid_short(): void {
+		$this->assertFalse( DocumentFormatter::validate_phone( '123' ) );
+	}
+
+	public function test_validate_phone_invalid_letters(): void {
+		$this->assertFalse( DocumentFormatter::validate_phone( 'abcdefghij' ) );
+	}
+
+	public function test_validate_phone_empty(): void {
+		$this->assertFalse( DocumentFormatter::validate_phone( '' ) );
+	}
+
+	public function test_format_cpf_wrong_length_returned_as_is(): void {
+		$this->assertSame( '1234567', DocumentFormatter::format_cpf( '1234567' ) );
+	}
+
+	public function test_validate_rf_valid_with_dots(): void {
+		$this->assertTrue( DocumentFormatter::validate_rf( '123.456-7' ) );
+	}
+
+	public function test_validate_rf_invalid_too_short(): void {
+		$this->assertFalse( DocumentFormatter::validate_rf( '12345' ) );
+	}
+
+	public function test_mask_cpf_eleven_digits(): void {
+		$this->assertSame( '123.***.***-09', DocumentFormatter::mask_cpf( '12345678909' ) );
+	}
+
+	public function test_mask_cpf_formatted_input(): void {
+		$this->assertSame( '123.***.***-09', DocumentFormatter::mask_cpf( '123.456.789-09' ) );
+	}
+
+	public function test_format_auth_code_twelve_chars(): void {
+		$this->assertSame( 'ABCD-EFGH-1234', DocumentFormatter::format_auth_code( 'abcdefgh1234' ) );
+	}
+
+	public function test_format_auth_code_with_hyphens_cleaned(): void {
+		$this->assertSame( 'ABCD-EFGH-1234', DocumentFormatter::format_auth_code( 'ABCD-EFGH-1234' ) );
+	}
+
+	public function test_format_auth_code_wrong_length_returned_uppercase(): void {
+		$this->assertSame( 'ABC', DocumentFormatter::format_auth_code( 'abc' ) );
+	}
+
+	public function test_format_document_auto_auth_code(): void {
+		$this->assertSame( 'ABCD-EFGH-1234', DocumentFormatter::format_document( 'abcdefgh1234', 'auth_code' ) );
+	}
+
+	public function test_format_document_unknown_type_returned_as_is(): void {
+		$this->assertSame( 'XYZ', DocumentFormatter::format_document( 'XYZ', 'unknown' ) );
+	}
+
+	public function test_clean_auth_code_strips_hyphens_uppercases(): void {
+		$this->assertSame( 'ABCD1234EFGH', DocumentFormatter::clean_auth_code( 'abcd-1234-efgh' ) );
+	}
+
+	public function test_clean_auth_code_strips_spaces_and_specials(): void {
+		$this->assertSame( 'ABC123', DocumentFormatter::clean_auth_code( ' a.b.c 1-2-3! ' ) );
+	}
+
+	public function test_clean_auth_code_already_clean(): void {
+		$this->assertSame( 'ABCD', DocumentFormatter::clean_auth_code( 'ABCD' ) );
+	}
+
+	public function test_clean_identifier_uppercases(): void {
+		$this->assertSame( 'ABCDEF', DocumentFormatter::clean_identifier( 'abc-def' ) );
+	}
+
+	public function test_phone_regex_constant_matches_validate_phone(): void {
+		// The constant and the method should agree
+		$phone = '(11) 99876-5432';
+		$phone_clean = preg_replace( '/\s+/', '', $phone );
+		$regex_result = (bool) preg_match( '/' . DocumentFormatter::PHONE_REGEX . '/', $phone_clean );
+		$this->assertSame( DocumentFormatter::validate_phone( $phone ), $regex_result );
+	}
+
+	public function test_mask_email_valid(): void {
+		Functions\when( 'is_email' )->justReturn( true );
+		$this->assertSame( 'j***@gmail.com', DocumentFormatter::mask_email( 'joao@gmail.com' ) );
+	}
 }

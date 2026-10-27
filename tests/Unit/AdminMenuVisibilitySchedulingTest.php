@@ -22,12 +22,11 @@ use FreeFormCertificate\SelfScheduling\SelfSchedulingCPT;
  * tests read the screens from their registrations rather than from a copy, so
  * a renamed slug fails here instead of redirecting in production.
  *
- * Each test runs in its own process: the registration tests stub WordPress
- * menu and post-type functions that must not stay defined for later classes.
+ * The menu and post-type functions its registrations stub leave no later
+ * class depending on them: the whole suite ran green with these tests in the
+ * shared process (#2091).
  *
  * @covers \FreeFormCertificate\Admin\AdminMenuVisibility
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AdminMenuVisibilitySchedulingTest extends TestCase {
 

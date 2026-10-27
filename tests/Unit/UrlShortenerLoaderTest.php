@@ -62,7 +62,6 @@ class UrlShortenerLoaderTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'wp_parse_url' )->alias( function ( $url, $component = -1 ) {
 			return parse_url( $url, $component );
 		} );

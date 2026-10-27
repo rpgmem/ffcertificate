@@ -431,7 +431,6 @@ class CustomFieldValidatorTest extends TestCase {
 
 	public function test_validate_email_valid(): void {
 		Functions\when( 'is_email' )->justReturn( true );
-		Functions\when( 'is_email' )->justReturn( true );
 
 		$field = $this->make_field( array(
 			'validation_rules' => array( 'format' => 'email' ),
@@ -441,7 +440,6 @@ class CustomFieldValidatorTest extends TestCase {
 	}
 
 	public function test_validate_email_invalid(): void {
-		Functions\when( 'is_email' )->justReturn( false );
 		Functions\when( 'is_email' )->justReturn( false );
 
 		$field = $this->make_field( array(

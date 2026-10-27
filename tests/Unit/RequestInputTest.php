@@ -16,12 +16,9 @@ use FreeFormCertificate\Core\RequestInput;
  * walk + private/reserved filtering + fallback here.
  *
  * The wp_unslash / sanitize_text_field stubs live in each test (not setUp) to
- * match the proven RateLimiterTest get_user_ip pattern; the class also runs in
- * isolated processes so a prior suite test that left wp_unslash under Brain
- * Monkey/Patchwork management can't surface as "not defined nor mocked" here.
+ * match the proven RateLimiterTest get_user_ip pattern, which is also what
+ * lets the class run in the shared process (#2091).
  *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RequestInputTest extends TestCase {
 
@@ -259,5 +256,142 @@ class RequestInputTest extends TestCase {
 		$clean = RequestInput::text_array( array( 'school' => '<b>EMEF</b> ', 'n' => 3 ) );
 		$this->assertSame( array( 'school', 'n' ), array_keys( $clean ) );
 		$this->assertStringNotContainsString( '<b>', $clean['school'] );
+	}
+
+	// ==================================================================
+	// Moved from UtilsTest (#2092)
+	// ==================================================================
+
+	public function test_get_post_array_returns_default_when_key_absent(): void {
+		$_POST = array();
+
+		$this->assertSame( array(), RequestInput::get_post_array( 'missing' ) );
+		$this->assertSame( array( 'fallback' ), RequestInput::get_post_array( 'missing', array( 'fallback' ) ) );
+	}
+
+	public function test_get_post_array_returns_default_when_value_not_array(): void {
+		Functions\when( 'wp_unslash' )->returnArg();
+		$_POST = array( 'key' => 'not-an-array' );
+
+		$this->assertSame( array(), RequestInput::get_post_array( 'key' ) );
+	}
+
+	public function test_get_post_array_sanitizes_string_values(): void {
+		Functions\when( 'sanitize_text_field' )->alias( static function ( string $value ): string {
+			return trim( strip_tags( $value ) );
+		} );
+		Functions\when( 'wp_unslash' )->returnArg();
+
+		$_POST = array(
+			'roles' => array( '  admin  ', '<b>editor</b>' ),
+		);
+
+		$this->assertSame( array( 'admin', 'editor' ), RequestInput::get_post_array( 'roles' ) );
+	}
+
+	public function test_get_post_array_strips_slashes_via_wp_unslash(): void {
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_unslash' )->alias( static function ( $value ) {
+			return is_array( $value ) ? array_map( 'stripslashes', $value ) : stripslashes( $value );
+		} );
+
+		$_POST = array( 'list' => array( 'foo\\bar' ) );
+
+		$this->assertSame( array( 'foobar' ), RequestInput::get_post_array( 'list' ) );
+	}
+
+	public function test_get_post_string_returns_default_when_key_absent(): void {
+		$_POST = array();
+
+		$this->assertSame( '', RequestInput::get_post_string( 'missing' ) );
+		$this->assertSame( 'fallback', RequestInput::get_post_string( 'missing', 'fallback' ) );
+	}
+
+	public function test_get_post_string_returns_default_when_value_not_string(): void {
+		Functions\when( 'wp_unslash' )->returnArg();
+		$_POST = array( 'key' => array( 'array', 'not', 'string' ) );
+
+		$this->assertSame( 'def', RequestInput::get_post_string( 'key', 'def' ) );
+	}
+
+	public function test_get_post_string_sanitizes_and_unslashes(): void {
+		Functions\when( 'sanitize_text_field' )->alias( static function ( string $v ): string {
+			return trim( strip_tags( $v ) );
+		} );
+		Functions\when( 'wp_unslash' )->alias( static function ( $v ) {
+			return is_string( $v ) ? stripslashes( $v ) : $v;
+		} );
+
+		$_POST = array( 'name' => '  <b>John\\\'s</b>  ' );
+
+		$this->assertSame( "John's", RequestInput::get_post_string( 'name' ) );
+	}
+
+	public function test_get_get_string_returns_default_when_key_absent(): void {
+		$_GET = array();
+
+		$this->assertSame( '', RequestInput::get_get_string( 'missing' ) );
+		$this->assertSame( 'def', RequestInput::get_get_string( 'missing', 'def' ) );
+	}
+
+	public function test_get_get_string_reads_get_not_post(): void {
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+
+		$_GET  = array( 'k' => 'from-get' );
+		$_POST = array( 'k' => 'from-post' );
+
+		$this->assertSame( 'from-get', RequestInput::get_get_string( 'k' ) );
+	}
+
+	public function test_get_get_string_returns_default_when_value_not_string(): void {
+		Functions\when( 'wp_unslash' )->returnArg();
+		$_GET = array( 'k' => array( 'arr' ) );
+
+		$this->assertSame( '', RequestInput::get_get_string( 'k' ) );
+	}
+
+	public function test_get_post_int_casts_string_to_int(): void {
+		Functions\when( 'absint' )->alias( static function ( $v ): int {
+			return abs( (int) $v );
+		} );
+		Functions\when( 'wp_unslash' )->returnArg();
+
+		$_POST = array( 'limit' => '42' );
+
+		$this->assertSame( 42, RequestInput::get_post_int( 'limit' ) );
+	}
+
+	public function test_get_post_bool_returns_default_when_absent(): void {
+		$_POST = array();
+
+		$this->assertFalse( RequestInput::get_post_bool( 'missing' ) );
+		$this->assertTrue( RequestInput::get_post_bool( 'missing', true ) );
+	}
+
+	public function test_get_post_bool_truthy_values(): void {
+		$_POST = array(
+			'a' => '1',
+			'b' => 'on',
+			'c' => 'yes',
+			'd' => 1,
+		);
+
+		$this->assertTrue( RequestInput::get_post_bool( 'a' ) );
+		$this->assertTrue( RequestInput::get_post_bool( 'b' ) );
+		$this->assertTrue( RequestInput::get_post_bool( 'c' ) );
+		$this->assertTrue( RequestInput::get_post_bool( 'd' ) );
+	}
+
+	public function test_get_post_bool_falsy_values(): void {
+		$_POST = array(
+			'a' => '',
+			'b' => '0',
+			'c' => 0,
+		);
+
+		$this->assertFalse( RequestInput::get_post_bool( 'a' ) );
+		$this->assertFalse( RequestInput::get_post_bool( 'b' ) );
+		$this->assertFalse( RequestInput::get_post_bool( 'c' ) );
 	}
 }

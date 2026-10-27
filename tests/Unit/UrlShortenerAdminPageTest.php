@@ -18,10 +18,9 @@ use FreeFormCertificate\UrlShortener\UrlShortenerRepository;
  * Tests for UrlShortenerAdminPage: AJAX handlers (create, delete, trash,
  * restore, toggle, empty_trash) and admin action routing.
  *
- * Runs in separate processes because the AJAX handlers call
- * Capabilities::current_user_can_manage() via AjaxTrait::check_ajax_permission(),
- * and other tests in the suite leave a Mockery alias for Utils loaded,
- * which makes the permission check resolve to a null mock instance.
+ * Runs in separate processes to protect the files after it: in the shared
+ * process it loads the real UrlShortener classes, which later files mock with
+ * `overload:` and `alias:`, and 27 of their tests fail (measured in #2091).
  *
  * @covers \FreeFormCertificate\UrlShortener\UrlShortenerAdminPage
  * @runTestsInSeparateProcesses

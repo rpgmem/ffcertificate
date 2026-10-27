@@ -231,6 +231,8 @@ class EarlyOpenActionTest extends TestCase {
 
 	public function test_ok_when_all_conditions_met(): void {
 		$this->configure_eligible_form( 1, 'h' );
+		// The per-form toggle set explicitly; the unset case is the test above.
+		$this->meta_store[1]['_ffc_csv_public_start_early_enabled'] = '1';
 		$r = EarlyOpenAction::is_eligible( 1, 'h' );
 		$this->assertTrue( $r['ok'] );
 	}
