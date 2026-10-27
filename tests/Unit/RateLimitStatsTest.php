@@ -69,11 +69,11 @@ class RateLimitStatsTest extends TestCase {
 		$fingerprint = \FreeFormCertificate\Core\IpAddress::fingerprint( '198.51.100.9' );
 		$top_ips     = array(
 			// A row written before #2109: the address is the identifier.
-			array( 'identifier' => '203.0.113.1', 'count' => '6' ),
+			array( 'identifier' => '203.0.113.1', 'count' => '6', 'log_id' => '11' ),
 			// A current row: a fingerprint, with the address encrypted beside it.
-			array( 'identifier' => $fingerprint, 'count' => '4', 'ip_encrypted' => \FreeFormCertificate\Core\Encryption::encrypt( '198.51.100.9' ) ),
+			array( 'identifier' => $fingerprint, 'count' => '4', 'ip_encrypted' => \FreeFormCertificate\Core\Encryption::encrypt( '198.51.100.9' ), 'log_id' => '12' ),
 			// A current row whose address could not be encrypted.
-			array( 'identifier' => $fingerprint . 'x', 'count' => '1', 'ip_encrypted' => null ),
+			array( 'identifier' => $fingerprint . 'x', 'count' => '1', 'ip_encrypted' => null, 'log_id' => '13' ),
 		);
 
 		$wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
@@ -85,9 +85,9 @@ class RateLimitStatsTest extends TestCase {
 		$this->assertSame( $by_type, $stats['by_type'] );
 		$this->assertSame(
 			array(
-				array( 'identifier' => '203.0.113.1', 'count' => 6, 'label' => '203.0.***.***' ),
-				array( 'identifier' => $fingerprint, 'count' => 4, 'label' => '198.51.***.***' ),
-				array( 'identifier' => $fingerprint . 'x', 'count' => 1, 'label' => substr( $fingerprint, 0, 12 ) ),
+				array( 'log_id' => 11, 'identifier' => '203.0.113.1', 'count' => 6, 'label' => '203.0.***.***' ),
+				array( 'log_id' => 12, 'identifier' => $fingerprint, 'count' => 4, 'label' => '198.51.***.***' ),
+				array( 'log_id' => 13, 'identifier' => $fingerprint . 'x', 'count' => 1, 'label' => substr( $fingerprint, 0, 12 ) ),
 			),
 			$stats['top_ips'],
 			'every address is masked; a row without one shows the start of its fingerprint'
@@ -125,5 +125,24 @@ class RateLimitStatsTest extends TestCase {
 		$this->assertNull( $stats['month'] );
 		$this->assertSame( array(), $stats['by_type'] );
 		$this->assertSame( array(), $stats['top_ips'] );
+	}
+
+	public function test_address_of_reads_one_rows_address_for_a_reveal(): void {
+		global $wpdb;
+		$wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$wpdb->shouldReceive( 'get_row' )->andReturn(
+			array( 'type' => 'ip', 'identifier' => 'abc', 'ip_address' => null, 'ip_address_encrypted' => \FreeFormCertificate\Core\Encryption::encrypt( '198.51.100.9' ) ),
+			array( 'type' => 'email', 'identifier' => 'hash', 'ip_address' => '203.0.113.7', 'ip_address_encrypted' => null ),
+			array( 'type' => 'ip', 'identifier' => '2804:14c::1', 'ip_address' => null, 'ip_address_encrypted' => null ),
+			array( 'type' => 'ip', 'identifier' => 'fingerprint', 'ip_address' => null, 'ip_address_encrypted' => null ),
+			null
+		);
+
+		$this->assertSame( '198.51.100.9', RateLimitStats::address_of( 1 ), 'the encrypted address, decrypted' );
+		$this->assertSame( '203.0.113.7', RateLimitStats::address_of( 2 ), 'a row older than the encryption' );
+		$this->assertSame( '2804:14c::1', RateLimitStats::address_of( 3 ), 'an older ip row whose identifier is the address' );
+		$this->assertSame( '', RateLimitStats::address_of( 4 ), 'a fingerprint is never shown as an address' );
+		$this->assertSame( '', RateLimitStats::address_of( 5 ), 'a missing row' );
+		$this->assertSame( '', RateLimitStats::address_of( 0 ), 'no id, no query' );
 	}
 }

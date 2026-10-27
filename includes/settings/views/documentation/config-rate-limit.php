@@ -60,6 +60,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<ul>
 		<li><strong><?php esc_html_e( 'Log', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'blocked (and optionally allowed) events, with a retention window and a row cap. Nothing is stored in the clear: an address is identified by a keyed fingerprint, which counts an IPv6 visitor by their /64 block, and kept itself only encrypted; every other identifier is hashed. Rows written before this change keep the address in clear until the "Rate Limit Log: Encrypt Addresses" migration runs.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Interface', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'toggles for showing remaining attempts, the wait time, and a countdown timer to the visitor.', 'ffcertificate' ); ?></li>
-		<li><strong><?php esc_html_e( 'Statistics', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'blocked today, blocked in the last 30 days, a breakdown by type, and the top blocked IPs, shown masked.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Statistics', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'blocked today, blocked in the last 30 days, a breakdown by type, and the top blocked IPs, shown masked.', 'ffcertificate' ); ?> <?php esc_html_e( 'An account holding ffc_view_settings_pii (the FFC Settings Manager and Administrator) reveals one address with the Reveal button; each reveal is recorded in the activity log.', 'ffcertificate' ); ?></li>
 	</ul>
 </div>

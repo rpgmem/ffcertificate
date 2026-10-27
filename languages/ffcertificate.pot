@@ -26201,7 +26201,7 @@ msgid "Among the FFC roles only FFC Administrator holds these three; no module r
 msgstr ""
 
 #: includes/settings/views/documentation/config-activity-log.php:38
-msgid "Among the FFC roles only FFC Administrator holds these two: the log records what every other role did, so no module role and not FFC Read-only carries it. WordPress administrators keep it too."
+msgid "Among the FFC roles only FFC Administrator holds these three: the log records what every other role did, so no module role and not FFC Read-only carries it. WordPress administrators keep it too."
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:298
@@ -29249,6 +29249,30 @@ msgid "blocked (and optionally allowed) events, with a retention window and a ro
 msgstr ""
 
 msgid "blocked today, blocked in the last 30 days, a breakdown by type, and the top blocked IPs, shown masked."
+msgstr ""
+
+msgid "Activity Log Address Revealed"
+msgstr ""
+
+msgid "Rate Limit Address Revealed"
+msgstr ""
+
+msgid "Reveal settings PII"
+msgstr ""
+
+msgid "Reveal activity log PII"
+msgstr ""
+
+msgid "Reveal a blocked address listed on the Rate Limit tab (audited). Without it the address stays masked (#2109)."
+msgstr ""
+
+msgid "Reveal the client address of an activity log entry, and export it in clear (audited). Without it the address stays masked (#2109)."
+msgstr ""
+
+msgid "An account holding ffc_view_settings_pii (the FFC Settings Manager and Administrator) reveals one address with the Reveal button; each reveal is recorded in the activity log."
+msgstr ""
+
+msgid "reveal the client address of an entry with the Reveal button, and export the addresses in clear. Without it every address on the tab, in an entry's details and in the CSV is masked. Each reveal and each clear export is recorded in the log."
 msgstr ""
 
 msgid "Activity Log: Clear Refused Addresses"

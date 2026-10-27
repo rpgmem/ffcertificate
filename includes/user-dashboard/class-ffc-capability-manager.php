@@ -223,6 +223,14 @@ class CapabilityManager {
 		// `migrate_audiences_pii_cap_grant()` seeds it onto every current
 		// `ffc_manage_audiences` holder.
 		'ffc_view_audiences_pii',
+		// The client address on the two screens that show one outside a
+		// module record (#2109): the activity log, and the Rate Limit tab's
+		// top blocked addresses. Each shows the address masked and reveals
+		// it through its own cap, audited. The one-shot
+		// `migrate_ip_pii_caps_grant()` seeds each onto whoever views that
+		// screen today, so nobody loses the address on upgrade.
+		'ffc_view_activity_log_pii',
+		'ffc_view_settings_pii',
 
 		// URL shortener domain (GAP B). Its own view/manage pair so the
 		// Short URLs admin page is delegable without manage_options.
@@ -432,6 +440,7 @@ class CapabilityManager {
 	public const ADMINISTRATOR_ONLY_CAPABILITIES = array(
 		'ffc_view_activity_log',
 		'ffc_export_activity_log',
+		'ffc_view_activity_log_pii',
 		'ffc_manage_identities',
 		'ffc_split_identities',
 		'ffc_merge_identities',
@@ -911,7 +920,7 @@ class CapabilityManager {
 
 		$settings_viewer   = array( 'ffc_view_settings', 'ffc_view_custom_fields', 'ffc_view_forms_api' );
 		$settings_operator = array_merge( $settings_viewer, array( 'ffc_test_settings_smtp' ) );
-		$settings_manager  = array_merge( $settings_operator, array( 'ffc_manage_settings', 'ffc_manage_email_templates', 'ffc_manage_custom_fields', 'ffc_delete_custom_fields' ) );
+		$settings_manager  = array_merge( $settings_operator, array( 'ffc_manage_settings', 'ffc_manage_email_templates', 'ffc_manage_custom_fields', 'ffc_delete_custom_fields', 'ffc_view_settings_pii' ) );
 
 		return array(
 			// ── Cross-module roles ───────────────────────────────────────

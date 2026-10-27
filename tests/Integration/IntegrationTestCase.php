@@ -400,6 +400,7 @@ abstract class IntegrationTestCase extends TestCase {
 				'ffc_grade_cap_v1',
 				'ffc_reregistration_pii_cap_v1',
 				'ffc_audiences_pii_cap_v1',
+				'ffc_ip_pii_caps_v1',
 				'ffc_forms_api_submit_cap_v1',
 				'ffc_role_tiers_v1',
 			) as $flag

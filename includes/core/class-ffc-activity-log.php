@@ -148,6 +148,10 @@ class ActivityLog {
 			// prefix of their own, which would fall back to `submissions`.
 			'pii_exported'                       => 'data_access',
 			'date_messages_pii_revealed'         => 'data_access',
+			// A client address revealed on the activity log or the Rate
+			// Limit tab (#2109).
+			'activity_log_ip_revealed'           => 'data_access',
+			'rate_limit_ip_revealed'             => 'data_access',
 
 			// An audience screen's account-email reveal (#1824) sits with the
 			// appointment reveals; without a prefix of its own it would fall

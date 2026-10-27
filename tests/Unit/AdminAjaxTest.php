@@ -955,6 +955,106 @@ class AdminAjaxTest extends TestCase {
 		$ajax->reveal_pii();
 	}
 
+	/**
+	 * @return array<string, array{0: string, 1: string, 2: string, 3: string, 4: string}>
+	 */
+	public function address_reveal_types(): array {
+		return array(
+			'activity log entry'   => array( 'activity_log', 'ffc_view_activity_log', 'ffc_view_activity_log_pii', 'activity_log_ip_revealed', 'FreeFormCertificate\Core\ActivityLogQuery|ip_of' ),
+			'rate limit log entry' => array( 'rate_limit_log', 'ffc_view_settings', 'ffc_view_settings_pii', 'rate_limit_ip_revealed', 'FreeFormCertificate\Security\RateLimitStats|address_of' ),
+		);
+	}
+
+	/**
+	 * A client address with no owner reveals through its screen's own cap,
+	 * audited under its own action (#2109).
+	 *
+	 * @dataProvider address_reveal_types
+	 */
+	public function test_reveal_pii_an_address_reveals_through_its_screen_cap_and_audits( string $type, string $surface, string $pii_cap, string $action, string $loader ): void {
+		$_POST['nonce']         = 'n';
+		$_POST['type']          = $type;
+		$_POST['submission_id'] = '31';
+		$_POST['field']         = 'ip';
+
+		list( $class, $method ) = explode( '|', $loader );
+		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->with( $surface )->once()->andReturn( true );
+		Mockery::mock( 'alias:' . $class )->shouldReceive( $method )->once()->with( 31 )->andReturn( '2804:14c::9' );
+
+		$policy = $this->mock_policy_and_audit( $action, 'ip', 31 );
+		// A log line has no owner, so the owner tier can never apply.
+		$policy->shouldReceive( 'resolve' )->with( $pii_cap, null )->andReturn( 'reveal' );
+
+		$ajax = new AdminAjax();
+		try {
+			$ajax->reveal_pii();
+			$this->fail( 'Expected AdminAjaxSuccessException' );
+		} catch ( AdminAjaxSuccessException $e ) {
+			$this->assertSame(
+				array(
+					'field' => 'ip',
+					'value' => '2804:14c::9',
+				),
+				$e->getData()
+			);
+		}
+	}
+
+	/**
+	 * @dataProvider address_reveal_types
+	 */
+	public function test_reveal_pii_an_address_is_refused_without_the_reveal_cap( string $type, string $surface, string $pii_cap, string $action, string $loader ): void {
+		unset( $surface, $pii_cap, $action );
+		$_POST['nonce']         = 'n';
+		$_POST['type']          = $type;
+		$_POST['submission_id'] = '31';
+		$_POST['field']         = 'ip';
+
+		list( $class, $method ) = explode( '|', $loader );
+		Mockery::mock( 'alias:' . $class )->shouldReceive( $method )->andReturn( '203.0.113.9' );
+		$policy = $this->mock_pii_policy();
+		$policy->shouldReceive( 'resolve' )->andReturn( 'masked' );
+
+		$ajax = new AdminAjax();
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessageMatches( '/permission to reveal/' );
+		$ajax->reveal_pii();
+	}
+
+	/**
+	 * @dataProvider address_reveal_types
+	 */
+	public function test_reveal_pii_an_entry_without_an_address_is_not_found( string $type, string $surface, string $pii_cap, string $action, string $loader ): void {
+		unset( $surface, $pii_cap, $action );
+		$_POST['nonce']         = 'n';
+		$_POST['type']          = $type;
+		$_POST['submission_id'] = '31';
+		$_POST['field']         = 'ip';
+
+		list( $class, $method ) = explode( '|', $loader );
+		Mockery::mock( 'alias:' . $class )->shouldReceive( $method )->andReturn( '' );
+
+		$ajax = new AdminAjax();
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessageMatches( '/Record not found/' );
+		$ajax->reveal_pii();
+	}
+
+	/**
+	 * @dataProvider address_reveal_types
+	 */
+	public function test_reveal_pii_an_address_type_serves_only_the_address( string $type ): void {
+		$_POST['nonce']         = 'n';
+		$_POST['type']          = $type;
+		$_POST['submission_id'] = '31';
+		$_POST['field']         = 'email';
+
+		$ajax = new AdminAjax();
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessageMatches( '/Unsupported field/' );
+		$ajax->reveal_pii();
+	}
+
 	// ==================================================================
 	// reveal_pii_page (#1863)
 	// ==================================================================
