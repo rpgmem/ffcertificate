@@ -103,6 +103,8 @@ class MigrationRegistryTest extends TestCase {
 		$this->assertArrayHasKey( 'activity_log_encrypt_ip', $all );
 		// The deletion of the debug rows that logged visitors' positions (#2040).
 		$this->assertArrayHasKey( 'activity_log_location_cleanup', $all );
+		// The plaintext addresses of the rate-limit log (#2109).
+		$this->assertArrayHasKey( 'rate_limit_logs_encrypt_ip', $all );
 		$this->assertArrayHasKey( 'identity_index_backfill', $all );
 		$this->assertArrayHasKey( 'import_legacy_templates', $all );
 		$this->assertArrayHasKey( 'rewrite_html_image_refs', $all );

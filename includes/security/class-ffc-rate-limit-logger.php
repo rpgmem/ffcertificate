@@ -38,28 +38,32 @@ final class RateLimitLogger {
 			return;
 		}
 
-		// Hash identifier before storage for LGPD/GDPR compliance. IP types remain plaintext for operator troubleshooting.
-		$stored_identifier = ( 'ip' === $type ) ? $identifier : hash( 'sha256', (string) $identifier );
+		// Nothing is stored in the clear (#2109). An address — the identifier of
+		// the `ip`, `blacklist` and `whitelist` rows — becomes its fingerprint,
+		// so the statistics still group by caller; any other identifier its
+		// sha256 hash. The request address itself is kept only encrypted, for
+		// the masked list of top blocked addresses.
+		$stored_identifier = in_array( $type, array( 'ip', 'blacklist', 'whitelist' ), true )
+			? \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier )
+			: hash( 'sha256', (string) $identifier );
 
 		global $wpdb;
 		$wpdb->insert(
 			$wpdb->prefix . 'ffc_rate_limit_logs',
 			array(
-				'type'          => $type,
-				'identifier'    => $stored_identifier,
-				'form_id'       => $form_id,
-				'action'        => $action,
-				'reason'        => $reason,
-				// Log the request IP through the same resolver the enforcement
-				// path uses (`RequestInput::get_user_ip()` → the global
-				// `ffc_ip_resolver_mode` toggle), so the logged IP matches the
-				// bucket that was actually rate-limited (#931). For `ip`-type
-				// rows this equals `$identifier`; for other types it records the
-				// requester behind that identifier.
-				'ip_address'    => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
-				'user_agent'    => substr( isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '', 0, 255 ),
-				'current_count' => 0,
-				'max_allowed'   => 0,
+				'type'                 => $type,
+				'identifier'           => $stored_identifier,
+				'form_id'              => $form_id,
+				'action'               => $action,
+				'reason'               => $reason,
+				// The request IP, through the same resolver the enforcement path
+				// uses, so it matches the bucket that was rate-limited (#931).
+				// Encrypted, or not kept at all when encryption is unavailable;
+				// the plaintext `ip_address` column is no longer written.
+				'ip_address_encrypted' => \FreeFormCertificate\Core\Encryption::encrypt( \FreeFormCertificate\Core\RequestInput::get_user_ip() ),
+				'user_agent'           => substr( isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '', 0, 255 ),
+				'current_count'        => 0,
+				'max_allowed'          => 0,
 			),
 			array( '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%d' )
 		);

@@ -29,7 +29,7 @@ class RateLimitActivator {
 	 * Schema version stored in `ffc_rate_limit_db_version` once the tables
 	 * are current; maybe_create_tables() skips the body when they match.
 	 */
-	public const DB_VERSION = '1.2.0';
+	public const DB_VERSION = '1.3.0';
 
 	/**
 	 * Create tables.
@@ -85,6 +85,7 @@ class RateLimitActivator {
                 action varchar(20) NOT NULL,
                 reason varchar(255) DEFAULT NULL,
                 ip_address varchar(45) DEFAULT NULL,
+                ip_address_encrypted text DEFAULT NULL,
                 user_agent text DEFAULT NULL,
                 current_count int(10) unsigned NOT NULL,
                 max_allowed int(10) unsigned NOT NULL,
@@ -99,6 +100,17 @@ class RateLimitActivator {
             ) $charset_collate;";
 
 			dbDelta( $sql_logs );
+		} else {
+			// The request address is kept encrypted from 1.3.0 (#2109).
+			self::add_columns_if_missing(
+				$table_logs,
+				array(
+					'ip_address_encrypted' => array(
+						'type'  => 'TEXT DEFAULT NULL',
+						'after' => 'ip_address',
+					),
+				)
+			);
 		}
 
 		// TABLE 3: Device fingerprint signals (added in 6.3.0, extended in

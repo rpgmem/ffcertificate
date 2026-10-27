@@ -28,22 +28,22 @@ final class RateLimitRepository {
 
 	/**
 	 * Storage key for a rate-limit identifier on the `ffc_rate_limits` counter
-	 * table. Non-IP identifiers (email / CPF) are hashed at rest — a counter row
-	 * only needs a stable equality key, and storing raw CPF/email was a
-	 * PII-at-rest leak (#839 S5). IP identifiers stay plaintext so the stats
-	 * "top IPs" view and operator troubleshooting keep working. Mirrors the
-	 * sibling {@see RateLimitLogger::log_attempt()} hashing on `ffc_rate_limit_logs`.
+	 * table. A counter row only needs a stable equality key, so nothing is
+	 * stored in the clear: an address becomes its fingerprint, which counts
+	 * an IPv6 caller by its /64 and is keyed with the plugin's hash secret
+	 * (#2109), and any other identifier (email, CPF) its sha256 hash (#839).
+	 * Mirrors {@see RateLimitLogger::log_attempt()} on `ffc_rate_limit_logs`.
 	 *
 	 * Applied on both the read (get_count / is_blocked) and write (increment /
-	 * block) sides so lookups stay consistent; existing raw rows simply miss the
-	 * new hashed key and lapse after their window (a one-time reset at most).
+	 * block) sides so lookups stay consistent; a row written under an older
+	 * key simply misses and lapses after its window (a one-time reset at most).
 	 *
 	 * @param string $type       Identifier type ('ip' | 'email' | 'cpf' | …).
 	 * @param string $identifier Raw identifier.
-	 * @return string Plaintext IP, or a sha256 hash for any non-IP identifier.
+	 * @return string Address fingerprint, or a sha256 hash for any other identifier.
 	 */
 	private static function storage_identifier( string $type, string $identifier ): string {
-		return ( 'ip' === $type ) ? $identifier : hash( 'sha256', $identifier );
+		return ( 'ip' === $type ) ? \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier ) : hash( 'sha256', $identifier );
 	}
 
 	/**

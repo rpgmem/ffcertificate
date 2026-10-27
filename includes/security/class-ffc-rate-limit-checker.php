@@ -379,7 +379,7 @@ final class RateLimitChecker {
 		$max_per_hour = 10;
 		$max_per_day  = 30;
 
-		$hour_key   = 'ffc_verify_ip_' . md5( $ip ) . '_hour_' . gmdate( 'YmdH' );
+		$hour_key   = 'ffc_verify_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $ip ) ) . '_hour_' . gmdate( 'YmdH' );
 		$hour_count = RateCounter::get( $hour_key );
 
 		if ( $hour_count >= $max_per_hour ) {
@@ -393,7 +393,7 @@ final class RateLimitChecker {
 			);
 		}
 
-		$day_key   = 'ffc_verify_ip_' . md5( $ip ) . '_day_' . gmdate( 'Ymd' );
+		$day_key   = 'ffc_verify_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $ip ) ) . '_day_' . gmdate( 'Ymd' );
 		$day_count = RateCounter::get( $day_key );
 
 		if ( $day_count >= $max_per_day ) {
@@ -450,8 +450,8 @@ final class RateLimitChecker {
 
 		if ( 'ip' === $type ) {
 			// Transients, so the counters persist without an object cache (#1861).
-			RateCounter::increment( 'ffc_rate_ip_' . md5( $identifier . $form_id ) . '_hour', 3600 );
-			RateCounter::put( 'ffc_rate_ip_' . md5( $identifier . $form_id ) . '_last', time(), max( 1, (int) $s['ip']['cooldown_seconds'] ) );
+			RateCounter::increment( 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier ) . $form_id ) . '_hour', 3600 );
+			RateCounter::put( 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier ) . $form_id ) . '_last', time(), max( 1, (int) $s['ip']['cooldown_seconds'] ) );
 		}
 
 		if ( 'global' === $type ) {
@@ -638,7 +638,7 @@ final class RateLimitChecker {
 		$message  = (string) ( $s['read']['message'] ?? __( 'Too many requests. Please wait {time}.', 'ffcertificate' ) );
 
 		if ( $max_min > 0 ) {
-			$mc = RateCounter::get( 'ffc_rate_read_' . md5( $ip . '|' . $endpoint_key ) . '_minute' );
+			$mc = RateCounter::get( 'ffc_rate_read_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $ip ) . '|' . $endpoint_key ) . '_minute' );
 			if ( $mc >= $max_min ) {
 				return array(
 					'allowed'      => false,
@@ -650,7 +650,7 @@ final class RateLimitChecker {
 		}
 
 		if ( $max_hour > 0 ) {
-			$hc = RateCounter::get( 'ffc_rate_read_' . md5( $ip . '|' . $endpoint_key ) . '_hour' );
+			$hc = RateCounter::get( 'ffc_rate_read_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $ip ) . '|' . $endpoint_key ) . '_hour' );
 			if ( $hc >= $max_hour ) {
 				return array(
 					'allowed'      => false,
@@ -677,7 +677,7 @@ final class RateLimitChecker {
 	 * @return void
 	 */
 	public static function record_read_attempt( string $ip, string $endpoint_key ): void {
-		$identifier = $ip . '|' . $endpoint_key;
+		$identifier = \FreeFormCertificate\Core\IpAddress::fingerprint( $ip ) . '|' . $endpoint_key;
 
 		RateCounter::increment( 'ffc_rate_read_' . md5( $identifier ) . '_minute', 60 );
 		RateCounter::increment( 'ffc_rate_read_' . md5( $identifier ) . '_hour', 3600 );

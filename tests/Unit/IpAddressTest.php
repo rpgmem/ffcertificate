@@ -131,6 +131,31 @@ class IpAddressTest extends TestCase {
 		$this->assertSame( $expected, IpAddress::in_range( $ip, $entry ) );
 	}
 
+	public function test_a_fingerprint_follows_the_counting_key(): void {
+		$fingerprint = IpAddress::fingerprint( '2804:14c:1:2::1' );
+
+		$this->assertMatchesRegularExpression( '/^[0-9a-f]{64}$/', $fingerprint );
+		$this->assertSame( $fingerprint, IpAddress::fingerprint( '2804:14C:1:2:ffff::7' ), 'one /64, one caller' );
+		$this->assertNotSame( $fingerprint, IpAddress::fingerprint( '2804:14c:1:3::1' ) );
+		$this->assertSame( IpAddress::fingerprint( '203.0.113.7' ), IpAddress::fingerprint( '::ffff:203.0.113.7' ) );
+		$this->assertNotSame( IpAddress::fingerprint( '203.0.113.7' ), IpAddress::fingerprint( '203.0.113.8' ) );
+	}
+
+	public function test_a_fingerprint_is_keyed_not_a_plain_digest_of_the_address(): void {
+		$fingerprint = IpAddress::fingerprint( '203.0.113.7' );
+
+		foreach ( array( '203.0.113.7', 'v4:cb007107' ) as $input ) {
+			foreach ( array( 'md5', 'sha1', 'sha256' ) as $algo ) {
+				$this->assertNotSame( hash( $algo, $input ), $fingerprint, "not an unkeyed $algo of $input" );
+			}
+		}
+	}
+
+	public function test_unresolved_callers_share_one_fingerprint(): void {
+		$this->assertSame( IpAddress::fingerprint( '0.0.0.0' ), IpAddress::fingerprint( '' ) );
+		$this->assertNotSame( IpAddress::fingerprint( '0.0.0.0' ), IpAddress::fingerprint( '203.0.113.7' ) );
+	}
+
 	public function test_a_list_matches_when_any_entry_does(): void {
 		$list = array( 'junk', 42, '198.51.100.0/24', '2804:14c::/32' );
 

@@ -2932,9 +2932,6 @@ msgstr ""
 msgid "Blocked (30 days):"
 msgstr ""
 
-#: includes/settings/views/documentation/config-rate-limit.php:56
-msgid "blocked (and optionally allowed) events, with a retention window and a row cap. IPs are stored in the clear; every other identifier is hashed for privacy."
-msgstr ""
 
 #: includes/settings/views/documentation/forms-schedule.php:37
 msgid "Blocked behavior"
@@ -2956,9 +2953,6 @@ msgstr ""
 msgid "Blocked Roles"
 msgstr ""
 
-#: includes/settings/views/documentation/config-rate-limit.php:58
-msgid "blocked today, blocked in the last 30 days, a breakdown by type, and the top blocked IPs."
-msgstr ""
 
 #: includes/settings/views/ffc-tab-rate-limit.php:594
 msgid "Blocked today:"
@@ -29236,4 +29230,23 @@ msgid "These lines of the IP lists are not an IPv4 or IPv6 address or a CIDR ran
 msgstr ""
 
 msgid "An IP line is an IPv4 or IPv6 address, or a range in CIDR notation, such as 203.0.113.0/24 or 2804:14c::/48. Saving stores each line in a single standard spelling, so an address matches however the visitor's request writes it, and an IPv4 address written inside IPv6 matches its IPv4 line. A line that is neither an address nor a range is not saved, and the screen names it."
+msgstr ""
+
+msgid "Rate limit log table is not available — nothing to migrate."
+msgstr ""
+
+#. translators: %d: number of rate limit log rows whose address was encrypted.
+msgid "Removed the plaintext address from %d rate limit log rows."
+msgstr ""
+
+msgid "Rate Limit Log: Encrypt Addresses"
+msgstr ""
+
+msgid "Encrypt the request address of rate limit log rows written before addresses were stored encrypted, clear the plaintext copy, and identify blocked addresses by a keyed fingerprint instead of the address. An address that cannot be encrypted is cleared all the same. The log keeps 30 days by default, so the plaintext would also leave on its own."
+msgstr ""
+
+msgid "blocked (and optionally allowed) events, with a retention window and a row cap. Nothing is stored in the clear: an address is identified by a keyed fingerprint, which counts an IPv6 visitor by their /64 block, and kept itself only encrypted; every other identifier is hashed. Rows written before this change keep the address in clear until the \"Rate Limit Log: Encrypt Addresses\" migration runs."
+msgstr ""
+
+msgid "blocked today, blocked in the last 30 days, a breakdown by type, and the top blocked IPs, shown masked."
 msgstr ""

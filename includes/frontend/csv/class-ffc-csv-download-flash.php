@@ -37,11 +37,11 @@ class CsvDownloadFlash {
 	const FLASH_TRANSIENT_TTL = 60;
 
 	/**
-	 * Build a transient key scoped to the current visitor's IP.
+	 * Build a transient key scoped to the current visitor's address, by its
+	 * fingerprint rather than the address itself (#2109).
 	 */
 	public function flash_transient_key(): string {
-		$ip = RequestInput::get_user_ip();
-		return 'ffc_pcd_flash_' . sha1( $ip );
+		return 'ffc_pcd_flash_' . sha1( \FreeFormCertificate\Core\IpAddress::fingerprint( RequestInput::get_user_ip() ) );
 	}
 
 	/**

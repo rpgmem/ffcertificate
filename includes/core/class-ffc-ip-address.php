@@ -72,6 +72,25 @@ final class IpAddress {
 	}
 
 	/**
+	 * Who a caller is, for anything that counts, limits or owns by address,
+	 * without the address itself (#2109).
+	 *
+	 * A keyed hash of the counting key, so it follows `rate_key()`: one
+	 * value for every spelling of an address, for an IPv4 address inside
+	 * IPv6, and for a whole IPv6 /64. An unresolved address has no key, and
+	 * its callers share one fingerprint, which is what the counters did
+	 * with the resolver's sentinel before. The key is the plugin's hash
+	 * secret, so the IPv4 space cannot be enumerated against a stored
+	 * value without `wp-config.php`.
+	 *
+	 * @param string $ip Address as resolved.
+	 * @return string 64 hex characters.
+	 */
+	public static function fingerprint( string $ip ): string {
+		return Encryption::keyed_hash( self::rate_key( $ip ) ?? 'unresolved', 'ip' );
+	}
+
+	/**
 	 * A list entry in canonical form, or null when it is neither an address
 	 * nor a CIDR range (#2109).
 	 *
