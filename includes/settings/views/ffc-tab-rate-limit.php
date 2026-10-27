@@ -725,8 +725,29 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 <?php endif; ?>
 <?php if ( ! empty( $ffcertificate_stats['top_ips'] ) ) : ?>
 	<h3><?php esc_html_e( 'Top blocked IPs:', 'ffcertificate' ); ?></h3>
+	<?php
+	// Masked for everyone; a holder of the settings reveal cap gets an
+	// audited Reveal beside each address (#2109).
+	$ffcertificate_reveal_nonce = \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal_any( \FreeFormCertificate\Settings\Tabs\TabRateLimit::PII_CAP )
+		? wp_create_nonce( 'ffc_reveal_pii_nonce' )
+		: '';
+	?>
 	<ol><?php foreach ( $ffcertificate_stats['top_ips'] as $ffcertificate_ip ) : ?>
-		<li><code><?php echo esc_html( $ffcertificate_ip['label'] ); ?></code> (<?php echo esc_html( number_format( $ffcertificate_ip['count'] ) ); ?>x)</li>
+		<li class="ffc-pii-row"><code class="ffc-pii-value" data-field="ip"><?php echo esc_html( $ffcertificate_ip['label'] ); ?></code> (<?php echo esc_html( number_format( $ffcertificate_ip['count'] ) ); ?>x)
+		<?php
+		if ( '' !== $ffcertificate_reveal_nonce && ! empty( $ffcertificate_ip['log_id'] ) ) {
+			$ffcertificate_reveal_button = \FreeFormCertificate\Core\PiiReveal::field_button(
+				array(
+					'field'         => 'ip',
+					'type'          => \FreeFormCertificate\Admin\AdminAjax::REVEAL_RATE_LIMIT_LOG,
+					'submission-id' => (int) $ffcertificate_ip['log_id'],
+					'nonce'         => $ffcertificate_reveal_nonce,
+				)
+			);
+			echo $ffcertificate_reveal_button; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- field_button() escapes every attribute.
+		}
+		?>
+		</li>
 	<?php endforeach; ?></ol>
 <?php endif; ?>
 </div>

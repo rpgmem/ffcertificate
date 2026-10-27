@@ -109,7 +109,7 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 		);
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 
-		$result = $this->source->format_row( $this->sample_row(), array() );
+		$result = $this->source->format_row( $this->sample_row(), array( 'pii' => true ) );
 
 		$this->assertSame( '2026-01-15 10:30:00', $result[0] );
 		$this->assertSame( 'ERROR', $result[1] );
@@ -201,8 +201,30 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->assertSame( $rows, $page );
 	}
 
-	public function test_build_context_is_empty(): void {
-		$this->assertSame( array(), $this->source->build_context( array( 'level' => 'error' ) ) );
+	public function test_build_context_freezes_whether_addresses_go_out_in_clear(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		Functions\when( 'user_can' )->justReturn( false );
+		$this->assertSame( array( 'pii' => false ), $this->source->build_context( array( 'level' => 'error' ) ) );
+
+		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 'ffc_view_activity_log_pii' === $cap );
+		$this->assertSame( array( 'pii' => true ), $this->source->build_context( array( 'level' => 'error' ) ), 'the reveal cap exports in clear (#2109)' );
+	}
+
+	public function test_a_masked_export_masks_every_address(): void {
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
+		$row            = $this->sample_row();
+		$row['context'] = array(
+			'triggered_by_ip' => '198.51.100.7',
+			'form_id'         => 42,
+		);
+
+		$result = $this->source->format_row( $row, array( 'pii' => false ) );
+
+		$this->assertSame( '203.0.***.***', $result[4] );
+		$this->assertStringContainsString( '198.51.***.***', $result[5] );
+		$this->assertStringNotContainsString( '198.51.100.7', $result[5] );
+		$this->assertStringContainsString( '"form_id":42', $result[5] );
 	}
 
 	public function test_filename_is_dated(): void {

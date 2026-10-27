@@ -53,6 +53,11 @@ class AdminActivityLogPageTest extends TestCase {
 
 		class_exists('\\FreeFormCertificate\\Admin\\AdminActivityLogPage');
 
+		// The address reveal (#2109): a user who may not reveal, unless a
+		// test says otherwise.
+		Functions\when('get_current_user_id')->justReturn(1);
+		Functions\when('user_can')->justReturn(false);
+
 		// Common WP function stubs
 		Functions\when('__')->returnArg();
 		Functions\when('esc_html__')->returnArg();
@@ -316,9 +321,48 @@ class AdminActivityLogPageTest extends TestCase {
 
 		$this->assertStringContainsString('Jane Doe', $html);
 		$this->assertStringContainsString('jane', $html);
-		$this->assertStringContainsString('203.0.113.5', $html);
+		$this->assertStringContainsString('203.0.***.***', $html);
+		$this->assertStringNotContainsString('203.0.113.5', $html, 'the address is masked (#2109)');
+		$this->assertStringNotContainsString('ffc-reveal-pii', $html, 'no Reveal without the cap');
 		$this->assertStringContainsString('Submission Created', $html);
 		$this->assertStringContainsString('<details>', $html);
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_a_holder_of_the_reveal_cap_gets_a_reveal_and_details_stay_masked(): void {
+		Mockery::mock('alias:\FreeFormCertificate\Core\DateFormatter')
+			->shouldReceive('format_date')->andReturn('01/01/2026')
+			->shouldReceive('format_time')->andReturn('00:00');
+		Functions\when('get_userdata')->justReturn(false);
+		Functions\when('wp_json_encode')->alias(static fn($v, $f = 0) => json_encode($v, $f));
+		Functions\when('esc_html_e')->alias(function ($t) { echo $t; });
+		Functions\when('wp_create_nonce')->justReturn('nonce-123');
+		Functions\when('user_can')->alias(static fn($uid, $cap) => 'ffc_view_activity_log_pii' === $cap);
+
+		$html = AdminActivityLogPage::render_rows_html([
+			[
+				'id'         => 77,
+				'created_at' => '2026-01-01 00:00:00',
+				'level'      => 'info',
+				'action'     => 'access_denied',
+				'user_id'    => 0,
+				'user_ip'    => '2804:14c:1:2::9',
+				'context'    => ['identifier' => '198.51.100.7', 'nested' => ['ip' => '::ffff:192.0.2.1'], 'form_id' => 42],
+			],
+		]);
+
+		$this->assertStringContainsString('2804:14c:1:2:****:****:****:****', $html);
+		$this->assertStringContainsString('ffc-reveal-pii', $html);
+		$this->assertStringContainsString('data-type="activity_log"', $html);
+		$this->assertStringContainsString('data-submission-id="77"', $html);
+		$this->assertStringContainsString('198.51.***.***', $html);
+		$this->assertStringContainsString('192.0.***.***', $html);
+		$this->assertStringNotContainsString('198.51.100.7', $html, 'an address in the details is masked whatever its key');
+		$this->assertStringNotContainsString('192.0.2.1', $html);
+		$this->assertStringContainsString('42', $html);
 	}
 
 	/**
@@ -574,7 +618,8 @@ class AdminActivityLogPageTest extends TestCase {
 		);
 
 		$this->assertNotNull( $html );
-		$this->assertStringContainsString( '203.0.113.5', $html );
+		$this->assertStringContainsString( '203.0.***.***', $html );
+		$this->assertStringNotContainsString( '203.0.113.5', $html );
 		$this->assertStringContainsString( '123.***.***-45', $html );
 		$this->assertStringContainsString( '555', $html );
 	}
@@ -591,7 +636,7 @@ class AdminActivityLogPageTest extends TestCase {
 
 		$this->assertNotNull( $html );
 		$this->assertStringNotContainsString( 'Operator (masked)', $html );
-		$this->assertStringContainsString( '203.0.113.5', $html );
+		$this->assertStringContainsString( '203.0.***.***', $html );
 	}
 
 	// ==================================================================

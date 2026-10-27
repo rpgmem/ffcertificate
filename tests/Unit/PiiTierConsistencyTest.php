@@ -51,7 +51,7 @@ class PiiTierConsistencyTest extends TestCase {
 		$method->setAccessible( true );
 		$configs = $method->invoke( new AdminAjax() );
 		$this->assertSame(
-			array( 'submission', 'appointment', 'reregistration', 'audience_account', 'user_profile', 'date_messages_person' ),
+			array( 'submission', 'appointment', 'reregistration', 'audience_account', 'user_profile', 'date_messages_person', 'activity_log', 'rate_limit_log' ),
 			array_keys( $configs ),
 			'Every reveal type.'
 		);
@@ -123,6 +123,10 @@ class PiiTierConsistencyTest extends TestCase {
 			'ffc_view_audiences_pii'      => array( 'ffc_audiences_manager', 'ffc_audiences_admin' ),
 			'ffc_view_date_messages_pii'  => array( 'ffc_date_messages_manager', 'ffc_date_messages_admin' ),
 			'ffc_view_recruitment_pii'    => array( CapabilityManager::RECRUITMENT_MANAGER_ROLE, 'ffc_recruitment_admin' ),
+			// The blocked addresses on the Rate Limit tab (#2109).
+			'ffc_view_settings_pii'       => array( 'ffc_settings_manager', 'ffc_settings_admin' ),
+			// The activity log is the administrator's alone, so is its reveal.
+			'ffc_view_activity_log_pii'   => array(),
 		);
 		foreach ( $owners as $cap => $roles ) {
 			$holders = array();

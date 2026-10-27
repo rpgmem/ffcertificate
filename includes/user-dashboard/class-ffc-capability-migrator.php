@@ -1105,6 +1105,36 @@ class CapabilityMigrator {
 	}
 
 	/**
+	 * Source-to-target map for the address reveal caps (#2109).
+	 *
+	 * @since 6.43.0
+	 * @return array<string, array<int, string>>
+	 */
+	public static function ip_pii_caps_grant_map(): array {
+		return array(
+			'ffc_view_activity_log' => array( 'ffc_view_activity_log_pii' ),
+			'ffc_manage_settings'   => array( 'ffc_view_settings_pii' ),
+		);
+	}
+
+	/**
+	 * Idempotent migration seeding the address reveal caps onto every user
+	 * and role already holding the screen's cap: `ffc_view_activity_log_pii`
+	 * onto activity log viewers, who saw every address in clear until #2109,
+	 * and `ffc_view_settings_pii` onto settings managers, who saw the top
+	 * blocked addresses in clear on the Rate Limit tab.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_ip_pii_caps_v1` option.
+	 *
+	 * @since 6.43.0
+	 * @return array<string, int> Per-target-cap count of users seeded.
+	 */
+	public static function migrate_ip_pii_caps_grant(): array {
+		return self::seed_caps( self::ip_pii_caps_grant_map() );
+	}
+
+	/**
 	 * Source-to-target map for the REST submit cap (#1861).
 	 *
 	 * @since 6.40.0
@@ -1174,6 +1204,7 @@ class CapabilityMigrator {
 			self::grade_cap_grant_map(),
 			self::reregistration_pii_cap_grant_map(),
 			self::audiences_pii_cap_grant_map(),
+			self::ip_pii_caps_grant_map(),
 			self::forms_api_submit_cap_grant_map(),
 		);
 		foreach ( $multiple as $map ) {

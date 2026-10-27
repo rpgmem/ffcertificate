@@ -26284,8 +26284,8 @@ msgid "Among the FFC roles only FFC Administrator holds these three; no module r
 msgstr "Entre as funções do FFC, apenas o FFC Administrador detém estas três; nenhuma função de módulo nem o FFC Somente leitura as possui. Os administradores do WordPress também as mantêm."
 
 #: includes/settings/views/documentation/config-activity-log.php:38
-msgid "Among the FFC roles only FFC Administrator holds these two: the log records what every other role did, so no module role and not FFC Read-only carries it. WordPress administrators keep it too."
-msgstr "Entre as funções do FFC, apenas o FFC Administrador detém estas duas: o registro mostra o que todas as outras funções fizeram, por isso nenhuma função de módulo nem o FFC Somente leitura o possui. Os administradores do WordPress também o mantêm."
+msgid "Among the FFC roles only FFC Administrator holds these three: the log records what every other role did, so no module role and not FFC Read-only carries it. WordPress administrators keep it too."
+msgstr "Entre as funções do FFC, apenas o FFC Administrador detém estas três: o registro mostra o que todas as outras funções fizeram, por isso nenhuma função de módulo nem o FFC Somente leitura o possui. Os administradores do WordPress também o mantêm."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:298
 msgid "Audience calendar bypass"
@@ -29334,3 +29334,27 @@ msgstr "eventos bloqueados (e, opcionalmente, permitidos), com uma janela de ret
 
 msgid "blocked today, blocked in the last 30 days, a breakdown by type, and the top blocked IPs, shown masked."
 msgstr "bloqueados hoje, bloqueados nos últimos 30 dias, a divisão por tipo e os IPs mais bloqueados, mostrados mascarados."
+
+msgid "Activity Log Address Revealed"
+msgstr "Endereço do Registro de Atividades Revelado"
+
+msgid "Rate Limit Address Revealed"
+msgstr "Endereço do Limite de Requisições Revelado"
+
+msgid "Reveal settings PII"
+msgstr "Revelar PII das configurações"
+
+msgid "Reveal activity log PII"
+msgstr "Revelar PII do registro de atividades"
+
+msgid "Reveal a blocked address listed on the Rate Limit tab (audited). Without it the address stays masked (#2109)."
+msgstr "Revelar um endereço bloqueado listado na aba Limite de Requisições (auditado). Sem ela o endereço permanece mascarado (#2109)."
+
+msgid "Reveal the client address of an activity log entry, and export it in clear (audited). Without it the address stays masked (#2109)."
+msgstr "Revelar o endereço do cliente de uma entrada do registro de atividades e exportá-lo às claras (auditado). Sem ela o endereço permanece mascarado (#2109)."
+
+msgid "An account holding ffc_view_settings_pii (the FFC Settings Manager and Administrator) reveals one address with the Reveal button; each reveal is recorded in the activity log."
+msgstr "Uma conta com ffc_view_settings_pii (o Gerente e o Administrador das Configurações FFC) revela um endereço com o botão Revelar; cada revelação é registrada no registro de atividades."
+
+msgid "reveal the client address of an entry with the Reveal button, and export the addresses in clear. Without it every address on the tab, in an entry's details and in the CSV is masked. Each reveal and each clear export is recorded in the log."
+msgstr "revelar o endereço do cliente de uma entrada com o botão Revelar e exportar os endereços às claras. Sem ela, todo endereço na aba, nos detalhes de uma entrada e no CSV fica mascarado. Cada revelação e cada exportação às claras é registrada no log."

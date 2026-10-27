@@ -25,6 +25,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class AdminActivityLogPage {
 
 	/**
+	 * Capability that reveals an entry's client address (#2109).
+	 */
+	public const PII_CAP = 'ffc_view_activity_log_pii';
+
+	/**
 	 * Constructor. Registers the batched CSV-export source with the shared
 	 * registry (#772). Done here — not in register_menu(), which is hooked on
 	 * `admin_menu` and never fires on admin-ajax — so the unified dispatcher can
@@ -68,6 +73,8 @@ class AdminActivityLogPage {
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
+		// The client address is masked, with an audited Reveal (#2109).
+		\FreeFormCertificate\Core\PiiReveal::enqueue_assets();
 		wp_enqueue_script(
 			'ffc-admin-activity-log',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin-activity-log{$s}.js",
@@ -281,6 +288,8 @@ class AdminActivityLogPage {
 			'reregistration_pii_revealed'                  => __( 'Reregistration Personal Data Revealed', 'ffcertificate' ),
 			'reregistration_details_viewed'                => __( 'Reregistration Details Viewed', 'ffcertificate' ),
 			'date_messages_pii_revealed'                   => __( 'Date Messages Personal Data Revealed', 'ffcertificate' ),
+			'activity_log_ip_revealed'                     => __( 'Activity Log Address Revealed', 'ffcertificate' ),
+			'rate_limit_ip_revealed'                       => __( 'Rate Limit Address Revealed', 'ffcertificate' ),
 			'custom_field_sensitive_demotion_refused'      => __( 'Sensitive Field Demotion Refused', 'ffcertificate' ),
 
 			// Recruitment.
@@ -381,7 +390,7 @@ class AdminActivityLogPage {
 
 		if ( 'operator_ip_bypass' === $action ) {
 			$rows = array(
-				array( __( 'Bypassed IP', 'ffcertificate' ), (string) ( $context['bypassed_ip'] ?? '' ) ),
+				array( __( 'Bypassed IP', 'ffcertificate' ), \FreeFormCertificate\Core\DocumentFormatter::mask_ip( (string) ( $context['bypassed_ip'] ?? '' ) ) ),
 				array( __( 'Operator (masked)', 'ffcertificate' ), (string) ( $context['operator_cpf_masked'] ?? '' ) ),
 				array( __( 'Submission ID', 'ffcertificate' ), (string) ( $context['submission_id'] ?? '' ) ),
 			);
@@ -555,6 +564,11 @@ class AdminActivityLogPage {
 		if ( empty( $logs ) ) {
 			return '';
 		}
+		// The address is masked for everyone; a holder of the reveal cap gets
+		// a Reveal beside it, audited like every other one (#2109).
+		$ffcertificate_reveal_nonce = \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal_any( self::PII_CAP )
+			? wp_create_nonce( 'ffc_reveal_pii_nonce' )
+			: '';
 		ob_start();
 		foreach ( $logs as $ffcertificate_log ) :
 			?>
@@ -588,7 +602,23 @@ class AdminActivityLogPage {
 					?>
 				</td>
 				<td>
-					<code><?php echo esc_html( (string) ( $ffcertificate_log['user_ip'] ?? '' ) ); ?></code>
+					<?php
+					$ffcertificate_ip = (string) ( $ffcertificate_log['user_ip'] ?? '' );
+					if ( '' !== $ffcertificate_ip ) {
+						echo '<code class="ffc-pii-value" data-field="ip">' . esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_ip( $ffcertificate_ip ) ) . '</code>';
+						if ( '' !== $ffcertificate_reveal_nonce ) {
+							$ffcertificate_reveal_button = \FreeFormCertificate\Core\PiiReveal::field_button(
+								array(
+									'field'         => 'ip',
+									'type'          => \FreeFormCertificate\Admin\AdminAjax::REVEAL_ACTIVITY_LOG,
+									'submission-id' => (int) ( $ffcertificate_log['id'] ?? 0 ),
+									'nonce'         => $ffcertificate_reveal_nonce,
+								)
+							);
+							echo ' ' . $ffcertificate_reveal_button; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- field_button() escapes every attribute.
+						}
+					}
+					?>
 				</td>
 				<td>
 					<?php
@@ -596,7 +626,7 @@ class AdminActivityLogPage {
 						// wp_json_encode returns string|false. The false case (circular
 						// refs, malformed UTF-8) is treated as "no context" so the
 						// admin still sees a valid <details> block.
-						$ffcertificate_context_json = wp_json_encode( $ffcertificate_log['context'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
+						$ffcertificate_context_json = wp_json_encode( self::mask_addresses( $ffcertificate_log['context'] ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
 						if ( false === $ffcertificate_context_json ) {
 							$ffcertificate_context_json = '';
 						}
@@ -633,6 +663,25 @@ class AdminActivityLogPage {
 			<?php
 		endforeach;
 		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Every address in an entry's details masked, whatever key holds it
+	 * (#2109). Details carry the address under several keys (`ip`,
+	 * `triggered_by_ip`, `bypassed_ip`, an older geofence `identifier`), so
+	 * the test is the value: a string that is an IP address is masked.
+	 *
+	 * @param mixed $context Decoded details, or a scalar inside them.
+	 * @return mixed
+	 */
+	public static function mask_addresses( $context ) {
+		if ( is_array( $context ) ) {
+			return array_map( array( self::class, 'mask_addresses' ), $context );
+		}
+		if ( is_string( $context ) && null !== \FreeFormCertificate\Core\IpAddress::canonical( $context ) ) {
+			return \FreeFormCertificate\Core\DocumentFormatter::mask_ip( $context );
+		}
+		return $context;
 	}
 
 	/**
