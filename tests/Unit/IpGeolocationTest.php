@@ -255,7 +255,6 @@ class IpGeolocationTest extends TestCase {
 		// same process already declared FreeFormCertificate\Settings\get_option.
 		$geo = array( 'ip_api_enabled' => '1', 'ip_api_service' => 'ip-api' );
 		Functions\when( 'get_option' )->justReturn( $geo );
-		Functions\when( 'get_option' )->justReturn( $geo );
 
 		$result = IpGeolocation::get_location( '192.168.1.1' );
 
@@ -268,7 +267,6 @@ class IpGeolocationTest extends TestCase {
 		// GeolocationSettingsReader (namespace FreeFormCertificate\Settings).
 		// Stub both call sites (see private_ip test for the rationale).
 		$geo = array( 'ip_api_enabled' => '1' );
-		Functions\when( 'get_option' )->justReturn( $geo );
 		Functions\when( 'get_option' )->justReturn( $geo );
 
 		$result = IpGeolocation::get_location( '127.0.0.1' );
@@ -313,7 +311,6 @@ class IpGeolocationTest extends TestCase {
 	/** Enable the geolocation API with the given extra settings. */
 	private function enable_geo( array $extra = array() ): void {
 		$geo = array_merge( array( 'ip_api_enabled' => '1', 'ip_api_service' => 'ip-api' ), $extra );
-		Functions\when( 'get_option' )->justReturn( $geo );
 		Functions\when( 'get_option' )->justReturn( $geo );
 		Functions\when( 'apply_filters' )->alias(
 			static function ( $tag, $val = null ) {

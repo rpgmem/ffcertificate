@@ -280,7 +280,6 @@ class MigrationRegistryTest extends TestCase {
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
-		Functions\when( '__' )->returnArg();
 
 		// Expect apply_filters to be called with the registry filter hook
 		Functions\expect( 'apply_filters' )
@@ -301,7 +300,6 @@ class MigrationRegistryTest extends TestCase {
 		Monkey\tearDown();
 		Monkey\setUp();
 
-		Functions\when( '__' )->returnArg();
 		Functions\when( '__' )->returnArg();
 
 		// Simulate a plugin adding a custom migration via the filter

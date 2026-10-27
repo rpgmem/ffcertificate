@@ -338,4 +338,14 @@ class AuthCodeServiceTest extends TestCase {
 
 		$this->assertStringNotContainsString( '-', $result );
 	}
+
+	// ==================================================================
+	// Moved from UtilsTest (#2092)
+	// ==================================================================
+
+	public function test_generate_random_string_draws_only_from_the_given_chars(): void {
+		Functions\when( 'wp_rand' )->justReturn( 0 );
+		$result = AuthCodeService::generate_random_string( 4, 'ABC' );
+		$this->assertSame( 'AAAA', $result );
+	}
 }
