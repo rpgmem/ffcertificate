@@ -596,7 +596,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 		?>
 	</p>
 	<table class="form-table" role="presentation" data-ffc-section="rl-whitelist"><tbody>
-		<tr><th><?php esc_html_e( 'IPs', 'ffcertificate' ); ?></th><td><textarea name="whitelist_ips" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['whitelist']['ips'] ) ); ?></textarea><p class="description"><?php esc_html_e( 'One per line', 'ffcertificate' ); ?></p></td></tr>
+		<tr><th><?php esc_html_e( 'IPs', 'ffcertificate' ); ?></th><td><textarea name="whitelist_ips" rows="5" class="large-text code"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['whitelist']['ips'] ) ); ?></textarea><p class="description"><?php esc_html_e( 'One per line: an IPv4 or IPv6 address, or a range in CIDR notation, such as 203.0.113.0/24 or 2804:14c::/48.', 'ffcertificate' ); ?></p></td></tr>
 		<tr><th><?php esc_html_e( 'Emails', 'ffcertificate' ); ?></th><td><textarea name="whitelist_emails" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['whitelist']['emails'] ) ); ?></textarea></td></tr>
 		<tr><th><?php esc_html_e( 'Domains', 'ffcertificate' ); ?></th><td><textarea name="whitelist_email_domains" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['whitelist']['email_domains'] ) ); ?></textarea><p class="description"><?php esc_html_e( 'Format: *@domain.com', 'ffcertificate' ); ?></p></td></tr>
 		<tr><th><?php esc_html_e( 'Tax IDs (CPFs)', 'ffcertificate' ); ?></th><td><textarea name="whitelist_cpfs" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['whitelist']['cpfs'] ) ); ?></textarea></td></tr>
@@ -622,7 +622,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 		?>
 	</p>
 	<table class="form-table" role="presentation" data-ffc-section="rl-blacklist"><tbody>
-		<tr><th><?php esc_html_e( 'IPs', 'ffcertificate' ); ?></th><td><textarea name="blacklist_ips" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['blacklist']['ips'] ) ); ?></textarea></td></tr>
+		<tr><th><?php esc_html_e( 'IPs', 'ffcertificate' ); ?></th><td><textarea name="blacklist_ips" rows="5" class="large-text code"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['blacklist']['ips'] ) ); ?></textarea><p class="description"><?php esc_html_e( 'One per line: an IPv4 or IPv6 address, or a range in CIDR notation, such as 203.0.113.0/24 or 2804:14c::/48.', 'ffcertificate' ); ?></p></td></tr>
 		<tr><th><?php esc_html_e( 'Emails', 'ffcertificate' ); ?></th><td><textarea name="blacklist_emails" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['blacklist']['emails'] ) ); ?></textarea></td></tr>
 		<tr><th><?php esc_html_e( 'Domains', 'ffcertificate' ); ?></th><td><textarea name="blacklist_email_domains" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['blacklist']['email_domains'] ) ); ?></textarea><p class="description"><?php esc_html_e( 'Format: *@domain.com', 'ffcertificate' ); ?></p></td></tr>
 		<tr><th><?php esc_html_e( 'Tax IDs (CPFs)', 'ffcertificate' ); ?></th><td><textarea name="blacklist_cpfs" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['blacklist']['cpfs'] ) ); ?></textarea></td></tr>

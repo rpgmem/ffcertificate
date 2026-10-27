@@ -23,6 +23,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class TabRateLimit extends SettingsTab {
 
 	/**
+	 * Lines of the address lists the last save refused.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $refused_ip_lines = array();
+
+	/**
 	 * Init.
 	 */
 	protected function init(): void {
@@ -210,6 +217,7 @@ class TabRateLimit extends SettingsTab {
 		}
 
 		$settings = $this->get_settings();
+		$this->render_refused_ip_lines( $settings );
 		include $this->view_path( 'ffc-tab-rate-limit.php' );
 	}
 
@@ -323,14 +331,14 @@ class TabRateLimit extends SettingsTab {
 			),
 			'whitelist' => array(
 				'enabled'       => isset( $_POST['whitelist_enabled'] ),
-				'ips'           => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['whitelist_ips'] ?? '' ) ) ) ) ),
+				'ips'           => $this->post_ip_list( 'whitelist_ips' ),
 				'emails'        => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['whitelist_emails'] ?? '' ) ) ) ) ),
 				'email_domains' => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['whitelist_email_domains'] ?? '' ) ) ) ) ),
 				'cpfs'          => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['whitelist_cpfs'] ?? '' ) ) ) ) ),
 			),
 			'blacklist' => array(
 				'enabled'       => isset( $_POST['blacklist_enabled'] ),
-				'ips'           => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['blacklist_ips'] ?? '' ) ) ) ) ),
+				'ips'           => $this->post_ip_list( 'blacklist_ips' ),
 				'emails'        => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['blacklist_emails'] ?? '' ) ) ) ) ),
 				'email_domains' => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['blacklist_email_domains'] ?? '' ) ) ) ) ),
 				'cpfs'          => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['blacklist_cpfs'] ?? '' ) ) ) ) ),
@@ -351,6 +359,72 @@ class TabRateLimit extends SettingsTab {
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		update_option( 'ffc_rate_limit_settings', $settings );
+	}
+
+	/**
+	 * A posted allow or deny list of addresses, each line canonicalised
+	 * (#2109). A line that is neither an address nor a CIDR range is left
+	 * out and remembered, so the screen can name it back instead of
+	 * storing it as text that never matches.
+	 *
+	 * @param string $key POST key.
+	 * @return array<int, string>
+	 */
+	private function post_ip_list( string $key ): array {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
+		$raw   = sanitize_textarea_field( wp_unslash( $_POST[ $key ] ?? '' ) );
+		$valid = array();
+
+		foreach ( explode( "\n", $raw ) as $line ) {
+			$line = trim( $line );
+			if ( '' === $line ) {
+				continue;
+			}
+
+			$range = \FreeFormCertificate\Core\IpAddress::range( $line );
+			if ( null === $range ) {
+				$this->refused_ip_lines[] = $line;
+				continue;
+			}
+
+			$valid[] = $range;
+		}
+
+		return array_values( array_unique( $valid ) );
+	}
+
+	/**
+	 * Name the lines of the address lists that are not addresses or ranges:
+	 * the ones a save just refused, and any an earlier version stored, which
+	 * are ignored when matching and dropped on the next save.
+	 *
+	 * @param array<string, mixed> $settings Rate-limit settings as rendered.
+	 */
+	private function render_refused_ip_lines( array $settings ): void {
+		$lines = $this->refused_ip_lines;
+
+		foreach ( array( 'whitelist', 'blacklist' ) as $group ) {
+			$entries = is_array( $settings[ $group ]['ips'] ?? null ) ? $settings[ $group ]['ips'] : array();
+			foreach ( $entries as $entry ) {
+				if ( is_string( $entry ) && null === \FreeFormCertificate\Core\IpAddress::range( $entry ) ) {
+					$lines[] = $entry;
+				}
+			}
+		}
+
+		$lines = array_values( array_unique( $lines ) );
+		if ( array() === $lines ) {
+			return;
+		}
+
+		\FreeFormCertificate\Core\AdminNotice::render(
+			'warning',
+			sprintf(
+				/* translators: %s: comma-separated lines that are not addresses */
+				esc_html__( 'These lines of the IP lists are not an IPv4 or IPv6 address or a CIDR range, so they are not used: %s', 'ffcertificate' ),
+				esc_html( implode( ', ', $lines ) )
+			)
+		);
 	}
 
 	/**

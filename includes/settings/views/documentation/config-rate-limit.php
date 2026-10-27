@@ -54,6 +54,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Allowlist & blocklist', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Static lists that bypass or hard-block requests, each matching by IP, email, email domain (format *@domain.com) or CPF/RF. The allowlist wins immediately; the blocklist is checked first and denies outright.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'An IP line is an IPv4 or IPv6 address, or a range in CIDR notation, such as 203.0.113.0/24 or 2804:14c::/48. Saving stores each line in a single standard spelling, so an address matches however the visitor\'s request writes it, and an IPv4 address written inside IPv6 matches its IPv4 line. A line that is neither an address nor a range is not saved, and the screen names it.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Log, interface & statistics', 'ffcertificate' ); ?></h4>
 	<ul>

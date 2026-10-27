@@ -717,6 +717,9 @@ class DocumentFormatter {
 			return '';
 		}
 
+		// An IPv4 address written inside IPv6 masks as the IPv4 address it is (#2109).
+		$ip = IpAddress::canonical( $ip ) ?? $ip;
+
 		if ( false !== filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {
 			$octets = explode( '.', $ip );
 			return $octets[0] . '.' . $octets[1] . '.***.***';

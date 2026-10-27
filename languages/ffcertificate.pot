@@ -11996,9 +11996,6 @@ msgstr ""
 msgid "One or more selected rows would skip a higher-ranked candidate (out of order)."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:475
-msgid "One per line"
-msgstr ""
 
 #: includes/admin/class-ffc-form-editor-restriction-metabox.php:150
 msgid "One per line..."
@@ -29229,4 +29226,14 @@ msgid "Unidentified address:"
 msgstr ""
 
 msgid "both cards say what happens to a visitor whose address cannot be read — every visitor on an internal network of private addresses, for example. \"Let through\" (the default) does not count them; \"Count together\" puts all of them under one shared cap. IPv4 addresses are counted one by one, IPv6 addresses by their /64 block, which belongs to one subscriber."
+msgstr ""
+
+msgid "One per line: an IPv4 or IPv6 address, or a range in CIDR notation, such as 203.0.113.0/24 or 2804:14c::/48."
+msgstr ""
+
+#. translators: %s: comma-separated lines that are not addresses
+msgid "These lines of the IP lists are not an IPv4 or IPv6 address or a CIDR range, so they are not used: %s"
+msgstr ""
+
+msgid "An IP line is an IPv4 or IPv6 address, or a range in CIDR notation, such as 203.0.113.0/24 or 2804:14c::/48. Saving stores each line in a single standard spelling, so an address matches however the visitor's request writes it, and an IPv4 address written inside IPv6 matches its IPv4 line. A line that is neither an address nor a range is not saved, and the screen names it."
 msgstr ""
