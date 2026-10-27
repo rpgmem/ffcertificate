@@ -15,7 +15,6 @@ use FreeFormCertificate\Shortcodes\DashboardAssetManager;
  * enqueue_assets() permission logic.
  *
  * @covers \FreeFormCertificate\Shortcodes\DashboardAssetManager
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class DashboardAssetManagerTest extends TestCase {
@@ -74,15 +73,9 @@ class DashboardAssetManagerTest extends TestCase {
 		Functions\when( 'wp_timezone_string' )->justReturn( 'America/Sao_Paulo' );
 		Functions\when( 'get_option' )->justReturn( array() );
 
-		// Stubs for namespaced functions used by repositories
-		Functions\when( 'FreeFormCertificate\Reregistration\wp_cache_get' )->justReturn( false );
-		Functions\when( 'FreeFormCertificate\Reregistration\wp_cache_set' )->justReturn( true );
-		Functions\when( 'FreeFormCertificate\Reregistration\current_user_can' )->justReturn( false );
-		Functions\when( 'FreeFormCertificate\Reregistration\user_can' )->justReturn( false );
-		Functions\when( 'FreeFormCertificate\Audience\wp_cache_get' )->justReturn( false );
-		Functions\when( 'FreeFormCertificate\Audience\wp_cache_set' )->justReturn( true );
-		Functions\when( 'FreeFormCertificate\Audience\current_user_can' )->justReturn( false );
-		Functions\when( 'FreeFormCertificate\Audience\user_can' )->justReturn( false );
+		// Global stubs only: stubbing a namespaced copy would define it for
+		// the rest of the process, and PHP's fallback already reaches these.
+		Functions\when( 'current_user_can' )->justReturn( false );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 	}
@@ -141,11 +134,7 @@ class DashboardAssetManagerTest extends TestCase {
 	// ==================================================================
 
 	public function test_enqueue_assets_registers_required_assets(): void {
-		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
-		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
-		$utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
-		$utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
-
+		Functions\when( 'get_option' )->justReturn( array( 'dark_mode' => 'on' ) );
 		$user = Mockery::mock( 'WP_User' );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_by' )->justReturn( $user );
@@ -157,6 +146,7 @@ class DashboardAssetManagerTest extends TestCase {
 		$this->assertArrayHasKey( 'ffc-dashboard', $this->enqueued );
 		$this->assertArrayHasKey( 'ffc-working-hours', $this->enqueued );
 		$this->assertArrayHasKey( 'ffc-reregistration-frontend', $this->enqueued );
+		$this->assertArrayHasKey( 'ffc-dark-mode', $this->enqueued, 'the dashboard follows the dark-mode setting' );
 	}
 
 	// ==================================================================
@@ -164,11 +154,6 @@ class DashboardAssetManagerTest extends TestCase {
 	// ==================================================================
 
 	public function test_enqueue_assets_localizes_dashboard_data(): void {
-		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
-		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
-		$utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
-		$utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
-
 		$user = Mockery::mock( 'WP_User' );
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'get_user_by' )->justReturn( $user );
@@ -191,11 +176,6 @@ class DashboardAssetManagerTest extends TestCase {
 	// ==================================================================
 
 	public function test_enqueue_assets_admin_sees_certificates_and_appointments(): void {
-		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
-		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
-		$utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
-		$utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
-
 		$user = Mockery::mock( 'WP_User' );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_by' )->justReturn( $user );
@@ -216,11 +196,6 @@ class DashboardAssetManagerTest extends TestCase {
 	// ==================================================================
 
 	public function test_enqueue_assets_view_as_mode(): void {
-		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
-		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
-		$utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
-		$utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
-
 		$user = Mockery::mock( 'WP_User' );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_by' )->justReturn( $user );
@@ -238,11 +213,6 @@ class DashboardAssetManagerTest extends TestCase {
 	// ==================================================================
 
 	public function test_enqueue_assets_localizes_working_hours(): void {
-		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
-		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
-		$utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
-		$utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
-
 		$user = Mockery::mock( 'WP_User' );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_user_by' )->justReturn( $user );

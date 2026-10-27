@@ -14,7 +14,6 @@ use FreeFormCertificate\Deactivator;
  * Tests for Deactivator: deactivation hook cleanup and destructive uninstall.
  *
  * @covers \FreeFormCertificate\Deactivator
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class DeactivatorTest extends TestCase {
@@ -23,9 +22,6 @@ class DeactivatorTest extends TestCase {
 
 	/** @var Mockery\MockInterface */
 	private $wpdb;
-
-	/** @var Mockery\MockInterface */
-	private $utils_mock;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -60,15 +56,9 @@ class DeactivatorTest extends TestCase {
 		Functions\when( 'get_posts' )->justReturn( array() );
 		Functions\when( 'wp_delete_post' )->justReturn( null );
 
-		// Utils alias mock for get_submissions_table
-		$this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-		$ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
-		$ri_mock->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
-		$ri_mock->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
-		$ri_mock->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-		$ri_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
-			return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? $_POST[ $key ] : $default;
-		} )->byDefault();
+		// RequestInput runs for real over $_GET / $_POST, through these.
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
 
 		// Default wpdb stubs for uninstall_cleanup
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' )->byDefault();

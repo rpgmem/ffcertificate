@@ -5,9 +5,9 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\AssetHelper;
 use FreeFormCertificate\Core\AssetRegistry;
 
 /**
@@ -16,7 +16,6 @@ use FreeFormCertificate\Core\AssetRegistry;
  * The registrations moved here from Loader, and so did their tests.
  *
  * @covers \FreeFormCertificate\Core\AssetRegistry
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class AssetRegistryTest extends TestCase {
@@ -33,11 +32,10 @@ class AssetRegistryTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
-		// Alias mock: AssetHelper is final and static. The separate process
-		// gives each test a fresh class table for it.
-		$helper = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
-		$helper->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
-		$helper->shouldReceive( 'core_script_config' )->andReturn( array( 'version' => '1.0.0' ) );
+		// AssetHelper runs for real: its suffix reads SCRIPT_DEBUG, which the
+		// suite leaves undefined, and the core config reads this setting.
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		$registered = &$this->registered;
 		$localized  = &$this->localized;
@@ -147,7 +145,8 @@ class AssetRegistryTest extends TestCase {
 		$config = $this->localizations( 'ffc-core' );
 		$this->assertCount( 1, $config );
 		$this->assertSame( 'ffcCoreConfig', $config[0]['object_name'] );
-		$this->assertSame( array( 'version' => '1.0.0' ), $config[0]['l10n'] );
+		$this->assertSame( AssetHelper::core_script_config(), $config[0]['l10n'] );
+		$this->assertSame( FFC_VERSION, $config[0]['l10n']['version'] );
 	}
 
 	public function test_frontend_registers_the_field_behaviours_and_the_helpers_on_them(): void {

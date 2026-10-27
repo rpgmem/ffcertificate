@@ -13,11 +13,7 @@ use FreeFormCertificate\Admin\HtmlRefsNotice;
 /**
  * Gating + detection tests for the #865 Phase 0 legacy-html/ references notice.
  *
- * Separate processes so the AssetHelper alias mock + the $wpdb global can't
- * leak into other tests.
- *
  * @covers \FreeFormCertificate\Admin\HtmlRefsNotice
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class HtmlRefsNoticeTest extends TestCase {
@@ -46,8 +42,6 @@ class HtmlRefsNoticeTest extends TestCase {
 			}
 		);
 
-		Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )
-			->shouldReceive( 'asset_suffix' )->andReturn( '.min' )->byDefault();
 	}
 
 	protected function tearDown(): void {
@@ -128,8 +122,6 @@ class HtmlRefsNoticeTest extends TestCase {
 
 	public function test_does_not_render_when_cannot_manage(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
 
 		$this->assertSame( '', $this->rendered_output() );
 	}
