@@ -350,7 +350,9 @@ class IpGeolocation {
 	 * @return string 16-hex-char digest.
 	 */
 	private static function hash_ip( string $ip ): string {
-		return substr( hash( 'sha256', $ip ), 0, 16 );
+		// Keyed, never a bare digest: an unsalted hash of an IPv4 address is
+		// reversed by hashing all 2^32 of them (#2109).
+		return substr( \FreeFormCertificate\Core\Encryption::keyed_hash( $ip, 'debug_ip' ), 0, 16 );
 	}
 
 	/**

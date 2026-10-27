@@ -29274,3 +29274,17 @@ msgstr ""
 
 msgid "reveal the client address of an entry with the Reveal button, and export the addresses in clear. Without it every address on the tab, in an entry's details and in the CSV is masked. Each reveal and each clear export is recorded in the log."
 msgstr ""
+
+msgid "Activity Log: Clear Refused Addresses"
+msgstr ""
+
+msgid "Remove the visitor's address from the details of \"Access Denied\" activity log entries. Until this release a geofence refusal copied it there in clear; the entry's own address column keeps it, encrypted."
+msgstr ""
+
+#. translators: %d: number of activity log entries whose plaintext address was removed.
+#, php-format
+msgid "Removed the plaintext address from %d access denied entries."
+msgstr ""
+
+msgid "A refusal is recorded in the activity log as \"Access Denied\" with its reason; the visitor's address is the entry's own, encrypted and shown masked. Entries written before 6.43.0 also copied the address in clear into their details; the \"Activity Log: Clear Refused Addresses\" migration removes that copy."
+msgstr ""

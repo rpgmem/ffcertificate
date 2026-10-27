@@ -204,6 +204,16 @@ class MigrationRegistry {
 			'order'       => 4,
 		);
 
+		// #2109: a geofence refusal copied the visitor's address in clear
+		// into its context; the row's own column already holds it encrypted.
+		$this->migrations['activity_log_access_denied_ip'] = array(
+			'name'        => __( 'Activity Log: Clear Refused Addresses', 'ffcertificate' ),
+			'description' => __( 'Remove the visitor\'s address from the details of "Access Denied" activity log entries. Until this release a geofence refusal copied it there in clear; the entry\'s own address column keeps it, encrypted.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-lock',
+			'batch_size'  => 500,
+			'order'       => 4,
+		);
+
 		// v6.18.0 (#865): import certificate layouts left in the legacy `html/`
 		// drop-folder into the database-backed template pool, then retire the glob.
 		$this->migrations['import_legacy_templates'] = array(

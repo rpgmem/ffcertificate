@@ -29358,3 +29358,17 @@ msgstr "Uma conta com ffc_view_settings_pii (o Gerente e o Administrador das Con
 
 msgid "reveal the client address of an entry with the Reveal button, and export the addresses in clear. Without it every address on the tab, in an entry's details and in the CSV is masked. Each reveal and each clear export is recorded in the log."
 msgstr "revelar o endereço do cliente de uma entrada com o botão Revelar e exportar os endereços às claras. Sem ela, todo endereço na aba, nos detalhes de uma entrada e no CSV fica mascarado. Cada revelação e cada exportação às claras é registrada no log."
+
+msgid "Activity Log: Clear Refused Addresses"
+msgstr "Registro de Atividades: Limpar Endereços Recusados"
+
+msgid "Remove the visitor's address from the details of \"Access Denied\" activity log entries. Until this release a geofence refusal copied it there in clear; the entry's own address column keeps it, encrypted."
+msgstr "Remove o endereço do visitante dos detalhes das entradas \"Acesso Negado\" do registro de atividades. Até esta versão, uma recusa de geofence o copiava ali às claras; a coluna de endereço da própria entrada o mantém, criptografado."
+
+#. translators: %d: number of activity log entries whose plaintext address was removed.
+#, php-format
+msgid "Removed the plaintext address from %d access denied entries."
+msgstr "Endereço em texto puro removido de %d entradas de acesso negado."
+
+msgid "A refusal is recorded in the activity log as \"Access Denied\" with its reason; the visitor's address is the entry's own, encrypted and shown masked. Entries written before 6.43.0 also copied the address in clear into their details; the \"Activity Log: Clear Refused Addresses\" migration removes that copy."
+msgstr "Uma recusa é registrada no registro de atividades como \"Acesso Negado\", com o motivo; o endereço do visitante é o da própria entrada, criptografado e exibido mascarado. Entradas gravadas antes da 6.43.0 também copiavam o endereço às claras nos detalhes; a migração \"Registro de Atividades: Limpar Endereços Recusados\" remove essa cópia."
