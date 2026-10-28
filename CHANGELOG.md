@@ -37,6 +37,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Tests: eight more classes run in the shared process** (#2152). The reregistration frontend flow, audience check-in, form-invite sending, rate-limit guard and strategies, audience editor tabs, scheduling frame controls and appointment REST controller now run their real collaborators over a `$wpdb` double; three appointment-create tests keep their own process.
 - **Rate limiting: a denial always carries its message** (#2153). Every rate-limit check declares it, so PHPStan holds each limiter to it; the ten caller-side fallback texts it proved unreachable are gone, with the two strings only they used.
 - **Staff book through the REST API on behalf of a person** (#2161). `POST /calendars/{id}/appointments` is open to the Operator and Manager tiers, the booking belongs to the account matched or created from the CPF/RF and e-mail sent, not to the operator, and the activity log names who booked it.
+- **Tests: eight more classes run in the shared process** (#2164). The date-messages, reregistration, self-scheduling and admin loaders, the loader's role and capability migrations, appointment user linking, the recruitment candidate persister and the date-messages AJAX endpoint now run their real collaborators over a `$wpdb` double.
 
 ### Deprecated
 
