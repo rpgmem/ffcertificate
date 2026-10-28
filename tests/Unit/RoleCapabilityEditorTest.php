@@ -17,11 +17,12 @@ use FreeFormCertificate\Admin\RoleCapabilityEditor;
  * a render smoke test, and the AJAX persistence handler with its guards
  * (cap- + role-whitelist, manage_options).
  *
- * Two tests run in their own process, for what each declares: an `alias:`
- * mock of `Core\AssetHelper` and core's `WP_User_Query` through `eval()`,
- * neither of which a process can undo. The rest share the suite's process,
- * where `WP_User_Query` does not exist; it leaked into that process from a
- * file-scope declaration in another test until #2104.
+ * One test runs in its own process: it declares core's `WP_User_Query`
+ * through `eval()`, which a process cannot undo. The rest share the suite's
+ * process, where `WP_User_Query` does not exist; it leaked into that process
+ * from a file-scope declaration in another test until #2104. The enqueue test
+ * runs the real `Core\AssetHelper` and `Core\AssetRegistry` down to the
+ * stubbed `wp_enqueue_*` calls.
  *
  * @covers \FreeFormCertificate\Admin\RoleCapabilityEditor
  * @preserveGlobalState disabled
@@ -30,9 +31,13 @@ class RoleCapabilityEditorTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var array<string, mixed> `$_GET` as an earlier test left it, restored afterwards. */
+	private array $get_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->get_backup = $_GET ?? array();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -62,6 +67,7 @@ class RoleCapabilityEditorTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		$_GET = $this->get_backup;
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -312,13 +318,7 @@ class RoleCapabilityEditorTest extends TestCase {
 		);
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_enqueue_loads_only_on_the_user_access_tab(): void {
-		$asset_helper = \Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
-		$asset_helper->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
-		$asset_helper->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'wp_create_nonce' )->alias( static fn( $action ) => 'nonce-' . $action );
 		Functions\when( 'get_role' )->justReturn( null );
@@ -356,6 +356,8 @@ class RoleCapabilityEditorTest extends TestCase {
 	}
 
 	/**
+	 * Its own process: it declares core's WP_User_Query, which the bootstrap does not.
+	 *
 	 * @runInSeparateProcess
 	 */
 	public function test_editable_roles_count_their_members(): void {
