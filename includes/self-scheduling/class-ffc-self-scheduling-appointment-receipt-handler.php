@@ -78,7 +78,7 @@ class AppointmentReceiptHandler {
 
 		if ( current_user_can( 'manage_options' ) ) {
 			$has_access = true;
-		} elseif ( is_user_logged_in() && get_current_user_id() === $appointment['user_id'] ) {
+		} elseif ( is_user_logged_in() && get_current_user_id() === (int) $appointment['user_id'] ) {
 			$has_access = true;
 		} elseif ( ! empty( $token ) && ! empty( $appointment['confirmation_token'] ) && hash_equals( (string) $appointment['confirmation_token'], (string) $token ) ) {
 			$has_access = true;
