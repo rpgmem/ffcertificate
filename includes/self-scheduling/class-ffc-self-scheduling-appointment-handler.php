@@ -157,6 +157,7 @@ class AppointmentHandler {
 
 		$is_waitlist      = false;
 		$override_reasons = array();
+		$booked_by        = 0;
 
 		try {
 			// Validate with row-level locks (FOR UPDATE) to prevent concurrent overbooking.
@@ -170,6 +171,11 @@ class AppointmentHandler {
 			// itself is not a column.
 			$override_reasons = $this->validator->get_override_reasons();
 			unset( $data['confirm_override'] );
+
+			// Who booked on the person's behalf (#2161) is recorded in the
+			// activity log below; it is not a column.
+			$booked_by = (int) ( $data['booked_by'] ?? 0 );
+			unset( $data['booked_by'] );
 
 			// The slot was full but the calendar's waitlist had room (#941 phase 2):
 			// store this booking as a queued `waitlist` entry rather than an active
@@ -218,6 +224,23 @@ class AppointmentHandler {
 					'confirmed_at'     => time(),
 				),
 				get_current_user_id()
+			);
+		}
+
+		// A member of staff booked on a person's behalf (#2161): the row
+		// belongs to the person, and this line is what names the operator.
+		if ( $booked_by > 0 ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'appointment_booked_on_behalf',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+				array(
+					'appointment_id'   => (int) $appointment_id,
+					'calendar_id'      => (int) $data['calendar_id'],
+					'appointment_date' => (string) $data['appointment_date'],
+					'start_time'       => (string) $data['start_time'],
+					'booked_for'       => (int) ( $data['user_id'] ?? 0 ),
+				),
+				$booked_by
 			);
 		}
 
