@@ -32,7 +32,7 @@ class AudienceFormInviteResolverTest extends TestCase {
 
 	private const FORM = 40;
 
-	private const CPF = '52998224725';
+	private const CPF = Identifiers::CPF_A;
 
 	/** @var Mockery\MockInterface */
 	private $wpdb;

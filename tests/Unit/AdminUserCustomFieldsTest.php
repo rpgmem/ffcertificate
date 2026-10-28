@@ -10,6 +10,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\AdminUserCustomFields;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for AdminUserCustomFields: hook registration, conditional asset loading,
@@ -779,16 +780,16 @@ class AdminUserCustomFieldsTest extends TestCase {
 	 * before #1120 it overwrote the stored value with the empty string.
 	 */
 	public function test_save_section_keeps_the_stored_value_when_a_required_field_is_empty(): void {
-		[$saved, $kept] = $this->save_required_text('', '1234567');
+		[$saved, $kept] = $this->save_required_text('', Identifiers::RF_A);
 
-		$this->assertSame('1234567', $saved['field_77']);
+		$this->assertSame(Identifiers::RF_A, $saved['field_77']);
 		$this->assertSame(['Registration number'], $kept, 'The operator has to be told the edit did not take.');
 	}
 
 	public function test_save_section_still_writes_a_supplied_value_on_a_required_field(): void {
-		[$saved, $kept] = $this->save_required_text('7654321', '1234567');
+		[$saved, $kept] = $this->save_required_text(Identifiers::RF_B, Identifiers::RF_A);
 
-		$this->assertSame('7654321', $saved['field_77']);
+		$this->assertSame(Identifiers::RF_B, $saved['field_77']);
 		$this->assertSame([], $kept);
 	}
 

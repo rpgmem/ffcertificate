@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\PublicCsvExporter;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for PublicCsvExporter — now a thin façade over the shared batched
@@ -33,6 +34,16 @@ use FreeFormCertificate\Frontend\PublicCsvExporter;
 class PublicCsvExporterTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * A CPF in its `ddd.ddd.ddd-dd` display form, built from the standard fixture.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function mask_cpf( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+	}
 
 	/** @var PublicCsvExporter */
 	private $exporter;
@@ -165,7 +176,7 @@ class PublicCsvExporterTest extends TestCase {
 			'email_encrypted'   => '',
 			'user_ip'           => '203.0.113.1',
 			'user_ip_encrypted' => '',
-			'cpf'               => '123.456.789-00',
+			'cpf'               => self::mask_cpf( Identifiers::CPF_A ),
 			'cpf_encrypted'     => '',
 			'rf'                => '',
 			'rf_encrypted'      => '',
@@ -201,7 +212,7 @@ class PublicCsvExporterTest extends TestCase {
 		// `date_format` is 'd/m/Y' and `time_format` is 'H:i'.
 		$this->assertSame( '15/01/2026 10:30', $result[3] );
 		$this->assertSame( 'test@example.com', $result[4] );
-		$this->assertSame( '123.456.789-00', $result[5] );
+		$this->assertSame( self::mask_cpf( Identifiers::CPF_A ), $result[5] );
 		$this->assertSame( '', $result[6] );
 		$this->assertSame( 'ABC123', $result[7] );
 	}
@@ -269,10 +280,10 @@ class PublicCsvExporterTest extends TestCase {
 	public function test_format_csv_row_rf_only(): void {
 		$row        = $this->sample_row();
 		$row['cpf'] = '';
-		$row['rf']  = '1234567';
+		$row['rf']  = Identifiers::RF_A;
 		$result     = $this->invoke( 'format_csv_row', array( $row, array(), false ) );
 		$this->assertSame( '', $result[5] );
-		$this->assertSame( '1234567', $result[6] );
+		$this->assertSame( Identifiers::RF_A, $result[6] );
 	}
 
 	// ==================================================================

@@ -12,6 +12,7 @@ use FreeFormCertificate\Maintenance\IdentityAccountFacts;
 use FreeFormCertificate\Maintenance\IdentityCheckDigitScan;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityFindingVerdicts;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * The cross-store identity questions (#1313 PR 10, #1333).
@@ -992,7 +993,7 @@ class IdentityConflictQueryTest extends TestCase {
 	public function test_one_digit_apart_reads_as_a_typo(): void {
 		$this->assertSame(
 			IdentityConflictQuery::SHAPE_SINGLE_DIGIT_EDIT,
-			$this->shape_of( '1234567', '1234577' )
+			$this->shape_of( Identifiers::RF_A, Identifiers::RF_BAD_CHECK_DIGIT )
 		);
 	}
 
@@ -1002,7 +1003,7 @@ class IdentityConflictQueryTest extends TestCase {
 	public function test_a_dropped_digit_reads_as_a_typo(): void {
 		$this->assertSame(
 			IdentityConflictQuery::SHAPE_SINGLE_DIGIT_EDIT,
-			$this->shape_of( '1234567', '123456' )
+			$this->shape_of( Identifiers::RF_A, substr( Identifiers::RF_A, 0, 6 ) )
 		);
 	}
 
@@ -1010,9 +1011,12 @@ class IdentityConflictQueryTest extends TestCase {
 	 * Two adjacent digits swapped is reported as the transposition it is.
 	 */
 	public function test_two_adjacent_digits_swapped_read_as_a_transposition(): void {
+		$rf = Identifiers::RF_A;
+		$this->assertNotSame( $rf[2], $rf[3], 'Swapping two equal digits would change nothing.' );
+
 		$this->assertSame(
 			IdentityConflictQuery::SHAPE_TRANSPOSITION,
-			$this->shape_of( '1234567', '1243567' )
+			$this->shape_of( $rf, substr( $rf, 0, 2 ) . $rf[3] . $rf[2] . substr( $rf, 4 ) )
 		);
 	}
 
@@ -1039,7 +1043,7 @@ class IdentityConflictQueryTest extends TestCase {
 	public function test_two_unrelated_numbers_read_as_unrelated(): void {
 		$this->assertSame(
 			IdentityConflictQuery::SHAPE_UNRELATED,
-			$this->shape_of( '1234567', '7654321' )
+			$this->shape_of( Identifiers::RF_A, Identifiers::RF_B )
 		);
 	}
 
@@ -1053,9 +1057,11 @@ class IdentityConflictQueryTest extends TestCase {
 	 * is emitted rather than assumed away.
 	 */
 	public function test_values_that_canonicalise_to_one_are_still_reported(): void {
+		$cpf = Identifiers::CPF_A;
+
 		$this->assertSame(
 			IdentityConflictQuery::SHAPE_SAME_AFTER_CANONICALISATION,
-			$this->shape_of( '123.456.789-09', '12345678909' )
+			$this->shape_of( substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 ), $cpf )
 		);
 	}
 
@@ -1084,7 +1090,7 @@ class IdentityConflictQueryTest extends TestCase {
 				array( 'user_id' => 438, 'h' => 'hashC', 'c' => 'cipherC' ),
 			),
 			// A and B are one digit apart; C is neither's near-miss.
-			array( 'cipherA' => '1234567', 'cipherB' => '1234577', 'cipherC' => '9876543' )
+			array( 'cipherA' => Identifiers::RF_A, 'cipherB' => Identifiers::RF_BAD_CHECK_DIGIT, 'cipherC' => Identifiers::RF_B )
 		);
 
 		$this->assertSame(
@@ -1108,7 +1114,7 @@ class IdentityConflictQueryTest extends TestCase {
 				array( 'user_id' => 438, 'h' => 'hashA', 'c' => 'cipherA' ),
 				array( 'user_id' => 438, 'h' => 'hashB', 'c' => 'cipherB' ),
 			),
-			array( 'cipherA' => '1234567' )
+			array( 'cipherA' => Identifiers::RF_A )
 		);
 
 		$this->assertSame(
@@ -1354,11 +1360,11 @@ class IdentityConflictQueryTest extends TestCase {
 	}
 
 	/**
-	 * `1234567` has a weighted sum of 77, residue 0, so its check digit should
-	 * be 1 and is 7. The value this whole slice exists to surface.
+	 * `Identifiers::RF_BAD_CHECK_DIGIT` keeps `RF_A`'s six-digit body under a
+	 * different seventh digit. The value this whole slice exists to surface.
 	 */
 	public function test_a_stored_rf_whose_check_digit_disagrees_is_reported(): void {
-		$rows = $this->scan( array( self::scan_row() ), array( 'cipherA' => '1234567' ) );
+		$rows = $this->scan( array( self::scan_row() ), array( 'cipherA' => Identifiers::RF_BAD_CHECK_DIGIT ) );
 
 		$this->assertCount( 1, $rows );
 		$this->assertSame( 'hashA', $rows[0]['subject'] );
@@ -1427,8 +1433,8 @@ class IdentityConflictQueryTest extends TestCase {
 	public function test_a_consistent_rf_is_not_reported(): void {
 		$this->assertSame(
 			array(),
-			$this->scan( array( self::scan_row() ), array( 'cipherA' => '1000021' ) ),
-			'1000021 satisfies the rule, so it is not a finding.'
+			$this->scan( array( self::scan_row() ), array( 'cipherA' => Identifiers::RF_A ) ),
+			'RF_A satisfies the rule, so it is not a finding.'
 		);
 	}
 
@@ -1461,7 +1467,7 @@ class IdentityConflictQueryTest extends TestCase {
 					)
 				),
 			),
-			array( 'cipherA' => '1234567' )
+			array( 'cipherA' => Identifiers::RF_BAD_CHECK_DIGIT )
 		);
 
 		$this->assertCount( 1, $rows );
@@ -1484,7 +1490,7 @@ class IdentityConflictQueryTest extends TestCase {
 					)
 				),
 			),
-			array( 'cipherA' => '1234567' )
+			array( 'cipherA' => Identifiers::RF_BAD_CHECK_DIGIT )
 		);
 
 		$this->assertTrue(
@@ -1508,7 +1514,7 @@ class IdentityConflictQueryTest extends TestCase {
 					)
 				),
 			),
-			array( 'cipherA' => '1234567' )
+			array( 'cipherA' => Identifiers::RF_BAD_CHECK_DIGIT )
 		);
 
 		$this->assertSame( '5|7', $rows[0][ IdentityConflictQuery::COLUMN_RELATED ] );
@@ -1541,7 +1547,7 @@ class IdentityConflictQueryTest extends TestCase {
 			$rows[] = self::scan_row( array( 'subject' => 'hash' . $i ) );
 		}
 
-		$out = $this->scan( $rows, array( 'cipherA' => '1000021' ) );
+		$out = $this->scan( $rows, array( 'cipherA' => Identifiers::RF_A ) );
 
 		$this->assertCount( 1, $out, 'The scan found no failure and must still report that it did not finish.' );
 		$this->assertTrue( $out[0][ IdentityConflictQuery::COLUMN_SCAN_TRUNCATED ] );
@@ -1608,14 +1614,14 @@ class IdentityConflictQueryTest extends TestCase {
 	 * hash, a store and a row -- never a digit of the identifier itself.
 	 */
 	public function test_the_scan_emits_no_identifier(): void {
-		$rows = $this->scan( array( self::scan_row() ), array( 'cipherA' => '1234567' ) );
+		$rows = $this->scan( array( self::scan_row() ), array( 'cipherA' => Identifiers::RF_BAD_CHECK_DIGIT ) );
 
 		$this->assertCount( 1, $rows );
 		$this->assertArrayNotHasKey( 'c', $rows[0], 'The ciphertext must not travel with the finding.' );
 
 		foreach ( $rows[0] as $key => $value ) {
 			$this->assertStringNotContainsString(
-				'1234567',
+				Identifiers::RF_BAD_CHECK_DIGIT,
 				(string) $value,
 				"Column '{$key}' carries the identifier the scan read."
 			);
@@ -1732,8 +1738,8 @@ class IdentityConflictQueryTest extends TestCase {
 			}
 		);
 
-		// 1234561 satisfies the digit: 7·1+6·2+5·3+4·4+3·5+2·6 = 77, 77 mod 11 = 0, dv = 1.
-		$query = $this->scan_reading( array( 'cipherA' => '1234561' ) );
+		// RF_A satisfies the digit: 7·5+6·1+5·8+4·1+3·7+2·8 = 122, 122 mod 11 = 1, dv = 0.
+		$query = $this->scan_reading( array( 'cipherA' => Identifiers::RF_A ) );
 		$query->check_digit_failures( 'rf_hash', 50 );
 		$coverage = $query->scan_coverage();
 
@@ -1771,7 +1777,7 @@ class IdentityConflictQueryTest extends TestCase {
 			}
 		);
 
-		$query = $this->scan_reading( array( 'cipherA' => '1234561' ) );
+		$query = $this->scan_reading( array( 'cipherA' => Identifiers::RF_A ) );
 
 		$query->check_digit_failures( 'rf_hash', 50 );
 		$query->check_digit_failures( 'cpf_hash', 50 );
@@ -1808,7 +1814,7 @@ class IdentityConflictQueryTest extends TestCase {
 	}
 
 	/**
-	 * `1234561` satisfies the rule and `1234567` does not, so the two verdicts
+	 * `RF_A` satisfies the rule and `RF_BAD_CHECK_DIGIT` does not, so the two verdicts
 	 * are what the whole tiering rests on.
 	 */
 	public function test_it_judges_each_identifier_it_was_asked_about(): void {
@@ -1817,7 +1823,7 @@ class IdentityConflictQueryTest extends TestCase {
 				array( 'h' => 'hashA', 'c' => 'cipherA' ),
 				array( 'h' => 'hashB', 'c' => 'cipherB' ),
 			),
-			array( 'cipherA' => '1234567', 'cipherB' => '1234561' ),
+			array( 'cipherA' => Identifiers::RF_BAD_CHECK_DIGIT, 'cipherB' => Identifiers::RF_A ),
 			array( 'hashA', 'hashB' )
 		);
 
@@ -1948,15 +1954,15 @@ class IdentityConflictQueryTest extends TestCase {
 		$shape = new \ReflectionMethod( IdentityFindingVerdicts::class, 'shape' );
 		$shape->setAccessible( true );
 
-		$this->assertSame( '', $shape->invoke( null, array( 'a' => '1234567' ), 'rf', 1 ), 'One identifier has no shape to name.' );
+		$this->assertSame( '', $shape->invoke( null, array( 'a' => Identifiers::RF_A ), 'rf', 1 ), 'One identifier has no shape to name.' );
 		$this->assertSame(
 			IdentityConflictQuery::SHAPE_UNRELATED,
-			$shape->invoke( null, array( 'a' => '1234567', 'b' => '98765' ), 'rf', 2 ),
+			$shape->invoke( null, array( 'a' => Identifiers::RF_A, 'b' => '98765' ), 'rf', 2 ),
 			'Two lengths apart, and no deletion explains it.'
 		);
 		$this->assertSame(
 			IdentityConflictQuery::SHAPE_UNRELATED,
-			$shape->invoke( null, array( 'a' => '123456', 'b' => '9876543' ), 'rf', 2 ),
+			$shape->invoke( null, array( 'a' => '123456', 'b' => Identifiers::RF_BAD_CHECK_DIGIT ), 'rf', 2 ),
 			'One digit longer, but not by a single deletion.'
 		);
 	}
@@ -1982,7 +1988,7 @@ class IdentityConflictQueryTest extends TestCase {
 		$decrypt = new \ReflectionMethod( $subject, 'decrypt' );
 		$decrypt->setAccessible( true );
 
-		$this->assertSame( '1234567', $decrypt->invoke( $subject, (string) \FreeFormCertificate\Core\Encryption::encrypt( '1234567' ) ) );
+		$this->assertSame( Identifiers::RF_A, $decrypt->invoke( $subject, (string) \FreeFormCertificate\Core\Encryption::encrypt( Identifiers::RF_A ) ) );
 		$this->assertNull( $decrypt->invoke( $subject, 'not-a-ciphertext' ) );
 	}
 }

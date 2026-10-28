@@ -12,6 +12,7 @@ use FreeFormCertificate\Privacy\PrivacySubject;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * The privacy tools reach records with no account, and the reregistration and
@@ -129,7 +130,7 @@ class PrivacyUnlinkedRecordsTest extends TestCase {
 
 	public function test_reregistration_answers_are_exported_decrypted(): void {
 		$this->account( 9 );
-		$cpf = Encryption::encrypt( '52998224725' );
+		$cpf = Encryption::encrypt( Identifiers::CPF_A );
 		$this->assertNotNull( $cpf );
 
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
@@ -157,7 +158,7 @@ class PrivacyUnlinkedRecordsTest extends TestCase {
 
 		$this->assertTrue( $result['done'] );
 		$this->assertSame( 'Census 2026', $values['Campaign'] );
-		$this->assertSame( '52998224725', $values['cpf'], 'An encrypted answer is exported readable.' );
+		$this->assertSame( Identifiers::CPF_A, $values['cpf'], 'An encrypted answer is exported readable.' );
 		$this->assertSame( 'Maria da Silva', $values['nome_completo'] );
 		$this->assertSame( 'pt, en', $values['idiomas'] );
 		$this->assertSame( 9, $this->prepared[ count( $this->prepared ) - 1 ][3], 'Rows are filtered by the account.' );

@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Frontend\Csv\CsvDownloadLogExportSource;
 use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for CsvDownloadLogExportSource: the per-phase authorization gate (nonce /
@@ -166,7 +167,7 @@ class CsvDownloadLogExportSourceTest extends TestCase {
 				'ip_encrypted'  => Encryption::encrypt( '1.2.3.4' ),
 				'ip'            => '9.9.9.9',
 				'mode'          => 'audit',
-				'cpf_encrypted' => Encryption::encrypt( '52998224725' ),
+				'cpf_encrypted' => Encryption::encrypt( Identifiers::CPF_A ),
 				'result'        => 'audit_pass',
 			),
 			'not-an-array',
@@ -177,7 +178,9 @@ class CsvDownloadLogExportSourceTest extends TestCase {
 
 		// Encryption configured → no advisory row; one data row (non-array skipped).
 		$this->assertCount( 1, $rows );
-		$this->assertSame( array( '2023-11-14 22:13:20', '1.2.3.4', 'audit', '529.982.247-25', 'audit_pass' ), $rows[0] );
+		$cpf = Identifiers::CPF_A;
+		$formatted = substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+		$this->assertSame( array( '2023-11-14 22:13:20', '1.2.3.4', 'audit', $formatted, 'audit_pass' ), $rows[0] );
 		// A clear export is a bulk reveal, recorded once (#1863).
 		$entries = ActivityLogBuffer::entries();
 		$this->assertCount( 1, $entries );

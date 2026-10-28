@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Repositories\AppointmentRepository;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for AppointmentRepository: CRUD operations, query methods,
@@ -673,7 +674,7 @@ class AppointmentRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
 		// 7-digit RF
-		$this->repo->findByCpfRf('1234567');
+		$this->repo->findByCpfRf(Identifiers::RF_A);
 
 		$this->assertStringContainsString('rf_hash', $captured_sql);
 		$this->assertStringNotContainsString('cpf_hash', $captured_sql);

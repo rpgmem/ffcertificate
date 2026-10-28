@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\CsvDownloadValidator;
 use FreeFormCertificate\Frontend\PublicCsvDownload;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for CsvDownloadValidator: the form-access gate (steps 5–9), the
@@ -238,7 +239,7 @@ class CsvDownloadValidatorTest extends TestCase {
 
 	public function test_cpf_none_mode_audits_voluntary_valid_cpf(): void {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'none';
-		$this->assertNull( $this->validator->validate_cpf_requirement( 10, '111.444.777-35' ) );
+		$this->assertNull( $this->validator->validate_cpf_requirement( 10, substr( Identifiers::CPF_A, 0, 3 ) . '.' . substr( Identifiers::CPF_A, 3, 3 ) . '.' . substr( Identifiers::CPF_A, 6, 3 ) . '-' . substr( Identifiers::CPF_A, 9 ) ) );
 		// A voluntary audit row was written.
 		$this->assertSame( 1, $this->meta_updates[ '10:' . PublicCsvDownload::META_DOWNLOAD_LOG ] ?? 0 );
 	}

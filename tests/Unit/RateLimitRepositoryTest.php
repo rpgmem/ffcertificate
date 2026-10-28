@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Security\RateLimitRepository;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for RateLimitRepository: the raw $wpdb persistence helpers behind
@@ -20,6 +21,16 @@ use FreeFormCertificate\Security\RateLimitRepository;
 class RateLimitRepositoryTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * A CPF in its `ddd.ddd.ddd-dd` display form, built from the standard fixture.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function mask_cpf( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+	}
 
 	/** @var \Mockery\MockInterface&\wpdb */
 	private $wpdb;
@@ -159,7 +170,7 @@ class RateLimitRepositoryTest extends TestCase {
 	}
 
 	public function test_block_temporarily_hashes_non_ip_identifier(): void {
-		$cpf = '12345678909';
+		$cpf = Identifiers::CPF_A;
 		$this->wpdb->shouldReceive( 'insert' )
 			->once()
 			->with(
@@ -226,14 +237,14 @@ class RateLimitRepositoryTest extends TestCase {
 		// unit bootstrap so the method hashes + queries.
 		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '2' );
 
-		$this->assertSame( 2, RateLimitRepository::get_submission_count( 'cpf', '123.456.789-09', 'year', 3 ) );
+		$this->assertSame( 2, RateLimitRepository::get_submission_count( 'cpf', self::mask_cpf( Identifiers::CPF_A ), 'year', 3 ) );
 	}
 
 	public function test_get_submission_count_cpf_seven_digits_uses_rf_hash_column(): void {
 		// 7 digits → rf_hash column path.
 		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '1' );
 
-		$this->assertSame( 1, RateLimitRepository::get_submission_count( 'cpf', '1234567', 'day', null ) );
+		$this->assertSame( 1, RateLimitRepository::get_submission_count( 'cpf', Identifiers::RF_A, 'day', null ) );
 	}
 
 	public function test_get_submission_count_unknown_field_returns_zero(): void {

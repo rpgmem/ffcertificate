@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\AccessRestrictionChecker;
 use FreeFormCertificate\Frontend\Submission\SubmissionPersister;
 use FreeFormCertificate\Submissions\SubmissionHandler;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for AccessRestrictionChecker::check() and SubmissionPersister::calculate_quiz_score().
@@ -43,6 +44,15 @@ class FormProcessorRestrictionsTest extends TestCase {
 		Functions\when( '__' )->returnArg();
 	}
 
+	/**
+	 * A CPF in the form mask an operator pastes into a list (xxx.xxx.xxx-xx).
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+	}
+
 	protected function tearDown(): void {
 		Monkey\tearDown();
 		parent::tearDown();
@@ -55,7 +65,7 @@ class FormProcessorRestrictionsTest extends TestCase {
 	public function test_no_restrictions_allows_access(): void {
 		$config = array(); // no restrictions key
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertTrue( $result['allowed'] );
 		$this->assertFalse( $result['is_ticket'] );
@@ -76,7 +86,7 @@ class FormProcessorRestrictionsTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertFalse( $result['allowed'] );
 		$this->assertStringContainsString( 'Password is required', $result['message'] );
@@ -94,7 +104,7 @@ class FormProcessorRestrictionsTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertFalse( $result['allowed'] );
 		$this->assertStringContainsString( 'Incorrect password', $result['message'] );
@@ -112,7 +122,7 @@ class FormProcessorRestrictionsTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertTrue( $result['allowed'] );
 
@@ -126,10 +136,10 @@ class FormProcessorRestrictionsTest extends TestCase {
 	public function test_denylist_blocks_matching_cpf(): void {
 		$config = array(
 			'restrictions'      => array( 'denylist' => '1' ),
-			'denied_users_list' => "123.456.789-01\n987.654.321-00",
+			'denied_users_list' => self::masked( Identifiers::CPF_A ) . "\n" . self::masked( Identifiers::CPF_B ),
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertFalse( $result['allowed'] );
 		$this->assertStringContainsString( 'blocked', $result['message'] );
@@ -141,7 +151,7 @@ class FormProcessorRestrictionsTest extends TestCase {
 			'denied_users_list' => "111.111.111-11",
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertTrue( $result['allowed'] );
 	}
@@ -156,7 +166,7 @@ class FormProcessorRestrictionsTest extends TestCase {
 			'allowed_users_list' => "111.111.111-11\n222.222.222-22",
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertFalse( $result['allowed'] );
 		$this->assertStringContainsString( 'not authorized', $result['message'] );
@@ -165,10 +175,10 @@ class FormProcessorRestrictionsTest extends TestCase {
 	public function test_allowlist_allows_matching_cpf(): void {
 		$config = array(
 			'restrictions'       => array( 'allowlist' => '1' ),
-			'allowed_users_list' => "123.456.789-01\n222.222.222-22",
+			'allowed_users_list' => self::masked( Identifiers::CPF_A ) . "\n222.222.222-22",
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertTrue( $result['allowed'] );
 	}
@@ -183,7 +193,7 @@ class FormProcessorRestrictionsTest extends TestCase {
 			'generated_codes_list' => "ABC-DEF-123\nGHI-JKL-456",
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertFalse( $result['allowed'] );
 		$this->assertStringContainsString( 'Ticket code is required', $result['message'] );
@@ -196,7 +206,7 @@ class FormProcessorRestrictionsTest extends TestCase {
 		);
 		$this->mock_no_prior_submission();
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', 'ZZZ-ZZZ-999', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, 'ZZZ-ZZZ-999', 1 );
 
 		$this->assertFalse( $result['allowed'] );
 		$this->assertStringContainsString( 'Invalid or already used ticket', $result['message'] );
@@ -212,7 +222,7 @@ class FormProcessorRestrictionsTest extends TestCase {
 		Functions\when( 'update_post_meta' )->justReturn( true );
 		$this->mock_winning_ticket_claim();
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', 'abc-def-123', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, 'abc-def-123', 1 );
 
 		$this->assertTrue( $result['allowed'] );
 		$this->assertTrue( $result['is_ticket'] );
@@ -227,7 +237,7 @@ class FormProcessorRestrictionsTest extends TestCase {
 		Functions\when( 'update_post_meta' )->justReturn( true );
 		$this->mock_winning_ticket_claim();
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', 'ABC-DEF-123', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, 'ABC-DEF-123', 1 );
 
 		$this->assertTrue( $result['allowed'] );
 	}
@@ -272,11 +282,11 @@ class FormProcessorRestrictionsTest extends TestCase {
 	public function test_denylist_has_priority_over_allowlist(): void {
 		$config = array(
 			'restrictions'       => array( 'denylist' => '1', 'allowlist' => '1' ),
-			'denied_users_list'  => "123.456.789-01",
-			'allowed_users_list' => "123.456.789-01",  // same CPF in both
+			'denied_users_list'  => self::masked( Identifiers::CPF_A ),
+			'allowed_users_list' => self::masked( Identifiers::CPF_A ),  // same CPF in both
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		// Denylist should block even though CPF is in allowlist
 		$this->assertFalse( $result['allowed'] );

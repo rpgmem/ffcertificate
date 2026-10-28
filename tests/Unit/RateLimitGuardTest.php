@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\Submission\SubmissionContext;
 use FreeFormCertificate\Frontend\Submission\SubmissionRejected;
 use FreeFormCertificate\Frontend\Submission\RateLimitGuard;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Dedicated coverage for RateLimitGuard — the consolidated submission
@@ -26,6 +27,16 @@ use FreeFormCertificate\Frontend\Submission\RateLimitGuard;
 class RateLimitGuardTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * A CPF in its `ddd.ddd.ddd-dd` display form, built from the standard fixture.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function mask_cpf( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -106,10 +117,10 @@ class RateLimitGuardTest extends TestCase {
 		$rl->shouldReceive( 'check_all' )->once()->andReturn( array( 'allowed' => true ) );
 		$rl->shouldReceive( 'record_attempt' )->with( 'ip', Mockery::any(), 0 )->once();
 		$rl->shouldReceive( 'record_attempt' )->with( 'email', 'c@d.co', 0 )->once();
-		$rl->shouldReceive( 'record_attempt' )->with( 'cpf', '51817842080', 0 )->once();
+		$rl->shouldReceive( 'record_attempt' )->with( 'cpf', Identifiers::CPF_A, 0 )->once();
 
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'normalize_cpf_rf' )->once()->with( '123.456.789-01' )->andReturn( '51817842080' );
+			->shouldReceive( 'normalize_cpf_rf' )->once()->with( self::mask_cpf( Identifiers::CPF_A ) )->andReturn( Identifiers::CPF_A );
 
 		// ReprintDetector is consulted because val_cpf is set and skip_device false.
 		Mockery::mock( 'alias:\FreeFormCertificate\Frontend\ReprintDetector' )
@@ -117,7 +128,7 @@ class RateLimitGuardTest extends TestCase {
 
 		$ctx             = $this->ctx();
 		$ctx->user_email = 'c@d.co';
-		$ctx->val_cpf    = '123.456.789-01';
+		$ctx->val_cpf    = self::mask_cpf( Identifiers::CPF_A );
 		// device_signals null → no deferred hook.
 		( new RateLimitGuard() )->apply( $ctx );
 

@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Maintenance\IdentityAdoption;
+use FreeFormCertificate\Tests\Support\Identifiers;
 use WP_Error;
 
 /**
@@ -33,14 +34,14 @@ class IdentityAdoptionTest extends TestCase {
 	 *
 	 * @var string
 	 */
-	private const GOOD_CPF = '11144477735';
+	private const GOOD_CPF = Identifiers::CPF_A;
 
 	/**
 	 * An RF whose check digit matches.
 	 *
 	 * @var string
 	 */
-	private const GOOD_RF = '1234561';
+	private const GOOD_RF = Identifiers::RF_A;
 
 	/**
 	 * What reached the creator, or null if it was never called.
@@ -218,7 +219,7 @@ class IdentityAdoptionTest extends TestCase {
 	 * A CPF that fails its check digits is refused before anything is opened.
 	 */
 	public function test_it_refuses_a_cpf_that_fails_its_check_digits(): void {
-		$result = $this->adoption()->adopt( '11144477734', self::GOOD_RF, 'person@example.org' );
+		$result = $this->adoption()->adopt( Identifiers::CPF_BAD_CHECK_DIGIT, self::GOOD_RF, 'person@example.org' );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'ffc_identity_adopt_bad_cpf', $result->get_error_code() );
@@ -237,7 +238,7 @@ class IdentityAdoptionTest extends TestCase {
 	 * shared `IdentityRepair::well_formed()` is swapped for `validate_rf()`.
 	 */
 	public function test_it_refuses_an_rf_that_fails_its_check_digit(): void {
-		$result = $this->adoption()->adopt( self::GOOD_CPF, '1234562', 'person@example.org' );
+		$result = $this->adoption()->adopt( self::GOOD_CPF, Identifiers::RF_BAD_CHECK_DIGIT, 'person@example.org' );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'ffc_identity_adopt_bad_rf', $result->get_error_code() );

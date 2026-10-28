@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for SubmissionHandler: submission creation, encryption flow,
@@ -29,6 +30,24 @@ class SubmissionHandlerTest extends TestCase {
 
 	private SubmissionHandler $handler;
 	private $mockRepo;
+
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
+
+	/**
+	 * An RF in the `xxx.xxx-x` mask.
+	 *
+	 * @param string $rf Seven digits.
+	 */
+	private static function masked_rf( string $rf ): string {
+		return substr( $rf, 0, 3 ) . '.' . substr( $rf, 3, 3 ) . '-' . substr( $rf, 6 );
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -191,7 +210,7 @@ class SubmissionHandlerTest extends TestCase {
 
 		$data = array(
 			'name'   => 'John Doe',
-			'cpf_rf' => '123.456.789-00',
+			'cpf_rf' => self::masked( Identifiers::CPF_A ),
 			'ticket' => 'ABC123',
 		);
 		$this->handler->process_submission( 3, 'Test Form', $data, 'secret@example.com', array(), array( 'send_user_email' => '1' ) );
@@ -199,8 +218,8 @@ class SubmissionHandlerTest extends TestCase {
 		$serialized = serialize( $captured );
 
 		$this->assertStringNotContainsString( 'secret@example.com', $serialized );
-		$this->assertStringNotContainsString( '123.456.789-00', $serialized );
-		$this->assertStringNotContainsString( '12345678900', $serialized );
+		$this->assertStringNotContainsString( self::masked( Identifiers::CPF_A ), $serialized );
+		$this->assertStringNotContainsString( Identifiers::CPF_A, $serialized );
 		$this->assertStringNotContainsString( 'John Doe', $serialized );
 		$this->assertStringNotContainsString( 'ABC123', $serialized );
 		$this->assertDoesNotMatchRegularExpression(
@@ -663,7 +682,7 @@ class SubmissionHandlerTest extends TestCase {
 
 	public function test_decrypt_submission_data_with_encrypted_fields(): void {
 		$enc_email = \FreeFormCertificate\Core\Encryption::encrypt( 'enc@test.com' );
-		$enc_cpf   = \FreeFormCertificate\Core\Encryption::encrypt( '99988877766' );
+		$enc_cpf   = \FreeFormCertificate\Core\Encryption::encrypt( Identifiers::CPF_B );
 		$enc_ip    = \FreeFormCertificate\Core\Encryption::encrypt( '10.0.0.1' );
 		$enc_data  = \FreeFormCertificate\Core\Encryption::encrypt( '{"score":100}' );
 
@@ -679,7 +698,7 @@ class SubmissionHandlerTest extends TestCase {
 		$result = $this->handler->decrypt_submission_data( $submission );
 
 		$this->assertSame( 'enc@test.com', $result['email'] );
-		$this->assertSame( '99988877766', $result['cpf_rf'] );
+		$this->assertSame( Identifiers::CPF_B, $result['cpf_rf'] );
 		$this->assertSame( '10.0.0.1', $result['user_ip'] );
 		$this->assertSame( '{"score":100}', $result['data'] );
 	}
@@ -847,8 +866,8 @@ class SubmissionHandlerTest extends TestCase {
 	 */
 	public static function dual_argument_provider(): array {
 		return array(
-			'a CPF goes in the first argument' => array( '123.456.789-01', 0, 'cpf_hash' ),
-			'an RF goes in the second'         => array( '123.456-7', 1, 'rf_hash' ),
+			'a CPF goes in the first argument' => array( self::masked( Identifiers::CPF_A ), 0, 'cpf_hash' ),
+			'an RF goes in the second'         => array( self::masked_rf( Identifiers::RF_A ), 1, 'rf_hash' ),
 		);
 	}
 
@@ -862,7 +881,7 @@ class SubmissionHandlerTest extends TestCase {
 			} )
 			->andReturn( 30 );
 
-		$data = array( 'name' => 'CPF User', 'cpf_rf' => '123.456.789-01' );
+		$data = array( 'name' => 'CPF User', 'cpf_rf' => self::masked( Identifiers::CPF_A ) );
 		$this->handler->process_submission( 1, 'Form', $data, 'cpf@test.com', array(), array() );
 
 		// Legacy cpf_rf columns no longer written; split columns used instead
@@ -917,7 +936,7 @@ class SubmissionHandlerTest extends TestCase {
 				'magic_token'     => str_repeat( 'a', 32 ),
 				'consent_given'   => 1,
 				'email_encrypted' => Encryption::encrypt( 'person@example.com' ),
-				'cpf_encrypted'   => Encryption::encrypt( '12345678900' ),
+				'cpf_encrypted'   => Encryption::encrypt( Identifiers::CPF_A ),
 				'rf_encrypted'    => null,
 				'data_encrypted'  => Encryption::encrypt( '{"name":"John Doe","ticket":"ABC123"}' ),
 				'user_ip_encrypted' => null,
@@ -1006,7 +1025,7 @@ class SubmissionHandlerTest extends TestCase {
 			array( 'email', 'cpf_rf', 'name', 'ticket', 'auth_code', 'ffc_lgpd_consent' ),
 			array_keys( $args[3] )
 		);
-		$this->assertSame( '12345678900', $args[3]['cpf_rf'] );
+		$this->assertSame( Identifiers::CPF_A, $args[3]['cpf_rf'] );
 		$this->assertSame( 'John Doe', $args[3]['name'] );
 		$this->assertSame( 'ABCD1234EFGH', $args[3]['auth_code'] );
 		$this->assertSame( '1', $args[3]['ffc_lgpd_consent'] );
@@ -1087,7 +1106,7 @@ class SubmissionHandlerTest extends TestCase {
 	 * BOTH NORMALISATIONS ARE INVISIBLE -- and this test is the measurement.
 	 *
 	 * The database stores `cpf_rf` as digits only and `auth_code` as
-	 * alphanumerics only, while the visitor may have typed `123.456.789-00`. The
+	 * alphanumerics only, while the visitor may have typed the masked `xxx.xxx.xxx-xx` form. The
 	 * legitimate doubt was whether the admin notification would change content.
 	 *
 	 * It does not, and not by luck: the only two consumers of those values clean
@@ -1101,8 +1120,8 @@ class SubmissionHandlerTest extends TestCase {
 	 */
 	public function test_the_two_normalizations_are_invisible_to_the_formatters(): void {
 		$this->assertSame(
-			\FreeFormCertificate\Core\DocumentFormatter::format_document( '123.456.789-00' ),
-			\FreeFormCertificate\Core\DocumentFormatter::format_document( '12345678900' ),
+			\FreeFormCertificate\Core\DocumentFormatter::format_document( self::masked( Identifiers::CPF_A ) ),
+			\FreeFormCertificate\Core\DocumentFormatter::format_document( Identifiers::CPF_A ),
 			'If this diverges, the rehydration starts changing the CPF in the admin notification.'
 		);
 		$this->assertSame(

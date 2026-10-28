@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationFormRenderer;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * @covers \FreeFormCertificate\Reregistration\ReregistrationFormRenderer
@@ -17,6 +18,15 @@ use FreeFormCertificate\Reregistration\ReregistrationFormRenderer;
 class ReregistrationFormRendererTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -292,7 +302,7 @@ class ReregistrationFormRendererTest extends TestCase {
 		$encryptionMock->shouldReceive( 'looks_like_envelope' )->andReturn( false )->byDefault();
 		$encryptionMock->shouldReceive( 'decrypt' )
 			->with( 'CIPHERTEXT-DO-CPF' )
-			->andReturn( '529.982.247-25' );
+			->andReturn( self::masked( Identifiers::CPF_A ) );
 		$encryptionMock->shouldReceive( 'decrypt' )->andReturn( null )->byDefault();
 
 		$this->mockRepositories( array(
@@ -331,7 +341,7 @@ class ReregistrationFormRendererTest extends TestCase {
 
 		$html = ReregistrationFormRenderer::render( $rereg, $submission, 10 );
 
-		$this->assertStringContainsString( '529.982.247-25', $html, 'O valor sensível tem de voltar em texto claro.' );
+		$this->assertStringContainsString( self::masked( Identifiers::CPF_A ), $html, 'The sensitive value must come back in clear text.' );
 		$this->assertStringNotContainsString( 'CIPHERTEXT-DO-CPF', $html, 'The ciphertext must not reach the form.' );
 		$this->assertStringContainsString( '11999999999', $html, 'The non-sensitive field is left untouched.' );
 	}
@@ -671,7 +681,7 @@ class ReregistrationFormRendererTest extends TestCase {
 		$user_manager->shouldReceive( 'get_extended_profile' )
 			->once()
 			->with( 10, array( 'phone', 'cpf', 'empty_key' ), array( 'cpf' ) )
-			->andReturn( array( 'phone' => '1188887777', 'cpf' => '529.982.247-25', 'empty_key' => '' ) );
+			->andReturn( array( 'phone' => '1188887777', 'cpf' => self::masked( Identifiers::CPF_A ), 'empty_key' => '' ) );
 
 		$fields = array(
 			$this->makeField( array( 'id' => 1, 'field_key' => 'name' ) ),
@@ -691,7 +701,7 @@ class ReregistrationFormRendererTest extends TestCase {
 			array(
 				'name'                => 'From draft',
 				'phone'               => '1188887777',
-				'cpf'                 => '529.982.247-25',
+				'cpf'                 => self::masked( Identifiers::CPF_A ),
 				'email_institucional' => 'teacher@example.org',
 				'blank'               => 'fallback',
 				'nothing'             => '',

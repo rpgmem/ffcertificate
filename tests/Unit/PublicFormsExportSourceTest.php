@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\PublicFormsExportSource;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for PublicFormsExportSource: the public download's layered
@@ -29,6 +30,16 @@ use FreeFormCertificate\Frontend\PublicFormsExportSource;
 class PublicFormsExportSourceTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * A CPF in its `ddd.ddd.ddd-dd` display form, built from the standard fixture.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function mask_cpf( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+	}
 
 	/** @var PublicFormsExportSource */
 	private $source;
@@ -260,7 +271,7 @@ class PublicFormsExportSourceTest extends TestCase {
 			->shouldReceive( 'get_user_ip' )->andReturn( '203.0.113.9' )
 			->shouldReceive( 'get_post_string' )->andReturnUsing(
 				static function ( $key ) {
-					$map = array( 'hash' => 'abc', 'cpf' => '123.456.789-00', '_ffc_pcd_nonce' => 'n' );
+					$map = array( 'hash' => 'abc', 'cpf' => self::mask_cpf( Identifiers::CPF_A ), '_ffc_pcd_nonce' => 'n' );
 					return $map[ $key ] ?? '';
 				}
 			)
@@ -370,7 +381,7 @@ class PublicFormsExportSourceTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
 			->shouldReceive( 'get_user_ip' )->andReturn( '203.0.113.7' )
-			->shouldReceive( 'get_post_string' )->with( 'cpf' )->andReturn( '123.456.789-00' )
+			->shouldReceive( 'get_post_string' )->with( 'cpf' )->andReturn( self::mask_cpf( Identifiers::CPF_A ) )
 		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
 		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
 		->shouldReceive( 'get_post_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ? abs( (int) $_POST[ $key ] ) : $default )
@@ -381,7 +392,7 @@ class PublicFormsExportSourceTest extends TestCase {
 
 		$this->assertSame( \FreeFormCertificate\Core\IpAddress::fingerprint( '203.0.113.7' ), $fields['ip_hash'] );
 		$this->assertSame( 12, $fields['form_id'] );
-		$this->assertSame( '12345678900', $fields['cpf_digits'] );
+		$this->assertSame( Identifiers::CPF_A, $fields['cpf_digits'] );
 	}
 
 	public function test_sanitize_filters_wraps_single_form(): void {
@@ -573,11 +584,11 @@ class PublicFormsExportSourceTest extends TestCase {
 
 		$mock = \Mockery::mock( 'overload:FreeFormCertificate\Frontend\CsvDownloadValidator' );
 		$mock->shouldReceive( 'record_download_log_entry' )->once()
-			->with( 7, 'voluntary', '12345678900', 'download_delivered' )
+			->with( 7, 'voluntary', Identifiers::CPF_A, 'download_delivered' )
 			->andReturnNull();
 
 		$this->source->on_before_download(
-			array( 'form_id' => 7, 'cpf_digits' => '12345678900' )
+			array( 'form_id' => 7, 'cpf_digits' => Identifiers::CPF_A )
 		);
 	}
 }

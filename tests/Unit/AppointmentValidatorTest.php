@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\SelfScheduling\AppointmentValidator;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for AppointmentValidator: booking validation, interval checking, working hours.
@@ -594,11 +595,11 @@ class AppointmentValidatorTest extends TestCase {
 
 	public function test_interval_cpf_uses_findByCpfRf(): void {
 		$this->appointmentRepo->shouldReceive( 'findByCpfRf' )
-			->with( '12345678901' )
+			->with( Identifiers::CPF_A )
 			->once()
 			->andReturn( array() );
 
-		$result = $this->validator->check_booking_interval( '12345678901', 1, 24 );
+		$result = $this->validator->check_booking_interval( Identifiers::CPF_A, 1, 24 );
 		$this->assertTrue( $result );
 	}
 

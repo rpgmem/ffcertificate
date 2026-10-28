@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceCsvImporter;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for AudienceCsvImporter: CSV validation, sample generation, and import logic.
@@ -404,7 +405,7 @@ class AudienceCsvImporterTest extends TestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_import_members_resolves_an_existing_user_by_cpf(): void {
-		$path = $this->create_csv( "email,name,cpf\nother@example.com,Same Person,529.982.247-25\n" );
+		$path = $this->create_csv( "email,name,cpf\nother@example.com,Same Person," . Identifiers::CPF_A . "\n" );
 
 		Functions\when( 'get_user_by' )->justReturn( false );
 		Functions\when( 'is_wp_error' )->justReturn( false );
@@ -442,7 +443,7 @@ class AudienceCsvImporterTest extends TestCase {
 		$result = AudienceCsvImporter::import_members( $path, 5, true );
 
 		$this->assertSame(
-			array( array( 'hash:cpf:52998224725', null, 'other@example.com' ) ),
+			array( array( 'hash:cpf:' . Identifiers::CPF_A, null, 'other@example.com' ) ),
 			$asked,
 			'The CPF must reach the resolver as a registry hash, with the e-mail as the fallback the resolver tries second.'
 		);
@@ -467,7 +468,7 @@ class AudienceCsvImporterTest extends TestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_import_members_without_creation_still_imports_a_known_identifier(): void {
-		$path = $this->create_csv( "email,name,rf\nchanged@example.com,Known Person,1234567\n" );
+		$path = $this->create_csv( "email,name,rf\nchanged@example.com,Known Person," . Identifiers::RF_A . "\n" );
 
 		Functions\when( 'get_user_by' )->justReturn( false );
 		Functions\when( 'is_wp_error' )->justReturn( false );
@@ -481,7 +482,7 @@ class AudienceCsvImporterTest extends TestCase {
 			);
 
 		$creator = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserCreator' );
-		$creator->shouldReceive( 'resolve_existing_user' )->with( null, 'hash:rf:1234567', 'changed@example.com' )->andReturn( 64 );
+		$creator->shouldReceive( 'resolve_existing_user' )->with( null, 'hash:rf:' . Identifiers::RF_A, 'changed@example.com' )->andReturn( 64 );
 		$creator->shouldNotReceive( 'get_or_create_user_dual' );
 
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );

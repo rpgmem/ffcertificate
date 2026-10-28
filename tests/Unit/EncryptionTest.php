@@ -9,6 +9,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Core\SensitiveFieldRegistry;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for Encryption class: round-trip, hashing, batch ops, configuration.
@@ -77,7 +78,8 @@ class EncryptionTest extends TestCase {
 	}
 
 	public function test_encrypt_handles_unicode(): void {
-		$original = 'João da Silva — cpf: 123.456.789-09 — ação';
+		$cpf      = Identifiers::CPF_A;
+		$original = 'João da Silva — cpf: ' . substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 ) . ' — ação';
 		$encrypted = Encryption::encrypt( $original );
 		$this->assertNotNull( $encrypted );
 		$this->assertSame( $original, Encryption::decrypt( $encrypted ) );
@@ -388,7 +390,7 @@ class EncryptionTest extends TestCase {
 
 	public function test_looks_like_envelope_refuses_ordinary_values(): void {
 		$this->assertFalse( Encryption::looks_like_envelope( '518.178.420-80' ), 'A formatted CPF is not base64.' );
-		$this->assertFalse( Encryption::looks_like_envelope( '1234567' ), 'A short RF decodes too short to be an envelope.' );
+		$this->assertFalse( Encryption::looks_like_envelope( Identifiers::RF_A ), 'A short RF decodes too short to be an envelope.' );
 		$this->assertFalse( Encryption::looks_like_envelope( 'v2:YWJj' ), 'A v2 prefix over a short payload is not an envelope.' );
 		$this->assertFalse( Encryption::looks_like_envelope( 'v2:not base64!' ) );
 	}

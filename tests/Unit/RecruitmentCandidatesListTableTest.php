@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Recruitment\RecruitmentCandidatesListTable;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Smoke tests for the Candidates list table.
@@ -20,6 +21,16 @@ use FreeFormCertificate\Recruitment\RecruitmentCandidatesListTable;
 class RecruitmentCandidatesListTableTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * A CPF in its `ddd.ddd.ddd-dd` display form, built from the standard fixture.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function mask_cpf( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+	}
 
 	private RecruitmentCandidatesListTable $table;
 
@@ -225,10 +236,10 @@ class RecruitmentCandidatesListTableTest extends TestCase {
 
 	public function test_prepare_items_empty_when_id_constraint_resolves_empty(): void {
 		// CPF typed but no matching candidate → constraint = empty array.
-		$_REQUEST['cpf'] = '123.456.789-00';
+		$_REQUEST['cpf'] = self::mask_cpf( Identifiers::CPF_A );
 
 		Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678900' );
+			->shouldReceive( 'normalize_cpf_rf' )->andReturn( Identifiers::CPF_A );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'hash' )->andReturn( 'abc' );
 		// cpf_row stays null → resolve returns empty array → 0 rows.
@@ -261,7 +272,7 @@ class RecruitmentCandidatesListTableTest extends TestCase {
 		// An alias mock answers only what it declares, so the omission surfaces
 		// as a BadMethodCallException rather than a wrong value.
 		$sanitizer = Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' );
-		$sanitizer->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678900' );
+		$sanitizer->shouldReceive( 'normalize_cpf_rf' )->andReturn( Identifiers::CPF_A );
 		$sanitizer->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'hash' )->andReturn( 'hashval' );
@@ -280,7 +291,7 @@ class RecruitmentCandidatesListTableTest extends TestCase {
 		// An alias mock answers only what it declares, so the omission surfaces
 		// as a BadMethodCallException rather than a wrong value.
 		$sanitizer = Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' );
-		$sanitizer->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678900' );
+		$sanitizer->shouldReceive( 'normalize_cpf_rf' )->andReturn( Identifiers::CPF_A );
 		$sanitizer->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'hash' )->andReturn( 'hashval' );

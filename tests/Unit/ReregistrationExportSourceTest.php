@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery;
 use FreeFormCertificate\Tests\Support\BatchedExportSourceContractTestCase;
 use FreeFormCertificate\Reregistration\ReregistrationExportSource;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for ReregistrationExportSource: the fixed + per-campaign-field column
@@ -64,6 +65,15 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		Monkey\tearDown();
 		unset( $_POST['id'] );
 		parent::tearDown();
+	}
+
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
 	}
 
 	private function field( string $key, string $label, string $type = 'text', int $sensitive = 0 ): object {
@@ -200,7 +210,7 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		// (#1509), so the double answers that too.
 		$enc = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
 		$enc->shouldReceive( 'looks_like_envelope' )->with( 'CIPHER' )->andReturn( true );
-		$enc->shouldReceive( 'decrypt' )->with( 'CIPHER' )->andReturn( '123.456.789-00' );
+		$enc->shouldReceive( 'decrypt' )->with( 'CIPHER' )->andReturn( self::masked( Identifiers::CPF_A ) );
 
 		$context = array(
 			'fields' => array( $this->field( 'cpf', 'CPF', 'text', 1 ) ),
@@ -210,7 +220,7 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		$row['data'] = '{"fields":{"cpf":"CIPHER"}}';
 
 		$result = $this->source->format_row( $row, $context );
-		$this->assertSame( '123.456.789-00', $result[6] );
+		$this->assertSame( self::masked( Identifiers::CPF_A ), $result[6] );
 	}
 
 	/**
@@ -224,7 +234,7 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 	public function test_format_row_decrypts_even_when_the_field_is_no_longer_sensitive(): void {
 		$enc = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
 		$enc->shouldReceive( 'looks_like_envelope' )->with( 'v2:ENVELOPE' )->andReturn( true );
-		$enc->shouldReceive( 'decrypt' )->with( 'v2:ENVELOPE' )->andReturn( '123.456.789-00' );
+		$enc->shouldReceive( 'decrypt' )->with( 'v2:ENVELOPE' )->andReturn( self::masked( Identifiers::CPF_A ) );
 
 		// The field definition says NOT sensitive (last argument 0).
 		$context     = array(
@@ -237,7 +247,7 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		$result = $this->source->format_row( $row, $context );
 
 		$this->assertSame(
-			'123.456.789-00',
+			self::masked( Identifiers::CPF_A ),
 			$result[6],
 			'A CSV must never carry the ciphertext in the CPF column because a checkbox was unticked.'
 		);

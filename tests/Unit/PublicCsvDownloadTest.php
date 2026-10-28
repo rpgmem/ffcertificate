@@ -14,6 +14,7 @@ use FreeFormCertificate\Frontend\PublicCsvDownload;
 use FreeFormCertificate\Security\RateLimiter;
 use FreeFormCertificate\Security\RateLimitChecker;
 use FreeFormCertificate\Tests\Support\ButtonMarkup;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for PublicCsvDownload: shortcode + admin-post handler.
@@ -36,6 +37,16 @@ use FreeFormCertificate\Tests\Support\ButtonMarkup;
 class PublicCsvDownloadTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * A CPF in its `ddd.ddd.ddd-dd` display form, built from the standard fixture.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function mask_cpf( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+	}
 
 	/** @var PublicCsvDownload */
 	private $handler;
@@ -261,7 +272,7 @@ class PublicCsvDownloadTest extends TestCase {
 		$this->meta_store[ $form_id . ':_ffc_csv_public_cpf_mode' ] = 'audit';
 
 		// Use a valid CPF to bypass format gate.
-		$valid_cpf = '529.982.247-25';
+		$valid_cpf = self::mask_cpf( Identifiers::CPF_A );
 		$result    = $this->handler->validate_cpf_requirement( $form_id, $valid_cpf );
 
 		$this->assertNull( $result, 'Audit mode must not block' );
@@ -299,9 +310,9 @@ class PublicCsvDownloadTest extends TestCase {
 	public function test_validate_cpf_requirement_whitelist_match_passes(): void {
 		$form_id = 42;
 		$this->meta_store[ $form_id . ':_ffc_csv_public_cpf_mode' ]      = 'whitelist';
-		$this->meta_store[ $form_id . ':_ffc_csv_public_cpf_whitelist' ] = "52998224725\n11144477735";
+		$this->meta_store[ $form_id . ':_ffc_csv_public_cpf_whitelist' ] = Identifiers::CPF_A . "\n" . Identifiers::CPF_B;
 
-		$result = $this->handler->validate_cpf_requirement( $form_id, '529.982.247-25' );
+		$result = $this->handler->validate_cpf_requirement( $form_id, self::mask_cpf( Identifiers::CPF_A ) );
 
 		$this->assertNull( $result );
 		$log = $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] ?? array();
@@ -311,10 +322,10 @@ class PublicCsvDownloadTest extends TestCase {
 	public function test_validate_cpf_requirement_whitelist_miss_blocks(): void {
 		$form_id = 42;
 		$this->meta_store[ $form_id . ':_ffc_csv_public_cpf_mode' ]      = 'whitelist';
-		$this->meta_store[ $form_id . ':_ffc_csv_public_cpf_whitelist' ] = '52998224725';
+		$this->meta_store[ $form_id . ':_ffc_csv_public_cpf_whitelist' ] = Identifiers::CPF_A;
 
 		// Different valid CPF.
-		$result = $this->handler->validate_cpf_requirement( $form_id, '11144477735' );
+		$result = $this->handler->validate_cpf_requirement( $form_id, Identifiers::CPF_B );
 
 		$this->assertIsString( $result );
 		$log = $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] ?? array();
@@ -332,7 +343,7 @@ class PublicCsvDownloadTest extends TestCase {
 		}
 		$this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] = $existing;
 
-		$this->handler->validate_cpf_requirement( $form_id, '529.982.247-25' );
+		$this->handler->validate_cpf_requirement( $form_id, self::mask_cpf( Identifiers::CPF_A ) );
 
 		$log = $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] ?? array();
 		$this->assertCount( PublicCsvDownload::DOWNLOAD_LOG_MAX, $log, 'Log should be capped' );
@@ -347,7 +358,7 @@ class PublicCsvDownloadTest extends TestCase {
 		$form_id = 42;
 		$this->meta_store[ $form_id . ':_ffc_csv_public_cpf_mode' ] = 'none';
 
-		$result = $this->handler->validate_cpf_requirement( $form_id, '529.982.247-25' );
+		$result = $this->handler->validate_cpf_requirement( $form_id, self::mask_cpf( Identifiers::CPF_A ) );
 
 		$this->assertNull( $result, 'mode=none must never block, even with CPF filled' );
 		$log = $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] ?? array();
@@ -376,7 +387,7 @@ class PublicCsvDownloadTest extends TestCase {
 		$form_id = 42;
 		$this->meta_store[ $form_id . ':_ffc_csv_public_cpf_mode' ] = 'audit';
 
-		$this->handler->validate_cpf_requirement( $form_id, '529.982.247-25' );
+		$this->handler->validate_cpf_requirement( $form_id, self::mask_cpf( Identifiers::CPF_A ) );
 
 		$log = $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] ?? array();
 		$this->assertNotEmpty( $log );
@@ -391,7 +402,7 @@ class PublicCsvDownloadTest extends TestCase {
 		// non-empty string different from the digits themselves.
 		$this->assertIsString( $entry['cpf_encrypted'] );
 		$this->assertNotEmpty( $entry['cpf_encrypted'] );
-		$this->assertNotSame( '52998224725', $entry['cpf_encrypted'] );
+		$this->assertNotSame( Identifiers::CPF_A, $entry['cpf_encrypted'] );
 	}
 
 	public function test_get_audit_log_summary_returns_count_and_url_when_log_present(): void {

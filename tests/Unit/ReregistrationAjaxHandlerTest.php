@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationAjaxHandler;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for the reregistration admin AJAX endpoints: record generation,
@@ -21,6 +22,16 @@ use FreeFormCertificate\Reregistration\ReregistrationAjaxHandler;
 class ReregistrationAjaxHandlerTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * A CPF in its `ddd.ddd.ddd-dd` display form, built from the standard fixture.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function mask_cpf( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+	}
 
 	/** @var array<int, array{type: string, data: mixed}> */
 	private array $json = array();
@@ -242,10 +253,10 @@ class ReregistrationAjaxHandlerTest extends TestCase {
 			->shouldReceive( 'get_by_id' )->andReturn( $rereg );
 		$generator = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\RecordGenerator' );
 		$generator->shouldReceive( 'get_custom_fields_for_reregistration' )->once()->with( $rereg )->andReturn( $fields );
-		$generator->shouldReceive( 'decrypt_field_values' )->once()->with( $fields, array( 'cpf' => 'CIPHER' ) )->andReturn( array( 'cpf' => '529.982.247-25' ) );
+		$generator->shouldReceive( 'decrypt_field_values' )->once()->with( $fields, array( 'cpf' => 'CIPHER' ) )->andReturn( array( 'cpf' => self::mask_cpf( Identifiers::CPF_A ) ) );
 		Mockery::mock( 'overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionDetailsRenderer' )
 			->shouldReceive( 'build_submission_details_html' )->once()
-			->with( $submission, $fields, array( 'cpf' => '529.982.247-25' ) )->andReturn( '<dl>details</dl>' );
+			->with( $submission, $fields, array( 'cpf' => self::mask_cpf( Identifiers::CPF_A ) ) )->andReturn( '<dl>details</dl>' );
 		// A site admin's open is audited like any other (#1815).
 		$this->activityLog()->shouldReceive( 'log' )->once()->andReturn( true );
 

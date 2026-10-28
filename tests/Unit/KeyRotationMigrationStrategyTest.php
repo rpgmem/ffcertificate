@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Migrations\Strategies\KeyRotationMigrationStrategy;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for KeyRotationMigrationStrategy (S7b, #857): re-encrypts submissions +
@@ -262,7 +263,7 @@ class KeyRotationMigrationStrategyTest extends TestCase {
 				'id'                => 2,
 				'email_encrypted'   => Encryption::encrypt( 'c@d.com' ),
 				'cpf_encrypted'     => '',
-				'rf_encrypted'      => Encryption::encrypt( '7654321' ),
+				'rf_encrypted'      => Encryption::encrypt( Identifiers::RF_A ),
 				'user_ip_encrypted' => '',
 				'data_encrypted'    => '',
 			),
@@ -287,8 +288,8 @@ class KeyRotationMigrationStrategyTest extends TestCase {
 
 		// Row 2: rf branch.
 		$row2 = $this->update_for_id( 2 );
-		$this->assertSame( '7654321', Encryption::decrypt( (string) $row2['rf_encrypted'] ) );
-		$this->assertSame( Encryption::hash( '7654321' ), $row2['rf_hash'] );
+		$this->assertSame( Identifiers::RF_A, Encryption::decrypt( (string) $row2['rf_encrypted'] ) );
+		$this->assertSame( Encryption::hash( Identifiers::RF_A ), $row2['rf_hash'] );
 
 		// Completion latched under the active fingerprint.
 		$state = $this->options['ffc_key_rotation_state'];

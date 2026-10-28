@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Recruitment\RecruitmentClassificationFilterManager;
 use FreeFormCertificate\Recruitment\RecruitmentPcdHasher;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for the recruitment classification filter manager — read_filters
@@ -27,6 +28,16 @@ use FreeFormCertificate\Recruitment\RecruitmentPcdHasher;
 class RecruitmentClassificationFilterManagerTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * A CPF in its `ddd.ddd.ddd-dd` display form, built from the standard fixture.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function mask_cpf( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+	}
 
 	/**
 	 * Candidate rows by id.
@@ -131,9 +142,9 @@ class RecruitmentClassificationFilterManagerTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_read_filters_resolves_cpf_to_candidate_id_when_match_found(): void {
-		$_GET['ffc_cls_cpf'] = '123.456.789-00';
+		$_GET['ffc_cls_cpf'] = self::mask_cpf( Identifiers::CPF_A );
 		// The lookup is keyed on the hash of the digits only.
-		$this->by_cpf_hash[ (string) Encryption::hash( '12345678900' ) ] = (object) array( 'id' => 7 );
+		$this->by_cpf_hash[ (string) Encryption::hash( Identifiers::CPF_A ) ] = (object) array( 'id' => 7 );
 
 		$filters = RecruitmentClassificationFilterManager::read_filters( 1 );
 
@@ -141,11 +152,11 @@ class RecruitmentClassificationFilterManagerTest extends TestCase {
 	}
 
 	public function test_read_filters_marks_cpf_candidate_minus_one_when_no_match(): void {
-		$_GET['ffc_cls_cpf'] = '12345678900';
+		$_GET['ffc_cls_cpf'] = Identifiers::CPF_A;
 
 		$filters = RecruitmentClassificationFilterManager::read_filters( 1 );
 
-		$this->assertSame( array( (string) Encryption::hash( '12345678900' ) ), $this->cpf_lookups );
+		$this->assertSame( array( (string) Encryption::hash( Identifiers::CPF_A ) ), $this->cpf_lookups );
 		$this->assertSame( -1, $filters['cpf_candidate_id'] );
 	}
 

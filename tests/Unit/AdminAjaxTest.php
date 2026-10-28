@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\AdminAjax;
 use FreeFormCertificate\Tests\Support\CallLog;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for AdminAjax: constructor hook registration and the search_user
@@ -304,6 +305,14 @@ class AdminAjaxTest extends TestCase {
 	// ==================================================================
 
 	/**
+	 * `Identifiers::CPF_A` in the `xxx.xxx.xxx-xx` shape `format_cpf()` returns.
+	 */
+	private static function masked_cpf_a(): string {
+		$cpf = Identifiers::CPF_A;
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
+
+	/**
 	 * Alias-mock Core\PiiAccessPolicy with its TIER_* constants mapped so the
 	 * handler's production references resolve.
 	 *
@@ -380,7 +389,7 @@ class AdminAjaxTest extends TestCase {
 		$policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
 
 		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$df->shouldReceive( 'format_cpf' )->with( '51817842080' )->andReturn( '123.456.789-01' );
+		$df->shouldReceive( 'format_cpf' )->with( '51817842080' )->andReturn( self::masked_cpf_a() );
 
 		// The reveal tier calls the real ActivityLog::log; keep the audit log
 		// disabled so it early-returns without a DB write (its LEVEL_INFO
@@ -398,7 +407,7 @@ class AdminAjaxTest extends TestCase {
 			$this->assertSame(
 				array(
 					'field' => 'cpf',
-					'value' => '123.456.789-01',
+					'value' => self::masked_cpf_a(),
 				),
 				$data
 			);
@@ -421,7 +430,7 @@ class AdminAjaxTest extends TestCase {
 		$policy->shouldReceive( 'resolve' )->andReturn( 'unmasked' );
 
 		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$df->shouldReceive( 'format_cpf' )->andReturn( '123.456.789-01' );
+		$df->shouldReceive( 'format_cpf' )->andReturn( self::masked_cpf_a() );
 
 		// Every served reveal reaches the audit (#1655): the unmasked tier
 		// calls here from the submission edit page and the appointment detail
@@ -518,7 +527,7 @@ class AdminAjaxTest extends TestCase {
 		$policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
 
 		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$df->shouldReceive( 'format_cpf' )->with( '51817842080' )->andReturn( '123.456.789-01' );
+		$df->shouldReceive( 'format_cpf' )->with( '51817842080' )->andReturn( self::masked_cpf_a() );
 
 		// Reveal tier audits via the real ActivityLog; keep the log disabled so
 		// it early-returns without a DB write.
@@ -533,7 +542,7 @@ class AdminAjaxTest extends TestCase {
 			$this->assertSame(
 				array(
 					'field' => 'cpf',
-					'value' => '123.456.789-01',
+					'value' => self::masked_cpf_a(),
 				),
 				$e->getData()
 			);
