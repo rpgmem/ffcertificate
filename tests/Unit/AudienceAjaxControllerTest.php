@@ -11,6 +11,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceAccountEmail;
 use FreeFormCertificate\Audience\AudienceAjaxController;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * Tests for AudienceAjaxController — the admin-ajax endpoints extracted from
@@ -438,9 +439,7 @@ class AudienceAjaxControllerTest extends TestCase {
 	}
 
 	/**
-	 * The writer refuses a cancellation without a reason; it is the only
-	 * failure it reports, since its update() answers true whatever the
-	 * database did.
+	 * The writer refuses a cancellation without a reason before it writes.
 	 */
 	public function test_cancel_booking_reports_failure_without_a_reason(): void {
 		$_POST          = array( 'nonce' => 'n', 'booking_id' => '9' );
@@ -451,6 +450,24 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertFalse( $this->responses[0]['ok'] );
 		$this->assertStringContainsString( 'Failed to cancel', $this->responses[0]['data']['message'] );
 		$this->assertSame( array(), $this->writes );
+	}
+
+	/**
+	 * A cancel the database refused is reported as a failure, and the
+	 * cancellation hook (audit and notifications) does not fire (#2183).
+	 */
+	public function test_cancel_booking_reports_a_refused_write_and_fires_no_hook(): void {
+		$_POST                = array( 'nonce' => 'n', 'booking_id' => '9', 'reason' => 'x' );
+		$this->bookings       = array( 9 => $this->booking() );
+		$this->failing_tables = array( 'wp_ffc_audience_bookings' => true );
+		$actions              = CallLog::record( 'do_action' );
+
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_cancel_booking() );
+
+		$this->assertFalse( $this->responses[0]['ok'] );
+		$this->assertStringContainsString( 'Failed to cancel', $this->responses[0]['data']['message'] );
+		$this->assertSame( 'update', $this->writes[0]['op'] );
+		$this->assertSame( 0, $actions->count() );
 	}
 
 	public function test_cancel_booking_succeeds(): void {

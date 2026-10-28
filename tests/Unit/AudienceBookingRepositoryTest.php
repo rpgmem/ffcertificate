@@ -894,6 +894,22 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$this->assertTrue($result);
 	}
 
+	public function test_update_returns_false_when_the_database_refuses_the_write(): void {
+		$this->wpdb->shouldReceive('update')->once()->andReturn(false);
+
+		$result = AudienceBookingWriter::update(1, ['description' => 'Updated description', 'audience_ids' => [3]]);
+
+		// The associations are left alone: a booking the database refused
+		// must not gain audiences that describe a change that did not happen.
+		$this->assertFalse($result);
+	}
+
+	public function test_update_returns_true_when_no_row_changed(): void {
+		$this->wpdb->shouldReceive('update')->once()->andReturn(0);
+
+		$this->assertTrue(AudienceBookingWriter::update(1, ['description' => 'Same description']));
+	}
+
 	public function test_update_strips_protected_fields(): void {
 		$this->wpdb->shouldReceive('update')
 			->once()
@@ -1127,6 +1143,12 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$result = AudienceBookingWriter::cancel(5, '');
 
 		$this->assertFalse($result);
+	}
+
+	public function test_cancel_returns_false_when_the_database_refuses_the_write(): void {
+		$this->wpdb->shouldReceive('update')->once()->andReturn(false);
+
+		$this->assertFalse(AudienceBookingWriter::cancel(5, 'Schedule conflict'));
 	}
 
 	public function test_cancel_clears_cache(): void {

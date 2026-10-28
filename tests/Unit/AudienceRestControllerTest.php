@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceRestController;
+use FreeFormCertificate\Tests\Support\CallLog;
 use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 
 /**
@@ -70,6 +71,9 @@ class AudienceRestControllerTest extends TestCase {
 
 	/** @var list<array{0: string, 1: string, 2: mixed}> Every write, in order: kind, table, data. */
 	private array $writes = array();
+
+	/** @var bool Whether the database refuses the write to the bookings table. */
+	private bool $refuse_booking_update = false;
 
 	/** @var list<string> Queries the double did not recognise. */
 	private array $unexpected = array();
@@ -227,6 +231,9 @@ class AudienceRestControllerTest extends TestCase {
 			function ( $table, $data, $where ) {
 				$this->writes[] = array( 'update', $table, array( 'where' => $where, 'data' => $data ) );
 				$id             = (int) ( $where['id'] ?? 0 );
+				if ( 'wp_ffc_audience_bookings' === $table && $this->refuse_booking_update ) {
+					return false;
+				}
 				if ( 'wp_ffc_audience_bookings' === $table && isset( $this->bookings[ $id ] ) ) {
 					foreach ( $data as $key => $value ) {
 						$this->bookings[ $id ]->{$key} = $value;
@@ -1207,6 +1214,31 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( array( 'id' => 1 ), $updates[0]['where'] );
 		$this->assertSame( 'cancelled', $updates[0]['data']['status'] );
 		$this->assertSame( 'Cannot attend the meeting anymore', $updates[0]['data']['cancellation_reason'] );
+	}
+
+	/**
+	 * A cancel the database refused answers 500 and does not fire the
+	 * cancellation hook (#2183).
+	 */
+	public function test_cancel_booking_returns_500_when_the_database_refuses_the_write(): void {
+		$this->environment( 10, 20 );
+		$this->booking( 1, 10, '2026-04-01', '09:00', '10:00' );
+		$this->refuse_booking_update = true;
+		$actions                     = CallLog::record( 'do_action' );
+
+		$result = ( new AudienceRestController() )->cancel_booking(
+			$this->make_request(
+				array(
+					'id'     => 1,
+					'reason' => 'Cannot attend the meeting anymore',
+				)
+			)
+		);
+
+		$this->assertSame( 500, $result->get_status() );
+		$this->assertFalse( $result->get_data()['success'] );
+		$this->assertCount( 1, $this->written( 'update', 'wp_ffc_audience_bookings' ) );
+		$this->assertSame( 0, $actions->count() );
 	}
 
 	// ------------------------------------------------------------------
