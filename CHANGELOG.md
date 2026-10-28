@@ -32,6 +32,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Tests: eight more classes run in the shared process** (#2136). The reregistration import, recruitment dispatch, user certificates and appointments REST, identity-index backfill, activator migration, user capabilities and operator certificates tests run their real services over a `$wpdb` double; one test keeps its own process, for an unreadable pending count the real normalization strategy cannot produce.
 - **Tests: every CPF and RF fixture is a standard identifier** (#2138). About sixty test files carried their own values, some of them invalid without saying so; they now use `tests/Support/Identifiers.php`, which gains a valid CPF with a leading zero. The fixture guard also scans bare, masked CPF and masked RF literals, not only values under an identifier key.
 - **Tests: eight more classes run in the shared process** (#2142). The recruitment adjutancy, reason, notice and candidate list tables, the appointments list table and view, the adjutancies REST controller and the CSV download validator now run their real repositories over a `$wpdb` double; one validator test keeps its own process.
+- **Tests: recruitment screens and the public recruitment shortcode run in the shared process** (#2144). The candidate edit page, admin actions, dashboard calls section, e-mail dispatcher and the shortcode's listing and render pipeline now run their real readers, `Encryption` and formatters over a `$wpdb` double.
 
 ### Deprecated
 
