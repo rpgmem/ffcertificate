@@ -15,13 +15,11 @@ use FreeFormCertificate\Repositories\SubmissionRepository;
  * Handler-path tests for SubmissionRestController: get_submissions(),
  * get_submission() happy path, and verify_certificate(). These exercise the
  * real static collaborators (Encryption / DocumentFormatter / Utils /
- * RateLimiter); process isolation gives each test a clean function table so a
- * leaked global/namespaced mock from an earlier same-process test can't poison
- * RequestInput::get_user_ip() or the rate-limit settings read.
+ * RateLimiter). Each test stubs what they read, and setUp() clears the
+ * rate-limit settings RateLimitChecker memoises, so nothing is inherited
+ * from an earlier test in the process (#2121).
  *
  * @covers \FreeFormCertificate\API\SubmissionRestController
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class SubmissionVerifyRestControllerTest extends TestCase {
 
@@ -56,10 +54,16 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 		// (#838 S2); tests that need reveal/unmasked override this per-test.
 		Functions\when( 'get_current_user_id' )->justReturn( 0 );
 		$_SERVER['REMOTE_ADDR'] = '203.0.113.7';
+
+		// The settings are read once per process and memoised; clear them so
+		// this test's empty settings (the defaults: the IP limit on) apply.
+		$memo = new \ReflectionProperty( \FreeFormCertificate\Security\RateLimitChecker::class, 'settings_cache' );
+		$memo->setAccessible( true );
+		$memo->setValue( null, null );
 	}
 
 	protected function tearDown(): void {
-		$_SERVER = array();
+		unset( $_SERVER['REMOTE_ADDR'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -424,8 +428,11 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 	}
 
 	public function test_verify_certificate_rate_limited(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' )
-			->shouldReceive( 'check_verification' )->andReturn( array( 'allowed' => false, 'message' => 'slow' ) );
+		// This hour's verification counter for the address is at the limit.
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
+		Functions\when( 'get_transient' )->alias(
+			static fn( $key ) => 0 === strpos( (string) $key, 'ffc_verify_ip_' ) ? 10 : false
+		);
 
 		$ctrl    = new SubmissionRestController( 'ffc/v1', Mockery::mock( SubmissionRepository::class ) );
 		$request = Mockery::mock( 'WP_REST_Request' );

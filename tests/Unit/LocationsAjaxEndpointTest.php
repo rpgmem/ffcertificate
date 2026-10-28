@@ -13,16 +13,21 @@ use FreeFormCertificate\Admin\LocationsAjaxEndpoint;
 /**
  * Tests for the per-row locations AJAX endpoint introduced in 6.5.4.
  *
+ * GeofenceLocationRegistry is the real class, over an option the test
+ * holds: what the endpoint saved or deleted is read off that option (#2121).
+ *
  * @covers \FreeFormCertificate\Admin\LocationsAjaxEndpoint
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class LocationsAjaxEndpointTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface|null */
-	private $registry_mock;
+	/**
+	 * The stored `ffc_geofence_locations` option.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private array $stored = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -46,8 +51,19 @@ class LocationsAjaxEndpointTest extends TestCase {
 			throw new \RuntimeException( 'json_success' );
 		} );
 
-		// Overload GeofenceLocationRegistry to control its return values.
-		$this->registry_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\GeofenceLocationRegistry' );
+		$this->stored = array();
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $fallback = false ) => 'ffc_geofence_locations' === $key ? $this->stored : $fallback
+		);
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) {
+				if ( 'ffc_geofence_locations' === $key ) {
+					$this->stored = $value;
+				}
+				return true;
+			}
+		);
+		Functions\when( 'wp_generate_uuid4' )->justReturn( 'new' );
 	}
 
 	protected function tearDown(): void {
@@ -79,7 +95,6 @@ class LocationsAjaxEndpointTest extends TestCase {
 	}
 
 	public function test_save_with_unknown_id_returns_404(): void {
-		$this->registry_mock->shouldReceive( 'get_by_id' )->with( 'loc_bogus' )->andReturn( null );
 		$_POST = array( 'name' => 'X', 'id' => 'loc_bogus', 'lat' => 0, 'lng' => 0, 'radius' => 100 );
 
 		$this->expectException( \RuntimeException::class );
@@ -92,15 +107,6 @@ class LocationsAjaxEndpointTest extends TestCase {
 	// ==================================================================
 
 	public function test_save_creates_new_when_id_is_missing(): void {
-		$captured = null;
-		$this->registry_mock->shouldReceive( 'save' )->andReturnUsing( function ( $loc ) use ( &$captured ) {
-			$captured = $loc;
-			return 'loc_new';
-		} );
-		$this->registry_mock->shouldReceive( 'get_by_id' )->with( 'loc_new' )->andReturn(
-			array( 'id' => 'loc_new', 'name' => 'X', 'lat' => 1.0, 'lng' => 2.0, 'radius' => 100.0 )
-		);
-
 		$_POST = array( 'name' => 'X', 'lat' => 1.0, 'lng' => 2.0, 'radius' => 100, 'default_gps' => '0', 'default_ip' => '0' );
 
 		try {
@@ -109,18 +115,15 @@ class LocationsAjaxEndpointTest extends TestCase {
 			// wp_send_json_success throws as expected.
 		}
 
-		$this->assertSame( 'X', $captured['name'] );
-		$this->assertSame( 1.0, $captured['lat'] );
-		$this->assertArrayNotHasKey( 'id', $captured );
+		// No id was posted, so the registry minted one.
+		$this->assertCount( 1, $this->stored );
+		$this->assertSame( 'loc_new', $this->stored[0]['id'] );
+		$this->assertSame( 'X', $this->stored[0]['name'] );
+		$this->assertSame( 1.0, $this->stored[0]['lat'] );
 	}
 
 	public function test_save_updates_existing_when_id_matches(): void {
-		$captured = null;
-		$this->registry_mock->shouldReceive( 'get_by_id' )->with( 'loc_existing' )->andReturn( array( 'id' => 'loc_existing', 'name' => 'old' ) );
-		$this->registry_mock->shouldReceive( 'save' )->andReturnUsing( function ( $loc ) use ( &$captured ) {
-			$captured = $loc;
-			return 'loc_existing';
-		} );
+		$this->stored = array( array( 'id' => 'loc_existing', 'name' => 'old', 'lat' => 0.0, 'lng' => 0.0, 'radius' => 100.0 ) );
 
 		$_POST = array(
 			'id'     => 'loc_existing',
@@ -138,10 +141,11 @@ class LocationsAjaxEndpointTest extends TestCase {
 			// expected
 		}
 
-		$this->assertSame( 'loc_existing', $captured['id'] );
-		$this->assertSame( 'New name', $captured['name'] );
-		$this->assertTrue( $captured['default_gps'] );
-		$this->assertFalse( $captured['default_ip'] );
+		$this->assertCount( 1, $this->stored, 'the row was updated, not added' );
+		$this->assertSame( 'loc_existing', $this->stored[0]['id'] );
+		$this->assertSame( 'New name', $this->stored[0]['name'] );
+		$this->assertTrue( $this->stored[0]['default_gps'] );
+		$this->assertFalse( $this->stored[0]['default_ip'] );
 	}
 
 	// ==================================================================
@@ -166,7 +170,7 @@ class LocationsAjaxEndpointTest extends TestCase {
 	}
 
 	public function test_delete_returns_404_when_registry_reports_not_found(): void {
-		$this->registry_mock->shouldReceive( 'delete' )->with( 'loc_missing' )->andReturn( false );
+		$this->stored = array( array( 'id' => 'loc_other', 'name' => 'Other' ) );
 		$_POST = array( 'id' => 'loc_missing' );
 
 		$this->expectException( \RuntimeException::class );
@@ -175,13 +179,18 @@ class LocationsAjaxEndpointTest extends TestCase {
 	}
 
 	public function test_delete_succeeds_when_registry_reports_removed(): void {
-		$this->registry_mock->shouldReceive( 'delete' )->with( 'loc_existing' )->andReturn( true );
+		$this->stored = array(
+			array( 'id' => 'loc_existing', 'name' => 'Gone' ),
+			array( 'id' => 'loc_other', 'name' => 'Kept' ),
+		);
 		$_POST = array( 'id' => 'loc_existing' );
 
 		try {
 			LocationsAjaxEndpoint::handle_delete();
+			$this->fail( 'expected a JSON response' );
 		} catch ( \RuntimeException $e ) {
 			$this->assertSame( 'json_success', $e->getMessage() );
 		}
+		$this->assertSame( array( array( 'id' => 'loc_other', 'name' => 'Kept' ) ), $this->stored );
 	}
 }

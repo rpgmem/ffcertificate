@@ -33,9 +33,10 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceWriter;
 
 /**
+ * CapabilityManager is the real class: a grant is read off the user it was
+ * given to (#2121).
+ *
  * @covers \FreeFormCertificate\Audience\AudienceWriter
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 final class AudienceMembershipCapabilityTest extends TestCase {
 
@@ -44,8 +45,12 @@ final class AudienceMembershipCapabilityTest extends TestCase {
 	/** @var object */
 	private $wpdb;
 
-	/** @var \Mockery\MockInterface */
-	private $capabilities;
+	/**
+	 * Users get_userdata() handed out, by id.
+	 *
+	 * @var array<int, \WP_User>
+	 */
+	private array $users = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -61,10 +66,21 @@ final class AudienceMembershipCapabilityTest extends TestCase {
 		// pcov attribution (CLAUDE.md gotcha).
 		class_exists( '\FreeFormCertificate\Audience\AudienceWriter' );
 
-		// An ALIAS, not an overload: the call under test is static, and an
-		// overload mock does not intercept a static call — it passes whether or
-		// not the call happens, which is the vacuous-test shape #1030 swept.
-		$this->capabilities = Mockery::mock( 'alias:\FreeFormCertificate\UserDashboard\CapabilityManager' );
+		// The real CapabilityManager adds the capability to the user
+		// get_userdata() returns; each user is kept so the test can read it.
+		// No settings: the activity log and the grant e-mail stay off.
+		$this->users = array();
+		Functions\when( 'get_userdata' )->alias(
+			function ( $id ) {
+				$id = (int) $id;
+				if ( ! isset( $this->users[ $id ] ) ) {
+					$this->users[ $id ] = new \WP_User( $id );
+				}
+				return $this->users[ $id ];
+			}
+		);
+		Functions\when( 'get_option' )->alias( static fn( $key, $fallback = false ) => 'ffc_settings' === $key ? array() : $fallback );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
@@ -82,6 +98,21 @@ final class AudienceMembershipCapabilityTest extends TestCase {
 		parent::tearDown();
 	}
 
+	/**
+	 * The ids of the users who now hold the audience capability.
+	 *
+	 * @return array<int, int>
+	 */
+	private function granted(): array {
+		$ids = array();
+		foreach ( $this->users as $id => $user ) {
+			if ( $user->has_cap( 'ffc_view_own_audience_bookings' ) ) {
+				$ids[] = $id;
+			}
+		}
+		return $ids;
+	}
+
 	/** Make the insert succeed and the duplicate check say "not a member yet". */
 	private function given_a_new_member(): void {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
@@ -91,9 +122,10 @@ final class AudienceMembershipCapabilityTest extends TestCase {
 
 	public function test_adding_a_member_grants_the_audience_capability(): void {
 		$this->given_a_new_member();
-		$this->capabilities->shouldReceive( 'grant_audience_capabilities' )->once()->with( 42 );
 
 		AudienceWriter::add_member( 7, 42 );
+
+		$this->assertSame( array( 42 ), $this->granted() );
 	}
 
 	/**
@@ -102,11 +134,10 @@ final class AudienceMembershipCapabilityTest extends TestCase {
 	 */
 	public function test_bulk_adding_members_grants_to_every_one_of_them(): void {
 		$this->given_a_new_member();
-		foreach ( array( 10, 20, 30 ) as $user_id ) {
-			$this->capabilities->shouldReceive( 'grant_audience_capabilities' )->once()->with( $user_id );
-		}
 
 		AudienceWriter::bulk_add_members( 7, array( 10, 20, 30 ) );
+
+		$this->assertSame( array( 10, 20, 30 ), $this->granted() );
 	}
 
 	/**
@@ -121,11 +152,9 @@ final class AudienceMembershipCapabilityTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array() );
 		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
 
-		foreach ( array( 4, 5 ) as $user_id ) {
-			$this->capabilities->shouldReceive( 'grant_audience_capabilities' )->once()->with( $user_id );
-		}
-
 		AudienceWriter::set_members( 7, array( 4, 5 ) );
+
+		$this->assertSame( array( 4, 5 ), $this->granted() );
 	}
 
 	/**
@@ -136,9 +165,10 @@ final class AudienceMembershipCapabilityTest extends TestCase {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
 		$this->wpdb->shouldReceive( 'insert' )->andReturn( false );
-		$this->capabilities->shouldNotReceive( 'grant_audience_capabilities' );
 
 		AudienceWriter::add_member( 7, 42 );
+
+		$this->assertSame( array(), $this->granted() );
 	}
 
 	/**
@@ -149,8 +179,9 @@ final class AudienceMembershipCapabilityTest extends TestCase {
 	public function test_an_existing_member_is_not_re_granted(): void {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '1' );
-		$this->capabilities->shouldNotReceive( 'grant_audience_capabilities' );
 
 		AudienceWriter::add_member( 7, 42 );
+
+		$this->assertSame( array(), $this->granted() );
 	}
 }

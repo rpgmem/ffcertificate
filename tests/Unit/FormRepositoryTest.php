@@ -15,9 +15,9 @@ use FreeFormCertificate\Repositories\FormRepository;
  * getConfig/getFields/getBackground with FormCache delegation and fallback,
  * and inherited CRUD operations from AbstractRepository.
  *
+ * FormCache is the real class, over post meta the test holds (#2121).
+ *
  * @covers \FreeFormCertificate\Repositories\FormRepository
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class FormRepositoryTest extends TestCase {
 
@@ -26,8 +26,12 @@ class FormRepositoryTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
-	/** @var Mockery\MockInterface */
-	private $formCacheMock;
+	/**
+	 * Post meta, by post id and key.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private array $meta = array();
 
 	/** @var FormRepository */
 	private $repo;
@@ -56,13 +60,13 @@ class FormRepositoryTest extends TestCase {
 			return abs(intval($val));
 		});
 
-		// Alias mock for FormCache: created before autoloading to prevent
-		// the real class from being loaded. All getConfig/getFields/getBackground
-		// tests work against this mock.
-		$this->formCacheMock = Mockery::mock('alias:\FreeFormCertificate\Submissions\FormCache');
-		$this->formCacheMock->shouldReceive('get_form_config')->andReturn([])->byDefault();
-		$this->formCacheMock->shouldReceive('get_form_fields')->andReturn([])->byDefault();
-		$this->formCacheMock->shouldReceive('get_form_background')->andReturn([])->byDefault();
+		// The real FormCache reads post meta (the object cache always
+		// misses above) and its expiry from the settings.
+		$this->meta = array();
+		Functions\when('get_post_meta')->alias(function ($id, $key = '', $single = false) {
+			return $this->meta[ (int) $id ][ $key ] ?? '';
+		});
+		Functions\when('get_option')->justReturn(array());
 
 		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function () {
 			return func_get_args()[0];
@@ -207,11 +211,7 @@ class FormRepositoryTest extends TestCase {
 
 	public function test_get_config_delegates_to_form_cache(): void {
 		$config = ['field1' => 'value1', 'field2' => 'value2'];
-
-		$this->formCacheMock->shouldReceive('get_form_config')
-			->with(42)
-			->once()
-			->andReturn($config);
+		$this->meta[42]['_ffc_form_config'] = $config;
 
 		$result = $this->repo->getConfig(42);
 
@@ -219,10 +219,10 @@ class FormRepositoryTest extends TestCase {
 	}
 
 	public function test_get_config_returns_empty_array_for_unknown_form(): void {
-		// Default FormCache mock returns [] (from setUp)
+		// No stored config: FormCache answers false.
 		$result = $this->repo->getConfig(999);
 
-		$this->assertSame([], $result);
+		$this->assertFalse($result);
 	}
 
 	// ==================================================================
@@ -235,10 +235,7 @@ class FormRepositoryTest extends TestCase {
 			['name' => 'email', 'type' => 'email'],
 		];
 
-		$this->formCacheMock->shouldReceive('get_form_fields')
-			->with(42)
-			->once()
-			->andReturn($fields);
+		$this->meta[42]['_ffc_form_fields'] = $fields;
 
 		$result = $this->repo->getFields(42);
 
@@ -248,7 +245,7 @@ class FormRepositoryTest extends TestCase {
 	public function test_get_fields_returns_empty_array_for_unknown_form(): void {
 		$result = $this->repo->getFields(999);
 
-		$this->assertSame([], $result);
+		$this->assertFalse($result);
 	}
 
 	// ==================================================================
@@ -256,22 +253,17 @@ class FormRepositoryTest extends TestCase {
 	// ==================================================================
 
 	public function test_get_background_delegates_to_form_cache(): void {
-		$bg = ['url' => 'https://example.com/bg.jpg', 'opacity' => 0.5];
-
-		$this->formCacheMock->shouldReceive('get_form_background')
-			->with(42)
-			->once()
-			->andReturn($bg);
+		$this->meta[42]['_ffc_form_config'] = ['bg_image' => 'https://example.com/bg.jpg'];
 
 		$result = $this->repo->getBackground(42);
 
-		$this->assertSame($bg, $result);
+		$this->assertSame('https://example.com/bg.jpg', $result);
 	}
 
 	public function test_get_background_returns_empty_array_for_unknown_form(): void {
 		$result = $this->repo->getBackground(999);
 
-		$this->assertSame([], $result);
+		$this->assertSame('', $result);
 	}
 
 	// ==================================================================
