@@ -19,7 +19,7 @@ use FreeFormCertificate\Reregistration\ReregistrationRepository;
  * missing data, missing template) which we exercise thoroughly.
  *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationEmailHandler
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class ReregistrationEmailHandlerTest extends TestCase {

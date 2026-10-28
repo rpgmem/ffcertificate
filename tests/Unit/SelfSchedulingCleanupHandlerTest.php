@@ -15,7 +15,7 @@ use FreeFormCertificate\SelfScheduling\SelfSchedulingCleanupHandler;
  * parameter validation, cleanup actions (all/old/future/cancelled), and metabox rendering.
  *
  * @covers \FreeFormCertificate\SelfScheduling\SelfSchedulingCleanupHandler
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class SelfSchedulingCleanupHandlerTest extends TestCase {

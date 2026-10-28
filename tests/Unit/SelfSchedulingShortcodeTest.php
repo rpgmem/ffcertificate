@@ -12,8 +12,7 @@ use FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode;
 
 /**
  * @covers \FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode
- * @runClassInSeparateProcess
- * @preserveGlobalState disabled
+
  */
 class SelfSchedulingShortcodeTest extends TestCase {
 

@@ -41,7 +41,7 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  * covered directly by their own suites (EncryptionTest, AppointmentRepositoryTest,
  * SubmissionHandler tests), so suppressing attribution here loses no unique
  * coverage; it only stops this contract test from inflating those numbers.
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class SensitiveFieldPolicyTest extends TestCase {

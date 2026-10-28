@@ -15,7 +15,7 @@ use FreeFormCertificate\Migrations\Strategies\ActivityLogClearPlaintextMigration
  * `context` on rows where `context_encrypted` already holds the payload.
  *
  * @covers \FreeFormCertificate\Migrations\Strategies\ActivityLogClearPlaintextMigrationStrategy
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class ActivityLogClearPlaintextMigrationStrategyTest extends TestCase {

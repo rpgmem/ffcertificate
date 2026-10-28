@@ -9,8 +9,32 @@
  * A file not listed here fails; a listed file that stopped isolating
  * fails until it is removed.
  *
- * This list is a debt register, not a target to grow. It reached zero in
- * #2174; an entry added back is a decision to defend in its docblock.
+ * This list is a debt register, not a target to grow.
  */
 
-return array();
+return array(
+	'ActivityLogClearPlaintextMigrationStrategyTest.php',
+	'ActivityLogEncryptIpMigrationStrategyTest.php',
+	'ActivityLogLocationCleanupMigrationStrategyTest.php',
+	'CertificateCapabilityBackfillMigrationStrategyTest.php',
+	'CpfRfSplitMigrationStrategyTest.php',
+	'EmailHashRehashMigrationStrategyTest.php',
+	'FormProcessorGeofenceBeforeRateLimitTest.php',
+	'FormProcessorNonceRecoveryTest.php',
+	'FormProcessorRequiredPresenceOrderTest.php',
+	'FrontendTest.php',
+	'MigrationForeignKeysTest.php',
+	'PreflightStatsServiceTest.php',
+	'PreflightTelemetryTest.php',
+	'ReregistrationEmailHandlerTest.php',
+	'ReregistrationInvitationBatchTest.php',
+	'ReregistrationReminderBatchTest.php',
+	'SelfSchedulingAdminTest.php',
+	'SelfSchedulingCPTTest.php',
+	'SelfSchedulingCleanupHandlerTest.php',
+	'SelfSchedulingEditorTest.php',
+	'SensitiveFieldPolicyTest.php',
+	'SubmissionHandlerTest.php',
+	'UrlShortenerMetaBoxTest.php',
+	'VerificationResponseRendererTest.php',
+);

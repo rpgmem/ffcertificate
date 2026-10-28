@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
  * plaintext cleared (#1574).
  *
  * @covers \FreeFormCertificate\Migrations\Strategies\ActivityLogEncryptIpMigrationStrategy
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class ActivityLogEncryptIpMigrationStrategyTest extends TestCase {

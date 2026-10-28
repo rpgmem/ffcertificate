@@ -17,8 +17,7 @@ use FreeFormCertificate\Tests\Support\ButtonMarkup;
  * additions to the template + the contract between
  * SuccessHtmlRenderer::generate_success_html() and MagicLinkHelper.
  *
- * @runClassInSeparateProcess
- * @preserveGlobalState disabled
+
  */
 class SuccessHtmlTest extends TestCase {
 

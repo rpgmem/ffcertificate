@@ -34,8 +34,7 @@ use FreeFormCertificate\Tests\Support\FormControls;
  * hidden deadline row and the custom-mode rows only appear in the second.
  *
  * @covers \FreeFormCertificate\SelfScheduling\SelfSchedulingEditor
- * @runClassInSeparateProcess
- * @preserveGlobalState disabled
+
  */
 class SelfSchedulingEditorFieldParityTest extends TestCase {
 
