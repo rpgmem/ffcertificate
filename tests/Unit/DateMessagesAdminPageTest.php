@@ -5,9 +5,12 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use FreeFormCertificate\Core\EmailTemplates;
 use FreeFormCertificate\DateMessages\DateMessagesAdminPage;
+use FreeFormCertificate\DateMessages\MessageBuilder;
 use FreeFormCertificate\DateMessages\Rule;
 use FreeFormCertificate\DateMessages\Runner;
+use FreeFormCertificate\Migrations\Strategies\BirthDateBackfillMigrationStrategy;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -18,19 +21,135 @@ use PHPUnit\Framework\TestCase;
  * Every handler ends in a redirect, which the stub turns into an exception so
  * the test can read the outcome the handler left behind.
  *
+ * The rule store, the runner, the recipient preview, the audience reader and
+ * the backfill count are the real classes: the `$wpdb` double below answers
+ * each query by its SQL text and the values bound to it, from the arrays a
+ * test sets, records every write, and fails on a query it does not know.
+ *
  * @covers \FreeFormCertificate\DateMessages\DateMessagesAdminPage
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class DateMessagesAdminPageTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface */
-	private $reader;
+	private const RULES     = 'wp_ffc_date_message_rules';
+	private const RUNS      = 'wp_ffc_date_message_runs';
+	private const LOG       = 'wp_ffc_date_message_log';
+	private const AUDIENCES = 'wp_ffc_audiences';
+	private const MEMBERS   = 'wp_ffc_audience_members';
+	private const PROFILES  = 'wp_ffc_user_profiles';
 
 	/** @var Mockery\MockInterface */
-	private $writer;
+	private $wpdb;
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> `$_GET` before this test. */
+	private array $get_backup = array();
+
+	/** @var array<string, mixed> `$_POST` before this test. */
+	private array $post_backup = array();
+
+	/** @var list<array<int, mixed>> Every prepare() call, as its argument list. */
+	private array $prepared = array();
+
+	/**
+	 * Stored rules, by id, as their columns.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private array $rules = array();
+
+	/** @var int Id the next inserted rule receives. */
+	private int $next_rule_id = 12;
+
+	/**
+	 * Stored runs, by id.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private array $runs = array();
+
+	/** @var int Id the next inserted run receives. */
+	private int $next_run_id = 44;
+
+	/**
+	 * Every write, as array( operation, table, data, where ).
+	 *
+	 * @var list<array<int, mixed>>
+	 */
+	private array $writes = array();
+
+	/** @var bool Whether every write fails, as `$wpdb` reports a failed statement. */
+	private bool $fail_writes = false;
+
+	/**
+	 * Audience rows.
+	 *
+	 * @var list<object>
+	 */
+	private array $audiences = array();
+
+	/**
+	 * Members by audience id.
+	 *
+	 * @var array<int, list<int>>
+	 */
+	private array $members = array();
+
+	/**
+	 * The audience rows each user belongs to directly.
+	 *
+	 * @var array<int, list<object>>
+	 */
+	private array $user_audiences = array();
+
+	/**
+	 * Stored preferences JSON by user id.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $preferences = array();
+
+	/**
+	 * Who has a birthday: called with the first `m-d` the query names, the
+	 * cursor and the limit; answers rows of user_id / email / name.
+	 *
+	 * @var callable|null
+	 */
+	private $due = null;
+
+	/**
+	 * The first `m-d` of every birthday query, in order.
+	 *
+	 * @var list<string>
+	 */
+	private array $queried_days = array();
+
+	/**
+	 * Hooks cleared, as array( hook, args ).
+	 *
+	 * @var list<array<int, mixed>>
+	 */
+	private array $cleared = array();
+
+	/**
+	 * Options get_option() answers, by name.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $options = array();
+
+	/**
+	 * Transients get_transient() answers, by key.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $transients = array();
 
 	/**
 	 * Capabilities the current user holds.
@@ -61,10 +180,12 @@ class DateMessagesAdminPageTest extends TestCase {
 		// Manager addresses and upcoming names are masked (#1863).
 		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
 
-		$_POST         = array();
-		$_GET          = array();
-		$this->caps    = array( 'ffc_manage_date_messages', 'ffc_send_date_messages' );
-		$this->outcome = null;
+		$this->get_backup  = $_GET ?? array();
+		$this->post_backup = $_POST ?? array();
+		$_POST             = array();
+		$_GET              = array();
+		$this->caps        = array( 'ffc_manage_date_messages', 'ffc_send_date_messages' );
+		$this->outcome     = null;
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -80,6 +201,26 @@ class DateMessagesAdminPageTest extends TestCase {
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
 		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.org/wp-admin/' . $p );
 		Functions\when( 'add_query_arg' )->alias( static fn( array $a, string $u ) => $u . '?' . http_build_query( $a ) );
+		// The settings, the scheduled-task times, the e-mail overrides and the
+		// active plugins: what the real classes read, chosen per test.
+		$this->options = array();
+		Functions\when( 'get_option' )->alias( fn( $name, $fallback = false ) => array_key_exists( $name, $this->options ) ? $this->options[ $name ] : $fallback );
+		Functions\when( 'get_site_option' )->alias( static fn( $name, $fallback = false ) => $fallback );
+		$this->transients = array();
+		Functions\when( 'get_transient' )->alias( fn( $key ) => $this->transients[ $key ] ?? false );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
+		Functions\when( 'sanitize_sql_orderby' )->returnArg();
+		$this->cleared = array();
+		Functions\when( 'wp_clear_scheduled_hook' )->alias(
+			function ( $hook, $args = array() ) {
+				$this->cleared[] = array( $hook, $args );
+				return 0;
+			}
+		);
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		Functions\when( 'wp_schedule_single_event' )->justReturn( true );
 		Functions\when( 'set_transient' )->alias(
 			function ( $key, $value ) {
 				$this->outcome = $value;
@@ -98,15 +239,255 @@ class DateMessagesAdminPageTest extends TestCase {
 			}
 		);
 
-		$this->reader = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleReader' );
-		$this->writer = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleWriter' );
+		$this->rules          = array();
+		$this->next_rule_id   = 12;
+		$this->runs           = array();
+		$this->next_run_id    = 44;
+		$this->writes         = array();
+		$this->fail_writes    = false;
+		$this->audiences      = array();
+		$this->members        = array();
+		$this->user_audiences = array();
+		$this->preferences    = array();
+		$this->due            = null;
+		$this->queried_days   = array();
+		$this->prepared       = array();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$this->wpdb        = $this->database();
+		$GLOBALS['wpdb']   = $this->wpdb;
 	}
 
 	protected function tearDown(): void {
-		$_POST = array();
-		$_GET  = array();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
+		$_POST = $this->post_backup;
+		$_GET  = $this->get_backup;
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * The `$wpdb` double: every statement the real classes run here, answered
+	 * from this test's arrays.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function database() {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( ...$args ) {
+				$flat             = 2 === count( $args ) && is_array( $args[1] ) ? array_merge( array( $args[0] ), $args[1] ) : $args;
+				$this->prepared[] = $flat;
+				return 'Q' . ( count( $this->prepared ) - 1 ) . ':' . $flat[0];
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				$bound = $this->bound( (string) $sql );
+				if ( false !== strpos( (string) $sql, 'WHERE id = %d' ) && self::RULES === $bound[0] ) {
+					return $this->rules[ (int) $bound[1] ] ?? null;
+				}
+				if ( false !== strpos( (string) $sql, 'WHERE id = %d' ) && self::RUNS === $bound[0] ) {
+					return $this->runs[ (int) $bound[1] ] ?? null;
+				}
+				$this->fail( 'Unexpected get_row(): ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				return $this->results( (string) $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( $sql ) {
+				$bound = $this->bound( (string) $sql );
+				if ( false !== strpos( (string) $sql, 'SELECT DISTINCT user_id FROM %i WHERE audience_id IN' ) && self::MEMBERS === $bound[0] ) {
+					$users = array();
+					foreach ( array_slice( $bound, 1 ) as $audience_id ) {
+						$users = array_merge( $users, $this->members[ (int) $audience_id ] ?? array() );
+					}
+					return array_map( 'strval', array_values( array_unique( $users ) ) );
+				}
+				if ( self::LOG === $bound[0] ) {
+					// Nothing was delivered yet.
+					return array();
+				}
+				$this->fail( 'Unexpected get_col(): ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				$bound = $this->bound( (string) $sql );
+				if ( self::RUNS === $bound[0] && false !== strpos( (string) $sql, 'SELECT COUNT(*)' ) ) {
+					return '0';
+				}
+				$this->fail( 'Unexpected get_var(): ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) {
+				$this->writes[] = array( 'insert', $table, $data, null );
+				if ( $this->fail_writes ) {
+					return false;
+				}
+				if ( self::RULES === $table ) {
+					$id                  = $this->next_rule_id++;
+					$this->rules[ $id ]  = array( 'id' => $id ) + $data;
+					$this->wpdb->insert_id = $id;
+					return 1;
+				}
+				if ( self::RUNS === $table ) {
+					$id                    = $this->next_run_id++;
+					$this->runs[ $id ]     = array( 'id' => $id ) + $data;
+					$this->wpdb->insert_id = $id;
+					return 1;
+				}
+				$this->fail( 'Unexpected insert() into ' . $table );
+			}
+		);
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				$this->writes[] = array( 'update', $table, $data, $where );
+				if ( $this->fail_writes ) {
+					return false;
+				}
+				if ( self::RULES === $table && isset( $this->rules[ (int) $where['id'] ] ) ) {
+					$this->rules[ (int) $where['id'] ] = array_merge( $this->rules[ (int) $where['id'] ], $data );
+					return 1;
+				}
+				$this->fail( 'Unexpected update() of ' . $table );
+			}
+		);
+		$wpdb->shouldReceive( 'delete' )->andReturnUsing(
+			function ( $table, $where, $format = null ) {
+				$this->writes[] = array( 'delete', $table, $where, $format );
+				if ( $this->fail_writes ) {
+					return false;
+				}
+				unset( $this->rules[ (int) $where['id'] ] );
+				return 1;
+			}
+		);
+
+		return $wpdb;
+	}
+
+	/**
+	 * Answer a get_results() call.
+	 *
+	 * @param string $sql Prepared statement token.
+	 * @return array<int, mixed>
+	 */
+	private function results( string $sql ): array {
+		$bound = $this->bound( $sql );
+
+		if ( self::RULES === ( $bound[0] ?? null ) && false !== strpos( $sql, 'ORDER BY name ASC, id ASC' ) ) {
+			$rows = array_values( $this->rules );
+			usort( $rows, static fn( $a, $b ) => array( $a['name'], $a['id'] ) <=> array( $b['name'], $b['id'] ) );
+			return $rows;
+		}
+		if ( false !== strpos( $sql, 'FROM wp_users u' ) ) {
+			// BirthdaySource::due(): meta key, the month-days, the cursor, the limit.
+			$days                 = array_slice( $bound, 1, count( $bound ) - 3 );
+			$this->queried_days[] = (string) $days[0];
+			return null === $this->due ? array() : ( $this->due )( (string) $days[0], (int) $bound[ count( $bound ) - 2 ], (int) end( $bound ) );
+		}
+		if ( self::PROFILES === ( $bound[0] ?? null ) && false !== strpos( $sql, 'SELECT user_id, preferences' ) ) {
+			$rows = array();
+			foreach ( array_slice( $bound, 1 ) as $id ) {
+				if ( isset( $this->preferences[ (int) $id ] ) ) {
+					$rows[] = array(
+						'user_id'     => (string) $id,
+						'preferences' => $this->preferences[ (int) $id ],
+					);
+				}
+			}
+			return $rows;
+		}
+		if ( self::AUDIENCES === ( $bound[0] ?? null ) && 0 === strpos( substr( $sql, (int) strpos( $sql, ':' ) + 1 ), 'SELECT * FROM %i' ) ) {
+			// AudienceReader::get_all(): an optional parent filter, then an optional status.
+			$values = array_slice( $bound, 1 );
+			$parent = false !== strpos( $sql, 'parent_id = %d' ) ? (int) array_shift( $values ) : null;
+			$status = false !== strpos( $sql, 'status = %s' ) ? (string) array_shift( $values ) : null;
+			$rows   = array();
+			foreach ( $this->audiences as $audience ) {
+				if ( false !== strpos( $sql, 'parent_id IS NULL' ) && ! empty( $audience->parent_id ) ) {
+					continue;
+				}
+				if ( null !== $parent && (int) $audience->parent_id !== $parent ) {
+					continue;
+				}
+				if ( null !== $status && $audience->status !== $status ) {
+					continue;
+				}
+				$rows[] = clone $audience;
+			}
+			return $rows;
+		}
+		if ( self::AUDIENCES === ( $bound[0] ?? null ) && false !== strpos( $sql, 'SELECT a.* FROM %i a' ) ) {
+			return $this->user_audiences[ (int) $bound[2] ] ?? array();
+		}
+		if ( self::RUNS === ( $bound[0] ?? null ) && false !== strpos( $sql, 'ORDER BY id DESC' ) ) {
+			return array();
+		}
+		$this->fail( 'Unexpected get_results(): ' . $sql . ' with ' . var_export( $bound, true ) );
+	}
+
+	/**
+	 * The values bound to a prepared statement token.
+	 *
+	 * @param string $sql Token prepare() returned.
+	 * @return array<int, mixed>
+	 */
+	private function bound( string $sql ): array {
+		if ( 1 !== preg_match( '/^Q(\d+):/', $sql, $m ) ) {
+			$this->fail( 'A statement that was not prepared: ' . $sql );
+		}
+		return array_slice( $this->prepared[ (int) $m[1] ], 1 );
+	}
+
+	/**
+	 * The writes made to one table.
+	 *
+	 * @param string $table Table.
+	 * @return list<array<int, mixed>>
+	 */
+	private function writes_to( string $table ): array {
+		return array_values( array_filter( $this->writes, static fn( array $w ): bool => $table === $w[1] ) );
+	}
+
+	/**
+	 * Put a rule in the store, as RuleWriter would have written it.
+	 *
+	 * @param Rule $rule The rule; its id is the row's.
+	 * @return void
+	 */
+	private function store_rule( Rule $rule ): void {
+		$this->rules[ $rule->id ] = array( 'id' => $rule->id ) + $rule->to_columns();
+	}
+
+	/**
+	 * An audience row.
+	 *
+	 * @param int      $id     Id.
+	 * @param string   $name   Name.
+	 * @param int|null $parent Parent id.
+	 * @return object
+	 */
+	private static function audience( int $id, string $name, ?int $parent = null ): object {
+		return (object) array(
+			'id'        => (string) $id,
+			'name'      => $name,
+			'parent_id' => null === $parent ? null : (string) $parent,
+			'status'    => 'active',
+		);
 	}
 
 	/**
@@ -161,7 +542,6 @@ class DateMessagesAdminPageTest extends TestCase {
 
 	public function test_every_write_refuses_an_operator_without_the_manage_capability(): void {
 		$this->caps = array( 'ffc_view_date_messages' );
-		$this->writer->shouldReceive( 'save' )->never();
 
 		foreach ( array( 'handle_save', 'handle_delete', 'handle_duplicate', 'handle_send_now' ) as $handler ) {
 			try {
@@ -171,6 +551,7 @@ class DateMessagesAdminPageTest extends TestCase {
 				$this->assertSame( 'You do not have permission to do this.', $e->getMessage(), $handler );
 			}
 		}
+		$this->assertSame( array(), $this->writes, 'Nothing reached the rule store.' );
 	}
 
 	public function test_view_and_manage_each_open_the_screen_and_only_manage_writes(): void {
@@ -211,28 +592,29 @@ class DateMessagesAdminPageTest extends TestCase {
 	}
 
 	public function test_a_new_rule_is_saved_with_its_body_filtered(): void {
-		// The saved rule is read back to schedule an announcement (#1949); the new one is not stored yet.
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( null );
 		$_POST['rule'] = $this->posted();
-		$this->writer->shouldReceive( 'save' )->once()->with(
-			Mockery::on(
-				static fn( Rule $r ): bool => 0 === $r->id && -7 === $r->offset_days && '<p>Body</p>' === $r->body && $r->is_active
-			)
-		)->andReturn( 12 );
 
 		$this->call( 'handle_save' );
 
+		$writes = $this->writes_to( self::RULES );
+		$this->assertCount( 1, $writes );
+		$this->assertSame( 'insert', $writes[0][0], 'A new rule is inserted, not updated.' );
+		$this->assertSame( -7, $writes[0][2]['offset_days'] );
+		$this->assertSame( '<p>Body</p>', $writes[0][2]['body'] );
+		$this->assertSame( 1, $writes[0][2]['is_active'] );
 		$this->assertSame( 'success', $this->outcome['type'] );
 		$this->assertStringContainsString( 'rule=12', $this->redirect );
+		// The saved rule is read back to schedule an announcement (#1949); a dated rule clears none but its own.
+		$this->assertSame( array( array( Runner::ANNOUNCE_HOOK, array( 12 ) ) ), $this->cleared );
 	}
 
 	public function test_an_invalid_rule_goes_back_to_the_editor_with_what_was_typed(): void {
 		$_POST['rule']                = $this->posted();
 		$_POST['rule']['offset_days'] = '400';
-		$this->writer->shouldReceive( 'save' )->never();
 
 		$this->call( 'handle_save' );
 
+		$this->assertSame( array(), $this->writes );
 		$this->assertSame( 'error', $this->outcome['type'] );
 		$this->assertSame( 'Week before', $this->outcome['draft']['name'] );
 		$this->assertStringContainsString( 'rule=0', $this->redirect );
@@ -244,25 +626,37 @@ class DateMessagesAdminPageTest extends TestCase {
 		$_POST['rule']['digest_enabled']  = '1';
 		$_POST['rule']['digest_mode']     = 'detailed';
 		$_POST['rule']['digest_user_ids'] = array( '9', '9', 'x', '4' );
-		$this->reader->shouldReceive( 'get_by_id' )->with( 3 )->andReturn( $this->rule() );
-		$this->writer->shouldReceive( 'save' )->once()->with(
-			Mockery::on( static fn( Rule $r ): bool => 3 === $r->id && $r->digest_enabled && 'detailed' === $r->digest_mode && array( 9, 4 ) === $r->digest_user_ids )
-		)->andReturn( 3 );
+		$this->store_rule( $this->rule() );
 
 		$this->call( 'handle_save' );
 
+		$writes = $this->writes_to( self::RULES );
+		$this->assertCount( 1, $writes );
+		$this->assertSame( array( 'update', array( 'id' => 3 ) ), array( $writes[0][0], $writes[0][3] ) );
+		$this->assertSame( 1, $writes[0][2]['digest_enabled'] );
+		$this->assertSame( 'detailed', $writes[0][2]['digest_mode'] );
+		$this->assertSame( '[9,4]', $writes[0][2]['digest_user_ids'] );
 		$this->assertSame( 'success', $this->outcome['type'] );
 	}
 
 	public function test_an_unchecked_digest_box_turns_the_digest_off(): void {
 		$_POST['rule']       = $this->posted();
 		$_POST['rule']['id'] = '3';
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule( array( 'digest_enabled' => '1' ) ) );
-		$this->writer->shouldReceive( 'save' )->once()->with(
-			Mockery::on( static fn( Rule $r ): bool => ! $r->digest_enabled && array() === $r->digest_user_ids )
-		)->andReturn( 3 );
+		$this->store_rule(
+			$this->rule(
+				array(
+					'digest_enabled'  => '1',
+					'digest_user_ids' => array( 9 ),
+				)
+			)
+		);
 
 		$this->call( 'handle_save' );
+
+		$writes = $this->writes_to( self::RULES );
+		$this->assertCount( 1, $writes );
+		$this->assertSame( 0, $writes[0][2]['digest_enabled'] );
+		$this->assertSame( '[]', $writes[0][2]['digest_user_ids'] );
 	}
 
 	public function test_manager_options_offer_only_accounts_that_may_open_the_screen(): void {
@@ -300,27 +694,19 @@ class DateMessagesAdminPageTest extends TestCase {
 	}
 
 	/**
+	 * The preview reads every day of the period, from its first to its last.
+	 *
 	 * @dataProvider periods
 	 */
 	public function test_upcoming_resolves_each_period_to_its_dates( string $period, string $from, string $to ): void {
-		$preview = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RecipientPreview' );
-		$preview->shouldReceive( 'collect' )->once()->with(
-			Mockery::type( Rule::class ),
-			Mockery::on( static fn( $d ): bool => $from === $d->format( 'Y-m-d' ) ),
-			Mockery::on( static fn( $d ): bool => $to === $d->format( 'Y-m-d' ) ),
-			true
-		)->andReturn(
-			array(
-				'totals'    => array(),
-				'rows'      => array(),
-				'truncated' => false,
-				'pii'       => true,
-			)
-		);
-
 		$out = DateMessagesAdminPage::upcoming( $period, array(), new \DateTimeImmutable( '2026-10-03', new \DateTimeZone( 'America/Sao_Paulo' ) ) );
 
 		$this->assertSame( $from, $out['from']->format( 'Y-m-d' ) );
+		$this->assertSame( $to, $out['to']->format( 'Y-m-d' ) );
+		$days = (int) ( new \DateTimeImmutable( $from ) )->diff( new \DateTimeImmutable( $to ) )->format( '%a' ) + 1;
+		$this->assertCount( $days, $this->queried_days, 'One birthday query per day of the period.' );
+		$this->assertSame( substr( $from, 5 ), $this->queried_days[0] );
+		$this->assertSame( substr( $to, 5 ), end( $this->queried_days ) );
 	}
 
 	/**
@@ -338,44 +724,46 @@ class DateMessagesAdminPageTest extends TestCase {
 	}
 
 	public function test_upcoming_drops_people_outside_the_audience_and_keeps_opt_outs_flagged(): void {
-		$row     = static fn( int $id, string $d ): array => array(
-			'user_id'  => $id,
-			'name'     => "P{$id}",
-			'email'    => 'x',
-			'date'     => '2026-10-05',
-			'decision' => $d,
-		);
-		$preview = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RecipientPreview' );
-		$preview->shouldReceive( 'collect' )->once()->with(
-			Mockery::on( static fn( Rule $r ): bool => array( 9 ) === $r->audience_ids ),
-			Mockery::any(),
-			Mockery::any(),
-			true
-		)->andReturn(
-			array(
-				'totals'    => array(),
-				'rows'      => array( $row( 1, 'will_send' ), $row( 2, 'out_of_audience' ), $row( 3, 'opted_out' ) ),
-				'truncated' => true,
-				'pii'       => true,
-			)
-		);
+		// Audience 9 holds people 1 and 3; 3 opted out of personal messages.
+		$this->members[9]     = array( 1, 3 );
+		$this->preferences[3] = '{"notify_date_messages":false}';
+		// The first day brings the three; the next three days bring 199
+		// strangers each, more rows than the preview keeps.
+		$day         = 0;
+		$this->due   = static function ( string $month_day, int $after ) use ( &$day ): array {
+			if ( 0 !== $after ) {
+				return array();
+			}
+			++$day;
+			$person = static fn( int $id ): array => array(
+				'user_id' => (string) $id,
+				'email'   => "p{$id}@example.org",
+				'name'    => "P{$id}",
+			);
+			if ( 1 === $day ) {
+				return array_map( $person, array( 1, 2, 3 ) );
+			}
+			return $day <= 4 ? array_map( $person, range( 1000 * $day, 1000 * $day + 198 ) ) : array();
+		};
 
 		$out = DateMessagesAdminPage::upcoming( 'next7', array( 9 ), new \DateTimeImmutable( '2026-10-03' ) );
 
 		$this->assertSame( array( 1, 3 ), array_column( $out['rows'], 'user_id' ) );
+		$this->assertSame( 'opted_out', $out['rows'][1]['decision'], 'An opt-out stays listed, flagged.' );
 		$this->assertTrue( $out['truncated'] );
+		$audience_queries = array_filter( $this->prepared, static fn( array $p ): bool => self::MEMBERS === ( $p[1] ?? null ) );
+		$this->assertSame( array( 9 ), array_slice( array_values( $audience_queries )[0], 2 ), 'The preview reads the members of the audience asked for.' );
 	}
 
 	public function test_a_manager_who_cannot_send_may_not_arm_an_announcement(): void {
 		$this->caps                 = array( 'ffc_manage_date_messages' );
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( null );
 		$_POST['rule']              = $this->posted();
 		$_POST['rule']['kind']      = Rule::KIND_ANNOUNCEMENT;
 		$_POST['rule']['send_at']   = ( new \DateTimeImmutable( '+1 day', new \DateTimeZone( 'America/Sao_Paulo' ) ) )->format( 'Y-m-d\TH:i' );
-		$this->writer->shouldReceive( 'save' )->never();
 
 		$this->call( 'handle_save' );
 
+		$this->assertSame( array(), $this->writes );
 		$this->assertSame( 'error', $this->outcome['type'] );
 		$this->assertSame( DateMessagesAdminPage::send_refusal(), $this->outcome['message'] );
 		$this->assertSame( 'Week before', $this->outcome['draft']['name'], 'What was typed goes back to the editor.' );
@@ -383,25 +771,23 @@ class DateMessagesAdminPageTest extends TestCase {
 
 	public function test_a_manager_who_cannot_send_may_still_save_an_unarmed_announcement(): void {
 		$this->caps               = array( 'ffc_manage_date_messages' );
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( null );
 		$_POST['rule']            = $this->posted();
 		$_POST['rule']['kind']    = Rule::KIND_ANNOUNCEMENT;
 		$_POST['rule']['send_at'] = '';
-		$this->writer->shouldReceive( 'save' )->once()->andReturn( 12 );
 
 		$this->call( 'handle_save' );
 
+		$this->assertCount( 1, $this->writes_to( self::RULES ) );
 		$this->assertSame( 'success', $this->outcome['type'] );
 	}
 
 	public function test_saving_a_rule_that_was_deleted_meanwhile_fails(): void {
 		$_POST['rule']       = $this->posted();
 		$_POST['rule']['id'] = '3';
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( null );
-		$this->writer->shouldReceive( 'save' )->never();
 
 		$this->call( 'handle_save' );
 
+		$this->assertSame( array(), $this->writes );
 		$this->assertSame( 'error', $this->outcome['type'] );
 	}
 
@@ -414,38 +800,33 @@ class DateMessagesAdminPageTest extends TestCase {
 				return 1;
 			}
 		);
-		$this->writer->shouldReceive( 'delete' )->once()->with( 3 )->andReturn( true );
-		$cleared = array();
-		Functions\when( 'wp_clear_scheduled_hook' )->alias(
-			static function ( $hook, $args = array() ) use ( &$cleared ) {
-				$cleared[] = array( $hook, $args );
-			}
-		);
 
 		$this->call( 'handle_delete' );
 
 		$this->assertSame( array( DateMessagesAdminPage::DELETE_ACTION . '_3' ), $checked );
+		$this->assertSame( array( array( 'delete', self::RULES, array( 'id' => 3 ), array( '%d' ) ) ), $this->writes );
 		$this->assertSame( 'success', $this->outcome['type'] );
 		// A scheduled announcement of the deleted rule would otherwise fire into nothing.
-		$this->assertSame( array( array( Runner::ANNOUNCE_HOOK, array( 3 ) ) ), $cleared );
+		$this->assertSame( array( array( Runner::ANNOUNCE_HOOK, array( 3 ) ) ), $this->cleared );
 	}
 
 	public function test_a_duplicate_is_an_inactive_copy_named_as_such(): void {
-		$_POST['rule_id'] = '3';
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
-		$this->writer->shouldReceive( 'save' )->once()->with(
-			Mockery::on( static fn( Rule $r ): bool => 0 === $r->id && ! $r->is_active && 'Birthday (copy)' === $r->name )
-		)->andReturn( 13 );
+		$_POST['rule_id']   = '3';
+		$this->next_rule_id = 13;
+		$this->store_rule( $this->rule() );
 
 		$this->call( 'handle_duplicate' );
 
+		$writes = $this->writes_to( self::RULES );
+		$this->assertCount( 1, $writes );
+		$this->assertSame( 'insert', $writes[0][0], 'The copy is a new rule.' );
+		$this->assertSame( 0, $writes[0][2]['is_active'] );
+		$this->assertSame( 'Birthday (copy)', $writes[0][2]['name'] );
 		$this->assertStringContainsString( 'rule=13', $this->redirect );
 	}
 
 	public function test_send_now_needs_a_rule_and_two_real_dates(): void {
-		$runner = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\Runner' );
-		$runner->shouldReceive( 'start' )->never();
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
+		$this->store_rule( $this->rule() );
 		$_POST = array(
 			'rule_id' => '3',
 			'from'    => '2026-02-30',
@@ -454,20 +835,13 @@ class DateMessagesAdminPageTest extends TestCase {
 
 		$this->call( 'handle_send_now' );
 
+		$this->assertSame( array(), $this->writes_to( self::RUNS ), 'No run was started.' );
 		$this->assertSame( 'error', $this->outcome['type'] );
 		$this->assertStringContainsString( 'tab=send', $this->redirect );
 	}
 
 	public function test_send_now_starts_a_manual_run_by_the_operator(): void {
-		$runner = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\Runner' );
-		$runner->shouldReceive( 'start' )->once()->with(
-			Mockery::type( Rule::class ),
-			Mockery::on( static fn( $d ): bool => '2026-10-01' === $d->format( 'Y-m-d' ) ),
-			Mockery::on( static fn( $d ): bool => '2026-10-07' === $d->format( 'Y-m-d' ) ),
-			'manual',
-			5
-		)->andReturn( 44 );
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
+		$this->store_rule( $this->rule() );
 		$_POST = array(
 			'rule_id' => '3',
 			'from'    => '2026-10-01',
@@ -476,14 +850,26 @@ class DateMessagesAdminPageTest extends TestCase {
 
 		$this->call( 'handle_send_now' );
 
+		$runs = $this->writes_to( self::RUNS );
+		$this->assertCount( 1, $runs );
+		$this->assertSame( 'insert', $runs[0][0] );
+		$this->assertSame(
+			array(
+				'rule_id'      => 3,
+				'trigger_kind' => 'manual',
+				'target_from'  => '2026-10-01',
+				'target_to'    => '2026-10-07',
+				'created_by'   => 5,
+			),
+			array_diff_key( $runs[0][2], array( 'started_at' => true ) )
+		);
+		$this->assertSame( array( '10-01' ), $this->queried_days, 'The first batch ran over the first day.' );
 		$this->assertSame( 'success', $this->outcome['type'] );
 		$this->assertStringContainsString( 'tab=history', $this->redirect );
 	}
 
 	public function test_send_now_reports_a_range_the_runner_refuses(): void {
-		$runner = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\Runner' );
-		$runner->shouldReceive( 'start' )->andReturn( new \WP_Error( 'ffc_date_messages_range', 'Too wide' ) );
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
+		$this->store_rule( $this->rule() );
 		$_POST = array(
 			'rule_id' => '3',
 			'from'    => '2026-10-01',
@@ -492,7 +878,8 @@ class DateMessagesAdminPageTest extends TestCase {
 
 		$this->call( 'handle_send_now' );
 
-		$this->assertSame( 'Too wide', $this->outcome['message'] );
+		$this->assertSame( 'Choose a range of 1 to 31 days, starting on or before its end.', $this->outcome['message'] );
+		$this->assertSame( array(), $this->writes_to( self::RUNS ) );
 	}
 
 	public function test_date_accepts_only_a_real_calendar_day(): void {
@@ -524,10 +911,17 @@ class DateMessagesAdminPageTest extends TestCase {
 	}
 
 	public function test_assets_load_on_this_screen_only_and_carry_both_nonces(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
-		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\MessageBuilder' )
-			->shouldReceive( 'defaults' )->andReturn( array( 'subject' => 'S', 'body' => 'DEFAULT' ) )
-			->shouldReceive( 'announcement_defaults' )->andReturn( array( 'subject' => 'A', 'body' => 'ANNOUNCE' ) );
+		// The e-mail defaults the restore button offers: the stored override wins.
+		$this->options[ EmailTemplates::OPTION ] = array(
+			MessageBuilder::DEFAULT_TEMPLATE      => array(
+				'subject' => 'S',
+				'body'    => 'DEFAULT',
+			),
+			MessageBuilder::ANNOUNCEMENT_TEMPLATE => array(
+				'subject' => 'A',
+				'body'    => 'ANNOUNCE',
+			),
+		);
 		Functions\when( 'wp_create_nonce' )->alias( static fn( $a ) => 'nonce-' . $a );
 		$media     = 0;
 		Functions\when( 'wp_enqueue_media' )->alias(
@@ -568,22 +962,19 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->assertSame( 'nonce-ffc_date_messages_preview', $localized['ffcDateMessages']['previewNonce'] );
 		$this->assertSame( 'nonce-ffc_date_messages_test_send', $localized['ffcDateMessages']['testNonce'] );
 		$this->assertSame( 'DEFAULT', $localized['ffcEmailRestoreDefaults']['date_message_body']['body'] );
+		$this->assertSame( 'ANNOUNCE', $localized['ffcEmailRestoreDefaults']['date_message_announcement_body']['body'] );
 	}
 
+	/**
+	 * The walk skips a node that is not an audience row; the real reader only
+	 * ever hands it rows, so that guard is not reached from here.
+	 */
 	public function test_audience_options_indent_the_hierarchy(): void {
-		$child  = (object) array(
-			'id'       => '2',
-			'name'     => 'Teachers',
-			'children' => array(),
+		$this->audiences = array( self::audience( 1, 'Schools' ), self::audience( 2, 'Teachers', 1 ) );
+		$this->members   = array(
+			1 => array( 10, 11, 12 ),
+			2 => array( 10 ),
 		);
-		$parent = (object) array(
-			'id'       => '1',
-			'name'     => 'Schools',
-			'children' => array( $child, 'not a node' ),
-		);
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
-			->shouldReceive( 'get_hierarchical' )->with( 'active' )->andReturn( array( $parent ) )
-			->shouldReceive( 'get_members' )->andReturnUsing( static fn( int $id ): array => 1 === $id ? array( 10, 11, 12 ) : array( 10 ) );
 
 		// Each label carries the reach of its audience, sub-audiences included.
 		$this->assertSame(
@@ -602,8 +993,8 @@ class DateMessagesAdminPageTest extends TestCase {
 	 * @return array{0: string, 1: array<string, mixed>}|null The notice, or null when none was printed.
 	 */
 	private function backfill_notice( int $pending ): ?array {
-		Mockery::mock( 'alias:FreeFormCertificate\Migrations\Strategies\BirthDateBackfillMigrationStrategy' )
-			->shouldReceive( 'pending_accounts' )->andReturn( $pending );
+		// The migration card's own cached count.
+		$this->transients[ BirthDateBackfillMigrationStrategy::PENDING_TRANSIENT ] = $pending;
 		Functions\when( '_n' )->alias( static fn( $one, $many, $n ) => 1 === $n ? $one : $many );
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
@@ -731,56 +1122,55 @@ class DateMessagesAdminPageTest extends TestCase {
 	}
 
 	public function test_a_rule_the_writer_cannot_save_goes_back_with_the_draft(): void {
-		$_POST['rule'] = $this->posted();
-		$this->writer->shouldReceive( 'save' )->once()->andReturn( false );
+		$_POST['rule']     = $this->posted();
+		$this->fail_writes = true;
 
 		$this->call( 'handle_save' );
 
+		$this->assertCount( 1, $this->writes_to( self::RULES ), 'The insert was attempted once.' );
 		$this->assertSame( 'The rule could not be saved.', $this->outcome['message'] );
 		$this->assertSame( 'Week before', $this->outcome['draft']['name'] );
 	}
 
 	public function test_delete_reports_a_rule_the_writer_could_not_remove(): void {
-		$_POST['rule_id'] = '3';
-		$this->writer->shouldReceive( 'delete' )->once()->with( 3 )->andReturn( false );
+		$_POST['rule_id']  = '3';
+		$this->fail_writes = true;
 
 		$this->call( 'handle_delete' );
 
+		$this->assertSame( array( array( 'delete', self::RULES, array( 'id' => 3 ), array( '%d' ) ) ), $this->writes );
 		$this->assertSame( 'error', $this->outcome['type'] );
 		$this->assertSame( 'The rule could not be deleted.', $this->outcome['message'] );
 	}
 
 	public function test_delete_without_a_rule_id_never_reaches_the_writer(): void {
-		$this->writer->shouldReceive( 'delete' )->never();
-
 		$this->call( 'handle_delete' );
 
+		$this->assertSame( array(), $this->writes );
 		$this->assertSame( 'error', $this->outcome['type'] );
 	}
 
 	public function test_duplicate_of_a_missing_rule_fails(): void {
 		$_POST['rule_id'] = '3';
-		$this->reader->shouldReceive( 'get_by_id' )->with( 3 )->andReturn( null );
-		$this->writer->shouldReceive( 'save' )->never();
 
 		$this->call( 'handle_duplicate' );
 
+		$this->assertSame( array(), $this->writes );
 		$this->assertSame( 'That rule no longer exists.', $this->outcome['message'] );
 	}
 
 	public function test_duplicate_the_writer_cannot_save_fails(): void {
-		$_POST['rule_id'] = '3';
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
-		$this->writer->shouldReceive( 'save' )->once()->andReturn( false );
+		$_POST['rule_id']  = '3';
+		$this->fail_writes = true;
+		$this->store_rule( $this->rule() );
 
 		$this->call( 'handle_duplicate' );
 
+		$this->assertCount( 1, $this->writes_to( self::RULES ), 'The insert was attempted once.' );
 		$this->assertSame( 'The rule could not be copied.', $this->outcome['message'] );
 	}
 
 	public function test_send_now_without_a_rule_asks_for_one(): void {
-		$this->reader->shouldReceive( 'get_by_id' )->with( 0 )->andReturn( null );
-
 		$this->call( 'handle_send_now' );
 
 		$this->assertSame( 'Choose a rule.', $this->outcome['message'] );
@@ -803,13 +1193,7 @@ class DateMessagesAdminPageTest extends TestCase {
 	}
 
 	public function test_upcoming_rows_name_the_offered_audiences_a_person_belongs_to(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
-			->shouldReceive( 'get_user_audiences' )
-			->andReturnUsing(
-				static fn( int $user_id ): array => 7 === $user_id
-					? array( (object) array( 'id' => 1, 'name' => 'Schools' ), (object) array( 'id' => 9, 'name' => 'Hidden' ), (object) array( 'id' => 2, 'name' => 'Teachers' ) )
-					: array()
-			);
+		$this->user_audiences[7] = array( self::audience( 1, 'Schools' ), self::audience( 9, 'Hidden' ), self::audience( 2, 'Teachers' ) );
 		$method = new \ReflectionMethod( DateMessagesAdminPage::class, 'with_audience_names' );
 		$method->setAccessible( true );
 
@@ -829,26 +1213,13 @@ class DateMessagesAdminPageTest extends TestCase {
 	 */
 	private function render_screen( array $get, $outcome = false ): string {
 		$_GET = $get;
-		Mockery::getConfiguration()->setConstantsMap(
-			array(
-				'FreeFormCertificate\DateMessages\DateMessagesCron' => array( 'CRON_HOOK' => 'ffc_date_messages_daily' ),
-			)
+		// The backfill has nothing left; the outcome is whatever the last write left.
+		$this->transients[ BirthDateBackfillMigrationStrategy::PENDING_TRANSIENT ] = 0;
+		Functions\when( 'get_transient' )->alias(
+			fn( $key ) => 0 === strpos( (string) $key, DateMessagesAdminPage::OUTCOME_TRANSIENT ) ? $outcome : ( $this->transients[ $key ] ?? false )
 		);
-		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DateMessagesCron' )->shouldReceive( 'send_time' )->andReturn( '08:00' );
-		Mockery::mock( 'alias:FreeFormCertificate\Integrations\MailQueue' )->shouldReceive( 'is_active' )->andReturn( false );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\EmailDisabledNotice' )->shouldReceive( 'render' );
-		Mockery::mock( 'alias:FreeFormCertificate\Migrations\Strategies\BirthDateBackfillMigrationStrategy' )
-			->shouldReceive( 'pending_accounts' )->andReturn( 0 );
-
-		$wpdb         = Mockery::mock( 'wpdb' );
-		$wpdb->prefix = 'wp_';
-		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql ) => $sql );
-		$wpdb->shouldReceive( 'get_results' )->andReturn( array() );
-		$wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
-		$GLOBALS['wpdb'] = $wpdb;
 
 		$deleted = array();
-		Functions\when( 'get_transient' )->justReturn( $outcome );
 		Functions\when( 'delete_transient' )->alias(
 			static function ( $key ) use ( &$deleted ) {
 				$deleted[] = $key;
@@ -856,7 +1227,6 @@ class DateMessagesAdminPageTest extends TestCase {
 			}
 		);
 		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => strtolower( (string) $v ) );
-		Functions\when( 'wp_next_scheduled' )->justReturn( false );
 		Functions\when( 'wp_timezone_string' )->justReturn( 'America/Sao_Paulo' );
 		Functions\when( 'esc_html_e' )->alias( static fn( $t ) => print( $t ) );
 		Functions\when( 'esc_html' )->returnArg();
@@ -872,7 +1242,6 @@ class DateMessagesAdminPageTest extends TestCase {
 		Functions\when( 'add_query_arg' )->alias(
 			static fn( $a, $b = '', $c = '' ) => is_array( $a ) ? $b . '?' . http_build_query( $a ) : $c . '&' . $a . '=' . $b
 		);
-		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
 		Functions\when( 'wp_admin_notice' )->alias(
 			static function ( $message, $args ) {
@@ -892,8 +1261,7 @@ class DateMessagesAdminPageTest extends TestCase {
 
 	public function test_the_screen_shows_the_schedule_tab_and_consumes_the_outcome(): void {
 		$this->caps = array( 'ffc_view_date_messages' );
-		$this->reader->shouldReceive( 'all' )->andReturn( array( $this->rule() ) );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )->shouldReceive( 'get_hierarchical' )->andReturn( array() );
+		$this->store_rule( $this->rule() );
 
 		$html = $this->render_screen(
 			array( 'tab' => 'settings' ),
@@ -911,9 +1279,6 @@ class DateMessagesAdminPageTest extends TestCase {
 	}
 
 	public function test_an_unknown_tab_and_the_upcoming_tab_without_pii_fall_back_to_rules(): void {
-		$this->reader->shouldReceive( 'all' )->andReturn( array() );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )->shouldReceive( 'get_hierarchical' )->andReturn( array() );
-
 		$html = $this->render_screen( array( 'tab' => 'upcoming' ), 'not an array' );
 
 		$this->assertStringContainsString( 'aria-labelledby="ffc-date-messages-tabnav-rules"', $html );
@@ -922,10 +1287,6 @@ class DateMessagesAdminPageTest extends TestCase {
 	}
 
 	public function test_opening_a_rule_that_no_longer_exists_lands_on_the_list_with_an_error(): void {
-		$this->reader->shouldReceive( 'all' )->andReturn( array() );
-		$this->reader->shouldReceive( 'get_by_id' )->with( 99 )->andReturn( null );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )->shouldReceive( 'get_hierarchical' )->andReturn( array() );
-
 		$html = $this->render_screen(
 			array(
 				'tab'  => 'rules',
@@ -938,9 +1299,6 @@ class DateMessagesAdminPageTest extends TestCase {
 	}
 
 	public function test_the_history_tab_reads_a_page_of_runs(): void {
-		$this->reader->shouldReceive( 'all' )->andReturn( array() );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )->shouldReceive( 'get_hierarchical' )->andReturn( array() );
-
 		$html = $this->render_screen(
 			array(
 				'tab'   => 'history',
@@ -953,35 +1311,31 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->assertStringContainsString( 'Show test sends', $html, 'hidden tests offer to show them again' );
 	}
 
+	/**
+	 * The preview masks the name it lists (#1863): the row carries the masked
+	 * name, and the Reveal button is what shows it.
+	 */
 	public function test_the_upcoming_tab_lists_people_with_their_audiences(): void {
 		$this->caps = array( 'ffc_view_date_messages', 'ffc_view_date_messages_pii' );
-		$this->reader->shouldReceive( 'all' )->andReturn( array( $this->filter_rule( 7, array( 1 ) ) ) );
-		$audiences = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$audiences->shouldReceive( 'get_hierarchical' )->andReturn( array( (object) array( 'id' => 1, 'name' => 'Schools' ) ) );
-		$audiences->shouldReceive( 'get_members' )->andReturn( array( 42 ) );
-		$audiences->shouldReceive( 'get_user_audiences' )->with( 42 )->andReturn( array( (object) array( 'id' => 1, 'name' => 'Schools' ) ) );
-		$preview = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RecipientPreview' );
-		$preview->shouldReceive( 'collect' )->once()->with(
-			Mockery::on( static fn( Rule $r ): bool => array( 1 ) === $r->audience_ids ),
-			Mockery::any(),
-			Mockery::any(),
-			true
-		)->andReturn(
-			array(
-				'totals'    => array(),
-				'rows'      => array(
-					array(
-						'user_id'  => 42,
-						'name'     => 'Maria',
-						'email'    => 'm@example.org',
-						'date'     => '2026-10-05',
-						'decision' => 'will_send',
-					),
+		$this->store_rule( $this->filter_rule( 7, array( 1 ) ) );
+		$this->audiences          = array( self::audience( 1, 'Schools' ) );
+		$this->members[1]         = array( 42 );
+		$this->user_audiences[42] = array( self::audience( 1, 'Schools' ) );
+		// Maria's birthday is the first day of the period.
+		$served    = false;
+		$this->due = static function () use ( &$served ): array {
+			if ( $served ) {
+				return array();
+			}
+			$served = true;
+			return array(
+				array(
+					'user_id' => '42',
+					'email'   => 'm@example.org',
+					'name'    => 'Maria',
 				),
-				'truncated' => false,
-				'pii'       => true,
-			)
-		);
+			);
+		};
 
 		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
@@ -996,11 +1350,13 @@ class DateMessagesAdminPageTest extends TestCase {
 			)
 		);
 
-		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="name">Maria</span>', $html );
-		$this->assertMatchesRegularExpression( '/data-field="name">Maria<\/span>.*?<\/td>\s*<td>Schools<\/td>/s', $html );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="name">M***</span>', $html );
+		$this->assertStringNotContainsString( 'Maria', $html, 'The clear name is never in the page.' );
+		$this->assertMatchesRegularExpression( '/data-field="name">M\*\*\*<\/span>.*?<\/td>\s*<td>Schools<\/td>/s', $html );
 		// Each name reveals on its own, and the page reveals them all (#1863).
 		$this->assertStringContainsString( 'data-type="date_messages_person" data-field="name" data-submission-id="42"', $html );
 		$this->assertStringContainsString( 'ffc-reveal-pii-page', $html );
+		$this->assertCount( 7, $this->queried_days, 'Seven days were read.' );
 	}
 
 	/**

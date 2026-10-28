@@ -9,12 +9,24 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceRestController;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 
 /**
  * Tests for AudienceRestController: route registration, permission checks,
  * get_bookings, create_booking, cancel_booking, and check_conflicts.
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
+ *
+ * The collaborators run for real: AudienceScheduleRepository,
+ * AudienceEnvironmentRepository, AudienceBookingReader, AudienceBookingWriter,
+ * AudienceBookingRules, AudienceReader, DateBlockingService,
+ * WorkingHoursService, DateFormatter, SettingsReader and ActivityLog (read
+ * through its write buffer). The `$wpdb` double below keeps the schedules,
+ * permissions, environments, holidays and bookings a test stores, answers
+ * each query by its SQL text and the values bound to it, and records every
+ * query and every write. A query it does not know is recorded and fails the
+ * test in assertPostConditions(), because check_conflicts() catches every
+ * exception and would otherwise turn it into a 500.
+ *
+ * @covers \FreeFormCertificate\Audience\AudienceRestController
  */
 class AudienceRestControllerTest extends TestCase {
 
@@ -23,24 +35,60 @@ class AudienceRestControllerTest extends TestCase {
 	/** @var array Captured route registrations */
 	private array $registered_routes = [];
 
-	/** @var \Mockery\MockInterface */
-	private $booking_repo_mock;
+	/** @var array<int, object> Schedule rows by id. */
+	private array $schedules = array();
 
-	/** @var \Mockery\MockInterface */
-	private $booking_writer_mock;
+	/** @var list<object> Schedule permission rows. */
+	private array $permissions = array();
 
-	/** @var \Mockery\MockInterface */
-	private $env_repo_mock;
+	/** @var array<int, object> Environment rows by id. */
+	private array $environments = array();
 
-	/** @var \Mockery\MockInterface */
-	private $schedule_repo_mock;
+	/** @var list<object> Schedule holiday rows. */
+	private array $holidays = array();
 
-	/** @var \Mockery\MockInterface */
-	private $date_blocking_mock;
+	/** @var array<int, object> Booking rows by id. */
+	private array $bookings = array();
+
+	/** @var array<int, array{date: string, description?: string}> The `ffc_global_holidays` option. */
+	private array $global_holidays = array();
+
+	/** @var list<string> Capabilities the current user holds. */
+	private array $caps = array();
+
+	/** @var array<int, list<string>> Capabilities by user id, for user_can(). */
+	private array $user_caps = array();
+
+	/** @var int The id the next booking insert receives. */
+	private int $next_booking_id = 1;
+
+	/** @var list<array<int, mixed>> Every prepare() call, as its argument list. */
+	private array $prepared = array();
+
+	/** @var list<string> The SQL of every read and query() call, in order. */
+	private array $ran = array();
+
+	/** @var list<array{0: string, 1: string, 2: mixed}> Every write, in order: kind, table, data. */
+	private array $writes = array();
+
+	/** @var list<string> Queries the double did not recognise. */
+	private array $unexpected = array();
+
+	/** @var Mockery\MockInterface */
+	private $wpdb;
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		ActivityLogBuffer::reset();
+		ActivityLogBuffer::stub_functions();
 
 		$this->registered_routes = [];
 
@@ -58,67 +106,443 @@ class AudienceRestControllerTest extends TestCase {
 		Functions\when( 'sanitize_textarea_field' )->alias( function( $str ) { return trim( strip_tags( (string) $str ) ); } );
 		Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
 		Functions\when( 'do_action' )->justReturn( null );
-
-		// Alias mocks for static-only dependencies. The personal-calendar
-		// bypass is no longer read here (#1859): the audience bypass lives on
-		// AudienceScheduleRepository, mocked below.
-
-		$this->booking_repo_mock   = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceBookingReader' );
-		$this->booking_writer_mock = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceBookingWriter' );
-		$this->booking_repo_mock->shouldReceive( 'get_by_id' )->andReturn( null )->byDefault();
-		$this->booking_repo_mock->shouldReceive( 'get_all' )->andReturn( array() )->byDefault();
-		$this->booking_repo_mock->shouldReceive( 'get_booking_audiences' )->andReturn( array() )->byDefault();
-		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->andReturn( array() )->byDefault();
-		$this->booking_repo_mock->shouldReceive( 'get_audience_same_day_bookings' )->andReturn( array() )->byDefault();
-		$this->booking_repo_mock->shouldReceive( 'get_user_conflicts' )->andReturn( array( 'bookings' => array(), 'affected_users' => array() ) )->byDefault();
-		$this->booking_writer_mock->shouldReceive( 'create' )->andReturn( 1 )->byDefault();
-		$this->booking_writer_mock->shouldReceive( 'cancel' )->andReturn( true )->byDefault();
-
-		$this->env_repo_mock = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$this->env_repo_mock->shouldReceive( 'get_by_id' )->andReturn( null )->byDefault();
-		$this->env_repo_mock->shouldReceive( 'get_holidays' )->andReturn( array() )->byDefault();
-		$this->env_repo_mock->shouldReceive( 'get_working_hours' )->andReturn( null )->byDefault();
-		$this->env_repo_mock->shouldReceive( 'is_open' )->andReturn( true )->byDefault();
-		$this->env_repo_mock->shouldReceive( 'is_holiday' )->andReturn( false )->byDefault();
-		$this->env_repo_mock->shouldReceive( 'get_by_schedule' )->andReturn( array() )->byDefault();
-
-		$this->schedule_repo_mock = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$this->schedule_repo_mock->shouldReceive( 'user_can_cancel_others' )->andReturn( false )->byDefault();
-		$this->schedule_repo_mock->shouldReceive( 'user_can_book' )->andReturn( true )->byDefault();
-		// An active calendar with no advance limit, unless a test says otherwise.
-		$this->schedule_repo_mock->shouldReceive( 'get_by_id' )->andReturn(
-			(object) array(
-				'id'                => 20,
-				'status'            => 'active',
-				'future_days_limit' => null,
-				'admin_bypass'      => 1,
-				'is_isolated'       => 0,
-			)
-		)->byDefault();
-		// Read-path visibility gate (readable_schedule_ids): default to no
-		// accessible schedules so tests must opt a schedule in explicitly.
-		$this->schedule_repo_mock->shouldReceive( 'get_by_user_access' )->andReturn( array() )->byDefault();
-		$this->schedule_repo_mock->shouldReceive( 'get_all' )->andReturn( array() )->byDefault();
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( false )->byDefault();
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass' )->andReturn( false )->byDefault();
-		$this->schedule_repo_mock->shouldReceive( 'user_can_override_conflicts' )->andReturn( false )->byDefault();
-
-		$this->date_blocking_mock = Mockery::mock( 'alias:\FreeFormCertificate\Scheduling\DateBlockingService' );
-		$this->date_blocking_mock->shouldReceive( 'get_global_holidays' )->andReturn( array() )->byDefault();
-		$this->date_blocking_mock->shouldReceive( 'is_global_holiday' )->andReturn( false )->byDefault();
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, (array) $args ) );
+		Functions\when( 'sanitize_sql_orderby' )->returnArg();
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		Functions\when( 'current_user_can' )->alias( fn( $cap ) => in_array( $cap, $this->caps, true ) );
+		Functions\when( 'user_can' )->alias( fn( $user, $cap ) => in_array( $cap, $this->user_caps[ (int) $user ] ?? array(), true ) );
+		Functions\when( 'get_option' )->alias(
+			function ( $key, $default = false ) {
+				if ( 'ffc_settings' === $key ) {
+					// The activity log is on; DateFormatter reads its default formats.
+					return ActivityLogBuffer::ENABLED_SETTINGS;
+				}
+				if ( 'ffc_global_holidays' === $key ) {
+					return $this->global_holidays;
+				}
+				return $default;
+			}
+		);
 
 		Functions\when( 'current_time' )->justReturn( '2026-03-01' );
 
 		// A booking's dates are rendered for the response (date_label): the
 		// formatter reads the site settings and wp_date(), which these tests stub here.
-		$settings = Mockery::mock( 'alias:\FreeFormCertificate\Settings\SettingsReader' );
-		$settings->shouldReceive( 'all' )->andReturn( array() )->byDefault();
 		Functions\when( 'wp_date' )->alias( static fn( string $format, int $ts ): string => gmdate( $format, $ts ) );
+
+		$this->caps            = array();
+		$this->user_caps       = array();
+		$this->environments    = array();
+		$this->holidays        = array();
+		$this->bookings        = array();
+		$this->global_holidays = array();
+		$this->next_booking_id = 1;
+		$this->prepared        = array();
+		$this->ran             = array();
+		$this->writes          = array();
+		$this->unexpected      = array();
+
+		// An active calendar with no advance limit, unless a test says otherwise,
+		// on which user 5 may book.
+		$this->schedules   = array(
+			20 => (object) array(
+				'id'                => 20,
+				'name'              => 'Main',
+				'status'            => 'active',
+				'visibility'        => 'private',
+				'future_days_limit' => null,
+				'admin_bypass'      => 1,
+				'is_isolated'       => 0,
+			),
+		);
+		$this->permissions = array();
+		$this->permit( 20, 5 );
+
+		$this->install_wpdb();
 	}
 
 	protected function tearDown(): void {
+		ActivityLogBuffer::reset();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	protected function assertPostConditions(): void {
+		$this->assertSame( array(), $this->unexpected, 'The $wpdb double received a query it does not know.' );
+	}
+
+	/**
+	 * The `$wpdb` double over the arrays above.
+	 */
+	private function install_wpdb(): void {
+		$this->wpdb            = Mockery::mock( 'wpdb' );
+		$this->wpdb->prefix    = 'wp_';
+		$this->wpdb->insert_id = 0;
+
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( string $text ): string => addcslashes( $text, '_%\\' ) );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( ...$args ) {
+				$flat             = 2 === count( $args ) && is_array( $args[1] ) ? array_merge( array( $args[0] ), $args[1] ) : $args;
+				$this->prepared[] = $flat;
+				return 'Q' . ( count( $this->prepared ) - 1 ) . ':' . $flat[0];
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_row' )->andReturnUsing( fn( $sql ) => $this->read_row( (string) $sql ) );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( fn( $sql ) => $this->read_var( (string) $sql ) );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing( fn( $sql ) => $this->read_results( (string) $sql ) );
+		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing( fn( $sql ) => $this->read_col( (string) $sql ) );
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $sql ) {
+				$this->ran[] = (string) $sql;
+				if ( in_array( $sql, array( 'START TRANSACTION', 'COMMIT', 'ROLLBACK' ), true ) ) {
+					$this->writes[] = array( 'query', '', $sql );
+					return true;
+				}
+				return $this->unknown( 'query', (string) $sql );
+			}
+		);
+		$this->wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) {
+				$this->writes[] = array( 'insert', $table, $data );
+				if ( 'wp_ffc_audience_bookings' === $table ) {
+					$id                    = $this->next_booking_id++;
+					$this->bookings[ $id ] = (object) ( array( 'id' => $id ) + $data );
+					$this->wpdb->insert_id = $id;
+					return 1;
+				}
+				if ( in_array( $table, array( 'wp_ffc_audience_booking_audiences', 'wp_ffc_audience_booking_users' ), true ) ) {
+					return 1;
+				}
+				return $this->unknown( 'insert', (string) $table );
+			}
+		);
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				$this->writes[] = array( 'update', $table, array( 'where' => $where, 'data' => $data ) );
+				$id             = (int) ( $where['id'] ?? 0 );
+				if ( 'wp_ffc_audience_bookings' === $table && isset( $this->bookings[ $id ] ) ) {
+					foreach ( $data as $key => $value ) {
+						$this->bookings[ $id ]->{$key} = $value;
+					}
+					return 1;
+				}
+				return $this->unknown( 'update', (string) $table );
+			}
+		);
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $this->wpdb;
+	}
+
+	/**
+	 * Record a query the double does not know and stop the code that ran it.
+	 *
+	 * @return never
+	 */
+	private function unknown( string $method, string $sql ) {
+		$this->unexpected[] = $method . '(): ' . $sql;
+		throw new \LogicException( 'Unexpected ' . $method . '(): ' . $sql );
+	}
+
+	/**
+	 * The prepare() argument list behind a prepared query string.
+	 *
+	 * @return array<int, mixed>
+	 */
+	private function bound( string $sql ): array {
+		if ( preg_match( '/^Q(\d+):/', $sql, $match ) ) {
+			return $this->prepared[ (int) $match[1] ] ?? array();
+		}
+		return array( $sql );
+	}
+
+	/**
+	 * How many reads ran a query containing $needle.
+	 */
+	private function ranWith( string $needle ): int {
+		return count( array_filter( $this->ran, static fn( string $sql ): bool => false !== strpos( $sql, $needle ) ) );
+	}
+
+	/**
+	 * Every prepare() call whose SQL contains $needle.
+	 *
+	 * @return list<array<int, mixed>>
+	 */
+	private function preparedWith( string $needle ): array {
+		return array_values( array_filter( $this->prepared, static fn( array $call ): bool => false !== strpos( (string) $call[0], $needle ) ) );
+	}
+
+	/**
+	 * The `WHERE column op %x` conditions of a query, paired with their bound values.
+	 *
+	 * @param array<int, mixed> $bound The prepare() argument list.
+	 * @return list<array{0: string, 1: string, 2: mixed}>
+	 */
+	private function conditions( array $bound ): array {
+		$sql = (string) $bound[0];
+		preg_match_all( '/(COALESCE\(b\.end_date, b\.booking_date\)|[a-z_.]+) (=|>=|<=) %[sd]/', $sql, $found, PREG_SET_ORDER );
+		$index = 1 + substr_count( $sql, '%i' );
+		$out   = array();
+		foreach ( $found as $condition ) {
+			$out[] = array( $condition[1], $condition[2], $bound[ $index++ ] ?? null );
+		}
+		return $out;
+	}
+
+	/**
+	 * Whether a row satisfies the conditions of a query.
+	 *
+	 * @param list<array{0: string, 1: string, 2: mixed}> $conditions From conditions().
+	 */
+	private function matches( object $row, array $conditions ): bool {
+		foreach ( $conditions as list( $field, $op, $value ) ) {
+			if ( 0 === strpos( $field, 'COALESCE' ) ) {
+				$actual = (string) ( ( $row->end_date ?? '' ) ?: $row->booking_date );
+			} else {
+				$column = substr( (string) strrchr( '.' . $field, '.' ), 1 );
+				$actual = (string) ( $row->{$column} ?? '' );
+			}
+			$ok = '=' === $op ? $actual === (string) $value : ( '>=' === $op ? $actual >= (string) $value : $actual <= (string) $value );
+			if ( ! $ok ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * A booking row as the readers' INNER JOIN on the environment returns it.
+	 */
+	private function joined( object $booking ): ?object {
+		$environment = $this->environments[ (int) $booking->environment_id ] ?? null;
+		if ( null === $environment ) {
+			return null;
+		}
+		$row                   = clone $booking;
+		$row->environment_name = $environment->name;
+		$row->schedule_id      = $environment->schedule_id;
+		return $row;
+	}
+
+	/**
+	 * The active bookings of an environment that occupy a day.
+	 *
+	 * @return list<object>
+	 */
+	private function occupying( int $environment_id, string $date ): array {
+		$rows = array();
+		foreach ( $this->bookings as $booking ) {
+			$last    = (string) ( ( $booking->end_date ?? '' ) ?: $booking->booking_date );
+			$skipped = json_decode( (string) ( $booking->skipped_dates ?? '' ), true );
+			if ( (int) $booking->environment_id === $environment_id
+				&& 'active' === $booking->status
+				&& $booking->booking_date <= $date && $last >= $date
+				&& ! in_array( $date, is_array( $skipped ) ? $skipped : array(), true ) ) {
+				$rows[] = clone $booking;
+			}
+		}
+		return $rows;
+	}
+
+	private function read_row( string $sql ) {
+		$this->ran[] = $sql;
+		$bound       = $this->bound( $sql );
+		if ( false !== strpos( $sql, 'SELECT * FROM %i WHERE id = %d' ) ) {
+			$by_table = array(
+				'wp_ffc_audience_schedules'    => $this->schedules,
+				'wp_ffc_audience_environments' => $this->environments,
+			);
+			if ( isset( $by_table[ $bound[1] ] ) ) {
+				$row = $by_table[ $bound[1] ][ (int) $bound[2] ] ?? null;
+				return null === $row ? null : clone $row;
+			}
+		}
+		if ( false !== strpos( $sql, 'WHERE schedule_id = %d AND user_id = %d' ) ) {
+			foreach ( $this->permissions as $permission ) {
+				if ( (int) $permission->schedule_id === (int) $bound[2] && (int) $permission->user_id === (int) $bound[3] ) {
+					return clone $permission;
+				}
+			}
+			return null;
+		}
+		if ( false !== strpos( $sql, 'WHERE b.id = %d' ) ) {
+			$booking = $this->bookings[ (int) $bound[3] ] ?? null;
+			return null === $booking ? null : $this->joined( $booking );
+		}
+		return $this->unknown( 'get_row', $sql );
+	}
+
+	private function read_var( string $sql ) {
+		$this->ran[] = $sql;
+		$bound       = $this->bound( $sql );
+		if ( false !== strpos( $sql, 'WHERE schedule_id = %d AND holiday_date = %s' ) ) {
+			$count = 0;
+			foreach ( $this->holidays as $holiday ) {
+				if ( (int) $holiday->schedule_id === (int) $bound[2] && $holiday->holiday_date === $bound[3] ) {
+					++$count;
+				}
+			}
+			return (string) $count;
+		}
+		return $this->unknown( 'get_var', $sql );
+	}
+
+	private function read_results( string $sql ) {
+		$this->ran[] = $sql;
+		$bound       = $this->bound( $sql );
+		if ( false !== strpos( $sql, 'SELECT DISTINCT s.*' ) ) {
+			// AudienceScheduleRepository::get_by_user_access().
+			$rows = array();
+			foreach ( $this->schedules as $schedule ) {
+				$permitted = false;
+				foreach ( $this->permissions as $permission ) {
+					$permitted = $permitted || ( (int) $permission->schedule_id === (int) $schedule->id && (int) $permission->user_id === (int) $bound[3] );
+				}
+				if ( 'active' === $schedule->status && ( 'public' === $schedule->visibility || $permitted ) ) {
+					$rows[] = clone $schedule;
+				}
+			}
+			usort( $rows, static fn( $a, $b ) => strcmp( $a->name, $b->name ) );
+			return $rows;
+		}
+		if ( false !== strpos( $sql, 'SELECT b.*, e.name as environment_name' ) ) {
+			// AudienceBookingReader::get_all().
+			$rows = array();
+			foreach ( $this->bookings as $booking ) {
+				$row = $this->joined( $booking );
+				if ( null !== $row && $this->matches( $row, $this->conditions( $bound ) ) ) {
+					$rows[] = $row;
+				}
+			}
+			return $rows;
+		}
+		if ( false !== strpos( $sql, 'WHERE ba.booking_id = %d' ) ) {
+			// No booking here names an audience row of its own.
+			return array();
+		}
+		if ( false !== strpos( $sql, 'FOR UPDATE' ) || false !== strpos( $sql, 'WHERE environment_id = %d' ) ) {
+			// The writer's locking read and AudienceBookingReader::get_conflicts():
+			// every active row of the environment that occupies the day.
+			return $this->occupying( (int) $bound[2], (string) $bound[3] );
+		}
+		if ( false !== strpos( $sql, 'a.name AS audience_name' ) || false !== strpos( $sql, 'SELECT DISTINCT b.*' ) ) {
+			// Same-day audience bookings and member conflicts: none stored.
+			return array();
+		}
+		if ( 0 === strpos( preg_replace( '/^Q\d+:/', '', $sql ), 'SELECT * FROM %i' ) ) {
+			$by_table = array(
+				'wp_ffc_audience_schedules'    => $this->schedules,
+				'wp_ffc_audience_environments' => $this->environments,
+				'wp_ffc_audience_holidays'     => $this->holidays,
+				// AudienceReader::get_children(): no audience here has children.
+				'wp_ffc_audiences'             => array(),
+			);
+			if ( isset( $by_table[ $bound[1] ] ) ) {
+				$conditions = $this->conditions( $bound );
+				$rows       = array();
+				foreach ( $by_table[ $bound[1] ] as $row ) {
+					if ( $this->matches( $row, $conditions ) ) {
+						$rows[] = clone $row;
+					}
+				}
+				return $rows;
+			}
+		}
+		return $this->unknown( 'get_results', $sql );
+	}
+
+	private function read_col( string $sql ) {
+		$this->ran[] = $sql;
+		if ( false !== strpos( $sql, 'SELECT user_id FROM %i WHERE booking_id = %d' ) ) {
+			return array();
+		}
+		if ( false !== strpos( $sql, 'SELECT DISTINCT user_id FROM %i WHERE audience_id IN' ) ) {
+			// AudienceReader::get_members(): the audiences here have no members.
+			return array();
+		}
+		return $this->unknown( 'get_col', $sql );
+	}
+
+	/**
+	 * Give a user a permission row on a schedule.
+	 *
+	 * @param array<string, int> $flags can_book, can_cancel_others, can_override_conflicts.
+	 */
+	private function permit( int $schedule_id, int $user_id, array $flags = array() ): void {
+		$this->permissions[] = (object) array_merge(
+			array(
+				'schedule_id'            => $schedule_id,
+				'user_id'                => $user_id,
+				'can_book'               => 1,
+				'can_cancel_others'      => 0,
+				'can_override_conflicts' => 0,
+			),
+			$flags
+		);
+	}
+
+	/**
+	 * Store an environment.
+	 *
+	 * @param array<string, mixed>|null $hours Working hours, or null for none.
+	 */
+	private function environment( int $id, int $schedule_id, ?array $hours = null, string $name = 'Room' ): void {
+		$this->environments[ $id ] = (object) array(
+			'id'            => $id,
+			'schedule_id'   => $schedule_id,
+			'name'          => $name,
+			'status'        => 'active',
+			'working_hours' => null === $hours ? null : json_encode( $hours ),
+		);
+	}
+
+	/**
+	 * Store a booking.
+	 *
+	 * @param array<string, mixed> $extra Other columns.
+	 */
+	private function booking( int $id, int $environment_id, string $date, string $start, string $end, array $extra = array() ): void {
+		$this->bookings[ $id ] = (object) array_merge(
+			array(
+				'id'             => $id,
+				'environment_id' => $environment_id,
+				'booking_date'   => $date,
+				'end_date'       => null,
+				'time_mode'      => null,
+				'skipped_dates'  => null,
+				'start_time'     => $start,
+				'end_time'       => $end,
+				'is_all_day'     => 0,
+				'booking_type'   => 'audience',
+				'description'    => 'A stored booking',
+				'status'         => 'active',
+				'created_by'     => 7,
+			),
+			$extra
+		);
+	}
+
+	/**
+	 * The writes of one kind to one table, as their data.
+	 *
+	 * @return list<mixed>
+	 */
+	private function written( string $kind, string $table ): array {
+		$out = array();
+		foreach ( $this->writes as list( $k, $t, $data ) ) {
+			if ( $k === $kind && $t === $table ) {
+				$out[] = $data;
+			}
+		}
+		return $out;
 	}
 
 	/**
@@ -218,7 +642,7 @@ class AudienceRestControllerTest extends TestCase {
 
 	public function test_check_write_permission_returns_true_when_bypass(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( true );
+		$this->caps = array( 'ffc_bypass_audiences' );
 
 		$ctrl = new AudienceRestController();
 		$this->assertTrue( $ctrl->check_write_permission() );
@@ -226,8 +650,8 @@ class AudienceRestControllerTest extends TestCase {
 
 	public function test_check_write_permission_returns_true_when_has_capability(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
-		Functions\when( 'current_user_can' )->justReturn( true );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( false );
+		// The booking capability, without the audience bypass.
+		$this->caps = array( 'ffc_view_own_audience_bookings' );
 
 		$ctrl = new AudienceRestController();
 		$this->assertTrue( $ctrl->check_write_permission() );
@@ -247,7 +671,7 @@ class AudienceRestControllerTest extends TestCase {
 
 	public function test_check_cancel_permission_returns_true_when_bypass(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( true );
+		$this->caps = array( 'ffc_bypass_audiences' );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array( 'id' => 1 ) );
@@ -257,14 +681,9 @@ class AudienceRestControllerTest extends TestCase {
 	public function test_check_cancel_permission_returns_true_when_creator(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( false );
 
-		$booking = (object) array(
-			'id'             => 1,
-			'created_by'     => 5,
-			'environment_id' => 10,
-		);
-		$this->booking_repo_mock->shouldReceive( 'get_by_id' )->with( 1 )->andReturn( $booking );
+		$this->environment( 10, 20 );
+		$this->booking( 1, 10, '2026-04-01', '09:00', '10:00', array( 'created_by' => 5 ) );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array( 'id' => 1 ) );
@@ -274,25 +693,18 @@ class AudienceRestControllerTest extends TestCase {
 	public function test_check_cancel_permission_returns_false_for_other_user(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 99 );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( false );
 
-		$booking = (object) array(
-			'id'             => 1,
-			'created_by'     => 5,
-			'environment_id' => 10,
-		);
-		$this->booking_repo_mock->shouldReceive( 'get_by_id' )->with( 1 )->andReturn( $booking );
-
-		$environment = (object) array(
-			'id'          => 10,
-			'schedule_id' => 20,
-		);
-		$this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 10 )->andReturn( $environment );
-		$this->schedule_repo_mock->shouldReceive( 'user_can_cancel_others' )->with( 20, 99 )->andReturn( false );
+		$this->environment( 10, 20 );
+		$this->booking( 1, 10, '2026-04-01', '09:00', '10:00', array( 'created_by' => 5 ) );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array( 'id' => 1 ) );
 		$this->assertFalse( $ctrl->check_cancel_permission( $request ) );
+
+		// The cancel-others permission was asked of the booking's schedule, for this user.
+		$asked = $this->preparedWith( 'WHERE schedule_id = %d AND user_id = %d' );
+		$this->assertCount( 1, $asked );
+		$this->assertSame( array( 'wp_ffc_audience_schedule_permissions', 20, 99 ), array_slice( $asked[0], 1 ) );
 	}
 
 	// ------------------------------------------------------------------
@@ -302,28 +714,20 @@ class AudienceRestControllerTest extends TestCase {
 	public function test_get_bookings_returns_formatted_bookings_with_holidays(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( false );
-		// User has access to schedule 20 (the booking's owning schedule).
-		$this->schedule_repo_mock->shouldReceive( 'get_by_user_access' )->with( 5 )->andReturn( array( (object) array( 'id' => 20 ) ) );
+		// User 5 holds a permission on schedule 20 (the booking's owning schedule).
 
-		$booking = (object) array(
-			'id'               => 1,
-			'environment_id'   => 10,
-			'environment_name' => 'Room A',
-			'schedule_id'      => 20,
-			'booking_date'     => '2026-04-01',
-			'start_time'       => '09:00',
-			'end_time'         => '10:00',
-			'is_all_day'       => 0,
-			'booking_type'     => 'audience',
-			'description'      => 'Team meeting',
-			'status'           => 'active',
-			'created_by'       => 5,
+		$this->environment( 10, 20, null, 'Room A' );
+		$this->booking(
+			1,
+			10,
+			'2026-04-01',
+			'09:00',
+			'10:00',
+			array(
+				'description' => 'Team meeting',
+				'created_by'  => 5,
+			)
 		);
-
-		$this->booking_repo_mock->shouldReceive( 'get_all' )->once()->andReturn( array( $booking ) );
-		$this->booking_repo_mock->shouldReceive( 'get_booking_audiences' )->with( 1 )->andReturn( array() );
-		$this->date_blocking_mock->shouldReceive( 'get_global_holidays' )->andReturn( array() );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array(
@@ -343,34 +747,26 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertCount( 1, $data['bookings'] );
 		$this->assertSame( 1, $data['bookings'][0]['id'] );
 		$this->assertSame( 'Room A', $data['bookings'][0]['environment_name'] );
+		$this->assertSame( 1, $this->ranWith( 'SELECT b.*, e.name as environment_name' ), 'The bookings are read once.' );
 	}
 
 	public function test_get_bookings_filters_out_bookings_from_unreadable_schedules(): void {
 		// Anonymous caller: only active public schedules are readable.
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'get_current_user_id' )->justReturn( 0 );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( false );
 		// Public schedule set = {20}; schedule 99 is private and must not leak.
-		$this->schedule_repo_mock->shouldReceive( 'get_all' )
-			->with( array( 'status' => 'active', 'visibility' => 'public' ) )
-			->andReturn( array( (object) array( 'id' => 20 ) ) );
-
-		$public_booking  = (object) array(
-			'id' => 1, 'environment_id' => 10, 'environment_name' => 'Public Room',
-			'schedule_id' => 20, 'booking_date' => '2026-04-01', 'start_time' => '09:00',
-			'end_time' => '10:00', 'is_all_day' => 0, 'booking_type' => 'audience',
-			'description' => 'Public', 'status' => 'active', 'created_by' => 7,
-		);
-		$private_booking = (object) array(
-			'id' => 2, 'environment_id' => 11, 'environment_name' => 'Private Room',
-			'schedule_id' => 99, 'booking_date' => '2026-04-02', 'start_time' => '11:00',
-			'end_time' => '12:00', 'is_all_day' => 0, 'booking_type' => 'audience',
-			'description' => 'Secret', 'status' => 'active', 'created_by' => 8,
+		$this->schedules[20]->visibility = 'public';
+		$this->schedules[99]             = (object) array(
+			'id'         => 99,
+			'name'       => 'Private',
+			'status'     => 'active',
+			'visibility' => 'private',
 		);
 
-		$this->booking_repo_mock->shouldReceive( 'get_all' )->once()->andReturn( array( $public_booking, $private_booking ) );
-		$this->booking_repo_mock->shouldReceive( 'get_booking_audiences' )->andReturn( array() );
-		$this->date_blocking_mock->shouldReceive( 'get_global_holidays' )->andReturn( array() );
+		$this->environment( 10, 20, null, 'Public Room' );
+		$this->environment( 11, 99, null, 'Private Room' );
+		$this->booking( 1, 10, '2026-04-01', '09:00', '10:00', array( 'description' => 'Public' ) );
+		$this->booking( 2, 11, '2026-04-02', '11:00', '12:00', array( 'description' => 'Secret', 'created_by' => 8 ) );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array(
@@ -384,6 +780,7 @@ class AudienceRestControllerTest extends TestCase {
 
 		$this->assertCount( 1, $data['bookings'], 'Private-schedule booking must be filtered out' );
 		$this->assertSame( 1, $data['bookings'][0]['id'] );
+		$this->assertSame( 1, $this->ranWith( 'SELECT b.*, e.name as environment_name' ), 'The bookings are read once.' );
 	}
 
 	public function test_get_bookings_unrestricted_for_bypass_user(): void {
@@ -391,18 +788,16 @@ class AudienceRestControllerTest extends TestCase {
 		// so no visibility filtering is applied (private schedule included).
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( true );
-
-		$private_booking = (object) array(
-			'id' => 2, 'environment_id' => 11, 'environment_name' => 'Private Room',
-			'schedule_id' => 99, 'booking_date' => '2026-04-02', 'start_time' => '11:00',
-			'end_time' => '12:00', 'is_all_day' => 0, 'booking_type' => 'audience',
-			'description' => 'Secret', 'status' => 'active', 'created_by' => 8,
+		$this->caps          = array( 'ffc_bypass_audiences' );
+		$this->schedules[99] = (object) array(
+			'id'         => 99,
+			'name'       => 'Private',
+			'status'     => 'active',
+			'visibility' => 'private',
 		);
 
-		$this->booking_repo_mock->shouldReceive( 'get_all' )->once()->andReturn( array( $private_booking ) );
-		$this->booking_repo_mock->shouldReceive( 'get_booking_audiences' )->andReturn( array() );
-		$this->date_blocking_mock->shouldReceive( 'get_global_holidays' )->andReturn( array() );
+		$this->environment( 11, 99, null, 'Private Room' );
+		$this->booking( 2, 11, '2026-04-02', '11:00', '12:00', array( 'description' => 'Secret', 'created_by' => 8 ) );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array(
@@ -416,6 +811,7 @@ class AudienceRestControllerTest extends TestCase {
 
 		$this->assertCount( 1, $data['bookings'] );
 		$this->assertSame( 2, $data['bookings'][0]['id'] );
+		$this->assertTrue( $data['bookings'][0]['can_cancel'], 'A bypass holder may cancel any booking.' );
 	}
 
 	public function test_check_conflicts_refuses_an_environment_on_an_unreadable_schedule(): void {
@@ -424,18 +820,17 @@ class AudienceRestControllerTest extends TestCase {
 		// (#1861) — no leak of times/descriptions.
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'get_current_user_id' )->justReturn( 0 );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( false );
-		$this->schedule_repo_mock->shouldReceive( 'get_all' )
-			->with( array( 'status' => 'active', 'visibility' => 'public' ) )
-			->andReturn( array( (object) array( 'id' => 20 ) ) );
+		$this->schedules[20]->visibility = 'public';
+		$this->schedules[99]             = (object) array(
+			'id'         => 99,
+			'name'       => 'Private',
+			'status'     => 'active',
+			'visibility' => 'private',
+		);
 
-		$this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 11 )->andReturn(
-			(object) array( 'id' => 11, 'schedule_id' => 99 )
-		);
+		$this->environment( 11, 99 );
 		// A real environment conflict exists on the private schedule.
-		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->andReturn(
-			array( (object) array( 'id' => 5, 'start_time' => '09:00', 'end_time' => '10:00' ) )
-		);
+		$this->booking( 5, 11, '2026-04-01', '09:00', '10:00' );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array(
@@ -447,20 +842,17 @@ class AudienceRestControllerTest extends TestCase {
 			'user_ids'       => array(),
 		));
 
-		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->never();
-
 		$result = $ctrl->check_conflicts( $request );
 
 		$this->assertSame( 404, $result->get_status() );
 		$this->assertFalse( $result->get_data()['success'] );
 		$this->assertArrayNotHasKey( 'conflicts', $result->get_data() );
+		$this->assertSame( 0, $this->ranWith( 'WHERE environment_id = %d' ), 'The conflict query never runs.' );
 	}
 
 	public function test_check_conflicts_refuses_a_missing_environment(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 3 );
-		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->never();
-		$this->booking_repo_mock->shouldReceive( 'get_user_conflicts' )->never();
 
 		$result = ( new AudienceRestController() )->check_conflicts(
 			$this->make_request(
@@ -476,20 +868,22 @@ class AudienceRestControllerTest extends TestCase {
 		);
 
 		$this->assertSame( 404, $result->get_status() );
+		$this->assertSame( 0, $this->ranWith( 'WHERE environment_id = %d' ), 'No environment conflict query runs.' );
+		$this->assertSame( 0, $this->ranWith( 'SELECT DISTINCT b.*' ), 'No member conflict query runs.' );
 	}
 
 	public function test_check_conflicts_scopes_the_cross_schedule_queries_to_readable_schedules(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 3 );
-		$this->schedule_repo_mock->shouldReceive( 'get_by_user_access' )->with( 3 )
-			->andReturn( array( (object) array( 'id' => 20 ), (object) array( 'id' => 21 ) ) );
-		$this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 11 )->andReturn( (object) array( 'id' => 11, 'schedule_id' => 20 ) );
-
-		$this->booking_repo_mock->shouldReceive( 'get_audience_same_day_bookings' )
-			->once()->with( '2026-04-01', array( 1 ), null, null, array( 20, 21 ) )->andReturn( array() );
-		$this->booking_repo_mock->shouldReceive( 'get_user_conflicts' )
-			->once()->with( '2026-04-01', '09:00', '10:00', array( 1 ), array( 2 ), null, null, array( 20, 21 ) )
-			->andReturn( array( 'bookings' => array(), 'affected_users' => array() ) );
+		// User 3 reads schedule 20 through a permission and schedule 21 because it is public.
+		$this->permit( 20, 3 );
+		$this->schedules[21] = (object) array(
+			'id'         => 21,
+			'name'       => 'Other',
+			'status'     => 'active',
+			'visibility' => 'public',
+		);
+		$this->environment( 11, 20 );
 
 		$result = ( new AudienceRestController() )->check_conflicts(
 			$this->make_request(
@@ -505,6 +899,20 @@ class AudienceRestControllerTest extends TestCase {
 		);
 
 		$this->assertSame( 200, $result->get_status() );
+
+		$same_day = $this->preparedWith( 'a.name AS audience_name' );
+		$this->assertCount( 1, $same_day, 'The same-day audience query runs once.' );
+		$this->assertStringContainsString( 'AND env.schedule_id IN (%d,%d)', $same_day[0][0] );
+		$this->assertStringNotContainsString( 'AND env.schedule_id = %d', $same_day[0][0], 'The schedule is not isolated.' );
+		$this->assertStringNotContainsString( 'b.id != %d', $same_day[0][0], 'No booking is excluded.' );
+		$this->assertSame( '2026-04-01', $same_day[0][5] );
+		$this->assertSame( array( 1, 20, 21 ), array_slice( $same_day[0], -3 ), 'The audience, then the readable schedules.' );
+
+		$members = $this->preparedWith( 'SELECT DISTINCT b.*' );
+		$this->assertCount( 1, $members, 'The member conflict query runs once.' );
+		$this->assertStringContainsString( 'AND env.schedule_id IN (%d,%d)', $members[0][0] );
+		$this->assertStringNotContainsString( 'b.id != %d', $members[0][0], 'No booking is excluded.' );
+		$this->assertSame( array( 2, 2, 20, 21 ), array_slice( $members[0], -4 ), 'The user fills both IN() clauses, then the readable schedules.' );
 	}
 
 	// ------------------------------------------------------------------
@@ -513,8 +921,6 @@ class AudienceRestControllerTest extends TestCase {
 
 	public function test_create_booking_returns_400_when_environment_not_found(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( false );
-		$this->env_repo_mock->shouldReceive( 'get_by_id' )->andReturn( null );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array(
@@ -538,11 +944,9 @@ class AudienceRestControllerTest extends TestCase {
 
 	public function test_create_booking_returns_403_when_no_permission(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( false );
+		$this->permissions = array();
 
-		$environment = (object) array( 'id' => 10, 'schedule_id' => 20 );
-		$this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 10 )->andReturn( $environment );
-		$this->schedule_repo_mock->shouldReceive( 'user_can_book' )->with( 20, 5 )->andReturn( false );
+		$this->environment( 10, 20 );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array(
@@ -561,16 +965,15 @@ class AudienceRestControllerTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_REST_Response::class, $result );
 		$this->assertSame( 403, $result->get_status() );
+		$asked = $this->preparedWith( 'WHERE schedule_id = %d AND user_id = %d' );
+		$this->assertSame( array( 'wp_ffc_audience_schedule_permissions', 20, 5 ), array_slice( $asked[0], 1 ), 'The booking permission is asked of schedule 20 for user 5.' );
 	}
 
 	public function test_create_booking_returns_400_when_past_date(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_time' )->justReturn( '2026-04-01' );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( false );
 
-		$environment = (object) array( 'id' => 10, 'schedule_id' => 20 );
-		$this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 10 )->andReturn( $environment );
-		$this->schedule_repo_mock->shouldReceive( 'user_can_book' )->andReturn( true );
+		$this->environment( 10, 20 );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array(
@@ -595,11 +998,8 @@ class AudienceRestControllerTest extends TestCase {
 	public function test_create_booking_returns_400_when_invalid_time(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_time' )->justReturn( '2026-03-01' );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( false );
 
-		$environment = (object) array( 'id' => 10, 'schedule_id' => 20 );
-		$this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 10 )->andReturn( $environment );
-		$this->schedule_repo_mock->shouldReceive( 'user_can_book' )->andReturn( true );
+		$this->environment( 10, 20 );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array(
@@ -624,11 +1024,8 @@ class AudienceRestControllerTest extends TestCase {
 	public function test_create_booking_returns_400_when_description_too_short(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_time' )->justReturn( '2026-03-01' );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( false );
 
-		$environment = (object) array( 'id' => 10, 'schedule_id' => 20 );
-		$this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 10 )->andReturn( $environment );
-		$this->schedule_repo_mock->shouldReceive( 'user_can_book' )->andReturn( true );
+		$this->environment( 10, 20 );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array(
@@ -653,11 +1050,8 @@ class AudienceRestControllerTest extends TestCase {
 	public function test_create_booking_returns_400_when_audience_required(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_time' )->justReturn( '2026-03-01' );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( false );
 
-		$environment = (object) array( 'id' => 10, 'schedule_id' => 20 );
-		$this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 10 )->andReturn( $environment );
-		$this->schedule_repo_mock->shouldReceive( 'user_can_book' )->andReturn( true );
+		$this->environment( 10, 20 );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array(
@@ -682,17 +1076,9 @@ class AudienceRestControllerTest extends TestCase {
 	public function test_create_booking_returns_400_when_conflicts_exist(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_time' )->justReturn( '2026-03-01' );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( false );
 
-		$environment = (object) array( 'id' => 10, 'schedule_id' => 20 );
-		$this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 10 )->andReturn( $environment );
-		$this->env_repo_mock->shouldReceive( 'is_open' )->andReturn( true );
-		$this->schedule_repo_mock->shouldReceive( 'user_can_book' )->andReturn( true );
-
-		$conflict = (object) array( 'id' => 99, 'start_time' => '09:00', 'end_time' => '10:00' );
-		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )
-			->with( 10, '2026-04-01', '09:00', '10:00' )
-			->andReturn( array( $conflict ) );
+		$this->environment( 10, 20 );
+		$this->booking( 99, 10, '2026-04-01', '09:00', '10:00' );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array(
@@ -712,19 +1098,17 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_REST_Response::class, $result );
 		$this->assertSame( 400, $result->get_status() );
 		$this->assertStringContainsString( 'already booked', $result->get_data()['message'] );
+		$conflict_query = $this->preparedWith( 'WHERE environment_id = %d' );
+		$this->assertSame( array( 'wp_ffc_audience_bookings', 10, '2026-04-01', '2026-04-01' ), array_slice( $conflict_query[0], 1, 4 ) );
+		$this->assertSame( array(), $this->writes, 'Nothing is written.' );
 	}
 
 	public function test_create_booking_returns_201_on_success(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_time' )->justReturn( '2026-03-01' );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( false );
 
-		$environment = (object) array( 'id' => 10, 'schedule_id' => 20 );
-		$this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 10 )->andReturn( $environment );
-		$this->env_repo_mock->shouldReceive( 'is_open' )->andReturn( true );
-		$this->schedule_repo_mock->shouldReceive( 'user_can_book' )->andReturn( true );
-		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->andReturn( array() );
-		$this->booking_writer_mock->shouldReceive( 'create' )->andReturn( 42 );
+		$this->environment( 10, 20 );
+		$this->next_booking_id = 42;
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array(
@@ -745,6 +1129,11 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( 201, $result->get_status() );
 		$this->assertTrue( $result->get_data()['success'] );
 		$this->assertSame( 42, $result->get_data()['booking_id'] );
+		$this->assertSame( '2026-04-01', $this->bookings[42]->booking_date );
+		$this->assertSame(
+			array( array( 'booking_id' => 42, 'audience_id' => 1 ) ),
+			$this->written( 'insert', 'wp_ffc_audience_booking_audiences' )
+		);
 	}
 
 	// ------------------------------------------------------------------
@@ -766,8 +1155,6 @@ class AudienceRestControllerTest extends TestCase {
 	}
 
 	public function test_cancel_booking_returns_404_when_not_found(): void {
-		$this->booking_repo_mock->shouldReceive( 'get_by_id' )->with( 999 )->andReturn( null );
-
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array(
 			'id'     => 999,
@@ -778,14 +1165,12 @@ class AudienceRestControllerTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_REST_Response::class, $result );
 		$this->assertSame( 404, $result->get_status() );
+		$this->assertSame( 999, $this->preparedWith( 'WHERE b.id = %d' )[0][3] );
 	}
 
 	public function test_cancel_booking_returns_400_when_already_cancelled(): void {
-		$booking = (object) array(
-			'id'     => 1,
-			'status' => 'cancelled',
-		);
-		$this->booking_repo_mock->shouldReceive( 'get_by_id' )->with( 1 )->andReturn( $booking );
+		$this->environment( 10, 20 );
+		$this->booking( 1, 10, '2026-04-01', '09:00', '10:00', array( 'status' => 'cancelled' ) );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array(
@@ -798,15 +1183,12 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_REST_Response::class, $result );
 		$this->assertSame( 400, $result->get_status() );
 		$this->assertStringContainsString( 'already cancelled', $result->get_data()['message'] );
+		$this->assertSame( array(), $this->writes, 'Nothing is written.' );
 	}
 
 	public function test_cancel_booking_returns_200_on_success(): void {
-		$booking = (object) array(
-			'id'     => 1,
-			'status' => 'active',
-		);
-		$this->booking_repo_mock->shouldReceive( 'get_by_id' )->with( 1 )->andReturn( $booking );
-		$this->booking_writer_mock->shouldReceive( 'cancel' )->with( 1, 'Cannot attend the meeting anymore' )->andReturn( true );
+		$this->environment( 10, 20 );
+		$this->booking( 1, 10, '2026-04-01', '09:00', '10:00' );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array(
@@ -819,6 +1201,12 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_REST_Response::class, $result );
 		$this->assertSame( 200, $result->get_status() );
 		$this->assertTrue( $result->get_data()['success'] );
+
+		$updates = $this->written( 'update', 'wp_ffc_audience_bookings' );
+		$this->assertCount( 1, $updates );
+		$this->assertSame( array( 'id' => 1 ), $updates[0]['where'] );
+		$this->assertSame( 'cancelled', $updates[0]['data']['status'] );
+		$this->assertSame( 'Cannot attend the meeting anymore', $updates[0]['data']['cancellation_reason'] );
 	}
 
 	// ------------------------------------------------------------------
@@ -844,13 +1232,8 @@ class AudienceRestControllerTest extends TestCase {
 	public function test_check_conflicts_returns_success_with_no_conflicts(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 3 );
-		$this->schedule_repo_mock->shouldReceive( 'get_by_user_access' )->andReturn( array( (object) array( 'id' => 20 ) ) );
-		$this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 10 )->andReturn( (object) array( 'id' => 10, 'schedule_id' => 20 ) );
-		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->andReturn( array() );
-		$this->booking_repo_mock->shouldReceive( 'get_user_conflicts' )->andReturn( array(
-			'bookings'       => array(),
-			'affected_users' => array(),
-		));
+		$this->permit( 20, 3 );
+		$this->environment( 10, 20 );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array(
@@ -875,16 +1258,16 @@ class AudienceRestControllerTest extends TestCase {
 		// that clashed on a later day was offered and then refused on submit.
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 3 );
-		$this->schedule_repo_mock->shouldReceive( 'get_by_user_access' )->andReturn( array( (object) array( 'id' => 20 ) ) );
-		$this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 10 )->andReturn( (object) array( 'id' => 10, 'schedule_id' => 20 ) );
+		$this->permit( 20, 3 );
+		// No working hours: a span day between its ends takes 00:00-23:59.
+		$this->environment( 10, 20 );
 
-		$asked = array();
-		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->andReturnUsing(
-			static function ( $env, $date, $start, $end ) use ( &$asked ) {
-				$asked[] = array( $date, $start, $end );
-				return '2026-04-02' === $date ? array( (object) array( 'id' => 7, 'start_time' => '08:00', 'end_time' => '09:00' ) ) : array();
-			}
-		);
+		// A span from 14:00 on day one to 10:00 on day two takes 14:00-23:59,
+		// then 00:00-10:00. Only booking 7 falls inside those hours; 5 would
+		// clash with 09:00-23:59 on day one and 8 with 00:00-23:59 on day two.
+		$this->booking( 5, 10, '2026-04-01', '10:00', '13:00' );
+		$this->booking( 7, 10, '2026-04-02', '08:00', '09:00' );
+		$this->booking( 8, 10, '2026-04-02', '11:00', '12:00' );
 
 		$result = ( new AudienceRestController() )->check_conflicts(
 			$this->make_request(
@@ -902,11 +1285,16 @@ class AudienceRestControllerTest extends TestCase {
 		);
 
 		$this->assertSame(
-			array( array( '2026-04-01', '14:00', '23:59' ), array( '2026-04-02', '00:00', '10:00' ) ),
-			$asked,
-			'A span is checked from its start on the first day to its end on the last.'
+			array( '2026-04-01', '2026-04-02' ),
+			array_map( static fn( array $call ) => $call[3], $this->preparedWith( 'WHERE environment_id = %d' ) ),
+			'Every day of the range is checked.'
 		);
 		$this->assertSame( 'environment', $result->get_data()['conflicts']['type'] );
+		$this->assertSame(
+			array( 7 ),
+			array_column( $result->get_data()['conflicts']['bookings'], 'id' ),
+			'A span is checked from its start on the first day to its end on the last.'
+		);
 	}
 
 	public function test_check_conflicts_refuses_an_invalid_date(): void {
@@ -959,11 +1347,10 @@ class AudienceRestControllerTest extends TestCase {
 	 */
 	private function given_an_open_space(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
-		$this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 10 )->andReturn(
-			(object) array( 'id' => 10, 'schedule_id' => 20, 'status' => 'active' )
-		);
 		$open = array( 'start' => '08:00', 'end' => '18:00', 'closed' => false );
-		$this->env_repo_mock->shouldReceive( 'get_working_hours' )->with( 10 )->andReturn(
+		$this->environment(
+			10,
+			20,
 			array(
 				'sun' => array( 'start' => '08:00', 'end' => '18:00', 'closed' => true ),
 				'mon' => $open,
@@ -974,6 +1361,13 @@ class AudienceRestControllerTest extends TestCase {
 				'sat' => array( 'start' => '08:00', 'end' => '18:00', 'closed' => true ),
 			)
 		);
+	}
+
+	/**
+	 * User 5 holds the audience bypass capability, read through user_can().
+	 */
+	private function given_the_bypass_capability_for_user_5(): void {
+		$this->user_caps[5] = array( 'ffc_bypass_audiences' );
 	}
 
 	/**
@@ -996,29 +1390,29 @@ class AudienceRestControllerTest extends TestCase {
 	 */
 	public function test_a_caller_without_the_bypass_is_refused_on_each_rule( array $params, string $code, string $snippet ): void {
 		$this->given_an_open_space();
-		$this->booking_writer_mock->shouldReceive( 'create' )->never();
 
 		$result = ( new AudienceRestController() )->create_booking( $this->booking_request( $params ) );
 
 		$this->assertSame( 400, $result->get_status() );
 		$this->assertSame( $code, $result->get_data()['code'] );
 		$this->assertStringContainsString( $snippet, $result->get_data()['message'] );
+		$this->assertSame( array(), $this->writes, 'Nothing is written.' );
 	}
 
 	public function test_a_holiday_refuses_a_caller_without_the_bypass(): void {
 		$this->given_an_open_space();
-		$this->env_repo_mock->shouldReceive( 'is_holiday' )->with( 10, '2026-04-01' )->andReturn( true );
-		$this->booking_writer_mock->shouldReceive( 'create' )->never();
+		$this->holidays[] = (object) array( 'schedule_id' => 20, 'holiday_date' => '2026-04-01', 'description' => 'Local' );
 
 		$result = ( new AudienceRestController() )->create_booking( $this->booking_request() );
 
 		$this->assertSame( 400, $result->get_status() );
 		$this->assertSame( 'holiday', $result->get_data()['code'] );
+		$this->assertSame( array(), $this->writes, 'Nothing is written.' );
 	}
 
 	public function test_a_global_holiday_refuses_a_caller_without_the_bypass(): void {
 		$this->given_an_open_space();
-		$this->date_blocking_mock->shouldReceive( 'is_global_holiday' )->with( '2026-04-01' )->andReturn( true );
+		$this->global_holidays = array( array( 'date' => '2026-04-01', 'description' => 'National' ) );
 
 		$result = ( new AudienceRestController() )->create_booking( $this->booking_request() );
 
@@ -1031,9 +1425,8 @@ class AudienceRestControllerTest extends TestCase {
 		// The site's date, whatever UTC says: a limit of 1 day from 2026-03-31
 		// allows 2026-04-01 and refuses 2026-04-02.
 		Functions\when( 'current_time' )->justReturn( '2026-03-31' );
-		$this->schedule_repo_mock->shouldReceive( 'get_by_id' )->with( 20 )->andReturn(
-			(object) array( 'id' => 20, 'status' => 'active', 'future_days_limit' => '1', 'admin_bypass' => '1' )
-		);
+		$this->schedules[20]->future_days_limit = '1';
+		$this->schedules[20]->admin_bypass      = '1';
 
 		$ctrl = new AudienceRestController();
 
@@ -1043,53 +1436,44 @@ class AudienceRestControllerTest extends TestCase {
 		$beyond = $ctrl->create_booking( $this->booking_request( array( 'booking_date' => '2026-04-02' ) ) );
 		$this->assertSame( 400, $beyond->get_status() );
 		$this->assertSame( 'beyond_window', $beyond->get_data()['code'] );
+		$this->assertCount( 1, $this->written( 'insert', 'wp_ffc_audience_bookings' ), 'Only the booking inside the window is written.' );
 	}
 
 	public function test_an_inactive_calendar_refuses_every_caller(): void {
 		$this->given_an_open_space();
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( true );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass' )->andReturn( true );
-		$this->schedule_repo_mock->shouldReceive( 'get_by_id' )->with( 20 )->andReturn(
-			(object) array( 'id' => 20, 'status' => 'inactive', 'future_days_limit' => null, 'admin_bypass' => '1' )
-		);
-		$this->booking_writer_mock->shouldReceive( 'create' )->never();
+		$this->caps = array( 'ffc_bypass_audiences' );
+		$this->given_the_bypass_capability_for_user_5();
+		$this->schedules[20]->status = 'inactive';
 
 		$result = ( new AudienceRestController() )->create_booking( $this->booking_request( array( 'confirm_override' => true ) ) );
 
 		$this->assertSame( 400, $result->get_status() );
 		$this->assertSame( 'inactive', $result->get_data()['code'] );
+		$this->assertSame( array(), $this->writes, 'Nothing is written.' );
 	}
 
 	public function test_an_all_day_booking_on_an_open_day_takes_the_opening_window(): void {
 		$this->given_an_open_space();
-		$created = null;
-		$this->booking_writer_mock->shouldReceive( 'create' )->once()->andReturnUsing(
-			static function ( array $data ) use ( &$created ) {
-				$created = $data;
-				return 77;
-			}
-		);
+		$this->next_booking_id = 77;
 
 		$result = ( new AudienceRestController() )->create_booking(
 			$this->booking_request( array( 'is_all_day' => true, 'start_time' => '00:00', 'end_time' => '23:59' ) )
 		);
 
 		$this->assertSame( 201, $result->get_status() );
-		$this->assertSame( '08:00', $created['start_time'] );
-		$this->assertSame( '18:00', $created['end_time'] );
-		$this->assertSame( 1, $created['is_all_day'] );
+		$created = $this->written( 'insert', 'wp_ffc_audience_bookings' );
+		$this->assertCount( 1, $created );
+		$this->assertSame( '08:00', $created[0]['start_time'] );
+		$this->assertSame( '18:00', $created[0]['end_time'] );
+		$this->assertSame( 1, $created[0]['is_all_day'] );
 	}
 
 	public function test_a_bypass_holder_without_the_confirmation_gets_every_reason_and_nothing_is_saved(): void {
 		$this->given_an_open_space();
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass' )->with( 20, 5 )->andReturn( true );
-		$this->schedule_repo_mock->shouldReceive( 'user_can_override_conflicts' )->with( 20, 5 )->andReturn( true );
-		$this->env_repo_mock->shouldReceive( 'is_holiday' )->andReturn( true );
-		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->andReturn(
-			array( (object) array( 'id' => 99, 'start_time' => '17:00', 'end_time' => '18:00', 'description' => 'Earlier' ) )
-		);
-		$this->booking_writer_mock->shouldReceive( 'create' )->never();
-		$this->booking_writer_mock->shouldReceive( 'cancel' )->never();
+		// The bypass on schedule 20 also lets user 5 override a conflict.
+		$this->given_the_bypass_capability_for_user_5();
+		$this->holidays[] = (object) array( 'schedule_id' => 20, 'holiday_date' => '2026-04-01', 'description' => 'Local' );
+		$this->booking( 99, 10, '2026-04-01', '17:00', '18:00', array( 'description' => 'Earlier' ) );
 
 		$result = ( new AudienceRestController() )->create_booking(
 			$this->booking_request( array( 'start_time' => '17:00', 'end_time' => '19:00' ) )
@@ -1100,32 +1484,14 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( 'override_confirmation_required', $data['code'] );
 		$this->assertSame( array( 'holiday', 'outside_hours', 'conflict' ), array_column( $data['reasons'], 'code' ) );
 		$this->assertSame( 99, $data['conflicts'][0]['id'] );
+		$this->assertSame( array(), $this->writes, 'Nothing is written, not even a transaction.' );
+		$this->assertSame( 'active', $this->bookings[99]->status );
 	}
 
 	public function test_a_confirmed_override_is_saved_and_logged(): void {
-		\Mockery::getConfiguration()->setConstantsMap(
-			array(
-				'FreeFormCertificate\Core\ActivityLog' => array(
-					'LEVEL_INFO'    => 'info',
-					'LEVEL_WARNING' => 'warning',
-				),
-			)
-		);
-		$log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
-		$log->shouldReceive( 'log' )->once()->with(
-			'audience_booking_override',
-			'warning',
-			Mockery::on(
-				static function ( array $context ): bool {
-					return 55 === $context['booking_id'] && array( 'closed_day' ) === $context['reasons'] && is_int( $context['confirmed_at'] );
-				}
-			),
-			5
-		);
-
 		$this->given_an_open_space();
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass' )->with( 20, 5 )->andReturn( true );
-		$this->booking_writer_mock->shouldReceive( 'create' )->once()->andReturn( 55 );
+		$this->given_the_bypass_capability_for_user_5();
+		$this->next_booking_id = 55;
 
 		$result = ( new AudienceRestController() )->create_booking(
 			$this->booking_request( array( 'booking_date' => '2026-04-04', 'confirm_override' => true ) )
@@ -1133,17 +1499,26 @@ class AudienceRestControllerTest extends TestCase {
 
 		$this->assertSame( 201, $result->get_status() );
 		$this->assertSame( 55, $result->get_data()['booking_id'] );
+		$this->assertCount( 1, $this->written( 'insert', 'wp_ffc_audience_bookings' ) );
 
-		\Mockery::getConfiguration()->setConstantsMap( array() );
+		$entries = ActivityLogBuffer::entries();
+		$this->assertCount( 1, $entries, 'One activity-log line is written.' );
+		$this->assertSame( 5, $entries[0]['user_id'] );
+		$logged = ActivityLogBuffer::contexts()[0];
+		$this->assertSame( 'audience_booking_override', $logged['action'] );
+		$this->assertSame( 'warning', $logged['level'] );
+		$this->assertSame( 55, $logged['context']['booking_id'] );
+		$this->assertSame( array( 'closed_day' ), $logged['context']['reasons'] );
+		$this->assertIsInt( $logged['context']['confirmed_at'] );
 	}
 
 	public function test_a_bypass_capability_with_the_calendar_toggle_off_gets_every_rule(): void {
 		$this->given_an_open_space();
 		// The capability is held, but the calendar's Admin bypass is off, so
 		// the per-calendar answer is no.
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass_capability' )->andReturn( true );
-		$this->schedule_repo_mock->shouldReceive( 'user_has_bypass' )->with( 20, 5 )->andReturn( false );
-		$this->booking_writer_mock->shouldReceive( 'create' )->never();
+		$this->caps = array( 'ffc_bypass_audiences' );
+		$this->given_the_bypass_capability_for_user_5();
+		$this->schedules[20]->admin_bypass = '0';
 
 		$result = ( new AudienceRestController() )->create_booking(
 			$this->booking_request( array( 'booking_date' => '2026-04-04', 'confirm_override' => true ) )
@@ -1151,13 +1526,15 @@ class AudienceRestControllerTest extends TestCase {
 
 		$this->assertSame( 400, $result->get_status() );
 		$this->assertSame( 'closed_day', $result->get_data()['code'] );
+		$this->assertSame( array(), $this->writes, 'Nothing is written.' );
 	}
 
 	public function test_the_appointments_bypass_alone_does_not_bypass_audience_rules(): void {
 		// `ffc_bypass_appointments` is not read by the audience controller at
-		// all (#1859): the only bypass it asks about is the audience one.
-		$calendar = Mockery::mock( 'alias:\FreeFormCertificate\Repositories\CalendarRepository' );
-		$calendar->shouldReceive( 'userHasSchedulingBypass' )->never();
+		// all (#1859): the only bypass it asks about is the audience one, so a
+		// holder of the personal-calendar bypass alone gets every rule.
+		$this->caps         = array( 'ffc_bypass_appointments' );
+		$this->user_caps[5] = array( 'ffc_bypass_appointments' );
 
 		$this->given_an_open_space();
 		$result = ( new AudienceRestController() )->create_booking(
@@ -1166,21 +1543,15 @@ class AudienceRestControllerTest extends TestCase {
 
 		$this->assertSame( 400, $result->get_status() );
 		$this->assertSame( 'closed_day', $result->get_data()['code'] );
+		$this->assertSame( array(), $this->writes, 'Nothing is written.' );
 	}
 
 	public function test_a_confirmed_conflict_override_cancels_the_earlier_booking(): void {
 		$this->given_an_open_space();
-		$this->schedule_repo_mock->shouldReceive( 'user_can_override_conflicts' )->with( 20, 5 )->andReturn( true );
-		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->andReturn(
-			array( (object) array( 'id' => 99, 'start_time' => '09:00', 'end_time' => '10:00', 'description' => 'Earlier' ) )
-		);
-		// The writer cancels the overridden booking inside the transaction that
-		// inserts this one; the controller only names it. Cancelling it after
-		// create() never happened, because create() refused on it first.
-		$this->booking_writer_mock->shouldReceive( 'create' )->once()->withArgs(
-			static fn( array $data ): bool => array( 99 ) === $data['override_ids'] && '' !== $data['override_note']
-		)->andReturn( 56 );
-		$this->booking_writer_mock->shouldReceive( 'cancel' )->never();
+		$this->permissions = array();
+		$this->permit( 20, 5, array( 'can_override_conflicts' => 1 ) );
+		$this->booking( 99, 10, '2026-04-01', '09:00', '10:00', array( 'description' => 'Earlier' ) );
+		$this->next_booking_id = 56;
 
 		$actions = array();
 		Functions\when( 'do_action' )->alias(
@@ -1189,15 +1560,35 @@ class AudienceRestControllerTest extends TestCase {
 			}
 		);
 
-		\Mockery::getConfiguration()->setConstantsMap(
-			array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_WARNING' => 'warning' ) )
-		);
-		$log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
-		$log->shouldReceive( 'log' )->once();
-
 		$result = ( new AudienceRestController() )->create_booking( $this->booking_request( array( 'confirm_override' => true ) ) );
 
 		$this->assertSame( 201, $result->get_status() );
+
+		// The writer cancels the overridden booking inside the transaction that
+		// inserts this one. Cancelling it after create() never happened,
+		// because create() refused on it first.
+		$this->assertSame( 'cancelled', $this->bookings[99]->status );
+		$this->assertNotSame( '', $this->bookings[99]->cancellation_reason );
+		$order = array_map(
+			static function ( array $write ): string {
+				if ( 'query' === $write[0] ) {
+					return (string) $write[2];
+				}
+				return $write[0] . ' ' . $write[1] . ( 'update' === $write[0] ? ' #' . $write[2]['where']['id'] : '' );
+			},
+			$this->writes
+		);
+		$this->assertSame(
+			array(
+				'START TRANSACTION',
+				'update wp_ffc_audience_bookings #99',
+				'insert wp_ffc_audience_bookings',
+				'COMMIT',
+				'insert wp_ffc_audience_booking_audiences',
+			),
+			$order
+		);
+
 		$overridden = array_values(
 			array_filter(
 				$actions,
@@ -1208,46 +1599,33 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( 99, $overridden[0][1] );
 		$this->assertSame( 56, $overridden[0][2] );
 
-		\Mockery::getConfiguration()->setConstantsMap( array() );
+		$this->assertCount( 1, ActivityLogBuffer::entries(), 'The confirmed override is logged once.' );
 	}
 
 	public function test_a_conflict_without_override_permission_is_refused(): void {
 		$this->given_an_open_space();
-		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->andReturn(
-			array( (object) array( 'id' => 99, 'start_time' => '09:00', 'end_time' => '10:00' ) )
-		);
-		$this->booking_writer_mock->shouldReceive( 'create' )->never();
-		$this->booking_writer_mock->shouldReceive( 'cancel' )->never();
+		$this->booking( 99, 10, '2026-04-01', '09:00', '10:00' );
 
 		$result = ( new AudienceRestController() )->create_booking( $this->booking_request( array( 'confirm_override' => true ) ) );
 
 		$this->assertSame( 400, $result->get_status() );
 		$this->assertSame( 'conflict', $result->get_data()['code'] );
+		$this->assertSame( array(), $this->writes, 'Nothing is written or cancelled.' );
+		$this->assertSame( 'active', $this->bookings[99]->status );
 	}
 
 	public function test_get_bookings_for_a_whole_calendar_reports_each_space_and_the_shared_closures(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
-		$this->schedule_repo_mock->shouldReceive( 'get_by_user_access' )->with( 5 )->andReturn( array( (object) array( 'id' => 20 ) ) );
 
-		$this->env_repo_mock->shouldReceive( 'get_by_schedule' )->with( 20, 'active' )->andReturn(
-			array(
-				(object) array( 'id' => 10, 'schedule_id' => 20, 'status' => 'active' ),
-				(object) array( 'id' => 11, 'schedule_id' => 20, 'status' => 'active' ),
-			)
-		);
 		$open   = array( 'start' => '08:00', 'end' => '18:00', 'closed' => false );
 		$closed = array( 'start' => '08:00', 'end' => '18:00', 'closed' => true );
 		// Space 10 is closed at weekends; space 11 opens on Saturday.
-		$this->env_repo_mock->shouldReceive( 'get_working_hours' )->with( 10 )->andReturn(
-			array( 'sun' => $closed, 'mon' => $open, 'tue' => $open, 'wed' => $open, 'thu' => $open, 'fri' => $open, 'sat' => $closed )
-		);
-		$this->env_repo_mock->shouldReceive( 'get_working_hours' )->with( 11 )->andReturn(
-			array( 'sun' => $closed, 'mon' => $open, 'tue' => $open, 'wed' => $open, 'thu' => $open, 'fri' => $open, 'sat' => $open )
-		);
-		$this->env_repo_mock->shouldReceive( 'get_holidays' )->with( 20, '2026-04-01', '2026-04-30' )->andReturn(
-			array( (object) array( 'holiday_date' => '2026-04-21', 'description' => 'Local' ) )
-		);
+		$this->environment( 10, 20, array( 'sun' => $closed, 'mon' => $open, 'tue' => $open, 'wed' => $open, 'thu' => $open, 'fri' => $open, 'sat' => $closed ) );
+		$this->environment( 11, 20, array( 'sun' => $closed, 'mon' => $open, 'tue' => $open, 'wed' => $open, 'thu' => $open, 'fri' => $open, 'sat' => $open ) );
+		$this->holidays[] = (object) array( 'schedule_id' => 20, 'holiday_date' => '2026-04-21', 'description' => 'Local' );
+		// Outside the month: not reported.
+		$this->holidays[] = (object) array( 'schedule_id' => 20, 'holiday_date' => '2026-05-01', 'description' => 'Later' );
 
 		$data = ( new AudienceRestController() )->get_bookings(
 			$this->make_request(
@@ -1267,6 +1645,7 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( array( 'start' => '08:00', 'end' => '18:00' ), $data['environments'][1]['hours'][6] );
 		$this->assertSame( array( '2026-04-21' ), $data['schedule_holidays']['20'] );
 		$this->assertContains( '2026-04-21', array_column( $data['holidays'], 'holiday_date' ) );
+		$this->assertNotContains( '2026-05-01', array_column( $data['holidays'], 'holiday_date' ) );
 	}
 
 	// ------------------------------------------------------------------
@@ -1276,10 +1655,7 @@ class AudienceRestControllerTest extends TestCase {
 	public function test_a_range_clashing_on_its_last_day_is_refused_and_names_that_day(): void {
 		$this->given_an_open_space();
 		// Wed 1 to Fri 3 April: the first two days are free, the last is taken.
-		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->with( 10, '2026-04-03', '09:00', '10:00' )->andReturn(
-			array( (object) array( 'id' => 99, 'start_time' => '09:00', 'end_time' => '10:00', 'description' => 'Earlier' ) )
-		);
-		$this->booking_writer_mock->shouldReceive( 'create' )->never();
+		$this->booking( 99, 10, '2026-04-03', '09:00', '10:00', array( 'description' => 'Earlier' ) );
 
 		$result = ( new AudienceRestController() )->create_booking(
 			$this->booking_request( array( 'end_date' => '2026-04-03' ) )
@@ -1288,15 +1664,14 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( 400, $result->get_status() );
 		$this->assertSame( 'conflict', $result->get_data()['code'] );
 		$this->assertSame( array( '2026-04-03' ), $result->get_data()['colliding_dates'] );
+		$this->assertSame( array(), $this->writes, 'Nothing is written.' );
 	}
 
 	public function test_a_range_clashing_on_one_day_with_override_permission_asks_to_confirm_and_names_the_day(): void {
 		$this->given_an_open_space();
-		$this->schedule_repo_mock->shouldReceive( 'user_can_override_conflicts' )->with( 20, 5 )->andReturn( true );
-		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->with( 10, '2026-04-02', '09:00', '10:00' )->andReturn(
-			array( (object) array( 'id' => 99, 'start_time' => '09:00', 'end_time' => '10:00', 'description' => 'Earlier' ) )
-		);
-		$this->booking_writer_mock->shouldReceive( 'create' )->never();
+		$this->permissions = array();
+		$this->permit( 20, 5, array( 'can_override_conflicts' => 1 ) );
+		$this->booking( 99, 10, '2026-04-02', '09:00', '10:00', array( 'description' => 'Earlier' ) );
 
 		$result = ( new AudienceRestController() )->create_booking(
 			$this->booking_request( array( 'end_date' => '2026-04-03' ) )
@@ -1305,12 +1680,11 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( 409, $result->get_status() );
 		$this->assertSame( 'override_confirmation_required', $result->get_data()['code'] );
 		$this->assertSame( array( '2026-04-02' ), $result->get_data()['colliding_dates'] );
+		$this->assertSame( array(), $this->writes, 'Nothing is written.' );
 	}
 
 	public function test_a_range_that_ends_before_it_starts_is_refused_before_anything_is_checked(): void {
 		$this->given_an_open_space();
-		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->never();
-		$this->booking_writer_mock->shouldReceive( 'create' )->never();
 
 		$result = ( new AudienceRestController() )->create_booking(
 			$this->booking_request(
@@ -1323,11 +1697,12 @@ class AudienceRestControllerTest extends TestCase {
 
 		$this->assertSame( 400, $result->get_status() );
 		$this->assertStringContainsString( 'on or after the start date', $result->get_data()['message'] );
+		$this->assertSame( 0, $this->ranWith( 'WHERE environment_id = %d' ), 'No conflict query runs.' );
+		$this->assertSame( array(), $this->writes, 'Nothing is written.' );
 	}
 
 	public function test_a_range_with_an_unreadable_end_date_is_refused(): void {
 		$this->given_an_open_space();
-		$this->booking_writer_mock->shouldReceive( 'create' )->never();
 
 		$result = ( new AudienceRestController() )->create_booking(
 			$this->booking_request( array( 'end_date' => '2026-02-31' ) )
@@ -1335,5 +1710,6 @@ class AudienceRestControllerTest extends TestCase {
 
 		$this->assertSame( 400, $result->get_status() );
 		$this->assertStringContainsString( 'on or after the start date', $result->get_data()['message'] );
+		$this->assertSame( array(), $this->writes, 'Nothing is written.' );
 	}
 }
