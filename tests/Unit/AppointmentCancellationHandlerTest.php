@@ -16,15 +16,39 @@ use FreeFormCertificate\SelfScheduling\AppointmentCancellationHandler;
  * the pure branch decision (classify_request) — the render methods end the
  * request with exit() and are intentionally left as thin output wrappers.
  *
+ * The routing tests run the real AppointmentRepository, CalendarRepository,
+ * DateFormatter and AssetHelper over a `$wpdb` double that answers findById()
+ * from the rows a test stores; render_page() is stopped before its exit() by a
+ * throwing get_language_attributes() stub.
+ *
  * @covers \FreeFormCertificate\SelfScheduling\AppointmentCancellationHandler
  */
 class AppointmentCancellationHandlerTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var array<string, array<int, array<string, mixed>>> Rows findById() answers, by table then id. */
+	private array $rows = array();
+
+	/** @var list<string> Every table findById() read from, in order. */
+	private array $reads = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> The `$_POST` an earlier test left, restored afterwards. */
+	private array $post_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->rows        = array();
+		$this->reads       = array();
+		$this->post_backup = $_POST ?? array();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
@@ -36,10 +60,59 @@ class AppointmentCancellationHandlerTest extends TestCase {
 		);
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
+		// What SettingsReader (dark mode) and DateFormatter (formats) read.
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) {
+				if ( 'ffc_settings' === $key ) {
+					return array(
+						'date_format' => 'd/m/Y',
+						'time_format' => 'H:i',
+					);
+				}
+				return $default;
+			}
+		);
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias(
+			static fn( $format, $ts = null, $tz = null ) => ( new \DateTimeImmutable( '@' . (int) $ts ) )->setTimezone( $tz ?? new \DateTimeZone( 'UTC' ) )->format( $format )
+		);
+
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				return array(
+					'sql'  => $sql,
+					'args' => $args,
+				);
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $q ) {
+				if ( 'SELECT * FROM %i WHERE id = %d' !== $q['sql'] ) {
+					$this->fail( 'Unexpected get_row(): ' . $q['sql'] );
+				}
+				list( $table, $id ) = $q['args'];
+				$this->reads[]      = $table;
+				return $this->rows[ $table ][ $id ] ?? null;
+			}
+		);
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $wpdb;
 	}
 
 	protected function tearDown(): void {
-		unset( $_POST['ffc_cancel_confirm'], $_POST['_wpnonce'] );
+		$_POST = $this->post_backup;
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -201,17 +274,14 @@ class AppointmentCancellationHandlerTest extends TestCase {
 
 	// ---- handle_cancellation_request routing -------------------------
 	//
-	// The render_*() methods all funnel into render_page(), which calls
-	// AssetHelper::asset_suffix() and then exit(). We alias-mock AssetHelper::asset_suffix
-	// to throw a sentinel so the routing + render entry are exercised without
-	// the process-ending exit(), then assert the correct branch was taken via
-	// the captured page title / message routed through __().
+	// The render_*() methods all funnel into render_page(), which prints the
+	// document and then exit()s. get_language_attributes() is stubbed to throw
+	// a sentinel, so the routing + render entry are exercised without the
+	// process-ending exit(), then the branch taken is asserted via the captured
+	// page title / message.
 
 	/**
-	 * Capture which message render_page() received by intercepting __().
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * Capture which message render_page() received by intercepting esc_html().
 	 */
 	public function test_handle_request_routes_invalid_link_for_missing_id(): void {
 		// Truthy-but-non-numeric query var → passes the `! get_query_var` guard
@@ -228,18 +298,15 @@ class AppointmentCancellationHandlerTest extends TestCase {
 		$handler = $this->make_handler();
 		try {
 			$handler->handle_cancellation_request();
-			$this->fail( 'Expected render to short-circuit via AssetHelper::asset_suffix.' );
+			$this->fail( 'Expected render to short-circuit via get_language_attributes().' );
 		} catch ( \RuntimeException $e ) {
 			$this->assertSame( 'render-page', $e->getMessage() );
 		}
 
 		$this->assert_captured_contains( $captured, 'Invalid cancellation link.' );
+		$this->assertSame( array(), $this->reads, 'An id of 0 must never reach the repository.' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_handle_request_routes_already_cancelled(): void {
 		Functions\when( 'get_query_var' )->alias(
 			static function ( $var ) {
@@ -251,9 +318,9 @@ class AppointmentCancellationHandlerTest extends TestCase {
 		);
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
 
-		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
-		$appt_repo->shouldReceive( 'findById' )->with( 42 )->andReturn(
-			array( 'confirmation_token' => 'tok', 'status' => 'cancelled' )
+		$this->rows['wp_ffc_self_scheduling_appointments'][42] = array(
+			'confirmation_token' => 'tok',
+			'status'             => 'cancelled',
 		);
 
 		$captured = $this->stub_render_capture();
@@ -267,12 +334,9 @@ class AppointmentCancellationHandlerTest extends TestCase {
 		}
 
 		$this->assert_captured_contains( $captured, 'Already cancelled' );
+		$this->assertSame( array( 'wp_ffc_self_scheduling_appointments' ), $this->reads );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_handle_request_renders_confirm_form_with_calendar(): void {
 		Functions\when( 'get_query_var' )->alias(
 			static function ( $var ) {
@@ -285,23 +349,14 @@ class AppointmentCancellationHandlerTest extends TestCase {
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 
-		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
-		$appt_repo->shouldReceive( 'findById' )->with( 42 )->andReturn(
-			array(
-				'confirmation_token' => 'tok',
-				'status'             => 'confirmed',
-				'calendar_id'        => 9,
-				'appointment_date'   => '2026-05-20',
-				'start_time'         => '09:00:00',
-			)
+		$this->rows['wp_ffc_self_scheduling_appointments'][42] = array(
+			'confirmation_token' => 'tok',
+			'status'             => 'confirmed',
+			'calendar_id'        => 9,
+			'appointment_date'   => '2026-05-20',
+			'start_time'         => '09:00:00',
 		);
-
-		$cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
-		$cal_repo->shouldReceive( 'findById' )->with( 9 )->andReturn( array( 'title' => 'Clinic' ) );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )
-			->shouldReceive( 'format_wallclock_date' )->andReturn( '20/05/2026' )
-			->shouldReceive( 'format_wallclock_time' )->andReturn( '09:00' );
+		$this->rows['wp_ffc_self_scheduling_calendars'][9]     = array( 'title' => 'Clinic' );
 
 		$captured = $this->stub_render_capture();
 
@@ -315,18 +370,20 @@ class AppointmentCancellationHandlerTest extends TestCase {
 
 		// Confirm form heading routed through esc_html_e / __.
 		$this->assert_captured_contains( $captured, 'Cancel appointment' );
+		// The calendar row and the real DateFormatter reached the summary.
+		$this->assert_captured_contains( $captured, 'Clinic' );
+		$this->assert_captured_contains( $captured, '20/05/2026 · 09:00' );
+		$this->assertSame(
+			array( 'wp_ffc_self_scheduling_appointments', 'wp_ffc_self_scheduling_calendars' ),
+			$this->reads
+		);
 	}
 
 	// ---- process_cancellation ----------------------------------------
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_process_cancellation_renders_error_on_wp_error(): void {
-		$error = Mockery::mock( 'WP_Error' );
-		$error->shouldReceive( 'get_error_message' )->andReturn( 'too late' );
-		Functions\when( 'is_wp_error' )->justReturn( true );
+		$error = new \WP_Error( 'ffc_cancel_deadline', 'too late' );
+		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
 
 		$appt_handler = Mockery::mock( 'FreeFormCertificate\SelfScheduling\AppointmentHandler' );
@@ -346,12 +403,9 @@ class AppointmentCancellationHandlerTest extends TestCase {
 		}
 
 		$this->assert_captured_contains( $captured, 'Could not cancel' );
+		$this->assert_captured_contains( $captured, 'too late' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_process_cancellation_renders_success(): void {
 		Functions\when( 'is_wp_error' )->justReturn( false );
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
@@ -374,8 +428,6 @@ class AppointmentCancellationHandlerTest extends TestCase {
 		}
 
 		$this->assert_captured_contains( $captured, 'Appointment cancelled' );
-
-		unset( $_POST['ffc_cancel_reason'] );
 	}
 
 	// ---- the document head --------------------------------------------
@@ -451,8 +503,8 @@ class AppointmentCancellationHandlerTest extends TestCase {
 
 	/**
 	 * Wire up the render-path WP function stubs and capture every string that
-	 * reaches __()/esc_html_e(); make AssetHelper::asset_suffix() throw so render_page
-	 * stops before exit().
+	 * reaches esc_html()/esc_html_e(); make get_language_attributes() throw so
+	 * render_page() stops before it prints the document and exit()s.
 	 *
 	 * @return array{strings: list<string>}
 	 */
@@ -478,21 +530,19 @@ class AppointmentCancellationHandlerTest extends TestCase {
 				$captured->append( $text );
 			}
 		);
-		Functions\when( 'get_language_attributes' )->justReturn( 'lang="en"' );
 		Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
 		Functions\when( 'nocache_headers' )->justReturn( null );
 		Functions\when( 'status_header' )->justReturn( null );
 
-		// render_page() reads AssetHelper::asset_suffix() before emitting the page
-		// body; throw there to exercise the full routing + render entry without
-		// the process-ending exit() or any echoed HTML.
-		Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )
-			->shouldReceive( 'asset_suffix' )
-			->andReturnUsing(
-				static function () {
-					throw new \RuntimeException( 'render-page' );
-				}
-			);
+		// render_page() calls get_language_attributes() in the first echo, after
+		// the real AssetHelper::asset_suffix(); throw there to exercise the full
+		// routing + render entry without the process-ending exit() or any
+		// echoed HTML.
+		Functions\when( 'get_language_attributes' )->alias(
+			static function () {
+				throw new \RuntimeException( 'render-page' );
+			}
+		);
 
 		return $captured;
 	}

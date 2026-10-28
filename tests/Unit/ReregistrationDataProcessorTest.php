@@ -31,6 +31,39 @@ class ReregistrationDataProcessorTest extends TestCase {
 	use MockeryPHPUnitIntegration;
 
 	/**
+	 * Every `$wpdb->update()` of the persistence path, as `[ table, data, where ]`.
+	 *
+	 * @var list<array{0: string, 1: array<string, mixed>, 2: array<string, mixed>}>
+	 */
+	private array $db_updates = array();
+
+	/**
+	 * Every `$wpdb->insert()` of the persistence path, as `[ table, data ]`.
+	 *
+	 * @var list<array{0: string, 1: array<string, mixed>}>
+	 */
+	private array $db_inserts = array();
+
+	/** @var int How many times a submission row was read by id. */
+	private int $submission_reads = 0;
+
+	/**
+	 * Every `update_user_meta()`, as `[ user_id, key, value ]`.
+	 *
+	 * @var list<array{0: int, 1: string, 2: mixed}>
+	 */
+	private array $meta_writes = array();
+
+	/** @var list<string> Recipients `wp_mail()` was called with. */
+	private array $mailed = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/**
 	 * A CPF in its `ddd.ddd.ddd-dd` display form, built from the standard fixture.
 	 *
 	 * @param string $cpf Eleven digits.
@@ -43,6 +76,9 @@ class ReregistrationDataProcessorTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
 
 		// pcov attribution: preload the class-under-test so coverage is
 		// attributed even though the autoloader would otherwise pull it in
@@ -80,6 +116,11 @@ class ReregistrationDataProcessorTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -780,147 +821,294 @@ class ReregistrationDataProcessorTest extends TestCase {
 	// ==================================================================
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * Stub the WordPress functions the persistence path reaches, recording
+	 * the user-meta writes and the e-mails sent.
+	 *
+	 * The writer, the profile service and its repository, the custom-field
+	 * reader and writer, the auth-code service, Encryption (the bootstrap's
+	 * keys) and the e-mail handler down to `wp_mail()` are the real classes.
+	 * Every `get_option()` answers its default: e-mails enabled, activity log
+	 * and debug off — an install nobody configured.
 	 */
-	public function test_process_submission_persists_encrypts_and_notifies(): void {
-		Functions\when( '__' )->returnArg();
-		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
-		Functions\when( 'wp_cache_get' )->justReturn( false );
-		Functions\when( 'wp_cache_set' )->justReturn( true );
-		// Disable the activity log so the real ActivityLog::log() short-circuits
-		// (SettingsReader::activity_log_enabled() reads ffc_settings).
-		Functions\when( 'get_option' )->justReturn( array() );
-
-		// Two active fields: a sensitive CPF (encrypted + profile-mapped) and a
-		// plain custom field (goes into the user snapshot). The real
-		// CustomFieldReader is driven by the $wpdb mock (get_results).
-		$this->setup_wpdb_with_fields( array(
-			$this->make_field( array(
-				'id'                => 1,
-				'field_key'         => 'cpf',
-				'field_type'        => 'text',
-				'is_sensitive'      => 1,
-				'field_profile_key' => 'cpf',
-			) ),
-			$this->make_field( array(
-				'id'          => 2,
-				'field_key'   => 'nickname',
-				'field_type'  => 'text',
-				'is_sensitive' => 0,
-			) ),
-		) );
-
-		$enc = Mockery::mock( 'overload:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'encrypt' )->andReturn( 'ENC(cpf)' );
-
-		$auth = Mockery::mock( 'overload:FreeFormCertificate\Core\AuthCodeService' );
-		$auth->shouldReceive( 'generate_globally_unique_auth_code' )->andReturn( 'ABC12345' );
-
-		$writer = Mockery::mock( 'overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' );
-		$captured = null;
-		$writer->shouldReceive( 'update' )->once()->andReturnUsing( function ( $id, $data ) use ( &$captured ) {
-			$captured = array( 'id' => $id, 'data' => $data );
-			return true;
-		} );
-
-		$um = Mockery::mock( 'overload:FreeFormCertificate\UserDashboard\UserManager' );
-		$um_payload = null;
-		$um->shouldReceive( 'update_extended_profile' )->once()->andReturnUsing( function ( $uid, $payload, $sensitive ) use ( &$um_payload ) {
-			$um_payload = array( 'uid' => $uid, 'payload' => $payload, 'sensitive' => $sensitive );
-			return true;
-		} );
-
-		// Snapshot write goes through the real CustomFieldReader::get_user_data
-		// (wpdb mock) then CustomFieldWriter::save_user_data (overloaded).
-		$snapshot = null;
-		$cfw = Mockery::mock( 'overload:FreeFormCertificate\Reregistration\CustomFieldWriter' );
-		$cfw->shouldReceive( 'save_user_data' )->once()->andReturnUsing( function ( $uid, $snap ) use ( &$snapshot ) {
-			$snapshot = $snap;
-			return true;
-		} );
-
+	private function stub_persistence_functions(): void {
+		Functions\when( 'get_option' )->alias( static fn ( $key, $default = false ) => $default );
 		Functions\when( 'get_user_meta' )->justReturn( array() );
+		Functions\when( 'sanitize_key' )->alias( static fn ( $key ) => strtolower( (string) $key ) );
+		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		Functions\when( 'wp_rand' )->alias( static fn ( $min = 0, $max = 0 ) => random_int( (int) $min, (int) $max ) );
 
-		// `alias:` for the reason written on the suppression test below: an
-		// `overload:` mock does not verify a STATIC expectation, so the `once()`
-		// this line used to carry was inert — it passed whether or not the send
-		// happened. Found while adding that test (#1214).
-		$emailer = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' );
-		$emailer->shouldReceive( 'send_confirmation' )->once();
+		$this->meta_writes = array();
+		$meta_writes       = &$this->meta_writes;
+		Functions\when( 'update_user_meta' )->alias(
+			static function ( $user_id, $key, $value ) use ( &$meta_writes ) {
+				$meta_writes[] = array( (int) $user_id, (string) $key, $value );
+				return true;
+			}
+		);
+		Functions\when( 'delete_user_meta' )->alias(
+			function ( $user_id, $key ) {
+				$this->fail( "Unexpected delete_user_meta( {$user_id}, {$key} )." );
+			}
+		);
 
-		$submission = (object) array( 'id' => 99 );
-		$rereg      = (object) array( 'id' => 1, 'auto_approve' => 0 );
-		$data       = array( 'fields' => array( 'cpf' => '51817842080', 'nickname' => 'Jo' ) );
+		// The confirmation e-mail, rendered through the plugin's own chrome.
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'wp_strip_all_tags' )->alias( 'strip_tags' );
+		Functions\when( 'home_url' )->alias( static fn ( $path = '' ) => 'https://example.com' . $path );
+		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
+		Functions\when( 'wp_timezone' )->alias( static fn () => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias( static fn ( $format, $ts = null ) => gmdate( (string) $format, (int) $ts ) );
+		Functions\when( 'get_userdata' )->alias(
+			static fn ( $id ) => 7 === (int) $id
+				? (object) array(
+					'ID'           => 7,
+					'display_name' => 'Owner',
+					'user_email'   => 'owner@example.com',
+				)
+				: false
+		);
 
-		ReregistrationDataProcessor::process_submission( $submission, $rereg, $data, 7 );
-
-		// Writer received the encrypted CPF and a 'submitted' status.
-		$this->assertSame( 99, $captured['id'] );
-		$this->assertSame( 'submitted', $captured['data']['status'] );
-		$this->assertSame( 'ENC(cpf)', $captured['data']['data']['fields']['cpf'] );
-		$this->assertSame( 'Jo', $captured['data']['data']['fields']['nickname'] );
-		$this->assertSame( 'ABC12345', $captured['data']['auth_code'] );
-		$this->assertArrayNotHasKey( 'reviewed_at', $captured['data'] );
-
-		// Profile sync carried the plain CPF, flagged sensitive.
-		$this->assertSame( '51817842080', $um_payload['payload']['cpf'] );
-		$this->assertContains( 'cpf', $um_payload['sensitive'] );
-
-		// Snapshot only carries the non-profile 'nickname' (keyed field_<id>).
-		$this->assertSame( 'Jo', $snapshot['field_2'] );
-		$this->assertArrayNotHasKey( 'field_1', $snapshot );
+		$this->mailed = array();
+		$mailed       = &$this->mailed;
+		Functions\when( 'wp_mail' )->alias(
+			static function ( $to ) use ( &$mailed ) {
+				$mailed[] = $to;
+				return true;
+			}
+		);
 	}
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * A strict `$wpdb` double for process_submission(): campaign 1 is linked
+	 * to the given audiences, audience 1 has no parent and carries `$fields`,
+	 * no auth code is taken yet, and user 7 has no profile row. Submission 99
+	 * of user 7 and campaign 1 (confirmation e-mail on) answer the reads the
+	 * confirmation makes; any other submission id reads as missing.
+	 *
+	 * Writes are recorded in $db_updates / $db_inserts; any query the path is
+	 * not expected to make fails the test.
+	 *
+	 * @param array<object> $fields       Field rows of audience 1.
+	 * @param list<string>  $audience_ids What the campaign's audience link returns.
 	 */
-	public function test_process_submission_auto_approve_sets_review_fields(): void {
-		Functions\when( '__' )->returnArg();
-		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
-		Functions\when( 'wp_cache_get' )->justReturn( false );
-		Functions\when( 'wp_cache_set' )->justReturn( true );
-		Functions\when( 'get_option' )->justReturn( array() );
-		Functions\when( 'get_user_meta' )->justReturn( array() );
+	private function persistence_database( array $fields, array $audience_ids ): void {
+		$this->db_updates          = array();
+		$this->db_inserts          = array();
+		$this->submission_reads    = 0;
 
-		// No audiences → no fields; get_col returns [] so the field loop is empty.
-		global $wpdb;
-		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
+		$wpdb         = Mockery::mock( 'wpdb' );
 		$wpdb->prefix = 'wp_';
-		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () {
-			return func_get_args()[0];
-		} )->byDefault();
-		$wpdb->shouldReceive( 'get_col' )->andReturn( array() )->byDefault();
-		$wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
-		$wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();
 
-		Mockery::mock( 'overload:FreeFormCertificate\Core\Encryption' );
-		$auth = Mockery::mock( 'overload:FreeFormCertificate\Core\AuthCodeService' );
-		$auth->shouldReceive( 'generate_globally_unique_auth_code' )->andReturn( 'ZZZ99999' );
+		// Interpolates, so every read can dispatch on the query's full text.
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$values = ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args;
+				foreach ( $values as $v ) {
+					$sql = (string) preg_replace( '/%[ids]/', (string) $v, (string) $sql, 1 );
+				}
+				return $sql;
+			}
+		);
 
-		$writer = Mockery::mock( 'overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' );
-		$captured = null;
-		$writer->shouldReceive( 'update' )->once()->andReturnUsing( function ( $id, $data ) use ( &$captured ) {
-			$captured = $data;
-			return true;
-		} );
+		$submission = (object) array(
+			'id'                => 99,
+			'reregistration_id' => 1,
+			'user_id'           => '7',
+			'status'            => 'submitted',
+			'auth_code'         => 'ABCD2345EFGH',
+			'magic_token'       => 'token',
+		);
+		$campaign   = (object) array(
+			'id'                         => 1,
+			'title'                      => 'Campaign',
+			'email_confirmation_enabled' => 1,
+			'start_date'                 => '2026-01-01',
+			'end_date'                   => '2099-12-31',
+		);
+		$audience   = (object) array(
+			'id'        => 1,
+			'name'      => 'Test Audience',
+			'parent_id' => 0,
+		);
 
-		$cfw = Mockery::mock( 'overload:FreeFormCertificate\Reregistration\CustomFieldWriter' );
-		$cfw->shouldReceive( 'save_user_data' );
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( $sql ) use ( $audience_ids ) {
+				if ( 'SELECT audience_id FROM wp_ffc_reregistration_audiences WHERE reregistration_id = 1' === $sql ) {
+					return $audience_ids;
+				}
+				$this->fail( 'Unexpected get_col: ' . $sql );
+			}
+		);
 
-		$emailer = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' );
-		$emailer->shouldReceive( 'send_confirmation' );
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) use ( $fields ) {
+				if ( str_starts_with( (string) $sql, 'SELECT * FROM wp_ffc_custom_fields WHERE audience_id = 1 AND is_active = 1' ) ) {
+					return $fields;
+				}
+				$this->fail( 'Unexpected get_results: ' . $sql );
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) use ( $submission, $campaign, $audience ) {
+				if ( 'SELECT * FROM wp_ffc_audiences WHERE id = 1' === $sql ) {
+					return $audience;
+				}
+				if ( str_starts_with( (string) $sql, 'SELECT * FROM wp_ffc_reregistration_submissions WHERE id = ' ) ) {
+					++$this->submission_reads;
+					return 'SELECT * FROM wp_ffc_reregistration_submissions WHERE id = 99' === $sql ? $submission : null;
+				}
+				if ( 'SELECT * FROM wp_ffc_reregistrations WHERE id = 1' === $sql ) {
+					return $campaign;
+				}
+				$this->fail( 'Unexpected get_row: ' . $sql );
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				// The auth-code uniqueness checks, and the profile-row lookup.
+				if ( preg_match( '/^SELECT id FROM wp_ffc_(submissions|reregistration_submissions) WHERE auth_code = \S+ LIMIT 1$/', (string) $sql )
+					|| preg_match( '/^SELECT id FROM wp_ffc_self_scheduling_appointments WHERE validation_code = \S+ LIMIT 1$/', (string) $sql )
+					|| 'SELECT id FROM wp_ffc_user_profiles WHERE user_id = 7' === $sql
+				) {
+					return null;
+				}
+				$this->fail( 'Unexpected get_var: ' . $sql );
+			}
+		);
+
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				$this->db_updates[] = array( $table, $data, $where );
+				return 1;
+			}
+		);
+
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) {
+				$this->db_inserts[] = array( $table, $data );
+				return 1;
+			}
+		);
+
+		$GLOBALS['wpdb'] = $wpdb;
+	}
+
+	/**
+	 * The one update written to the submissions table, as [ id, data ].
+	 *
+	 * @return array{0: int, 1: array<string, mixed>}
+	 */
+	private function the_submission_write(): array {
+		$writes = array();
+		foreach ( $this->db_updates as $update ) {
+			if ( 'wp_ffc_reregistration_submissions' === $update[0] ) {
+				$writes[] = array( (int) $update[2]['id'], $update[1] );
+			}
+		}
+		$this->assertCount( 1, $writes, 'process_submission() writes the submission exactly once.' );
+		return $writes[0];
+	}
+
+	/**
+	 * The values written to one user-meta key.
+	 *
+	 * @param string $key Meta key.
+	 * @return list<mixed>
+	 */
+	private function meta_written( string $key ): array {
+		$out = array();
+		foreach ( $this->meta_writes as $write ) {
+			if ( $key === $write[1] ) {
+				$this->assertSame( 7, $write[0], "{$key} is written for the submitting user." );
+				$out[] = $write[2];
+			}
+		}
+		return $out;
+	}
+
+	public function test_process_submission_persists_encrypts_and_notifies(): void {
+		$this->stub_persistence_functions();
+
+		// Two active fields: a sensitive CPF (encrypted + profile-mapped) and a
+		// plain custom field (goes into the user snapshot).
+		$this->persistence_database(
+			array(
+				$this->make_field( array(
+					'id'                => 1,
+					'field_key'         => 'cpf',
+					'field_type'        => 'text',
+					'is_sensitive'      => 1,
+					'field_profile_key' => 'cpf',
+				) ),
+				$this->make_field( array(
+					'id'           => 2,
+					'field_key'    => 'nickname',
+					'field_type'   => 'text',
+					'is_sensitive' => 0,
+				) ),
+			),
+			array( '1' )
+		);
+
+		$submission = (object) array( 'id' => 99 );
+		$rereg      = (object) array( 'id' => 1, 'auto_approve' => 0 );
+		$data       = array( 'fields' => array( 'cpf' => Identifiers::CPF_A, 'nickname' => 'Jo' ) );
+
+		ReregistrationDataProcessor::process_submission( $submission, $rereg, $data, 7 );
+
+		// The writer received the encrypted CPF and a 'submitted' status.
+		list( $id, $written ) = $this->the_submission_write();
+		$this->assertSame( 99, $id );
+		$this->assertSame( 'submitted', $written['status'] );
+		$stored = json_decode( (string) $written['data'], true );
+		$this->assertNotSame( Identifiers::CPF_A, $stored['fields']['cpf'], 'The sensitive field is not stored in clear.' );
+		$this->assertSame( Identifiers::CPF_A, \FreeFormCertificate\Core\Encryption::decrypt( $stored['fields']['cpf'] ) );
+		$this->assertSame( 'Jo', $stored['fields']['nickname'] );
+		$this->assertMatchesRegularExpression( '/^[A-Z0-9]{12}$/', $written['auth_code'] );
+		$this->assertArrayNotHasKey( 'reviewed_at', $written );
+
+		// The profile sync carried the plain CPF and treated it as sensitive:
+		// it lands encrypted in the profile meta, with its lookup hash indexed.
+		$profile_cpf = $this->meta_written( 'ffc_user_cpf' );
+		$this->assertCount( 1, $profile_cpf );
+		$this->assertNotSame( Identifiers::CPF_A, $profile_cpf[0] );
+		$this->assertSame( Identifiers::CPF_A, \FreeFormCertificate\Core\Encryption::decrypt( $profile_cpf[0] ) );
+		$this->assertSame(
+			array( array( 'wp_ffc_user_profiles', array( 'cpf_hash' => \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A ), 'user_id' => 7 ) ) ),
+			$this->db_inserts
+		);
+
+		// The snapshot only carries the non-profile 'nickname' (keyed field_<id>).
+		$snapshots = $this->meta_written( 'ffc_custom_fields_data' );
+		$this->assertCount( 1, $snapshots );
+		$this->assertSame( array( 'field_2' => 'Jo' ), $snapshots[0] );
+
+		// And the confirmation went to the submission's owner, once.
+		$this->assertSame( array( 'owner@example.com' ), $this->mailed );
+	}
+
+	public function test_process_submission_auto_approve_sets_review_fields(): void {
+		$this->stub_persistence_functions();
+
+		// No audiences → no fields, so the field loop is empty.
+		$this->persistence_database( array(), array() );
 
 		$submission = (object) array( 'id' => 5 );
 		$rereg      = (object) array( 'id' => 1, 'auto_approve' => 1 );
 
 		ReregistrationDataProcessor::process_submission( $submission, $rereg, array( 'fields' => array() ), 3 );
 
-		$this->assertSame( 'approved', $captured['status'] );
-		$this->assertArrayHasKey( 'reviewed_at', $captured );
-		$this->assertSame( 0, $captured['reviewed_by'] );
-		$this->assertArrayHasKey( 'notes', $captured );
+		list( $id, $written ) = $this->the_submission_write();
+		$this->assertSame( 5, $id );
+		$this->assertSame( 'approved', $written['status'] );
+		$this->assertArrayHasKey( 'reviewed_at', $written );
+		$this->assertSame( 0, $written['reviewed_by'] );
+		$this->assertArrayHasKey( 'notes', $written );
 	}
 
 	/**
@@ -929,55 +1117,25 @@ class ReregistrationDataProcessorTest extends TestCase {
 	 * operator filed the record for them — and at import scale it is one
 	 * synchronous `wp_mail` per row inside a batch loop.
 	 *
-	 * The submission itself is still written; only the e-mail goes.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The submission itself is still written; only the e-mail goes. The
+	 * database holds everything a confirmation for submission 99 needs, so a
+	 * send that slipped past the guard would read the submission and mail its
+	 * owner — the companion test above proves it does exactly that.
 	 */
 	public function test_process_submission_can_suppress_the_confirmation(): void {
-		Functions\when( '__' )->returnArg();
-		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
-		Functions\when( 'wp_cache_get' )->justReturn( false );
-		Functions\when( 'wp_cache_set' )->justReturn( true );
-		Functions\when( 'get_option' )->justReturn( array() );
-		Functions\when( 'get_user_meta' )->justReturn( array() );
+		$this->stub_persistence_functions();
+		$this->persistence_database( array(), array() );
 
-		global $wpdb;
-		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
-		$wpdb->prefix = 'wp_';
-		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () {
-			return func_get_args()[0];
-		} )->byDefault();
-		$wpdb->shouldReceive( 'get_col' )->andReturn( array() )->byDefault();
-		$wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
-		$wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();
-
-		Mockery::mock( 'overload:FreeFormCertificate\Core\Encryption' );
-		$auth = Mockery::mock( 'overload:FreeFormCertificate\Core\AuthCodeService' );
-		$auth->shouldReceive( 'generate_globally_unique_auth_code' )->andReturn( 'QQQ11111' );
-
-		$writer = Mockery::mock( 'overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' );
-		$writer->shouldReceive( 'update' )->once()->andReturn( true );
-
-		$cfw = Mockery::mock( 'overload:FreeFormCertificate\Reregistration\CustomFieldWriter' );
-		$cfw->shouldReceive( 'save_user_data' );
-
-		// **`alias:`, not `overload:` — measured, and the difference is total.**
-		// An `overload:` mock intercepts `new`; a STATIC call passes straight
-		// through it and its expectations are never verified, so
-		// `shouldReceive( … )->once()` on one is green with zero calls and
-		// `shouldNotReceive()` is green with a hundred. `send_confirmation()` is
-		// static. The first version of this test used `overload:` and passed
-		// with the guard under test deleted.
-		$emailer = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' );
-		$emailer->shouldReceive( 'send_confirmation' )->never();
-
-		$submission = (object) array( 'id' => 5 );
+		$submission = (object) array( 'id' => 99 );
 		$rereg      = (object) array( 'id' => 1, 'auto_approve' => 0 );
 
-		ReregistrationDataProcessor::process_submission( $submission, $rereg, array( 'fields' => array() ), 3, false );
-	}
+		ReregistrationDataProcessor::process_submission( $submission, $rereg, array( 'fields' => array() ), 7, false );
 
+		list( $id ) = $this->the_submission_write();
+		$this->assertSame( 99, $id );
+		$this->assertSame( 0, $this->submission_reads, 'The confirmation is never attempted.' );
+		$this->assertSame( array(), $this->mailed );
+	}
 	// ==================================================================
 	// sanitize_values() — the sanitizer, reachable without $_POST
 	// ==================================================================

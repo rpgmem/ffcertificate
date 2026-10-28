@@ -9,7 +9,6 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationEmailHandler;
-use FreeFormCertificate\Reregistration\ReregistrationRepository;
 
 /**
  * Tests for ReregistrationEmailHandler: invitation, reminder, confirmation,
@@ -18,71 +17,334 @@ use FreeFormCertificate\Reregistration\ReregistrationRepository;
  * All public methods begin with early-return checks (emails disabled,
  * missing data, missing template) which we exercise thoroughly.
  *
+ * The repository, the reader, the writer, the date formatter, the mailer, the
+ * magic-link helper and the document formatter are the real classes. They
+ * run over a `$wpdb` double holding the campaigns and submissions each test
+ * stages, which answers the reads by the query's table and bound ids and
+ * records every write; the email goes out through the plugin's whole path to
+ * a stubbed `wp_mail()`, whose calls are what the tests read.
+ *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationEmailHandler
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class ReregistrationEmailHandlerTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface */
-	private $wpdb;
+	/**
+	 * Campaign rows by id.
+	 *
+	 * @var array<int, object>
+	 */
+	private array $campaigns = array();
+
+	/**
+	 * Submission rows, in id order.
+	 *
+	 * @var list<object>
+	 */
+	private array $submissions = array();
+
+	/**
+	 * What the due-reminder sweep query returns.
+	 *
+	 * @var array<int, object>|null
+	 */
+	private $due_campaigns = array();
+
+	/**
+	 * Every query the double answered, after interpolation.
+	 *
+	 * @var list<string>
+	 */
+	private array $queries = array();
+
+	/**
+	 * Submission ids stamped `invited_at`, in order.
+	 *
+	 * @var list<int>
+	 */
+	private array $invited = array();
+
+	/**
+	 * Every `$wpdb->update()`, as `[ table, data, where ]`.
+	 *
+	 * @var list<array{0: string, 1: array<string, mixed>, 2: array<string, mixed>}>
+	 */
+	private array $updates = array();
+
+	/**
+	 * Every `wp_mail()` call, as `[ to, subject, body ]`.
+	 *
+	 * @var list<array{0: string, 1: string, 2: string}>
+	 */
+	private array $mails = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
-		// Default: emails NOT disabled.
-		Functions\when('get_option')->alias(function ($key, $default = false) {
-			if ($key === 'ffc_settings') {
-				return array();
-			}
-			if ($key === 'ffc_dashboard_page_id') {
-				return 0;
-			}
-			if ($key === 'date_format') {
-				return 'Y-m-d';
-			}
-			return $default;
-		});
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
 
-		Functions\when('__')->returnArg();
-		Functions\when('esc_html__')->returnArg();
-		Functions\when('esc_html')->returnArg();
-		Functions\when('esc_attr')->returnArg();
-		Functions\when('sanitize_text_field')->alias('trim');
-		Functions\when('home_url')->justReturn('https://example.com');
-		Functions\when('get_bloginfo')->justReturn('Test Site');
-		Functions\when('wp_mail')->justReturn(true);
-		Functions\when('date_i18n')->alias(function ($format, $timestamp = false) {
-			return date($format, $timestamp ?: time());
-		});
-		Functions\when('get_permalink')->justReturn('https://example.com/dashboard');
+		// Default: emails NOT disabled, activity log off.
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default_value = false ) {
+				if ( 'ffc_settings' === $key ) {
+					return array();
+				}
+				if ( 'ffc_dashboard_page_id' === $key ) {
+					return 0;
+				}
+				if ( 'date_format' === $key ) {
+					return 'Y-m-d';
+				}
+				return $default_value;
+			}
+		);
 
-		// wpdb mock for run_automated_reminders.
-		global $wpdb;
-		$wpdb = Mockery::mock('wpdb');
-		$wpdb->prefix = 'wp_';
-		$wpdb->users = 'wp_users';
-		$wpdb->last_error = '';
-		// Sending a reminder stamps `reminder_sent_at` on the row that has just
-		// been emailed (#1232). A `byDefault()` so that a test wanting to CHARGE
-		// the write can still override it with its own expectation.
-		$wpdb->shouldReceive('update')->andReturn(1)->byDefault();
-		$this->wpdb = $wpdb;
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'wp_strip_all_tags' )->alias( 'strip_tags' );
+		Functions\when( 'sanitize_text_field' )->alias( 'trim' );
+		Functions\when( 'trailingslashit' )->alias( static fn ( $s ) => rtrim( (string) $s, '/' ) . '/' );
+		Functions\when( 'home_url' )->alias( static fn ( $path = '' ) => 'https://example.com' . $path );
+		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/dashboard' );
+		Functions\when( 'wp_timezone' )->alias( static fn () => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias( static fn ( $format, $ts = null ) => gmdate( (string) $format, (int) $ts ) );
+		Functions\when( 'is_wp_error' )->alias( static fn ( $thing ) => $thing instanceof \WP_Error );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_parse_args' )->alias(
+			static function ( $args, $defaults = array() ) {
+				return array_merge( (array) $defaults, (array) $args );
+			}
+		);
 
-		Functions\when('wp_cache_get')->justReturn(false);
-		Functions\when('wp_cache_set')->justReturn(true);
-		Functions\when('wp_cache_delete')->justReturn(true);
-		Functions\when('wp_parse_args')->alias(function ($args, $defaults = array()) {
-			return array_merge((array) $defaults, (array) $args);
-		});
+		$this->mails = array();
+		$mails       = &$this->mails;
+		Functions\when( 'wp_mail' )->alias(
+			static function ( $to, $subject, $body ) use ( &$mails ) {
+				$mails[] = array( (string) $to, (string) $subject, (string) $body );
+				return true;
+			}
+		);
+
+		$this->campaigns     = array();
+		$this->submissions   = array();
+		$this->due_campaigns = array();
+		$this->queries       = array();
+		$this->invited       = array();
+		$this->updates       = array();
+		$GLOBALS['wpdb']     = $this->database();
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * A database answering from the staged campaigns and submissions. A query
+	 * it does not recognise throws, so an unexpected read fails the test.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function database() {
+		$wpdb             = Mockery::mock( 'wpdb' );
+		$wpdb->prefix     = 'wp_';
+		$wpdb->users      = 'wp_users';
+		$wpdb->last_error = '';
+
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$values = ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args;
+				foreach ( $values as $v ) {
+					$sql = (string) preg_replace_callback(
+						'/%([ids])/',
+						static fn ( $m ) => 's' === $m[1] ? "'" . $v . "'" : (string) $v,
+						(string) $sql,
+						1
+					);
+				}
+				return $sql;
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = $sql;
+				if ( preg_match( '/FROM wp_ffc_reregistrations WHERE id = (\d+)/', $sql, $m ) ) {
+					return $this->campaigns[ (int) $m[1] ] ?? null;
+				}
+				if ( preg_match( '/FROM wp_ffc_reregistration_submissions WHERE id = (\d+)/', $sql, $m ) ) {
+					return $this->find_submission( static fn ( $s ) => (int) $s->id === (int) $m[1] );
+				}
+				if ( preg_match( '/FROM wp_ffc_reregistration_submissions WHERE reregistration_id = (\d+) AND user_id = (\d+)/', $sql, $m ) ) {
+					return $this->find_submission(
+						static fn ( $s ) => (int) $s->reregistration_id === (int) $m[1] && (int) $s->user_id === (int) $m[2]
+					);
+				}
+				throw new \LogicException( 'Unexpected get_row: ' . $sql );
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = $sql;
+				if ( str_contains( $sql, 'DATEDIFF(end_date' ) ) {
+					return $this->due_campaigns;
+				}
+				if ( preg_match( '/FROM wp_ffc_reregistration_submissions WHERE reregistration_id = (\d+)/', $sql, $m ) ) {
+					$after = preg_match( '/AND id > (\d+)/', $sql, $c ) ? (int) $c[1] : 0;
+					$rows  = array_values(
+						array_filter(
+							$this->submissions,
+							static fn ( $s ) => (int) $s->reregistration_id === (int) $m[1] && (int) $s->id > $after
+						)
+					);
+					return preg_match( '/LIMIT (\d+)/', $sql, $l ) ? array_slice( $rows, 0, (int) $l[1] ) : $rows;
+				}
+				throw new \LogicException( 'Unexpected get_results: ' . $sql );
+			}
+		);
+
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = $sql;
+				if ( preg_match( '/UPDATE wp_ffc_reregistration_submissions SET invited_at = \d+ WHERE id IN \(([\d, ]+)\)/', $sql, $m ) ) {
+					$ids           = array_map( 'intval', explode( ',', $m[1] ) );
+					$this->invited = array_merge( $this->invited, $ids );
+					return count( $ids );
+				}
+				throw new \LogicException( 'Unexpected query: ' . $sql );
+			}
+		);
+
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				$this->updates[] = array( $table, $data, $where );
+				return 1;
+			}
+		);
+
+		return $wpdb;
+	}
+
+	/**
+	 * The first staged submission matching a predicate.
+	 *
+	 * @param callable $match Predicate over a submission row.
+	 * @return object|null
+	 */
+	private function find_submission( callable $match ): ?object {
+		foreach ( $this->submissions as $submission ) {
+			if ( $match( $submission ) ) {
+				return $submission;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Stage a campaign row.
+	 *
+	 * @param array<string, mixed> $fields Fields over the defaults.
+	 * @return void
+	 */
+	private function campaign( array $fields ): void {
+		$row = (object) array_merge(
+			array(
+				'id'         => 1,
+				'title'      => 'Campaign',
+				'start_date' => '2026-01-01',
+				'end_date'   => '2026-12-31',
+			),
+			$fields
+		);
+
+		$this->campaigns[ (int) $row->id ] = $row;
+	}
+
+	/**
+	 * Stage a submission row.
+	 *
+	 * @param int    $id                Submission id.
+	 * @param int    $reregistration_id Campaign id.
+	 * @param int    $user_id           Owner.
+	 * @param string $status            Status.
+	 * @param array  $fields            Further columns.
+	 * @return void
+	 */
+	private function submission( int $id, int $reregistration_id, int $user_id, string $status, array $fields = array() ): void {
+		$this->submissions[] = (object) array_merge(
+			array(
+				'id'                => $id,
+				'reregistration_id' => $reregistration_id,
+				'user_id'           => $user_id,
+				'status'            => $status,
+				'magic_token'       => '',
+				'auth_code'         => '',
+			),
+			$fields
+		);
+	}
+
+	/**
+	 * `get_userdata()` answering every id with a user whose address names it.
+	 *
+	 * @param string $prefix Display-name and address prefix.
+	 * @return void
+	 */
+	private function users( string $prefix = 'user' ): void {
+		Functions\when( 'get_userdata' )->alias(
+			static function ( $id ) use ( $prefix ) {
+				return (object) array(
+					'display_name' => $prefix . ' ' . $id,
+					'user_email'   => $prefix . $id . '@example.com',
+				);
+			}
+		);
+	}
+
+	/**
+	 * The recipients `wp_mail()` was called with, in order.
+	 *
+	 * @return list<string>
+	 */
+	private function recipients(): array {
+		return array_column( $this->mails, 0 );
+	}
+
+	/**
+	 * Updates written to the submissions table, as `[ id, data ]`.
+	 *
+	 * @return list<array{0: int, 1: array<string, mixed>}>
+	 */
+	private function submission_updates(): array {
+		$out = array();
+		foreach ( $this->updates as $update ) {
+			if ( 'wp_ffc_reregistration_submissions' === $update[0] ) {
+				$out[] = array( (int) $update[2]['id'], $update[1] );
+			}
+		}
+		return $out;
 	}
 
 	// ==================================================================
@@ -90,35 +352,36 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_send_invitations_returns_zero_when_emails_disabled(): void {
-		Functions\when('get_option')->justReturn(array('disable_all_emails' => 1));
+		Functions\when( 'get_option' )->justReturn( array( 'disable_all_emails' => 1 ) );
 
-		$result = ReregistrationEmailHandler::send_invitations(1);
-		$this->assertSame(0, $result);
+		$result = ReregistrationEmailHandler::send_invitations( 1 );
+		$this->assertSame( 0, $result );
+		$this->assertSame( array(), $this->queries, 'The kill-switch comes before the campaign read.' );
 	}
 
 	public function test_send_invitations_returns_zero_when_rereg_not_found(): void {
-		// Repository returns null.
-		$this->wpdb->shouldReceive('prepare')->andReturn('query');
-		$this->wpdb->shouldReceive('get_row')->andReturn(null);
+		$result = ReregistrationEmailHandler::send_invitations( 999 );
 
-		$result = ReregistrationEmailHandler::send_invitations(999);
-		$this->assertSame(0, $result);
+		$this->assertSame( 0, $result );
+		$this->assertSame( array(), $this->mails );
 	}
 
 	public function test_send_invitations_returns_zero_when_invitation_not_enabled(): void {
-		$rereg = (object) [
-			'id'                       => 1,
-			'title'                    => 'Test Campaign',
-			'email_invitation_enabled' => 0,
-			'start_date'               => '2026-01-01',
-			'end_date'                 => '2026-12-31',
-		];
+		$this->campaign(
+			array(
+				'id'                       => 1,
+				'title'                    => 'Test Campaign',
+				'email_invitation_enabled' => 0,
+			)
+		);
+		$this->submission( 101, 1, 10, 'pending' );
+		$this->users();
 
-		$this->wpdb->shouldReceive('prepare')->andReturn('query');
-		$this->wpdb->shouldReceive('get_row')->andReturn($rereg);
+		$result = ReregistrationEmailHandler::send_invitations( 1 );
 
-		$result = ReregistrationEmailHandler::send_invitations(1);
-		$this->assertSame(0, $result);
+		$this->assertSame( 0, $result );
+		$this->assertSame( array(), $this->mails );
+		$this->assertSame( array(), $this->invited );
 	}
 
 	// ==================================================================
@@ -126,34 +389,36 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_send_reminders_returns_zero_when_emails_disabled(): void {
-		Functions\when('get_option')->justReturn(array('disable_all_emails' => 1));
+		Functions\when( 'get_option' )->justReturn( array( 'disable_all_emails' => 1 ) );
 
-		$result = ReregistrationEmailHandler::send_reminders(1);
-		$this->assertSame(0, $result);
+		$result = ReregistrationEmailHandler::send_reminders( 1 );
+		$this->assertSame( 0, $result );
+		$this->assertSame( array(), $this->queries, 'The kill-switch comes before the campaign read.' );
 	}
 
 	public function test_send_reminders_returns_zero_when_rereg_not_found(): void {
-		$this->wpdb->shouldReceive('prepare')->andReturn('query');
-		$this->wpdb->shouldReceive('get_row')->andReturn(null);
+		$result = ReregistrationEmailHandler::send_reminders( 999 );
 
-		$result = ReregistrationEmailHandler::send_reminders(999);
-		$this->assertSame(0, $result);
+		$this->assertSame( 0, $result );
+		$this->assertSame( array(), $this->mails );
 	}
 
 	public function test_send_reminders_returns_zero_when_reminder_not_enabled(): void {
-		$rereg = (object) [
-			'id'                     => 1,
-			'title'                  => 'Test Campaign',
-			'email_reminder_enabled' => 0,
-			'start_date'             => '2026-01-01',
-			'end_date'               => '2026-12-31',
-		];
+		$this->campaign(
+			array(
+				'id'                     => 1,
+				'title'                  => 'Test Campaign',
+				'email_reminder_enabled' => 0,
+			)
+		);
+		$this->submission( 101, 1, 10, 'pending' );
+		$this->users();
 
-		$this->wpdb->shouldReceive('prepare')->andReturn('query');
-		$this->wpdb->shouldReceive('get_row')->andReturn($rereg);
+		$result = ReregistrationEmailHandler::send_reminders( 1 );
 
-		$result = ReregistrationEmailHandler::send_reminders(1);
-		$this->assertSame(0, $result);
+		$this->assertSame( 0, $result );
+		$this->assertSame( array(), $this->mails );
+		$this->assertSame( array(), $this->updates );
 	}
 
 	// ==================================================================
@@ -161,63 +426,46 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_send_confirmation_returns_false_when_emails_disabled(): void {
-		Functions\when('get_option')->justReturn(array('disable_all_emails' => 1));
+		Functions\when( 'get_option' )->justReturn( array( 'disable_all_emails' => 1 ) );
 
-		$result = ReregistrationEmailHandler::send_confirmation(1);
-		$this->assertFalse($result);
+		$result = ReregistrationEmailHandler::send_confirmation( 1 );
+		$this->assertFalse( $result );
+		$this->assertSame( array(), $this->queries, 'The kill-switch comes before the submission read.' );
 	}
 
 	public function test_send_confirmation_returns_false_when_submission_not_found(): void {
-		$this->wpdb->shouldReceive('prepare')->andReturn('query');
-		$this->wpdb->shouldReceive('get_row')->andReturn(null);
+		$result = ReregistrationEmailHandler::send_confirmation( 999 );
 
-		$result = ReregistrationEmailHandler::send_confirmation(999);
-		$this->assertFalse($result);
+		$this->assertFalse( $result );
+		$this->assertSame( array(), $this->mails );
 	}
 
 	public function test_send_confirmation_returns_false_when_rereg_not_found(): void {
-		// First get_row returns a submission, second returns null for rereg.
-		$submission = (object) [
-			'id'                => 1,
-			'reregistration_id' => 99,
-			'user_id'           => 10,
-			'status'            => 'submitted',
-			'magic_token'       => '',
-			'auth_code'         => '',
-		];
+		// The submission exists; the campaign it points at does not.
+		$this->submission( 1, 99, 10, 'submitted' );
+		$this->users();
 
-		$this->wpdb->shouldReceive('prepare')->andReturn('query');
-		$this->wpdb->shouldReceive('get_row')
-			->andReturn($submission, null);
+		$result = ReregistrationEmailHandler::send_confirmation( 1 );
 
-		$result = ReregistrationEmailHandler::send_confirmation(1);
-		$this->assertFalse($result);
+		$this->assertFalse( $result );
+		$this->assertSame( array(), $this->mails );
 	}
 
 	public function test_send_confirmation_returns_false_when_confirmation_not_enabled(): void {
-		$submission = (object) [
-			'id'                => 1,
-			'reregistration_id' => 5,
-			'user_id'           => 10,
-			'status'            => 'submitted',
-			'magic_token'       => '',
-			'auth_code'         => '',
-		];
+		$this->submission( 1, 5, 10, 'submitted' );
+		$this->campaign(
+			array(
+				'id'                         => 5,
+				'title'                      => 'Test Campaign',
+				'email_confirmation_enabled' => 0,
+			)
+		);
+		$this->users();
 
-		$rereg = (object) [
-			'id'                         => 5,
-			'title'                      => 'Test Campaign',
-			'email_confirmation_enabled' => 0,
-			'start_date'                 => '2026-01-01',
-			'end_date'                   => '2026-12-31',
-		];
+		$result = ReregistrationEmailHandler::send_confirmation( 1 );
 
-		$this->wpdb->shouldReceive('prepare')->andReturn('query');
-		$this->wpdb->shouldReceive('get_row')
-			->andReturn($submission, $rereg);
-
-		$result = ReregistrationEmailHandler::send_confirmation(1);
-		$this->assertFalse($result);
+		$this->assertFalse( $result );
+		$this->assertSame( array(), $this->mails );
 	}
 
 	// ==================================================================
@@ -225,54 +473,63 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_run_automated_reminders_returns_early_when_emails_disabled(): void {
-		Functions\when('get_option')->justReturn(array('disable_all_emails' => 1));
-
-		// #1030: the old comment reasoned that an unexpected query "would
-		// fail", which relies on the mock's strictness rather than saying so.
-		// State it: past the kill-switch the very next thing is the campaign
-		// query, so it must not be reached.
-		$this->wpdb->shouldNotReceive('get_results');
-		$this->wpdb->shouldNotReceive('prepare');
+		Functions\when( 'get_option' )->justReturn( array( 'disable_all_emails' => 1 ) );
 
 		ReregistrationEmailHandler::run_automated_reminders();
+
+		// #1030: past the kill-switch the very next thing is the campaign
+		// query, so it must not be reached.
+		$this->assertSame( array(), $this->queries );
 	}
 
 	public function test_run_automated_reminders_returns_early_when_no_campaigns(): void {
-		$this->wpdb->shouldReceive('prepare')->andReturn('query');
-		$this->wpdb->shouldReceive('get_results')->andReturn(array());
+		$this->due_campaigns = array();
 
 		ReregistrationEmailHandler::run_automated_reminders();
-		$this->assertTrue(true);
+
+		$this->assertCount( 1, $this->queries, 'Only the sweep runs: no campaign means no per-campaign read.' );
+		$this->assertStringContainsString( 'DATEDIFF(end_date', $this->queries[0] );
 	}
 
 	public function test_run_automated_reminders_returns_early_when_campaigns_null(): void {
-		$this->wpdb->shouldReceive('prepare')->andReturn('query');
-		$this->wpdb->shouldReceive('get_results')->andReturn(null);
+		$this->due_campaigns = null;
 
 		ReregistrationEmailHandler::run_automated_reminders();
-		$this->assertTrue(true);
+
+		$this->assertCount( 1, $this->queries, 'A failed sweep is treated as no campaign.' );
+		$this->assertStringContainsString( 'DATEDIFF(end_date', $this->queries[0] );
 	}
 
 	public function test_run_automated_reminders_dispatches_per_campaign(): void {
-		$this->wpdb->shouldReceive('prepare')->andReturn('query');
-		$this->wpdb->shouldReceive('get_results')->andReturn(
-			array( (object) array( 'id' => 11 ), (object) array( 'id' => 22 ) )
-		);
-		// Each send_reminders() call re-enters get_by_id (get_row). Return a
-		// campaign with reminders disabled so the inner method short-circuits
-		// after the dispatch — we only need to prove the loop fans out.
-		$this->wpdb->shouldReceive('get_row')->andReturn(
-			(object) array(
+		$this->due_campaigns = array( (object) array( 'id' => 11 ), (object) array( 'id' => 22 ) );
+		// Reminders disabled on both, so each send short-circuits right after
+		// its campaign read -- what is proved is that the loop fans out.
+		$this->campaign(
+			array(
 				'id'                     => 11,
 				'email_reminder_enabled' => 0,
-				'title'                  => 'C',
-				'start_date'             => '2026-01-01',
-				'end_date'               => '2026-12-31',
+			)
+		);
+		$this->campaign(
+			array(
+				'id'                     => 22,
+				'email_reminder_enabled' => 0,
 			)
 		);
 
 		ReregistrationEmailHandler::run_automated_reminders();
-		$this->assertTrue(true);
+
+		$reads = array_values(
+			array_filter( $this->queries, static fn ( $q ) => str_contains( $q, 'FROM wp_ffc_reregistrations WHERE id =' ) )
+		);
+		$this->assertSame(
+			array(
+				'SELECT * FROM wp_ffc_reregistrations WHERE id = 11',
+				'SELECT * FROM wp_ffc_reregistrations WHERE id = 22',
+			),
+			$reads
+		);
+		$this->assertSame( array(), $this->mails );
 	}
 
 	// ==================================================================
@@ -280,48 +537,24 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_send_invitations_sends_to_pending_members(): void {
-		$rereg = (object) array(
-			'id'                       => 1,
-			'title'                    => 'Campaign',
-			'email_invitation_enabled' => 1,
-			'audience_name'            => 'Teachers',
-			'start_date'               => '2026-01-01',
-			'end_date'                 => '2026-12-31',
-		);
-
-		// get_by_id() → rereg; get_awaiting_invitation() → submissions. The rows
-		// carry an `id` because the send stamps `invited_at` on them (#1190),
-		// and a `status` because the wording is chosen from it (#1300) -- the
-		// query is `SELECT *`, so both always arrive.
-		$this->wpdb->shouldReceive('prepare')->andReturn('query');
-		$this->wpdb->shouldReceive('get_row')->andReturn($rereg);
-		$this->wpdb->shouldReceive('get_results')->andReturn(
+		$this->campaign(
 			array(
-				(object) array( 'id' => 101, 'user_id' => 10, 'status' => 'pending' ),
-				(object) array( 'id' => 102, 'user_id' => 20, 'status' => 'pending' ),
+				'id'                       => 1,
+				'email_invitation_enabled' => 1,
+				'audience_name'            => 'Teachers',
 			)
 		);
-		$marked = array();
-		$this->wpdb->shouldReceive('query')->andReturnUsing(function () use (&$marked) {
-			$marked[] = true;
-			return 2;
-		});
+		// The rows carry an `id` because the send stamps `invited_at` on them
+		// (#1190), and a `status` because the wording is chosen from it (#1300).
+		$this->submission( 101, 1, 10, 'pending' );
+		$this->submission( 102, 1, 20, 'pending' );
+		$this->users();
 
-		Functions\when('get_userdata')->alias(function ($id) {
-			return (object) array(
-				'display_name' => 'User ' . $id,
-				'user_email'   => 'user' . $id . '@example.com',
-			);
-		});
+		$count = ReregistrationEmailHandler::send_invitations( 1 );
 
-		Mockery::mock('alias:FreeFormCertificate\Core\DateFormatter')
-			->shouldReceive('format_date')->andReturn('2026-01-01');
-		Mockery::mock('alias:FreeFormCertificate\Scheduling\SchedulingMailer')
-			->shouldReceive('send')->andReturn(true);
-
-		$count = ReregistrationEmailHandler::send_invitations(1);
-		$this->assertSame(2, $count);
-		$this->assertNotEmpty($marked, 'Whoever received it must be stamped, or the next send repeats it.');
+		$this->assertSame( 2, $count );
+		$this->assertSame( array( 'user10@example.com', 'user20@example.com' ), $this->recipients() );
+		$this->assertSame( array( 101, 102 ), $this->invited, 'Whoever received it must be stamped, or the next send repeats it.' );
 	}
 
 	// ==================================================================
@@ -332,55 +565,31 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	 * Stage a campaign whose awaiting-invitation rows carry the given statuses
 	 * and return the bodies that were actually mailed.
 	 *
-	 * The body is captured AFTER `TokenResolver` has run, which is the only
-	 * place the two new tokens are observable: they are chosen in
-	 * `send_invitations()` and resolved in `send_to_user()`, and asserting on
-	 * anything earlier would be asserting against the value this test supplies.
+	 * The body is read off `wp_mail()`, AFTER `TokenResolver` has run and the
+	 * chrome has wrapped it, which is the only place the two status tokens are
+	 * observable: they are chosen in `send_invitations()` and resolved in
+	 * `send_to_user()`, and asserting on anything earlier would be asserting
+	 * against the value this test supplies.
 	 *
 	 * @param array<int, string> $statuses One status per submission row.
 	 * @return array<int, string> One rendered body per row.
 	 */
-	private function invitation_bodies(array $statuses): array {
-		$rereg = (object) array(
-			'id'                       => 1,
-			'title'                    => 'Campaign',
-			'email_invitation_enabled' => 1,
-			'audience_name'            => 'Teachers',
-			'start_date'               => '2026-01-01',
-			'end_date'                 => '2026-12-31',
+	private function invitation_bodies( array $statuses ): array {
+		$this->campaign(
+			array(
+				'id'                       => 1,
+				'email_invitation_enabled' => 1,
+				'audience_name'            => 'Teachers',
+			)
 		);
-
-		$rows = array();
-		foreach ($statuses as $i => $status) {
-			$rows[] = (object) array( 'id' => 100 + $i, 'user_id' => 10 + $i, 'status' => $status );
+		foreach ( $statuses as $i => $status ) {
+			$this->submission( 100 + $i, 1, 10 + $i, $status );
 		}
+		$this->users();
 
-		$this->wpdb->shouldReceive('prepare')->andReturn('query');
-		$this->wpdb->shouldReceive('get_row')->andReturn($rereg);
-		$this->wpdb->shouldReceive('get_results')->andReturn($rows);
-		$this->wpdb->shouldReceive('query')->andReturn(count($rows));
+		ReregistrationEmailHandler::send_invitations( 1 );
 
-		Functions\when('get_userdata')->alias(function ($id) {
-			return (object) array(
-				'display_name' => 'User ' . $id,
-				'user_email'   => 'user' . $id . '@example.com',
-			);
-		});
-
-		Mockery::mock('alias:FreeFormCertificate\Core\DateFormatter')
-			->shouldReceive('format_date')->andReturn('2026-01-01');
-
-		$bodies = array();
-		Mockery::mock('alias:FreeFormCertificate\Scheduling\SchedulingMailer')
-			->shouldReceive('send')
-			->andReturnUsing(function ($to, $subject, $body) use (&$bodies) {
-				$bodies[] = (string) $body;
-				return true;
-			});
-
-		ReregistrationEmailHandler::send_invitations(1);
-
-		return $bodies;
+		return array_column( $this->mails, 2 );
 	}
 
 	/**
@@ -397,9 +606,9 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	 * the single wrong sentence. They move together or not at all.
 	 */
 	public function test_send_invitations_does_not_ask_a_recorded_submission_to_complete_anything(): void {
-		$bodies = $this->invitation_bodies(array( 'submitted' ));
+		$bodies = $this->invitation_bodies( array( 'submitted' ) );
 
-		$this->assertCount(1, $bodies);
+		$this->assertCount( 1, $bodies );
 		$this->assertStringNotContainsString(
 			'Please complete your reregistration before the deadline.',
 			$bodies[0],
@@ -410,8 +619,8 @@ class ReregistrationEmailHandlerTest extends TestCase {
 			$bodies[0],
 			'The button must not contradict the sentence above it.'
 		);
-		$this->assertStringContainsString('Your reregistration is already recorded', $bodies[0]);
-		$this->assertStringContainsString('View My Reregistration', $bodies[0]);
+		$this->assertStringContainsString( 'Your reregistration is already recorded', $bodies[0] );
+		$this->assertStringContainsString( 'View My Reregistration', $bodies[0] );
 	}
 
 	/**
@@ -423,10 +632,10 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	 * frontend's `SUBMITTABLE_STATUSES`, so the dashboard draws them a form.
 	 */
 	public function test_send_invitations_treats_approved_as_recorded_and_rejected_as_pending(): void {
-		$bodies = $this->invitation_bodies(array( 'approved', 'rejected' ));
+		$bodies = $this->invitation_bodies( array( 'approved', 'rejected' ) );
 
-		$this->assertCount(2, $bodies);
-		$this->assertStringContainsString('Your reregistration is already recorded', $bodies[0]);
+		$this->assertCount( 2, $bodies );
+		$this->assertStringContainsString( 'Your reregistration is already recorded', $bodies[0] );
 		$this->assertStringContainsString(
 			'Please complete your reregistration before the deadline.',
 			$bodies[1],
@@ -442,11 +651,11 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	 * carried as literals before #1300.
 	 */
 	public function test_send_invitations_leaves_the_pending_wording_unchanged(): void {
-		$bodies = $this->invitation_bodies(array( 'pending' ));
+		$bodies = $this->invitation_bodies( array( 'pending' ) );
 
-		$this->assertCount(1, $bodies);
-		$this->assertStringContainsString('Please complete your reregistration before the deadline.', $bodies[0]);
-		$this->assertStringContainsString('Complete Reregistration', $bodies[0]);
+		$this->assertCount( 1, $bodies );
+		$this->assertStringContainsString( 'Please complete your reregistration before the deadline.', $bodies[0] );
+		$this->assertStringContainsString( 'Complete Reregistration', $bodies[0] );
 	}
 
 	/**
@@ -463,15 +672,17 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	 * would ship to the recipient as literal text.
 	 */
 	public function test_send_invitations_resolves_every_token_for_both_audiences(): void {
-		Functions\when('wp_generate_password')->justReturn('secret-key');
-		Functions\when('add_query_arg')->alias(function ($args, $url) {
-			return $url . '?' . http_build_query((array) $args);
-		});
+		Functions\when( 'wp_generate_password' )->justReturn( 'secret-key' );
+		Functions\when( 'add_query_arg' )->alias(
+			static function ( $args, $url ) {
+				return $url . '?' . http_build_query( (array) $args );
+			}
+		);
 
-		$bodies = $this->invitation_bodies(array( 'submitted', 'pending' ));
+		$bodies = $this->invitation_bodies( array( 'submitted', 'pending' ) );
 
-		$this->assertCount(2, $bodies);
-		foreach ($bodies as $i => $body) {
+		$this->assertCount( 2, $bodies );
+		foreach ( $bodies as $i => $body ) {
 			$this->assertStringNotContainsString(
 				'{{',
 				$body,
@@ -485,38 +696,26 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_send_reminders_with_explicit_user_ids(): void {
-		$rereg = (object) array(
-			'id'                     => 1,
-			'title'                  => 'Campaign',
-			'email_reminder_enabled' => 1,
-			'start_date'             => '2026-01-01',
-			'end_date'               => '2099-12-31',
+		$this->campaign(
+			array(
+				'id'                     => 1,
+				'email_reminder_enabled' => 1,
+				'end_date'               => '2099-12-31',
+			)
 		);
+		$this->submission( 101, 1, 10, 'pending' );
+		// User 20 already submitted → filtered out.
+		$this->submission( 102, 1, 20, 'submitted' );
+		$this->users( 'u' );
 
-		// First get_row → rereg; subsequent get_row → per-user submission.
-		$this->wpdb->shouldReceive('prepare')->andReturn('query');
-		$this->wpdb->shouldReceive('get_row')->andReturn(
-			$rereg,
-			// `id` is required: sending stamps `reminder_sent_at` on the row
-			// that has just been emailed (#1232), and a real row always has one.
-			// The fixture did not, and only running it showed that.
-			(object) array( 'id' => 101, 'user_id' => 10, 'status' => 'pending' ),
-			// User 20 already submitted → filtered out.
-			(object) array( 'id' => 102, 'user_id' => 20, 'status' => 'submitted' )
-		);
+		$count = ReregistrationEmailHandler::send_reminders( 1, array( 10, 20 ) );
 
-		Functions\when('get_userdata')->alias(fn($id) => (object) array(
-			'display_name' => 'U' . $id,
-			'user_email'   => 'u' . $id . '@example.com',
-		));
-
-		Mockery::mock('alias:FreeFormCertificate\Core\DateFormatter')
-			->shouldReceive('format_date')->andReturn('2026-01-01');
-		Mockery::mock('alias:FreeFormCertificate\Scheduling\SchedulingMailer')
-			->shouldReceive('send')->andReturn(true);
-
-		$count = ReregistrationEmailHandler::send_reminders(1, array(10, 20));
-		$this->assertSame(1, $count);
+		$this->assertSame( 1, $count );
+		$this->assertSame( array( 'u10@example.com' ), $this->recipients() );
+		// Sending stamps `reminder_sent_at` on the row just emailed (#1232).
+		$updates = $this->submission_updates();
+		$this->assertSame( array( 101 ), array_column( $updates, 0 ) );
+		$this->assertArrayHasKey( 'reminder_sent_at', $updates[0][1] );
 	}
 
 	// ==================================================================
@@ -524,41 +723,38 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_send_confirmation_success_with_magic_link(): void {
-		$submission = (object) array(
-			'id'                => 1,
-			'reregistration_id' => 5,
-			'user_id'           => 10,
-			'status'            => 'submitted',
-			'magic_token'       => 'tok123',
-			'auth_code'         => 'AC99',
+		$this->submission(
+			1,
+			5,
+			10,
+			'submitted',
+			array(
+				'magic_token' => 'tok123',
+				'auth_code'   => 'AC99',
+			)
 		);
-		$rereg = (object) array(
-			'id'                         => 5,
-			'title'                      => 'Campaign',
-			'email_confirmation_enabled' => 1,
-			'start_date'                 => '2026-01-01',
-			'end_date'                   => '2026-12-31',
+		$this->campaign(
+			array(
+				'id'                         => 5,
+				'email_confirmation_enabled' => 1,
+			)
+		);
+		Functions\when( 'get_userdata' )->justReturn(
+			(object) array(
+				'display_name' => 'Alice',
+				'user_email'   => 'alice@example.com',
+			)
 		);
 
-		// Two get_by_id() lookups via wpdb: the submission, then its campaign.
-		// get_status_label() is pure (no DB), so the real repository is fine.
-		$this->wpdb->shouldReceive('prepare')->andReturn('query');
-		$this->wpdb->shouldReceive('get_row')->andReturn($submission, $rereg);
+		$result = ReregistrationEmailHandler::send_confirmation( 1 );
 
-		Functions\when('get_userdata')->justReturn((object) array(
-			'display_name' => 'Alice',
-			'user_email'   => 'alice@example.com',
-		));
-
-		Mockery::mock('alias:FreeFormCertificate\Generators\MagicLinkHelper')
-			->shouldReceive('generate_magic_link')->with('tok123')->andReturn('https://example.com/m/tok123');
-
-		Mockery::mock('alias:FreeFormCertificate\Core\DateFormatter')
-			->shouldReceive('format_date')->andReturn('2026-01-01');
-		Mockery::mock('alias:FreeFormCertificate\Scheduling\SchedulingMailer')
-			->shouldReceive('send')->andReturn(true);
-
-		$result = ReregistrationEmailHandler::send_confirmation(1);
-		$this->assertTrue($result);
+		$this->assertTrue( $result );
+		$this->assertSame( array( 'alice@example.com' ), $this->recipients() );
+		$body = $this->mails[0][2];
+		// The magic link is built from the submission's own token, on the
+		// verification page's fallback URL; the auth code carries the
+		// reregistration prefix.
+		$this->assertStringContainsString( 'https://example.com/valid/#token=tok123', $body );
+		$this->assertStringContainsString( 'R-AC99', $body );
 	}
 }

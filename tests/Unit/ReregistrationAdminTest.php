@@ -12,6 +12,11 @@ use FreeFormCertificate\Reregistration\ReregistrationAdmin;
 use FreeFormCertificate\Reregistration\ReregistrationAdminRenderer;
 
 /**
+ * The campaign screen's handlers run the real repository, submission reader
+ * and writer, AudienceReader, Capabilities, RequestInput and DateFormatter:
+ * the `$wpdb` double below answers the reads by their SQL text and bound
+ * values, from the arrays a test sets, and records every write in order.
+ *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationAdmin
  * @covers \FreeFormCertificate\Reregistration\ReregistrationAdminRenderer
  */
@@ -22,9 +27,51 @@ class ReregistrationAdminTest extends TestCase {
 	/** @var array<int, array{type: string, data: mixed}> */
 	private array $json_responses = array();
 
+	/** @var list<array<int, mixed>> Every prepare() call, as its flattened argument list. */
+	private array $prepared = array();
+
+	/** @var list<array<int, mixed>> Every write the double received, in order: [ op, table or SQL, data, where ]. */
+	private array $writes = array();
+
+	/** @var array<int, object> Campaign rows by id, answered by ReregistrationRepository::get_by_id(). */
+	private array $campaigns = array();
+
+	/** @var array<int, list<int>> Members by audience id, answered by AudienceReader::get_members(). */
+	private array $members = array();
+
+	/** @var list<object> Rows the submission-statistics query answers. */
+	private array $stats = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> `$_GET` as an earlier test left it. */
+	private array $get_backup = array();
+
+	/** @var array<string, mixed> `$_POST` as an earlier test left it. */
+	private array $post_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->get_backup  = $_GET ?? array();
+		$this->post_backup = $_POST ?? array();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $this->had_wpdb ? $GLOBALS['wpdb'] : null;
+		$this->install_wpdb();
+
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
+		Functions\when( 'sanitize_sql_orderby' )->returnArg();
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'current_time' )->justReturn( '2026-03-01 10:00:00' );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts ) => gmdate( $format, $ts ) );
 		// Shared scripts are enqueued through AssetRegistry, which registers
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).
@@ -70,10 +117,141 @@ class ReregistrationAdminTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $_GET['page'], $_GET['view'], $_GET['id'], $_GET['message'], $_GET['action'], $_GET['_wpnonce'] );
-		unset( $_POST['ffc_action'], $_POST['audience_ids'], $_POST['reregistration_id'], $_POST['rereg_status'], $_POST['rereg_audience_ids'] );
+		$_GET  = $this->get_backup;
+		$_POST = $this->post_backup;
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * A `$wpdb` double answering the queries the campaign handlers reach. An
+	 * unexpected read fails the test; a method it does not know throws.
+	 */
+	private function install_wpdb(): void {
+		$wpdb            = Mockery::mock( 'wpdb' );
+		$wpdb->prefix    = 'wp_';
+		$wpdb->insert_id = 0;
+
+		$this->prepared = array();
+		$this->writes   = array();
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( ...$args ) {
+				$flat             = 2 === count( $args ) && is_array( $args[1] ) ? array_merge( array( $args[0] ), $args[1] ) : $args;
+				$this->prepared[] = $flat;
+				return 'Q' . ( count( $this->prepared ) - 1 ) . ':' . $flat[0];
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				$bound = $this->bound_to( (string) $sql );
+				if ( str_contains( (string) $sql, 'SELECT * FROM %i WHERE id = %d' ) && 'wp_ffc_reregistrations' === $bound[1] ) {
+					return $this->campaigns[ (int) $bound[2] ] ?? null;
+				}
+				$this->fail( 'Unexpected get_row(): ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$bound = $this->bound_to( (string) $sql );
+				if ( str_contains( (string) $sql, 'parent_id = %d' ) ) {
+					// AudienceReader::get_children(): no audience here has children.
+					return array();
+				}
+				if ( str_contains( (string) $sql, 'SELECT status, COUNT(*)' ) && 'wp_ffc_reregistration_submissions' === $bound[1] ) {
+					return $this->stats;
+				}
+				if ( str_contains( (string) $sql, 'JOIN %i a ON ra.audience_id = a.id' ) ) {
+					// ReregistrationRepository::get_audiences(): no audience linked.
+					return array();
+				}
+				$this->fail( 'Unexpected get_results(): ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( $sql ) {
+				$bound = $this->bound_to( (string) $sql );
+				if ( str_contains( (string) $sql, 'SELECT DISTINCT user_id FROM %i WHERE audience_id IN' ) && 'wp_ffc_audience_members' === $bound[1] ) {
+					$users = array();
+					foreach ( array_slice( $bound, 2 ) as $audience_id ) {
+						$users = array_merge( $users, $this->members[ (int) $audience_id ] ?? array() );
+					}
+					return array_map( 'strval', $users );
+				}
+				$this->fail( 'Unexpected get_col(): ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) use ( $wpdb ) {
+				$this->writes[] = array( 'insert', $table, $data, null );
+				if ( 'wp_ffc_reregistrations' === $table ) {
+					$wpdb->insert_id = 55;
+				}
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				$this->writes[] = array( 'update', $table, $data, $where );
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'delete' )->andReturnUsing(
+			function ( $table, $where ) {
+				$this->writes[] = array( 'delete', $table, null, $where );
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $sql ) {
+				$this->writes[] = array( 'query', (string) $sql, $this->bound_to( (string) $sql ), null );
+				return 1;
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
+	}
+
+	/**
+	 * The argument list prepare() received for a prepared statement.
+	 *
+	 * @param string $sql What prepare() returned.
+	 * @return array<int, mixed>
+	 */
+	private function bound_to( string $sql ): array {
+		if ( 1 !== preg_match( '/^Q(\d+):/', $sql, $m ) ) {
+			$this->fail( 'Not a prepared statement: ' . $sql );
+		}
+		return $this->prepared[ (int) $m[1] ];
+	}
+
+	/**
+	 * The writes the double received on one table, in order.
+	 *
+	 * @param string $table Table name.
+	 * @return list<array<int, mixed>>
+	 */
+	private function writes_to( string $table ): array {
+		return array_values( array_filter( $this->writes, static fn( array $w ): bool => $table === $w[1] ) );
+	}
+
+	/**
+	 * The runs of a raw query whose SQL contains a fragment, as their bound arguments.
+	 *
+	 * @param string $fragment SQL fragment.
+	 * @return list<array<int, mixed>>
+	 */
+	private function queries_with( string $fragment ): array {
+		$found = array();
+		foreach ( $this->writes as $w ) {
+			if ( 'query' === $w[0] && str_contains( $w[1], $fragment ) ) {
+				$found[] = $w[2];
+			}
+		}
+		return $found;
 	}
 
 	// ==================================================================
@@ -184,14 +362,6 @@ class ReregistrationAdminTest extends TestCase {
 	// render_page() — permission denied
 	// ==================================================================
 
-	/**
-	 * Runs in a separate process because other tests in the suite leak a
-	 * Mockery alias for current_user_can through Brain/Monkey's global state,
-	 * causing the local `when()` stub to be ignored here.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_render_page_dies_without_capability(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
 		Functions\when( 'wp_die' )->alias( function ( $msg ) {
@@ -359,37 +529,13 @@ class ReregistrationAdminTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
 
-		$_POST['ffc_action']        = 'save_reregistration';
-		$_POST['reregistration_id'] = 0;
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_post_string' )->andReturnUsing(
-				function ( $key, $default = '' ) use ( $posted ) {
-					$map = array(
-						'rereg_title'          => 'C',
-						'rereg_start_date'     => '2026-01-01',
-						'rereg_end_date'       => '2026-12-31',
-						'rereg_status'         => 'draft',
-						'rereg_reminder_days'  => $posted,
-					);
-					return $map[ $key ] ?? $default;
-				}
-			)
-			->shouldReceive( 'get_get_key' )->andReturn( '' )
-			->shouldReceive( 'get_get_int' )->andReturn( 0 )
-			->shouldReceive( 'has_get' )->andReturn( false );
-
-		$captured = 0;
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
-			->shouldReceive( 'create' )->once()->andReturnUsing(
-				function ( $data ) use ( &$captured ) {
-					$captured = (int) $data['reminder_days'];
-					return 55;
-				}
-			)
-			->shouldReceive( 'set_audience_ids' );
+		$_POST['ffc_action']          = 'save_reregistration';
+		$_POST['reregistration_id']   = 0;
+		$_POST['rereg_title']         = 'C';
+		$_POST['rereg_start_date']    = '2026-01-01';
+		$_POST['rereg_end_date']      = '2026-12-31';
+		$_POST['rereg_status']        = 'draft';
+		$_POST['rereg_reminder_days'] = $posted;
 
 		$admin = new ReregistrationAdmin();
 		try {
@@ -399,7 +545,11 @@ class ReregistrationAdminTest extends TestCase {
 			unset( $e );
 		}
 
-		return $captured;
+		$created = $this->writes_to( 'wp_ffc_reregistrations' );
+		$this->assertCount( 1, $created, 'exactly one campaign row is written' );
+		$this->assertSame( 'insert', $created[0][0] );
+
+		return $created[0][2]['reminder_days'];
 	}
 
 	/**
@@ -414,8 +564,8 @@ class ReregistrationAdminTest extends TestCase {
 	 * Since #1762 nothing is mailed here -- the daily run sends the
 	 * invitations -- and the redirect asks the screen to say so.
 	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The campaign links audience 3, whose one member is user 21, so the seed
+	 * reaches the database and its place in the order can be read there.
 	 */
 	public function test_handle_save_reopens_expired_submissions_when_reactivating(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
@@ -430,56 +580,41 @@ class ReregistrationAdminTest extends TestCase {
 		$_POST['ffc_action']             = 'save_reregistration';
 		$_POST['reregistration_id']      = 9;
 		$_POST['rereg_email_invitation'] = '1';
+		$_POST['rereg_title']            = 'C';
+		$_POST['rereg_start_date']       = '2026-01-01';
+		$_POST['rereg_end_date']         = '2026-12-31';
+		// The transition under test: the campaign was expired and the
+		// administrator is switching it back on.
+		$_POST['rereg_status']       = 'active';
+		$_POST['rereg_audience_ids'] = array( '3' );
 
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_post_string' )->andReturnUsing(
-				function ( $key, $default = '' ) {
-					$map = array(
-						'rereg_title'      => 'C',
-						'rereg_start_date' => '2026-01-01',
-						'rereg_end_date'   => '2026-12-31',
-						// The transition under test: the campaign was expired
-						// and the administrator is switching it back on.
-						'rereg_status'     => 'active',
-					);
-					return $map[ $key ] ?? $default;
-				}
-			)
-			->shouldReceive( 'get_get_key' )->andReturn( '' )
-			->shouldReceive( 'get_get_int' )->andReturn( 0 )
-			->shouldReceive( 'has_get' )->andReturn( false );
-
-		$calls = array();
-
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
-			->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 9, 'status' => 'expired' ) )
-			->shouldReceive( 'update' )->andReturn( true )
-			->shouldReceive( 'set_audience_ids' )
-			->shouldReceive( 'reopen_expired_submissions' )->once()->andReturnUsing(
-				function () use ( &$calls ) {
-					$calls[] = 'reopen';
-					return 2;
-				}
-			);
-
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' )
-			->shouldReceive( 'create_for_audience_members' )->once()->andReturnUsing(
-				function () use ( &$calls ) {
-					$calls[] = 'seed';
-					return 0;
-				}
-			);
-
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' )
-			->shouldNotReceive( 'send_invitations' );
+		$this->campaigns[9] = (object) array(
+			'id'       => 9,
+			'status'   => 'expired',
+			'end_date' => '2026-12-31',
+		);
+		$this->members[3]   = array( 21 );
+		Functions\expect( 'wp_mail' )->never();
 
 		$admin = new ReregistrationAdmin();
 		try {
 			$this->invoke_private( $admin, 'handle_save' );
 		} catch ( \RuntimeException $e ) {
 			unset( $e );
+		}
+
+		$calls = array();
+		foreach ( $this->writes as $w ) {
+			if ( 'query' !== $w[0] ) {
+				continue;
+			}
+			if ( str_contains( $w[1], "SET status = 'pending'" ) && "WHERE reregistration_id = %d AND status = 'expired'" === trim( substr( $w[2][0], (int) strpos( $w[2][0], 'WHERE' ) ) ) ) {
+				$this->assertSame( array( 'wp_ffc_reregistration_submissions', '2026-03-01 10:00:00', 9 ), array_slice( $w[2], 1 ), 'the campaign\'s expired submissions are reopened' );
+				$calls[] = 'reopen';
+			} elseif ( str_contains( $w[1], 'INSERT IGNORE INTO %i' ) ) {
+				$this->assertSame( array( 'wp_ffc_reregistration_submissions', 9, 21, 'pending' ), array_slice( $w[2], 1 ), 'the member is seeded' );
+				$calls[] = 'seed';
+			}
 		}
 
 		$this->assertSame( array( 'reopen', 'seed' ), $calls, 'Reopening must precede the seeding.' );
@@ -493,9 +628,6 @@ class ReregistrationAdminTest extends TestCase {
 	 * `DATEDIFF(end_date, CURDATE()) <= reminder_days`, so a 0 collapses
 	 * every reminder onto the campaign's last day — too late to be a
 	 * reminder, and nothing on screen says the value changed.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_handle_save_keeps_the_default_when_reminder_days_is_cleared(): void {
 		$this->assertSame( 7, $this->saved_reminder_days( '' ) );
@@ -503,9 +635,6 @@ class ReregistrationAdminTest extends TestCase {
 
 	/**
 	 * A typed 0 lands on the floor the field itself declares (`min="1"`).
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_handle_save_floors_a_typed_zero_on_the_fields_own_min(): void {
 		$this->assertSame( 1, $this->saved_reminder_days( '0' ) );
@@ -513,18 +642,11 @@ class ReregistrationAdminTest extends TestCase {
 
 	/**
 	 * A real value still round-trips.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_handle_save_stores_a_supplied_reminder_days(): void {
 		$this->assertSame( 14, $this->saved_reminder_days( '14' ) );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_handle_save_creates_active_campaign_and_redirects(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		$redirect = '';
@@ -537,38 +659,17 @@ class ReregistrationAdminTest extends TestCase {
 
 		$_POST['ffc_action']         = 'save_reregistration';
 		$_POST['reregistration_id']  = 0;
+		$_POST['rereg_title']        = 'My Campaign';
+		$_POST['rereg_start_date']   = '2026-01-01';
+		$_POST['rereg_end_date']     = '2026-12-31';
 		$_POST['rereg_status']       = 'active';
 		$_POST['rereg_audience_ids'] = array( '3', '4' );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_post_string' )->andReturnUsing(
-				function ( $key, $default = '' ) {
-					$map = array(
-						'rereg_title'      => 'My Campaign',
-						'rereg_start_date' => '2026-01-01',
-						'rereg_end_date'   => '2026-12-31',
-						'rereg_status'     => 'active',
-					);
-					return $map[ $key ] ?? $default;
-				}
-			)
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
-			->shouldReceive( 'create' )->once()->andReturn( 55 )
-			->shouldReceive( 'set_audience_ids' )->once()->with( 55, array( 3, 4 ) );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' )
-			->shouldReceive( 'create_for_audience_members' )->once()->with( 55, array( 3, 4 ) );
+		$this->members[3]            = array( 21 );
+		$this->members[4]            = array( 22 );
 
 		// Invitations off: the campaign is created and seeded, nothing is
 		// mailed (#1762), and there is nothing to announce.
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' )
-			->shouldNotReceive( 'send_invitations' );
+		Functions\expect( 'wp_mail' )->never();
 
 		$admin = new ReregistrationAdmin();
 		try {
@@ -577,48 +678,59 @@ class ReregistrationAdminTest extends TestCase {
 			unset( $e );
 		}
 
+		$created = $this->writes_to( 'wp_ffc_reregistrations' );
+		$this->assertCount( 1, $created, 'one campaign is created' );
+		$this->assertSame( array( 'insert', 'My Campaign', 'active' ), array( $created[0][0], $created[0][2]['title'], $created[0][2]['status'] ) );
+		$this->assertSame(
+			array(
+				array( 'delete', 'wp_ffc_reregistration_audiences', null, array( 'reregistration_id' => 55 ) ),
+				array( 'insert', 'wp_ffc_reregistration_audiences', array( 'reregistration_id' => 55, 'audience_id' => 3 ), null ),
+				array( 'insert', 'wp_ffc_reregistration_audiences', array( 'reregistration_id' => 55, 'audience_id' => 4 ), null ),
+			),
+			$this->writes_to( 'wp_ffc_reregistration_audiences' ),
+			'the new campaign is linked to audiences 3 and 4'
+		);
+		$seeded = $this->queries_with( 'INSERT IGNORE INTO %i' );
+		$this->assertCount( 1, $seeded, 'the members of audiences 3 and 4 are seeded once' );
+		$this->assertSame( array( 'wp_ffc_reregistration_submissions', 55, 21, 'pending', 55, 22, 'pending' ), array_slice( $seeded[0], 1 ) );
 		$this->assertStringEndsWith( '&id=55&message=created', $redirect );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_handle_save_updates_existing_draft_campaign(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
 
 		$_POST['ffc_action']        = 'save_reregistration';
 		$_POST['reregistration_id'] = 9;
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_post_string' )->andReturnUsing(
-				function ( $key, $default = '' ) {
-					$map = array(
-						'rereg_title'      => 'Updated',
-						'rereg_start_date' => '2026-01-01',
-						'rereg_end_date'   => '2026-12-31',
-						'rereg_status'     => 'draft',
-					);
-					return $map[ $key ] ?? $default;
-				}
-			)
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
+		$_POST['rereg_title']       = 'Updated';
+		$_POST['rereg_start_date']  = '2026-01-01';
+		$_POST['rereg_end_date']    = '2026-12-31';
+		$_POST['rereg_status']      = 'draft';
 
 		// Existing campaign already draft → no membership/invitation side effects.
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
-			->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'status' => 'draft' ) )
-			->shouldReceive( 'update' )->once()->with( 9, Mockery::type( 'array' ) )
-			->shouldReceive( 'set_audience_ids' )->once()->with( 9, array() );
+		$this->campaigns[9] = (object) array(
+			'id'       => 9,
+			'status'   => 'draft',
+			'end_date' => '2026-12-31',
+		);
 
 		$admin = new ReregistrationAdmin();
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirected' );
-		$this->invoke_private( $admin, 'handle_save' );
+		try {
+			$this->invoke_private( $admin, 'handle_save' );
+			$this->fail( 'handle_save() ends in a redirect' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirected', $e->getMessage() );
+		}
+
+		$updated = $this->writes_to( 'wp_ffc_reregistrations' );
+		$this->assertCount( 1, $updated, 'the campaign is updated once' );
+		$this->assertSame( array( 'update', 'Updated', 'draft', array( 'id' => 9 ) ), array( $updated[0][0], $updated[0][2]['title'], $updated[0][2]['status'], $updated[0][3] ) );
+		$this->assertSame(
+			array( array( 'delete', 'wp_ffc_reregistration_audiences', null, array( 'reregistration_id' => 9 ) ) ),
+			$this->writes_to( 'wp_ffc_reregistration_audiences' ),
+			'its audience links are replaced by the empty posted set'
+		);
+		$this->assertSame( array(), $this->queries_with( '' ), 'no submission is reopened or seeded' );
 	}
 
 	public function test_handle_save_returns_early_without_action(): void {
@@ -632,22 +744,24 @@ class ReregistrationAdminTest extends TestCase {
 		$this->invoke_private( $admin, 'handle_save' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_handle_save_returns_early_on_bad_nonce(): void {
-		$_POST['ffc_action'] = 'save_reregistration';
-		Functions\when( 'wp_verify_nonce' )->justReturn( false );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_post_string' )->andReturn( '' )
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
+		$_POST['ffc_action']        = 'save_reregistration';
+		$_POST['reregistration_id'] = 9;
+		$_POST['rereg_title']       = 'C';
+		$verified                   = array();
+		Functions\when( 'wp_verify_nonce' )->alias(
+			static function ( $nonce, $action ) use ( &$verified ) {
+				$verified[] = array( $nonce, $action );
+				return false;
+			}
+		);
 
 		$admin = new ReregistrationAdmin();
 		$this->invoke_private( $admin, 'handle_save' );
-		$this->assertTrue( true );
+
+		$this->assertSame( array( array( '', 'save_reregistration' ) ), $verified, 'the missing nonce is checked against the save action' );
+		$this->assertSame( array(), $this->prepared, 'nothing is read' );
+		$this->assertSame( array(), $this->writes, 'nothing is written' );
 	}
 
 	public function test_handle_delete_returns_early_without_action(): void {
@@ -662,76 +776,82 @@ class ReregistrationAdminTest extends TestCase {
 		$this->invoke_private( $admin, 'handle_delete' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_handle_delete_dies_without_delete_cap(): void {
 		$_GET['action'] = 'delete';
 		$_GET['id']     = '5';
 		Functions\when( 'wp_die' )->alias( fn( $msg ) => throw new \RuntimeException( $msg ) );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_delete_reregistration' )->andReturn( false );
+		$asked = array();
+		Functions\when( 'current_user_can' )->alias(
+			static function ( $cap ) use ( &$asked ) {
+				$asked[] = $cap;
+				return false;
+			}
+		);
 
 		$admin = new ReregistrationAdmin();
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'permission to delete' );
-		$this->invoke_private( $admin, 'handle_delete' );
+		try {
+			$this->invoke_private( $admin, 'handle_delete' );
+			$this->fail( 'handle_delete() dies without the delete capability' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'permission to delete', $e->getMessage() );
+		}
+
+		$this->assertSame( array( 'manage_options', 'ffc_delete_reregistration' ), $asked, 'the destructive capability is the one checked' );
+		$this->assertSame( array(), $this->writes, 'nothing is deleted' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_handle_delete_deletes_and_redirects(): void {
 		$_GET['action']   = 'delete';
 		$_GET['id']       = '5';
 		$_GET['_wpnonce'] = 'good';
-		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$verified = array();
+		Functions\when( 'wp_verify_nonce' )->alias(
+			static function ( $nonce, $action ) use ( &$verified ) {
+				$verified[] = array( $nonce, $action );
+				return true;
+			}
+		);
 		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
 
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( 'good' )
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
-			->shouldReceive( 'delete' )->once()->with( 5 );
-
 		$admin = new ReregistrationAdmin();
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirected' );
-		$this->invoke_private( $admin, 'handle_delete' );
+		try {
+			$this->invoke_private( $admin, 'handle_delete' );
+			$this->fail( 'handle_delete() ends in a redirect' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirected', $e->getMessage() );
+		}
+
+		$this->assertSame( array( array( 'good', 'delete_reregistration_5' ) ), $verified );
+		$this->assertSame(
+			array(
+				array( 'delete', 'wp_ffc_reregistration_submissions', null, array( 'reregistration_id' => 5 ) ),
+				array( 'delete', 'wp_ffc_reregistration_audiences', null, array( 'reregistration_id' => 5 ) ),
+				array( 'delete', 'wp_ffc_reregistrations', null, array( 'id' => 5 ) ),
+			),
+			$this->writes,
+			'campaign 5 is deleted with its submissions and audience links'
+		);
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_handle_delete_returns_early_on_bad_nonce(): void {
 		$_GET['action']   = 'delete';
 		$_GET['id']       = '5';
 		$_GET['_wpnonce'] = 'bad';
-		Functions\when( 'wp_verify_nonce' )->justReturn( false );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( 'bad' )
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
-			->shouldReceive( 'delete' )->never();
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$verified = array();
+		Functions\when( 'wp_verify_nonce' )->alias(
+			static function ( $nonce, $action ) use ( &$verified ) {
+				$verified[] = array( $nonce, $action );
+				return false;
+			}
+		);
 
 		$admin = new ReregistrationAdmin();
 		$this->invoke_private( $admin, 'handle_delete' );
-		$this->assertTrue( true );
+
+		$this->assertSame( array( array( 'bad', 'delete_reregistration_5' ) ), $verified );
+		$this->assertSame( array(), $this->writes, 'nothing is deleted' );
 	}
 
 	// ==================================================================
@@ -761,23 +881,16 @@ class ReregistrationAdminTest extends TestCase {
 		$this->assertStringContainsString( 'Parent B', $html );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_renderer_list_row_renders_campaign_row(): void {
 		Functions\when( 'wp_nonce_url' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
+		// The settings option holds no date format, so the default applies.
+		Functions\when( 'get_option' )->justReturn( array() );
 
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )
-			->shouldReceive( 'format_date' )->andReturn( '2026-01-01' );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
-			->shouldReceive( 'get_status_label' )->andReturn( 'Active' )
-			->shouldReceive( 'get_audiences' )->andReturn( array() );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
-			->shouldReceive( 'get_statistics' )->andReturn( array( 'approved' => 2, 'total' => 5 ) );
+		$this->stats = array(
+			(object) array( 'status' => 'approved', 'count' => '2' ),
+			(object) array( 'status' => 'pending', 'count' => '3' ),
+		);
 
 		$item = (object) array(
 			'id'           => 7,
@@ -795,5 +908,7 @@ class ReregistrationAdminTest extends TestCase {
 		$this->assertStringContainsString( 'My Campaign', $html );
 		$this->assertStringContainsString( 'column-actions', $html );
 		$this->assertStringContainsString( 'delete-link', $html );
+		$this->assertStringContainsString( 'Active', $html );
+		$this->assertStringContainsString( '2 / 5', $html, 'approved over total, from the statistics query' );
 	}
 }

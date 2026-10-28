@@ -3,19 +3,18 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Core\AssetHelper;
 use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Settings\Tabs\TabCaptcha;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Tests for TabCaptcha: the captcha settings tab (#1053).
  *
- * The test that alias-mocks AssetHelper runs in its own process; the rest
- * share it (#2091).
+ * Every test shares the process; AssetHelper runs for real (#2091).
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabCaptcha
  * @preserveGlobalState disabled
@@ -89,12 +88,8 @@ class TabCaptchaTest extends TestCase {
 		$this->assertSame( array(), $enqueued );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_the_script_loads_on_the_captcha_tab(): void {
 		SettingsTab::set_resolved_active_tab( 'captcha' );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
 		$enqueued = array();
 		Functions\when( 'wp_enqueue_script' )->alias(
 			static function ( $handle, $src ) use ( &$enqueued ) {
@@ -104,8 +99,11 @@ class TabCaptchaTest extends TestCase {
 
 		$this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
 
+		// The real AssetHelper answers the suffix. It depends on SCRIPT_DEBUG,
+		// which an earlier test in the process may have defined, so it is read
+		// rather than assumed.
 		$this->assertSame(
-			array( 'ffc-admin-captcha-settings' => FFC_PLUGIN_URL . 'assets/js/ffc-admin-captcha-settings.min.js' ),
+			array( 'ffc-admin-captcha-settings' => FFC_PLUGIN_URL . 'assets/js/ffc-admin-captcha-settings' . AssetHelper::asset_suffix() . '.js' ),
 			$enqueued
 		);
 	}

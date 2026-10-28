@@ -13,18 +13,12 @@
  */
 
 return array(
-	'CpfRfSplitMigrationStrategyTest.php',
 	'FormProcessorGeofenceBeforeRateLimitTest.php',
 	'FormProcessorNonceRecoveryTest.php',
 	'FormProcessorRequiredPresenceOrderTest.php',
 	'FrontendTest.php',
-	'MigrationForeignKeysTest.php',
 	'PreflightStatsServiceTest.php',
 	'PreflightTelemetryTest.php',
-	'ReregistrationEmailHandlerTest.php',
-	'ReregistrationInvitationBatchTest.php',
-	'ReregistrationReminderBatchTest.php',
-	'SelfSchedulingAdminTest.php',
 	'SelfSchedulingCPTTest.php',
 	'SelfSchedulingCleanupHandlerTest.php',
 	'SelfSchedulingEditorTest.php',

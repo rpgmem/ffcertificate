@@ -8,16 +8,58 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Reregistration\ReregistrationFieldOptions;
 use FreeFormCertificate\Reregistration\ReregistrationFormRenderer;
+use FreeFormCertificate\Tests\Support\CallLog;
 use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
+ * Tests for ReregistrationFormRenderer.
+ *
+ * The repositories, the custom-field reader, the field options, the group
+ * labels, the record generator, Encryption (the bootstrap's keys) and the
+ * user manager are the real classes, over a strict `$wpdb` double that
+ * answers the campaign's audience link, audience 1 and its fields, the
+ * previous-approval lookup and the profile table — any other query fails the
+ * test.
+ *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationFormRenderer
- * @preserveGlobalState disabled
  */
 class ReregistrationFormRendererTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/** @var array<object> Field rows audience 1 carries. */
+	private array $fields = array();
+
+	/** @var list<string> What the campaign's audience link returns. */
+	private array $audience_ids = array();
+
+	/**
+	 * The row the previous-approval lookup returns. `null` -- no earlier
+	 * approved reregistration -- is the common case (#1213).
+	 *
+	 * @var object|null
+	 */
+	private ?object $import_source = null;
+
+	/**
+	 * The ffc_user_profiles row of user 10, or null when the table does not
+	 * exist.
+	 *
+	 * @var array<string, mixed>|null
+	 */
+	private ?array $profile_row = null;
+
+	/** @var list<string> Every query the double answered, in order. */
+	private array $queries = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	/**
 	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
@@ -31,6 +73,9 @@ class ReregistrationFormRendererTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -49,6 +94,9 @@ class ReregistrationFormRendererTest extends TestCase {
 			return 'Y-m-d';
 		} );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
 
 		$user_mock = Mockery::mock( 'WP_User' );
 		$user_mock->user_email      = 'test@example.com';
@@ -56,32 +104,92 @@ class ReregistrationFormRendererTest extends TestCase {
 		$user_mock->user_registered = '2025-01-01 00:00:00';
 		Functions\when( 'get_userdata' )->justReturn( $user_mock );
 
-		global $wpdb;
-		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
-		$wpdb->prefix = 'wp_';
-		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () { return func_get_arg(0); } )->byDefault();
-		$wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();
-		$wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
-		$wpdb->shouldReceive( 'get_var' )->andReturn( null )->byDefault();
+		$this->fields        = array();
+		$this->audience_ids  = array();
+		$this->import_source = null;
+		$this->profile_row   = null;
+		$this->queries       = array();
+		$GLOBALS['wpdb']     = $this->database();
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
 
 	/**
-	 * @var array<object>|null Field definitions the CustomFieldRepository mock
-	 *                         returns. Reset before each `mockRepositories` call.
+	 * The strict `$wpdb` double, answering from the properties above.
+	 *
+	 * @return Mockery\MockInterface
 	 */
-	private static $mockFields = null;
+	private function database() {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
 
-	/**
-	 * @var object|null The source submission the `ReregistrationSubmissionReader`
-	 *                  alias returns. `null` -- no approved reregistration
-	 *                  anterior -- e o caso comum (#1213).
-	 */
-	private static $mockImportSource = null;
+		// Interpolates, so every read can dispatch on the query's full text.
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$values = ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args;
+				foreach ( $values as $v ) {
+					$sql = (string) preg_replace( '/%[ids]/', (string) $v, (string) $sql, 1 );
+				}
+				return $sql;
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = (string) $sql;
+				if ( preg_match( '/^SELECT audience_id FROM wp_ffc_reregistration_audiences WHERE reregistration_id = \d+$/', (string) $sql ) ) {
+					return $this->audience_ids;
+				}
+				$this->fail( 'Unexpected get_col: ' . $sql );
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = (string) $sql;
+				if ( str_starts_with( (string) $sql, 'SELECT * FROM wp_ffc_custom_fields WHERE audience_id = 1 AND is_active = 1' ) ) {
+					return $this->fields;
+				}
+				$this->fail( 'Unexpected get_results: ' . $sql );
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = (string) $sql;
+				if ( 'SELECT * FROM wp_ffc_audiences WHERE id = 1' === $sql ) {
+					return (object) array( 'id' => 1, 'name' => 'Test Audience', 'parent_id' => 0 );
+				}
+				if ( str_contains( (string) $sql, 'INNER JOIN wp_ffc_reregistrations r' ) && str_contains( (string) $sql, "AND s.status = approved" ) ) {
+					return $this->import_source;
+				}
+				if ( 'SELECT * FROM wp_ffc_user_profiles WHERE user_id = 10' === $sql && null !== $this->profile_row ) {
+					return $this->profile_row;
+				}
+				$this->fail( 'Unexpected get_row: ' . $sql );
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = (string) $sql;
+				if ( 'SHOW TABLES LIKE wp_ffc_user_profiles' === $sql ) {
+					return null !== $this->profile_row ? 'wp_ffc_user_profiles' : null;
+				}
+				$this->fail( 'Unexpected get_var: ' . $sql );
+			}
+		);
+
+		return $wpdb;
+	}
 
 	/**
 	 * Build a minimal field stdClass with renderer-safe defaults.
@@ -108,48 +216,30 @@ class ReregistrationFormRendererTest extends TestCase {
 	}
 
 	/**
-	 * Register alias mocks for the renderer's static repository dependencies.
+	 * Store the fields the campaign's audience carries: with fields, the
+	 * campaign links audience 1; without, it links none.
 	 *
-	 * @param array<object> $fields Fields to expose through
-	 *                              CustomFieldReader::get_by_audience_with_parents.
+	 * @param array<object> $fields Field rows of audience 1.
 	 */
-	private function mockRepositories( array $fields = array() ): void {
-		self::$mockFields = $fields;
+	private function useFields( array $fields = array() ): void {
+		$this->fields       = $fields;
+		$this->audience_ids = empty( $fields ) ? array() : array( '1' );
+	}
 
-		$reregRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );
-		$reregRepoMock->shouldReceive( 'get_audience_ids' )->andReturn( empty( $fields ) ? array() : array( 1 ) );
-
-		// Without this alias the renderer reaches #1213's real query and the test
-		// dies in `ReregistrationRepository::get_table_name()`. `null` is the
-		// common case: no earlier approved reregistration, so there is no import
-		// offer.
-		$submissionReaderMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' );
-		$submissionReaderMock->shouldReceive( 'get_latest_approved_for_user' )->andReturn( self::$mockImportSource );
-
-		$customFieldRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' );
-		$customFieldRepoMock->shouldReceive( 'get_by_audience_with_parents' )->andReturn( $fields );
-		$customFieldRepoMock->shouldReceive( 'get_user_data' )->andReturn( array() );
-
-		$fieldOptionsMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationFieldOptions' );
-		$fieldOptionsMock->shouldReceive( 'get_default_acknowledgment_html' )->andReturn( '<p>Default termo de ciência</p>' );
-		$fieldOptionsMock->shouldIgnoreMissing( array() );
-
-		$seederMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
-		$seederMock->shouldReceive( 'get_group_labels' )->andReturn( array(
-			'personal' => 'Personal Data',
-			'contact'  => 'Contact Information',
-		) );
+	/**
+	 * The shipped acknowledgment notice, the fallback when no audience field
+	 * carries one.
+	 */
+	private static function defaultNotice(): string {
+		return ReregistrationFieldOptions::get_default_acknowledgment_html();
 	}
 
 	// ==================================================================
 	// render() — basic rendering
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_render_returns_form_html(): void {
-		$this->mockRepositories();
+		$this->useFields();
 
 		$rereg = (object) array(
 			'id'       => 1,
@@ -164,15 +254,12 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringContainsString( 'Recadastramento 2025', $html );
 		$this->assertStringContainsString( 'ffc-rereg-form', $html );
 		// No acknowledgment field present → the default notice fallback fires.
-		$this->assertStringContainsString( 'Default termo de ciência', $html );
+		$this->assertStringContainsString( self::defaultNotice(), $html );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_render_offers_the_import_when_a_previous_approval_exists(): void {
-		self::$mockImportSource = (object) array( 'reregistration_title' => 'Recadastramento 2024' );
-		$this->mockRepositories();
+		$this->import_source = (object) array( 'reregistration_title' => 'Recadastramento 2024' );
+		$this->useFields();
 
 		$rereg      = (object) array( 'id' => 2, 'title' => 'Recadastramento 2025', 'end_date' => '2025-12-31 23:59:59' );
 		$submission = (object) array( 'data' => null );
@@ -185,11 +272,8 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringContainsString( 'Recadastramento 2024', $html );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_render_omits_the_import_offer_without_a_previous_approval(): void {
-		$this->mockRepositories();
+		$this->useFields();
 
 		$rereg      = (object) array( 'id' => 2, 'title' => 'Recadastramento 2025', 'end_date' => '2025-12-31 23:59:59' );
 		$submission = (object) array( 'data' => null );
@@ -199,11 +283,8 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringNotContainsString( 'data-ffc-notice="rereg-import"', $html );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_render_acknowledgment_field_outputs_its_html(): void {
-		$this->mockRepositories( array(
+		$this->useFields( array(
 			$this->makeField( array(
 				'id'            => 1,
 				'field_key'     => 'acknowledgment',
@@ -226,18 +307,15 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-rereg-termo-text', $html );
 		$this->assertStringContainsString( 'Per-audience notice text', $html );
 		// …and the default-notice fallback does NOT also fire.
-		$this->assertStringNotContainsString( 'Default termo de ciência', $html );
+		$this->assertStringNotContainsString( self::defaultNotice(), $html );
 	}
 
 	// ==================================================================
 	// render() — with saved draft data
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_render_populates_from_saved_draft(): void {
-		$this->mockRepositories( array(
+		$this->useFields( array(
 			$this->makeField( array(
 				'id'          => 1,
 				'field_key'   => 'display_name',
@@ -288,24 +366,14 @@ class ReregistrationFormRendererTest extends TestCase {
 	 * in place.
 	 *
 	 * @return void
-	 * @runInSeparateProcess
 	 */
 	public function test_render_decrypts_a_sensitive_draft_value(): void {
-		$encryptionMock = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
-		// The shared reader asks the VALUE whether it is an envelope before
-		// attempting (#1509). `byDefault()` on the negative keeps every other
-		// value in this render from being handed to `decrypt()` at all, which is
-		// the behaviour that change buys.
-		$encryptionMock->shouldReceive( 'looks_like_envelope' )
-			->with( 'CIPHERTEXT-DO-CPF' )
-			->andReturn( true );
-		$encryptionMock->shouldReceive( 'looks_like_envelope' )->andReturn( false )->byDefault();
-		$encryptionMock->shouldReceive( 'decrypt' )
-			->with( 'CIPHERTEXT-DO-CPF' )
-			->andReturn( self::masked( Identifiers::CPF_A ) );
-		$encryptionMock->shouldReceive( 'decrypt' )->andReturn( null )->byDefault();
+		// What `ReregistrationDataProcessor` writes: the real envelope, under
+		// the bootstrap's key.
+		$ciphertext = Encryption::encrypt( self::masked( Identifiers::CPF_A ) );
+		$this->assertIsString( $ciphertext );
 
-		$this->mockRepositories( array(
+		$this->useFields( array(
 			$this->makeField( array(
 				'id'           => 1,
 				'field_key'    => 'cpf',
@@ -332,7 +400,7 @@ class ReregistrationFormRendererTest extends TestCase {
 			'data' => json_encode(
 				array(
 					'fields' => array(
-						'cpf'   => 'CIPHERTEXT-DO-CPF',
+						'cpf'   => $ciphertext,
 						'phone' => '11999999999',
 					),
 				)
@@ -342,7 +410,7 @@ class ReregistrationFormRendererTest extends TestCase {
 		$html = ReregistrationFormRenderer::render( $rereg, $submission, 10 );
 
 		$this->assertStringContainsString( self::masked( Identifiers::CPF_A ), $html, 'The sensitive value must come back in clear text.' );
-		$this->assertStringNotContainsString( 'CIPHERTEXT-DO-CPF', $html, 'The ciphertext must not reach the form.' );
+		$this->assertStringNotContainsString( $ciphertext, $html, 'The ciphertext must not reach the form.' );
 		$this->assertStringContainsString( '11999999999', $html, 'The non-sensitive field is left untouched.' );
 	}
 
@@ -350,11 +418,8 @@ class ReregistrationFormRendererTest extends TestCase {
 	// render() — deadline is displayed
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_render_shows_deadline(): void {
-		$this->mockRepositories();
+		$this->useFields();
 
 		$rereg = (object) array(
 			'id'       => 3,
@@ -418,14 +483,13 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertSame( '<textarea id="fid" name="fields[notes]" rows="3"></textarea>', $html );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_render_input_select_lists_choices_and_selects_the_value(): void {
 		$this->stubRealSelectedAndChecked();
-		$field = $this->makeField( array( 'field_key' => 'shift', 'field_type' => 'select' ) );
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' )
-			->shouldReceive( 'get_field_choices' )->with( $field )->andReturn( array( 'Morning', 'Evening' ) );
+		$field = $this->makeField( array(
+			'field_key'     => 'shift',
+			'field_type'    => 'select',
+			'field_options' => json_encode( array( 'choices' => array( 'Morning', 'Evening' ) ) ),
+		) );
 
 		$html = $this->renderInput( $field, 'Evening', true );
 
@@ -489,19 +553,17 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertSame( '<input type="text" id="fid" name="fields[misc]" value="v">', $this->renderInput( $field, 'v' ) );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_render_input_dependent_select_restores_parent_and_child(): void {
 		$this->stubRealSelectedAndChecked();
 		$field = $this->makeField( array(
 			'field_key'     => 'unit',
 			'field_type'    => 'dependent_select',
-			'field_options' => json_encode( array( 'parent_label' => 'Region', 'child_label' => 'School' ) ),
+			'field_options' => json_encode( array(
+				'parent_label' => 'Region',
+				'child_label'  => 'School',
+				'groups'       => array( 'North' => array( 'N1', 'N2' ), 'South' => array( 'S1' ) ),
+			) ),
 		) );
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' )
-			->shouldReceive( 'get_dependent_choices' )->with( $field )
-			->andReturn( array( 'North' => array( 'N1', 'N2' ), 'South' => array( 'S1' ) ) );
 
 		$html = $this->renderInput( $field, json_encode( array( 'parent' => 'North', 'child' => 'N2' ) ) );
 
@@ -512,14 +574,13 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringNotContainsString( 'value="S1"', $html, 'Only the chosen parent\'s children are listed.' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_render_input_dependent_select_without_value_uses_default_labels(): void {
 		$this->stubRealSelectedAndChecked();
-		$field = $this->makeField( array( 'field_key' => 'unit', 'field_type' => 'dependent_select' ) );
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' )
-			->shouldReceive( 'get_dependent_choices' )->andReturn( array( 'North' => array( 'N1' ) ) );
+		$field = $this->makeField( array(
+			'field_key'     => 'unit',
+			'field_type'    => 'dependent_select',
+			'field_options' => json_encode( array( 'groups' => array( 'North' => array( 'N1' ) ) ) ),
+		) );
 
 		$html = $this->renderInput( $field, '' );
 
@@ -528,36 +589,33 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringNotContainsString( 'value="N1"', $html, 'No parent chosen, so no child is listed.' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_render_input_working_hours_renders_stored_rows(): void {
 		$this->stubRealSelectedAndChecked();
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationFieldOptions' )
-			->shouldNotReceive( 'get_default_working_hours' );
 		$field = $this->makeField( array( 'field_key' => 'hours', 'field_type' => 'working_hours' ) );
 		$rows  = array( array( 'day' => 3, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00' ) );
 
 		$html = $this->renderInput( $field, json_encode( $rows ) );
 
+		// The stored schedule, not the default one, fills the table and the
+		// hidden input.
+		$this->assertGreaterThan( 1, count( ReregistrationFieldOptions::get_default_working_hours() ), 'The default schedule must be distinguishable from one stored row.' );
 		$this->assertSame( 1, substr_count( $html, '<tr>' ) - 1, 'One stored row plus the header row.' );
+		$this->assertStringContainsString( 'value="' . json_encode( $rows ) . '"', $html );
 		$this->assertStringContainsString( "<option value=\"3\"  selected='selected'>Wednesday</option>", $html );
 		$this->assertStringContainsString( 'value="13:00"', $html );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_render_input_working_hours_falls_back_to_the_default_schedule(): void {
 		$this->stubRealSelectedAndChecked();
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationFieldOptions' )
-			->shouldReceive( 'get_default_working_hours' )->once()
-			->andReturn( array( array( 'day' => 1, 'entry1' => '09:00', 'exit1' => '', 'entry2' => '', 'exit2' => '18:00' ) ) );
-		$field = $this->makeField( array( 'field_key' => 'hours', 'field_type' => 'working_hours' ) );
+		$field   = $this->makeField( array( 'field_key' => 'hours', 'field_type' => 'working_hours' ) );
+		$default = ReregistrationFieldOptions::get_default_working_hours();
 
 		$html = $this->renderInput( $field, '[]' );
 
-		$this->assertStringContainsString( 'value="09:00"', $html );
+		// One row per day of the shipped schedule, and the hidden input
+		// carries that schedule.
+		$this->assertSame( count( $default ), substr_count( $html, '<tr>' ) - 1, 'One row per default day plus the header row.' );
+		$this->assertStringContainsString( 'value="' . json_encode( $default ) . '"', $html );
 		$this->assertStringContainsString( "<option value=\"1\"  selected='selected'>Monday</option>", $html );
 	}
 
@@ -565,12 +623,7 @@ class ReregistrationFormRendererTest extends TestCase {
 	// render_field() / render_group_fieldset() / acknowledgment fallback
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_render_field_acknowledgment_without_html_uses_the_default_notice(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationFieldOptions' )
-			->shouldReceive( 'get_default_acknowledgment_html' )->once()->andReturn( '<p>Shipped notice</p>' );
 		$field = $this->makeField( array(
 			'field_key'     => 'ack',
 			'field_type'    => 'acknowledgment',
@@ -581,7 +634,7 @@ class ReregistrationFormRendererTest extends TestCase {
 		ReregistrationFormRenderer::render_field( $field, '' );
 		$html = (string) ob_get_clean();
 
-		$this->assertSame( '<div class="ffc-rereg-termo-text"><p>Shipped notice</p></div>', $html );
+		$this->assertSame( '<div class="ffc-rereg-termo-text">' . self::defaultNotice() . '</div>', $html );
 	}
 
 	public function test_render_field_checkbox_uses_the_inline_wrapper(): void {
@@ -654,19 +707,13 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertSame( '', ob_get_clean() );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_render_acknowledgment_fieldset_prints_the_default_notice(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationFieldOptions' )
-			->shouldReceive( 'get_default_acknowledgment_html' )->andReturn( '<p>Shipped notice</p>' );
-
 		ob_start();
 		ReregistrationFormRenderer::render_acknowledgment_fieldset( 4 );
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( '<legend>4. Acknowledgment</legend>', $html );
-		$this->assertStringContainsString( '<p>Shipped notice</p>', $html );
+		$this->assertStringContainsString( self::defaultNotice(), $html );
 	}
 
 	// ==================================================================
@@ -674,14 +721,32 @@ class ReregistrationFormRendererTest extends TestCase {
 	// ==================================================================
 
 	/**
-	 * @runInSeparateProcess
+	 * The profile is read through the real UserManager: user 10 has a profile
+	 * row (the `phone` column) and an encrypted `cpf` in the extended-profile
+	 * meta; `empty_key` is stored empty, so its field falls to the default.
 	 */
 	public function test_build_field_values_follows_draft_profile_email_default_order(): void {
-		$user_manager = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' );
-		$user_manager->shouldReceive( 'get_extended_profile' )
-			->once()
-			->with( 10, array( 'phone', 'cpf', 'empty_key' ), array( 'cpf' ) )
-			->andReturn( array( 'phone' => '1188887777', 'cpf' => self::masked( Identifiers::CPF_A ), 'empty_key' => '' ) );
+		$this->profile_row = array(
+			'id'           => '1',
+			'user_id'      => '10',
+			'display_name' => 'Teacher',
+			'phone'        => '1188887777',
+			'department'   => null,
+			'organization' => null,
+			'notes'        => null,
+			'preferences'  => null,
+			'created_at'   => '2025-01-01 00:00:00',
+			'updated_at'   => '2025-01-01 00:00:00',
+		);
+		$stored_cpf        = Encryption::encrypt( self::masked( Identifiers::CPF_A ) );
+		$meta_reads        = array();
+		Functions\when( 'get_user_meta' )->alias(
+			static function ( $user_id, $key ) use ( &$meta_reads, $stored_cpf ) {
+				$meta_reads[] = array( (int) $user_id, (string) $key );
+				return 'ffc_user_cpf' === $key ? $stored_cpf : '';
+			}
+		);
+		Functions\when( 'sanitize_key' )->alias( static fn ( $key ) => strtolower( (string) $key ) );
 
 		$fields = array(
 			$this->makeField( array( 'id' => 1, 'field_key' => 'name' ) ),
@@ -708,14 +773,20 @@ class ReregistrationFormRendererTest extends TestCase {
 			),
 			$values
 		);
+		// The profile was read once, for user 10, over exactly the mapped keys:
+		// `phone` from the profile row, the other two from the extended meta.
+		$this->assertSame(
+			array(
+				'SHOW TABLES LIKE wp_ffc_user_profiles',
+				'SELECT * FROM wp_ffc_user_profiles WHERE user_id = 10',
+			),
+			$this->queries
+		);
+		$this->assertSame( array( array( 10, 'ffc_user_cpf' ), array( 10, 'ffc_user_empty_key' ) ), $meta_reads );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_build_field_values_skips_the_profile_for_a_guest(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' )
-			->shouldNotReceive( 'get_extended_profile' );
+		$meta = CallLog::record( 'get_user_meta', '' );
 
 		$fields = array(
 			$this->makeField( array( 'id' => 1, 'field_key' => 'email_institucional' ) ),
@@ -726,5 +797,7 @@ class ReregistrationFormRendererTest extends TestCase {
 		$values = $method->invoke( null, $fields, array(), 0, false );
 
 		$this->assertSame( array( 'email_institucional' => '' ), $values, 'No user, so no e-mail fallback either.' );
+		$this->assertSame( array(), $this->queries, 'A guest has no profile to read.' );
+		$this->assertSame( 0, $meta->count(), 'A guest has no profile meta to read.' );
 	}
 }

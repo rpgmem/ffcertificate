@@ -13,7 +13,9 @@ use FreeFormCertificate\Audience\AudienceAccountEmail;
 /**
  * The masked account email of the audience screens (#1824), at every tier
  * of the shared PII policy, which runs for real here: the viewer's caps and
- * roles are what the stubs vary.
+ * roles are what the stubs vary. AudienceReader and AudienceScheduleRepository
+ * are the real classes too, over a `$wpdb` double that answers their count
+ * queries by the table and the bound user id.
  *
  * @covers \FreeFormCertificate\Audience\AudienceAccountEmail
  * @preserveGlobalState disabled
@@ -32,9 +34,24 @@ class AudienceAccountEmailTest extends TestCase {
 	 */
 	private const VIEWER = 2;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $this->had_wpdb ? $GLOBALS['wpdb'] : null;
+
+		// The request-wide nonce memo: a render in an earlier test would
+		// otherwise have created it already.
+		$nonce = new \ReflectionProperty( AudienceAccountEmail::class, 'nonce' );
+		$nonce->setAccessible( true );
+		$nonce->setValue( null, null );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
@@ -45,6 +62,11 @@ class AudienceAccountEmailTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -101,10 +123,8 @@ class AudienceAccountEmailTest extends TestCase {
 	}
 
 	/**
-	 * Its own process: the nonce is memoised in a static for the request, so
-	 * a render earlier in the process would already have created it.
-	 *
-	 * @runInSeparateProcess
+	 * The nonce is memoised in a static for the request; setUp() clears it, so
+	 * this render is the first of its request.
 	 */
 	public function test_the_nonce_is_created_once_for_every_row(): void {
 		Functions\when( 'user_can' )->justReturn( true );
@@ -131,18 +151,44 @@ class AudienceAccountEmailTest extends TestCase {
 		$this->assertSame( '', AudienceAccountEmail::render( self::MEMBER, '' ) );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_an_account_is_listed_as_a_member_or_a_calendar_user(): void {
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$reader->shouldReceive( 'is_member_of_any' )->andReturnUsing( static fn( int $id ) => 7 === $id );
-		$schedules = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedules->shouldReceive( 'has_any_permission' )->andReturnUsing( static fn( int $id ) => 8 === $id );
+		$queried = array();
+		$wpdb    = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static fn( string $sql, ...$args ): string => $sql . '|' . implode( '|', $args )
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( string $sql ) use ( &$queried ) {
+				$queried[] = $sql;
+				if ( 'SELECT COUNT(*) FROM %i WHERE user_id = %d|wp_ffc_audience_members|7' === $sql ) {
+					return '1';
+				}
+				if ( 'SELECT COUNT(*) FROM %i WHERE user_id = %d|wp_ffc_audience_schedule_permissions|8' === $sql ) {
+					return '2';
+				}
+				if ( 1 === preg_match( '/^SELECT COUNT\(\*\) FROM %i WHERE user_id = %d\|wp_ffc_audience_(members|schedule_permissions)\|\d+$/', $sql ) ) {
+					return '0';
+				}
+				$this->fail( 'Unexpected get_var(): ' . $sql );
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
 
 		$this->assertTrue( AudienceAccountEmail::is_listed( 7 ), 'a member' );
 		$this->assertTrue( AudienceAccountEmail::is_listed( 8 ), 'a calendar user' );
 		$this->assertFalse( AudienceAccountEmail::is_listed( 9 ), 'an account no audience screen lists' );
 		$this->assertFalse( AudienceAccountEmail::is_listed( 0 ), 'no account' );
+		$this->assertSame(
+			array(
+				'SELECT COUNT(*) FROM %i WHERE user_id = %d|wp_ffc_audience_members|7',
+				'SELECT COUNT(*) FROM %i WHERE user_id = %d|wp_ffc_audience_members|8',
+				'SELECT COUNT(*) FROM %i WHERE user_id = %d|wp_ffc_audience_schedule_permissions|8',
+				'SELECT COUNT(*) FROM %i WHERE user_id = %d|wp_ffc_audience_members|9',
+				'SELECT COUNT(*) FROM %i WHERE user_id = %d|wp_ffc_audience_schedule_permissions|9',
+			),
+			$queried,
+			'a member short-circuits the permission lookup, and no account queries nothing'
+		);
 	}
 }

@@ -34,6 +34,12 @@ class TabRateLimitTest extends TestCase {
 	 */
 	private $tmp_dir = null;
 
+	/** @var bool Whether $GLOBALS['wpdb'] existed before the test. */
+	private bool $had_wpdb = false;
+
+	/** @var mixed The $wpdb a test replaced. */
+	private $wpdb_backup = null;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -62,6 +68,9 @@ class TabRateLimitTest extends TestCase {
 		// elsewhere can reorder shards and expose the latent dependency.
 		$_POST = array();
 
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+
 		$this->tab = new TabRateLimit();
 	}
 
@@ -87,6 +96,11 @@ class TabRateLimitTest extends TestCase {
 				unlink( (string) $file );
 			}
 			rmdir( $this->tmp_dir );
+		}
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
 		}
 		Monkey\tearDown();
 		parent::tearDown();
@@ -165,7 +179,12 @@ class TabRateLimitTest extends TestCase {
 	// render() — capability gate on the inline POST save (real render)
 	// ==================================================================
 
-	/** Stub the WP + collaborator surface the real rate-limit view needs. */
+	/**
+	 * Stub the WP surface the real rate-limit view needs, and answer the
+	 * real RateLimiter::get_stats() through a `$wpdb` double: no block was
+	 * logged, so every counter is zero and the lists are empty. A query the
+	 * view is not known to make fails the test.
+	 */
 	private function stub_rate_limit_view(): void {
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
@@ -176,32 +195,34 @@ class TabRateLimitTest extends TestCase {
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'checked' )->justReturn( '' );
 
-		Mockery::mock( 'alias:FreeFormCertificate\Security\RateLimiter' )
-			->shouldReceive( 'get_stats' )
-			->andReturn( array( 'today' => 0, 'month' => 0, 'by_type' => array(), 'top_ips' => array() ) )
-			->byDefault();
-		Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' )
-			->shouldReceive( 'render_toggle' )->andReturnNull()->byDefault()
-			->shouldReceive( 'render_segmented' )->andReturnNull()->byDefault()
-			->getMock()
-			->shouldReceive( 'render_save_button' )
-			->andReturnUsing(
-				static function ( $label = '', $args = array() ) {
-					// Prints the name the view asks for, so a test can see the view reached its end.
-					echo '<button name="' . htmlspecialchars( (string) ( $args['name'] ?? 'submit' ) ) . '"></button>';
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( string $sql, ...$args ): string {
+				return str_replace( '%i', '`' . (string) ( $args[0] ?? '' ) . '`', $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( string $sql ): string {
+				if ( 0 !== strpos( $sql, 'SELECT COUNT(*) FROM `wp_ffc_rate_limit_logs`' ) ) {
+					throw new \RuntimeException( 'Unexpected get_var: ' . $sql );
 				}
-			)
-			->byDefault();
+				return '0';
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( string $sql ): array {
+				if ( false === strpos( $sql, 'FROM `wp_ffc_rate_limit_logs`' ) ) {
+					throw new \RuntimeException( 'Unexpected get_results: ' . $sql );
+				}
+				return array();
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
 	}
 
 	/**
-	 * Runs in a separate process: this test alias-mocks RateLimiter/AdminUI,
-	 * which fails with "class already exists" if either real class was already
-	 * autoloaded earlier in the shared suite process. A fresh process gives a
-	 * clean class table so the alias mocks load.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The real RateLimiter and AdminUI draw the shipped view after the save.
 	 */
 	public function test_render_real_post_save_persists_with_manage_cap(): void {
 		$_POST['ffc_save_rate_limit'] = '1';
@@ -230,10 +251,6 @@ class TabRateLimitTest extends TestCase {
 		$this->assertStringContainsString( 'name="ffc_save_rate_limit"', $output, 'render() must go on to include the shipped view after saving' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_save_keeps_each_unresolved_policy_and_refuses_an_unknown_one(): void {
 		$_POST['ffc_save_rate_limit']        = '1';
 		$_POST['ip_captcha_unresolved']      = 'share';
@@ -263,10 +280,6 @@ class TabRateLimitTest extends TestCase {
 		$this->assertSame( 'allow', $saved['ip']['device_check_unresolved'], 'an unknown value falls back to the default' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_render_real_post_save_blocked_for_view_only_user(): void {
 		$_POST['ffc_save_rate_limit'] = '1';
 		Functions\when( 'check_admin_referer' )->justReturn( true );

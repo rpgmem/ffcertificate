@@ -21,9 +21,18 @@ class UserCreatorTest extends TestCase {
 	/** @var list<array{0: string, 1: string, 2: string}> Notices emitted during a test. */
 	private array $deprecations = array();
 
+	/** @var bool Whether $GLOBALS['wpdb'] existed before the test. */
+	private bool $had_wpdb = false;
+
+	/** @var mixed The $wpdb the test replaced. */
+	private $wpdb_backup = null;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
@@ -69,6 +78,11 @@ class UserCreatorTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -496,14 +510,14 @@ class UserCreatorTest extends TestCase {
 	 * 500 accounts otherwise means 500 synchronous account notifications from
 	 * inside a batch loop. The user is created either way; only the mail goes.
 	 *
-	 * **`overload:` is right here and `alias:` is not** — the opposite of the
-	 * reregistration confirmation, which is static. `create_ffc_user()` reaches
-	 * the notification through `new EmailHandler()`, and `overload:` is what
-	 * intercepts a constructor.
+	 * `create_ffc_user()` reaches the notification through a real
+	 * `new EmailHandler()`, whose `send_wp_user_notification()` runs down to
+	 * WordPress's `wp_new_user_notification()`; counting that call is what
+	 * tells a sent notification from a suppressed one. No setting disables
+	 * mail here (the option reads empty), so the handler sends whenever it is
+	 * reached.
 	 *
 	 * @dataProvider provide_notify_flag
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 * @param bool $notify   What the caller asks for.
 	 * @param int  $expected How many notifications should go out.
 	 */
@@ -523,10 +537,14 @@ class UserCreatorTest extends TestCase {
 		Functions\when( 'get_userdata' )->justReturn( null );
 		Functions\when( 'wp_update_user' )->justReturn( 556 );
 		Functions\when( 'update_user_meta' )->justReturn( true );
-		Functions\when( 'wp_new_user_notification' )->justReturn( null );
-
-		$handler = Mockery::mock( 'overload:FreeFormCertificate\Integrations\EmailHandler' );
-		$handler->shouldReceive( 'send_wp_user_notification' )->times( $expected );
+		// The real EmailHandler's constructor registers its hooks.
+		Functions\when( 'add_action' )->justReturn( true );
+		$notifications = array();
+		Functions\when( 'wp_new_user_notification' )->alias(
+			static function ( ...$args ) use ( &$notifications ) {
+				$notifications[] = $args;
+			}
+		);
 
 		$result = UserCreator::get_or_create_user_dual(
 			'BULK-CPF',
@@ -538,6 +556,10 @@ class UserCreatorTest extends TestCase {
 		);
 
 		$this->assertSame( 556, $result, 'The account is created either way.' );
+		$this->assertCount( $expected, $notifications, 'The account notification goes out only when asked.' );
+		if ( 1 === $expected ) {
+			$this->assertSame( array( 556, null, 'user' ), $notifications[0] );
+		}
 	}
 
 	/** @return array<string, array{bool, int}> */
