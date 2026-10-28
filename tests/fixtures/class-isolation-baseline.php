@@ -13,7 +13,6 @@
  */
 
 return array(
-	'ActivatorMigrationsTest.php',
 	'ActivityLogAjaxEndpointTest.php',
 	'AdminAjaxTest.php',
 	'AdminLoaderTest.php',
@@ -48,7 +47,6 @@ return array(
 	'DateMessagesRunnerTest.php',
 	'FormCacheThirdPartyPurgeTest.php',
 	'FormRestControllerTest.php',
-	'IdentityIndexBackfillMigrationStrategyTest.php',
 	'LoaderMigrationsTest.php',
 	'MigrationActionsAjaxEndpointTest.php',
 	'OperatorCertificatesRestControllerTest.php',

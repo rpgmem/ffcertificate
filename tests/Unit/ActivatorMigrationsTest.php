@@ -17,9 +17,12 @@ use FreeFormCertificate\Activator;
  * default mocks (tables present, columns absent) each routine runs its
  * early-completion path; flag-set variants exercise the short-circuits.
  *
+ * SubmissionRepository and MigrationForeignKeys are the real classes: the
+ * submissions table name is read off the double's prefix, and the foreign-key
+ * migration runs its ALTERs into the `$wpdb` double, which records every
+ * `query()` so the tests assert on the statements it received.
+ *
  * @covers \FreeFormCertificate\Activator
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class ActivatorMigrationsTest extends TestCase {
 
@@ -28,14 +31,23 @@ class ActivatorMigrationsTest extends TestCase {
 	/** @var \Mockery\MockInterface */
 	private $wpdb;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 		class_exists( '\\FreeFormCertificate\\Activator' );
 
-		global $wpdb;
-		$wpdb             = Mockery::mock( 'wpdb' )->makePartial();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $this->had_wpdb ? $GLOBALS['wpdb'] : null;
+
+		$wpdb             = Mockery::mock( 'wpdb' );
 		$wpdb->prefix     = 'wp_';
+		$wpdb->users      = 'wp_users';
 		$wpdb->last_error = '';
 		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
 			static function () {
@@ -68,7 +80,8 @@ class ActivatorMigrationsTest extends TestCase {
 			}
 		)->byDefault();
 		$wpdb->shouldReceive( 'suppress_errors' )->andReturn( false )->byDefault();
-		$this->wpdb = $wpdb;
+		$this->wpdb      = $wpdb;
+		$GLOBALS['wpdb'] = $wpdb;
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'update_option' )->justReturn( true );
@@ -79,12 +92,14 @@ class ActivatorMigrationsTest extends TestCase {
 				return abs( (int) $v );
 			}
 		);
-
-		Mockery::mock( 'alias:FreeFormCertificate\Repositories\SubmissionRepository' )
-			->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' );
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -288,10 +303,84 @@ class ActivatorMigrationsTest extends TestCase {
 
 	// ───────────── maybe_add_foreign_keys (flag-guard) ─────────────
 
+	/**
+	 * The constraint names MigrationForeignKeys::get_status() expects.
+	 *
+	 * @var list<string>
+	 */
+	private const FK_CONSTRAINTS = array(
+		'fk_ffc_submissions_user',
+		'fk_ffc_appointments_user',
+		'fk_ffc_activity_log_user',
+		'fk_ffc_attendance_user',
+		'fk_ffc_audience_members_user',
+		'fk_ffc_booking_users_user',
+		'fk_ffc_schedule_perms_user',
+		'fk_ffc_user_profiles_user',
+		'fk_ffc_form_invites_user',
+	);
+
+	/**
+	 * Stand up the schema the real foreign-key migration reads.
+	 *
+	 * Every table exists with a nullable `user_id` and no constraint yet;
+	 * the tables named in `$myisam` report another engine, so their key is
+	 * skipped. get_status() then reports the constraints in `$present`.
+	 *
+	 * @param list<string> $myisam  Tables whose engine is not InnoDB.
+	 * @param list<string> $present Constraint names the status query returns.
+	 */
+	private function foreign_key_schema( array $myisam, array $present ): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $query ) use ( $myisam ) {
+				$q = (string) $query;
+				if ( preg_match( "/SHOW TABLES LIKE\s+'([^']+)'/", $q, $m ) ) {
+					return $m[1];
+				}
+				if ( preg_match( "/SELECT ENGINE FROM information_schema\.TABLES .* TABLE_NAME = '([^']+)'/s", $q, $m ) ) {
+					return in_array( $m[1], $myisam, true ) ? 'MyISAM' : 'InnoDB';
+				}
+				return null;
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $query ) {
+				$q = (string) $query;
+				if ( false !== strpos( $q, 'SHOW COLUMNS' ) && false !== strpos( $q, 'user_id' ) ) {
+					return array( (object) array( 'Field' => 'user_id' ) );
+				}
+				return array(); // No foreign key exists yet.
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( (object) array( 'Null' => 'YES' ) );
+		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			static function ( $query ) use ( $present ) {
+				return false !== strpos( (string) $query, "CONSTRAINT_TYPE = 'FOREIGN KEY'" ) ? $present : array();
+			}
+		);
+	}
+
+	/**
+	 * The constraint names the recorded statements added.
+	 *
+	 * @param array<int, string> $statements Recorded query() calls.
+	 * @return list<string>
+	 */
+	private function added_constraints( array $statements ): array {
+		$added = array();
+		foreach ( $statements as $sql ) {
+			if ( preg_match( "/ADD CONSTRAINT '?([a-z_]+)'? FOREIGN KEY/", $sql, $m ) ) {
+				$added[] = $m[1];
+			}
+		}
+		return $added;
+	}
+
 	public function test_foreign_keys_skips_when_version_matches(): void {
 		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
-		$fk = Mockery::mock( 'alias:FreeFormCertificate\Migrations\MigrationForeignKeys' );
-		$fk->shouldNotReceive( 'run' );
+		$this->wpdb->shouldNotReceive( 'get_var' );
+		$this->wpdb->shouldNotReceive( 'get_col' );
+		$this->wpdb->shouldNotReceive( 'query' );
 
 		Activator::maybe_add_foreign_keys();
 
@@ -300,37 +389,30 @@ class ActivatorMigrationsTest extends TestCase {
 
 	public function test_foreign_keys_pins_version_once_complete(): void {
 		// get_option default '' (≠ FFC_VERSION) → runs.
-		$recorded = array();
-		Functions\when( 'update_option' )->alias(
-			static function ( $key, $value ) use ( &$recorded ) {
-				$recorded[ $key ] = $value;
-				return true;
-			}
-		);
-		$fk = Mockery::mock( 'alias:FreeFormCertificate\Migrations\MigrationForeignKeys' );
-		$fk->shouldReceive( 'run' )->once();
-		$fk->shouldReceive( 'get_status' )->once()->andReturn( array( 'is_complete' => true ) );
+		$recorded   = array();
+		$statements = array();
+		$this->capture_option_writes( $recorded );
+		$this->capture_queries( $statements );
+		$this->foreign_key_schema( array(), self::FK_CONSTRAINTS );
 
 		Activator::maybe_add_foreign_keys();
 
+		$this->assertSame( self::FK_CONSTRAINTS, $this->added_constraints( $statements ), 'The migration should have run and added every constraint.' );
 		$this->assertSame( FFC_VERSION, $recorded['ffc_foreign_keys_db_version'] ?? null );
 	}
 
 	public function test_foreign_keys_does_not_pin_when_incomplete(): void {
-		// A MyISAM host / missing table leaves is_complete false → keep retrying.
-		$recorded = array();
-		Functions\when( 'update_option' )->alias(
-			static function ( $key, $value ) use ( &$recorded ) {
-				$recorded[ $key ] = $value;
-				return true;
-			}
-		);
-		$fk = Mockery::mock( 'alias:FreeFormCertificate\Migrations\MigrationForeignKeys' );
-		$fk->shouldReceive( 'run' )->once();
-		$fk->shouldReceive( 'get_status' )->once()->andReturn( array( 'is_complete' => false ) );
+		// A MyISAM table leaves its key out, so is_complete is false → keep retrying.
+		$recorded   = array();
+		$statements = array();
+		$this->capture_option_writes( $recorded );
+		$this->capture_queries( $statements );
+		$present = array_values( array_diff( self::FK_CONSTRAINTS, array( 'fk_ffc_activity_log_user' ) ) );
+		$this->foreign_key_schema( array( 'wp_ffc_activity_log' ), $present );
 
 		Activator::maybe_add_foreign_keys();
 
+		$this->assertSame( $present, $this->added_constraints( $statements ), 'The migration should have run, skipping only the MyISAM table.' );
 		$this->assertArrayNotHasKey( 'ffc_foreign_keys_db_version', $recorded );
 	}
 }
