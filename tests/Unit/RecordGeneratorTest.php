@@ -17,11 +17,72 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  *
  * Uses ReflectionMethod to access private static helpers directly.
  *
+ * The data paths run the real ReregistrationSubmissionReader,
+ * ReregistrationRepository, CustomFieldReader, AudienceReader, Encryption
+ * (with the bootstrap's key constants), DateFormatter, DocumentFormatter and
+ * FilenameHelper over a `$wpdb` double: each table's rows live in this class,
+ * every `prepare()` is recorded, and an unexpected query fails the test.
+ *
  * @covers \FreeFormCertificate\Reregistration\RecordGenerator
  */
 class RecordGeneratorTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/** @var Mockery\MockInterface */
+	private $wpdb;
+
+	/**
+	 * Every prepared statement, in order: [ sql, args ].
+	 *
+	 * @var list<array{0: string, 1: array<int, mixed>}>
+	 */
+	private array $prepared = [];
+
+	/**
+	 * Stored `ffc_reregistration_submissions` rows, by id.
+	 *
+	 * @var array<int, object>
+	 */
+	private array $submissions = [];
+
+	/**
+	 * Stored `ffc_reregistrations` rows, by id.
+	 *
+	 * @var array<int, object>
+	 */
+	private array $reregistrations = [];
+
+	/**
+	 * Stored `ffc_reregistration_audiences` links: campaign id => audience ids.
+	 *
+	 * @var array<int, list<int>>
+	 */
+	private array $campaign_audiences = [];
+
+	/**
+	 * Stored `ffc_audiences` rows, by id.
+	 *
+	 * @var array<int, object>
+	 */
+	private array $audiences = [];
+
+	/**
+	 * Stored active `ffc_custom_fields` rows, by audience id.
+	 *
+	 * @var array<int, list<object>>
+	 */
+	private array $fields_by_audience = [];
+
+	/**
+	 * The `$wpdb` global before the test, restored in tearDown().
+	 *
+	 * @var mixed
+	 */
+	private $previous_wpdb;
+
+	/** Whether `$wpdb` was set before the test. */
+	private bool $had_wpdb = false;
 
 	/**
 	 * A CPF in its `ddd.ddd.ddd-dd` display form, built from the standard fixture.
@@ -65,11 +126,137 @@ class RecordGeneratorTest extends TestCase {
 		Functions\when('apply_filters_deprecated')->alias(function ($tag, $args) {
 			return $args[0];
 		});
+
+		// Storage and clock for the real readers and the DateFormatter.
+		Functions\when('wp_cache_get')->justReturn(false);
+		Functions\when('wp_cache_set')->justReturn(true);
+		Functions\when('wp_timezone')->alias(static function () {
+			return new \DateTimeZone('UTC');
+		});
+		Functions\when('wp_date')->alias(static function ($format, $timestamp = null) {
+			return gmdate((string) $format, null === $timestamp ? time() : (int) $timestamp);
+		});
+
+		// Encryption counts failed decrypts in a private static; start each test at zero.
+		$this->setDecryptFailureCount(0);
+
+		$this->prepared           = [];
+		$this->submissions        = [];
+		$this->reregistrations    = [];
+		$this->campaign_audiences = [];
+		$this->audiences          = [];
+		$this->fields_by_audience = [];
+
+		$this->wpdb         = Mockery::mock('wpdb');
+		$this->wpdb->prefix = 'wp_';
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function (...$args) {
+			$flat             = 2 === count($args) && is_array($args[1]) ? array_merge([$args[0]], $args[1]) : $args;
+			$this->prepared[] = [(string) $flat[0], array_slice($flat, 1)];
+			return 'Q' . (count($this->prepared) - 1);
+		});
+		$this->wpdb->shouldReceive('get_row')->andReturnUsing(function ($handle) {
+			[$sql, $args] = $this->statement((string) $handle);
+			if ('SELECT * FROM %i WHERE id = %d' === $sql) {
+				$id = (int) $args[1];
+				switch ($args[0]) {
+					case 'wp_ffc_reregistration_submissions':
+						return $this->submissions[$id] ?? null;
+					case 'wp_ffc_reregistrations':
+						return $this->reregistrations[$id] ?? null;
+					case 'wp_ffc_audiences':
+						return $this->audiences[$id] ?? null;
+				}
+			}
+			$this->fail('Unexpected get_row(): ' . $sql . ' with ' . var_export($args, true));
+		});
+		$this->wpdb->shouldReceive('get_col')->andReturnUsing(function ($handle) {
+			[$sql, $args] = $this->statement((string) $handle);
+			if ('SELECT audience_id FROM %i WHERE reregistration_id = %d' === $sql && 'wp_ffc_reregistration_audiences' === $args[0]) {
+				return array_map('strval', $this->campaign_audiences[(int) $args[1]] ?? []);
+			}
+			$this->fail('Unexpected get_col(): ' . $sql . ' with ' . var_export($args, true));
+		});
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(function ($handle) {
+			[$sql, $args] = $this->statement((string) $handle);
+			if ('SELECT * FROM %i WHERE audience_id = %d AND is_active = 1 ORDER BY sort_order ASC, id ASC' === $sql && 'wp_ffc_custom_fields' === $args[0]) {
+				// Fresh objects per read: the reader annotates each row it returns.
+				return array_map(static function ($row) {
+					return clone $row;
+				}, $this->fields_by_audience[(int) $args[1]] ?? []);
+			}
+			$this->fail('Unexpected get_results(): ' . $sql . ' with ' . var_export($args, true));
+		});
+
+		$this->had_wpdb      = array_key_exists('wpdb', $GLOBALS);
+		$this->previous_wpdb = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']     = $this->wpdb;
 	}
 
 	protected function tearDown(): void {
+		if ($this->had_wpdb) {
+			$GLOBALS['wpdb'] = $this->previous_wpdb;
+		} else {
+			unset($GLOBALS['wpdb']);
+		}
+		$this->setDecryptFailureCount(0);
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * The statement a `prepare()` handle stands for.
+	 *
+	 * @param string $handle Value prepare() returned.
+	 * @return array{0: string, 1: array<int, mixed>}
+	 */
+	private function statement(string $handle): array {
+		$index = (int) substr($handle, 1);
+		if ('' === $handle || 'Q' !== $handle[0] || !isset($this->prepared[$index])) {
+			$this->fail('A query ran without prepare(): ' . $handle);
+		}
+		return $this->prepared[$index];
+	}
+
+	/**
+	 * Encryption's count of failed decrypts (each attempt that answered null).
+	 *
+	 * @return int
+	 */
+	private function decryptFailureCount(): int {
+		$ref = new \ReflectionProperty(\FreeFormCertificate\Core\Encryption::class, 'decrypt_failure_count');
+		$ref->setAccessible(true);
+		return (int) $ref->getValue();
+	}
+
+	/**
+	 * Set Encryption's count of failed decrypts.
+	 *
+	 * @param int $count New value.
+	 * @return void
+	 */
+	private function setDecryptFailureCount(int $count): void {
+		$ref = new \ReflectionProperty(\FreeFormCertificate\Core\Encryption::class, 'decrypt_failure_count');
+		$ref->setAccessible(true);
+		$ref->setValue(null, $count);
+	}
+
+	/**
+	 * Store the campaign, audience, fields and submission a record is built from.
+	 *
+	 * Campaign 9 is linked to audience 1 (no parent); the submission belongs
+	 * to user 7.
+	 *
+	 * @param object       $submission Submission row (its `id` is the key).
+	 * @param object       $rereg      Campaign row (its `id` is the key).
+	 * @param list<object> $fields     Active fields of audience 1.
+	 * @return void
+	 */
+	private function storeRecord(object $submission, object $rereg, array $fields): void {
+		$this->submissions[(int) $submission->id] = $submission;
+		$this->reregistrations[(int) $rereg->id]  = $rereg;
+		$this->campaign_audiences[(int) $rereg->id] = $fields ? [1] : [];
+		$this->audiences[1]          = (object) ['id' => 1, 'name' => 'Servidores', 'parent_id' => 0];
+		$this->fields_by_audience[1] = $fields;
 	}
 
 	/**
@@ -509,38 +696,27 @@ class RecordGeneratorTest extends TestCase {
 		$this->assertNull($result['c']);
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_decrypt_field_values_decrypts_sensitive(): void {
-		$enc = Mockery::mock('overload:FreeFormCertificate\Core\Encryption');
-		// The reader asks the VALUE whether it is an envelope before attempting
-		// (#1509), so the double has to answer that too.
-		$enc->shouldReceive('looks_like_envelope')->with('CIPHER')->andReturn(true);
-		$enc->shouldReceive('decrypt')->with('CIPHER')->andReturn('plain-cpf');
+		$cipher = (string) \FreeFormCertificate\Core\Encryption::encrypt('plain-cpf');
 
 		$field  = (object) ['field_key' => 'cpf', 'is_sensitive' => 1];
-		$values = ['cpf' => 'CIPHER'];
+		$values = ['cpf' => $cipher];
 		$result = RecordGenerator::decrypt_field_values([$field], $values);
 
 		$this->assertSame('plain-cpf', $result['cpf']);
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_decrypt_field_values_keeps_original_when_decrypt_returns_null(): void {
-		$enc = Mockery::mock('overload:FreeFormCertificate\Core\Encryption');
-		$enc->shouldReceive('looks_like_envelope')->andReturn(true);
-		$enc->shouldReceive('decrypt')->andReturn(null);
+		// Envelope-shaped (v2 prefix, HMAC + IV + one block) but signed by no
+		// key: the reader attempts it and decrypt() answers null.
+		$cipher = 'v2:' . base64_encode(str_repeat('A', 64));
 
 		$field  = (object) ['field_key' => 'cpf', 'is_sensitive' => 1];
-		$values = ['cpf' => 'CIPHER'];
+		$values = ['cpf' => $cipher];
 		$result = RecordGenerator::decrypt_field_values([$field], $values);
 
-		$this->assertSame('CIPHER', $result['cpf']);
+		$this->assertSame($cipher, $result['cpf']);
+		$this->assertSame(1, $this->decryptFailureCount(), 'The envelope must have been attempted and refused.');
 	}
 
 	// ------------------------------------------------------------------
@@ -561,18 +737,13 @@ class RecordGeneratorTest extends TestCase {
 	 * the flag and returned the CIPHERTEXT, which the CSV export, the generated
 	 * record and the public verification page then presented as the person's
 	 * CPF. Nothing failed and nothing was logged.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_decrypt_field_values_decrypts_a_row_whose_field_is_no_longer_sensitive(): void {
-		$enc = Mockery::mock('overload:FreeFormCertificate\Core\Encryption');
-		$enc->shouldReceive('looks_like_envelope')->with('v2:ENVELOPE')->andReturn( true );
-		$enc->shouldReceive('decrypt')->with('v2:ENVELOPE')->andReturn(Identifiers::CPF_A);
+		$envelope = (string) \FreeFormCertificate\Core\Encryption::encrypt(Identifiers::CPF_A);
 
 		// The flag says NOT sensitive. The value says otherwise, and the value wins.
 		$field  = (object) ['field_key' => 'cpf', 'is_sensitive' => 0];
-		$values = ['cpf' => 'v2:ENVELOPE'];
+		$values = ['cpf' => $envelope];
 
 		$result = RecordGenerator::decrypt_field_values([$field], $values);
 
@@ -590,17 +761,11 @@ class RecordGeneratorTest extends TestCase {
 	 * the flag has since been turned on. The output was always right here (the
 	 * `null !==` guard kept the plaintext), but every read handed plaintext to
 	 * `decrypt()` and logged a `decrypt_failure` per field per request — #1441's
-	 * noise. `shouldNotReceive` is the real assertion: the attempt must not
-	 * happen at all.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * noise. The failure count is the real assertion: the attempt must not
+	 * happen at all, and a formatted CPF handed to `decrypt()` could only
+	 * fail and be counted (the test above shows the count moving).
 	 */
 	public function test_decrypt_field_values_never_attempts_a_plaintext_row_whose_field_became_sensitive(): void {
-		$enc = Mockery::mock('overload:FreeFormCertificate\Core\Encryption');
-		$enc->shouldReceive('looks_like_envelope')->with(self::mask_cpf( Identifiers::CPF_A ))->andReturn( false );
-		$enc->shouldNotReceive('decrypt');
-
 		// The flag says sensitive. The value is a formatted CPF, which no
 		// `encrypt()` ever produced.
 		$field  = (object) ['field_key' => 'cpf', 'is_sensitive' => 1];
@@ -609,6 +774,7 @@ class RecordGeneratorTest extends TestCase {
 		$result = RecordGenerator::decrypt_field_values([$field], $values);
 
 		$this->assertSame(self::mask_cpf( Identifiers::CPF_A ), $result['cpf'], 'A plaintext value must survive untouched.');
+		$this->assertSame(0, $this->decryptFailureCount(), 'A plaintext value was handed to decrypt().');
 	}
 
 	// ==================================================================
@@ -616,24 +782,15 @@ class RecordGeneratorTest extends TestCase {
 	// ==================================================================
 
 	public function test_get_custom_fields_for_reregistration_dedupes_by_id(): void {
-		Functions\when('wp_cache_get')->justReturn(false);
-		Functions\when('wp_cache_set')->justReturn(true);
-
-		// $wpdb drives ReregistrationRepository::get_audience_ids (get_col → [1,2])
-		// and CustomFieldReader::get_by_audience_with_parents (get_row audience,
-		// get_results fields). The same field id 10 appears for both audiences
-		// and must be collapsed to a single entry.
-		global $wpdb;
-		$wpdb = Mockery::mock('wpdb')->makePartial();
-		$wpdb->prefix = 'wp_';
-		$wpdb->shouldReceive('prepare')->andReturnUsing(function () {
-			return func_get_args()[0];
-		})->byDefault();
-		$wpdb->shouldReceive('get_col')->andReturn(['1', '2'])->byDefault();
-		$wpdb->shouldReceive('get_row')->andReturn((object) ['id' => 1, 'name' => 'Aud', 'parent_id' => 0])->byDefault();
-		$wpdb->shouldReceive('get_results')->andReturn([
-			(object) ['id' => 10, 'field_key' => 'shared', 'field_type' => 'text'],
-		])->byDefault();
+		// Campaign 5 is linked to audiences 1 and 2 (ReregistrationRepository::
+		// get_audience_ids), and CustomFieldReader::get_by_audience_with_parents
+		// returns field id 10 for both. It must be collapsed to a single entry.
+		$this->campaign_audiences[5] = [1, 2];
+		$this->audiences[1]          = (object) ['id' => 1, 'name' => 'Aud', 'parent_id' => 0];
+		$this->audiences[2]          = (object) ['id' => 2, 'name' => 'Aud 2', 'parent_id' => 0];
+		$shared                      = (object) ['id' => 10, 'field_key' => 'shared', 'field_type' => 'text'];
+		$this->fields_by_audience[1] = [$shared];
+		$this->fields_by_audience[2] = [$shared];
 
 		$rereg  = (object) ['id' => 5];
 		$fields = RecordGenerator::get_custom_fields_for_reregistration($rereg);
@@ -646,55 +803,58 @@ class RecordGeneratorTest extends TestCase {
 	// generate_record_data() — early returns
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_generate_record_data_returns_null_when_submission_missing(): void {
-		$reader = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader');
-		$reader->shouldReceive('get_by_id')->andReturn(null);
-
+		// No submission row is stored.
 		$this->assertNull(RecordGenerator::generate_record_data(1));
+		$this->assertSame(['wp_ffc_reregistration_submissions'], $this->tablesRead(), 'It must stop after the submission lookup.');
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_generate_record_data_returns_null_when_rereg_missing(): void {
-		$sr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader');
-		$sr->shouldReceive('get_by_id')->andReturn((object) ['reregistration_id' => 9]);
-
-		$rr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationRepository');
-		$rr->shouldReceive('get_by_id')->andReturn(null);
+		// The submission points at campaign 9, which is not stored.
+		$this->submissions[1] = (object) ['id' => 1, 'reregistration_id' => 9, 'user_id' => 7];
 
 		$this->assertNull(RecordGenerator::generate_record_data(1));
+		$this->assertSame(
+			['wp_ffc_reregistration_submissions', 'wp_ffc_reregistrations'],
+			$this->tablesRead(),
+			'It must stop after the campaign lookup.'
+		);
+	}
+
+	public function test_generate_record_data_returns_null_when_user_missing(): void {
+		$users = [];
+		Functions\when('get_userdata')->alias(static function ($id) use (&$users) {
+			$users[] = $id;
+			return false;
+		});
+
+		$this->submissions[1]     = (object) ['id' => 1, 'reregistration_id' => 9, 'user_id' => 7];
+		$this->reregistrations[9] = (object) ['id' => 9, 'title' => 'C'];
+
+		$this->assertNull(RecordGenerator::generate_record_data(1));
+		$this->assertSame([7], $users, 'The submission\'s user is the one looked up.');
+		$this->assertSame(
+			['wp_ffc_reregistration_submissions', 'wp_ffc_reregistrations'],
+			$this->tablesRead(),
+			'Nothing past the user lookup may run.'
+		);
 	}
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The table each prepared statement named, in order.
+	 *
+	 * @return list<string>
 	 */
-	public function test_generate_record_data_returns_null_when_user_missing(): void {
-		Functions\when('get_userdata')->justReturn(false);
-
-		$sr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader');
-		$sr->shouldReceive('get_by_id')->andReturn((object) ['reregistration_id' => 9, 'user_id' => 7]);
-
-		$rr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationRepository');
-		$rr->shouldReceive('get_by_id')->andReturn((object) ['id' => 9, 'title' => 'C']);
-
-		$this->assertNull(RecordGenerator::generate_record_data(1));
+	private function tablesRead(): array {
+		return array_map(static function (array $statement): string {
+			return (string) ($statement[1][0] ?? '');
+		}, $this->prepared);
 	}
 
 	// ==================================================================
 	// generate_record_data() — happy path
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_generate_record_data_builds_full_payload(): void {
 		Functions\when('__')->returnArg();
 		Functions\when('esc_html__')->returnArg();
@@ -734,25 +894,10 @@ class RecordGeneratorTest extends TestCase {
 			'start_date'    => '2026-02-15 00:00:00',
 		];
 
-		$sr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader');
-		$sr->shouldReceive('get_by_id')->andReturn($submission);
-		$sr->shouldReceive('get_status_labels')->andReturn(['approved' => 'Approved']);
-
-		$rr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationRepository');
-		$rr->shouldReceive('get_by_id')->andReturn($rereg);
-		$rr->shouldReceive('get_audience_ids')->andReturn([1]);
-
-		$cfr = Mockery::mock('overload:FreeFormCertificate\Reregistration\CustomFieldReader');
-		$cfr->shouldReceive('get_by_audience_with_parents')->andReturn([
+		$this->storeRecord($submission, $rereg, [
 			(object) ['id' => 100, 'field_key' => 'display_name', 'field_label' => 'Name', 'field_type' => 'text', 'field_source' => 'standard', 'is_sensitive' => 0],
 			(object) ['id' => 101, 'field_key' => 'hobby', 'field_label' => 'Hobby', 'field_type' => 'text', 'field_source' => 'custom', 'is_sensitive' => 0],
 		]);
-
-		$df = Mockery::mock('overload:FreeFormCertificate\Core\DateFormatter');
-		$df->shouldReceive('format_datetime')->andReturn('2023-11-14 22:13');
-
-		$fh = Mockery::mock('overload:FreeFormCertificate\Core\FilenameHelper');
-		$fh->shouldReceive('build_pdf_filename')->andReturn('record_9_R-ABCD1234.pdf');
 
 		$user = (object) [
 			'ID'           => 7,
@@ -766,6 +911,7 @@ class RecordGeneratorTest extends TestCase {
 		$this->assertIsArray($result);
 		$this->assertSame('ficha', $result['type']);
 		$this->assertSame('portrait', $result['orientation']);
+		// FilenameHelper prefixes a real auth code with the record letter.
 		$this->assertSame('record_9_R-ABCD1234.pdf', $result['filename']);
 		$this->assertSame('joao@example.test', $result['user']['email']);
 		$this->assertSame(7, $result['user']['id']);
@@ -779,16 +925,13 @@ class RecordGeneratorTest extends TestCase {
 	}
 
 	/**
-	 * Aprovada: o rodapé carrega o código no formato do plugin.
+	 * Approved: the footer carries the code in the plugin's format.
 	 *
 	 * It charges the composed VALUE, not the key's presence: `format_auth_code`
-	 * hifeniza um código de 12 caracteres em grupos de 4 e prefixa com `R-`,
-	 * which is the format of the invitation email and of the certificate. The
-	 * variables are read through the `ffcertificate_record_data` filter, which
-	 * como o template vai recebê-las.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * hyphenates a 12-character code into groups of 4 and prefixes it with
+	 * `R-`, which is the format of the invitation email and of the certificate.
+	 * The variables are read through the `ffcertificate_record_data` filter,
+	 * which is how the template will receive them.
 	 */
 	public function test_generate_record_data_composes_the_auth_code_line_when_approved(): void {
 		$captured = $this->runRecordWithStatus('approved', 'MA6DE5LHPFTC');
@@ -803,9 +946,6 @@ class RecordGeneratorTest extends TestCase {
 	 * The `auth_code` is born on the status transition, so `submitted` and
 	 * `draft` have no code. The whole line has to come out EMPTY -- if only the
 	 * code were empty, the default template would render "Authentication:  /".
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_generate_record_data_omits_the_auth_code_line_when_not_approved(): void {
 		$captured = $this->runRecordWithStatus('submitted', 'MA6DE5LHPFTC');
@@ -833,7 +973,7 @@ class RecordGeneratorTest extends TestCase {
 		$this->assertMatchesRegularExpression(
 			'/\{\{auth_code_line\}\}\s*Preenchido em: \{\{submitted_at\}\}/',
 			$template,
-			'O trecho tem de vir imediatamente antes de "Preenchido em".'
+			'The fragment must come immediately before "Preenchido em".'
 		);
 	}
 
@@ -892,24 +1032,9 @@ class RecordGeneratorTest extends TestCase {
 			'start_date'    => '2026-02-15 00:00:00',
 		);
 
-		$sr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader');
-		$sr->shouldReceive('get_by_id')->andReturn($submission);
-		$sr->shouldReceive('get_status_labels')->andReturn(array('approved' => 'Approved', 'submitted' => 'Submitted'));
-
-		$rr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationRepository');
-		$rr->shouldReceive('get_by_id')->andReturn($rereg);
-		$rr->shouldReceive('get_audience_ids')->andReturn(array(1));
-
-		$cfr = Mockery::mock('overload:FreeFormCertificate\Reregistration\CustomFieldReader');
-		$cfr->shouldReceive('get_by_audience_with_parents')->andReturn(array(
+		$this->storeRecord($submission, $rereg, array(
 			(object) array('id' => 100, 'field_key' => 'display_name', 'field_label' => 'Name', 'field_type' => 'text', 'field_source' => 'standard', 'is_sensitive' => 0),
 		));
-
-		$df = Mockery::mock('overload:FreeFormCertificate\Core\DateFormatter');
-		$df->shouldReceive('format_datetime')->andReturn('2023-11-14 22:13');
-
-		$fh = Mockery::mock('overload:FreeFormCertificate\Core\FilenameHelper');
-		$fh->shouldReceive('build_pdf_filename')->andReturn('record.pdf');
 
 		Functions\when('get_userdata')->justReturn((object) array(
 			'ID'           => 7,
@@ -922,10 +1047,6 @@ class RecordGeneratorTest extends TestCase {
 		return $captured;
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_generate_record_data_uses_synthetic_code_without_auth_code(): void {
 		Functions\when('__')->returnArg();
 		Functions\when('esc_html__')->returnArg();
@@ -938,46 +1059,33 @@ class RecordGeneratorTest extends TestCase {
 		Functions\when('untrailingslashit')->alias(function ($u) { return rtrim($u, '/'); });
 		Functions\when('sanitize_file_name')->alias(function ($n) { return $n; });
 		$captured_code = null;
-		Functions\when('apply_filters')->alias(function ($tag, $value) {
+		Functions\when('apply_filters')->alias(function ($tag, $value, ...$rest) use (&$captured_code) {
 			if ($tag === 'ffcertificate_record_template_file') {
 				return '/tmp/ffc-nonexistent-template.html';
+			}
+			if ('ffcertificate_pdf_filename' === $tag) {
+				// FilenameHelper's own filter carries the code it used.
+				$captured_code = $rest[2] ?? null;
 			}
 			return $value;
 		});
 
 		// No auth_code, no submitted_at, no start_date → exercises the
 		// synthetic `S{id}` fallback + the empty submitted_at / reference_year
-		// branches.
+		// branches. `draft` is a status ReregistrationSubmissionReader has no
+		// label for (the reader's list is real now, and labels `submitted`).
 		$submission = (object) [
 			'id'                => 55,
 			'reregistration_id' => 9,
 			'user_id'           => 7,
 			'data'              => null,
-			'status'            => 'submitted',
+			'status'            => 'draft',
 			'submitted_at'      => 0,
 			'auth_code'         => '',
 		];
 		$rereg = (object) ['id' => 9, 'title' => 'C', 'start_date' => ''];
 
-		$sr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader');
-		$sr->shouldReceive('get_by_id')->andReturn($submission);
-		$sr->shouldReceive('get_status_labels')->andReturn([]);
-
-		$rr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationRepository');
-		$rr->shouldReceive('get_by_id')->andReturn($rereg);
-		$rr->shouldReceive('get_audience_ids')->andReturn([]);
-
-		$cfr = Mockery::mock('overload:FreeFormCertificate\Reregistration\CustomFieldReader');
-		$cfr->shouldReceive('get_by_audience_with_parents')->andReturn([]);
-
-		$df = Mockery::mock('overload:FreeFormCertificate\Core\DateFormatter');
-		$df->shouldReceive('format_datetime')->andReturn('now');
-
-		$fh = Mockery::mock('overload:FreeFormCertificate\Core\FilenameHelper');
-		$fh->shouldReceive('build_pdf_filename')->andReturnUsing(function ($type, $id, $code) use (&$captured_code) {
-			$captured_code = $code;
-			return 'record.pdf';
-		});
+		$this->storeRecord($submission, $rereg, []);
 
 		Functions\when('get_userdata')->justReturn((object) [
 			'ID'           => 7,
@@ -989,9 +1097,11 @@ class RecordGeneratorTest extends TestCase {
 
 		$this->assertIsArray($result);
 		// Status with no label falls back to the raw status key.
-		$this->assertStringContainsString('submitted', $result['html']);
-		// Synthetic code S{submission_id} is used when auth_code is empty.
+		$this->assertStringContainsString('<strong>Status:</strong> draft', $result['html']);
+		// Synthetic code S{submission_id} is used when auth_code is empty, and
+		// it is not dressed as an `R-` auth code in the filename.
 		$this->assertSame('S55', $captured_code);
+		$this->assertSame('record_9_S55.pdf', $result['filename']);
 	}
 
 	// ==================================================================
@@ -1052,9 +1162,6 @@ class RecordGeneratorTest extends TestCase {
 	 * `generate_record_data()`, which needs the whole fixture: covering all
 	 * five in one test would mean the cheap two only run when the expensive
 	 * three do.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 *
 	 * @return void
 	 */
