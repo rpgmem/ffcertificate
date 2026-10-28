@@ -535,6 +535,23 @@ class SubmissionHandlerTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/^[0-9a-f]{32}$/', $token );
 	}
 
+	/**
+	 * A token the save refused is not returned: nothing would match it (#2187).
+	 */
+	public function test_ensure_magic_token_returns_empty_when_the_save_fails(): void {
+		$this->mockRepo->shouldReceive( 'findById' )
+			->with( 12 )
+			->once()
+			->andReturn( array( 'magic_token' => '' ) );
+
+		$this->mockRepo->shouldReceive( 'update' )
+			->once()
+			->with( 12, Mockery::on( fn( $data ) => 1 === preg_match( '/^[0-9a-f]{32}$/', (string) ( $data['magic_token'] ?? '' ) ) ) )
+			->andReturn( false );
+
+		$this->assertSame( '', $this->handler->ensure_magic_token( 12 ) );
+	}
+
 	public function test_ensure_magic_token_returns_empty_when_not_found(): void {
 		$this->mockRepo->shouldReceive( 'findById' )
 			->with( 999 )

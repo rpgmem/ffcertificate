@@ -71,6 +71,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A new audience calendar keeps its event-list, badge and booking-label settings** (#2175). Creating a calendar stored the database defaults for those five settings and only saved the chosen values on the first edit.
 - **Environment notices use the calendar's own label** (#2176). After creating, deactivating or deleting an environment the notice always said "Environment" and read a calendar that does not exist; the redirect now names the environment's calendar.
 - **Audience Calendars: a cancel the database refused is no longer reported as done** (#2183). The booking writer's update ignored the database's answer, so the screen and the REST API said a booking was cancelled while it stayed active, and the cancellation hook still sent its notifications.
+- **Certificates: a missing magic token no longer yields a link to nothing** (#2187). When a submission's token could not be found or saved, the submissions list and the success card linked a random token no row stored; they now show "No token" or omit the link.
 
 ### Security
 

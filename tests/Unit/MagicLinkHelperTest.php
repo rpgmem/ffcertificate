@@ -214,14 +214,27 @@ class MagicLinkHelperTest extends TestCase {
 		$this->assertSame( $token, $result );
 	}
 
-	public function test_ensure_token_invalid_from_handler_generates_new(): void {
+	/**
+	 * An invalid answer yields no token: a fresh one would be stored nowhere,
+	 * so a link to it would open nothing (#2187).
+	 */
+	public function test_ensure_token_invalid_from_handler_returns_empty(): void {
 		$handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
 		$handler->shouldReceive( 'ensure_magic_token' )
 			->with( 42 )
 			->andReturn( 'invalid' );
-		$result = MagicLinkHelper::ensure_token( 42, $handler );
-		// Should generate a new valid token
-		$this->assertTrue( MagicLinkHelper::is_valid_token( $result ) );
+		$this->assertSame( '', MagicLinkHelper::ensure_token( 42, $handler ) );
+	}
+
+	/**
+	 * A submission the handler cannot find yields no link at all (#2187).
+	 */
+	public function test_submission_magic_link_is_empty_when_the_token_cannot_be_ensured(): void {
+		$handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
+		$handler->shouldReceive( 'ensure_magic_token' )
+			->with( 42 )
+			->andReturn( '' );
+		$this->assertSame( '', MagicLinkHelper::get_submission_magic_link( 42, $handler ) );
 	}
 
 	// ==================================================================
