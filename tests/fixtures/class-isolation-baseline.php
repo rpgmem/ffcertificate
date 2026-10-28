@@ -23,7 +23,6 @@ return array(
 	'FormProcessorNonceRecoveryTest.php',
 	'FormProcessorRequiredPresenceOrderTest.php',
 	'FrontendTest.php',
-	'KeyRotationMigrationStrategyTest.php',
 	'MigrationForeignKeysTest.php',
 	'PreflightStatsServiceTest.php',
 	'PreflightTelemetryTest.php',

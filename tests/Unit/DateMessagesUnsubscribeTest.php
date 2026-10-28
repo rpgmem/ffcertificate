@@ -15,8 +15,9 @@ use PHPUnit\Framework\TestCase;
  *
  * A path that must not record anything runs against a `$wpdb` double with no
  * expectations, so any read or write the opt-out reaches fails the test. The
- * two paths that record one alias-mock `OptOut`, so they run in their own
- * process (#2125).
+ * two paths that record one run the real OptOut, UserManager,
+ * UserProfileService and UserProfileRepository over a `$wpdb` double holding
+ * one `ffc_user_profiles` row, and assert on the write it receives.
  *
  * @covers \FreeFormCertificate\DateMessages\Unsubscribe
  */
@@ -26,6 +27,15 @@ class DateMessagesUnsubscribeTest extends TestCase {
 
 	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
 	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> The GET superglobal before the test. */
+	private array $get_backup = array();
+
+	/** @var array<string, mixed> The POST superglobal before the test. */
+	private array $post_backup = array();
 
 	/**
 	 * What the last `wp_die()` was given: message and response code.
@@ -38,8 +48,10 @@ class DateMessagesUnsubscribeTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
-		$_GET  = array();
-		$_POST = array();
+		$this->get_backup  = $_GET ?? array();
+		$this->post_backup = $_POST ?? array();
+		$_GET              = array();
+		$_POST             = array();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -60,14 +72,19 @@ class DateMessagesUnsubscribeTest extends TestCase {
 			}
 		);
 
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
 		$GLOBALS['wpdb']   = Mockery::mock( 'wpdb' );
 	}
 
 	protected function tearDown(): void {
-		$_GET  = array();
-		$_POST = array();
-		$GLOBALS['wpdb'] = $this->wpdb_backup;
+		$_GET  = $this->get_backup;
+		$_POST = $this->post_backup;
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -168,12 +185,6 @@ class DateMessagesUnsubscribeTest extends TestCase {
 		$this->assertSame( 403, $this->died[1] );
 	}
 
-	/**
-	 * Its own process: `OptOut` is an alias mock here.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_a_post_with_token_and_nonce_records_the_opt_out(): void {
 		$_POST = array(
 			'u'        => '42',
@@ -181,20 +192,25 @@ class DateMessagesUnsubscribeTest extends TestCase {
 			'_wpnonce' => 'good',
 		);
 		Functions\expect( 'wp_verify_nonce' )->once()->with( 'good', Unsubscribe::ACTION . '_42' )->andReturn( 1 );
-		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\OptOut' )->shouldReceive( 'set' )->once()->with( 42, false, 'personal' );
+		$updates = $this->profile_store( '{"notify_appointment_reminder":true}' );
 
 		$this->handle();
 
 		$this->assertSame( 200, $this->died[1] );
 		$this->assertStringContainsString( 'date messages', $this->died[0] );
+		$this->assertSame(
+			array(
+				array(
+					'wp_ffc_user_profiles',
+					array( 'preferences' => '{"notify_appointment_reminder":true,"notify_date_messages":false}' ),
+					array( 'user_id' => 42 ),
+				),
+			),
+			$updates->rows,
+			'One write turns the personal date messages off and keeps every other preference.'
+		);
 	}
 
-	/**
-	 * Its own process: `OptOut` is an alias mock here.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_an_announcement_opt_out_confirms_announcements(): void {
 		$_POST = array(
 			'u'        => '42',
@@ -203,11 +219,75 @@ class DateMessagesUnsubscribeTest extends TestCase {
 			'_wpnonce' => 'good',
 		);
 		Functions\expect( 'wp_verify_nonce' )->once()->with( 'good', Unsubscribe::ACTION . '_42_announcement' )->andReturn( 1 );
-		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\OptOut' )->shouldReceive( 'set' )->once()->with( 42, false, 'announcement' );
+		$updates = $this->profile_store( '{"notify_date_messages":true}' );
 
 		$this->handle();
 
 		$this->assertSame( 200, $this->died[1] );
 		$this->assertStringContainsString( 'no longer receive announcements', $this->died[0], 'The page names what was turned off.' );
+		$this->assertSame(
+			array(
+				array(
+					'wp_ffc_user_profiles',
+					array( 'preferences' => '{"notify_date_messages":true,"notify_date_announcements":false}' ),
+					array( 'user_id' => 42 ),
+				),
+			),
+			$updates->rows,
+			'One write turns announcements off and leaves the personal messages on.'
+		);
+	}
+
+	/**
+	 * Replace the expectation-free double with one holding account 42's
+	 * `ffc_user_profiles` row. Any other query fails the test.
+	 *
+	 * @param string $preferences The stored preferences JSON.
+	 * @return object Holder whose `rows` lists every update() as (table, data, where).
+	 */
+	private function profile_store( string $preferences ): object {
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+
+		$updates       = new \stdClass();
+		$updates->rows = array();
+
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static fn( string $sql, ...$args ) => array( $sql, $args )
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( array $query ) {
+				if ( array( 'SHOW TABLES LIKE %s', array( 'wp_ffc_user_profiles' ) ) === $query ) {
+					return 'wp_ffc_user_profiles';
+				}
+				if ( array( 'SELECT id FROM %i WHERE user_id = %d', array( 'wp_ffc_user_profiles', 42 ) ) === $query ) {
+					return '5';
+				}
+				$this->fail( 'Unexpected get_var: ' . json_encode( $query ) );
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( array $query ) use ( $preferences ) {
+				if ( array( 'SELECT * FROM %i WHERE user_id = %d', array( 'wp_ffc_user_profiles', 42 ) ) === $query ) {
+					return array(
+						'id'          => '5',
+						'user_id'     => '42',
+						'preferences' => $preferences,
+					);
+				}
+				$this->fail( 'Unexpected get_row: ' . json_encode( $query ) );
+			}
+		);
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			static function ( $table, $data, $where ) use ( $updates ) {
+				$updates->rows[] = array( $table, $data, $where );
+				return 1;
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
+
+		return $updates;
 	}
 }

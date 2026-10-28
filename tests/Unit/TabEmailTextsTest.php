@@ -6,10 +6,11 @@ namespace FreeFormCertificate\Tests\Unit;
 use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Settings\Tabs\TabEmailTexts;
+use FreeFormCertificate\Core\AssetHelper;
+use FreeFormCertificate\Core\EmailTemplates;
 
 /**
  * Tests for TabEmailTexts: the per-email texts hub + "All plugin emails"
@@ -168,8 +169,32 @@ class TabEmailTextsTest extends TestCase {
 	}
 
 	/**
-	 * @runInSeparateProcess
+	 * Stub the options API over an in-memory store and record every write of
+	 * the hub's option, so a test reads what the real EmailTemplates persisted.
+	 *
+	 * @param array<string, mixed> $stored Initial `ffc_email_bodies` value.
+	 * @return array{0: \ArrayObject<string, mixed>, 1: \ArrayObject<int, mixed>} The store and the write log.
 	 */
+	private function stub_email_bodies_option( array $stored ): array {
+		$store  = new \ArrayObject( array( EmailTemplates::OPTION => $stored ) );
+		$writes = new \ArrayObject();
+		Functions\when( 'get_option' )->alias(
+			static function ( $name, $fallback = false ) use ( $store ) {
+				return $store->offsetExists( $name ) ? $store[ $name ] : $fallback;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( $name, $value ) use ( $store, $writes ) {
+				if ( EmailTemplates::OPTION === $name ) {
+					$writes->append( $value );
+				}
+				$store[ $name ] = $value;
+				return true;
+			}
+		);
+		return array( $store, $writes );
+	}
+
 	public function test_maybe_save_persists_edited_override(): void {
 		$_POST['ffc_save_email_bodies'] = '1';
 		$_POST['ffc_email_bodies']      = array(
@@ -183,35 +208,32 @@ class TabEmailTextsTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_kses_post' )->returnArg();
-
-		$email_templates = Mockery::mock( 'alias:FreeFormCertificate\Core\EmailTemplates' );
-		$email_templates->shouldReceive( 'body' )->andReturn( '' );
-		$email_templates->shouldReceive( 'clear_global' )->andReturn( true );
-		$email_templates->shouldReceive( 'save_global' )
-			->with(
-				'certificate-user',
-				array(
-					'subject' => 'Your certificate',
-					'body'    => '<p>Custom body</p>',
-				)
-			)
-			->once()
-			->andReturn( true );
+		list( $store ) = $this->stub_email_bodies_option( array() );
 
 		$ref = new \ReflectionMethod( TabEmailTexts::class, 'maybe_save_email_bodies' );
 		$ref->setAccessible( true );
 		$this->assertTrue( $ref->invoke( $this->tab ) );
+
+		// The real EmailTemplates::save_global() stored the edited override.
+		$this->assertSame(
+			array(
+				'subject' => 'Your certificate',
+				'body'    => '<p>Custom body</p>',
+			),
+			$store[ EmailTemplates::OPTION ]['certificate-user'] ?? null
+		);
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_maybe_save_clears_override_when_equal_to_file_default(): void {
+		$shipped_subject = EmailTemplates::body( 'certificate-user', 'subject' );
+		$shipped_body    = EmailTemplates::body( 'certificate-user', 'body' );
+		$this->assertNotSame( '', $shipped_body, 'The shipped default must load for this test to mean anything.' );
+
 		$_POST['ffc_save_email_bodies'] = '1';
 		$_POST['ffc_email_bodies']      = array(
 			'certificate-user' => array(
-				'subject' => 'Shipped subject',
-				'body'    => 'Shipped body',
+				'subject' => $shipped_subject,
+				'body'    => $shipped_body,
 			),
 		);
 		Functions\when( 'check_admin_referer' )->justReturn( true );
@@ -219,22 +241,33 @@ class TabEmailTextsTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_kses_post' )->returnArg();
-
-		$email_templates = Mockery::mock( 'alias:FreeFormCertificate\Core\EmailTemplates' );
-		$email_templates->shouldReceive( 'body' )->andReturnUsing(
-			static function ( $name, $key = 'body' ) {
-				if ( 'certificate-user' === $name ) {
-					return 'subject' === $key ? 'Shipped subject' : 'Shipped body';
-				}
-				return '';
-			}
+		list( $store, $writes ) = $this->stub_email_bodies_option(
+			array(
+				'certificate-user' => array(
+					'subject' => 'Old custom subject',
+					'body'    => 'Old custom body',
+				),
+			)
 		);
-		$email_templates->shouldReceive( 'clear_global' )->andReturn( true );
-		$email_templates->shouldReceive( 'save_global' )->never();
 
 		$ref = new \ReflectionMethod( TabEmailTexts::class, 'maybe_save_email_bodies' );
 		$ref->setAccessible( true );
 		$this->assertTrue( $ref->invoke( $this->tab ) );
+
+		// clear_global() removed the stale override ...
+		$this->assertArrayNotHasKey( 'certificate-user', $store[ EmailTemplates::OPTION ] );
+		// ... and save_global() never persisted the shipped text as an override.
+		$this->assertGreaterThan( 0, count( $writes ) );
+		foreach ( $writes as $written ) {
+			$this->assertNotSame(
+				array(
+					'subject' => $shipped_subject,
+					'body'    => $shipped_body,
+				),
+				$written['certificate-user'] ?? null,
+				'A value equal to the shipped default must not be stored as an override.'
+			);
+		}
 	}
 
 	public function test_maybe_save_ignored_without_presence_flag(): void {
@@ -249,29 +282,57 @@ class TabEmailTextsTest extends TestCase {
 	// enqueue_scripts() — the selector JS + editor API (#976 B2)
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_enqueue_scripts_loads_editor_and_selector_when_cap_held(): void {
 		SettingsTab::set_resolved_active_tab( 'email_texts' );
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'current_user_can' )->justReturn( true ); // hub cap held.
 
-		$utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
-		$utils_mock->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
-		$tpl = Mockery::mock( 'alias:FreeFormCertificate\Core\EmailTemplates' );
-		$tpl->shouldReceive( 'body' )->andReturn( '' );
-
-		Functions\when( 'wp_localize_script' )->justReturn( null );
+		$registered = array();
+		Functions\when( 'wp_register_script' )->alias(
+			static function ( ...$args ) use ( &$registered ) {
+				$registered[ $args[0] ] = $args;
+				return false;
+			}
+		);
+		$enqueued = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( ...$args ) use ( &$enqueued ) {
+				$enqueued[] = $args;
+			}
+		);
+		$localized = array();
+		Functions\when( 'wp_localize_script' )->alias(
+			static function ( $handle, $name, $data ) use ( &$localized ) {
+				$localized[ $name ] = array( $handle, $data );
+				return true;
+			}
+		);
 		Functions\expect( 'wp_enqueue_editor' )->atLeast()->once();
-		Functions\expect( 'wp_enqueue_script' )
-			->with( 'ffc-email-restore-default', Mockery::type( 'string' ), array( 'jquery' ), Mockery::type( 'string' ), true )
-			->once();
-		Functions\expect( 'wp_enqueue_script' )
-			->with( 'ffc-email-texts', Mockery::type( 'string' ), array( 'jquery', 'editor', 'quicktags' ), Mockery::type( 'string' ), true )
-			->once();
 
 		$this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
+
+		$suffix = AssetHelper::asset_suffix();
+		// The restore-default script goes through AssetRegistry: registered with
+		// its source and jquery dependency, then enqueued by handle, once.
+		$this->assertSame(
+			array( 'ffc-email-restore-default', FFC_PLUGIN_URL . "assets/js/ffc-email-restore-default{$suffix}.js", array( 'jquery' ), FFC_VERSION, true ),
+			$registered['ffc-email-restore-default'] ?? null
+		);
+		$this->assertSame(
+			1,
+			count( array_filter( $enqueued, static fn( $call ) => 'ffc-email-restore-default' === $call[0] ) )
+		);
+		$selector = array_values( array_filter( $enqueued, static fn( $call ) => 'ffc-email-texts' === $call[0] ) );
+		$this->assertSame(
+			array( array( 'ffc-email-texts', FFC_PLUGIN_URL . "assets/js/ffc-email-texts{$suffix}.js", array( 'jquery', 'editor', 'quicktags' ), FFC_VERSION, true ) ),
+			$selector
+		);
+		// The restore defaults carry the real shipped bodies.
+		$this->assertSame( 'ffc-email-restore-default', $localized['ffcEmailRestoreDefaults'][0] ?? null );
+		$this->assertSame(
+			EmailTemplates::body( 'certificate-user', 'body' ),
+			$localized['ffcEmailRestoreDefaults'][1]['certificate-user']['body'] ?? null
+		);
 	}
 
 	public function test_enqueue_scripts_noop_without_cap(): void {

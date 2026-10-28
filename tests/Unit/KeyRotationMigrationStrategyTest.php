@@ -20,11 +20,11 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  * The wpdb mock inspects the (naively interpolated) query text so a single mock
  * can answer SHOW TABLES / SHOW COLUMNS / COUNT / SELECT / MAX deterministically
  * from in-memory seed rows. Options are backed by an in-memory store so cursor /
- * fingerprint / completion state transitions are observable.
+ * fingerprint / completion state transitions are observable. The real
+ * Encryption, ActivityLog and SettingsReader run: with no `ffc_settings` in the
+ * option store the activity log is off, so the batch log writes nothing.
  *
  * @covers \FreeFormCertificate\Migrations\Strategies\KeyRotationMigrationStrategy
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class KeyRotationMigrationStrategyTest extends TestCase {
 
@@ -60,9 +60,25 @@ class KeyRotationMigrationStrategyTest extends TestCase {
 	/** Whether the batch read returns nothing even when rows exist. */
 	private bool $select_empty = false;
 
+	/** @var array{set: bool, value: mixed} The global $wpdb before the test. */
+	private array $wpdb_backup = array(
+		'set'   => false,
+		'value' => null,
+	);
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->wpdb_backup = array(
+			'set'   => array_key_exists( 'wpdb', $GLOBALS ),
+			'value' => $GLOBALS['wpdb'] ?? null,
+		);
+
+		// Encryption counts decrypt failures per request; start each test at zero.
+		$count = new \ReflectionProperty( Encryption::class, 'decrypt_failure_count' );
+		$count->setAccessible( true );
+		$count->setValue( null, 0 );
 
 		$this->rows = array(
 			self::SUBMISSIONS  => array(),
@@ -89,16 +105,11 @@ class KeyRotationMigrationStrategyTest extends TestCase {
 		)->byDefault();
 		$this->wpdb = $wpdb;
 
-		// WP_Error alias for the Strategies namespace.
-		if ( ! class_exists( 'FreeFormCertificate\Migrations\Strategies\WP_Error' ) ) {
-			class_alias( 'WP_Error', 'FreeFormCertificate\Migrations\Strategies\WP_Error' );
-		}
-
 		Functions\when( '__' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\__' )->returnArg();
 		Functions\when( 'is_wp_error' )->alias( static fn( $t ) => $t instanceof \WP_Error );
 
-		// Option store — global and Strategies-namespaced fallbacks.
+		// Option store. It also answers `ffc_settings` (absent), which keeps the
+		// activity log and the Debug areas off whatever ran before.
 		$get = function ( $key, $default = false ) {
 			return $this->options[ $key ] ?? $default;
 		};
@@ -108,21 +119,16 @@ class KeyRotationMigrationStrategyTest extends TestCase {
 		};
 		Functions\when( 'get_option' )->alias( $get );
 		Functions\when( 'update_option' )->alias( $set );
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\get_option' )->alias( $get );
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\update_option' )->alias( $set );
-
-		// ActivityLog::log() short-circuits when the log is disabled.
-		if ( ! class_exists( 'FreeFormCertificate\Settings\SettingsReader', false ) ) {
-			$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
-			$reader->shouldReceive( 'activity_log_enabled' )->andReturn( false )->byDefault();
-			$reader->shouldReceive( 'activity_log_min_level' )->andReturn( 'info' )->byDefault();
-			$reader->shouldReceive( 'activity_log_category_enabled' )->andReturn( true )->byDefault();
-		}
 
 		$this->strategy = new KeyRotationMigrationStrategy();
 	}
 
 	protected function tearDown(): void {
+		if ( $this->wpdb_backup['set'] ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup['value'];
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -515,6 +521,9 @@ class KeyRotationMigrationStrategyTest extends TestCase {
 
 	/**
 	 * With both constants defined the gate opens.
+	 *
+	 * Own process: it define()s FFC_ENCRYPTION_KEY and FFC_HASH_SALT, which no
+	 * later test in the shared process may see.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
