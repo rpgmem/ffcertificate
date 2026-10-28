@@ -528,6 +528,8 @@ class CalendarRestControllerTest extends TestCase {
 		$this->assertCount( 1, $reads );
 		$this->assertStringContainsString( "`status` = 'active'", $reads[0] );
 		$this->assertStringContainsString( "`visibility` = 'public'", $reads[0] );
+		// Visitors see the list in the same order logged-in users do (#2147).
+		$this->assertStringEndsWith( 'ORDER BY title ASC', $reads[0] );
 
 		// The allowed read was counted against the pool.
 		$this->assertNotEmpty( $this->transients );
@@ -571,7 +573,7 @@ class CalendarRestControllerTest extends TestCase {
 		$this->assertCount( 1, $reads );
 		$this->assertStringContainsString( "`status` = 'active'", $reads[0] );
 		$this->assertStringNotContainsString( 'visibility', $reads[0] );
-		$this->assertStringEndsWith( ' ASC', $reads[0] );
+		$this->assertStringEndsWith( 'ORDER BY title ASC', $reads[0] );
 
 		// Logged-in callers bypass the read pool entirely.
 		$this->assertSame( array(), $this->transients );

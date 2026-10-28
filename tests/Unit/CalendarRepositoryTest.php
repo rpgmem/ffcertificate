@@ -468,8 +468,12 @@ class CalendarRepositoryTest extends TestCase {
 			['id' => 1, 'title' => 'Public Calendar', 'status' => 'active', 'visibility' => 'public'],
 		];
 
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn(
-			'SELECT * FROM wp_ffc_self_scheduling_calendars WHERE status = active AND visibility = public ORDER BY created_at DESC'
+		$prepared = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $query ) use ( &$prepared ) {
+				$prepared[] = $query;
+				return 'SELECT * FROM wp_ffc_self_scheduling_calendars WHERE status = active AND visibility = public ORDER BY title ASC';
+			}
 		);
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
 
@@ -477,6 +481,8 @@ class CalendarRepositoryTest extends TestCase {
 
 		$this->assertCount( 1, $result );
 		$this->assertSame( 'Public Calendar', $result[0]['title'] );
+		// Visitors get the list by title, as logged-in users do (#2147).
+		$this->assertStringContainsString( 'ORDER BY title ASC', implode( "\n", $prepared ) );
 	}
 
 	public function test_getPublicActiveCalendars_with_limit_and_offset(): void {
@@ -485,7 +491,7 @@ class CalendarRepositoryTest extends TestCase {
 		];
 
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn(
-			'SELECT * FROM wp_ffc_self_scheduling_calendars WHERE status = active AND visibility = public ORDER BY created_at DESC LIMIT 5 OFFSET 10'
+			'SELECT * FROM wp_ffc_self_scheduling_calendars WHERE status = active AND visibility = public ORDER BY title ASC LIMIT 5 OFFSET 10'
 		);
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
 
@@ -496,7 +502,7 @@ class CalendarRepositoryTest extends TestCase {
 
 	public function test_getPublicActiveCalendars_returns_empty_when_none(): void {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn(
-			'SELECT * FROM wp_ffc_self_scheduling_calendars WHERE status = active AND visibility = public ORDER BY created_at DESC'
+			'SELECT * FROM wp_ffc_self_scheduling_calendars WHERE status = active AND visibility = public ORDER BY title ASC'
 		);
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( [] );
 
@@ -1027,7 +1033,7 @@ class CalendarRepositoryTest extends TestCase {
 
 	public function test_getPublicActiveCalendars_default_params(): void {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn(
-			'SELECT * FROM wp_ffc_self_scheduling_calendars WHERE status = active AND visibility = public ORDER BY created_at DESC'
+			'SELECT * FROM wp_ffc_self_scheduling_calendars WHERE status = active AND visibility = public ORDER BY title ASC'
 		);
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( [] );
 
