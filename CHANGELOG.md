@@ -34,6 +34,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Tests: eight more classes run in the shared process** (#2142). The recruitment adjutancy, reason, notice and candidate list tables, the appointments list table and view, the adjutancies REST controller and the CSV download validator now run their real repositories over a `$wpdb` double; one validator test keeps its own process.
 - **Tests: eight more classes run in the shared process** (#2144). The recruitment candidate edit page and its handlers, admin actions, dashboard calls section, e-mail dispatcher, the public recruitment shortcode's listing and render pipeline, and the calendar REST controller now run their real readers, repositories, `Encryption` and formatters over a `$wpdb` double.
 - **Tests: eight more classes run in the shared process** (#2150). The date-messages runner, activity log and migration actions AJAX endpoints, appointment reminder scanner, audience bookings render, CSV import edges and sample route now run their real collaborators over a `$wpdb` double; only the form-cache tests that declare third-party plugin symbols keep their own process.
+- **Tests: eight more classes run in the shared process** (#2152). The reregistration frontend flow, audience check-in, form-invite sending, rate-limit guard and strategies, audience editor tabs, scheduling frame controls and appointment REST controller now run their real collaborators over a `$wpdb` double; three appointment-create tests keep their own process.
 
 ### Deprecated
 
