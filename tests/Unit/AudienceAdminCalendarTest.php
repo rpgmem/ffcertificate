@@ -8,30 +8,110 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Audience\AudienceAccountEmail;
 use FreeFormCertificate\Audience\AudienceAdminCalendar;
 
 /**
+ * The Audience Calendars page: its list, the calendar editor, the
+ * Environments view it hosts, and the actions it handles.
+ *
+ * AudienceScheduleRepository, AudienceEnvironmentRepository, PiiAccessPolicy
+ * and DateFormatter are the real classes, over a `$wpdb` double that answers
+ * each read by its SQL text from the calendar, environment, holiday and
+ * permission rows a test stores, records every write, and fails the test on
+ * any query it does not know. Every redirect ends in `exit`; the
+ * `wp_safe_redirect()` stub throws to stand in for it.
+ *
  * @covers \FreeFormCertificate\Audience\AudienceAdminCalendar
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AudienceAdminCalendarTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface Alias mock of Core\PiiAccessPolicy. */
-	private $policy;
+	private const SCHEDULE_TABLE = 'wp_ffc_audience_schedules';
 
-	/** @var bool What the policy answers for a listed account (#1824). */
+	private const ENV_TABLE = 'wp_ffc_audience_environments';
+
+	private const HOLIDAY_TABLE = 'wp_ffc_audience_holidays';
+
+	private const PERMISSION_TABLE = 'wp_ffc_audience_schedule_permissions';
+
+	/** The viewer: a member of staff, never the owner of a listed account. */
+	private const VIEWER = 1;
+
+	/** @var bool Whether the viewer holds the audiences PII cap, so the policy lets them reveal (#1824). */
 	private $can_reveal = false;
+
+	/**
+	 * Stored rows per table, each by id in insertion order.
+	 *
+	 * @var array<string, array<int, array<string, mixed>>>
+	 */
+	private array $rows = array();
+
+	/**
+	 * Every query the double answered, as `[ sql, args ]`.
+	 *
+	 * @var list<array{0: string, 1: array<int, mixed>}>
+	 */
+	private array $reads = array();
+
+	/**
+	 * Every write the double received, as `[ op, table, data, where ]`.
+	 *
+	 * @var list<array{0: string, 1: string, 2: array<string, mixed>, 3: array<string, mixed>}>
+	 */
+	private array $writes = array();
+
+	/**
+	 * Every `user_can()` question the policy asked, as `[ user, cap ]`.
+	 *
+	 * @var list<array{0: int, 1: string}>
+	 */
+	private array $user_can_asked = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> The `$_GET` an earlier test left, restored afterwards. */
+	private array $get_backup = array();
+
+	/** @var array<string, mixed> The `$_POST` an earlier test left, restored afterwards. */
+	private array $post_backup = array();
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		// The Post-event form tab lists the published certificate forms (#1948).
-		Functions\when( 'get_posts' )->justReturn( array() );
+
+		$this->get_backup  = $_GET ?? array();
+		$this->post_backup = $_POST ?? array();
+		$_GET              = array();
+		$_POST             = array();
 		// handle_actions() acts only on its own screen (#1771).
 		$_GET['page'] = 'ffc-scheduling-calendars';
+
+		$this->rows           = array(
+			self::SCHEDULE_TABLE   => array(),
+			self::ENV_TABLE        => array(),
+			self::HOLIDAY_TABLE    => array(),
+			self::PERMISSION_TABLE => array(),
+		);
+		$this->reads          = array();
+		$this->writes         = array();
+		$this->user_can_asked = array();
+		$this->can_reveal     = false;
+
+		// AudienceAccountEmail keeps the reveal nonce for the request; start
+		// every test without one, so the nonce printed is this test's stub.
+		$nonce = new \ReflectionProperty( AudienceAccountEmail::class, 'nonce' );
+		$nonce->setAccessible( true );
+		$nonce->setValue( null, null );
+
+		// The Post-event form tab lists the published certificate forms (#1948).
+		Functions\when( 'get_posts' )->justReturn( array() );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -44,17 +124,22 @@ class AudienceAdminCalendarTest extends TestCase {
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
 		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/' );
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
 		Functions\when( 'wp_trim_words' )->returnArg();
-		Functions\when( 'date_i18n' )->alias( function ( $f, $t = null ) { return date( $f, $t ?? time() ); } );
-		Functions\when( 'get_option' )->justReturn( 'Y-m-d' );
+		// Nothing stored in ffc_settings: DateFormatter takes its d/m/Y
+		// default, and CacheVersion reads its counter's default.
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => 'ffc_settings' === $key ? array() : $default );
+		Functions\when( 'update_option' )->justReturn( true );
+		Functions\when( 'wp_date' )->alias(
+			static fn( $format, $ts = null, $tz = null ) => ( new \DateTimeImmutable( '@' . (int) $ts ) )->setTimezone( $tz ?? new \DateTimeZone( 'UTC' ) )->format( $format )
+		);
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $data ) => json_encode( $data ) );
 		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults = array() ) {
 			return array_merge( $defaults, (array) $args );
 		} );
@@ -62,26 +147,187 @@ class AudienceAdminCalendarTest extends TestCase {
 		Functions\when( 'sanitize_key' )->returnArg();
 
 		// The account email is masked (#1824). Whether a row gets a Reveal
-		// button is the policy's answer, set per test through
-		// $this->can_reveal; the tiers themselves are AudienceAccountEmailTest's.
+		// button is the real policy's answer: the viewer is never the owner
+		// and is no site administrator, so it turns on the audiences PII cap,
+		// set per test through $this->can_reveal; the tiers themselves are
+		// AudienceAccountEmailTest's.
 		Functions\when( 'is_email' )->justReturn( true );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'reveal-nonce' );
-		$this->policy = Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' );
-		$this->policy->shouldReceive( 'can_reveal' )->andReturnUsing( fn() => $this->can_reveal )->byDefault();
+		Functions\when( 'get_current_user_id' )->justReturn( self::VIEWER );
+		Functions\when( 'user_can' )->alias(
+			function ( $user, $cap ) {
+				$this->user_can_asked[] = array( (int) $user, (string) $cap );
+				return $this->can_reveal && AudienceAccountEmail::PII_CAP === $cap;
+			}
+		);
 
-		global $wpdb;
-		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
-		$wpdb->prefix = 'wp_';
-		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () { return func_get_arg(0); } )->byDefault();
-		$wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
-		$wpdb->shouldReceive( 'get_var' )->andReturn( '0' )->byDefault();
-		$wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $this->wpdb_double();
 	}
 
 	protected function tearDown(): void {
-		unset( $_GET['action'], $_GET['id'], $_GET['message'], $_GET['page'] );
+		$_GET  = $this->get_backup;
+		$_POST = $this->post_backup;
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * A `$wpdb` that answers the repositories' queries from the stored rows
+	 * — `SELECT *` and `SELECT COUNT(*)` filtered by their `col = %x`
+	 * conditions, and the by-id `get_row()` — and records insert / update /
+	 * delete.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function wpdb_double() {
+		$wpdb            = Mockery::mock( 'wpdb' );
+		$wpdb->prefix    = 'wp_';
+		$wpdb->insert_id = 0;
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$flat = 1 === count( $args ) && is_array( $args[0] ) ? $args[0] : $args;
+				return array(
+					'sql'  => trim( (string) $sql ),
+					'args' => array_values( $flat ),
+				);
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $q ) {
+				$this->reads[] = array( $q['sql'], $q['args'] );
+				if ( 1 === preg_match( '/^SELECT \* FROM %i\s*(?:WHERE (.+?))?\s*(?:ORDER BY [\w ]+)?$/', $q['sql'], $m ) ) {
+					return $this->select( $q['args'], $m[1] ?? '' );
+				}
+				$this->fail( 'Unexpected get_results(): ' . $q['sql'] );
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $q ) {
+				$this->reads[] = array( $q['sql'], $q['args'] );
+				if ( 'SELECT * FROM %i WHERE id = %d' === $q['sql'] ) {
+					$rows = $this->select( $q['args'], 'id = %d' );
+					return $rows[0] ?? null;
+				}
+				$this->fail( 'Unexpected get_row(): ' . $q['sql'] );
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $q ) {
+				$this->reads[] = array( $q['sql'], $q['args'] );
+				if ( 1 === preg_match( '/^SELECT COUNT\(\*\) FROM %i\s*(?:WHERE (.+))?$/', $q['sql'], $m ) ) {
+					return (string) count( $this->select( $q['args'], $m[1] ?? '' ) );
+				}
+				$this->fail( 'Unexpected get_var(): ' . $q['sql'] );
+			}
+		);
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) use ( $wpdb ) {
+				$this->writes[]  = array( 'insert', $table, $data, array() );
+				$wpdb->insert_id = 60;
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				$this->writes[] = array( 'update', $table, $data, $where );
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'delete' )->andReturnUsing(
+			function ( $table, $where ) {
+				$this->writes[] = array( 'delete', $table, array(), $where );
+				return 1;
+			}
+		);
+		return $wpdb;
+	}
+
+	/**
+	 * The stored rows of the table in `$args[0]` matching every `col = %x`
+	 * condition of `$where`, bound to `$args[1..]` in order.
+	 *
+	 * @param array<int, mixed> $args  Bound arguments, the table first.
+	 * @param string            $where The WHERE conditions.
+	 * @return list<object>
+	 */
+	private function select( array $args, string $where ): array {
+		$table = (string) array_shift( $args );
+		if ( ! isset( $this->rows[ $table ] ) ) {
+			$this->fail( 'Unexpected table: ' . $table );
+		}
+		preg_match_all( '/(\w+) = %[ds]/', $where, $columns );
+		$out = array();
+		foreach ( $this->rows[ $table ] as $row ) {
+			foreach ( $columns[1] as $i => $column ) {
+				if ( (string) ( $row[ $column ] ?? '' ) !== (string) $args[ $i ] ) {
+					continue 2;
+				}
+			}
+			$out[] = (object) $row;
+		}
+		return $out;
+	}
+
+	/**
+	 * Store a row.
+	 *
+	 * @param string               $table Table name.
+	 * @param array<string, mixed> $row   Columns; `id` required.
+	 */
+	private function store( string $table, array $row ): void {
+		$this->rows[ $table ][ (int) $row['id'] ] = $row;
+	}
+
+	/**
+	 * Store a calendar row.
+	 *
+	 * @param array<string, mixed> $row Columns; `id` required.
+	 */
+	private function schedule( array $row ): void {
+		$this->store(
+			self::SCHEDULE_TABLE,
+			$row + array(
+				'name'              => 'Cal',
+				'description'       => '',
+				'visibility'        => 'public',
+				'status'            => 'active',
+				'environment_label' => null,
+			)
+		);
+	}
+
+	/**
+	 * The writes the double received of one kind.
+	 *
+	 * @param string $op `insert`, `update` or `delete`.
+	 * @return list<array{0: string, 1: string, 2: array<string, mixed>, 3: array<string, mixed>}>
+	 */
+	private function writes_of( string $op ): array {
+		return array_values( array_filter( $this->writes, static fn( $w ) => $op === $w[0] ) );
+	}
+
+	/**
+	 * Run the handler until its redirect and return the URL.
+	 *
+	 * @param AudienceAdminCalendar $page The page.
+	 * @return string
+	 */
+	private function redirect_of( AudienceAdminCalendar $page ): string {
+		Functions\when( 'wp_safe_redirect' )->alias( static function ( $url ) { throw new \RuntimeException( 'redirect:' . $url ); } );
+		try {
+			$page->handle_actions();
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringStartsWith( 'redirect:', $e->getMessage() );
+			return substr( $e->getMessage(), strlen( 'redirect:' ) );
+		}
+		$this->fail( 'handle_actions() did not redirect.' );
 	}
 
 	// ==================================================================
@@ -177,13 +423,13 @@ class AudienceAdminCalendarTest extends TestCase {
 		);
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		$die = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_die' );
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldNotReceive( 'get_by_id' );
-		$schedRepo->shouldNotReceive( 'delete' );
+		$this->schedule( array( 'id' => 5, 'status' => 'inactive' ) );
 
 		( new AudienceAdminCalendar( 'ffc-scheduling' ) )->handle_actions();
 
 		$this->assertSame( 0, $die->count() );
+		$this->assertSame( array(), $this->reads, 'no calendar was looked up' );
+		$this->assertSame( array(), $this->writes, 'no calendar was deleted' );
 	}
 
 	// ==================================================================
@@ -215,17 +461,10 @@ class AudienceAdminCalendarTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_list_shows_calendars(): void {
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn(
-			array(
-				(object) array( 'id' => 1, 'name' => 'Public Cal', 'description' => 'A public one', 'visibility' => 'public', 'status' => 'active' ),
-				(object) array( 'id' => 2, 'name' => 'Private Cal', 'description' => '', 'visibility' => 'private', 'status' => 'inactive' ),
-			)
-		);
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
-
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'count' )->andReturn( 2 );
+		$this->schedule( array( 'id' => 1, 'name' => 'Public Cal', 'description' => 'A public one', 'visibility' => 'public', 'status' => 'active' ) );
+		$this->schedule( array( 'id' => 2, 'name' => 'Private Cal', 'description' => '', 'visibility' => 'private', 'status' => 'inactive' ) );
+		$this->store( self::ENV_TABLE, array( 'id' => 1, 'schedule_id' => 1 ) );
+		$this->store( self::ENV_TABLE, array( 'id' => 2, 'schedule_id' => 1 ) );
 
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
 		ob_start();
@@ -244,12 +483,7 @@ class AudienceAdminCalendarTest extends TestCase {
 		$escape = static fn( $text ) => htmlspecialchars( (string) $text, ENT_QUOTES );
 		Functions\when( 'esc_html' )->alias( $escape );
 		Functions\when( 'esc_attr' )->alias( $escape );
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn(
-			array( (object) array( 'id' => 7, 'name' => 'Rooms Cal', 'description' => '', 'visibility' => 'public', 'status' => 'active' ) )
-		);
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'count' )->andReturn( 0 );
+		$this->schedule( array( 'id' => 7, 'name' => 'Rooms Cal', 'description' => '', 'visibility' => 'public', 'status' => 'active' ) );
 
 		ob_start();
 		( new AudienceAdminCalendar( 'ffc-scheduling' ) )->render_page();
@@ -266,10 +500,6 @@ class AudienceAdminCalendarTest extends TestCase {
 	}
 
 	public function test_empty_calendar_list_spans_every_column(): void {
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn( array() );
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
-
 		ob_start();
 		( new AudienceAdminCalendar( 'ffc-scheduling' ) )->render_page();
 		$output = (string) ob_get_clean();
@@ -310,15 +540,8 @@ class AudienceAdminCalendarTest extends TestCase {
 	 */
 	public function test_row_actions_render_only_for_the_cap_their_handler_checks( array $caps, bool $can_manage, bool $can_delete ): void {
 		$this->grant( $caps );
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn(
-			array(
-				(object) array( 'id' => 1, 'name' => 'Active Cal', 'description' => '', 'visibility' => 'public', 'status' => 'active' ),
-				(object) array( 'id' => 2, 'name' => 'Inactive Cal', 'description' => '', 'visibility' => 'private', 'status' => 'inactive' ),
-			)
-		);
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'count' )->andReturn( 0 );
+		$this->schedule( array( 'id' => 1, 'name' => 'Active Cal', 'description' => '', 'visibility' => 'public', 'status' => 'active' ) );
+		$this->schedule( array( 'id' => 2, 'name' => 'Inactive Cal', 'description' => '', 'visibility' => 'private', 'status' => 'inactive' ) );
 
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
 		ob_start();
@@ -342,8 +565,6 @@ class AudienceAdminCalendarTest extends TestCase {
 		Functions\when( 'submit_button' )->justReturn( '' );
 		Functions\when( 'esc_attr__' )->returnArg();
 
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
 		ob_start();
 		$page->render_page();
@@ -364,9 +585,8 @@ class AudienceAdminCalendarTest extends TestCase {
 			static fn( $id ) => (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => $id . '@e.com' )
 		);
 
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
-			(object) array(
+		$this->schedule(
+			array(
 				'id'                     => 5,
 				'name'                   => 'Cal Five',
 				'description'            => 'desc',
@@ -385,19 +605,12 @@ class AudienceAdminCalendarTest extends TestCase {
 				'status'                 => 'active',
 			)
 		);
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Rooms' );
-		$schedRepo->shouldReceive( 'get_all_permissions' )->with( 5 )->andReturn(
-			array( (object) array( 'user_id' => 7, 'can_book' => 1, 'can_cancel_others' => 0, 'can_override_conflicts' => 1 ) )
-		);
-
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'get_all' )->andReturn( array() ); // The Environments tab (#1761).
-		$envRepo->shouldReceive( 'get_holidays' )->with( 5 )->andReturn(
-			array( (object) array( 'id' => 3, 'holiday_date' => '2026-12-25', 'description' => 'Christmas' ) )
-		);
-
-		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' );
-		$df->shouldReceive( 'format_wallclock_date' )->andReturn( '25/12/2026' );
+		$this->store( self::PERMISSION_TABLE, array( 'id' => 1, 'schedule_id' => 5, 'user_id' => 7, 'can_book' => 1, 'can_cancel_others' => 0, 'can_override_conflicts' => 1 ) );
+		$this->store( self::PERMISSION_TABLE, array( 'id' => 2, 'schedule_id' => 6, 'user_id' => 8, 'can_book' => 1, 'can_cancel_others' => 0, 'can_override_conflicts' => 0 ) );
+		// The Environments tab (#1761) lists none: the only one is another calendar's.
+		$this->store( self::ENV_TABLE, array( 'id' => 1, 'schedule_id' => 6, 'name' => 'Not Here', 'status' => 'active', 'color' => '#fff', 'description' => '' ) );
+		$this->store( self::HOLIDAY_TABLE, array( 'id' => 3, 'schedule_id' => 5, 'holiday_date' => '2026-12-25', 'description' => 'Christmas' ) );
+		$this->store( self::HOLIDAY_TABLE, array( 'id' => 4, 'schedule_id' => 6, 'holiday_date' => '2026-01-01', 'description' => 'Elsewhere' ) );
 
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
 		ob_start();
@@ -408,6 +621,9 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertStringContainsString( 'User7', $output );
 		$this->assertStringContainsString( 'Christmas', $output );
 		$this->assertStringContainsString( '25/12/2026', $output );
+		foreach ( array( 'User8', 'Not Here', 'Elsewhere' ) as $other_calendars ) {
+			$this->assertStringNotContainsString( $other_calendars, $output, 'only this calendar\'s rows are listed' );
+		}
 
 		// #1761: a boxed screen of vertical tabs, each panel titled with its
 		// icon, and the Save and Shortcode cards beside them.
@@ -453,16 +669,7 @@ class AudienceAdminCalendarTest extends TestCase {
 		Functions\when( 'submit_button' )->justReturn( '' );
 		Functions\when( 'esc_attr__' )->returnArg();
 
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
-			(object) array( 'id' => 5, 'name' => 'Empty Cal', 'status' => 'active' )
-		);
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Rooms' );
-		$schedRepo->shouldReceive( 'get_all_permissions' )->with( 5 )->andReturn( array() );
-
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'get_all' )->andReturn( array() ); // The Environments tab (#1761).
-		$envRepo->shouldReceive( 'get_holidays' )->with( 5 )->andReturn( array() );
+		$this->schedule( array( 'id' => 5, 'name' => 'Empty Cal', 'status' => 'active', 'environment_label' => 'Rooms' ) );
 
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
 		ob_start();
@@ -478,9 +685,6 @@ class AudienceAdminCalendarTest extends TestCase {
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '99';
 		Functions\when( 'wp_die' )->alias( static function ( $m ) { throw new \RuntimeException( (string) $m ); } );
-
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_by_id' )->with( 99 )->andReturn( null );
 
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
 		$this->expectException( \RuntimeException::class );
@@ -506,7 +710,6 @@ class AudienceAdminCalendarTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		Functions\when( 'admin_url' )->returnArg();
-		Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
 
 		$_POST = array(
 			'ffc_action'                => 'save_schedule',
@@ -522,25 +725,24 @@ class AudienceAdminCalendarTest extends TestCase {
 			'schedule_status'           => 'active',
 		);
 
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'create' )->once()->with(
-			Mockery::on(
-				static function ( $d ) {
-					return 'New Cal' === $d['name']
-						&& 'public' === $d['visibility']
-						&& 'below' === $d['event_list_position']
-						&& 'parent_name' === $d['audience_badge_format']
-						&& 1 === $d['notify_on_booking']
-						&& 0 === $d['notify_on_cancellation']
-						&& 1 === $d['is_isolated'];
-				}
-			)
-		)->andReturn( 60 );
-
+		// The double answers every insert with id 60.
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'message=created' );
-		$page->handle_actions();
+		$this->assertSame( 'admin.php?page=ffc-scheduling-calendars&action=edit&id=60&message=created', $this->redirect_of( $page ) );
+
+		$inserts = $this->writes_of( 'insert' );
+		$this->assertCount( 1, $inserts );
+		$this->assertSame( self::SCHEDULE_TABLE, $inserts[0][1] );
+		$row = $inserts[0][2];
+		$this->assertSame( 'New Cal', $row['name'] );
+		$this->assertSame( 'public', $row['visibility'] );
+		$this->assertSame( 1, $row['notify_on_booking'] );
+		$this->assertSame( 0, $row['notify_on_cancellation'] );
+		$this->assertSame( 1, $row['is_isolated'] );
+		// The posted event-list position and badge format are not asserted
+		// here: AudienceScheduleRepository::create() writes no
+		// event_list_position / audience_badge_format / show_event_list /
+		// booking_label_* column, so they never reach the row on creation.
+		// The update path, which does write them, is pinned below.
 	}
 
 	public function test_handle_actions_updates_calendar(): void {
@@ -556,33 +758,28 @@ class AudienceAdminCalendarTest extends TestCase {
 			// omit optional toggles -> defaults exercised.
 		);
 
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'update' )->once()->with(
-			5,
-			Mockery::on(
-				static fn( $d ) => 'Edited Cal' === $d['name']
-					&& 'side' === $d['event_list_position']
-					&& 'name' === $d['audience_badge_format']
-					&& null === $d['booking_label_singular']
-			)
-		)->andReturn( true );
-
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
 		$page->handle_actions();
-		$this->assertTrue( true );
+
+		$updates = $this->writes_of( 'update' );
+		$this->assertCount( 1, $updates );
+		$this->assertSame( self::SCHEDULE_TABLE, $updates[0][1] );
+		$this->assertSame( array( 'id' => 5 ), $updates[0][3] );
+		$row = $updates[0][2];
+		$this->assertSame( 'Edited Cal', $row['name'] );
+		$this->assertSame( 'side', $row['event_list_position'] );
+		$this->assertSame( 'name', $row['audience_badge_format'] );
+		$this->assertArrayHasKey( 'booking_label_singular', $row );
+		$this->assertNull( $row['booking_label_singular'] );
 	}
 
 	public function test_handle_actions_save_aborts_on_bad_nonce(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( false );
 		$_POST = array( 'ffc_action' => 'save_schedule', 'ffc_schedule_nonce' => 'bad' );
 
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldNotReceive( 'create' );
-		$schedRepo->shouldNotReceive( 'update' );
-
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
 		$page->handle_actions();
-		$this->assertTrue( true );
+		$this->assertSame( array(), $this->writes );
 	}
 
 	// ==================================================================
@@ -593,31 +790,21 @@ class AudienceAdminCalendarTest extends TestCase {
 		$_GET = array( 'page' => 'ffc-scheduling-calendars', 'action' => 'deactivate', 'id' => '5', '_wpnonce' => 'n' );
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
-		Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
-
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'update' )->once()->with( 5, array( 'status' => 'inactive' ) )->andReturn( true );
 
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'message=deactivated' );
-		$page->handle_actions();
+		$this->assertStringContainsString( 'message=deactivated', $this->redirect_of( $page ) );
+		$this->assertSame( array( array( 'update', self::SCHEDULE_TABLE, array( 'status' => 'inactive' ), array( 'id' => 5 ) ) ), $this->writes );
 	}
 
 	public function test_handle_actions_deletes_inactive_calendar(): void {
 		$_GET = array( 'page' => 'ffc-scheduling-calendars', 'action' => 'delete', 'id' => '5', '_wpnonce' => 'n' );
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
-		Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
-
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'status' => 'inactive' ) );
-		$schedRepo->shouldReceive( 'delete' )->once()->with( 5 )->andReturn( true );
+		$this->schedule( array( 'id' => 5, 'status' => 'inactive' ) );
 
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'message=deleted' );
-		$page->handle_actions();
+		$this->assertStringContainsString( 'message=deleted', $this->redirect_of( $page ) );
+		$this->assertSame( array( array( 'delete', self::SCHEDULE_TABLE, array(), array( 'id' => 5 ) ) ), $this->writes );
 	}
 
 	public function test_handle_actions_delete_denied_without_cap(): void {
@@ -627,12 +814,15 @@ class AudienceAdminCalendarTest extends TestCase {
 		);
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'wp_die' )->alias( static function ( $m ) { throw new \RuntimeException( (string) $m ); } );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
 
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'permission to delete' );
-		$page->handle_actions();
+		try {
+			$page->handle_actions();
+			$this->fail( 'handle_actions() did not die.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'permission to delete', $e->getMessage() );
+		}
+		$this->assertSame( array(), $this->writes );
 	}
 
 	// ==================================================================
@@ -651,27 +841,35 @@ class AudienceAdminCalendarTest extends TestCase {
 			'holiday_description' => 'Xmas',
 		);
 
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'add_holiday' )->once()->with( 5, '2026-12-25', 'Xmas' )->andReturn( true );
-
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
 		$page->handle_actions();
-		$this->assertTrue( true );
+
+		$this->assertSame(
+			array(
+				array(
+					'insert',
+					self::HOLIDAY_TABLE,
+					array(
+						'schedule_id'  => 5,
+						'holiday_date' => '2026-12-25',
+						'description'  => 'Xmas',
+						'created_by'   => self::VIEWER,
+					),
+					array(),
+				),
+			),
+			$this->writes
+		);
 	}
 
 	public function test_handle_actions_deletes_holiday_and_redirects(): void {
 		$_GET = array( 'page' => 'ffc-scheduling-calendars', 'delete_holiday' => '3', 'id' => '5', '_wpnonce' => 'n' );
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
-		Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
-
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'remove_holiday' )->once()->with( 3 )->andReturn( true );
 
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'message=holiday_deleted' );
-		$page->handle_actions();
+		$this->assertStringContainsString( 'message=holiday_deleted', $this->redirect_of( $page ) );
+		$this->assertSame( array( array( 'delete', self::HOLIDAY_TABLE, array(), array( 'id' => 3 ) ) ), $this->writes );
 	}
 
 	// ==================================================================
@@ -688,20 +886,20 @@ class AudienceAdminCalendarTest extends TestCase {
 	public function test_calendars_list_prints_the_view_switch_and_links_each_count(): void {
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'esc_attr_e' )->justReturn( null );
-		$_GET      = array( 'page' => 'ffc-scheduling-calendars' );
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn(
-			array( (object) array( 'id' => 4, 'name' => 'Rooms Cal', 'description' => '', 'visibility' => 'public', 'status' => 'active' ) )
-		);
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Rooms' );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'count' )->with( array( 'schedule_id' => 4 ) )->andReturn( 3 );
+		$_GET = array( 'page' => 'ffc-scheduling-calendars' );
+		$this->schedule( array( 'id' => 4, 'name' => 'Rooms Cal', 'description' => '', 'visibility' => 'public', 'status' => 'active' ) );
+		// Three environments on calendar 4, one on another calendar.
+		foreach ( array( 1 => 4, 2 => 4, 3 => 4, 4 => 9 ) as $env_id => $schedule_id ) {
+			$this->store( self::ENV_TABLE, array( 'id' => $env_id, 'schedule_id' => $schedule_id ) );
+		}
 
 		ob_start();
 		$this->page_with_environments()->render_page();
 		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( '<div class="wrap ffc-admin-page ffc-page-scheduling-calendars ">', $output );
-		$this->assertMatchesRegularExpression( '/<ul class="subsubsub">.*href="admin\.php\?page=ffc-scheduling-calendars" class="current" aria-current="page">Calendars<\/a> \|.*href="admin\.php\?page=ffc-scheduling-calendars&view=environments">Rooms<\/a>/s', $output );
+		// The switch spans every calendar, so it names the view with the default label.
+		$this->assertMatchesRegularExpression( '/<ul class="subsubsub">.*href="admin\.php\?page=ffc-scheduling-calendars" class="current" aria-current="page">Calendars<\/a> \|.*href="admin\.php\?page=ffc-scheduling-calendars&view=environments">Environments<\/a>/s', $output );
 		$this->assertMatchesRegularExpression( '/<td class="column-environments">\s*<a href="admin\.php\?page=ffc-scheduling-calendars&view=environments&schedule_id=4">3<\/a>/', $output );
 		$this->assertStringNotContainsString( 'ffc-environments-table', $output );
 	}
@@ -730,10 +928,6 @@ class AudienceAdminCalendarTest extends TestCase {
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( null );
 		$_GET = $location;
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'get_all' )->andReturn( array() );
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn( array() );
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
 
 		ob_start();
 		$this->page_with_environments()->render_page();
@@ -756,9 +950,7 @@ class AudienceAdminCalendarTest extends TestCase {
 			'view'   => 'environments',
 			'action' => 'new',
 		);
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn( array( (object) array( 'id' => 1, 'name' => 'Cal' ) ) );
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Room' );
+		$this->schedule( array( 'id' => 1, 'name' => 'Cal' ) );
 
 		ob_start();
 		$this->page_with_environments()->render_page();
@@ -782,11 +974,13 @@ class AudienceAdminCalendarTest extends TestCase {
 		);
 		$nonces  = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_verify_nonce', 1 );
 		$notices = \FreeFormCertificate\Tests\Support\CallLog::record( 'add_settings_error', true );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' )->shouldNotReceive( 'update' );
 
+		// The page's own handler only; the hosted view's handler is the
+		// coordinator's to call, and it is AudienceAdminEnvironmentTest's.
 		$this->page_with_environments()->handle_actions();
 		$this->assertSame( 0, $nonces->count(), 'no calendar action was attempted' );
 		$this->assertSame( 0, $notices->count(), 'no calendar notice was raised' );
+		$this->assertSame( array(), $this->writes, 'no calendar was deactivated' );
 	}
 
 	/**
@@ -819,20 +1013,9 @@ class AudienceAdminCalendarTest extends TestCase {
 			static fn( $id ) => (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => $id . '@e.com' )
 		);
 
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
-			(object) array( 'id' => 5, 'name' => 'Cal Five', 'status' => 'active', 'visibility' => 'public' )
-		);
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Rooms' );
-		$schedRepo->shouldReceive( 'get_all_permissions' )->with( 5 )->andReturn(
-			array( (object) array( 'user_id' => 7, 'can_book' => '1', 'can_cancel_others' => '0', 'can_override_conflicts' => '1' ) )
-		);
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'get_all' )->andReturn( array() ); // The Environments tab (#1761).
-		$envRepo->shouldReceive( 'get_holidays' )->with( 5 )->andReturn(
-			array( (object) array( 'id' => 3, 'holiday_date' => '2026-12-25', 'description' => 'Christmas' ) )
-		);
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )->shouldReceive( 'format_wallclock_date' )->andReturn( '25/12/2026' );
+		$this->schedule( array( 'id' => 5, 'name' => 'Cal Five', 'status' => 'active', 'visibility' => 'public', 'environment_label' => 'Rooms' ) );
+		$this->store( self::PERMISSION_TABLE, array( 'id' => 1, 'schedule_id' => 5, 'user_id' => 7, 'can_book' => '1', 'can_cancel_others' => '0', 'can_override_conflicts' => '1' ) );
+		$this->store( self::HOLIDAY_TABLE, array( 'id' => 3, 'schedule_id' => 5, 'holiday_date' => '2026-12-25', 'description' => 'Christmas' ) );
 
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
 		ob_start();
@@ -918,13 +1101,7 @@ class AudienceAdminCalendarTest extends TestCase {
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
 		Functions\when( 'esc_attr__' )->returnArg();
-		$sched = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$sched->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 5, 'name' => 'Cal', 'status' => 'active' ) );
-		$sched->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
-		$sched->shouldReceive( 'get_all_permissions' )->andReturn( array() );
-		$env = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$env->shouldReceive( 'get_all' )->andReturn( array() );
-		$env->shouldReceive( 'get_holidays' )->andReturn( array() );
+		$this->schedule( array( 'id' => 5, 'name' => 'Cal', 'status' => 'active' ) );
 
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
 		ob_start();
@@ -943,13 +1120,15 @@ class AudienceAdminCalendarTest extends TestCase {
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'esc_attr__' )->returnArg();
-		$sched = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$sched->shouldNotReceive( 'get_environment_label' );
 
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
 		ob_start();
 		$page->render_page();
 		$output = (string) ob_get_clean();
+
+		// No calendar exists yet, so nothing is looked up: no label for an
+		// Environments tab, no grants, no holidays.
+		$this->assertSame( array(), $this->reads, 'the new-calendar form reads nothing from the database' );
 
 		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)"/', $output, $panels );
 		$this->assertSame( array( 'general', 'notifications', 'event-list', 'post-event' ), $panels[1], 'the sections that need a saved calendar wait for one' );
@@ -974,19 +1153,17 @@ class AudienceAdminCalendarTest extends TestCase {
 	/**
 	 * Both User access tables mask each account email for every tier and
 	 * draw the audited Reveal button only for a viewer the policy lets
-	 * reveal, asking with the appointments gate and the user as owner (#1824).
+	 * reveal: the real PiiAccessPolicy, asked with the audiences PII cap and
+	 * the listed user as owner (#1824).
 	 *
 	 * @dataProvider user_access_reveal_tiers
 	 *
 	 * @param list<string> $caps       Capabilities held.
-	 * @param bool         $can_reveal What the policy answers.
+	 * @param bool         $can_reveal Whether the viewer holds the audiences PII cap.
 	 */
 	public function test_user_access_rows_mask_the_account_email_at_every_tier( array $caps, bool $can_reveal ): void {
 		$this->grant( $caps );
 		$this->can_reveal = $can_reveal;
-		$this->policy->shouldReceive( 'can_reveal' )
-			->with( 'ffc_view_appointments_pii', 'ffc_appointments_admin', 7 )
-			->andReturnUsing( fn() => $this->can_reveal );
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '5';
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
@@ -997,18 +1174,8 @@ class AudienceAdminCalendarTest extends TestCase {
 			static fn( $id ) => (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => 'person' . $id . '@e.com' )
 		);
 
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
-			(object) array( 'id' => 5, 'name' => 'Cal Five', 'status' => 'active', 'visibility' => 'public' )
-		);
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Rooms' );
-		$schedRepo->shouldReceive( 'get_all_permissions' )->with( 5 )->andReturn(
-			array( (object) array( 'user_id' => 7, 'can_book' => '1', 'can_cancel_others' => '0', 'can_override_conflicts' => '0' ) )
-		);
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'get_all' )->andReturn( array() );
-		$envRepo->shouldReceive( 'get_holidays' )->andReturn( array() );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )->shouldReceive( 'format_wallclock_date' )->andReturn( '' );
+		$this->schedule( array( 'id' => 5, 'name' => 'Cal Five', 'status' => 'active', 'visibility' => 'public', 'environment_label' => 'Rooms' ) );
+		$this->store( self::PERMISSION_TABLE, array( 'id' => 1, 'schedule_id' => 5, 'user_id' => 7, 'can_book' => '1', 'can_cancel_others' => '0', 'can_override_conflicts' => '0' ) );
 
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
 		ob_start();
@@ -1023,5 +1190,6 @@ class AudienceAdminCalendarTest extends TestCase {
 			substr_count( $output, '<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii" data-type="audience_account" data-field="email" data-submission-id="7" data-nonce="reveal-nonce">Reveal</button>' )
 		);
 		$this->assertSame( $can_reveal ? 1 : 0, substr_count( $output, 'ffc-reveal-pii' ) );
+		$this->assertContains( array( self::VIEWER, AudienceAccountEmail::PII_CAP ), $this->user_can_asked, 'the policy asked about the audiences PII cap' );
 	}
 }
