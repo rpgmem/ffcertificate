@@ -27,6 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Rate Limiter (facade).
+ *
+ * @phpstan-import-type RateLimitVerdict from RateLimitChecker
  */
 class RateLimiter {
 
@@ -56,7 +58,7 @@ class RateLimiter {
 	 * @param int|null                   $form_id Form ID.
 	 * @param array<string, string>|null $device_signals Device fingerprint hashes.
 	 * @param bool                       $skip_device Set true to bypass the device fingerprint check.
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_all( string $ip, ?string $email = null, ?string $cpf = null, ?int $form_id = null, ?array $device_signals = null, bool $skip_device = false ): array {
 		return RateLimitChecker::check_all( $ip, $email, $cpf, $form_id, $device_signals, $skip_device );
@@ -67,7 +69,7 @@ class RateLimiter {
 	 *
 	 * @param string   $ip IP address.
 	 * @param int|null $form_id Form ID.
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_ip_limit( string $ip, ?int $form_id = null ): array {
 		return RateLimitChecker::check_ip_limit( $ip, $form_id );
@@ -78,7 +80,7 @@ class RateLimiter {
 	 *
 	 * @param string   $email Email address.
 	 * @param int|null $form_id Form ID.
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_email_limit( string $email, ?int $form_id = null ): array {
 		return RateLimitChecker::check_email_limit( $email, $form_id );
@@ -89,7 +91,7 @@ class RateLimiter {
 	 *
 	 * @param string   $cpf CPF document.
 	 * @param int|null $form_id Form ID.
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_cpf_limit( string $cpf, ?int $form_id = null ): array {
 		return RateLimitChecker::check_cpf_limit( $cpf, $form_id );
@@ -98,7 +100,7 @@ class RateLimiter {
 	/**
 	 * Forwards to {@see RateLimitChecker::check_global_limit()}.
 	 *
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_global_limit(): array {
 		return RateLimitChecker::check_global_limit();
@@ -128,7 +130,7 @@ class RateLimiter {
 	 *
 	 * @param int                   $form_id Form ID (post ID).
 	 * @param array<string, string> $signals Map of signal name -> SHA-256 hex hash.
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_device_limit( int $form_id, array $signals ): array {
 		return RateLimitChecker::check_device_limit( $form_id, $signals );
@@ -155,7 +157,7 @@ class RateLimiter {
 	 * surplus arguments to a userland function.
 	 *
 	 * @param string $ip IP address.
-	 * @return array{allowed: bool, message?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_verification( string $ip ): array {
 		return RateLimitChecker::check_verification( $ip );
@@ -178,7 +180,7 @@ class RateLimiter {
 	 * @since 6.6.2
 	 * @param string $ip           Client IP.
 	 * @param string $endpoint_key Endpoint identifier (e.g. `calendar_slots`).
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_read_limit( string $ip, string $endpoint_key ): array {
 		return RateLimitChecker::check_read_limit( $ip, $endpoint_key );
@@ -203,7 +205,7 @@ class RateLimiter {
 	 * @param string $action  Action identifier.
 	 * @param int    $max_per_hour Max attempts per hour.
 	 * @param int    $max_per_day  Max attempts per day.
-	 * @return array{allowed: bool, message?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_user_limit( int $user_id, string $action = 'default', int $max_per_hour = 5, int $max_per_day = 10 ): array {
 		return RateLimitChecker::check_user_limit( $user_id, $action, $max_per_hour, $max_per_day );

@@ -98,7 +98,7 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 			if ( empty( $rate_check['allowed'] ) ) {
 				wp_send_json_error(
 					array(
-						'message'    => $rate_check['message'] ?? __( 'Too many requests. Please wait.', 'ffcertificate' ),
+						'message'    => $rate_check['message'],
 						'rate_limit' => true,
 					)
 				);

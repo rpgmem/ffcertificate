@@ -18027,20 +18027,12 @@ msgstr ""
 msgid "Too many attempts. Please wait %s."
 msgstr ""
 
-#: includes/api/class-ffc-read-rate-limit-guard-trait.php:89
-msgid "Too many requests. Please slow down."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-public-shortcode.php:145
 msgid "Too many requests. Please try again in a few seconds."
 msgstr ""
 
 #: includes/api/class-ffc-operator-certificates-rest-controller.php:188 includes/api/class-ffc-appointment-rest-controller.php:186
 msgid "Too many requests. Please try again later."
-msgstr ""
-
-#: includes/frontend/class-ffc-verification-handler.php:631
-msgid "Too many requests. Please wait a moment and try again."
 msgstr ""
 
 #: includes/security/class-ffc-rate-limit-checker.php:659 includes/settings/tabs/class-ffc-tab-rate-limit.php:140

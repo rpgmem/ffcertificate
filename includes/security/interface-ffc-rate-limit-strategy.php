@@ -21,6 +21,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * One rate-limit dimension keyed by a string identifier.
+ *
+ * @phpstan-import-type RateLimitVerdict from RateLimitChecker
  */
 interface RateLimitStrategy {
 
@@ -29,7 +31,7 @@ interface RateLimitStrategy {
 	 *
 	 * @param string   $identifier The dimension's identifier value.
 	 * @param int|null $form_id    Optional form scope.
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public function check( string $identifier, ?int $form_id = null ): array;
 }
