@@ -50,6 +50,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The Rate Limit IP allow and deny lists accept IPv6 and CIDR ranges** (#2109). Lines are validated on save, stored canonical and matched by range through `Core\IpAddress`, shared with the trusted proxies; a line that is not an address or range is named on screen. An IPv4 address inside IPv6 masks as IPv4.
 - **A user's appointments and a calendar's appointments list by appointment date again** (#2137). The appointment reader's ORDER BY allowlist lacked `appointment_date`, so both listings silently sorted by `id` (creation order); the reader and its façade now share one list.
 - **The audience import sample's RF passes its own check digit** (#2138). The sample CSV offered an RF the importer refuses; its rows now carry a valid CPF and RF.
+- **The calendar detail and slots REST endpoints no longer fail on a real request** (#2146). The string `id` route parameter is cast before it reaches an `int` parameter under strict types, and the logged-in calendar list is ordered by title, not by `id`.
 
 ### Security
 

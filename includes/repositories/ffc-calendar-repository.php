@@ -44,6 +44,17 @@ class CalendarRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Allowed ORDER BY columns: the generic set plus `title`, which the
+	 * calendars REST list sorts by (#2146). Without it `sanitize_order_column()`
+	 * silently turns that sort into an `id` sort.
+	 *
+	 * @return array<int, string>
+	 */
+	protected function get_allowed_order_columns(): array {
+		return array_merge( parent::get_allowed_order_columns(), array( 'title' ) );
+	}
+
+	/**
 	 * Find calendar by post ID
 	 *
 	 * @param int $post_id WordPress post ID.

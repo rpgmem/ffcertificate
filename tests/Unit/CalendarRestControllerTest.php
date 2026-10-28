@@ -26,9 +26,11 @@ use FreeFormCertificate\Security\RateLimitChecker;
  * double does not expect is recorded and failed after the test rather than
  * thrown where the controller would swallow it.
  *
- * Calendar ids are passed as integers: the controller is strict-typed and
- * hands the `id` parameter straight to `int`-typed repository and handler
- * methods, so a numeric string raises a TypeError.
+ * A URL route parameter arrives as a string, so the controller casts the
+ * `id` before handing it to the `int`-typed repository and handler methods;
+ * under strict types an uncast "3" raises a TypeError, an \Error the
+ * controller's catch does not reach. The `*_with_a_string_id` tests send it
+ * that way (#2146); the rest pass integers.
  */
 class CalendarRestControllerTest extends TestCase {
 
@@ -674,6 +676,45 @@ class CalendarRestControllerTest extends TestCase {
 		$this->assertSame( array( '09:00:00', '09:30:00' ), array_column( $result['slots'], 'time' ) );
 		$this->assertSame( array( 1, 1 ), array_column( $result['slots'], 'available' ) );
 		$this->assertSame( '2026-04-01', $result['date'] );
+		$this->assertSame( 3, $result['calendar_id'] );
+	}
+
+	/**
+	 * A real request carries the route's `id` as a string (#2146).
+	 */
+	public function test_get_calendar_answers_with_a_string_id(): void {
+		$this->store_calendar( array( 'id' => 3, 'title' => 'Active Calendar' ) );
+
+		$result = ( new CalendarRestController( 'ffc/v1' ) )->get_calendar( $this->make_request( array( 'id' => '3' ) ) );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 3, $result['id'] );
+		$this->assertSame( 'Active Calendar', $result['title'] );
+	}
+
+	/**
+	 * The slots endpoint casts the string id too, and answers `calendar_id`
+	 * as an integer like the other calendar endpoints (#2146).
+	 */
+	public function test_get_calendar_slots_answers_with_a_string_id(): void {
+		// 2026-04-01 is a Wednesday (day 3); 09:00-10:00 in 30-minute slots.
+		$this->store_calendar(
+			array(
+				'id'            => 3,
+				'working_hours' => (string) json_encode(
+					array(
+						array( 'day' => 3, 'start' => '09:00', 'end' => '10:00' ),
+					)
+				),
+			)
+		);
+
+		$result = ( new CalendarRestController( 'ffc/v1' ) )->get_calendar_slots(
+			$this->make_request( array( 'id' => '3', 'date' => '2026-04-01' ) )
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertSame( array( '09:00:00', '09:30:00' ), array_column( $result['slots'], 'time' ) );
 		$this->assertSame( 3, $result['calendar_id'] );
 	}
 

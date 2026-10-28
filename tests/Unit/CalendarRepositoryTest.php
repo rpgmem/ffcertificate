@@ -909,6 +909,36 @@ class CalendarRepositoryTest extends TestCase {
 		$this->assertCount( 2, $result );
 	}
 
+	/**
+	 * The calendars REST list sorts by title; a column outside the allowlist
+	 * silently becomes an `id` sort (#2146).
+	 */
+	public function test_findAll_orders_by_title(): void {
+		$captured_sql = '';
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$captured_sql ) {
+			$captured_sql = func_get_args()[0];
+			return $captured_sql;
+		} );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( [] );
+
+		$this->repo->findAll( array( 'status' => 'active' ), 'title', 'ASC' );
+
+		$this->assertStringContainsString( 'ORDER BY title ASC', $captured_sql );
+	}
+
+	public function test_findAll_rejects_an_unlisted_order_column(): void {
+		$captured_sql = '';
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$captured_sql ) {
+			$captured_sql = func_get_args()[0];
+			return $captured_sql;
+		} );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( [] );
+
+		$this->repo->findAll( array(), 'description', 'ASC' );
+
+		$this->assertStringContainsString( 'ORDER BY id ASC', $captured_sql );
+	}
+
 	// ==================================================================
 	// Edge cases
 	// ==================================================================
