@@ -5,24 +5,35 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Security\Geofence;
 
 /**
  * Tests for Geofence::parse_areas(), validate_geolocation(), and has_form_expired_by_days().
+ *
+ * validate_geolocation() runs over the real IpGeolocation (the area check and
+ * the IP lookup), GeolocationSettingsReader and ClientIpResolver; only the
+ * options, `wp_remote_get` and `$_SERVER` are stubbed.
  */
 class GeofenceGeolocationTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** A public address, so the lookup's private-range filter lets it through. */
+	private const VISITOR_IP = '8.8.8.8';
+
+	/** @var array<string, mixed> The server superglobal before the test. */
+	private array $server_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->server_backup = $_SERVER ?? array();
 	}
 
 	protected function tearDown(): void {
+		$_SERVER = $this->server_backup;
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -145,16 +156,12 @@ class GeofenceGeolocationTest extends TestCase {
 	/**
 	 * User location within an allowed area returns valid.
 	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The real IpGeolocation::is_within_areas() decides: the visitor stands on
+	 * the area's centre.
 	 */
 	public function test_geolocation_valid_when_within_allowed_areas(): void {
 		Functions\when( '__' )->returnArg();
-
-		$ip_geo_mock = Mockery::mock( 'alias:FreeFormCertificate\Integrations\IpGeolocation' );
-		$ip_geo_mock->shouldReceive( 'is_within_areas' )
-			->once()
-			->andReturn( true );
+		$this->stub_options( array() );
 
 		$config        = array(
 			'geo_areas'      => "40.7128, -74.0060, 5000",
@@ -172,16 +179,11 @@ class GeofenceGeolocationTest extends TestCase {
 	/**
 	 * User location outside all allowed areas returns invalid.
 	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The visitor stands thousands of kilometres from the only 5 km area.
 	 */
 	public function test_geolocation_invalid_when_outside_allowed_areas(): void {
 		Functions\when( '__' )->returnArg();
-
-		$ip_geo_mock = Mockery::mock( 'alias:FreeFormCertificate\Integrations\IpGeolocation' );
-		$ip_geo_mock->shouldReceive( 'is_within_areas' )
-			->once()
-			->andReturn( false );
+		$this->stub_options( array() );
 
 		$config        = array(
 			'geo_areas'      => "40.7128, -74.0060, 5000",
@@ -198,64 +200,48 @@ class GeofenceGeolocationTest extends TestCase {
 
 	/**
 	 * When geo_ip_areas_permissive is enabled, the permissive IP areas are used
-	 * instead of the default geo_areas for the within-areas check.
+	 * instead of the default geo_areas for the within-areas check, with OR logic.
 	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The visitor stands in Los Angeles: outside the single default area (New
+	 * York, 5 km) and inside only the second of the two permissive areas, so a
+	 * valid result proves both that the permissive set was checked and that
+	 * one match was enough.
 	 */
 	public function test_geolocation_uses_permissive_ip_areas_when_configured(): void {
 		Functions\when( '__' )->returnArg();
-
-		$ip_geo_mock = Mockery::mock( 'alias:FreeFormCertificate\Integrations\IpGeolocation' );
-		$ip_geo_mock->shouldReceive( 'is_within_areas' )
-			->once()
-			->withArgs( function ( $location, $areas, $logic ) {
-				// Should receive the permissive IP areas (2 entries), not the default geo_areas (1 entry).
-				return count( $areas ) === 2 && $logic === 'or';
-			} )
-			->andReturn( true );
+		$this->stub_options( array() );
 
 		$config = array(
-			'geo_areas'              => "40.7128, -74.0060, 5000",
-			'geo_ip_enabled'         => true,
+			'geo_areas'               => "40.7128, -74.0060, 5000",
+			'geo_ip_enabled'          => true,
 			'geo_ip_areas_permissive' => true,
-			'geo_ip_areas'           => "40.7128, -74.0060, 50000\n34.0522, -118.2437, 50000",
+			'geo_ip_areas'            => "40.7128, -74.0060, 50000\n34.0522, -118.2437, 50000",
 		);
 
-		$user_location = array( 'latitude' => 40.7128, 'longitude' => -74.0060 );
+		$user_location = array( 'latitude' => 34.0522, 'longitude' => -118.2437 );
 
 		$result = Geofence::validate_geolocation( $config, $user_location );
 
 		$this->assertTrue( $result['valid'] );
+		$this->assertSame( array( 'reason' => 'inside_allowed_areas' ), $result['details'] );
+
+		// The same visitor against the default areas alone is refused, so the
+		// pass above came from the permissive set.
+		unset( $config['geo_ip_areas_permissive'] );
+		$this->assertFalse( Geofence::validate_geolocation( $config, $user_location )['valid'] );
 	}
 
 	/**
 	 * When IP geolocation returns a WP_Error and the fallback is 'allow',
 	 * the result should be valid with reason 'ip_fallback_allow'.
 	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The real IpGeolocation::get_location() runs with the API enabled and
+	 * its HTTP request failing.
 	 */
 	public function test_geolocation_falls_back_on_ip_error_allow(): void {
 		Functions\when( '__' )->returnArg();
-		// Debug::log_geofence() is a no-op in test context (class may or may not be loaded).
-
-		$wp_error = new \WP_Error( 'api_failed', 'Service unavailable' );
-
-		$ip_geo_mock = Mockery::mock( 'alias:FreeFormCertificate\Integrations\IpGeolocation' );
-		$ip_geo_mock->shouldReceive( 'get_location' )
-			->once()
-			->andReturn( $wp_error );
-
-		Functions\when( 'is_wp_error' )->alias( function ( $thing ) {
-			return $thing instanceof \WP_Error;
-		} );
-		Functions\when( 'get_option' )->alias( function ( $key, $default = array() ) {
-			if ( $key === 'ffc_geolocation_settings' ) {
-				return array( 'api_fallback' => 'allow' );
-			}
-			return $default;
-		} );
+		$requests = $this->stub_failing_ip_lookup();
+		$this->stub_options( array( 'ip_api_enabled' => true, 'api_fallback' => 'allow' ) );
 
 		$config = array(
 			'geo_areas'      => "40.7128, -74.0060, 5000",
@@ -266,35 +252,19 @@ class GeofenceGeolocationTest extends TestCase {
 
 		$this->assertTrue( $result['valid'] );
 		$this->assertSame( 'ip_fallback_allow', $result['details']['reason'] );
+		$this->assertSame( 'Service unavailable', $result['details']['error'] );
+		$this->assertCount( 1, $requests->calls, 'The lookup asks the IP service exactly once.' );
+		$this->assertStringContainsString( self::VISITOR_IP, (string) $requests->calls[0][0] );
 	}
 
 	/**
 	 * When IP geolocation returns a WP_Error and the fallback is 'block',
 	 * the result should be invalid with reason 'ip_fallback_block'.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_geolocation_falls_back_on_ip_error_block(): void {
 		Functions\when( '__' )->returnArg();
-		// Debug::log_geofence() is a no-op in test context (class may or may not be loaded).
-
-		$wp_error = new \WP_Error( 'api_failed', 'Service unavailable' );
-
-		$ip_geo_mock = Mockery::mock( 'alias:FreeFormCertificate\Integrations\IpGeolocation' );
-		$ip_geo_mock->shouldReceive( 'get_location' )
-			->once()
-			->andReturn( $wp_error );
-
-		Functions\when( 'is_wp_error' )->alias( function ( $thing ) {
-			return $thing instanceof \WP_Error;
-		} );
-		Functions\when( 'get_option' )->alias( function ( $key, $default = array() ) {
-			if ( $key === 'ffc_geolocation_settings' ) {
-				return array( 'api_fallback' => 'block' );
-			}
-			return $default;
-		} );
+		$requests = $this->stub_failing_ip_lookup();
+		$this->stub_options( array( 'ip_api_enabled' => true, 'api_fallback' => 'block' ) );
 
 		$config = array(
 			'geo_areas'      => "40.7128, -74.0060, 5000",
@@ -305,6 +275,60 @@ class GeofenceGeolocationTest extends TestCase {
 
 		$this->assertFalse( $result['valid'] );
 		$this->assertSame( 'ip_fallback_block', $result['details']['reason'] );
+		$this->assertSame( 'Service unavailable', $result['details']['error'] );
+		$this->assertCount( 1, $requests->calls, 'The lookup asks the IP service exactly once.' );
+	}
+
+	/**
+	 * Answer `ffc_geolocation_settings` with the given settings and keep every
+	 * debug area off, so Debug::is_enabled() never depends on test order.
+	 *
+	 * @param array<string, mixed> $geo_settings Stored geolocation settings.
+	 */
+	private function stub_options( array $geo_settings ): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) use ( $geo_settings ) {
+				if ( 'ffc_geolocation_settings' === $key ) {
+					return $geo_settings;
+				}
+				if ( 'ffc_settings' === $key ) {
+					return array();
+				}
+				return $default;
+			}
+		);
+	}
+
+	/**
+	 * The visitor's address reaches the lookup through REMOTE_ADDR, and the
+	 * HTTP request to the IP service fails.
+	 *
+	 * @return object Holder whose `calls` lists the arguments of every request.
+	 */
+	private function stub_failing_ip_lookup(): object {
+		foreach ( array( 'HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED' ) as $header ) {
+			unset( $_SERVER[ $header ] );
+		}
+		$_SERVER['REMOTE_ADDR'] = self::VISITOR_IP;
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+
+		Functions\when( 'is_wp_error' )->alias(
+			static function ( $thing ) {
+				return $thing instanceof \WP_Error;
+			}
+		);
+
+		$requests        = new \stdClass();
+		$requests->calls = array();
+		Functions\when( 'wp_remote_get' )->alias(
+			static function ( ...$args ) use ( $requests ) {
+				$requests->calls[] = $args;
+				return new \WP_Error( 'api_failed', 'Service unavailable' );
+			}
+		);
+
+		return $requests;
 	}
 
 	// -------------------------------------------------------------------------

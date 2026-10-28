@@ -10,6 +10,8 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Settings\Tabs\TabEmailModel;
+use FreeFormCertificate\Core\AssetHelper;
+use FreeFormCertificate\Core\EmailTemplateOptions;
 
 /**
  * Tests for TabEmailModel: the shared email-chrome editor tab (split out of the
@@ -58,32 +60,44 @@ class TabEmailModelTest extends TestCase {
 		$this->tab->enqueue_scripts( 'edit.php' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_enqueue_scripts_enqueues_model_assets_when_active(): void {
 		SettingsTab::set_resolved_active_tab( 'email_model' );
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_key' )->alias( fn( $k ) => preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $k ) ) );
 
-		$utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
-		$utils_mock->shouldReceive( 'asset_suffix' )->once()->andReturn( '.min' );
-
 		Functions\expect( 'wp_enqueue_media' )->once();
 		Functions\when( 'wp_enqueue_style' )->justReturn( null );
 		Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
-		Functions\when( 'wp_localize_script' )->justReturn( null );
+		// The real EmailTemplateOptions::footer_tokens() reads these.
+		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+		Functions\when( 'get_option' )->alias(
+			static fn( $name, $fallback = false ) => 'admin_email' === $name ? 'admin@example.com' : $fallback
+		);
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts = null ) => gmdate( $format, (int) $ts ) );
+		$localized = array();
+		Functions\when( 'wp_localize_script' )->alias(
+			static function ( $handle, $name, $data ) use ( &$localized ) {
+				$localized[ $name ] = array( $handle, $data );
+				return true;
+			}
+		);
 
-		$opts = Mockery::mock( 'alias:FreeFormCertificate\Core\EmailTemplateOptions' );
-		$opts->shouldReceive( 'defaults' )->andReturn( array() );
-		$opts->shouldReceive( 'font_stacks' )->andReturn( array() );
-		$opts->shouldReceive( 'footer_tokens' )->andReturn( array() );
-
+		$suffix = AssetHelper::asset_suffix();
 		Functions\expect( 'wp_enqueue_script' )
-			->with( 'ffc-email-model', Mockery::type( 'string' ), array( 'jquery', 'wp-color-picker' ), Mockery::type( 'string' ), true )
+			->with( 'ffc-email-model', FFC_PLUGIN_URL . "assets/js/ffc-email-model{$suffix}.js", array( 'jquery', 'wp-color-picker' ), Mockery::type( 'string' ), true )
 			->once();
 
 		$this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
+
+		// The preview is localized with the real chrome defaults, font stacks and footer tokens.
+		$this->assertSame( 'ffc-email-model', $localized['ffcEmailModel'][0] ?? null );
+		$data = $localized['ffcEmailModel'][1];
+		$this->assertSame( EmailTemplateOptions::defaults(), $data['defaults'] );
+		$this->assertSame( EmailTemplateOptions::font_stacks(), $data['fontStacks'] );
+		$this->assertSame( 'user@example.com', $data['tokens']['{{recipient}}'] );
+		$this->assertSame( 'admin@example.com', $data['tokens']['{{admin_email}}'] );
+		$this->assertSame( 'Site', $data['siteName'] );
 	}
 
 	/**
@@ -95,12 +109,11 @@ class TabEmailModelTest extends TestCase {
 	 * @param bool               $prints Whether the card renders.
 	 *
 	 * @dataProvider unlocked_card_cases
-	 * @runInSeparateProcess
 	 */
 	public function test_the_test_card_renders_for_the_caps_that_may_send( array $caps, bool $prints ): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )
-			->andReturnUsing( static fn( string $cap ): bool => in_array( $cap, $caps, true ) );
+		// The real Capabilities gate: manage_options is never held here, so
+		// only the granular caps listed decide.
+		Functions\when( 'current_user_can' )->alias( static fn( string $cap ): bool => in_array( $cap, $caps, true ) );
 		Functions\when( 'wp_get_current_user' )->justReturn( (object) array( 'user_email' => 'op@example.org' ) );
 		Functions\when( 'esc_html_e' )->alias(
 			static function ( string $text ): void {

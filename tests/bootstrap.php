@@ -343,6 +343,7 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
 		public function prepare_items() {}
 		public function display() {}
 		public function search_box( $text, $input_id ) {}
+		public function views() {}
 		public function get_columns() { return array(); }
 		protected function get_sortable_columns() { return array(); }
 		protected function get_bulk_actions() { return array(); }

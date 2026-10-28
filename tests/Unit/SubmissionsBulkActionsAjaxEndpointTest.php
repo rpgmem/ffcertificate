@@ -13,9 +13,11 @@ use FreeFormCertificate\Admin\SubmissionsBulkActionsAjaxEndpoint;
 /**
  * Tests for the Submissions bulk-actions AJAX endpoint introduced in 6.5.9.
  *
- * The guard tests share the process. The four that reach SubmissionHandler
- * overload it, and an overload outlives the test, so they run in their own
- * process (#2127).
+ * The dispatch tests run the real SubmissionHandler, its lifecycle service,
+ * SubmissionRepository and its writer, down to a `$wpdb` double that renders
+ * each prepared statement and records it, so a test asserts the SQL the
+ * action produced. The activity log is switched off in `ffc_settings`, so
+ * ActivityLog::log() returns before it buffers anything.
  *
  * @covers \FreeFormCertificate\Admin\SubmissionsBulkActionsAjaxEndpoint
  */
@@ -23,9 +25,58 @@ class SubmissionsBulkActionsAjaxEndpointTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var list<string> Every statement the double's query() ran, rendered. */
+	private array $queries = array();
+
+	/** @var int|false What the double's query() answers: rows affected, or false for a database error. */
+	private $affected = 0;
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> The `$_POST` an earlier test left, restored afterwards. */
+	private array $post_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->post_backup = $_POST ?? array();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $this->had_wpdb ? $GLOBALS['wpdb'] : null;
+		$this->queries     = array();
+		$this->affected    = 0;
+
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) {
+				// The activity log stays off, so the bulk methods log nothing.
+				return 'ffc_settings' === $key ? array( 'enable_activity_log' => 0 ) : $default;
+			}
+		);
+		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		Functions\when( 'delete_transient' )->justReturn( true );
+
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$values = ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args;
+				foreach ( $values as $v ) {
+					$sql = (string) preg_replace( '/%[ids]/', (string) $v, (string) $sql, 1 );
+				}
+				return $sql;
+			}
+		);
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = $sql;
+				return $this->affected;
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( '_n' )->alias( function ( $s, $p, $c ) {
@@ -51,7 +102,12 @@ class SubmissionsBulkActionsAjaxEndpointTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		$_POST = array();
+		$_POST = $this->post_backup;
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -104,104 +160,86 @@ class SubmissionsBulkActionsAjaxEndpointTest extends TestCase {
 	}
 
 	// ==================================================================
-	// Dispatch — each action maps to the correct bulk_* method
+	// Dispatch — each action reaches the matching bulk statement
 	// ==================================================================
 
-	/**
-	 * Its own process: SubmissionHandler is an overload mock here.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_trash_dispatches_to_bulk_trash_submissions(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
-
-		$handler = Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' );
-		$handler->shouldReceive( 'bulk_trash_submissions' )
-			->once()
-			->with( array( 1, 2, 3 ) )
-			->andReturn( 3 );
+		$this->affected = 3;
 
 		$_POST = array( 'nonce' => 'x', 'action_name' => 'trash', 'ids' => array( 1, 2, 3 ) );
 
-		try {
-			SubmissionsBulkActionsAjaxEndpoint::handle();
-		} catch ( \RuntimeException $e ) {
-			$this->assertStringStartsWith( 'json_success', $e->getMessage() );
-			$this->assertStringContainsString( '"action":"trash"', $e->getMessage() );
-			$this->assertStringContainsString( '"count":3', $e->getMessage() );
-			$this->assertStringContainsString( 'submissions moved to trash', $e->getMessage() );
-		}
+		$message = $this->handle_and_capture();
+
+		$this->assertSame(
+			array( 'UPDATE wp_ffc_submissions SET status = trash WHERE id IN (1, 2, 3)' ),
+			$this->queries,
+			'trash must run one bulk status UPDATE over exactly the posted ids.'
+		);
+		$this->assertStringStartsWith( 'json_success', $message );
+		$this->assertStringContainsString( '"action":"trash"', $message );
+		$this->assertStringContainsString( '"count":3', $message );
+		$this->assertStringContainsString( 'submissions moved to trash', $message );
 	}
 
-	/**
-	 * Its own process: SubmissionHandler is an overload mock here.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_restore_dispatches_to_bulk_restore_submissions(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
-
-		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' )
-			->shouldReceive( 'bulk_restore_submissions' )
-			->once()
-			->with( array( 42 ) )
-			->andReturn( 1 );
+		$this->affected = 1;
 
 		$_POST = array( 'nonce' => 'x', 'action_name' => 'restore', 'ids' => array( 42 ) );
 
-		try {
-			SubmissionsBulkActionsAjaxEndpoint::handle();
-		} catch ( \RuntimeException $e ) {
-			$this->assertStringContainsString( '"action":"restore"', $e->getMessage() );
-			$this->assertStringContainsString( 'submission restored', $e->getMessage() );
-		}
+		$message = $this->handle_and_capture();
+
+		$this->assertSame(
+			array( 'UPDATE wp_ffc_submissions SET status = publish WHERE id IN (42)' ),
+			$this->queries,
+			'restore must run one bulk status UPDATE back to publish.'
+		);
+		$this->assertStringContainsString( '"action":"restore"', $message );
+		$this->assertStringContainsString( 'submission restored', $message );
 	}
 
-	/**
-	 * Its own process: SubmissionHandler is an overload mock here.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_delete_dispatches_to_bulk_delete_submissions(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
-
-		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' )
-			->shouldReceive( 'bulk_delete_submissions' )
-			->once()
-			->with( array( 5, 7 ) )
-			->andReturn( 2 );
+		$this->affected = 2;
 
 		$_POST = array( 'nonce' => 'x', 'action_name' => 'delete', 'ids' => array( 5, 7 ) );
 
-		try {
-			SubmissionsBulkActionsAjaxEndpoint::handle();
-		} catch ( \RuntimeException $e ) {
-			$this->assertStringContainsString( '"action":"delete"', $e->getMessage() );
-			$this->assertStringContainsString( 'permanently deleted', $e->getMessage() );
-		}
+		$message = $this->handle_and_capture();
+
+		$this->assertSame(
+			array( 'DELETE FROM wp_ffc_submissions WHERE id IN (5, 7)' ),
+			$this->queries,
+			'delete must run one bulk DELETE over exactly the posted ids.'
+		);
+		$this->assertStringContainsString( '"action":"delete"', $message );
+		$this->assertStringContainsString( 'permanently deleted', $message );
 	}
 
-	/**
-	 * Its own process: SubmissionHandler is an overload mock here.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_handler_failure_returns_500_error(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
-
-		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' )
-			->shouldReceive( 'bulk_trash_submissions' )
-			->andReturn( false );
+		// $wpdb->query() returns false on a database error.
+		$this->affected = false;
 
 		$_POST = array( 'nonce' => 'x', 'action_name' => 'trash', 'ids' => array( 9 ) );
 
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'bulk operation failed' );
 		SubmissionsBulkActionsAjaxEndpoint::handle();
+	}
+
+	/**
+	 * Run the endpoint and return the message of the JSON exception it ends with.
+	 *
+	 * @return string
+	 */
+	private function handle_and_capture(): string {
+		try {
+			SubmissionsBulkActionsAjaxEndpoint::handle();
+		} catch ( \RuntimeException $e ) {
+			return $e->getMessage();
+		}
+		$this->fail( 'The endpoint must end with a JSON response.' );
 	}
 
 	public function test_action_map_exposes_all_three_actions(): void {
