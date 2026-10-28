@@ -525,10 +525,6 @@ class SubmissionPersister {
 
 		$participant_cpf_hash = '' !== $participant_cpf_plain ? hash( 'sha256', $participant_cpf_plain ) : '';
 
-		// Action tags + level are inlined as literals (not class constants) so
-		// the unit tests can spy on the static log() call via a Mockery alias
-		// mock without preserving the real class's constants. The values are
-		// pinned by `test_schedule_override_action_constants_are_defined`.
 		\FreeFormCertificate\Core\ActivityLog::log(
 			'schedule_override_created',
 			'info',

@@ -7,7 +7,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Security\Geofence;
 use FreeFormCertificate\Security\GpsReading;
-use Mockery;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 
@@ -16,11 +16,12 @@ use PHPUnit\Framework\TestCase;
  * reading and the IP, combined by the form's "GPS or IP" setting.
  *
  * The distance check runs for real; only the IP lookup is stood in for, so
- * the IP is "inside" or "outside" by the position it resolves to.
+ * the IP is "inside" or "outside" by the position it resolves to. The
+ * activity log, Debug and RequestInput are the real classes: a denial is
+ * read from the log's buffer, and the visitor's address from `$_SERVER`
+ * (#2117).
  *
  * @covers \FreeFormCertificate\Security\Geofence
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class GeofenceCheckSubmissionTest extends TestCase {
 
@@ -47,13 +48,6 @@ class GeofenceCheckSubmissionTest extends TestCase {
 	/** Where the visitor's IP resolves to. */
 	private array $ip_at = self::INSIDE;
 
-	/**
-	 * Reasons logged as denials.
-	 *
-	 * @var string[]
-	 */
-	private array $denied = array();
-
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -62,7 +56,18 @@ class GeofenceCheckSubmissionTest extends TestCase {
 		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'get_post_meta' )->alias( fn() => $this->config );
-		Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => 'ffc_geolocation_settings' === $key ? $this->settings : $default );
+		Functions\when( 'get_option' )->alias(
+			function ( $key, $fallback = false ) {
+				if ( 'ffc_geolocation_settings' === $key ) {
+					return $this->settings;
+				}
+				// The activity log on, every debug area off.
+				return 'ffc_settings' === $key ? ActivityLogBuffer::ENABLED_SETTINGS : $fallback;
+			}
+		);
+		ActivityLogBuffer::reset();
+		ActivityLogBuffer::stub_functions();
+		$_SERVER['REMOTE_ADDR'] = '8.8.8.8';
 
 		$this->config = array(
 			'geo_enabled'      => '1',
@@ -72,28 +77,23 @@ class GeofenceCheckSubmissionTest extends TestCase {
 			'geo_gps_ip_logic' => 'or',
 		);
 		$this->settings = array( 'gps_cache_ttl' => 600 );
-
-		Mockery::getConfiguration()->setConstantsMap(
-			array( 'FreeFormCertificate\Core\Debug' => array( 'AREA_GEOFENCE' => 'debug_geofence' ) )
-		);
-		$debug = Mockery::mock( 'alias:FreeFormCertificate\Core\Debug' );
-		$debug->shouldReceive( 'log_geofence' );
-		$debug->shouldReceive( 'is_enabled' )->andReturn( false );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' )
-			->shouldReceive( 'log_access_denied' )
-			->andReturnUsing(
-				function ( string $reason ): bool {
-					$this->denied[] = $reason;
-					return true;
-				}
-			);
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_user_ip' )->andReturn( '8.8.8.8' );
 	}
 
 	protected function tearDown(): void {
+		ActivityLogBuffer::reset();
+		unset( $_SERVER['REMOTE_ADDR'] );
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * The reasons the activity log recorded as denials.
+	 *
+	 * @return array<int, mixed>
+	 */
+	private static function denied(): array {
+		$denials = array_filter( ActivityLogBuffer::contexts(), static fn( array $row ) => 'access_denied' === $row['action'] );
+		return array_values( array_map( static fn( array $row ) => $row['context']['reason'] ?? null, $denials ) );
 	}
 
 	/**
@@ -144,7 +144,7 @@ class GeofenceCheckSubmissionTest extends TestCase {
 		$this->assertFalse( $outside['allowed'] );
 		$this->assertSame( GpsReading::REASON_OUTSIDE, $outside['reason'] );
 		$this->assertSame( 'This form is not available in your location.', $outside['message'] );
-		$this->assertSame( array( GpsReading::REASON_OUTSIDE ), $this->denied );
+		$this->assertSame( array( GpsReading::REASON_OUTSIDE ), self::denied() );
 	}
 
 	public function test_no_reading_follows_the_policy(): void {

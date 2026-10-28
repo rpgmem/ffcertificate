@@ -7,7 +7,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Integrations\IpGeolocation;
 use FreeFormCertificate\Security\Geofence;
-use Mockery;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 
@@ -18,12 +18,12 @@ use PHPUnit\Framework\TestCase;
  * ON, the case that writes the most, and every context written to the
  * activity log or to the debug log is searched for a coordinate: the GPS
  * position an area check compares, the position an IP resolves to, and the
- * position a denial carries.
+ * position a denial carries. ActivityLog and Debug are the real classes:
+ * the activity log's buffer and every `error_log()` line are what is
+ * searched (#2117).
  *
  * @covers \FreeFormCertificate\Integrations\IpGeolocation
  * @covers \FreeFormCertificate\Security\Geofence
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class LocationNeverLoggedTest extends TestCase {
 
@@ -34,11 +34,11 @@ class LocationNeverLoggedTest extends TestCase {
 	private const LNG = -46.6345;
 
 	/**
-	 * Every context written, from either log.
+	 * Every line the debug log wrote.
 	 *
-	 * @var array<int, array<string, mixed>>
+	 * @var array<int, string>
 	 */
-	private array $written = array();
+	private array $debug_lines = array();
 
 	/** Whether the geolocation debug toggle reads as on. */
 	private bool $debug_on = true;
@@ -48,37 +48,28 @@ class LocationNeverLoggedTest extends TestCase {
 		Monkey\setUp();
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
+		Functions\when( 'wp_salt' )->justReturn( 'salt' );
 
-		$this->written = array();
-		Mockery::getConfiguration()->setConstantsMap(
-			array(
-				'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_DEBUG' => 'debug' ),
-				'FreeFormCertificate\Core\Debug'       => array( 'AREA_GEOFENCE' => 'debug_geofence' ),
-			)
+		ActivityLogBuffer::reset();
+		ActivityLogBuffer::stub_functions();
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $fallback = false ) => 'ffc_settings' === $key
+				? ActivityLogBuffer::ENABLED_SETTINGS + array( 'debug_geofence' => $this->debug_on ? 1 : 0 )
+				: $fallback
 		);
-		$log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
-		$log->shouldReceive( 'log' )->andReturnUsing(
-			function ( string $action, string $level = 'info', array $context = array() ): bool {
-				$this->written[] = $context;
+
+		$this->debug_lines = array();
+		Functions\when( 'error_log' )->alias(
+			function ( string $line ): bool {
+				$this->debug_lines[] = $line;
 				return true;
-			}
-		);
-		$log->shouldReceive( 'log_access_denied' )->andReturnUsing(
-			function ( ...$args ): bool {
-				$this->written[] = $args;
-				return true;
-			}
-		);
-		$debug = Mockery::mock( 'alias:FreeFormCertificate\Core\Debug' );
-		$debug->shouldReceive( 'is_enabled' )->andReturnUsing( fn() => $this->debug_on );
-		$debug->shouldReceive( 'log_geofence' )->andReturnUsing(
-			function ( string $message, array $context = array() ): void {
-				$this->written[] = $context;
 			}
 		);
 	}
 
 	protected function tearDown(): void {
+		ActivityLogBuffer::reset();
+		unset( $_SERVER['REMOTE_ADDR'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -96,8 +87,12 @@ class LocationNeverLoggedTest extends TestCase {
 		);
 
 		$this->assertTrue( $inside );
-		$this->assertNotSame( array(), $this->written, 'The check must still log its decision while debugging is on.' );
-		$this->assertContains( array( 'message' => 'Area check', 'area' => 0, 'radius' => 1000.0, 'within' => true ), $this->written );
+		$this->assertNotSame( array(), $this->debug_lines, 'The check must still log its decision while debugging is on.' );
+		// The row as stored: JSON writes the 1000.0 radius as 1000.
+		$this->assertContains(
+			array( 'message' => 'Area check', 'area' => 0, 'radius' => 1000, 'within' => true ),
+			array_column( ActivityLogBuffer::contexts(), 'context' )
+		);
 		$this->assertNoPosition();
 	}
 
@@ -118,22 +113,19 @@ class LocationNeverLoggedTest extends TestCase {
 				)
 			)
 		);
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
-
 		$fetch    = new \ReflectionMethod( IpGeolocation::class, 'fetch_from_ipapi' );
 		$location = $fetch->invoke( null, '203.0.113.5' );
 
 		// The lookup still returns the position; only the log copy drops it.
 		$this->assertSame( self::LAT, $location['latitude'] );
-		$this->assertNotSame( array(), $this->written );
+		$this->assertNotSame( array(), $this->debug_lines );
 		$this->assertNoPosition();
 	}
 
 	public function test_a_denial_logs_no_position(): void {
 		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_user_ip' )->andReturn( '203.0.113.5' );
+		$_SERVER['REMOTE_ADDR'] = '203.0.113.5';
 
 		$result = Geofence::check_access(
 			array(
@@ -153,7 +145,7 @@ class LocationNeverLoggedTest extends TestCase {
 		);
 
 		$this->assertFalse( $result['allowed'] );
-		$this->assertNotSame( array(), $this->written );
+		$this->assertContains( 'access_denied', array_column( ActivityLogBuffer::contexts(), 'action' ) );
 		$this->assertNoPosition();
 	}
 
@@ -168,20 +160,23 @@ class LocationNeverLoggedTest extends TestCase {
 			array( array( 'lat' => -23.55, 'lng' => -46.63, 'radius' => 1000.0 ) )
 		);
 
-		// Only the debug log (which checks its own toggle) was called.
-		$this->assertCount( 1, $this->written );
+		// The log is on, the debug toggle is off: neither log writes a line.
+		$this->assertSame( array(), ActivityLogBuffer::entries() );
+		$this->assertSame( array(), $this->debug_lines );
 	}
 
 	/**
 	 * No written context carries the position, as a number or as text.
 	 */
 	private function assertNoPosition(): void {
-		$dump = (string) json_encode( $this->written );
+		$dump = (string) json_encode( ActivityLogBuffer::contexts() ) . "\n" . implode( "\n", $this->debug_lines );
 		foreach ( array( self::LAT, self::LNG ) as $coordinate ) {
 			$this->assertStringNotContainsString( (string) $coordinate, $dump, 'A visitor\'s coordinate reached a log.' );
 		}
-		foreach ( array( '"latitude"', '"longitude"', '"lat"', '"lng"', '"user_location"' ) as $key ) {
-			$this->assertStringNotContainsString( $key, $dump, 'A position key reached a log.' );
+		// A key as JSON writes it (activity log) and as print_r() writes it (debug log).
+		foreach ( array( 'latitude', 'longitude', 'lat', 'lng', 'user_location' ) as $key ) {
+			$this->assertStringNotContainsString( '"' . $key . '"', $dump, 'A position key reached a log.' );
+			$this->assertStringNotContainsString( '[' . $key . ']', $dump, 'A position key reached a log.' );
 		}
 	}
 }
