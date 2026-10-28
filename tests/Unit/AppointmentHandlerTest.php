@@ -189,8 +189,10 @@ class AppointmentHandlerTest extends TestCase {
 	}
 
 	public function test_process_status_pending_when_requires_approval(): void {
+		// `$wpdb` returns the column as '1'; the result used to compare it with
+		// `1 ===` and report a pending booking as confirmed (#2160).
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn(
-			$this->makeCalendar( array( 'requires_approval' => 1 ) )
+			$this->makeCalendar( array( 'requires_approval' => '1' ) )
 		);
 
 		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
@@ -911,7 +913,7 @@ class AppointmentHandlerTest extends TestCase {
 
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
-			'user_id' => 5, 'confirmation_token' => '',
+			'user_id' => '5', 'confirmation_token' => '', // A string, as `$wpdb` returns it (#2160).
 			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
@@ -932,7 +934,7 @@ class AppointmentHandlerTest extends TestCase {
 
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
-			'user_id' => 5, 'confirmation_token' => '',
+			'user_id' => '5', 'confirmation_token' => '', // A string, as `$wpdb` returns it (#2160).
 			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );

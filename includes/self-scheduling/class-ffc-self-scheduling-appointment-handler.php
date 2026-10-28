@@ -281,7 +281,9 @@ class AppointmentHandler {
 			'success'            => true,
 			'appointment_id'     => $appointment_id,
 			'confirmation_token' => '' !== $confirmation_token ? $confirmation_token : null,
-			'requires_approval'  => 1 === $calendar['requires_approval'],
+			// The same truthy reading that set the stored status: `$wpdb` returns
+			// the column as '1', which `1 ===` never matched (#2160).
+			'requires_approval'  => ! empty( $calendar['requires_approval'] ),
 			'waitlisted'         => $is_waitlist,
 			'receipt_url'        => $receipt_url,
 			'notifications_ok'   => $emails_ok,
@@ -623,7 +625,7 @@ class AppointmentHandler {
 		if ( $has_bypass ) {
 			$can_cancel   = true;
 			$cancelled_by = get_current_user_id();
-		} elseif ( is_user_logged_in() && get_current_user_id() === $appointment['user_id'] ) {
+		} elseif ( is_user_logged_in() && get_current_user_id() === (int) $appointment['user_id'] ) {
 			if ( current_user_can( 'ffc_cancel_own_appointments' ) ) {
 				$can_cancel   = true;
 				$cancelled_by = get_current_user_id();
