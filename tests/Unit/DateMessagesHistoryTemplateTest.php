@@ -5,7 +5,6 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 
@@ -14,9 +13,10 @@ use PHPUnit\Framework\TestCase;
  * which lives on Settings → Scheduled Tasks, and draws it only for who can
  * open that screen.
  *
+ * The date goes through the real DateFormatter, at its default formats in
+ * UTC (#2117).
+ *
  * @coversNothing
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class DateMessagesHistoryTemplateTest extends TestCase {
 
@@ -38,7 +38,11 @@ class DateMessagesHistoryTemplateTest extends TestCase {
 		Functions\when( 'esc_html_e' )->alias( static function ( $text ) { echo $text; } );
 		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.org/wp-admin/' . $path );
 		Functions\when( 'current_user_can' )->alias( fn( $cap ) => in_array( $cap, $this->caps, true ) );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )->shouldReceive( 'format_datetime' )->andReturn( '10/10/2026 07:00' );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias(
+			static fn( $format, $ts = null, $tz = null ) => ( new \DateTimeImmutable( '@' . (int) $ts ) )->setTimezone( $tz ?? new \DateTimeZone( 'UTC' ) )->format( $format )
+		);
 	}
 
 	protected function tearDown(): void {
@@ -69,7 +73,7 @@ class DateMessagesHistoryTemplateTest extends TestCase {
 
 		$html = $this->render( 1791702000 );
 
-		$this->assertStringContainsString( 'Next daily run: 10/10/2026 07:00.', $html );
+		$this->assertStringContainsString( 'Next daily run: 11/10/2026 07:00.', $html );
 		$this->assertStringContainsString( 'href="https://example.org/wp-admin/admin.php?page=ffc-settings&tab=scheduled_tasks"', $html );
 		$this->assertStringContainsString( 'Open Scheduled Tasks', $html );
 	}

@@ -10,34 +10,31 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\Submission\SubmissionPersister;
 use FreeFormCertificate\Submissions\SubmissionHandler;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 
 /**
  * Tests for `FormProcessor::persist_schedule_exception()` — the Sprint 6
  * private helper that writes the override TIME columns + emits the two
  * audit log rows for a verified schedule-exception consumption.
  *
- * Lives in its own file so the `@runTestsInSeparateProcesses` annotation
- * (required because the alias mocks for ActivityLog / Utils are
- * single-shot per PHP process) doesn't slow down the 70+ existing
- * FormProcessorTest cases that don't need isolation. Mirrors the
- * established pattern in ActivityLogAjaxEndpointTest / CacheActionsAjaxEndpointTest.
+ * The real ActivityLog runs and the audit rows are read from its write
+ * buffer; the operator's address comes from `$_SERVER` through the real
+ * RequestInput (#2117).
  *
  * @covers \FreeFormCertificate\Frontend\Submission\SubmissionPersister::persist_schedule_exception
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class FormProcessorScheduleExceptionTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/** The `$wpdb` before the test, restored after it: the claim tests replace it. */
+	private $previous_wpdb;
 
 	/** @var SubmissionPersister */
 	private $persister;
 
 	/** @var Mockery\MockInterface */
 	private $repo;
-
-	/** @var array<int, array<string, mixed>> */
-	private array $audit_calls = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -62,34 +59,34 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 
 		$this->persister = new SubmissionPersister( $handler );
 
-		// Alias ActivityLog so we can spy on log() and read constants
-		// without booting the real wpdb-backed class.
-		$this->audit_calls = array();
-		$audit_ref         = &$this->audit_calls;
-		$log_class         = Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLog' );
-		$log_class->shouldReceive( 'log' )
-			->andReturnUsing( static function ( $action, $level, $context, $user_id, $submission_id ) use ( &$audit_ref ) {
-				$audit_ref[] = array(
-					'action'        => $action,
-					'level'         => $level,
-					'context'       => $context,
-					'user_id'       => $user_id,
-					'submission_id' => $submission_id,
-				);
-				return true;
-			} );
-
-		// Alias RequestInput so get_user_ip is deterministic.
-		$utils = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
-		$utils->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
-		$utils->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
-		$utils->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-		$utils->shouldReceive( 'get_user_ip' )->andReturn( '203.0.113.5' )->byDefault();
+		$this->previous_wpdb = $GLOBALS['wpdb'] ?? null;
+		ActivityLogBuffer::reset();
+		ActivityLogBuffer::stub_functions();
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $fallback = false ) => 'ffc_settings' === $key ? ActivityLogBuffer::ENABLED_SETTINGS : $fallback
+		);
+		$_SERVER['REMOTE_ADDR'] = '203.0.113.5';
 	}
 
 	protected function tearDown(): void {
+		ActivityLogBuffer::reset();
+		unset( $_SERVER['REMOTE_ADDR'] );
+		$GLOBALS['wpdb'] = $this->previous_wpdb;
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * The audit rows the activity log buffered, contexts decoded.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	private static function audit_rows(): array {
+		$rows = array();
+		foreach ( ActivityLogBuffer::entries() as $i => $entry ) {
+			$rows[] = ActivityLogBuffer::contexts()[ $i ] + array( 'submission_id' => $entry['submission_id'] );
+		}
+		return $rows;
 	}
 
 	private function invoke_persist( int $submission_id, int $form_id, array $payload, string $cpf ): void {
@@ -168,9 +165,10 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 	public function test_persist_emits_two_audit_rows_with_correct_context(): void {
 		$this->invoke_persist( 555, 42, $this->full_payload(), '12345678900' );
 
-		$this->assertCount( 2, $this->audit_calls );
+		$audit = self::audit_rows();
+		$this->assertCount( 2, $audit );
 
-		$override_row = $this->audit_calls[0];
+		$override_row = $audit[0];
 		$this->assertSame( 'schedule_override_created', $override_row['action'] );
 		$this->assertSame( 'info', $override_row['level'] );
 		$this->assertSame( 42, $override_row['context']['form_id'] );
@@ -183,7 +181,7 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 		$this->assertIsInt( $override_row['context']['ts'], 'ts is Category A unix UTC int' );
 		$this->assertSame( 555, $override_row['submission_id'] );
 
-		$bypass_row = $this->audit_calls[1];
+		$bypass_row = $audit[1];
 		$this->assertSame( 'operator_ip_bypass', $bypass_row['action'] );
 		$this->assertSame( '203.0.113.5', $bypass_row['context']['bypassed_ip'] );
 		$this->assertSame( str_repeat( 'a', 64 ), $bypass_row['context']['operator_cpf_hash'] );
@@ -212,9 +210,10 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 			'12345678900'
 		);
 
-		$this->assertCount( 2, $this->audit_calls );
-		$this->assertNull( $this->audit_calls[0]['context']['schedule_start_after'] );
-		$this->assertNull( $this->audit_calls[0]['context']['schedule_end_after'] );
+		$audit = self::audit_rows();
+		$this->assertCount( 2, $audit );
+		$this->assertNull( $audit[0]['context']['schedule_start_after'] );
+		$this->assertNull( $audit[0]['context']['schedule_end_after'] );
 	}
 
 	public function test_persist_omits_participant_cpf_hash_when_cpf_blank(): void {
@@ -223,7 +222,7 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 		// hash('sha256', '').
 		$this->invoke_persist( 555, 42, $this->full_payload(), '' );
 
-		$this->assertSame( '', $this->audit_calls[0]['context']['participant_cpf_hash'] );
+		$this->assertSame( '', self::audit_rows()[0]['context']['participant_cpf_hash'] );
 	}
 
 	// ==================================================================
@@ -283,7 +282,7 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 		$applied = $this->invoke_maybe_persist( 555, 42, $this->full_payload(), '12345678900' );
 
 		$this->assertFalse( $applied );
-		$this->assertCount( 0, $this->audit_calls );
+		$this->assertSame( array(), ActivityLogBuffer::entries() );
 	}
 
 	// ==================================================================

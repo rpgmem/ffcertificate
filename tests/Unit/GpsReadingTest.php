@@ -4,8 +4,8 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use Brain\Monkey\Functions;
 use FreeFormCertificate\Security\GpsReading;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 
@@ -13,11 +13,11 @@ use PHPUnit\Framework\TestCase;
  * The server's verdict on a submitted GPS reading (#2040).
  *
  * The distance check runs for real, so "inside" and "outside" are what the
- * area's radius says, not what a mock answers.
+ * area's radius says, not what a mock answers. Debug and RequestInput are
+ * the real classes too: debug output is off because no debug area is set,
+ * and a posted reading is read from `$_POST` (#2117).
  *
  * @covers \FreeFormCertificate\Security\GpsReading
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class GpsReadingTest extends TestCase {
 
@@ -49,15 +49,14 @@ class GpsReadingTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		Mockery::getConfiguration()->setConstantsMap(
-			array( 'FreeFormCertificate\Core\Debug' => array( 'AREA_GEOFENCE' => 'debug_geofence' ) )
-		);
-		$debug = Mockery::mock( 'alias:FreeFormCertificate\Core\Debug' );
-		$debug->shouldReceive( 'log_geofence' );
-		$debug->shouldReceive( 'is_enabled' )->andReturn( false );
+		// No debug area on: Debug::log_geofence() writes nothing.
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->alias( 'trim' );
 	}
 
 	protected function tearDown(): void {
+		$_POST = array();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -220,16 +219,13 @@ class GpsReadingTest extends TestCase {
 	}
 
 	public function test_from_request_reads_the_posted_fields_and_drops_an_unknown_status(): void {
-		$post = array(
+		$_POST = array(
 			'ffc_geo_lat'      => '-23.5',
 			'ffc_geo_lng'      => '-46.6',
 			'ffc_geo_accuracy' => '8',
 			'ffc_geo_age'      => '20',
 			'ffc_geo_status'   => 'made_up',
 		);
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_post_string' )
-			->andReturnUsing( static fn( string $key, string $default = '' ): string => $post[ $key ] ?? $default );
 
 		$this->assertSame(
 			array(
@@ -241,9 +237,7 @@ class GpsReadingTest extends TestCase {
 	}
 
 	public function test_from_request_keeps_a_known_status_without_a_reading(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_post_string' )
-			->andReturnUsing( static fn( string $key, string $default = '' ): string => 'ffc_geo_status' === $key ? 'timeout' : $default );
+		$_POST = array( 'ffc_geo_status' => 'timeout' );
 
 		$this->assertSame( array( 'reading' => null, 'status' => 'timeout' ), GpsReading::from_request() );
 	}
