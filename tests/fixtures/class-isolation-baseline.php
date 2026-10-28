@@ -92,7 +92,5 @@ return array(
 	'UserAudienceRestControllerTest.php',
 	'UserCertificatesRestControllerTest.php',
 	'UserProfileRestControllerTest.php',
-	'UserServiceTest.php',
-	'UserSummaryRestControllerTest.php',
 	'VerificationHandlerAjaxTest.php',
 );
