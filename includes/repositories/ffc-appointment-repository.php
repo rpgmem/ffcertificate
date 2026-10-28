@@ -70,12 +70,13 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Allowed ORDER BY columns: the generic set plus the two the Appointments
 	 * list sorts by (#1770). Without them `sanitize_order_column()` silently
-	 * turns a Calendar or Date sort into an `id` sort.
+	 * turns a Calendar or Date sort into an `id` sort. The list is the
+	 * reader's, so the façade and the reader cannot disagree (#2137).
 	 *
 	 * @return array<int, string>
 	 */
 	protected function get_allowed_order_columns(): array {
-		return array_merge( parent::get_allowed_order_columns(), array( 'calendar_id', 'appointment_date' ) );
+		return array_merge( parent::get_allowed_order_columns(), AppointmentReader::ORDER_COLUMNS );
 	}
 
 	/**
