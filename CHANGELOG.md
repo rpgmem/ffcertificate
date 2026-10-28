@@ -29,6 +29,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Tests: eight more classes run in the shared process** (#2129). The audience, booking, profile, delivery-log, geofence and recruitment repositories they used to replace now run for real over a `$wpdb` double, and none of the eight needs a process of its own.
 - **Tests: eight more classes run in the shared process** (#2131). The user summary, user service, attendance, post-event form, reregistration actions, classification filter, reregistrations REST and check-in endpoint tests run their real repositories and services over a `$wpdb` double; none needs a process of its own.
 - **Tests: eight more classes run in the shared process** (#2134). The key-health notice, form-invite resolver, date-messages digest, notices REST, reregistration details, pending post-event forms, reason edit page and call ICS tests run their real repositories and services over a `$wpdb` double; only the healthy-keys test keeps its own process, because the bootstrap's keys cannot report healthy without a `define()`.
+- **Tests: eight more classes run in the shared process** (#2136). The reregistration import, recruitment dispatch, user certificates and appointments REST, identity-index backfill, activator migration, user capabilities and operator certificates tests run their real services over a `$wpdb` double; one test keeps its own process, for an unreadable pending count the real normalization strategy cannot produce.
 
 ### Deprecated
 
