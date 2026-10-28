@@ -14,8 +14,11 @@ use FreeFormCertificate\Core\DocumentFormatter;
 /**
  * Tests for UserReregistrationsRestController: route registration,
  * authentication checks, empty/formatted submission responses.
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
+ *
+ * ReregistrationSubmissionReader, ReregistrationSubmissionWriter,
+ * MagicLinkHelper and DateFormatter are the real classes: the `$wpdb` double
+ * answers the user's submissions query with the rows a test sets and records
+ * every update, and the options they read are stubbed globally.
  */
 class UserReregistrationsRestControllerTest extends TestCase {
 
@@ -24,23 +27,29 @@ class UserReregistrationsRestControllerTest extends TestCase {
 	/** @var array Captured route registrations */
 	private array $registered_routes = [];
 
-	/** @var \Mockery\MockInterface */
-	private $rereg_repo_mock;
+	/** @var list<object>|\Exception What the submissions query answers, or throws. */
+	private $submissions = array();
 
-	/** @var \Mockery\MockInterface */
-	private $rereg_writer_mock;
+	/** @var list<array<int, mixed>> The arguments of every `$wpdb->update()` call. */
+	private array $updates = array();
 
-	/** @var \Mockery\MockInterface */
-	private $utils_mock;
+	/** @var list<array<int, mixed>> The bound arguments of every submissions query. */
+	private array $queried = array();
 
-	/** @var \Mockery\MockInterface */
-	private $magic_link_mock;
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
 		$this->registered_routes = [];
+		$this->submissions       = array();
+		$this->updates           = array();
+		$this->queried           = array();
 
 		Functions\when( 'register_rest_route' )->alias( function( $namespace, $route, $args ) {
 			$this->registered_routes[] = array(
@@ -55,9 +64,16 @@ class UserReregistrationsRestControllerTest extends TestCase {
 		Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
 		Functions\when( 'rest_ensure_response' )->alias( function( $data ) { return $data; } );
 		Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
-		Functions\when( 'get_option' )->justReturn( 'F j, Y' );
-		Functions\when( 'date_i18n' )->alias( function( $format, $timestamp = false ) {
-			return date( $format, $timestamp ?: time() );
+		Functions\when( 'get_option' )->alias( function( $key, $default = false ) {
+			if ( 'ffc_settings' === $key ) {
+				// What DateFormatter reads.
+				return array(
+					'date_format' => 'F j, Y',
+					'time_format' => 'H:i',
+				);
+			}
+			// Everything else, the verification page id included, is unset.
+			return $default;
 		});
 		Functions\when( 'wp_date' )->alias( function( $format, $timestamp = null, $tz = null ) {
 			return date( $format, $timestamp ?? time() );
@@ -65,26 +81,47 @@ class UserReregistrationsRestControllerTest extends TestCase {
 		Functions\when( 'wp_timezone' )->alias( function() {
 			return new \DateTimeZone( 'UTC' );
 		});
+		Functions\when( 'home_url' )->alias( function( $path = '' ) {
+			return 'https://example.com' . $path;
+		});
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
 
-		// Alias mocks for static-only dependencies
-		$this->rereg_repo_mock   = Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' );
-		$this->rereg_writer_mock = Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' );
-		$this->rereg_repo_mock->shouldReceive( 'get_all_by_user' )->andReturn( array() )->byDefault();
-		$this->rereg_writer_mock->shouldReceive( 'ensure_magic_token' )->andReturn( 'test-token-123' )->byDefault();
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( function( $sql, ...$args ) {
+			return array(
+				'sql'  => $sql,
+				'args' => $args,
+			);
+		});
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing( function( $q ) {
+			if ( false === strpos( $q['sql'], 'WHERE s.user_id = %d' ) ) {
+				$this->fail( 'Unexpected get_results(): ' . $q['sql'] );
+			}
+			$this->queried[] = $q['args'];
+			if ( $this->submissions instanceof \Exception ) {
+				throw $this->submissions;
+			}
+			return $this->submissions;
+		});
+		$wpdb->shouldReceive( 'update' )->andReturnUsing( function( ...$args ) {
+			$this->updates[] = $args;
+			return 1;
+		});
 
-		$this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-		$this->utils_mock->shouldReceive( 'debug_log' )->byDefault();
-		$this->utils_mock->shouldReceive( 'format_auth_code' )->andReturnUsing( function( $code, $prefix = '' ) {
-			return DocumentFormatter::format_auth_code( $code, $prefix );
-		})->byDefault();
-
-		$this->magic_link_mock = Mockery::mock( 'alias:\FreeFormCertificate\Generators\MagicLinkHelper' );
-		$this->magic_link_mock->shouldReceive( 'generate_magic_link' )->andReturnUsing( function( $token ) {
-			return 'https://example.com/verify?token=' . $token;
-		})->byDefault();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $wpdb;
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -171,14 +208,13 @@ class UserReregistrationsRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$this->rereg_repo_mock->shouldReceive( 'get_all_by_user' )
-			->with( 5 )
-			->andReturn( array() );
+		$this->submissions = array();
 
 		$ctrl    = new UserReregistrationsRestController( 'ffc/v1' );
 		$request = $this->make_request();
 		$result  = $ctrl->get_user_reregistrations( $request );
 
+		$this->assertSame( array( array( 'wp_ffc_reregistration_submissions', 'wp_ffc_reregistrations', 5 ) ), $this->queried, 'The submissions are read for the current user.' );
 		$this->assertIsArray( $result );
 		$this->assertSame( 0, $result['total'] );
 		$this->assertEmpty( $result['reregistrations'] );
@@ -202,24 +238,16 @@ class UserReregistrationsRestControllerTest extends TestCase {
 			'end_date'              => '2026-12-31',
 			'submitted_at'          => '2026-03-01 14:30:00',
 			'auth_code'             => 'ABCD1234EFGH',
+			'magic_token'           => 'magic-token-42',
 		));
 
-		$this->rereg_repo_mock->shouldReceive( 'get_all_by_user' )
-			->with( 5 )
-			->andReturn( array( $sub ) );
-
-		$this->rereg_writer_mock->shouldReceive( 'ensure_magic_token' )
-			->with( $sub )
-			->andReturn( 'magic-token-42' );
-
-		$this->magic_link_mock->shouldReceive( 'generate_magic_link' )
-			->with( 'magic-token-42' )
-			->andReturn( 'https://example.com/verify?token=magic-token-42' );
+		$this->submissions = array( $sub );
 
 		$ctrl    = new UserReregistrationsRestController( 'ffc/v1' );
 		$request = $this->make_request();
 		$result  = $ctrl->get_user_reregistrations( $request );
 
+		$this->assertSame( 5, $this->queried[0][2], 'The submissions are read for the current user.' );
 		$this->assertIsArray( $result );
 		$this->assertSame( 1, $result['total'] );
 
@@ -234,7 +262,10 @@ class UserReregistrationsRestControllerTest extends TestCase {
 		$this->assertTrue( $formatted['is_active'] );
 		$this->assertNotEmpty( $formatted['auth_code'] );
 		$this->assertStringContainsString( 'R-', $formatted['auth_code'] );
-		$this->assertSame( 'https://example.com/verify?token=magic-token-42', $formatted['magic_link'] );
+		$this->assertSame( DocumentFormatter::format_auth_code( 'ABCD1234EFGH', DocumentFormatter::PREFIX_REREGISTRATION ), $formatted['auth_code'] );
+		$this->assertSame( 'January 1, 2026', $formatted['start_date_formatted'] );
+		$this->assertSame( 'https://example.com/valid/#token=magic-token-42', $formatted['magic_link'], 'The link is built from the stored token, on the fallback verification page.' );
+		$this->assertSame( array(), $this->updates, 'A stored token is reused, never rewritten.' );
 	}
 
 	public function test_get_user_reregistrations_pending_submission_can_submit(): void {
@@ -247,9 +278,7 @@ class UserReregistrationsRestControllerTest extends TestCase {
 			'auth_code'             => '',
 		));
 
-		$this->rereg_repo_mock->shouldReceive( 'get_all_by_user' )
-			->with( 5 )
-			->andReturn( array( $sub ) );
+		$this->submissions = array( $sub );
 
 		$ctrl    = new UserReregistrationsRestController( 'ffc/v1' );
 		$request = $this->make_request();
@@ -283,17 +312,8 @@ class UserReregistrationsRestControllerTest extends TestCase {
 			'auth_code'             => 'ZSKDNN5895DU',
 		));
 
-		$this->rereg_repo_mock->shouldReceive( 'get_all_by_user' )
-			->with( 5 )
-			->andReturn( array( $sub ) );
-
-		$this->rereg_writer_mock->shouldReceive( 'ensure_magic_token' )
-			->with( $sub )
-			->andReturn( 'magic-77' );
-
-		$this->magic_link_mock->shouldReceive( 'generate_magic_link' )
-			->with( 'magic-77' )
-			->andReturn( 'https://example.com/verify?token=magic-77' );
+		// No token stored yet: the writer generates one and saves it on the row.
+		$this->submissions = array( $sub );
 
 		$ctrl    = new UserReregistrationsRestController( 'ffc/v1' );
 		$request = $this->make_request();
@@ -301,7 +321,12 @@ class UserReregistrationsRestControllerTest extends TestCase {
 
 		$formatted = $result['reregistrations'][0];
 		$this->assertTrue( $formatted['can_download'], 'auth_code present → download MUST be available regardless of expired status' );
-		$this->assertSame( 'https://example.com/verify?token=magic-77', $formatted['magic_link'] );
+		$this->assertCount( 1, $this->updates, 'The missing token is generated and saved once.' );
+		$this->assertSame( 'wp_ffc_reregistration_submissions', $this->updates[0][0] );
+		$this->assertSame( array( 'id' => 77 ), $this->updates[0][2] );
+		$token = $this->updates[0][1]['magic_token'];
+		$this->assertMatchesRegularExpression( '/^[a-f0-9]{64}$/', $token );
+		$this->assertSame( 'https://example.com/valid/#token=' . $token, $formatted['magic_link'] );
 		$this->assertFalse( $formatted['can_submit'], 'expired submissions cannot be re-submitted' );
 	}
 
@@ -317,9 +342,7 @@ class UserReregistrationsRestControllerTest extends TestCase {
 			'auth_code'             => '',
 		));
 
-		$this->rereg_repo_mock->shouldReceive( 'get_all_by_user' )
-			->with( 5 )
-			->andReturn( array( $sub ) );
+		$this->submissions = array( $sub );
 
 		$ctrl    = new UserReregistrationsRestController( 'ffc/v1' );
 		$request = $this->make_request();
@@ -334,8 +357,7 @@ class UserReregistrationsRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$this->rereg_repo_mock->shouldReceive( 'get_all_by_user' )
-			->andThrow( new \Exception( 'Database failure' ) );
+		$this->submissions = new \Exception( 'Database failure' );
 
 		$ctrl    = new UserReregistrationsRestController( 'ffc/v1' );
 		$request = $this->make_request();
