@@ -33,6 +33,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Tests: every CPF and RF fixture is a standard identifier** (#2138). About sixty test files carried their own values, some of them invalid without saying so; they now use `tests/Support/Identifiers.php`, which gains a valid CPF with a leading zero. The fixture guard also scans bare, masked CPF and masked RF literals, not only values under an identifier key.
 - **Tests: eight more classes run in the shared process** (#2142). The recruitment adjutancy, reason, notice and candidate list tables, the appointments list table and view, the adjutancies REST controller and the CSV download validator now run their real repositories over a `$wpdb` double; one validator test keeps its own process.
 - **Tests: eight more classes run in the shared process** (#2144). The recruitment candidate edit page and its handlers, admin actions, dashboard calls section, e-mail dispatcher, the public recruitment shortcode's listing and render pipeline, and the calendar REST controller now run their real readers, repositories, `Encryption` and formatters over a `$wpdb` double.
+- **Tests: eight more classes run in the shared process** (#2150). The date-messages runner, activity log and migration actions AJAX endpoints, appointment reminder scanner, audience bookings render, CSV import edges and sample route now run their real collaborators over a `$wpdb` double; only the form-cache tests that declare third-party plugin symbols keep their own process.
 
 ### Deprecated
 

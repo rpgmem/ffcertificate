@@ -32,7 +32,7 @@ class RequestInputTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 		$this->server_backup = $_SERVER;
-		$this->get_backup    = $_GET;
+		$this->get_backup    = $_GET ?? array();
 		// Start from a clean slate for the headers get_user_ip inspects.
 		foreach ( array( 'HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR' ) as $k ) {
 			unset( $_SERVER[ $k ] );

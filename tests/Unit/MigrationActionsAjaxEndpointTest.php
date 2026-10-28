@@ -4,29 +4,62 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\MigrationActionsAjaxEndpoint;
+use FreeFormCertificate\Migrations\Strategies\MigrationStrategyInterface;
 
 /**
  * Tests for the migrations JSON-batch endpoint introduced in 6.5.7.
  *
- * Runs each test in a separate process because we Mockery::alias the
- * static `Utils` class + Mockery::mock the concrete `MigrationManager`.
+ * The real chain runs: Capabilities over a stubbed `current_user_can`, and
+ * MigrationManager, MigrationRegistry and MigrationStatusCalculator. The
+ * migration under test is registered through the plugin's own extension
+ * filters (`ffcertificate_migrations_registry` for the card,
+ * `ffcertificate_migration_strategies` for its strategy), and its strategy is
+ * a plain interface double whose answers each test chooses. The built-in
+ * strategies the calculator constructs only read `$wpdb->prefix`; the
+ * `$wpdb` double answers nothing else, so any query fails the test.
  *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  * @covers \FreeFormCertificate\Admin\MigrationActionsAjaxEndpoint
  */
 class MigrationActionsAjaxEndpointTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	private const KEY = 'my_migration';
+
+	/** @var list<string> Every capability `current_user_can()` was asked about. */
+	private array $asked_caps = array();
+
+	/** @var list<string> Capabilities the current user holds. */
+	private array $held_caps = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> The `$_POST` an earlier test left, restored afterwards. */
+	private array $post_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb = array_key_exists( 'wpdb', $GLOBALS );
+		if ( $this->had_wpdb ) {
+			$this->wpdb_backup = $GLOBALS['wpdb'];
+		}
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$GLOBALS['wpdb'] = $wpdb;
+
+		$this->post_backup = $_POST ?? array();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'sanitize_key' )->alias( function ( $key ) {
@@ -36,30 +69,78 @@ class MigrationActionsAjaxEndpointTest extends TestCase {
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'check_ajax_referer' )->justReturn( true );
 		Functions\when( 'is_wp_error' )->alias( function ( $v ) { return $v instanceof \WP_Error; } );
+		Functions\when( 'get_option' )->justReturn( false );
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'current_user_can' )->alias(
+			function ( string $cap ): bool {
+				$this->asked_caps[] = $cap;
+				return in_array( $cap, $this->held_caps, true );
+			}
+		);
 
 		Functions\when( 'wp_send_json_error' )->alias( function ( $data = null ) {
 			$msg = is_array( $data ) && isset( $data['message'] ) ? $data['message'] : 'error';
 			throw new \RuntimeException( 'json_error: ' . $msg );
 		} );
 		Functions\when( 'wp_send_json_success' )->alias( function ( $data = null ) {
-			$payload = wp_json_encode( $data );
-			throw new \RuntimeException( 'json_success: ' . $payload );
+			throw new \RuntimeException( 'json_success: ' . json_encode( $data ) );
 		} );
-		if ( ! function_exists( 'wp_json_encode' ) ) {
-			// phpcs:ignore Generic.PHP.LowerCaseConstant
-			eval( 'function wp_json_encode( $data ) { return json_encode( $data ); }' );
-		}
-
-		if ( ! class_exists( '\WP_Error' ) ) {
-			// phpcs:ignore Generic.PHP.LowerCaseConstant
-			eval( 'class WP_Error { public $msg = "wp_err"; public function __construct( $code = 0, $msg = "" ) { $this->msg = $msg; } public function get_error_message() { return $this->msg; } }' );
-		}
 	}
 
 	protected function tearDown(): void {
-		unset( $_POST['migration_key'], $_POST['nonce'] );
+		$_POST = $this->post_backup;
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * Grant the migration-execution capability the endpoint gates on.
+	 */
+	private function grant_dangerzone(): void {
+		$this->held_caps = array( 'ffc_manage_settings_dangerzone' );
+	}
+
+	/**
+	 * Register the test migration and its strategy through the plugin's filters.
+	 *
+	 * @param MigrationStrategyInterface $strategy Strategy the calculator hands the key to.
+	 */
+	private function register_migration( MigrationStrategyInterface $strategy ): void {
+		Filters\expectApplied( 'ffcertificate_migrations_registry' )->andReturnUsing(
+			static function ( array $migrations ): array {
+				$migrations[ self::KEY ] = array(
+					'name'       => 'Test migration',
+					'batch_size' => 100,
+				);
+				return $migrations;
+			}
+		);
+		Filters\expectApplied( 'ffcertificate_migration_strategies' )->andReturnUsing(
+			static function ( array $strategies ) use ( $strategy ): array {
+				$strategies[ self::KEY ] = $strategy;
+				return $strategies;
+			}
+		);
+	}
+
+	/**
+	 * A strategy that runs one batch and reports the given status.
+	 *
+	 * @param int                  $processed Rows the batch processed.
+	 * @param array<string, mixed> $status    What calculate_status() answers.
+	 * @return MigrationStrategyInterface
+	 */
+	private function strategy_with( int $processed, array $status ): MigrationStrategyInterface {
+		$strategy = Mockery::mock( MigrationStrategyInterface::class );
+		$strategy->shouldReceive( 'can_run' )->with( self::KEY, Mockery::type( 'array' ) )->andReturn( true );
+		$strategy->shouldReceive( 'execute' )->once()->with( self::KEY, Mockery::type( 'array' ), 0 )->andReturn( array( 'processed' => $processed ) );
+		$strategy->shouldReceive( 'calculate_status' )->with( self::KEY, Mockery::type( 'array' ) )->andReturn( $status );
+		return $strategy;
 	}
 
 	// ==================================================================
@@ -69,20 +150,20 @@ class MigrationActionsAjaxEndpointTest extends TestCase {
 	public function test_rejects_when_user_lacks_capability(): void {
 		// #739 (B): migration execution is gated on the dangerzone sub-cap,
 		// matching the no-JS handlers — not the broader ffc_manage_settings.
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )
-			->with( 'ffc_manage_settings_dangerzone' )
-			->andReturn( false );
+		$this->held_caps = array( 'ffc_manage_settings' );
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'do not have permission' );
-		MigrationActionsAjaxEndpoint::handle();
+		try {
+			MigrationActionsAjaxEndpoint::handle();
+			$this->fail( 'Expected wp_send_json_error to short-circuit' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'do not have permission', $e->getMessage() );
+		}
+
+		$this->assertContains( 'ffc_manage_settings_dangerzone', $this->asked_caps, 'The gate asks for the dangerzone sub-capability.' );
 	}
 
 	public function test_rejects_missing_migration_key(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )
-			->andReturn( true );
+		$this->grant_dangerzone();
 
 		$_POST = array( 'nonce' => 'x' );
 
@@ -92,15 +173,9 @@ class MigrationActionsAjaxEndpointTest extends TestCase {
 	}
 
 	public function test_rejects_unknown_migration(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )
-			->andReturn( true );
+		$this->grant_dangerzone();
 
-		Mockery::mock( 'overload:FreeFormCertificate\Migrations\MigrationManager' )
-			->shouldReceive( 'is_migration_available' )
-			->with( 'unknown' )
-			->andReturn( false );
-
+		// The real registry has no migration under this key.
 		$_POST = array( 'nonce' => 'x', 'migration_key' => 'unknown' );
 
 		$this->expectException( \RuntimeException::class );
@@ -109,15 +184,16 @@ class MigrationActionsAjaxEndpointTest extends TestCase {
 	}
 
 	public function test_run_migration_error_is_surfaced(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )
-			->andReturn( true );
+		$this->grant_dangerzone();
 
-		$mgr = Mockery::mock( 'overload:FreeFormCertificate\Migrations\MigrationManager' );
-		$mgr->shouldReceive( 'is_migration_available' )->andReturn( true );
-		$mgr->shouldReceive( 'run_migration' )->andReturn( new \WP_Error( 'fail', 'Batch failed' ) );
+		// The calculator asks can_run() before executing; a refusal there is
+		// the WP_Error run_migration() hands back.
+		$strategy = Mockery::mock( MigrationStrategyInterface::class );
+		$strategy->shouldReceive( 'can_run' )->andReturn( new \WP_Error( 'fail', 'Batch failed' ) );
+		$strategy->shouldNotReceive( 'execute' );
+		$this->register_migration( $strategy );
 
-		$_POST = array( 'nonce' => 'x', 'migration_key' => 'my_migration' );
+		$_POST = array( 'nonce' => 'x', 'migration_key' => self::KEY );
 
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'Batch failed' );
@@ -129,24 +205,21 @@ class MigrationActionsAjaxEndpointTest extends TestCase {
 	// ==================================================================
 
 	public function test_happy_path_returns_status_snapshot(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )
-			->andReturn( true );
-
-		$mgr = Mockery::mock( 'overload:FreeFormCertificate\Migrations\MigrationManager' );
-		$mgr->shouldReceive( 'is_migration_available' )->andReturn( true );
-		$mgr->shouldReceive( 'run_migration' )->andReturn( array( 'processed' => 100 ) );
-		$mgr->shouldReceive( 'get_migration_status' )->andReturn(
-			array(
-				'total'       => 5432,
-				'migrated'    => 200,
-				'pending'     => 5232,
-				'percent'     => 3.68,
-				'is_complete' => false,
+		$this->grant_dangerzone();
+		$this->register_migration(
+			$this->strategy_with(
+				100,
+				array(
+					'total'       => 5432,
+					'migrated'    => 200,
+					'pending'     => 5232,
+					'percent'     => 3.68,
+					'is_complete' => false,
+				)
 			)
 		);
 
-		$_POST = array( 'nonce' => 'x', 'migration_key' => 'my_migration' );
+		$_POST = array( 'nonce' => 'x', 'migration_key' => self::KEY );
 
 		try {
 			MigrationActionsAjaxEndpoint::handle();
@@ -163,27 +236,25 @@ class MigrationActionsAjaxEndpointTest extends TestCase {
 	}
 
 	public function test_completion_flag_propagates(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )
-			->andReturn( true );
-
-		$mgr = Mockery::mock( 'overload:FreeFormCertificate\Migrations\MigrationManager' );
-		$mgr->shouldReceive( 'is_migration_available' )->andReturn( true );
-		$mgr->shouldReceive( 'run_migration' )->andReturn( array( 'processed' => 32 ) );
-		$mgr->shouldReceive( 'get_migration_status' )->andReturn(
-			array(
-				'total'       => 5432,
-				'migrated'    => 5432,
-				'pending'     => 0,
-				'percent'     => 100.0,
-				'is_complete' => true,
+		$this->grant_dangerzone();
+		$this->register_migration(
+			$this->strategy_with(
+				32,
+				array(
+					'total'       => 5432,
+					'migrated'    => 5432,
+					'pending'     => 0,
+					'percent'     => 100.0,
+					'is_complete' => true,
+				)
 			)
 		);
 
-		$_POST = array( 'nonce' => 'x', 'migration_key' => 'my_migration' );
+		$_POST = array( 'nonce' => 'x', 'migration_key' => self::KEY );
 
 		try {
 			MigrationActionsAjaxEndpoint::handle();
+			$this->fail( 'Expected wp_send_json_success to short-circuit' );
 		} catch ( \RuntimeException $e ) {
 			$this->assertStringContainsString( '"is_complete":true', $e->getMessage() );
 			$this->assertStringContainsString( '"processed":32', $e->getMessage() );
