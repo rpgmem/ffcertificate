@@ -13,10 +13,13 @@ use FreeFormCertificate\Recruitment\RecruitmentNoticesListTable;
 /**
  * Smoke tests for the Notices list table.
  *
+ * RecruitmentNoticeReader, RecruitmentNoticeWriter,
+ * RecruitmentNoticeAdjutancyRepository and RecruitmentAdminPage are the real
+ * ones, over a `$wpdb` double that answers the notice and notice-adjutancy
+ * tables and records every delete, so the table runs in the shared process.
+ *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentNoticesListTable
  * @covers \FreeFormCertificate\Recruitment\AbstractRecruitmentListTable
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentNoticesListTableTest extends TestCase {
 
@@ -24,8 +27,30 @@ class RecruitmentNoticesListTableTest extends TestCase {
 
 	private RecruitmentNoticesListTable $table;
 
-	/** @var \Mockery\MockInterface */
-	private $noticeAdjRepoMock;
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var string SQL of the last prepare(). */
+	private string $sql = '';
+
+	/** @var array<int, mixed> Arguments of the last prepare(). */
+	private array $bound = array();
+
+	/** @var list<object> Rows the notice table holds. */
+	private array $notices = array();
+
+	/** @var array<int, list<int>> Adjutancy ids attached to each notice id. */
+	private array $notice_adjutancies = array();
+
+	/**
+	 * Every `$wpdb->delete()`, as [table, where].
+	 *
+	 * @var list<array{0: string, 1: array<string, mixed>}>
+	 */
+	private array $deletes = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -47,31 +72,81 @@ class RecruitmentNoticesListTableTest extends TestCase {
 		Functions\when( 'admin_url' )->alias( fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
 		Functions\when( 'wp_nonce_url' )->alias( fn( $url, $action = -1 ) => $url . '&_wpnonce=test' );
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
 
-		$this->noticeAdjRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeAdjutancyRepository' );
-		$this->noticeAdjRepoMock->shouldReceive( 'get_adjutancy_ids_for_notice' )->andReturn( array() )->byDefault();
+		$this->sql                = '';
+		$this->bound              = array();
+		$this->notices            = array();
+		$this->notice_adjutancies = array();
+		$this->deletes            = array();
 
-		// RecruitmentAdminPage carries both a PAGE_SLUG class constant and the
-		// notice_status_badge() static helper. Mockery aliases can't expose
-		// class constants, so define a lightweight real stub class instead
-		// (process isolation means it can't collide with the real autoload).
-		if ( ! class_exists( '\FreeFormCertificate\Recruitment\RecruitmentAdminPage', false ) ) {
-			eval(
-				'namespace FreeFormCertificate\Recruitment;'
-				. ' class RecruitmentAdminPage {'
-				. ' public const PAGE_SLUG = "ffc-recruitment";'
-				. ' public static function notice_status_badge( $status ) {'
-				. ' return "<span class=\"ffc-status ffc-status-{$status}\">{$status}</span>"; } }'
-			);
-		}
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				$this->sql   = (string) $sql;
+				$this->bound = $args;
+				return (string) $sql;
+			}
+		);
+		// RecruitmentNoticeReader::get_all() with no status filter.
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function () {
+				$this->assertSame( 'SELECT * FROM %i ORDER BY created_at DESC', $this->sql, 'Unexpected get_results query.' );
+				$this->assertSame( 'wp_ffc_recruitment_notice', $this->bound[0] );
+				return $this->notices;
+			}
+		);
+		// RecruitmentNoticeAdjutancyRepository::get_adjutancy_ids_for_notice().
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function () {
+				$this->assertSame( 'SELECT adjutancy_id FROM %i WHERE notice_id = %d', $this->sql, 'Unexpected get_col query.' );
+				$this->assertSame( 'wp_ffc_recruitment_notice_adjutancy', $this->bound[0] );
+				return array_map( 'strval', $this->notice_adjutancies[ (int) $this->bound[1] ] ?? array() );
+			}
+		);
+		// RecruitmentNoticeWriter::delete().
+		$wpdb->shouldReceive( 'delete' )->andReturnUsing(
+			function ( $table, $where ) {
+				$this->deletes[] = array( $table, $where );
+				return 1;
+			}
+		);
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $wpdb;
 
 		$this->table = new RecruitmentNoticesListTable();
 	}
 
 	protected function tearDown(): void {
 		unset( $_REQUEST['s'], $_REQUEST['orderby'], $_REQUEST['order'], $_REQUEST['action'], $_REQUEST['action2'], $_REQUEST['notice_ids'] );
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * Ids the real writer asked the database to delete, in order.
+	 *
+	 * @return list<int>
+	 */
+	private function deleted_ids(): array {
+		$ids = array();
+		foreach ( $this->deletes as $delete ) {
+			$this->assertSame( 'wp_ffc_recruitment_notice', $delete[0] );
+			$ids[] = (int) $delete[1]['id'];
+		}
+		return $ids;
 	}
 
 	private function call_protected( string $method, array $args = array() ) {
@@ -112,9 +187,11 @@ class RecruitmentNoticesListTableTest extends TestCase {
 	}
 
 	public function test_column_status_delegates_to_admin_page_badge_helper(): void {
-		$out = $this->call_protected( 'column_status', array( array( 'status' => 'open' ) ) );
+		$out = $this->call_protected( 'column_status', array( array( 'status' => 'definitive' ) ) );
 
-		$this->assertStringContainsString( 'ffc-status-open', $out );
+		$this->assertSame( \FreeFormCertificate\Recruitment\RecruitmentAdminPage::notice_status_badge( 'definitive' ), $out );
+		$this->assertStringContainsString( 'ffc-recruitment-status-definitive', $out );
+		$this->assertStringContainsString( '>Definitive<', $out );
 	}
 
 	public function test_column_reopened_yes_when_was_reopened_flag_set(): void {
@@ -130,7 +207,7 @@ class RecruitmentNoticesListTableTest extends TestCase {
 	}
 
 	public function test_column_adjutancies_renders_none_pill_when_empty(): void {
-		$this->noticeAdjRepoMock->shouldReceive( 'get_adjutancy_ids_for_notice' )->andReturn( array() );
+		$this->notice_adjutancies = array( 2 => array( 8 ) );
 
 		$out = $this->call_protected( 'column_adjutancies', array( array( 'id' => 1 ) ) );
 
@@ -139,7 +216,7 @@ class RecruitmentNoticesListTableTest extends TestCase {
 	}
 
 	public function test_column_adjutancies_renders_count_when_attached(): void {
-		$this->noticeAdjRepoMock->shouldReceive( 'get_adjutancy_ids_for_notice' )->andReturn( array( 1, 2, 3, 4 ) );
+		$this->notice_adjutancies = array( 1 => array( 1, 2, 3, 4 ) );
 
 		$out = $this->call_protected( 'column_adjutancies', array( array( 'id' => 1 ) ) );
 
@@ -255,8 +332,7 @@ class RecruitmentNoticesListTableTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	private function seed_reader( array $rows ): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeReader' )
-			->shouldReceive( 'get_all' )->andReturn( $rows );
+		$this->notices = $rows;
 	}
 
 	private function notice_obj( int $id, string $code, string $name, string $status = 'draft' ): object {
@@ -329,12 +405,13 @@ class RecruitmentNoticesListTableTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_process_bulk_action_no_op_without_bulk_delete(): void {
-		// current_action() returns false → method returns early; no writer call needed.
-		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeWriter' )
-			->shouldReceive( 'delete' )->never();
+		// current_action() returns false → method returns early; nothing is deleted.
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$_REQUEST['notice_ids'] = array( '3', '4' );
 
 		$this->call_protected( 'process_bulk_action' );
-		$this->assertTrue( true );
+
+		$this->assertSame( array(), $this->deletes );
 	}
 
 	public function test_process_bulk_action_deletes_selected_ids(): void {
@@ -345,18 +422,9 @@ class RecruitmentNoticesListTableTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 
-		$deleted = array();
-		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeWriter' )
-			->shouldReceive( 'delete' )->andReturnUsing(
-				function ( $id ) use ( &$deleted ) {
-					$deleted[] = $id;
-					return true;
-				}
-			);
-
 		$this->call_protected( 'process_bulk_action' );
 
-		$this->assertSame( array( 3, 4 ), $deleted );
+		$this->assertSame( array( 3, 4 ), $this->deleted_ids() );
 	}
 
 	public function test_process_bulk_action_denied_without_delete_cap(): void {
@@ -368,10 +436,8 @@ class RecruitmentNoticesListTableTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( false );
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 
-		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeWriter' )
-			->shouldReceive( 'delete' )->never();
-
 		$this->call_protected( 'process_bulk_action' );
-		$this->assertTrue( true );
+
+		$this->assertSame( array(), $this->deletes );
 	}
 }

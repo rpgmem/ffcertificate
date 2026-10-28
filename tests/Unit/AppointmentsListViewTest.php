@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use FreeFormCertificate\Core\Encryption;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -19,14 +20,53 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  * the file under different $_GET states with the WP surface stubbed, asserting
  * the branch-selecting logic — pure markup rows are incidental.
  *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
+ * Everything the view reaches runs for real — AppointmentRepository (with
+ * its reader and writer), CalendarRepository, AppointmentsListTable,
+ * Capabilities, RequestInput, Encryption, DocumentFormatter,
+ * PiiAccessPolicy, PiiReveal and AdminNotice — over a `$wpdb` double that
+ * answers each query by its SQL text from the rows a test stores and records
+ * every write. A query the double does not know fails the test.
+ * `wp_safe_redirect()` and `wp_die()` throw, which is how the mutation
+ * branches stop before their `exit`.
  */
 class AppointmentsListViewTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
 	private const VIEW = '/includes/self-scheduling/views/appointments-list.php';
+
+	private const APPOINTMENTS_TABLE = 'wp_ffc_self_scheduling_appointments';
+
+	private const APPOINTMENTS = '`wp_ffc_self_scheduling_appointments`';
+
+	private const CALENDARS = '`wp_ffc_self_scheduling_calendars`';
+
+	/** @var array<int, array<string, mixed>> Appointment rows by id. */
+	private array $appointments = array();
+
+	/** @var array<int, array<string, mixed>> Calendar rows by id. */
+	private array $calendars = array();
+
+	/** @var int|false What `$wpdb->update()` answers. */
+	private $update_result = 1;
+
+	/** @var list<array{0: string, 1: array<string, mixed>, 2: array<string, mixed>}> Every update() the double received. */
+	private array $updates = array();
+
+	/** @var list<array<int, mixed>> Arguments of every do_action() call. */
+	private array $actions = array();
+
+	/** @var list<array<int, mixed>> Arguments of every set_transient() call. */
+	private array $transients = array();
+
+	/** @var list<string> Queries the double did not recognise. */
+	private array $unexpected = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -53,26 +93,164 @@ class AppointmentsListViewTest extends TestCase {
 		Functions\when( 'add_query_arg' )->justReturn( 'https://example.com/wp-admin/admin.php?page=ffc-appointments' );
 		Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
 		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'is_email' )->alias( static fn( $e ) => false !== filter_var( $e, FILTER_VALIDATE_EMAIL ) );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'user_can' )->justReturn( false );
+		Functions\when( 'get_user_by' )->justReturn( false );
+		Functions\when( 'current_time' )->justReturn( '2026-05-01 10:00:00' );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce123' );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'get_transient' )->justReturn( false );
-		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'set_transient' )->alias(
+			function ( ...$args ) {
+				$this->transients[] = $args;
+				return true;
+			}
+		);
 		Functions\when( 'delete_transient' )->justReturn( true );
-		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'do_action' )->alias(
+			function ( ...$args ) {
+				$this->actions[] = $args;
+			}
+		);
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( null );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		// Stubbed explicitly so the Debug toggles the view's error branch
+		// reads do not depend on what ran earlier in the process.
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
 
+		$this->appointments  = array();
+		$this->calendars     = array();
+		$this->update_result = 1;
+		$this->updates       = array();
+		$this->unexpected    = array();
+		$this->actions       = array();
+		$this->transients    = array();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $this->had_wpdb ? $GLOBALS['wpdb'] : null;
+		$GLOBALS['wpdb']   = $this->wpdb_double();
 	}
 
 	protected function tearDown(): void {
 		unset( $_GET['appointment'], $_GET['ffc_action'], $_GET['reason'] );
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
 
+	protected function assertPostConditions(): void {
+		// The detail branch catches every Throwable, a failed assertion
+		// included, so an unknown query is also checked here.
+		$this->assertSame( array(), $this->unexpected, 'The $wpdb double received a query it does not know.' );
+	}
+
+	/**
+	 * A `$wpdb` double: prepare() substitutes the bound values into the SQL
+	 * text, reads answer from the stored rows, and update() is recorded.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function wpdb_double() {
+		$wpdb             = Mockery::mock( 'wpdb' );
+		$wpdb->prefix     = 'wp_';
+		$wpdb->last_error = '';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$args = 1 === count( $args ) && is_array( $args[0] ) ? $args[0] : $args;
+				$i    = 0;
+				return preg_replace_callback(
+					'/%[ids]/',
+					static function ( $m ) use ( &$i, $args ) {
+						$value = $args[ $i++ ];
+						if ( '%i' === $m[0] ) {
+							return '`' . $value . '`';
+						}
+						if ( '%d' === $m[0] ) {
+							return (string) (int) $value;
+						}
+						return "'" . addslashes( (string) $value ) . "'";
+					},
+					$sql
+				);
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				if ( preg_match( '/^SELECT \* FROM ' . preg_quote( self::APPOINTMENTS, '/' ) . ' WHERE id = (\d+)$/', $sql, $m ) ) {
+					return $this->appointments[ (int) $m[1] ] ?? null;
+				}
+				if ( preg_match( '/^SELECT \* FROM ' . preg_quote( self::CALENDARS, '/' ) . ' WHERE id = (\d+)$/', $sql, $m ) ) {
+					return $this->calendars[ (int) $m[1] ] ?? null;
+				}
+				return $this->unexpected_query( $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				// An empty WHERE leaves its separating space behind.
+				if ( 'SELECT * FROM ' . self::APPOINTMENTS . '  ORDER BY created_at DESC LIMIT 20 OFFSET 0' === $sql ) {
+					return array_values( $this->appointments );
+				}
+				return $this->unexpected_query( $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				// An empty WHERE leaves its separating space behind.
+				if ( 'SELECT COUNT(*) FROM ' . self::APPOINTMENTS . ' ' === $sql ) {
+					return (string) count( $this->appointments );
+				}
+				return $this->unexpected_query( $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				$this->updates[] = array( $table, $data, $where );
+				return $this->update_result;
+			}
+		);
+		return $wpdb;
+	}
+
+	/**
+	 * Record a query the double does not know, and fail.
+	 *
+	 * @param string $sql The query.
+	 * @return never
+	 */
+	private function unexpected_query( string $sql ) {
+		$this->unexpected[] = $sql;
+		$this->fail( 'Unexpected query: ' . $sql );
+	}
+
 	private function include_view(): void {
 		include FFC_PLUGIN_DIR . self::VIEW;
+	}
+
+	/**
+	 * Include the view expecting it to stop with the given exception message
+	 * (the throwing wp_safe_redirect / wp_die stub).
+	 *
+	 * @param string $message Expected message fragment.
+	 */
+	private function include_view_expecting_stop( string $message ): void {
+		try {
+			$this->include_view();
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( $message, $e->getMessage() );
+			return;
+		}
+		$this->fail( 'The view was expected to stop with: ' . $message );
 	}
 
 	// ==================================================================
@@ -82,18 +260,10 @@ class AppointmentsListViewTest extends TestCase {
 	public function test_view_dies_without_permission_on_specific_appointment(): void {
 		$_GET['appointment'] = '5';
 		Functions\when( 'wp_die' )->alias( fn( $msg ) => throw new \RuntimeException( $msg ) );
+		Functions\when( 'current_user_can' )->justReturn( false );
 
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( '' )
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'do not have permission' );
-		$this->include_view();
+		$this->include_view_expecting_stop( 'do not have permission' );
+		$this->assertSame( array(), $this->updates );
 	}
 
 	// ==================================================================
@@ -106,26 +276,29 @@ class AppointmentsListViewTest extends TestCase {
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
 
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'confirm' : '' )
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
+		$this->appointments[5] = array( 'id' => 5, 'calendar_id' => 7 );
+		$this->calendars[7]    = array( 'id' => 7, 'title' => 'Cal' );
 
-		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
-		$appt_repo->shouldReceive( 'confirm' )->with( 5, 1 )->andReturn( true );
-		$appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn(
-			array( 'id' => 5, 'calendar_id' => 7 )
+		$this->include_view_expecting_stop( 'redirected' );
+
+		// The real writer confirmed appointment 5 on behalf of user 1.
+		$this->assertCount( 1, $this->updates );
+		$this->assertSame( self::APPOINTMENTS_TABLE, $this->updates[0][0] );
+		$this->assertSame( array( 'id' => 5 ), $this->updates[0][2] );
+		$this->assertSame( 'confirmed', $this->updates[0][1]['status'] );
+		$this->assertSame( 1, $this->updates[0][1]['approved_by'] );
+
+		$this->assertSame(
+			array(
+				array(
+					'ffcertificate_self_scheduling_appointment_confirmed_email',
+					array( 'id' => 5, 'calendar_id' => 7 ),
+					array( 'id' => 7, 'title' => 'Cal' ),
+				),
+			),
+			$this->actions
 		);
-
-		$cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
-		$cal_repo->shouldReceive( 'findById' )->with( 7 )->andReturn( array( 'id' => 7, 'title' => 'Cal' ) );
-
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirected' );
-		$this->include_view();
+		$this->assertSame( 'success', $this->transients[0][1]['type'] );
 	}
 
 	public function test_view_confirm_failure_redirects(): void {
@@ -134,21 +307,22 @@ class AppointmentsListViewTest extends TestCase {
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
 
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'confirm' : '' )
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
+		// The stored write fails, so confirm() reports false.
+		$this->update_result = false;
 
-		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
-		$appt_repo->shouldReceive( 'confirm' )->with( 5, 1 )->andReturn( false );
-		Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
+		$this->include_view_expecting_stop( 'redirected' );
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirected' );
-		$this->include_view();
+		$this->assertCount( 1, $this->updates );
+		$this->assertSame( array( 'id' => 5 ), $this->updates[0][2] );
+		$this->assertSame( 'confirmed', $this->updates[0][1]['status'] );
+		$this->assertSame( 1, $this->updates[0][1]['approved_by'] );
+		$this->assertSame(
+			array(
+				'type'    => 'error',
+				'message' => 'Failed to confirm appointment.',
+			),
+			$this->transients[0][1]
+		);
 	}
 
 	// ==================================================================
@@ -163,28 +337,24 @@ class AppointmentsListViewTest extends TestCase {
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
 
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'cancel' : '' )
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-
-		Functions\when( 'do_action' )->justReturn( null );
-
-		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
 		// The waitlist promoter (#941 phase 2) snapshots the row before cancel and
 		// fires ffcertificate_appointment_cancelled with it.
-		$appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn(
-			array( 'status' => 'confirmed', 'calendar_id' => 1, 'appointment_date' => '2026-01-01', 'start_time' => '09:00:00' )
-		);
-		$appt_repo->shouldReceive( 'cancel' )->with( 5, 1, 'Admin closed slot' )->andReturn( true );
-		Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
+		$row                   = array( 'status' => 'confirmed', 'calendar_id' => 1, 'appointment_date' => '2026-01-01', 'start_time' => '09:00:00' );
+		$this->appointments[5] = $row;
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirected' );
-		$this->include_view();
+		$this->include_view_expecting_stop( 'redirected' );
+
+		$this->assertCount( 1, $this->updates );
+		$this->assertSame( self::APPOINTMENTS_TABLE, $this->updates[0][0] );
+		$this->assertSame( array( 'id' => 5 ), $this->updates[0][2] );
+		$this->assertSame( 'cancelled', $this->updates[0][1]['status'] );
+		$this->assertSame( 1, $this->updates[0][1]['cancelled_by'] );
+		$this->assertSame( 'Admin closed slot', $this->updates[0][1]['cancellation_reason'] );
+
+		$this->assertSame(
+			array( array( 'ffcertificate_appointment_cancelled', 5, $row, 'Admin closed slot', 1 ) ),
+			$this->actions
+		);
 	}
 
 	// ==================================================================
@@ -193,21 +363,10 @@ class AppointmentsListViewTest extends TestCase {
 
 	public function test_view_renders_appointment_detail(): void {
 		$_GET['appointment'] = '5';
-		Functions\when( 'get_user_by' )->justReturn( false );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( '' )
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-
 		// #739 §3.3 — the detail view asks whether the viewer may reveal PII.
-		Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
-			->shouldReceive( 'can_reveal' )->andReturn( true );
+		Functions\when( 'user_can' )->justReturn( true );
 
-		$appt = array(
+		$this->appointments[5] = array(
 			'id'               => 5,
 			'status'           => 'confirmed',
 			'calendar_id'      => 7,
@@ -218,14 +377,7 @@ class AppointmentsListViewTest extends TestCase {
 			'created_at'       => '2026-05-01',
 			'custom_data'      => '{"field_a":"v","field_b":["x","y"]}',
 		);
-		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
-		$appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn( $appt );
-
-		$cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
-		$cal_repo->shouldReceive( 'findById' )->with( 7 )->andReturn( array( 'id' => 7, 'title' => 'Clinic' ) );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
-			->shouldReceive( 'decrypt_appointment' )->andReturnUsing( fn( $a ) => $a );
+		$this->calendars[7]    = array( 'id' => 7, 'title' => 'Clinic' );
 
 		ob_start();
 		$this->include_view();
@@ -234,22 +386,24 @@ class AppointmentsListViewTest extends TestCase {
 		$this->assertStringContainsString( 'Appointment Details', $out );
 		$this->assertStringContainsString( 'Clinic', $out );
 		$this->assertStringContainsString( 'Alice', $out );
+		$this->assertStringNotContainsString( 'Error loading appointment', $out );
 	}
 
 	/**
 	 * Render the detail view of appointment 5 under the REAL PII policy and
 	 * the REAL mask helpers, with the viewer's tier chosen through `user_can`.
+	 * The e-mail is stored encrypted and decrypted by the real Encryption;
+	 * CPF and RF are stored as the plain columns decrypt_appointment()
+	 * passes through, since a row decrypts to one of the two, never both.
 	 *
 	 * @param string               $tier unmasked | reveal | masked.
-	 * @param array<string, mixed> $pii  The decrypted email / cpf / rf.
+	 * @param array<string, mixed> $pii  The stored email (plain, encrypted here) / cpf / rf.
 	 * @return string The rendered HTML.
 	 */
 	private function render_detail_as( string $tier, array $pii ): string {
 		$_GET['appointment'] = '5';
-		Functions\when( 'get_user_by' )->justReturn( false );
-		Functions\when( 'is_email' )->alias( static fn( $e ) => false !== filter_var( $e, FILTER_VALIDATE_EMAIL ) );
-		// manage_options is the unmasked tier; the domain PII cap alone is
-		// the reveal tier; neither is the masked tier (PiiAccessPolicy::resolve).
+		// manage_options and the domain PII cap are both the reveal tier;
+		// neither is the masked tier (PiiAccessPolicy::resolve).
 		Functions\when( 'user_can' )->alias(
 			static function ( $uid, $cap ) use ( $tier ) {
 				if ( 'manage_options' === $cap ) {
@@ -259,15 +413,12 @@ class AppointmentsListViewTest extends TestCase {
 			}
 		);
 
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( '' )
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
+		if ( isset( $pii['email'] ) && '' !== $pii['email'] ) {
+			$pii['email_encrypted'] = Encryption::encrypt( $pii['email'] );
+			unset( $pii['email'] );
+		}
 
-		$appt = array_merge(
+		$this->appointments[5] = array_merge(
 			array(
 				'id'               => 5,
 				'status'           => 'confirmed',
@@ -281,14 +432,7 @@ class AppointmentsListViewTest extends TestCase {
 			),
 			$pii
 		);
-		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
-		$appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn( $appt );
-
-		$cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
-		$cal_repo->shouldReceive( 'findById' )->with( 7 )->andReturn( array( 'id' => 7, 'title' => 'Clinic' ) );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
-			->shouldReceive( 'decrypt_appointment' )->andReturnUsing( fn( $a ) => $a );
+		$this->calendars[7]    = array( 'id' => 7, 'title' => 'Clinic' );
 
 		ob_start();
 		$this->include_view();
@@ -367,18 +511,6 @@ class AppointmentsListViewTest extends TestCase {
 	public function test_view_detail_not_found_shows_notice(): void {
 		$_GET['appointment'] = '5';
 
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( '' )
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-
-		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
-		$appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn( null );
-		Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
-
 		ob_start();
 		$this->include_view();
 		$out = ob_get_clean();
@@ -391,21 +523,6 @@ class AppointmentsListViewTest extends TestCase {
 	// ==================================================================
 
 	public function test_view_renders_list_table_by_default(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( '' )
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-
-		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
-		$appt_repo->shouldReceive( 'findAll' )->andReturn( array() );
-		$appt_repo->shouldReceive( 'count' )->andReturn( 0 );
-
-		$cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
-		$cal_repo->shouldReceive( 'getActiveCalendars' )->andReturn( array() );
-
 		// The list's "Reveal this page" asks the policy (#1863); this viewer
 		// holds the appointments PII cap.
 		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 'ffc_view_appointments_pii' === $cap );
@@ -424,18 +541,6 @@ class AppointmentsListViewTest extends TestCase {
 	}
 
 	public function test_the_list_offers_no_page_reveal_without_the_pii_cap(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( '' )
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
-		$appt_repo->shouldReceive( 'findAll' )->andReturn( array() );
-		$appt_repo->shouldReceive( 'count' )->andReturn( 0 );
-		Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' )
-			->shouldReceive( 'getActiveCalendars' )->andReturn( array() );
 		Functions\when( 'user_can' )->justReturn( false );
 
 		ob_start();
