@@ -1003,9 +1003,10 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		);
 		Functions\expect( 'wp_verify_nonce' )->once()->with( 'n', 'deactivate_environment_8' )->andReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
+		$this->environment( array( 'id' => 8, 'schedule_id' => 2, 'status' => 'active' ) );
 
 		$this->assertSame(
-			'admin.php?page=ffc-scheduling-calendars&view=environments&message=deactivated',
+			'admin.php?page=ffc-scheduling-calendars&view=environments&message=deactivated&calendar_id=2',
 			$this->redirect_of( new AudienceAdminEnvironment( 'ffc-scheduling' ) )
 		);
 		$this->assertSame( array( array( 'update', self::ENV_TABLE, array( 'status' => 'inactive' ), array( 'id' => 8 ) ) ), $this->writes );
@@ -1024,10 +1025,10 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		);
 		Functions\expect( 'wp_verify_nonce' )->once()->with( 'n', 'delete_environment_9' )->andReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
-		$this->environment( array( 'id' => 9, 'status' => 'inactive' ) );
+		$this->environment( array( 'id' => 9, 'schedule_id' => 2, 'status' => 'inactive' ) );
 
 		$this->assertSame(
-			'admin.php?page=ffc-scheduling-calendars&view=environments&message=deleted',
+			'admin.php?page=ffc-scheduling-calendars&view=environments&message=deleted&calendar_id=2',
 			$this->redirect_of( new AudienceAdminEnvironment( 'ffc-scheduling' ) )
 		);
 		$this->assertSame( array( array( 'delete', self::ENV_TABLE, array(), array( 'id' => 9 ) ) ), $this->writes );
@@ -1053,7 +1054,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 
 		// The double answers every insert with id 42.
 		$this->assertSame(
-			'admin.php?page=ffc-scheduling-calendars&view=environments&action=edit&id=42&message=created',
+			'admin.php?page=ffc-scheduling-calendars&view=environments&action=edit&id=42&message=created&calendar_id=3',
 			$this->redirect_of( new AudienceAdminEnvironment( 'ffc-scheduling' ) )
 		);
 		$inserts = $this->writes_of( 'insert' );
@@ -1106,7 +1107,10 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	 * @param array<string, string> $location The page (and view) of the request.
 	 */
 	public function test_redirect_feedback_shows_at_either_location( array $location ): void {
-		$_GET    = $location + array( 'message' => 'deleted' );
+		$_GET    = $location + array(
+			'message'     => 'deleted',
+			'calendar_id' => '2',
+		);
 		$notices = array();
 		Functions\when( 'add_settings_error' )->alias(
 			static function ( $setting, $code, $message ) use ( &$notices ) {
@@ -1114,12 +1118,36 @@ class AudienceAdminEnvironmentTest extends TestCase {
 				return true;
 			}
 		);
-		// The redirect carries no calendar, so the notice names the default
-		// label: the handler asks for calendar 0, which never exists.
+		// The redirect names the environment's calendar, so the notice uses
+		// that calendar's label (#2176).
 		$this->schedule( array( 'id' => 2, 'name' => 'Cal Two', 'environment_label' => 'Room' ) );
 
 		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
-		$this->assertSame( array( 'Environment deleted successfully.' ), $notices );
+		$this->assertSame( array( 'Room deleted successfully.' ), $notices );
+	}
+
+	/**
+	 * A redirect that names no calendar uses the default label and reads
+	 * no calendar to find it (#2176).
+	 */
+	public function test_redirect_feedback_without_a_calendar_uses_the_default_label_unread(): void {
+		$_GET    = array(
+			'page'    => 'ffc-scheduling-calendars',
+			'view'    => 'environments',
+			'message' => 'created',
+		);
+		$notices = array();
+		Functions\when( 'add_settings_error' )->alias(
+			static function ( $setting, $code, $message ) use ( &$notices ) {
+				$notices[] = $message;
+				return true;
+			}
+		);
+		$this->schedule( array( 'id' => 2, 'name' => 'Cal Two', 'environment_label' => 'Room' ) );
+
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
+		$this->assertSame( array( 'Environment created successfully.' ), $notices );
+		$this->assertSame( array(), $this->reads_of( self::SCHEDULE_TABLE ), 'no calendar was read for the label' );
 	}
 
 	public function test_actions_are_left_alone_on_the_calendars_view(): void {

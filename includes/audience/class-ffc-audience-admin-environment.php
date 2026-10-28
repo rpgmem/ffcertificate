@@ -647,8 +647,11 @@ class AudienceAdminEnvironment {
 
 		// Show feedback for redirect-based actions.
 		if ( isset( $_GET['message'] ) ) {
-			$msg      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'message' );
-			$label    = AudienceScheduleRepository::get_environment_label( 0, true );
+			$msg = \FreeFormCertificate\Core\RequestInput::get_get_string( 'message' );
+			// The redirect names the environment's calendar, whose label the
+			// message uses; without one the default label needs no query (#2176).
+			$calendar = \FreeFormCertificate\Core\RequestInput::get_get_int( 'calendar_id' );
+			$label    = AudienceScheduleRepository::get_environment_label( $calendar > 0 ? $calendar : null, true );
 			$messages = array(
 				/* translators: %s: environment label (singular) */
 				'created'     => sprintf( __( '%s created successfully.', 'ffcertificate' ), $label ),
@@ -720,7 +723,7 @@ class AudienceAdminEnvironment {
 			} else {
 				$new_id = AudienceEnvironmentRepository::create( $data );
 				if ( $new_id ) {
-					wp_safe_redirect( self::view_url( $this->menu_slug, '&action=edit&id=' . $new_id . '&message=created' ) );
+					wp_safe_redirect( self::view_url( $this->menu_slug, '&action=edit&id=' . $new_id . '&message=created&calendar_id=' . (int) $data['schedule_id'] ) );
 					exit;
 				}
 			}
@@ -730,8 +733,9 @@ class AudienceAdminEnvironment {
 		if ( isset( $_GET['action'] ) && 'deactivate' === $_GET['action'] && isset( $_GET['id'] ) ) {
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'deactivate_environment_' . $id ) ) {
+				$env = AudienceEnvironmentRepository::get_by_id( $id );
 				AudienceEnvironmentRepository::update( $id, array( 'status' => 'inactive' ) );
-				wp_safe_redirect( self::view_url( $this->menu_slug, '&message=deactivated' ) );
+				wp_safe_redirect( self::view_url( $this->menu_slug, '&message=deactivated&calendar_id=' . (int) ( $env->schedule_id ?? 0 ) ) );
 				exit;
 			}
 		}
@@ -746,7 +750,7 @@ class AudienceAdminEnvironment {
 				$env = AudienceEnvironmentRepository::get_by_id( $id );
 				if ( $env && 'active' !== $env->status ) {
 					AudienceEnvironmentRepository::delete( $id );
-					wp_safe_redirect( self::view_url( $this->menu_slug, '&message=deleted' ) );
+					wp_safe_redirect( self::view_url( $this->menu_slug, '&message=deleted&calendar_id=' . (int) ( $env->schedule_id ?? 0 ) ) );
 					exit;
 				}
 			}

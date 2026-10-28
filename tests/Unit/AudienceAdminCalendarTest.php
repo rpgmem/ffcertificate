@@ -738,11 +738,12 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertSame( 1, $row['notify_on_booking'] );
 		$this->assertSame( 0, $row['notify_on_cancellation'] );
 		$this->assertSame( 1, $row['is_isolated'] );
-		// The posted event-list position and badge format are not asserted
-		// here: AudienceScheduleRepository::create() writes no
-		// event_list_position / audience_badge_format / show_event_list /
-		// booking_label_* column, so they never reach the row on creation.
-		// The update path, which does write them, is pinned below.
+		// The display settings reach the row on creation too (#2175).
+		$this->assertSame( 0, $row['show_event_list'] );
+		$this->assertSame( 'below', $row['event_list_position'] );
+		$this->assertSame( 'parent_name', $row['audience_badge_format'] );
+		$this->assertSame( 'evt', $row['booking_label_singular'] );
+		$this->assertArrayHasKey( 'booking_label_plural', $row );
 	}
 
 	public function test_handle_actions_updates_calendar(): void {
