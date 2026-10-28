@@ -4,21 +4,21 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use Brain\Monkey\Actions;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\ExtendEndAction;
+use FreeFormCertificate\Tests\Support\SiteClock;
 
 /**
  * Tests for the ExtendEndAction service introduced in 6.5.12.
  *
  * Sibling of EarlyOpenAction but for the close boundary. Lets a trusted
  * operator push `time_end` later within the same day, exactly once per
- * form. Mirrors the EarlyOpenActionTest structure for consistency.
+ * form. Geofence and FormCache are the real classes, and the site
+ * timezone puts the real "now" at noon (#2121), as in EarlyOpenActionTest.
  *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  * @covers \FreeFormCertificate\Frontend\ExtendEndAction
  */
 class ExtendEndActionTest extends TestCase {
@@ -28,6 +28,8 @@ class ExtendEndActionTest extends TestCase {
 	/** @var array<int, array<string, mixed>> */
 	private array $meta_store = array();
 
+	private SiteClock $clock;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -35,15 +37,9 @@ class ExtendEndActionTest extends TestCase {
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'get_post_type' )->justReturn( 'ffc_form' );
 		Functions\when( 'get_option' )->justReturn( array( 'enable_activity_log' => 0 ) );
-		Functions\when( 'current_time' )->alias( function ( $type ) {
-			// Frozen "now" — 2026-05-14 12:00:00 UTC.
-			$ts = 1778760000;
-			if ( 'timestamp' === $type ) {
-				return $ts;
-			}
-			return gmdate( $type, $ts );
-		} );
-		Functions\when( 'FreeFormCertificate\Frontend\time' )->justReturn( 1778760000 );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		$this->clock = new SiteClock();
+		$this->clock->stub();
 
 		$this->meta_store = array();
 		Functions\when( 'get_post_meta' )->alias( function ( $id, $key ) {
@@ -60,38 +56,35 @@ class ExtendEndActionTest extends TestCase {
 		parent::tearDown();
 	}
 
-	private function stub_geofence( ?int $start_ts, ?int $end_ts ): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Security\Geofence' )
-			->shouldReceive( 'get_form_start_timestamp' )->andReturn( $start_ts )
-			->getMock()->shouldReceive( 'get_form_end_timestamp' )->andReturn( $end_ts );
-	}
-
-	private function stub_formcache(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Submissions\FormCache' )
-			->shouldReceive( 'clear_form_cache' )->andReturn( true )
-			->getMock()->shouldReceive( 'purge_external_caches' )->andReturnNull()
-			->getMock()->shouldReceive( 'purge_all_pages' )->andReturnNull();
+	/**
+	 * A form with the CSV-public hash, the extend opt-in and the datetime window on.
+	 *
+	 * @param array<string, string> $window date_start, time_start, date_end, time_end.
+	 */
+	private function configure_form( int $form_id, array $window ): void {
+		$this->meta_store[ $form_id ] = array(
+			'_ffc_csv_public_enabled'            => '1',
+			'_ffc_csv_public_hash'               => 'h',
+			'_ffc_csv_public_extend_end_enabled' => '1',
+			'_ffc_geofence_config'               => array( 'datetime_enabled' => '1' ) + $window,
+		);
 	}
 
 	/**
-	 * Eligible fixture — form is currently open (started, not ended),
-	 * configured for today, opt-in on, hash matches, no prior postponement.
+	 * Eligible fixture — form is currently open (10:00 to 14:00 today, and
+	 * it is noon), opt-in on, hash matches, no prior postponement.
 	 */
 	private function configure_eligible_form( int $form_id, string $hash ): void {
-		$this->meta_store[ $form_id ] = array(
-			'_ffc_csv_public_enabled'             => '1',
-			'_ffc_csv_public_hash'                => $hash,
-			'_ffc_csv_public_extend_end_enabled'  => '1',
-			'_ffc_geofence_config'                => array(
-				'datetime_enabled' => '1',
-				'date_start'       => '2026-05-14',
-				'time_start'       => '10:00',
-				'date_end'         => '2026-05-14',
-				'time_end'         => '14:00',
-			),
+		$this->configure_form(
+			$form_id,
+			array(
+				'date_start' => $this->clock->day(),
+				'time_start' => '10:00',
+				'date_end'   => $this->clock->day(),
+				'time_end'   => '14:00',
+			)
 		);
-		// start_ts in past, end_ts in future (form is currently open).
-		$this->stub_geofence( 1778673600, 1778767200 );
+		$this->meta_store[ $form_id ]['_ffc_csv_public_hash'] = $hash;
 	}
 
 	// ==================================================================
@@ -100,20 +93,17 @@ class ExtendEndActionTest extends TestCase {
 
 	public function test_unknown_form_when_post_type_mismatch(): void {
 		Functions\when( 'get_post_type' )->justReturn( 'page' );
-		$this->stub_geofence( null, null );
 		$r = ExtendEndAction::is_eligible( 99, 'h' );
 		$this->assertSame( 'unknown_form', $r['reason'] );
 	}
 
 	public function test_csv_disabled_when_toggle_off(): void {
-		$this->stub_geofence( null, null );
 		$this->meta_store[1]['_ffc_csv_public_enabled'] = '';
 		$r = ExtendEndAction::is_eligible( 1, 'h' );
 		$this->assertSame( 'csv_disabled', $r['reason'] );
 	}
 
 	public function test_bad_hash_when_mismatched(): void {
-		$this->stub_geofence( null, null );
 		$this->meta_store[1] = array(
 			'_ffc_csv_public_enabled' => '1',
 			'_ffc_csv_public_hash'    => 'good',
@@ -123,7 +113,6 @@ class ExtendEndActionTest extends TestCase {
 	}
 
 	public function test_extend_end_disabled_when_opt_in_unset(): void {
-		$this->stub_geofence( null, null );
 		$this->meta_store[1] = array(
 			'_ffc_csv_public_enabled' => '1',
 			'_ffc_csv_public_hash'    => 'h',
@@ -134,7 +123,6 @@ class ExtendEndActionTest extends TestCase {
 	}
 
 	public function test_datetime_disabled_when_geofence_off(): void {
-		$this->stub_geofence( null, null );
 		$this->meta_store[1] = array(
 			'_ffc_csv_public_enabled'            => '1',
 			'_ffc_csv_public_hash'               => 'h',
@@ -146,7 +134,6 @@ class ExtendEndActionTest extends TestCase {
 	}
 
 	public function test_no_end_date(): void {
-		$this->stub_geofence( null, null );
 		$this->meta_store[1] = array(
 			'_ffc_csv_public_enabled'            => '1',
 			'_ffc_csv_public_hash'               => 'h',
@@ -158,50 +145,43 @@ class ExtendEndActionTest extends TestCase {
 	}
 
 	public function test_not_started_yet(): void {
-		// start in future, end in farther future.
-		$this->stub_geofence( 1778767200, 1778800000 );
-		$this->meta_store[1] = array(
-			'_ffc_csv_public_enabled'            => '1',
-			'_ffc_csv_public_hash'               => 'h',
-			'_ffc_csv_public_extend_end_enabled' => '1',
-			'_ffc_geofence_config'               => array(
-				'datetime_enabled' => '1',
-				'date_end'         => '2026-05-14',
-				'time_end'         => '20:00',
-			),
+		// Opens at 14:00 today; it is noon.
+		$this->configure_form(
+			1,
+			array(
+				'date_start' => $this->clock->day(),
+				'time_start' => '14:00',
+				'date_end'   => $this->clock->day(),
+				'time_end'   => '20:00',
+			)
 		);
 		$r = ExtendEndAction::is_eligible( 1, 'h' );
 		$this->assertSame( 'not_started_yet', $r['reason'] );
 	}
 
 	public function test_already_ended(): void {
-		// start in past, end in past.
-		$this->stub_geofence( 1778673600, 1778750000 );
-		$this->meta_store[1] = array(
-			'_ffc_csv_public_enabled'            => '1',
-			'_ffc_csv_public_hash'               => 'h',
-			'_ffc_csv_public_extend_end_enabled' => '1',
-			'_ffc_geofence_config'               => array(
-				'datetime_enabled' => '1',
-				'date_end'         => '2026-05-14',
-				'time_end'         => '08:00',
-			),
+		// Closed at 08:00 today.
+		$this->configure_form(
+			1,
+			array(
+				'date_start' => $this->clock->day(),
+				'time_start' => '07:00',
+				'date_end'   => $this->clock->day(),
+				'time_end'   => '08:00',
+			)
 		);
 		$r = ExtendEndAction::is_eligible( 1, 'h' );
 		$this->assertSame( 'already_ended', $r['reason'] );
 	}
 
 	public function test_not_today_when_date_end_is_future(): void {
-		$this->stub_geofence( 1778673600, 1778932800 );
-		$this->meta_store[1] = array(
-			'_ffc_csv_public_enabled'            => '1',
-			'_ffc_csv_public_hash'               => 'h',
-			'_ffc_csv_public_extend_end_enabled' => '1',
-			'_ffc_geofence_config'               => array(
-				'datetime_enabled' => '1',
-				'date_end'         => '2026-05-16',
-				'time_end'         => '20:00',
-			),
+		$this->configure_form(
+			1,
+			array(
+				'date_start' => $this->clock->day( -1 ),
+				'date_end'   => $this->clock->day( 2 ),
+				'time_end'   => '20:00',
+			)
 		);
 		$r = ExtendEndAction::is_eligible( 1, 'h' );
 		$this->assertSame( 'not_today', $r['reason'] );
@@ -209,7 +189,7 @@ class ExtendEndActionTest extends TestCase {
 
 	public function test_already_postponed_blocks_second_run(): void {
 		$this->configure_eligible_form( 1, 'h' );
-		$this->meta_store[1][ ExtendEndAction::META_POSTPONED_AT ] = '1778759000';
+		$this->meta_store[1][ ExtendEndAction::META_POSTPONED_AT ] = (string) ( $this->clock->now - 1000 );
 		$r = ExtendEndAction::is_eligible( 1, 'h' );
 		$this->assertSame( 'already_postponed', $r['reason'] );
 	}
@@ -230,7 +210,8 @@ class ExtendEndActionTest extends TestCase {
 
 	public function test_execute_writes_new_time_end_and_flips_one_shot(): void {
 		$this->configure_eligible_form( 1, 'h' );
-		$this->stub_formcache();
+		// The plugin's cache and the per-form and site-wide page purges.
+		Actions\expectDone( 'ffc_form_cache_purged' )->twice();
 
 		$r = ExtendEndAction::execute( 1, 'h', '15:30', array( 'user_id' => 7, 'ip' => '1.2.3.4', 'ua' => 'UA' ) );
 
@@ -240,19 +221,18 @@ class ExtendEndActionTest extends TestCase {
 		$this->assertSame( '14:00', $this->meta_store[1][ ExtendEndAction::META_POSTPONED_FROM ] );
 		// One-shot flag set.
 		$this->assertNotEmpty( $this->meta_store[1][ ExtendEndAction::META_POSTPONED_AT ] );
-		$this->assertSame( '2026-05-14 14:00', $r['original_end_iso'] );
-		$this->assertSame( '2026-05-14 15:30', $r['new_end_iso'] );
+		$this->assertSame( $this->clock->day() . ' 14:00', $r['original_end_iso'] );
+		$this->assertSame( $this->clock->day() . ' 15:30', $r['new_end_iso'] );
 	}
 
 	public function test_execute_preserves_date_end_and_other_fields(): void {
 		$this->configure_eligible_form( 1, 'h' );
-		$this->stub_formcache();
 
 		ExtendEndAction::execute( 1, 'h', '18:45' );
 
-		$this->assertSame( '2026-05-14', $this->meta_store[1]['_ffc_geofence_config']['date_start'] );
-		$this->assertSame( '10:00',      $this->meta_store[1]['_ffc_geofence_config']['time_start'] );
-		$this->assertSame( '2026-05-14', $this->meta_store[1]['_ffc_geofence_config']['date_end'] );
+		$this->assertSame( $this->clock->day(), $this->meta_store[1]['_ffc_geofence_config']['date_start'] );
+		$this->assertSame( '10:00', $this->meta_store[1]['_ffc_geofence_config']['time_start'] );
+		$this->assertSame( $this->clock->day(), $this->meta_store[1]['_ffc_geofence_config']['date_end'] );
 	}
 
 	// ==================================================================
@@ -261,7 +241,6 @@ class ExtendEndActionTest extends TestCase {
 
 	public function test_execute_rejects_bad_time_format(): void {
 		$this->configure_eligible_form( 1, 'h' );
-		$this->stub_formcache();
 		$r = ExtendEndAction::execute( 1, 'h', '25:99' );
 		$this->assertFalse( $r['ok'] );
 		$this->assertSame( 'bad_time_format', $r['reason'] );
@@ -269,7 +248,6 @@ class ExtendEndActionTest extends TestCase {
 
 	public function test_execute_rejects_non_extending_value(): void {
 		$this->configure_eligible_form( 1, 'h' );
-		$this->stub_formcache();
 		// Current time_end is 14:00, picking 13:30 doesn't extend.
 		$r = ExtendEndAction::execute( 1, 'h', '13:30' );
 		$this->assertSame( 'not_extending', $r['reason'] );
@@ -277,34 +255,23 @@ class ExtendEndActionTest extends TestCase {
 
 	public function test_execute_rejects_equal_value(): void {
 		$this->configure_eligible_form( 1, 'h' );
-		$this->stub_formcache();
 		$r = ExtendEndAction::execute( 1, 'h', '14:00' );
 		$this->assertSame( 'not_extending', $r['reason'] );
 	}
 
 	public function test_execute_rejects_past_now_value(): void {
-		// Eligibility ok (form open). User picks 11:30 — extends from
-		// 14:00? No, 11:30 < 14:00 so not_extending fires first. Use a
-		// scenario where current time_end < now to test past_now.
-		$this->meta_store[1] = array(
-			'_ffc_csv_public_enabled'            => '1',
-			'_ffc_csv_public_hash'               => 'h',
-			'_ffc_csv_public_extend_end_enabled' => '1',
-			'_ffc_geofence_config'               => array(
-				'datetime_enabled' => '1',
-				'date_start'       => '2026-05-14',
-				'time_start'       => '08:00',
-				'date_end'         => '2026-05-14',
-				'time_end'         => '09:00',
-			),
+		// A form that closes at the end of today, with no closing time
+		// stored: eligible (it is noon), and no stored time_end for the
+		// new one to extend, so the only check left is "not before now".
+		$this->configure_form(
+			1,
+			array(
+				'date_start' => $this->clock->day(),
+				'time_start' => '08:00',
+				'date_end'   => $this->clock->day(),
+			)
 		);
-		// start in past, end in past — but we want to test the validate
-		// path so stub end_ts as still future (race condition / clock
-		// skew where eligibility's end_ts check passed but the stored
-		// time_end is stale).
-		$this->stub_geofence( 1778673600, 1778763600 );
-		$this->stub_formcache();
-		// 11:00 > 09:00 (extending) but < 12:00 (now).
+		// 11:00 < 12:00 (now).
 		$r = ExtendEndAction::execute( 1, 'h', '11:00' );
 		$this->assertSame( 'past_now', $r['reason'] );
 	}
@@ -314,7 +281,6 @@ class ExtendEndActionTest extends TestCase {
 	// ==================================================================
 
 	public function test_execute_short_circuits_when_eligibility_fails(): void {
-		$this->stub_geofence( null, null );
 		$this->meta_store[1] = array(
 			'_ffc_csv_public_enabled'            => '1',
 			'_ffc_csv_public_hash'               => 'h',
