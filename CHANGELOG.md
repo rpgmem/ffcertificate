@@ -65,6 +65,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A booking that needs approval is reported as pending, and an owner is recognised as the owner** (#2160). Two strict comparisons met the string `$wpdb` returns: the booking result said confirmed, and a signed-in owner could not cancel their appointment or open its receipt.
 - **Tests: the shifted-key encryption test no longer fails one run in 256** (#2168). It now asserts that a shifted key slice never yields the plaintext, instead of `null`, which CBC padding cannot guarantee when the MAC key is the right one.
 - **Opening a public CSV form early a second time says why it was refused** (#2169). The refusal showed a generic "Unable to open the form right now"; it now says the form was already opened early once. The early-open, postpone and schedule-exception refusals name their reasons from a closed list PHPStan checks, so the two unreachable generic messages and their tests' own processes are gone.
+- **A new audience calendar keeps its event-list, badge and booking-label settings** (#2175). Creating a calendar stored the database defaults for those five settings and only saved the chosen values on the first edit.
+- **Environment notices use the calendar's own label** (#2176). After creating, deactivating or deleting an environment the notice always said "Environment" and read a calendar that does not exist; the redirect now names the environment's calendar.
 
 ### Security
 

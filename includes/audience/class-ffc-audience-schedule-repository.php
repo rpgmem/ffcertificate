@@ -220,6 +220,11 @@ class AudienceScheduleRepository {
 			'include_ics'                  => 0,
 			'is_isolated'                  => 0,
 			'admin_bypass'                 => 1,
+			'show_event_list'              => 0,
+			'event_list_position'          => 'side',
+			'audience_badge_format'        => 'name',
+			'booking_label_singular'       => null,
+			'booking_label_plural'         => null,
 			'post_event_form_id'           => null,
 			'post_event_window_days'       => null,
 			'post_event_attendees_only'    => 0,
@@ -246,13 +251,18 @@ class AudienceScheduleRepository {
 				'include_ics'                  => $data['include_ics'],
 				'is_isolated'                  => $data['is_isolated'],
 				'admin_bypass'                 => $data['admin_bypass'],
+				'show_event_list'              => $data['show_event_list'],
+				'event_list_position'          => $data['event_list_position'],
+				'audience_badge_format'        => $data['audience_badge_format'],
+				'booking_label_singular'       => $data['booking_label_singular'],
+				'booking_label_plural'         => $data['booking_label_plural'],
 				'post_event_form_id'           => $data['post_event_form_id'],
 				'post_event_window_days'       => $data['post_event_window_days'],
 				'post_event_attendees_only'    => $data['post_event_attendees_only'],
 				'status'                       => $data['status'],
 				'created_by'                   => $data['created_by'],
 			),
-			array( '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%d', '%s', '%d' )
+			array( '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%d' )
 		);
 
 		return $result ? $wpdb->insert_id : false;
