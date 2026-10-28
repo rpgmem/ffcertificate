@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationImportStagingService;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for the reregistration CSV import (#1214, sprints 2 to 4).
@@ -39,6 +40,24 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 
 	/** @var list<array{sql: string, values: array<int, mixed>}> */
 	private array $queries = array();
+
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
+
+	/**
+	 * An RF in the `xxx.xxx-x` mask.
+	 *
+	 * @param string $rf Seven digits.
+	 */
+	private static function masked_rf( string $rf ): string {
+		return substr( $rf, 0, 3 ) . '.' . substr( $rf, 3, 3 ) . '-' . substr( $rf, 6 );
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -276,7 +295,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 			)
 		);
 
-		$result = ReregistrationImportStagingService::ingest_job( 1, 7, "cpf\n12345678901\n", 3 );
+		$result = ReregistrationImportStagingService::ingest_job( 1, 7, "cpf\n" . Identifiers::CPF_A . "\n", 3 );
 
 		$this->assertFalse( $result['ok'] );
 		$this->assertSame( array( 'rereg_import_required_column_absent' ), $result['errors'] );
@@ -335,7 +354,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 			)
 		);
 
-		$result = ReregistrationImportStagingService::ingest_job( 1, 7, "CPF,Full name\n123.456.789-01,Ada Lovelace\n", 3 );
+		$result = ReregistrationImportStagingService::ingest_job( 1, 7, "CPF,Full name\n" . self::masked( Identifiers::CPF_A ) . ",Ada Lovelace\n", 3 );
 
 		$this->assertTrue( $result['ok'] );
 		$this->assertSame( 1, $result['total'] );
@@ -346,7 +365,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$payload = json_decode( (string) $insert['values'][5], true );
 		$this->assertSame(
 			array(
-				'cpf'           => '123.456.789-01',
+				'cpf'           => self::masked( Identifiers::CPF_A ),
 				'nome_completo' => 'Ada Lovelace',
 			),
 			$payload,
@@ -369,11 +388,11 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 			)
 		);
 
-		ReregistrationImportStagingService::ingest_job( 1, 7, "CPF,RF,E-mail\n123.456.789-01,123.456-7,  Ada@Example.COM \n", 3 );
+		ReregistrationImportStagingService::ingest_job( 1, 7, "CPF,RF,E-mail\n" . self::masked( Identifiers::CPF_A ) . ',' . self::masked_rf( Identifiers::RF_A ) . ",  Ada@Example.COM \n", 3 );
 
 		$values = $this->staging_insert()['values'];
-		$this->assertSame( '12345678901', $values[6], 'cpf_normalized' );
-		$this->assertSame( '1234567', $values[7], 'rf_normalized' );
+		$this->assertSame( Identifiers::CPF_A, $values[6], 'cpf_normalized' );
+		$this->assertSame( Identifiers::RF_A, $values[7], 'rf_normalized' );
 		$this->assertSame( 'ada@example.com', $values[8], 'email' );
 	}
 

@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Recruitment\RecruitmentEmailDispatcher;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Happy-path coverage for RecruitmentEmailDispatcher::send_for_call() —
@@ -142,8 +143,8 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 		$enc->shouldReceive( 'decrypt' )->andReturnUsing(
 			static function ( $cipher ) {
 				$map = array(
-					'cpf-cipher'   => '12345678909',
-					'rf-cipher'    => '1234567',
+					'cpf-cipher'   => Identifiers::CPF_A,
+					'rf-cipher'    => Identifiers::RF_A,
 					'email-cipher' => 'alice@example.test',
 				);
 				return $map[ $cipher ] ?? null;
@@ -154,8 +155,8 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 		$pcd->shouldReceive( 'verify' )->andReturn( $is_pcd );
 
 		$doc = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$doc->shouldReceive( 'mask_cpf' )->andReturn( '***.***.***-09' );
-		$doc->shouldReceive( 'mask_rf' )->andReturn( '***4567' );
+		$doc->shouldReceive( 'mask_cpf' )->andReturn( '***.***.***-' . substr( Identifiers::CPF_A, -2 ) );
+		$doc->shouldReceive( 'mask_rf' )->andReturn( '***' . substr( Identifiers::RF_A, -4 ) );
 		$doc->shouldReceive( 'mask_email' )->andReturn( 'a***@example.test' );
 
 		$date = Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' );
@@ -202,7 +203,7 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 		$this->assertTrue( $result );
 		$this->assertSame( 'alice@example.test', $captured['to'] );
 		$this->assertSame( 'Convocação Alice — EDITAL-2026-01', $captured['subject'] );
-		$this->assertStringContainsString( '***.***.***-09', $captured['body'] );
+		$this->assertStringContainsString( '***.***.***-' . substr( Identifiers::CPF_A, -2 ), $captured['body'] );
 		$this->assertStringContainsString( 'PCD Yes', $captured['body'] );
 		$this->assertStringContainsString( '2026-06-01', $captured['body'] );
 		$this->assertStringContainsString( 'Bring documents', $captured['body'] );

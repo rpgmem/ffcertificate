@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Services\UserIdentifiersQueryService;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Focused tests for `UserIdentifiersQueryService` — the cross-table
@@ -31,6 +32,42 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 
 	/** @var Mockery\MockInterface */
 	private $wpdb;
+
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
+
+	/**
+	 * An RF in the `xxx.xxx-x` mask.
+	 *
+	 * @param string $rf Seven digits.
+	 */
+	private static function masked_rf( string $rf ): string {
+		return substr( $rf, 0, 3 ) . '.' . substr( $rf, 3, 3 ) . '-' . substr( $rf, 6 );
+	}
+
+	/**
+	 * The partial mask the query service shows: `xxx.***.***-xx`.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function partial( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.***.***-' . substr( $cpf, 9 );
+	}
+
+	/**
+	 * The partial RF mask: `xxx.***-x`.
+	 *
+	 * @param string $rf Seven digits.
+	 */
+	private static function partial_rf( string $rf ): string {
+		return substr( $rf, 0, 3 ) . '.***-' . substr( $rf, 6 );
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -55,12 +92,12 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 
 	public function test_get_cpfs_masked_for_user_decrypts_and_masks(): void {
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
-			array( array( 'cpf_encrypted' => Encryption::encrypt( '12345678901' ), 'rf_encrypted' => null ) )
+			array( array( 'cpf_encrypted' => Encryption::encrypt( Identifiers::CPF_A ), 'rf_encrypted' => null ) )
 		);
 
 		$out = UserIdentifiersQueryService::get_cpfs_masked_for_user( 42 );
 
-		$this->assertSame( array( '123.***.***-01' ), $out );
+		$this->assertSame( array( self::partial( Identifiers::CPF_A ) ), $out );
 	}
 
 	public function test_get_cpfs_masked_for_user_returns_empty_when_no_rows(): void {
@@ -70,13 +107,13 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 	}
 
 	public function test_get_cpfs_formatted_for_user_formats_by_type_and_dedupes(): void {
-		$r1 = Encryption::encrypt( '7654321' );
+		$r1 = Encryption::encrypt( Identifiers::RF_A );
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
 			array(
 				// Both columns: the CPF wins, as in the masked list.
-				array( 'cpf_encrypted' => Encryption::encrypt( '12345678901' ), 'rf_encrypted' => $r1 ),
+				array( 'cpf_encrypted' => Encryption::encrypt( Identifiers::CPF_A ), 'rf_encrypted' => $r1 ),
 				// The same CPF stored with punctuation: one entry.
-				array( 'cpf_encrypted' => Encryption::encrypt( '123.456.789-01' ), 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => Encryption::encrypt( self::masked( Identifiers::CPF_A ) ), 'rf_encrypted' => null ),
 				array( 'cpf_encrypted' => null, 'rf_encrypted' => $r1 ),
 				array( 'cpf_encrypted' => null, 'rf_encrypted' => $r1 ),
 			)
@@ -85,7 +122,7 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 		$out = UserIdentifiersQueryService::get_cpfs_formatted_for_user( 42 );
 
 		// Formatted in full, never masked.
-		$this->assertSame( array( '123.456.789-01', '765.432-1' ), $out );
+		$this->assertSame( array( self::masked( Identifiers::CPF_A ), self::masked_rf( Identifiers::RF_A ) ), $out );
 	}
 
 	public function test_get_cpfs_formatted_for_user_skips_a_row_that_does_not_decrypt(): void {
@@ -94,25 +131,25 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 				// Not a ciphertext: decrypts to nothing.
 				array( 'cpf_encrypted' => 'not-a-ciphertext', 'rf_encrypted' => null ),
 				array( 'cpf_encrypted' => Encryption::encrypt( '' ), 'rf_encrypted' => null ),
-				array( 'cpf_encrypted' => null, 'rf_encrypted' => Encryption::encrypt( '7654321' ) ),
+				array( 'cpf_encrypted' => null, 'rf_encrypted' => Encryption::encrypt( Identifiers::RF_A ) ),
 			)
 		);
 
-		$this->assertSame( array( '765.432-1' ), UserIdentifiersQueryService::get_cpfs_formatted_for_user( 42 ) );
+		$this->assertSame( array( self::masked_rf( Identifiers::RF_A ) ), UserIdentifiersQueryService::get_cpfs_formatted_for_user( 42 ) );
 	}
 
 	public function test_get_typed_identifiers_separates_cpfs_and_rfs(): void {
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
 			array(
-				array( 'cpf_encrypted' => Encryption::encrypt( '12345678901' ), 'rf_encrypted' => null ),
-				array( 'cpf_encrypted' => null, 'rf_encrypted' => Encryption::encrypt( '7654321' ) ),
+				array( 'cpf_encrypted' => Encryption::encrypt( Identifiers::CPF_A ), 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => null, 'rf_encrypted' => Encryption::encrypt( Identifiers::RF_A ) ),
 			)
 		);
 
 		$out = UserIdentifiersQueryService::get_typed_identifiers_for_user( 42 );
 
-		$this->assertSame( array( '123.***.***-01' ), $out['cpfs'] );
-		$this->assertSame( array( '765.***-1' ), $out['rfs'] );
+		$this->assertSame( array( self::partial( Identifiers::CPF_A ) ), $out['cpfs'] );
+		$this->assertSame( array( self::partial_rf( Identifiers::RF_A ) ), $out['rfs'] );
 	}
 
 	public function test_get_emails_for_user_falls_back_to_wp_account_when_no_encrypted_rows(): void {

@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Csv;
 use FreeFormCertificate\Core\CsvReader;
 use FreeFormCertificate\Core\CsvWriter;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for Csv / CsvWriter / CsvReader: round-trip integrity, BOM
@@ -173,12 +174,13 @@ class CsvTest extends TestCase {
 	public function test_writer_leaves_safe_cells_untouched(): void {
 		// No cell STARTS with a trigger char, so nothing is prefixed — an
 		// interior '=' (Programa =2) is not a formula and must stay verbatim.
-		$h = $this->tmp_handle();
-		Csv::writer( $h )->row( array( 'Alice', 'a@example.com', '123.456.789-09', 'Programa =2' ) );
+		$h   = $this->tmp_handle();
+		$cpf = substr( Identifiers::CPF_A, 0, 3 ) . '.' . substr( Identifiers::CPF_A, 3, 3 ) . '.' . substr( Identifiers::CPF_A, 6, 3 ) . '-' . substr( Identifiers::CPF_A, 9 );
+		Csv::writer( $h )->row( array( 'Alice', 'a@example.com', $cpf, 'Programa =2' ) );
 		rewind( $h );
 		$row = Csv::reader( $h )->header();
 
-		$this->assertSame( array( 'Alice', 'a@example.com', '123.456.789-09', 'Programa =2' ), $row );
+		$this->assertSame( array( 'Alice', 'a@example.com', $cpf, 'Programa =2' ), $row );
 	}
 
 	public function test_writer_neutralized_value_round_trips_with_quote_prefix(): void {

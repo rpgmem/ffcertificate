@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\IdentityCorrectionPreviewAjaxEndpoint;
 use FreeFormCertificate\Maintenance\IdentityRelink;
 use FreeFormCertificate\Maintenance\IdentityRepair;
+use FreeFormCertificate\Tests\Support\Identifiers;
 use RuntimeException;
 use WP_User;
 
@@ -35,7 +36,7 @@ class IdentityCorrectionPreviewAjaxEndpointTest extends TestCase {
 	 *
 	 * @var string
 	 */
-	private const GOOD_RF = '1234561';
+	private const GOOD_RF = Identifiers::RF_A;
 
 	/**
 	 * Rows a table answers with, keyed `table => hash => rows`.

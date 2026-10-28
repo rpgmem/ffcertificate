@@ -12,6 +12,7 @@ use FreeFormCertificate\Security\RateLimitSupport;
 use FreeFormCertificate\Security\IpLimiter;
 use FreeFormCertificate\Security\EmailLimiter;
 use FreeFormCertificate\Security\CpfLimiter;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * #563 Sprint 4 (A4) — unit tests for the per-dimension rate-limit strategies.
@@ -135,7 +136,7 @@ class RateLimitStrategiesTest extends TestCase {
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Security\RateLimitRepository' );
 		$repo->shouldReceive( 'is_temporarily_blocked' )->andReturn( true );
 		$s   = array( 'cpf' => array( 'check_database' => true ) );
-		$res = ( new CpfLimiter( $this->support( $s ) ) )->check( '12345678900', 7 );
+		$res = ( new CpfLimiter( $this->support( $s ) ) )->check( Identifiers::CPF_A, 7 );
 		$this->assertFalse( $res['allowed'] );
 		$this->assertSame( 'cpf_blocked', $res['reason'] );
 	}
@@ -149,7 +150,7 @@ class RateLimitStrategiesTest extends TestCase {
 		$repo->shouldReceive( 'get_count_from_db' )->andReturn( 99 );
 		$repo->shouldReceive( 'block_temporarily' )->once();
 		$s   = array( 'cpf' => array( 'check_database' => true, 'max_per_month' => 5, 'max_per_year' => 50, 'block_threshold' => 10, 'block_duration' => 24, 'message' => 'x' ) );
-		$res = ( new CpfLimiter( $this->support( $s ) ) )->check( '12345678900', 7 );
+		$res = ( new CpfLimiter( $this->support( $s ) ) )->check( Identifiers::CPF_A, 7 );
 		$this->assertFalse( $res['allowed'] );
 		$this->assertSame( 'cpf_abuse', $res['reason'] );
 	}
@@ -162,7 +163,7 @@ class RateLimitStrategiesTest extends TestCase {
 		$repo->shouldReceive( 'get_submission_count' )->andReturn( 0 );
 		$repo->shouldReceive( 'get_count_from_db' )->andReturn( 0 );
 		$s = array( 'cpf' => array( 'check_database' => true, 'max_per_month' => 5, 'max_per_year' => 50, 'block_threshold' => 10, 'block_duration' => 24, 'message' => 'x' ) );
-		$this->assertTrue( ( new CpfLimiter( $this->support( $s ) ) )->check( '12345678900', 7 )['allowed'] );
+		$this->assertTrue( ( new CpfLimiter( $this->support( $s ) ) )->check( Identifiers::CPF_A, 7 )['allowed'] );
 	}
 
 	// ===================== RateLimitSupport =====================

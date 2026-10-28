@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\DataSanitizer;
+use FreeFormCertificate\Tests\Support\Identifiers;
 use FreeFormCertificate\Tests\Support\PhpSource;
 
 /**
@@ -255,14 +256,17 @@ class IdentifierIdiomTest extends TestCase {
 	 * @return array<string, array{0: string, 1: string}>
 	 */
 	public static function identifier_provider(): array {
+		$rf  = Identifiers::RF_A;
+		$cpf = Identifiers::CPF_A;
+
 		return array(
-			'seven digits is an RF'                 => array( '1234567', 'rf' ),
-			'a masked RF is still an RF'            => array( '123.456-7', 'rf' ),
-			'eleven digits is a CPF'                => array( '12345678909', 'cpf' ),
-			'a masked CPF is still a CPF'           => array( '123.456.789-09', 'cpf' ),
+			'seven digits is an RF'                 => array( $rf, 'rf' ),
+			'a masked RF is still an RF'            => array( substr( $rf, 0, 3 ) . '.' . substr( $rf, 3, 3 ) . '-' . substr( $rf, 6, 1 ), 'rf' ),
+			'eleven digits is a CPF'                => array( $cpf, 'cpf' ),
+			'a masked CPF is still a CPF'           => array( substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 ), 'cpf' ),
 			'an unknown length routes as CPF'       => array( '123456789', 'cpf' ),
 			'an empty value routes as CPF'          => array( '', 'cpf' ),
-			'letters around seven digits are ignored' => array( 'RF 123 456 7', 'rf' ),
+			'letters around seven digits are ignored' => array( 'RF ' . substr( $rf, 0, 3 ) . ' ' . substr( $rf, 3, 3 ) . ' ' . substr( $rf, 6, 1 ), 'rf' ),
 		);
 	}
 

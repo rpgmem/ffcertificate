@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\AccessRestrictionChecker;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for AccessRestrictionChecker: mask normalization, edge cases,
@@ -67,6 +68,15 @@ class AccessRestrictionCheckerTest extends TestCase {
 		);
 	}
 
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask an operator pastes into a list.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
+
 	// ==================================================================
 	// CPF mask normalization
 	// ==================================================================
@@ -74,22 +84,22 @@ class AccessRestrictionCheckerTest extends TestCase {
 	public function test_cpf_with_dots_and_dash_normalizes_for_denylist(): void {
 		$config = array(
 			'restrictions'      => array( 'denylist' => '1' ),
-			'denied_users_list' => '123.456.789-01',
+			'denied_users_list' => self::masked( Identifiers::CPF_A ),
 		);
 
 		// Input already clean (no mask)
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 		$this->assertFalse( $result['allowed'] );
 	}
 
 	public function test_cpf_input_with_mask_normalizes_for_denylist(): void {
 		$config = array(
 			'restrictions'      => array( 'denylist' => '1' ),
-			'denied_users_list' => '12345678901',  // No mask in list
+			'denied_users_list' => Identifiers::CPF_A,  // No mask in list
 		);
 
 		// Input with mask — should still match after cleaning
-		$result = AccessRestrictionChecker::check( $config, '123.456.789-01', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, self::masked( Identifiers::CPF_A ), '', 1 );
 		$this->assertFalse( $result['allowed'] );
 	}
 
@@ -107,11 +117,11 @@ class AccessRestrictionCheckerTest extends TestCase {
 	public function test_allowlist_normalizes_both_sides(): void {
 		$config = array(
 			'restrictions'       => array( 'allowlist' => '1' ),
-			'allowed_users_list' => '111.222.333-44',
+			'allowed_users_list' => self::masked( Identifiers::CPF_B ),
 		);
 
 		// Input without mask matches list with mask
-		$result = AccessRestrictionChecker::check( $config, '11122233344', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_B, '', 1 );
 		$this->assertTrue( $result['allowed'] );
 	}
 
@@ -122,30 +132,30 @@ class AccessRestrictionCheckerTest extends TestCase {
 	public function test_denylist_ignores_blank_lines(): void {
 		$config = array(
 			'restrictions'      => array( 'denylist' => '1' ),
-			'denied_users_list' => "\n\n123.456.789-01\n\n\n",
+			'denied_users_list' => "\n\n" . self::masked( Identifiers::CPF_A ) . "\n\n\n",
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 		$this->assertFalse( $result['allowed'] );
 	}
 
 	public function test_denylist_trims_whitespace(): void {
 		$config = array(
 			'restrictions'      => array( 'denylist' => '1' ),
-			'denied_users_list' => "  12345678901  \n  98765432100  ",
+			'denied_users_list' => '  ' . Identifiers::CPF_A . "  \n  " . Identifiers::CPF_B . '  ',
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 		$this->assertFalse( $result['allowed'] );
 	}
 
 	public function test_allowlist_ignores_blank_lines(): void {
 		$config = array(
 			'restrictions'       => array( 'allowlist' => '1' ),
-			'allowed_users_list' => "\n\n12345678901\n\n",
+			'allowed_users_list' => "\n\n" . Identifiers::CPF_A . "\n\n",
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 		$this->assertTrue( $result['allowed'] );
 	}
 
@@ -155,7 +165,7 @@ class AccessRestrictionCheckerTest extends TestCase {
 			'denied_users_list' => '',
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 		$this->assertTrue( $result['allowed'] );
 	}
 
@@ -165,7 +175,7 @@ class AccessRestrictionCheckerTest extends TestCase {
 			'allowed_users_list' => '',
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 		$this->assertFalse( $result['allowed'] );
 	}
 
@@ -176,10 +186,10 @@ class AccessRestrictionCheckerTest extends TestCase {
 	public function test_denylist_disabled_with_zero_allows(): void {
 		$config = array(
 			'restrictions'      => array( 'denylist' => '0' ),
-			'denied_users_list' => '12345678901',
+			'denied_users_list' => Identifiers::CPF_A,
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 		$this->assertTrue( $result['allowed'] );
 	}
 
@@ -188,7 +198,7 @@ class AccessRestrictionCheckerTest extends TestCase {
 			'restrictions' => array(),
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 		$this->assertTrue( $result['allowed'] );
 	}
 
@@ -198,7 +208,7 @@ class AccessRestrictionCheckerTest extends TestCase {
 			// 'denied_users_list' key is missing
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 		$this->assertTrue( $result['allowed'] );
 	}
 
@@ -208,7 +218,7 @@ class AccessRestrictionCheckerTest extends TestCase {
 			// 'allowed_users_list' key is missing
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 		$this->assertFalse( $result['allowed'] );
 	}
 
@@ -220,13 +230,13 @@ class AccessRestrictionCheckerTest extends TestCase {
 		$config = array(
 			'restrictions'      => array( 'password' => '1', 'denylist' => '1' ),
 			'validation_code'   => 'secret',
-			'denied_users_list' => '12345678901',
+			'denied_users_list' => Identifiers::CPF_A,
 		);
 
 		// Password is empty — fails before denylist check
 		$_POST['ffc_password'] = '';
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertFalse( $result['allowed'] );
 		$this->assertStringContainsString( 'Password is required', $result['message'] );
@@ -236,12 +246,12 @@ class AccessRestrictionCheckerTest extends TestCase {
 		$config = array(
 			'restrictions'      => array( 'password' => '1', 'denylist' => '1' ),
 			'validation_code'   => 'secret',
-			'denied_users_list' => '12345678901',
+			'denied_users_list' => Identifiers::CPF_A,
 		);
 
 		$_POST['ffc_password'] = 'secret';
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertFalse( $result['allowed'] );
 		$this->assertStringContainsString( 'blocked', $result['message'] );
@@ -256,12 +266,12 @@ class AccessRestrictionCheckerTest extends TestCase {
 			),
 			'validation_code'    => 'mypass',
 			'denied_users_list'  => "99999999999",
-			'allowed_users_list' => "12345678901\n55566677788",
+			'allowed_users_list' => Identifiers::CPF_A . "\n" . Identifiers::CPF_B,
 		);
 
 		$_POST['ffc_password'] = 'mypass';
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 		$this->assertTrue( $result['allowed'] );
 		$this->assertFalse( $result['is_ticket'] );
 	}
@@ -272,14 +282,14 @@ class AccessRestrictionCheckerTest extends TestCase {
 				'allowlist' => '1',
 				'ticket'    => '1',
 			),
-			'allowed_users_list' => "12345678901",
+			'allowed_users_list' => Identifiers::CPF_A,
 			'generated_codes_list' => "TKT-001\nTKT-002",
 		);
 
 		$this->mock_wpdb_claim( 1 ); // This caller wins the atomic claim.
 		Functions\when( 'update_post_meta' )->justReturn( true );
 
-		$result = AccessRestrictionChecker::check( $config, '12345678901', 'TKT-001', 42 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, 'TKT-001', 42 );
 
 		$this->assertTrue( $result['allowed'] );
 		$this->assertTrue( $result['is_ticket'] );
@@ -507,7 +517,7 @@ class AccessRestrictionCheckerTest extends TestCase {
 	public function test_empty_cpf_not_in_denylist(): void {
 		$config = array(
 			'restrictions'      => array( 'denylist' => '1' ),
-			'denied_users_list' => "12345678901\n98765432100",
+			'denied_users_list' => Identifiers::CPF_A . "\n" . Identifiers::CPF_B,
 		);
 
 		// Empty CPF should not match any entry
@@ -518,7 +528,7 @@ class AccessRestrictionCheckerTest extends TestCase {
 	public function test_empty_cpf_not_in_allowlist_blocks(): void {
 		$config = array(
 			'restrictions'       => array( 'allowlist' => '1' ),
-			'allowed_users_list' => '12345678901',
+			'allowed_users_list' => Identifiers::CPF_A,
 		);
 
 		// Empty CPF is not in the allowlist
@@ -529,11 +539,11 @@ class AccessRestrictionCheckerTest extends TestCase {
 	public function test_cpf_with_spaces_normalizes(): void {
 		$config = array(
 			'restrictions'      => array( 'denylist' => '1' ),
-			'denied_users_list' => '123 456 789 01',
+			'denied_users_list' => strtr( self::masked( Identifiers::CPF_A ), '.-', '  ' ),
 		);
 
 		// Spaces are non-digit, stripped by preg_replace('/\D/', '')
-		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 		$this->assertFalse( $result['allowed'] );
 	}
 

@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\SelfScheduling\AppointmentHandler;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Isolated coverage for AppointmentHandler's collaborator-heavy branches:
@@ -151,6 +152,24 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 		) );
 	}
 
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked_cpf( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
+
+	/**
+	 * An RF in the `xxx.xxx-x` mask a visitor types.
+	 *
+	 * @param string $rf Seven digits.
+	 */
+	private static function masked_rf( string $rf ): string {
+		return substr( $rf, 0, 3 ) . '.' . substr( $rf, 3, 3 ) . '-' . substr( $rf, 6 );
+	}
+
 	/** @return array<string, mixed> */
 	private function booking_data(): array {
 		return array(
@@ -158,7 +177,7 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 			'appointment_date' => '2026-03-01',
 			'start_time'       => '09:00',
 			'consent_given'    => '1',
-			'cpf_rf'           => '123.456.789-01',
+			'cpf_rf'           => self::masked_cpf( Identifiers::CPF_A ),
 			'email'            => 'user@example.test',
 			'name'             => 'Test User',
 			'user_id'          => 0,
@@ -218,14 +237,14 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 	 */
 	public static function identifier_position_provider(): array {
 		return array(
-			'a CPF goes in the first argument' => array( '123.456.789-01', '12345678901', 0 ),
-			'an RF goes in the second'         => array( '123.456-7', '1234567', 1 ),
+			'a CPF goes in the first argument' => array( self::masked_cpf( Identifiers::CPF_A ), Identifiers::CPF_A, 0 ),
+			'an RF goes in the second'         => array( self::masked_rf( Identifiers::RF_A ), Identifiers::RF_A, 1 ),
 		);
 	}
 
 	public function test_links_created_user_id_into_appointment(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678901' )
+			->shouldReceive( 'normalize_cpf_rf' )->andReturn( Identifiers::CPF_A )
 			->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'hash' )->andReturn( 'hashed-cpf' );
@@ -243,7 +262,7 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 
 	public function test_wp_error_from_user_manager_leaves_user_id_unset(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678901' )
+			->shouldReceive( 'normalize_cpf_rf' )->andReturn( Identifiers::CPF_A )
 			->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'hash' )->andReturn( 'hashed-cpf' );
@@ -260,7 +279,7 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 
 	public function test_user_manager_exception_is_swallowed(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678901' )
+			->shouldReceive( 'normalize_cpf_rf' )->andReturn( Identifiers::CPF_A )
 			->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'hash' )->andReturn( 'hashed-cpf' );

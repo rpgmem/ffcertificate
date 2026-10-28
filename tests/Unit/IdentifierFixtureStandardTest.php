@@ -186,6 +186,193 @@ class IdentifierFixtureStandardTest extends TestCase {
 	}
 
 	/**
+	 * A CPF-wide literal outside a key is judged too (#2138).
+	 *
+	 * The key-anchored scans above saw about a third of the suite's CPFs: the
+	 * rest were function arguments, variables and CSV cells, and `12345678901`
+	 * sat in 58 files unread. The anchor existed to keep São Paulo mobiles
+	 * out, and a mobile number has a shape of its own -- a two-digit area code
+	 * and then a 9 -- so the phone is excluded by that shape instead of by the
+	 * anchor. Shape alone is not enough: `52998224725`, the commonest stray,
+	 * reads as area code 52 plus a 9. So a phone-shaped literal is still judged
+	 * when it carries valid CPF check digits, which a phone number does by
+	 * chance about once in a hundred. What passes unread is a phone-shaped
+	 * value that is NOT a valid CPF -- and an invalid stray of that shape is
+	 * left to the key-anchored scans.
+	 */
+	public function test_every_bare_cpf_literal_is_standard(): void {
+		$this->assertScan( 'bare CPF', fn( string $code ) => $this->bare_cpfs( $code ), Identifiers::cpfs() );
+	}
+
+	/**
+	 * A CPF written with its mask is a CPF wherever it sits: no phone, date or
+	 * amount takes the `ddd.ddd.ddd-dd` shape (#2138).
+	 */
+	public function test_every_masked_cpf_literal_is_standard(): void {
+		$this->assertScan(
+			'masked CPF',
+			fn( string $code ) => $this->shaped( $code, '[0-9]{3}\.[0-9]{3}\.[0-9]{3}-[0-9]{2}' ),
+			array_map( array( self::class, 'mask_cpf' ), Identifiers::cpfs() )
+		);
+	}
+
+	/**
+	 * An RF written with its mask, `ddd.ddd-d`, likewise (#2138). A bare
+	 * seven-digit literal stays key-anchored only: at that width it is as
+	 * likely an id, a count or a timestamp fragment as an RF.
+	 */
+	public function test_every_masked_rf_literal_is_standard(): void {
+		$this->assertScan(
+			'masked RF',
+			fn( string $code ) => $this->shaped( $code, '[0-9]{3}\.[0-9]{3}-[0-9]' ),
+			array_map( array( self::class, 'mask_rf' ), Identifiers::rfs() )
+		);
+	}
+
+	/**
+	 * The unanchored scans read what they claim, and leave what they claim to.
+	 *
+	 * Pinned on synthetic source, not on the suite, so a cleaned-up suite
+	 * cannot make the canary pass by having nothing left to find.
+	 */
+	public function test_the_unanchored_scans_catch_strays_and_leave_phones(): void {
+		$code = "<?php\n"
+			. "\$a = f( '12345678901' );\n"           // A stray CPF as an argument.
+			. "\$b = 'Alice,' . \$x . ',98765432100';\n" // Not a whole literal: left alone.
+			. "\$c = \"52998224725\";\n"              // Double quotes count.
+			. "\$d = '11999998888';\n"                // A São Paulo mobile.
+			. "\$e = '00000000000';\n"                // Repeated digits: structural, left alone.
+			. "\$f = '123.456.789-01';\n"             // A masked stray CPF.
+			. "\$g = '123.456-7';\n";                 // A masked stray RF.
+
+		$this->assertSame( array( '12345678901', '52998224725' ), $this->bare_cpfs( $code ) );
+		$this->assertSame( array( '123.456.789-01' ), $this->shaped( $code, '[0-9]{3}\.[0-9]{3}\.[0-9]{3}-[0-9]{2}' ) );
+		$this->assertSame( array( '123.456-7' ), $this->shaped( $code, '[0-9]{3}\.[0-9]{3}-[0-9]' ) );
+		$this->assertSame( '518.178.420-80', self::mask_cpf( Identifiers::CPF_A ) );
+		$this->assertSame( '518.178-0', self::mask_rf( Identifiers::RF_A ) );
+	}
+
+	/**
+	 * Eleven-digit quoted literals that are neither a mobile number nor a
+	 * run of one repeated digit.
+	 *
+	 * @param string $code Source with comments stripped.
+	 * @return array<int, string>
+	 */
+	private function bare_cpfs( string $code ): array {
+		preg_match_all( '/([\x27"])([0-9]{11})\1/', $code, $m );
+
+		return array_values(
+			array_unique(
+				array_filter(
+					$m[2],
+					static fn( string $v ): bool => 1 !== preg_match( '/^(\d)\1{10}$/', $v )
+						&& ( 1 !== preg_match( '/^[1-9][0-9]9[0-9]{8}$/', $v ) || self::has_cpf_check_digits( $v ) )
+				)
+			)
+		);
+	}
+
+	/**
+	 * The CPF check-digit rule, written out so this guard does not lean on the
+	 * class whose tests it polices.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return bool
+	 */
+	private static function has_cpf_check_digits( string $cpf ): bool {
+		for ( $len = 9; $len <= 10; $len++ ) {
+			$sum = 0;
+			for ( $i = 0; $i < $len; $i++ ) {
+				$sum += (int) $cpf[ $i ] * ( $len + 1 - $i );
+			}
+			$digit = ( $sum * 10 ) % 11 % 10;
+			if ( (int) $cpf[ $len ] !== $digit ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Quoted literals of one masked shape.
+	 *
+	 * @param string $code  Source with comments stripped.
+	 * @param string $shape The regex body of the shape.
+	 * @return array<int, string>
+	 */
+	private function shaped( string $code, string $shape ): array {
+		preg_match_all( '/([\x27"])(' . $shape . ')\1/', $code, $m );
+
+		return array_values(
+			array_unique(
+				array_filter(
+					$m[2],
+					static fn( string $v ): bool => 1 !== preg_match( '/^(\d)(?:\1|[.-])+$/', $v )
+				)
+			)
+		);
+	}
+
+	/**
+	 * `51817842080` as `518.178.420-80`.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function mask_cpf( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+	}
+
+	/**
+	 * `5181780` as `518.178-0`.
+	 *
+	 * @param string $rf Seven digits.
+	 * @return string
+	 */
+	private static function mask_rf( string $rf ): string {
+		return substr( $rf, 0, 3 ) . '.' . substr( $rf, 3, 3 ) . '-' . substr( $rf, 6, 1 );
+	}
+
+	/**
+	 * Fail naming each file whose scan finds a value outside the allowed set.
+	 *
+	 * @param string                                  $label   What to call it in the message.
+	 * @param callable(string): array<int, string>    $scan    Values found in one file's code.
+	 * @param array<int, string>                      $allowed The standard values.
+	 * @return void
+	 */
+	private function assertScan( string $label, callable $scan, array $allowed ): void {
+		$offending = array();
+
+		foreach ( $this->files() as $path ) {
+			// This file's canary carries strays on purpose.
+			if ( basename( __FILE__ ) === basename( $path ) ) {
+				continue;
+			}
+
+			$stray = array_values( array_diff( $scan( PhpSource::code( $path ) ), $allowed ) );
+
+			if ( array() !== $stray ) {
+				$offending[] = sprintf( '%s: %s', basename( $path ), implode( ', ', $stray ) );
+			}
+		}
+
+		sort( $offending );
+
+		$this->assertSame(
+			array(),
+			$offending,
+			sprintf(
+				"These %s literals are not in the standard set (see tests/Support/Identifiers.php):\n- %s",
+				$label,
+				implode( "\n- ", $offending )
+			)
+		);
+	}
+
+	/**
 	 * Fail naming each file and value that is not in the standard set.
 	 *
 	 * @param array<int, string> $keys    Keys to look under.

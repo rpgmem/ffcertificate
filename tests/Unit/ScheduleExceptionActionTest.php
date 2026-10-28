@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\ScheduleExceptionAction;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for ScheduleExceptionAction — Sprint 4 of #366.
@@ -172,7 +173,7 @@ class ScheduleExceptionActionTest extends TestCase {
 	public function test_execute_rejects_inverted_range(): void {
 		$this->seed_form();
 
-		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '17:00', '09:00', '12345678900' );
+		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '17:00', '09:00', Identifiers::CPF_A );
 
 		$this->assertFalse( $result['ok'] );
 		$this->assertSame( 'range_inverted', $result['reason'] );
@@ -181,7 +182,7 @@ class ScheduleExceptionActionTest extends TestCase {
 	public function test_execute_rejects_out_of_window(): void {
 		$this->seed_form();
 		// Window is 08:00-18:00; ask for 19:00 end.
-		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '08:00', '19:00', '12345678900' );
+		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '08:00', '19:00', Identifiers::CPF_A );
 
 		$this->assertFalse( $result['ok'] );
 		$this->assertSame( 'out_of_window', $result['reason'] );
@@ -208,7 +209,7 @@ class ScheduleExceptionActionTest extends TestCase {
 
 		// start_override '' = keep baseline 00:00; end_override 15:40 sits
 		// inside the window. Previously this failed with out_of_window.
-		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '', '15:40', '12345678900' );
+		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '', '15:40', Identifiers::CPF_A );
 
 		$this->assertTrue( $result['ok'], 'baseline start outside window must not block an end-only override' );
 		$this->assertArrayHasKey( 'token', $result );
@@ -219,7 +220,7 @@ class ScheduleExceptionActionTest extends TestCase {
 		// actually changes: an explicit start below window_start still fails.
 		$this->seed_form();
 		// Window 08:00-18:00; explicitly override the start to 07:00.
-		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '07:00', '17:00', '12345678900' );
+		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '07:00', '17:00', Identifiers::CPF_A );
 
 		$this->assertFalse( $result['ok'] );
 		$this->assertSame( 'out_of_window', $result['reason'] );
@@ -228,7 +229,7 @@ class ScheduleExceptionActionTest extends TestCase {
 	public function test_execute_rejects_bad_time_format(): void {
 		$this->seed_form();
 
-		$result = ScheduleExceptionAction::execute( 42, 'good-hash', 'not-a-time', '', '12345678900' );
+		$result = ScheduleExceptionAction::execute( 42, 'good-hash', 'not-a-time', '', Identifiers::CPF_A );
 
 		$this->assertFalse( $result['ok'] );
 		$this->assertSame( 'bad_time_format', $result['reason'] );
@@ -238,7 +239,7 @@ class ScheduleExceptionActionTest extends TestCase {
 		$this->seed_form();
 		// Both overrides empty AND baseline (class_time_*) is empty too,
 		// so effective range collapses to (time_start, time_end) = baseline.
-		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '', '', '12345678900' );
+		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '', '', Identifiers::CPF_A );
 
 		$this->assertFalse( $result['ok'] );
 		$this->assertSame( 'no_change', $result['reason'] );
@@ -247,7 +248,7 @@ class ScheduleExceptionActionTest extends TestCase {
 	public function test_execute_returns_token_and_url_on_success(): void {
 		$this->seed_form();
 
-		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '09:00', '17:00', '12345678900' );
+		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '09:00', '17:00', Identifiers::CPF_A );
 
 		$this->assertTrue( $result['ok'] );
 		$this->assertNotEmpty( $result['token'] );
@@ -263,7 +264,7 @@ class ScheduleExceptionActionTest extends TestCase {
 
 		// Override end at 17:30 (matches class_time_end), start blank.
 		// Effective range = (08:30, 17:30) which IS the class baseline → no_change.
-		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '', '17:30', '12345678900' );
+		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '', '17:30', Identifiers::CPF_A );
 
 		$this->assertFalse( $result['ok'] );
 		$this->assertSame( 'no_change', $result['reason'], 'class_time_* must be the baseline source when present' );
@@ -280,7 +281,7 @@ class ScheduleExceptionActionTest extends TestCase {
 			}
 		);
 
-		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '09:00', '17:00', '12345678900' );
+		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '09:00', '17:00', Identifiers::CPF_A );
 
 		$this->assertTrue( $result['ok'] );
 		$this->assertSame( 'https://example.test/custom-form-42', $result['form_url'] );
@@ -295,7 +296,7 @@ class ScheduleExceptionActionTest extends TestCase {
 			static fn( $id = 0 ) => 99 === (int) $id ? 'https://example.test/the-form-page/' : ''
 		);
 
-		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '09:00', '17:00', '12345678900' );
+		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '09:00', '17:00', Identifiers::CPF_A );
 
 		$this->assertTrue( $result['ok'] );
 		$this->assertSame( 'https://example.test/the-form-page/', $result['form_url'] );
@@ -304,7 +305,7 @@ class ScheduleExceptionActionTest extends TestCase {
 	public function test_execute_falls_back_to_home_when_form_not_embedded(): void {
 		$this->seed_form();
 		// Default get_posts stub returns [] — form isn't embedded anywhere.
-		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '09:00', '17:00', '12345678900' );
+		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '09:00', '17:00', Identifiers::CPF_A );
 
 		$this->assertTrue( $result['ok'] );
 		$this->assertSame( 'https://example.test/', $result['form_url'] );
@@ -386,7 +387,7 @@ class ScheduleExceptionActionTest extends TestCase {
 		Functions\when( 'get_posts' )->justReturn( array( 99 ) );
 		Functions\when( 'get_permalink' )->justReturn( false );
 
-		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '09:00', '17:00', '12345678900' );
+		$result = ScheduleExceptionAction::execute( 42, 'good-hash', '09:00', '17:00', Identifiers::CPF_A );
 
 		$this->assertTrue( $result['ok'] );
 		$this->assertSame( 'https://example.test/', $result['form_url'] );

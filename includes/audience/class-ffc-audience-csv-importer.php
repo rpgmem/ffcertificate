@@ -578,8 +578,8 @@ class AudienceCsvImporter {
 		return array(
 			'header' => array( 'email', 'name', 'audience_name', 'cpf', 'rf' ),
 			'rows'   => array(
-				array( 'john@example.com', 'John Doe', 'Group A', '529.982.247-25', '' ),
-				array( 'jane@example.com', 'Jane Smith', 'Subgroup A1', '', '1234567' ),
+				array( 'john@example.com', 'John Doe', 'Group A', '518.178.420-80', '' ),
+				array( 'jane@example.com', 'Jane Smith', 'Subgroup A1', '', '5181780' ),
 				array( 'bob@example.com', 'Bob Johnson', 'Group B', '', '' ),
 			),
 		);

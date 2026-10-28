@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\SelfScheduling\AppointmentAjaxHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentHandler;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for AppointmentAjaxHandler: AJAX endpoints for booking,
@@ -330,7 +331,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$_POST['time'] = '09:00';
 		$_POST['name'] = 'John';
 		$_POST['email'] = 'john@example.com';
-		$_POST['cpf_rf'] = '12345678901';
+		$_POST['cpf_rf'] = Identifiers::CPF_A;
 		$_POST['consent'] = '1';
 		$_POST['ffc_captcha_ans'] = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
@@ -355,7 +356,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$_POST['time']             = '09:00';
 		$_POST['name']             = 'John';
 		$_POST['email']            = 'john@example.com';
-		$_POST['cpf_rf']           = '12345678901';
+		$_POST['cpf_rf']           = Identifiers::CPF_A;
 		$_POST['consent']          = '1';
 		$_POST['ffc_captcha_ans']  = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
@@ -397,7 +398,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$_POST['time']             = '09:00';
 		$_POST['name']             = 'John';
 		$_POST['email']            = 'john@example.com';
-		$_POST['cpf_rf']           = '12345678901';
+		$_POST['cpf_rf']           = Identifiers::CPF_A;
 		$_POST['consent']          = '1';
 		$_POST['ffc_captcha_ans']  = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );

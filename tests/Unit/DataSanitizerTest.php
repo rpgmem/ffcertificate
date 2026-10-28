@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\DataSanitizer;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for DataSanitizer: recursive data sanitization and
@@ -236,11 +237,15 @@ class DataSanitizerTest extends TestCase {
 	// ==================================================================
 
 	public function test_normalize_cpf_rf_strips_dots_and_dashes(): void {
-		$this->assertSame( '12345678900', DataSanitizer::normalize_cpf_rf( '123.456.789-00' ) );
+		$cpf    = Identifiers::CPF_A;
+		$masked = substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+		$this->assertSame( $cpf, DataSanitizer::normalize_cpf_rf( $masked ) );
 	}
 
 	public function test_normalize_cpf_rf_strips_spaces_and_slashes(): void {
-		$this->assertSame( '12345678900', DataSanitizer::normalize_cpf_rf( '123 456/789-00' ) );
+		$cpf   = Identifiers::CPF_A;
+		$input = substr( $cpf, 0, 3 ) . ' ' . substr( $cpf, 3, 3 ) . '/' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+		$this->assertSame( $cpf, DataSanitizer::normalize_cpf_rf( $input ) );
 	}
 
 	public function test_normalize_cpf_rf_returns_empty_for_no_digits(): void {

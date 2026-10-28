@@ -28,6 +28,16 @@ class ReprintDetectorTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/**
+	 * A CPF in its `ddd.ddd.ddd-dd` display form, built from the standard fixture.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function mask_cpf( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+	}
+
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
@@ -210,13 +220,13 @@ class ReprintDetectorTest extends TestCase {
 	public function test_detect_by_cpf_uses_cpf_hash_column_for_11_digit_ids(): void {
 		$row = $this->makeSubmissionRow([
 			'id' => 77,
-			'data' => '{"cpf_rf":"123.456.789-01","name":"Pedro"}',
+			'data' => '{"cpf_rf":"' . self::mask_cpf( Identifiers::CPF_A ) . '","name":"Pedro"}',
 			'auth_code' => 'AUTH77',
 		]);
 
 		$this->wpdb->shouldReceive('get_row')->once()->andReturn($row);
 
-		$result = ReprintDetector::detect(1, '518.178.420-80', '');
+		$result = ReprintDetector::detect(1, self::mask_cpf( Identifiers::CPF_A ), '');
 
 		$this->assertSame(
 			array( 'wp_ffc_submissions', 1, 'cpf_hash', SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A ) ),
@@ -239,10 +249,10 @@ class ReprintDetectorTest extends TestCase {
 
 		$this->wpdb->shouldReceive('get_row')->once()->andReturn($row);
 
-		$result = ReprintDetector::detect(1, '1234567', '');
+		$result = ReprintDetector::detect(1, Identifiers::RF_A, '');
 
 		$this->assertSame(
-			array( 'wp_ffc_submissions', 1, 'rf_hash', SensitiveFieldRegistry::hash_identifier( 'cpf', '1234567' ) ),
+			array( 'wp_ffc_submissions', 1, 'rf_hash', SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::RF_A ) ),
 			$this->prepared[0]
 		);
 		$this->assertTrue($result['is_reprint']);
@@ -272,7 +282,7 @@ class ReprintDetectorTest extends TestCase {
 		$row = $this->makeSubmissionRow(['id' => 77]);
 		$this->wpdb->shouldReceive('get_row')->andReturn($row);
 
-		$result = ReprintDetector::detect(1, '518.178.420-80', '');
+		$result = ReprintDetector::detect(1, self::mask_cpf( Identifiers::CPF_A ), '');
 
 		$this->assertCount( 1, $this->prepared );
 		$this->assertSame( Encryption::hash( Identifiers::CPF_A ), $this->prepared[0][3], 'the digits are hashed, not the formatted value' );
@@ -293,7 +303,7 @@ class ReprintDetectorTest extends TestCase {
 			->once() // only ticket query, CPF not attempted
 			->andReturn($row);
 
-		$result = ReprintDetector::detect(1, '123.456.789-01', 'T100');
+		$result = ReprintDetector::detect(1, self::mask_cpf( Identifiers::CPF_A ), 'T100');
 
 		$this->assertTrue($result['is_reprint']);
 		$this->assertSame(66, $result['id']);

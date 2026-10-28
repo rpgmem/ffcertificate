@@ -7,22 +7,26 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Submissions\BulkIssuePlanner;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for BulkIssuePlanner: the pure plan behind "Issue in bulk" (#1945).
  *
  * The planner writes nothing, so these tests only need the settings reads the
- * RF check-digit rule makes. Both CPFs below pass the official check digits.
+ * RF check-digit rule makes. Every identifier comes from `Identifiers`.
  *
  * @covers \FreeFormCertificate\Submissions\BulkIssuePlanner
  */
 class BulkIssuePlannerTest extends TestCase {
 
-	/** A CPF with valid check digits. */
-	private const CPF_A = '11144477735';
-
-	/** Another CPF with valid check digits. */
-	private const CPF_B = '52998224725';
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a spreadsheet carries.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -68,13 +72,13 @@ class BulkIssuePlannerTest extends TestCase {
 	}
 
 	public function test_parse_detects_a_semicolon_delimiter_and_skips_the_bom(): void {
-		$content = "\xEF\xBB\xBFNome;CPF;E-mail\nAna;11144477735;ana@example.test\n";
+		$content = "\xEF\xBB\xBFNome;CPF;E-mail\nAna;" . Identifiers::CPF_A . ";ana@example.test\n";
 
 		$parsed = BulkIssuePlanner::parse( $content );
 
 		$this->assertSame( ';', $parsed['delimiter'] );
 		$this->assertSame( array( 'Nome', 'CPF', 'E-mail' ), $parsed['header'] );
-		$this->assertSame( array( array( 'Ana', '11144477735', 'ana@example.test' ) ), $parsed['rows'] );
+		$this->assertSame( array( array( 'Ana', Identifiers::CPF_A, 'ana@example.test' ) ), $parsed['rows'] );
 	}
 
 	public function test_mapping_problems_report_unmapped_and_unknown_columns(): void {
@@ -90,7 +94,7 @@ class BulkIssuePlannerTest extends TestCase {
 	}
 
 	public function test_a_file_in_an_unsupported_delimiter_maps_every_required_column_to_nothing(): void {
-		$parsed = BulkIssuePlanner::parse( "Nome|CPF|E-mail\nAna|11144477735|ana@example.test\n" );
+		$parsed = BulkIssuePlanner::parse( "Nome|CPF|E-mail\nAna|" . Identifiers::CPF_A . "|ana@example.test\n" );
 
 		$this->assertSame( array( 'Nome|CPF|E-mail' ), $parsed['header'], 'A pipe is not a delimiter the parser reads.' );
 		$this->assertSame(
@@ -126,8 +130,8 @@ class BulkIssuePlannerTest extends TestCase {
 
 	public function test_a_row_that_leaves_a_required_field_empty_is_skipped_in_the_preview(): void {
 		$rows = array(
-			array( 'Ana', '111.444.777-35', 'ana@example.test', '' ),
-			array( 'Bia', '529.982.247-25', 'bia@example.test', 'Python' ),
+			array( 'Ana', self::masked( Identifiers::CPF_A ), 'ana@example.test', '' ),
+			array( 'Bia', self::masked( Identifiers::CPF_B ), 'bia@example.test', 'Python' ),
 		);
 
 		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::HEADER, array( 'mode' => BulkIssuePlanner::DATE_NOW, 'date' => '', 'column' => '' ), false, array( 'mode' => BulkIssuePlanner::SCORE_NONE, 'column' => '', 'max' => 0, 'pass' => 0 ), array( 'course' ) );
@@ -139,7 +143,7 @@ class BulkIssuePlannerTest extends TestCase {
 
 	public function test_a_valid_row_is_issued_with_its_digits_and_carried_fields(): void {
 		$rows = array(
-			array( 'Ana', '111.444.777-35', 'ana@example.test', 'Python' ),
+			array( 'Ana', self::masked( Identifiers::CPF_A ), 'ana@example.test', 'Python' ),
 		);
 
 		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::HEADER );
@@ -147,13 +151,13 @@ class BulkIssuePlannerTest extends TestCase {
 		$this->assertSame( array(), $plan['skipped'] );
 		$this->assertCount( 1, $plan['issue'] );
 		$this->assertSame( 2, $plan['issue'][0]['line'] );
-		$this->assertSame( self::CPF_A, $plan['issue'][0]['cpf_rf'] );
+		$this->assertSame( Identifiers::CPF_A, $plan['issue'][0]['cpf_rf'] );
 		$this->assertSame( array( 'course' => 'Python' ), $plan['issue'][0]['fields'] );
 	}
 
 	public function test_the_default_date_leaves_every_certificate_to_its_moment_of_issue(): void {
 		$rows = array(
-			array( 'Ana', self::CPF_A, 'ana@example.test', '' ),
+			array( 'Ana', Identifiers::CPF_A, 'ana@example.test', '' ),
 		);
 
 		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::HEADER );
@@ -163,7 +167,7 @@ class BulkIssuePlannerTest extends TestCase {
 
 	public function test_an_event_date_is_the_local_midnight_of_the_chosen_day(): void {
 		$rows = array(
-			array( 'Ana', self::CPF_A, 'ana@example.test', '' ),
+			array( 'Ana', Identifiers::CPF_A, 'ana@example.test', '' ),
 		);
 		$dates = array(
 			'mode'   => BulkIssuePlanner::DATE_EVENT,
@@ -180,8 +184,8 @@ class BulkIssuePlannerTest extends TestCase {
 		$header = array( 'Nome', 'CPF', 'E-mail', 'Curso', 'Data' );
 		$mapping = $this->mapping();
 		$rows    = array(
-			array( 'Ana', self::CPF_A, 'ana@example.test', '', '20/05/2026' ),
-			array( 'Bruno', self::CPF_B, 'bruno@example.test', '', '2026-05-21' ),
+			array( 'Ana', Identifiers::CPF_A, 'ana@example.test', '', '20/05/2026' ),
+			array( 'Bruno', Identifiers::CPF_B, 'bruno@example.test', '', '2026-05-21' ),
 		);
 		$dates   = array(
 			'mode'   => BulkIssuePlanner::DATE_COLUMN,
@@ -212,7 +216,7 @@ class BulkIssuePlannerTest extends TestCase {
 	public function test_a_row_whose_date_cannot_be_read_is_skipped_with_its_reason( string $cell ): void {
 		$header = array( 'Nome', 'CPF', 'E-mail', 'Curso', 'Data' );
 		$rows   = array(
-			array( 'Ana', self::CPF_A, 'ana@example.test', '', $cell ),
+			array( 'Ana', Identifiers::CPF_A, 'ana@example.test', '', $cell ),
 		);
 		$dates  = array(
 			'mode'   => BulkIssuePlanner::DATE_COLUMN,
@@ -245,7 +249,7 @@ class BulkIssuePlannerTest extends TestCase {
 
 	public function test_every_issued_line_carries_the_send_link_choice(): void {
 		$rows = array(
-			array( 'Ana', self::CPF_A, 'ana@example.test', '' ),
+			array( 'Ana', Identifiers::CPF_A, 'ana@example.test', '' ),
 		);
 
 		$this->assertFalse( BulkIssuePlanner::plan( $rows, $this->mapping(), self::HEADER )['issue'][0]['send_link'] );
@@ -254,7 +258,7 @@ class BulkIssuePlannerTest extends TestCase {
 
 	public function test_a_blank_email_is_skipped_and_reported_not_issued(): void {
 		$rows = array(
-			array( 'Bruno', self::CPF_B, '', 'Java' ),
+			array( 'Bruno', Identifiers::CPF_B, '', 'Java' ),
 		);
 
 		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::HEADER );
@@ -271,12 +275,12 @@ class BulkIssuePlannerTest extends TestCase {
 	 */
 	public static function skipped_rows(): iterable {
 		yield 'empty row'          => array( array( '', '', '', '' ), BulkIssuePlanner::SKIP_EMPTY_ROW );
-		yield 'missing name'       => array( array( '  ', self::CPF_A, 'a@example.test', '' ), BulkIssuePlanner::SKIP_MISSING_NAME );
+		yield 'missing name'       => array( array( '  ', Identifiers::CPF_A, 'a@example.test', '' ), BulkIssuePlanner::SKIP_MISSING_NAME );
 		yield 'missing cpf'        => array( array( 'Ana', '', 'a@example.test', '' ), BulkIssuePlanner::SKIP_MISSING_CPF_RF );
 		yield 'cpf check digits'   => array( array( 'Ana', '11111111111', 'a@example.test', '' ), BulkIssuePlanner::SKIP_INVALID_CPF_RF );
 		yield 'cpf too short'      => array( array( 'Ana', '1234', 'a@example.test', '' ), BulkIssuePlanner::SKIP_INVALID_CPF_RF );
-		yield 'malformed e-mail'   => array( array( 'Ana', self::CPF_A, 'ana@', '' ), BulkIssuePlanner::SKIP_INVALID_EMAIL );
-		yield 'blank e-mail'       => array( array( 'Ana', self::CPF_A, '', '' ), BulkIssuePlanner::SKIP_MISSING_EMAIL );
+		yield 'malformed e-mail'   => array( array( 'Ana', Identifiers::CPF_A, 'ana@', '' ), BulkIssuePlanner::SKIP_INVALID_EMAIL );
+		yield 'blank e-mail'       => array( array( 'Ana', Identifiers::CPF_A, '', '' ), BulkIssuePlanner::SKIP_MISSING_EMAIL );
 	}
 
 	/**
@@ -293,8 +297,8 @@ class BulkIssuePlannerTest extends TestCase {
 
 	public function test_the_second_occurrence_of_an_identifier_is_a_duplicate_in_the_file(): void {
 		$rows = array(
-			array( 'Ana', self::CPF_A, 'a@example.test', '' ),
-			array( 'Ana outra vez', '111.444.777-35', 'b@example.test', '' ),
+			array( 'Ana', Identifiers::CPF_A, 'a@example.test', '' ),
+			array( 'Ana outra vez', self::masked( Identifiers::CPF_A ), 'b@example.test', '' ),
 		);
 
 		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::HEADER );
@@ -308,20 +312,20 @@ class BulkIssuePlannerTest extends TestCase {
 
 	public function test_a_seven_digit_rf_is_accepted_when_the_check_digit_is_not_enforced(): void {
 		$rows = array(
-			array( 'Carla', '1234567', 'c@example.test', '' ),
+			array( 'Carla', Identifiers::RF_A, 'c@example.test', '' ),
 		);
 
 		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::HEADER );
 
 		$this->assertCount( 1, $plan['issue'] );
-		$this->assertSame( '1234567', $plan['issue'][0]['cpf_rf'] );
+		$this->assertSame( Identifiers::RF_A, $plan['issue'][0]['cpf_rf'] );
 	}
 
 	public function test_every_row_is_decided_and_the_lines_follow_the_file(): void {
 		$rows = array(
-			array( 'Ana', self::CPF_A, 'a@example.test', '' ),
+			array( 'Ana', Identifiers::CPF_A, 'a@example.test', '' ),
 			array( '', '', '', '' ),
-			array( 'Bruno', self::CPF_B, '', '' ),
+			array( 'Bruno', Identifiers::CPF_B, '', '' ),
 		);
 
 		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::HEADER );
@@ -352,7 +356,7 @@ class BulkIssuePlannerTest extends TestCase {
 	}
 
 	public function test_a_form_that_is_not_a_quiz_issues_lines_with_no_score(): void {
-		$rows = array( array( 'Ana', self::CPF_A, 'a@example.test', '', '' ) );
+		$rows = array( array( 'Ana', Identifiers::CPF_A, 'a@example.test', '', '' ) );
 
 		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::SCORE_HEADER );
 
@@ -361,7 +365,7 @@ class BulkIssuePlannerTest extends TestCase {
 	}
 
 	public function test_the_score_column_gives_each_line_its_points_and_percentage(): void {
-		$rows = array( array( 'Ana', self::CPF_A, 'a@example.test', '', '8' ) );
+		$rows = array( array( 'Ana', Identifiers::CPF_A, 'a@example.test', '', '8' ) );
 
 		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::SCORE_HEADER, array(
 			'mode'   => BulkIssuePlanner::DATE_NOW,
@@ -392,7 +396,7 @@ class BulkIssuePlannerTest extends TestCase {
 	 * @dataProvider unscored_quiz_rows
 	 */
 	public function test_a_line_whose_score_is_unusable_is_skipped_with_its_reason( string $points, string $reason ): void {
-		$rows = array( array( 'Ana', self::CPF_A, 'a@example.test', '', $points ) );
+		$rows = array( array( 'Ana', Identifiers::CPF_A, 'a@example.test', '', $points ) );
 
 		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::SCORE_HEADER, array(
 			'mode'   => BulkIssuePlanner::DATE_NOW,
@@ -406,8 +410,8 @@ class BulkIssuePlannerTest extends TestCase {
 
 	public function test_the_zero_score_issues_every_line_with_zero_and_counts_them(): void {
 		$rows = array(
-			array( 'Ana', self::CPF_A, 'a@example.test', '', '' ),
-			array( 'Bruno', self::CPF_B, 'b@example.test', '', '' ),
+			array( 'Ana', Identifiers::CPF_A, 'a@example.test', '', '' ),
+			array( 'Bruno', Identifiers::CPF_B, 'b@example.test', '', '' ),
 		);
 
 		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::SCORE_HEADER, array(

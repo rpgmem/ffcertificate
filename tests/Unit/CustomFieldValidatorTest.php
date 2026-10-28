@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\CustomFieldValidator;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for CustomFieldValidator: required checks, type validation,
@@ -412,7 +413,7 @@ class CustomFieldValidatorTest extends TestCase {
 			'validation_rules' => array( 'format' => 'cpf' ),
 		));
 
-		$this->assertTrue( CustomFieldValidator::validate( $field, '529.982.247-25' ) );
+		$this->assertTrue( CustomFieldValidator::validate( $field, substr( Identifiers::CPF_A, 0, 3 ) . '.' . substr( Identifiers::CPF_A, 3, 3 ) . '.' . substr( Identifiers::CPF_A, 6, 3 ) . '-' . substr( Identifiers::CPF_A, 9 ) ) );
 	}
 
 	public function test_validate_cpf_invalid(): void {

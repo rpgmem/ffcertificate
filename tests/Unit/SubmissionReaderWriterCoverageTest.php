@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Repositories\SubmissionRepository;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Direct coverage for the read-side ({@see SubmissionReader}) and write-side
@@ -29,6 +30,15 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 
 	/** @var Mockery\MockInterface */
 	private $wpdb;
+
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -343,14 +353,14 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 		// 11-digit CPF → cpf_hash column branch.
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
 
-		$this->assertSame( $rows, $this->repo()->findByCpfRf( '123.456.789-09', 5 ) );
+		$this->assertSame( $rows, $this->repo()->findByCpfRf( self::masked( Identifiers::CPF_A ), 5 ) );
 	}
 
 	public function test_find_by_cpf_rf_uses_rf_hash_column_for_7_digit(): void {
 		// 7-digit RF → rf_hash column branch.
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
 
-		$this->assertSame( array(), $this->repo()->findByCpfRf( '1234567' ) );
+		$this->assertSame( array(), $this->repo()->findByCpfRf( Identifiers::RF_A ) );
 	}
 
 	public function test_find_by_form_id_returns_rows(): void {
