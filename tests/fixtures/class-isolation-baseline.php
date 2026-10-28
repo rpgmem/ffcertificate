@@ -13,12 +13,7 @@
  */
 
 return array(
-	'ActivityLogClearPlaintextMigrationStrategyTest.php',
-	'ActivityLogEncryptIpMigrationStrategyTest.php',
-	'ActivityLogLocationCleanupMigrationStrategyTest.php',
-	'CertificateCapabilityBackfillMigrationStrategyTest.php',
 	'CpfRfSplitMigrationStrategyTest.php',
-	'EmailHashRehashMigrationStrategyTest.php',
 	'FormProcessorGeofenceBeforeRateLimitTest.php',
 	'FormProcessorNonceRecoveryTest.php',
 	'FormProcessorRequiredPresenceOrderTest.php',
