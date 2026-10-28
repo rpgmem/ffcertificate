@@ -124,7 +124,7 @@ class MigrationRegistryTest extends TestCase {
 			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
 		}
 
-		$this->assertSame( 'ffc-icon-image', $migration['icon'] );
+		$this->assertSame( 'ffc-icon-image-plus', $migration['icon'] );
 		$this->assertSame( 10, $migration['batch_size'] );
 		$this->assertSame( 6, $migration['order'] );
 	}
@@ -139,7 +139,7 @@ class MigrationRegistryTest extends TestCase {
 			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
 		}
 
-		$this->assertSame( 'ffc-icon-file', $migration['icon'] );
+		$this->assertSame( 'ffc-icon-template-load', $migration['icon'] );
 		$this->assertSame( 20, $migration['batch_size'] );
 		$this->assertSame( 5, $migration['order'] );
 	}
@@ -154,7 +154,7 @@ class MigrationRegistryTest extends TestCase {
 			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
 		}
 
-		$this->assertSame( 'ffc-icon-lock', $migration['icon'] );
+		$this->assertSame( 'ffc-icon-log-clean', $migration['icon'] );
 		$this->assertSame( 200, $migration['batch_size'] );
 		$this->assertSame( 3, $migration['order'] );
 	}
@@ -171,7 +171,7 @@ class MigrationRegistryTest extends TestCase {
 
 		// Verify specific values
 		$this->assertSame( 'Split CPF/RF', $migration['name'] );
-		$this->assertSame( 'ffc-icon-id', $migration['icon'] );
+		$this->assertSame( 'ffc-icon-split', $migration['icon'] );
 		$this->assertSame( 50, $migration['batch_size'] );
 		$this->assertSame( 1, $migration['order'] );
 	}
@@ -187,7 +187,7 @@ class MigrationRegistryTest extends TestCase {
 		}
 
 		$this->assertSame( 'Rehash Email Lookup Hashes', $migration['name'] );
-		$this->assertSame( 'ffc-icon-email', $migration['icon'] );
+		$this->assertSame( 'ffc-icon-hash', $migration['icon'] );
 		$this->assertSame( 100, $migration['batch_size'] );
 		$this->assertSame( 2, $migration['order'] );
 	}
@@ -386,4 +386,31 @@ class MigrationRegistryTest extends TestCase {
 			'The registry scan collapsed -- with no migrations beyond the gated two the test above proves nothing.'
 		);
 	}
+
+	/**
+	 * Exactly the five one-shot cards of #2115 are deprecated, all for the
+	 * same release; a card that stays carries no removal.
+	 */
+	public function test_the_deprecated_cards_name_their_removal_release(): void {
+		$registry = new MigrationRegistry();
+		$removals = array();
+		foreach ( $registry->get_all_migrations() as $key => $migration ) {
+			if ( isset( $migration['removal'] ) ) {
+				$removals[ $key ] = $migration['removal'];
+			}
+		}
+		ksort( $removals );
+
+		$this->assertSame(
+			array(
+				'activity_log_clear_plaintext' => '6.45.0',
+				'email_hash_rehash'            => '6.45.0',
+				'import_legacy_templates'      => '6.45.0',
+				'rewrite_html_image_refs'      => '6.45.0',
+				'split_cpf_rf'                 => '6.45.0',
+			),
+			$removals
+		);
+	}
+
 }

@@ -492,4 +492,34 @@ class TabMigrationsTest extends TestCase {
 		$this->assertSame( 'migrations-view-rendered', $output );
 	}
 
+
+	/**
+	 * A finished card closes; pending or unreadable stays open (#2115).
+	 */
+	public function test_a_card_opens_unless_its_work_is_done_and_readable(): void {
+		$this->assertTrue( TabMigrations::card_opens( false, '' ), 'records pending' );
+		$this->assertFalse( TabMigrations::card_opens( true, '' ), 'nothing left to do' );
+		$this->assertTrue( TabMigrations::card_opens( false, 'boom' ), 'the status check failed' );
+		$this->assertTrue( TabMigrations::card_opens( true, 'boom' ), 'an error is never hidden in a closed card' );
+	}
+
+	public function test_a_deprecated_entry_names_its_removal_release(): void {
+		$this->assertSame( '6.45.0', TabMigrations::removal_of( array( 'removal' => '6.45.0' ) ) );
+		$this->assertSame( '', TabMigrations::removal_of( array( 'name' => 'Stays' ) ) );
+		$this->assertSame( '', TabMigrations::removal_of( array( 'removal' => 645 ) ), 'a value that is not a version is not read as one' );
+	}
+
+	/**
+	 * The card is the shared collapsible section, its open state comes from
+	 * the rule above, and it keeps the class the batch runner finds it by.
+	 */
+	public function test_each_card_is_a_collapsible_section_the_runner_still_finds(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
+
+		$this->assertStringContainsString( '<details class="ffc-section ffc-migration-card ', $view );
+		$this->assertStringContainsString( 'TabMigrations::card_opens( (bool) $ffcertificate_is_complete, (string) $ffcertificate_status_error ) ? \' open\'', $view );
+		$this->assertStringContainsString( '<summary class="ffc-section__summary">', $view );
+		$this->assertStringContainsString( '</details>', $view );
+	}
+
 }

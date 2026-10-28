@@ -14514,7 +14514,7 @@ msgstr "Revogar tudo"
 
 #: includes/migrations/class-ffc-migration-registry.php:111 includes/migrations/strategies/class-ffc-rewrite-html-image-refs-migration-strategy.php:207
 msgid "Rewrite html/ Image References"
-msgstr "Reescrever HTML / Referências de imagem"
+msgstr "Reescrever as Referências de Imagem da Pasta html/"
 
 #: includes/settings/views/documentation/developer-hooks-api.php:35
 msgid "Rewrite the certificate HTML before it is rendered to PDF."
@@ -29372,3 +29372,27 @@ msgstr "Endereço em texto puro removido de %d entradas de acesso negado."
 
 msgid "A refusal is recorded in the activity log as \"Access Denied\" with its reason; the visitor's address is the entry's own, encrypted and shown masked. Entries written before 6.43.0 also copied the address in clear into their details; the \"Activity Log: Clear Refused Addresses\" migration removes that copy."
 msgstr "Uma recusa é registrada no registro de atividades como \"Acesso Negado\", com o motivo; o endereço do visitante é o da própria entrada, criptografado e exibido mascarado. Entradas gravadas antes da 6.43.0 também copiavam o endereço às claras nos detalhes; a migração \"Registro de Atividades: Limpar Endereços Recusados\" remove essa cópia."
+
+#. translators: %s: migration progress, as a percentage.
+#, php-format
+msgid "%s%% complete"
+msgstr "%s%% concluído"
+
+#. translators: %s: plugin version that deletes this migration.
+#, php-format
+msgid "Deprecated: removed in %s."
+msgstr "Obsoleta: removida na %s."
+
+msgid "Status unknown"
+msgstr "Status desconhecido"
+
+#. translators: %s: plugin version that deletes this migration.
+#, php-format
+msgid "This migration has done its job and is removed in %s. If it still shows records pending on this site, run it before updating to that release."
+msgstr "Esta migração já cumpriu seu papel e é removida na %s. Se ela ainda mostra registros pendentes neste site, execute-a antes de atualizar para essa versão."
+
+msgid "A finished card is collapsed to one line with its name and a \"Complete\" chip; click it to see the numbers. A card with records pending, or whose status could not be read, stays open, so the work left is what the tab shows first."
+msgstr "Um card concluído fica recolhido em uma linha, com o nome e um selo \"Completo\"; clique nele para ver os números. Um card com registros pendentes, ou cujo status não pôde ser lido, fica aberto, para que o trabalho restante seja o que a aba mostra primeiro."
+
+msgid "A card marked \"Deprecated\" is a one-shot migration whose work is done and that a later release removes; the card names that release. If it still shows records pending on your site, run it before updating to that release."
+msgstr "Um card marcado como \"Obsoleta\" é uma migração de execução única que já cumpriu seu papel e que uma versão futura remove; o card informa essa versão. Se ele ainda mostra registros pendentes no seu site, execute-o antes de atualizar para essa versão."

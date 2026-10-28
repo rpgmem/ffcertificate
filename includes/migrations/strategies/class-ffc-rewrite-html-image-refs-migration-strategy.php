@@ -59,6 +59,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Strategy: rewrite legacy `html/` image references into Media Library attachments.
+ *
+ * @deprecated 6.43.0 A one-shot migration whose work is done (#2115).
+ * @removal    6.45.0
  */
 class RewriteHtmlImageRefsMigrationStrategy implements MigrationStrategyInterface {
 

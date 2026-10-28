@@ -29288,3 +29288,27 @@ msgstr ""
 
 msgid "A refusal is recorded in the activity log as \"Access Denied\" with its reason; the visitor's address is the entry's own, encrypted and shown masked. Entries written before 6.43.0 also copied the address in clear into their details; the \"Activity Log: Clear Refused Addresses\" migration removes that copy."
 msgstr ""
+
+#. translators: %s: migration progress, as a percentage.
+#, php-format
+msgid "%s%% complete"
+msgstr ""
+
+#. translators: %s: plugin version that deletes this migration.
+#, php-format
+msgid "Deprecated: removed in %s."
+msgstr ""
+
+msgid "Status unknown"
+msgstr ""
+
+#. translators: %s: plugin version that deletes this migration.
+#, php-format
+msgid "This migration has done its job and is removed in %s. If it still shows records pending on this site, run it before updating to that release."
+msgstr ""
+
+msgid "A finished card is collapsed to one line with its name and a \"Complete\" chip; click it to see the numbers. A card with records pending, or whose status could not be read, stays open, so the work left is what the tab shows first."
+msgstr ""
+
+msgid "A card marked \"Deprecated\" is a one-shot migration whose work is done and that a later release removes; the card names that release. If it still shows records pending on your site, run it before updating to that release."
+msgstr ""
