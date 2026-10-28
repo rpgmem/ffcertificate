@@ -21,17 +21,61 @@ use FreeFormCertificate\Core\CsvDownloadInterface;
  * buffered CsvStreamer so its output is captured instead of hitting exit.
  * wp_die is likewise short-circuited.
  *
+ * The save and transition paths run the real renderer column map, notice
+ * writer, notice reader, state machine and classification repository over a
+ * `$wpdb` double that answers each query by its SQL text from the notice row a
+ * test stores, records every write, and fails the test on a query it does not
+ * know — so every test shares the PHPUnit process.
+ *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentNoticeEditPage
  * @covers \FreeFormCertificate\Recruitment\RecruitmentExampleCsvSource
- * @preserveGlobalState disabled
  */
 class RecruitmentNoticeEditPageHandlersTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var object|null The notice row the reader's SELECT answers; null for none. */
+	private ?object $notice = null;
+
+	/** @var int Calls the classification repository counts for the notice. */
+	private int $calls = 0;
+
+	/** @var int Rows the conditional status UPDATE reports as affected. */
+	private int $status_affected = 1;
+
+	/** @var list<string> Every prepared statement the double ran through query(). */
+	private array $queries = array();
+
+	/** @var list<array<int, mixed>> The arguments of every $wpdb->update() call. */
+	private array $updates = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> The `$_POST` an earlier test left, restored afterwards. */
+	private array $post_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$this->post_backup = $_POST ?? array();
+		$GLOBALS['wpdb']   = $this->wpdb_double();
+
+		// Storage around the real repositories: no object cache, no hooks, and
+		// an empty `ffc_settings`, so the activity log is off for every order.
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'current_time' )->justReturn( '2026-10-28 10:00:00' );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'wp_admin_notice' )->alias(
 			static function ( $message, $args = array() ) {
 				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
@@ -73,8 +117,104 @@ class RecruitmentNoticeEditPageHandlersTest extends TestCase {
 
 	protected function tearDown(): void {
 		Monkey\tearDown();
-		unset( $_POST['notice_id'], $_POST['name'], $_POST['public_columns'], $_POST['target_status'], $_POST['reason'] );
+		$_POST = $this->post_backup;
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		parent::tearDown();
+	}
+
+	/**
+	 * A `$wpdb` double for the notice tables: prepare() substitutes the bound
+	 * values into the SQL text, reads answer from the stored notice row and
+	 * call count, writes are recorded, and anything else fails the test.
+	 */
+	private function wpdb_double(): object {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( string $query, ...$args ): string {
+				return (string) preg_replace_callback(
+					'/%[ids]/',
+					static function () use ( &$args ): string {
+						return (string) array_shift( $args );
+					},
+					$query
+				);
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( string $sql ) {
+				if ( 'SELECT * FROM wp_ffc_recruitment_notice WHERE id = 5' !== $sql ) {
+					$this->fail( 'Unexpected get_row: ' . $sql );
+				}
+				return null === $this->notice ? null : clone $this->notice;
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( string $sql ) {
+				if ( false === strpos( $sql, 'FROM wp_ffc_recruitment_call c' ) || false === strpos( $sql, 'cl.notice_id = 5' ) ) {
+					$this->fail( 'Unexpected get_var: ' . $sql );
+				}
+				return (string) $this->calls;
+			}
+		);
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( string $sql ) {
+				$this->queries[] = $sql;
+				if ( 0 === strpos( $sql, 'UPDATE wp_ffc_recruitment_notice SET status = ' ) ) {
+					return $this->status_affected;
+				}
+				if ( 0 === strpos( $sql, 'UPDATE wp_ffc_recruitment_notice SET ' ) ) {
+					return 1;
+				}
+				$this->fail( 'Unexpected query: ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( ...$args ) {
+				$this->updates[] = $args;
+				return 1;
+			}
+		);
+
+		return $wpdb;
+	}
+
+	/**
+	 * Store the notice row the reader answers for notice 5.
+	 *
+	 * @param string      $status    Stored status.
+	 * @param string|null $opened_at Stored `opened_at`.
+	 * @param string|null $closed_at Stored `closed_at`.
+	 */
+	private function store_notice( string $status, ?string $opened_at = null, ?string $closed_at = null ): void {
+		$this->notice = (object) array(
+			'id'           => '5',
+			'code'         => 'N-1',
+			'name'         => 'Notice',
+			'status'       => $status,
+			'was_reopened' => '0',
+			'opened_at'    => $opened_at,
+			'closed_at'    => $closed_at,
+		);
+	}
+
+	/**
+	 * The conditional status UPDATEs the writer ran.
+	 *
+	 * @return list<string>
+	 */
+	private function status_updates(): array {
+		return array_values(
+			array_filter(
+				$this->queries,
+				static fn ( string $sql ): bool => 0 === strpos( $sql, 'UPDATE wp_ffc_recruitment_notice SET status = ' )
+			)
+		);
 	}
 
 	private function capture( callable $fn ): string {
@@ -109,48 +249,29 @@ class RecruitmentNoticeEditPageHandlersTest extends TestCase {
 		$this->assertStringNotContainsString( 'action=edit-notice', $msg );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_handle_save_persists_name_and_columns_then_flashes_saved(): void {
 		$_POST['notice_id']      = '5';
 		$_POST['name']           = 'New Name';
 		$_POST['public_columns'] = array(
-			'score' => '1',
-			'email' => '1',
-		);
-
-		// Renderer supplies the column label map keys.
-		$renderer = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeEditPageRenderer' );
-		$renderer->shouldReceive( 'columns_label_map' )->andReturn(
-			array(
-				'rank'  => 'Rank',
-				'name'  => 'Name',
-				'score' => 'Score',
-				'email' => 'Email',
-				'phone' => 'Phone',
-			)
-		);
-
-		$repo     = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeWriter' );
-		$captured = null;
-		$repo->shouldReceive( 'update' )->once()->andReturnUsing(
-			function ( $id, $data ) use ( &$captured ) {
-				$captured = array( $id, $data );
-				return 1;
-			}
+			'score'        => '1',
+			'email_masked' => '1',
+			'not_a_column' => '1',
 		);
 
 		$msg = $this->capture( array( RecruitmentNoticeEditPage::class, 'handle_save' ) );
 
-		$this->assertSame( 5, $captured[0] );
-		$this->assertSame( 'New Name', $captured[1]['name'] );
-		$config = json_decode( $captured[1]['public_columns_config'], true );
+		$this->assertCount( 1, $this->updates, 'one notice UPDATE' );
+		list( $table, $data, $where ) = $this->updates[0];
+		$this->assertSame( 'wp_ffc_recruitment_notice', $table );
+		$this->assertSame( array( 'id' => 5 ), $where );
+		$this->assertSame( 'New Name', $data['name'] );
+		$config = json_decode( $data['public_columns_config'], true );
 		$this->assertTrue( $config['rank'], 'rank forced true' );
 		$this->assertTrue( $config['name'], 'name forced true' );
 		$this->assertTrue( $config['score'] );
-		$this->assertTrue( $config['email'] );
-		$this->assertFalse( $config['phone'], 'unchecked column → false' );
+		$this->assertTrue( $config['email_masked'] );
+		$this->assertFalse( $config['cpf_masked'], 'unchecked column → false' );
+		$this->assertArrayNotHasKey( 'not_a_column', $config, 'a key outside the column map is dropped' );
 		$this->assertStringContainsString( 'ffc_msg=saved', $msg );
 		$this->assertStringContainsString( 'action=edit-notice', $msg );
 	}
@@ -176,41 +297,31 @@ class RecruitmentNoticeEditPageHandlersTest extends TestCase {
 		$this->assertStringContainsString( 'ffc_msg=transition-invalid-target', $msg );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_handle_transition_flashes_transitioned_on_success(): void {
 		$_POST['notice_id']     = '5';
 		$_POST['target_status'] = 'preliminary';
-
-		$sm = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeStateMachine' );
-		$sm->shouldReceive( 'transition_to' )->once()->andReturn(
-			array(
-				'success' => true,
-				'errors'  => array(),
-			)
-		);
+		$this->store_notice( 'draft' );
 
 		$msg = $this->capture( array( RecruitmentNoticeEditPage::class, 'handle_transition' ) );
 
 		$this->assertStringContainsString( 'ffc_msg=transitioned', $msg );
+		$this->assertCount( 1, $this->status_updates(), 'one conditional status UPDATE' );
+		$this->assertStringContainsString( 'SET status = preliminary', $this->status_updates()[0] );
+		$this->assertStringContainsString( 'WHERE id = 5 AND status = draft', $this->status_updates()[0] );
 	}
 
 	/**
+	 * The stored notice drives the real state machine into each refusal, and
+	 * the handler maps the refusal's code to its flash key.
+	 *
 	 * @dataProvider error_code_provider
-	 * @runInSeparateProcess
 	 */
-	public function test_handle_transition_maps_state_machine_errors_to_flash_keys( string $error_code, string $expected_flash ): void {
+	public function test_handle_transition_maps_state_machine_errors_to_flash_keys( string $stored_status, string $target, int $calls, int $affected, string $expected_flash ): void {
 		$_POST['notice_id']     = '5';
-		$_POST['target_status'] = 'preliminary';
-
-		$sm = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeStateMachine' );
-		$sm->shouldReceive( 'transition_to' )->once()->andReturn(
-			array(
-				'success' => false,
-				'errors'  => array( $error_code ),
-			)
-		);
+		$_POST['target_status'] = $target;
+		$this->store_notice( $stored_status, '2026-01-01 00:00:00', 'closed' === $stored_status ? '2026-02-01 00:00:00' : null );
+		$this->calls           = $calls;
+		$this->status_affected = $affected;
 
 		$msg = $this->capture( array( RecruitmentNoticeEditPage::class, 'handle_transition' ) );
 
@@ -218,40 +329,36 @@ class RecruitmentNoticeEditPageHandlersTest extends TestCase {
 	}
 
 	/**
-	 * @return array<string, array{0: string, 1: string}>
+	 * Stored status, target, calls on the notice, rows the status UPDATE
+	 * affects, and the flash key the refusal maps to.
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: int, 3: int, 4: string}>
 	 */
 	public function error_code_provider(): array {
 		return array(
-			'blocked by calls' => array( 'recruitment_definitive_to_preliminary_blocked_by_calls', 'transition-blocked-by-calls' ),
-			'reason required'  => array( 'recruitment_transition_reason_required', 'transition-reason-required' ),
-			'race lost'        => array( 'recruitment_transition_race_lost', 'transition-race-lost' ),
-			'generic failure'  => array( 'recruitment_invalid_transition: draft->closed', 'transition-failed' ),
+			'blocked by calls' => array( 'definitive', 'preliminary', 2, 1, 'transition-blocked-by-calls' ),
+			'reason required'  => array( 'closed', 'definitive', 0, 1, 'transition-reason-required' ),
+			'race lost'        => array( 'draft', 'preliminary', 0, 0, 'transition-race-lost' ),
+			'generic failure'  => array( 'draft', 'closed', 0, 1, 'transition-failed' ),
 		);
 	}
 
 	/**
-	 * @runInSeparateProcess
+	 * Reopening a closed notice needs a reason: the posted one reaching the
+	 * state machine is what lets the transition through ("reason required"
+	 * above is the same transition without it).
 	 */
 	public function test_handle_transition_passes_reason_through_to_state_machine(): void {
 		$_POST['notice_id']     = '5';
-		$_POST['target_status'] = 'closed';
+		$_POST['target_status'] = 'definitive';
 		$_POST['reason']        = 'Concluded';
+		$this->store_notice( 'closed', '2026-01-01 00:00:00', '2026-02-01 00:00:00' );
 
-		$sm           = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeStateMachine' );
-		$seen_reason  = 'unset';
-		$sm->shouldReceive( 'transition_to' )->once()->andReturnUsing(
-			function ( $id, $target, $reason ) use ( &$seen_reason ) {
-				$seen_reason = $reason;
-				return array(
-					'success' => true,
-					'errors'  => array(),
-				);
-			}
-		);
+		$msg = $this->capture( array( RecruitmentNoticeEditPage::class, 'handle_transition' ) );
 
-		$this->capture( array( RecruitmentNoticeEditPage::class, 'handle_transition' ) );
-
-		$this->assertSame( 'Concluded', $seen_reason );
+		$this->assertStringContainsString( 'ffc_msg=transitioned', $msg );
+		$this->assertCount( 1, $this->status_updates() );
+		$this->assertStringContainsString( 'WHERE id = 5 AND status = closed', $this->status_updates()[0] );
 	}
 
 	// ==================================================================
