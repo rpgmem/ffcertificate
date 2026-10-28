@@ -17,9 +17,13 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  * The constructor calls SubmissionRepository::get_submissions_table() and accesses $wpdb, so we
  * construct with a properly stubbed environment, then use reflection for private methods.
  *
+ * Runs in the shared process over a `$wpdb` double, with the real Encryption (the
+ * bootstrap's key constants) and the real ActivityLog. Only global functions are
+ * stubbed: `get_option` answers `ffc_settings` with no settings, so the activity log
+ * is off and Debug stays quiet whatever ran before, and the strategy imports
+ * `WP_Error`, so no alias is needed.
+ *
  * @covers \FreeFormCertificate\Migrations\Strategies\CpfRfSplitMigrationStrategy
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class CpfRfSplitMigrationStrategyTest extends TestCase {
 
@@ -34,9 +38,14 @@ class CpfRfSplitMigrationStrategyTest extends TestCase {
 	/** @var \ReflectionClass<CpfRfSplitMigrationStrategy> */
 	private \ReflectionClass $ref;
 
+	/** @var array{0: bool, 1: mixed} Whether `$wpdb` was set, and its value. */
+	private array $wpdb_backup = array( false, null );
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->wpdb_backup = array( array_key_exists( 'wpdb', $GLOBALS ), $GLOBALS['wpdb'] ?? null );
 
 		// Mock $wpdb
 		global $wpdb;
@@ -52,26 +61,14 @@ class CpfRfSplitMigrationStrategyTest extends TestCase {
 		$wpdb->shouldReceive( 'update' )->andReturn( 1 )->byDefault();
 		$this->wpdb = $wpdb;
 
-		// WP_Error alias for Strategies namespace
-		if ( ! class_exists( 'FreeFormCertificate\Migrations\Strategies\WP_Error' ) ) {
-			class_alias( 'WP_Error', 'FreeFormCertificate\Migrations\Strategies\WP_Error' );
-		}
-
 		// Global WP stubs
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
-
-		// Namespaced stubs for Strategies namespace
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\__' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
-
-		// Namespaced stubs for Core namespace (used by ActivityLog)
-		Functions\when( 'FreeFormCertificate\Core\get_option' )->justReturn( array() );
-		Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( array() );
-		Functions\when( 'FreeFormCertificate\Core\absint' )->alias( function( $val ) { return abs( (int) $val ); } );
+		// No `ffc_settings`: the activity log is off and Debug stays quiet.
+		Functions\when( 'get_option' )->justReturn( array() );
 
 		// Construct strategy — constructor calls SubmissionRepository::get_submissions_table() which uses $wpdb->prefix
 		$this->strategy = new CpfRfSplitMigrationStrategy();
@@ -79,6 +76,11 @@ class CpfRfSplitMigrationStrategyTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->wpdb_backup[0] ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup[1];
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -310,24 +312,7 @@ class CpfRfSplitMigrationStrategyTest extends TestCase {
 	// process_table() — classifies CPF / RF / unknown-length records
 	// ==================================================================
 
-	/**
-	 * Alias-mock ActivityLog (real class references its own LEVEL_* constants,
-	 * so we make ActivityLog::log() a no-op by stubbing SettingsReader instead
-	 * of alias-mocking ActivityLog itself). Safe under runClassInSeparateProcess
-	 * because no other test in this class references ActivityLog / SettingsReader.
-	 */
-	private function stubActivityLog(): void {
-		if ( ! class_exists( 'FreeFormCertificate\Settings\SettingsReader', false ) ) {
-			$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
-			$reader->shouldReceive( 'activity_log_enabled' )->andReturn( false )->byDefault();
-			$reader->shouldReceive( 'activity_log_min_level' )->andReturn( 'info' )->byDefault();
-			$reader->shouldReceive( 'activity_log_category_enabled' )->andReturn( true )->byDefault();
-		}
-	}
-
 	public function test_process_table_splits_cpf_rf_and_unknown_length_records(): void {
-		$this->stubActivityLog();
-
 		$records = array(
 			// 11 digits → CPF branch.
 			array(
@@ -370,8 +355,6 @@ class CpfRfSplitMigrationStrategyTest extends TestCase {
 	}
 
 	public function test_process_table_records_update_failure_as_error(): void {
-		$this->stubActivityLog();
-
 		$records = array(
 			array(
 				'id'               => 1,
@@ -582,6 +565,12 @@ class CpfRfSplitMigrationStrategyTest extends TestCase {
 	// can_run() — encryption not configured branch
 	// ==================================================================
 
+	/**
+	 * Own process: the bootstrap defines the key constants, so only a replaced Encryption reaches this branch.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_can_run_returns_error_when_encryption_not_configured(): void {
 		// Encryption::is_configured() reads SECURE_AUTH_KEY etc.; alias-mock it
 		// to force the not-configured branch.
