@@ -5,23 +5,32 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin;
 
 /**
+ * The render tests run the real Capabilities, AdminNotice and Debug: Debug's
+ * area toggle is read through a stubbed get_option, and its sink is pointed at
+ * a scratch file through the error_log ini setting.
+ *
  * @covers \FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class SelfSchedulingAdminTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var list<string> Scratch files and directories a test created, removed in tearDown. */
+	private array $scratch = array();
+
+	/** @var string|false The error_log ini value before a test changed it. */
+	private $error_log_backup = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->scratch          = array();
+		$this->error_log_backup = ini_get( 'error_log' );
 		// Shared scripts are enqueued through AssetRegistry, which registers
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).
@@ -53,8 +62,52 @@ class SelfSchedulingAdminTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		ini_set( 'error_log', false === $this->error_log_backup ? '' : $this->error_log_backup );
+		foreach ( array_reverse( $this->scratch ) as $path ) {
+			if ( is_dir( $path ) ) {
+				rmdir( $path );
+			} elseif ( is_file( $path ) ) {
+				unlink( $path );
+			}
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * A scratch plugin dir holding views/appointments-list.php with this body.
+	 *
+	 * @return string The directory, with a trailing slash, as plugin_dir_path() returns it.
+	 */
+	private function scratch_view( string $prefix, string $body ): string {
+		$dir = sys_get_temp_dir() . '/' . $prefix . uniqid( '', true );
+		mkdir( $dir . '/views', 0777, true );
+		file_put_contents( $dir . '/views/appointments-list.php', $body );
+		$this->scratch[] = $dir;
+		$this->scratch[] = $dir . '/views';
+		$this->scratch[] = $dir . '/views/appointments-list.php';
+		return $dir . '/';
+	}
+
+	/**
+	 * Switch the self-scheduling debug area on or off and send Debug's
+	 * error_log() sink to a scratch file.
+	 *
+	 * @return string The log file path.
+	 */
+	private function debug_log_to_scratch( bool $enabled ): string {
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) use ( $enabled ) {
+				if ( 'ffc_settings' === $key ) {
+					return $enabled ? array( \FreeFormCertificate\Core\Debug::AREA_SELF_SCHEDULING => 1 ) : array();
+				}
+				return $default;
+			}
+		);
+		$log             = tempnam( sys_get_temp_dir(), 'ffc_ss_log_' );
+		$this->scratch[] = $log;
+		ini_set( 'error_log', $log );
+		return $log;
 	}
 
 	// ==================================================================
@@ -188,40 +241,36 @@ class SelfSchedulingAdminTest extends TestCase {
 	// render_appointments_page() — no permission
 	// ==================================================================
 
-	/**
-	 * Runs in a separate process because other tests in the suite leave a
-	 * Mockery alias for Utils loaded, which makes the permission check
-	 * resolve to a null mock in full-suite runs.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_render_appointments_page_dies_without_permission(): void {
-		Functions\when( 'current_user_can' )->justReturn( false );
+		$checked = array();
+		Functions\when( 'current_user_can' )->alias(
+			static function ( $cap ) use ( &$checked ) {
+				$checked[] = $cap;
+				return false;
+			}
+		);
 		Functions\when( 'wp_die' )->alias( function ( $msg ) {
 			throw new \RuntimeException( $msg );
 		} );
 
 		$admin = new SelfSchedulingAdmin();
-		$this->expectException( \RuntimeException::class );
-		$admin->render_appointments_page();
+		try {
+			$admin->render_appointments_page();
+			$this->fail( 'Expected wp_die() to stop the render.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'You do not have permission to access this page.', $e->getMessage() );
+		}
+		// The real Capabilities asked the admin cap first, then the granular one.
+		$this->assertSame( array( 'manage_options', 'ffc_view_appointments' ), $checked );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_render_appointments_page_renders_view_and_registers_shutdown_handler(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Debug' )
-			->shouldReceive( 'log_self_scheduling' )->andReturnNull()->byDefault();
+		$log = $this->debug_log_to_scratch( true );
 		class_exists( '\FreeFormCertificate\Core\Utils' ); // so the shutdown guard's class_exists(...,false) is true.
 
 		// Point plugin_dir_path at a scratch dir holding a benign stub view.
-		$dir = sys_get_temp_dir() . '/ffc_ss_ok_' . uniqid();
-		mkdir( $dir . '/views', 0777, true );
-		file_put_contents( $dir . '/views/appointments-list.php', "<?php /* stub view */\n" );
-		Functions\when( 'plugin_dir_path' )->justReturn( $dir . '/' );
+		Functions\when( 'plugin_dir_path' )->justReturn( $this->scratch_view( 'ffc_ss_ok_', "<?php /* stub view */\n" ) );
 
 		$shutdown = null;
 		Functions\when( 'register_shutdown_function' )->alias( function ( $cb ) use ( &$shutdown ) {
@@ -233,28 +282,24 @@ class SelfSchedulingAdminTest extends TestCase {
 		$this->assertIsCallable( $shutdown );
 
 		// Invoke the registered shutdown closure — error_get_last() is a PHP
-		// internal Patchwork can't redefine, so it returns the real last error
-		// (none pending), exercising the guard's no-fatal path without a stub.
+		// internal Patchwork can't redefine. It is cleared first, so the guard
+		// takes its no-fatal path: with the debug area on, a log line would be
+		// the proof it took the other one.
+		error_clear_last();
 		$shutdown();
 
-		$this->assertTrue( true );
+		$this->assertSame( '', (string) file_get_contents( $log ), 'No fatal pending, so nothing is logged.' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_render_appointments_page_catches_view_throwable(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'register_shutdown_function' )->justReturn( null );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Debug' )
-			->shouldReceive( 'log_self_scheduling' )->andReturnNull()->byDefault();
+		$log = $this->debug_log_to_scratch( true );
 
 		// A view that throws → the catch renders an error notice and logs it.
-		$dir = sys_get_temp_dir() . '/ffc_ss_err_' . uniqid();
-		mkdir( $dir . '/views', 0777, true );
-		file_put_contents( $dir . '/views/appointments-list.php', "<?php throw new \\RuntimeException( 'view boom' );\n" );
-		Functions\when( 'plugin_dir_path' )->justReturn( $dir . '/' );
+		Functions\when( 'plugin_dir_path' )->justReturn(
+			$this->scratch_view( 'ffc_ss_err_', "<?php throw new \\RuntimeException( 'view boom' );\n" )
+		);
 
 		ob_start();
 		( new SelfSchedulingAdmin() )->render_appointments_page();
@@ -262,5 +307,6 @@ class SelfSchedulingAdminTest extends TestCase {
 
 		$this->assertStringContainsString( 'Error:', $html );
 		$this->assertStringContainsString( 'view boom', $html );
+		$this->assertStringContainsString( '[FFC Debug] Appointments page error', (string) file_get_contents( $log ) );
 	}
 }

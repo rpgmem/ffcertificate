@@ -27,9 +27,19 @@ class AppointmentHandlerTest extends TestCase {
 	private $validator;
 	private \ReflectionClass $ref;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$this->reset_activity_log_buffer();
 
 		// Mock $wpdb
 		global $wpdb;
@@ -121,8 +131,38 @@ class AppointmentHandlerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		$this->reset_activity_log_buffer();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * Empty the real ActivityLog's private static write buffer.
+	 */
+	private function reset_activity_log_buffer(): void {
+		$prop = new \ReflectionProperty( \FreeFormCertificate\Core\ActivityLog::class, 'write_buffer' );
+		$prop->setAccessible( true );
+		$prop->setValue( null, array() );
+	}
+
+	/**
+	 * The entries the real ActivityLog buffered for one action.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private function buffered_log_entries( string $action ): array {
+		$prop = new \ReflectionProperty( \FreeFormCertificate\Core\ActivityLog::class, 'write_buffer' );
+		$prop->setAccessible( true );
+		$buffer = (array) $prop->getValue();
+
+		return array_values(
+			array_filter( $buffer, static fn( array $entry ): bool => $action === $entry['action'] )
+		);
 	}
 
 	private function setPrivate( string $name, $value ): void {
@@ -224,22 +264,18 @@ class AppointmentHandlerTest extends TestCase {
 
 	/**
 	 * A booking a bypass holder confirmed over the rules is logged, and the
-	 * confirmation flag never reaches the row (#1859).
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * confirmation flag never reaches the row (#1859). The real ActivityLog runs
+	 * with the log switched on, and its write buffer is what is asserted on.
 	 */
 	public function test_process_logs_a_confirmed_override_and_strips_the_flag(): void {
-		\Mockery::getConfiguration()->setConstantsMap(
-			array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_WARNING' => 'warning' ) )
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) {
+				return 'ffc_settings' === $key ? array( 'enable_activity_log' => 1 ) : array();
+			}
 		);
-		$log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
-		$log->shouldReceive( 'log' )->once()->with(
-			'appointment_booked_with_override',
-			'warning',
-			Mockery::on( static fn( array $c ): bool => 102 === $c['appointment_id'] && array( 'too_far' ) === $c['reasons'] ),
-			Mockery::any()
-		);
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar( array( 'requires_approval' => 0 ) ) );
@@ -265,7 +301,14 @@ class AppointmentHandlerTest extends TestCase {
 
 		$this->assertIsArray( $result );
 		$this->assertTrue( $result['success'] );
-		\Mockery::getConfiguration()->setConstantsMap( array() );
+
+		$logged = $this->buffered_log_entries( 'appointment_booked_with_override' );
+		$this->assertCount( 1, $logged, 'The override must be logged exactly once.' );
+		$this->assertSame( 'warning', $logged[0]['level'] );
+		$this->assertSame( 1, $logged[0]['user_id'] );
+		$context = json_decode( (string) $logged[0]['context'], true );
+		$this->assertSame( 102, $context['appointment_id'] );
+		$this->assertSame( array( 'too_far' ), $context['reasons'] );
 	}
 
 	public function test_process_status_confirmed_without_approval(): void {
