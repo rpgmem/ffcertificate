@@ -13,33 +13,68 @@ use FreeFormCertificate\Audience\AudienceEmailTokenMigration;
 /**
  * Tests for the one-shot audience email token migration (#653).
  *
+ * The schedule repository is the real one, over a `$wpdb` double that answers
+ * the schedule list and records every update (#2127).
+ *
  * @covers \FreeFormCertificate\Audience\AudienceEmailTokenMigration
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AudienceEmailTokenMigrationTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/**
+	 * Every `$wpdb->update()`, as `id => data`.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private array $updates = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$this->updates     = array();
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
+		Functions\when( 'sanitize_sql_orderby' )->returnArg();
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
 	}
 
 	protected function tearDown(): void {
+		$GLOBALS['wpdb'] = $this->wpdb_backup;
 		Monkey\tearDown();
 		parent::tearDown();
 	}
 
+	/**
+	 * A database holding these schedule rows.
+	 *
+	 * @param array<int, object> $rows Schedule rows.
+	 */
+	private function schedules( array $rows ): void {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$wpdb->shouldReceive( 'get_results' )->andReturn( $rows );
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				$this->updates[ $where['id'] ] = $data;
+				return 1;
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
+	}
+
 	public function test_skips_when_already_migrated(): void {
 		Functions\when( 'get_option' )->justReturn( 1 );
-		$repo = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$repo->shouldNotReceive( 'get_all' );
-		$repo->shouldNotReceive( 'update' );
+		// No expectations: reading or writing a schedule fails the test.
+		$GLOBALS['wpdb'] = Mockery::mock( 'wpdb' );
 
 		AudienceEmailTokenMigration::maybe_migrate();
 
-		$this->assertTrue( true );
+		$this->assertSame( array(), $this->updates );
 	}
 
 	public function test_rewrites_single_brace_tokens_and_sets_flag(): void {
@@ -53,10 +88,7 @@ class AudienceEmailTokenMigrationTest extends TestCase {
 				return true;
 			}
 		);
-
-		$updates = array();
-		$repo    = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$repo->shouldReceive( 'get_all' )->andReturn(
+		$this->schedules(
 			array(
 				(object) array(
 					'id'                          => 7,
@@ -65,21 +97,15 @@ class AudienceEmailTokenMigrationTest extends TestCase {
 				),
 			)
 		);
-		$repo->shouldReceive( 'update' )->andReturnUsing(
-			function ( $id, $data ) use ( &$updates ) {
-				$updates[ $id ] = $data;
-				return true;
-			}
-		);
 
 		AudienceEmailTokenMigration::maybe_migrate();
 
-		$this->assertArrayHasKey( 7, $updates );
+		$this->assertArrayHasKey( 7, $this->updates );
 		// Known tokens doubled...
-		$this->assertSame( 'Hi {{user_name}}, at {{environment_name}}. Keep .btn{color:red}', $updates[7]['email_template_booking'] );
-		$this->assertSame( 'Bye {{user_name}} — {{cancellation_reason}}', $updates[7]['email_template_cancellation'] );
+		$this->assertSame( 'Hi {{user_name}}, at {{environment_name}}. Keep .btn{color:red}', $this->updates[7]['email_template_booking'] );
+		$this->assertSame( 'Bye {{user_name}} — {{cancellation_reason}}', $this->updates[7]['email_template_cancellation'] );
 		// ...and the literal CSS brace block is left untouched (only known tokens convert).
-		$this->assertStringContainsString( '.btn{color:red}', $updates[7]['email_template_booking'] );
+		$this->assertStringContainsString( '.btn{color:red}', $this->updates[7]['email_template_booking'] );
 		// Flag set so it never runs twice.
 		$this->assertSame( 1, $flag );
 	}
@@ -87,15 +113,12 @@ class AudienceEmailTokenMigrationTest extends TestCase {
 	public function test_skips_schedules_with_no_templates(): void {
 		Functions\when( 'get_option' )->justReturn( false );
 		Functions\when( 'update_option' )->justReturn( true );
-
-		$repo = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$repo->shouldReceive( 'get_all' )->andReturn(
+		$this->schedules(
 			array( (object) array( 'id' => 3, 'email_template_booking' => null, 'email_template_cancellation' => null ) )
 		);
-		$repo->shouldNotReceive( 'update' );
 
 		AudienceEmailTokenMigration::maybe_migrate();
 
-		$this->assertTrue( true );
+		$this->assertSame( array(), $this->updates );
 	}
 }

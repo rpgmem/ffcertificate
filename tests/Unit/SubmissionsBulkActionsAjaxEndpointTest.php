@@ -13,12 +13,10 @@ use FreeFormCertificate\Admin\SubmissionsBulkActionsAjaxEndpoint;
 /**
  * Tests for the Submissions bulk-actions AJAX endpoint introduced in 6.5.9.
  *
- * Run in separate processes because we `Mockery::mock( 'overload:…' )`
- * the SubmissionHandler class — once overloaded in one process, any
- * subsequent test in the same process would hit the mocked version.
+ * The guard tests share the process. The four that reach SubmissionHandler
+ * overload it, and an overload outlives the test, so they run in their own
+ * process (#2127).
  *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  * @covers \FreeFormCertificate\Admin\SubmissionsBulkActionsAjaxEndpoint
  */
 class SubmissionsBulkActionsAjaxEndpointTest extends TestCase {
@@ -49,10 +47,7 @@ class SubmissionsBulkActionsAjaxEndpointTest extends TestCase {
 			$payload = wp_json_encode( $data );
 			throw new \RuntimeException( 'json_success: ' . $payload );
 		} );
-		if ( ! function_exists( 'wp_json_encode' ) ) {
-			// phpcs:ignore Generic.PHP.LowerCaseConstant
-			eval( 'function wp_json_encode( $data ) { return json_encode( $data ); }' );
-		}
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 	}
 
 	protected function tearDown(): void {
@@ -112,6 +107,12 @@ class SubmissionsBulkActionsAjaxEndpointTest extends TestCase {
 	// Dispatch — each action maps to the correct bulk_* method
 	// ==================================================================
 
+	/**
+	 * Its own process: SubmissionHandler is an overload mock here.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_trash_dispatches_to_bulk_trash_submissions(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
 
@@ -133,6 +134,12 @@ class SubmissionsBulkActionsAjaxEndpointTest extends TestCase {
 		}
 	}
 
+	/**
+	 * Its own process: SubmissionHandler is an overload mock here.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_restore_dispatches_to_bulk_restore_submissions(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
 
@@ -152,6 +159,12 @@ class SubmissionsBulkActionsAjaxEndpointTest extends TestCase {
 		}
 	}
 
+	/**
+	 * Its own process: SubmissionHandler is an overload mock here.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_delete_dispatches_to_bulk_delete_submissions(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
 
@@ -171,6 +184,12 @@ class SubmissionsBulkActionsAjaxEndpointTest extends TestCase {
 		}
 	}
 
+	/**
+	 * Its own process: SubmissionHandler is an overload mock here.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_handler_failure_returns_500_error(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
 

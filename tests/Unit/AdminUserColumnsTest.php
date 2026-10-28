@@ -17,9 +17,11 @@ use FreeFormCertificate\Admin\AdminUserColumns;
  * Covers hook registration, column insertion, rendering (zero/non-zero counts,
  * unknown columns), style enqueueing, and batch-loading cache behaviour.
  *
+ * Utils and AssetHelper are the real classes. The three sort tests declare a
+ * minimal WP_User_Query, which would outlive them, so they run in their own
+ * process (#2127).
+ *
  * @covers \FreeFormCertificate\Admin\AdminUserColumns
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AdminUserColumnsTest extends TestCase {
 
@@ -28,8 +30,8 @@ class AdminUserColumnsTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
-	/** @var Mockery\MockInterface alias mock for Utils */
-	private $utils_mock;
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -40,6 +42,7 @@ class AdminUserColumnsTest extends TestCase {
 
 		// Mock $wpdb
 		global $wpdb;
+		$this->wpdb_backup = $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';
 		$this->wpdb   = $wpdb;
@@ -47,14 +50,6 @@ class AdminUserColumnsTest extends TestCase {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () {
 			return func_get_args()[0];
 		} )->byDefault();
-
-		// Utils alias mock
-		$this->utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-		$asset_helper = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
-		$asset_helper->shouldReceive( 'asset_suffix' )->andReturn( '.min' )->byDefault();
-		// enqueue_common_style() puts the token palette on the screen (#1126 B):
-		// users.php is not an is_ffc_page(), so nothing else would.
-		$asset_helper->shouldReceive( 'enqueue_common_style' )->byDefault();
 
 		// Common WP stubs
 		Functions\when( '__' )->returnArg();
@@ -86,6 +81,7 @@ class AdminUserColumnsTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		$GLOBALS['wpdb'] = $this->wpdb_backup;
 		$this->resetStaticCaches();
 		Monkey\tearDown();
 		parent::tearDown();
@@ -378,7 +374,7 @@ class AdminUserColumnsTest extends TestCase {
 	 * in its parent process to build the suite, so a file-scope declaration
 	 * gave the parent a `WP_User_Query` with no constructor arguments and no
 	 * `get_total()`, which broke any test there that counts users (#2104).
-	 * The class runs in its own process, so each test gets a fresh one.
+	 * Each test that calls it runs in its own process, so each gets a fresh one.
 	 */
 	private function declare_user_query(): void {
 		if ( ! class_exists( '\WP_User_Query', false ) ) {
@@ -387,6 +383,12 @@ class AdminUserColumnsTest extends TestCase {
 		}
 	}
 
+	/**
+	 * Its own process: it declares a minimal WP_User_Query.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_apply_sort_to_user_query_skips_unknown_orderby(): void {
 		global $wpdb;
 		$wpdb->users = 'wp_users';
@@ -404,6 +406,12 @@ class AdminUserColumnsTest extends TestCase {
 		$this->assertSame( 'ORDER BY user_login ASC', $query->query_orderby );
 	}
 
+	/**
+	 * Its own process: it declares a minimal WP_User_Query.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_apply_sort_to_user_query_mutates_query_when_sorting_by_certificates(): void {
 		global $wpdb;
 		$wpdb->users = 'wp_users';
@@ -422,6 +430,12 @@ class AdminUserColumnsTest extends TestCase {
 		$this->assertStringContainsString( 'DESC', $query->query_orderby );
 	}
 
+	/**
+	 * Its own process: it declares a minimal WP_User_Query.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_apply_sort_to_user_query_mutates_query_when_sorting_by_notices(): void {
 		global $wpdb;
 		$wpdb->users = 'wp_users';
@@ -447,19 +461,22 @@ class AdminUserColumnsTest extends TestCase {
 	// ==================================================================
 
 	public function test_enqueue_styles_on_users_page(): void {
-		Functions\expect( 'wp_enqueue_style' )
-			->once()
-			->with(
-				'ffc-admin',
-				Mockery::pattern( '/ffc-admin\.min\.css/' ),
-				// ffc-admin.css paints with var(--ffc-*), and users.php is not
-				// an is_ffc_page(), so the palette must ride in as a declared
-				// dependency (#1126 defeito B).
-				array( 'ffc-common' ),
-				FFC_VERSION
-			);
+		$enqueued = array();
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( ...$args ) use ( &$enqueued ) {
+				$enqueued[ $args[0] ] = $args;
+			}
+		);
 
 		AdminUserColumns::enqueue_styles( 'users.php' );
+
+		// users.php is not an is_ffc_page(), so the palette is enqueued here
+		// (#1126 B) and ffc-admin.css, which paints with var(--ffc-*), declares
+		// it as a dependency.
+		$this->assertSame( array( 'ffc-common', 'ffc-admin' ), array_keys( $enqueued ) );
+		$this->assertStringContainsString( 'ffc-admin.min.css', $enqueued['ffc-admin'][1] );
+		$this->assertSame( array( 'ffc-common' ), $enqueued['ffc-admin'][2] );
+		$this->assertSame( FFC_VERSION, $enqueued['ffc-admin'][3] );
 	}
 
 	public function test_enqueue_styles_skips_other_pages(): void {
