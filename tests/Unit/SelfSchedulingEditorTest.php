@@ -11,17 +11,24 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingEditor;
 
 /**
+ * Runs in the shared process: the occupancy report runs the real
+ * DateFormatter down to a stubbed `wp_date`, and `$wpdb` is restored in
+ * tearDown.
+ *
  * @covers \FreeFormCertificate\SelfScheduling\SelfSchedulingEditor
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class SelfSchedulingEditorTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var array{0: bool, 1: mixed} Whether `$wpdb` was set, and its value. */
+	private array $wpdb_backup = array( false, null );
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->wpdb_backup = array( array_key_exists( 'wpdb', $GLOBALS ), $GLOBALS['wpdb'] ?? null );
 		// Shared scripts are enqueued through AssetRegistry, which registers
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).
@@ -71,6 +78,11 @@ class SelfSchedulingEditorTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->wpdb_backup[0] ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup[1];
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -364,8 +376,14 @@ class SelfSchedulingEditorTest extends TestCase {
 			array( 'date' => '2026-09-03', 'start' => '08:00:00', 'booked' => '39', 'waitlisted' => '2' ),
 		) );
 
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )
-			->shouldReceive( 'format_wallclock_date' )->andReturnUsing( static fn( $d ) => $d );
+		// The real DateFormatter renders the block's date: no plugin setting
+		// (get_option answers an empty array), so the shipped 'd/m/Y' format,
+		// in UTC because the date is a wall-clock value.
+		Functions\when( 'wp_date' )->alias(
+			static fn( $format, $ts, $tz = null ) => ( new \DateTimeImmutable( '@' . $ts ) )
+				->setTimezone( $tz ?? new \DateTimeZone( 'UTC' ) )
+				->format( $format )
+		);
 
 		$editor = new SelfSchedulingEditor();
 		ob_start();
@@ -376,6 +394,7 @@ class SelfSchedulingEditorTest extends TestCase {
 		$this->assertStringContainsString( 'Manha', $output );
 		$this->assertStringContainsString( '98%', $output ); // round(100 * 39 / 40)
 		$this->assertStringContainsString( '08:00–13:00', $output );
+		$this->assertStringContainsString( '<td>03/09/2026</td>', $output );
 	}
 
 	// ==================================================================
