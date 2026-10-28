@@ -14,9 +14,12 @@ use FreeFormCertificate\Migrations\Strategies\ActivityLogClearPlaintextMigration
  * Tests for ActivityLogClearPlaintextMigrationStrategy: NULL-out plaintext
  * `context` on rows where `context_encrypted` already holds the payload.
  *
+ * Runs in the shared process: the strategy imports `WP_Error`, so no alias
+ * is needed, and only global functions are stubbed. `get_option` answers
+ * from `$this->options`, so the settings read that `ActivityLog::log()`
+ * makes sees no `ffc_settings` (logging off) whatever ran before.
+ *
  * @covers \FreeFormCertificate\Migrations\Strategies\ActivityLogClearPlaintextMigrationStrategy
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class ActivityLogClearPlaintextMigrationStrategyTest extends TestCase {
 
@@ -27,9 +30,18 @@ class ActivityLogClearPlaintextMigrationStrategyTest extends TestCase {
 
 	private ActivityLogClearPlaintextMigrationStrategy $strategy;
 
+	/** @var array<string, mixed> Options `get_option()` answers from. */
+	private array $options = array();
+
+	/** @var array{0: bool, 1: mixed} Whether `$wpdb` was set, and its value. */
+	private array $wpdb_backup = array( false, null );
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->wpdb_backup = array( array_key_exists( 'wpdb', $GLOBALS ), $GLOBALS['wpdb'] ?? null );
+		$this->options     = array();
 
 		global $wpdb;
 		$wpdb              = Mockery::mock( 'wpdb' )->makePartial();
@@ -42,27 +54,26 @@ class ActivityLogClearPlaintextMigrationStrategyTest extends TestCase {
 		$wpdb->shouldReceive( 'get_col' )->andReturn( array() )->byDefault();
 		$this->wpdb = $wpdb;
 
-		if ( ! class_exists( 'FreeFormCertificate\Migrations\Strategies\WP_Error' ) ) {
-			class_alias( 'WP_Error', 'FreeFormCertificate\Migrations\Strategies\WP_Error' );
-		}
-
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
-		Functions\when( 'get_option' )->justReturn( 0 );
+		Functions\when( 'get_option' )->alias(
+			function ( $key, $default = false ) {
+				return array_key_exists( $key, $this->options ) ? $this->options[ $key ] : $default;
+			}
+		);
 		Functions\when( 'update_option' )->justReturn( true );
 		Functions\when( 'is_wp_error' )->alias( function ( $thing ) { return $thing instanceof \WP_Error; } );
-
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\__' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\get_option' )->justReturn( 0 );
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\update_option' )->justReturn( true );
-		Functions\when( 'FreeFormCertificate\Core\get_option' )->justReturn( array() );
-		Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( array() );
 
 		$this->strategy = new ActivityLogClearPlaintextMigrationStrategy();
 	}
 
 	protected function tearDown(): void {
+		if ( $this->wpdb_backup[0] ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup[1];
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -198,7 +209,6 @@ class ActivityLogClearPlaintextMigrationStrategyTest extends TestCase {
 			return true;
 		};
 		Functions\when( 'update_option' )->alias( $tracker );
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\update_option' )->alias( $tracker );
 
 		$result = $this->strategy->execute( 'activity_log_clear_plaintext', array() );
 
@@ -234,7 +244,6 @@ class ActivityLogClearPlaintextMigrationStrategyTest extends TestCase {
 			return true;
 		};
 		Functions\when( 'update_option' )->alias( $tracker );
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\update_option' )->alias( $tracker );
 
 		$result = $this->strategy->execute( 'activity_log_clear_plaintext', array( 'batch_size' => 200 ) );
 
@@ -325,7 +334,7 @@ class ActivityLogClearPlaintextMigrationStrategyTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array( '1', '2', '3' ) );
 		$this->wpdb->shouldReceive( 'query' )->andReturn( 3 );
 
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\get_option' )->justReturn( array( 'corrupted' ) );
+		$this->options['ffc_activity_log_clear_plaintext_cursor'] = array( 'corrupted' );
 
 		$this->strategy->execute( 'activity_log_clear_plaintext', array( 'batch_size' => 50 ) );
 

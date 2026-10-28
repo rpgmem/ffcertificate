@@ -33,6 +33,12 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
 	/**
 	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
 	 *
@@ -73,6 +79,9 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+
 		global $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';
@@ -86,6 +95,11 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -179,42 +193,35 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 	}
 
 	/**
-	 * #1060 — `get_col()` is mixed. A NULL used to be stringified to ''
-	 * and handed to the decrypter as if it were a ciphertext; it is now
-	 * dropped, which is also what the SQL's `IS NOT NULL` intends.
+	 * #1060 — `get_col()` is mixed. A non-string used to be stringified and
+	 * handed to the decrypter as if it were a ciphertext; it is now dropped,
+	 * which is also what the SQL's `IS NOT NULL` intends.
 	 *
-	 * The assertion is on the arguments the decrypter actually received,
-	 * not on a Mockery expectation: `get_emails_for_user()` swallows
-	 * every exception raised inside its loop, so an unmatched call there
-	 * is silently discarded and an expectation-based test passes against
-	 * the old behaviour too.
-	 *
-	 * The real cipher answers a non-ciphertext with NULL, so only a spy on
-	 * the decrypter can tell the two behaviours apart: this test keeps its
-	 * alias mock, and its own process.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * `get_emails_for_user()` swallows every exception raised inside its
+	 * loop, so the output alone cannot tell the two behaviours apart. The
+	 * real cipher can: every non-empty string it fails to decrypt raises its
+	 * private failure counter, so an integer stringified to `'12345'` would
+	 * move that counter, while a dropped one leaves it where it was. A NULL
+	 * stringified to '' is skipped by the cipher without counting, so the
+	 * integer is the value that proves the drop.
 	 */
 	public function test_get_emails_for_user_drops_non_string_column_values(): void {
-		$seen    = array();
-		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encMock->shouldReceive( 'decrypt' )->andReturnUsing(
-			function ( $value ) use ( &$seen ) {
-				$seen[] = $value;
-				return 'alice@example.com';
-			}
-		);
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		$cipher = Encryption::encrypt( 'alice@example.com' );
 
-		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( 'cipher-1', null ) );
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( $cipher, null, 12345 ) );
 
 		$user             = new \stdClass();
 		$user->user_email = 'alice@example.com';
 		Functions\when( 'get_user_by' )->justReturn( $user );
 
+		$failures = new \ReflectionProperty( Encryption::class, 'decrypt_failure_count' );
+		$failures->setAccessible( true );
+		$before = $failures->getValue();
+
 		$out = UserIdentifiersQueryService::get_emails_for_user( 42 );
 
-		$this->assertSame( array( 'cipher-1' ), $seen );
+		$this->assertSame( $before, $failures->getValue(), 'No non-string value reached the decrypter.' );
 		$this->assertSame( array( 'alice@example.com' ), $out );
 	}
 }

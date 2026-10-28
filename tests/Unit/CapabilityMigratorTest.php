@@ -20,9 +20,17 @@ class CapabilityMigratorTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var mixed $wpdb as it was before the test. */
+	private $original_wpdb;
+
+	/** @var bool Whether $wpdb was set before the test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->had_wpdb      = array_key_exists( 'wpdb', $GLOBALS );
+		$this->original_wpdb = $this->had_wpdb ? $GLOBALS['wpdb'] : null;
 		class_exists( '\\FreeFormCertificate\\UserDashboard\\CapabilityMigrator' );
 		class_exists( '\\FreeFormCertificate\\UserDashboard\\CapabilityManager' );
 
@@ -37,6 +45,11 @@ class CapabilityMigratorTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->original_wpdb;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -171,18 +184,33 @@ class CapabilityMigratorTest extends TestCase {
 	}
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * Records every role the real RoleRegistrar creates through add_role().
+	 *
+	 * @param array<int, string> $added Filled by reference as roles are added.
 	 */
+	private function record_added_roles( array &$added ): void {
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'add_role' )->alias(
+			static function ( $slug ) use ( &$added ) {
+				$added[] = $slug;
+				return null;
+			}
+		);
+	}
+
 	public function test_admin_role_assignment_self_heals_missing_role(): void {
-		// ffc_administrator missing → the role registry is re-run once.
-		Mockery::mock( 'alias:\\FreeFormCertificate\\UserDashboard\\RoleRegistrar' )
-			->shouldReceive( 'register_module_roles' )->atLeast()->once();
+		// ffc_administrator missing → the real role registry is re-run, and
+		// with no role stored it creates every module role.
+		$added = array();
+		$this->record_added_roles( $added );
 
 		Functions\when( 'get_role' )->justReturn( null );
 		Functions\when( 'get_users' )->justReturn( array() );
 
 		$counts = CapabilityMigrator::migrate_admin_role_assignment();
+
+		$this->assertSame( array_keys( CapabilityManager::module_roles_definition() ), $added );
+		$this->assertContains( 'ffc_administrator', $added );
 
 		$this->assertSame( 0, $counts['roles_assigned'] );
 		$this->assertSame( 0, $counts['caps_stripped'] );
@@ -239,16 +267,13 @@ class CapabilityMigratorTest extends TestCase {
 		$this->assertSame( 1, $counts['ffc_scheduling_bypass'] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_role_renames_reassigns_users_and_drops_old_roles(): void {
-		$registrar = Mockery::mock( 'alias:\\FreeFormCertificate\\UserDashboard\\RoleRegistrar' );
 		// `register_role()` creates `ffc_end_user`; `register_module_roles()`
 		// creates the module-manager roles — both must run before reassigning.
-		$registrar->shouldReceive( 'register_role' )->atLeast()->once();
-		$registrar->shouldReceive( 'register_module_roles' )->atLeast()->once();
+		// The real registrar runs; with no role stored it adds each one.
+		$added_roles = array();
+		$this->record_added_roles( $added_roles );
+		Functions\when( 'get_role' )->justReturn( null );
 
 		Functions\when( 'get_users' )->justReturn( array( 7 ) );
 		$user = new class() {
@@ -275,6 +300,12 @@ class CapabilityMigratorTest extends TestCase {
 		);
 
 		$counts = CapabilityMigrator::migrate_role_renames();
+
+		$this->assertSame(
+			array_merge( array( 'ffc_end_user' ), array_keys( CapabilityManager::module_roles_definition() ) ),
+			$added_roles,
+			'Both registrars ran, the end-user role first, then every module role.'
+		);
 
 		// The user assigned the old end-user role is moved to the new one.
 		$this->assertContains( 'ffc_end_user', $user->added );

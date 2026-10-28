@@ -6,7 +6,6 @@ namespace FreeFormCertificate\Tests\Unit;
 use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Settings\Tabs\TabCache;
@@ -110,14 +109,8 @@ class TabCacheTest extends TestCase {
 		$this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_enqueue_scripts_enqueues_on_cache_tab(): void {
 		SettingsTab::set_resolved_active_tab( 'cache' );
-
-		$utils = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
-		$utils->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
 
 		$handles = array();
 		Functions\when( 'wp_enqueue_script' )->alias( function ( $h ) use ( &$handles ) {
@@ -140,16 +133,17 @@ class TabCacheTest extends TestCase {
 	// render() — error branch (view file missing)
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_render_outputs_error_when_view_missing(): void {
-		// Force the real render()'s file_exists() guard to fail so the
-		// error-notice branch executes.
-		Functions\when( 'FreeFormCertificate\\Settings\\Tabs\\file_exists' )->justReturn( false );
+		// Point the real render() at a view file that does not exist, so its
+		// file_exists() guard fails and the error-notice branch executes.
+		$tab = new class() extends TabCache {
+			protected function view_path( string $file ): string {
+				return sys_get_temp_dir() . '/ffc-missing-view-' . $file;
+			}
+		};
 
 		ob_start();
-		$this->tab->render();
+		$tab->render();
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'notice notice-error', $output );
@@ -160,13 +154,17 @@ class TabCacheTest extends TestCase {
 	// Inherited get_option()
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_get_option_returns_default_for_missing_key(): void {
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
-		$reader->shouldReceive( 'get' )->with( 'cache_expiration', '' )->andReturn( '' );
+		// The real SettingsReader reads ffc_settings, which lacks the key.
+		$read = array();
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) use ( &$read ) {
+				$read[] = $key;
+				return 'ffc_settings' === $key ? array( 'other_key' => 'x' ) : $default;
+			}
+		);
 
 		$this->assertSame( '', $this->tab->get_option( 'cache_expiration' ) );
+		$this->assertSame( array( 'ffc_settings' ), $read );
 	}
 }
