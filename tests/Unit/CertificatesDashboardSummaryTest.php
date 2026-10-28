@@ -13,9 +13,10 @@ use FreeFormCertificate\Admin\CertificatesDashboard;
 /**
  * The dashboard's summary row and side-panel empty state (#1614).
  *
+ * Runs the real SubmissionRepository over a `$wpdb` double and the real
+ * Geofence date check over each form's stored config.
+ *
  * @covers \FreeFormCertificate\Admin\CertificatesDashboard
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class CertificatesDashboardSummaryTest extends TestCase {
 
@@ -35,6 +36,18 @@ class CertificatesDashboardSummaryTest extends TestCase {
 	 */
 	private array $since = array();
 
+	/**
+	 * The `$wpdb` global before the test, restored in tearDown().
+	 *
+	 * @var mixed
+	 */
+	private $previous_wpdb;
+
+	/**
+	 * Whether `$wpdb` was set before the test.
+	 */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -48,16 +61,36 @@ class CertificatesDashboardSummaryTest extends TestCase {
 		Functions\when( 'get_posts' )->alias( fn() => array_keys( $this->configs ) );
 		Functions\when( 'get_post_meta' )->alias( fn( $id ) => $this->configs[ $id ] ?? '' );
 
-		$repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\SubmissionRepository' );
-		$repo->shouldReceive( 'countPublishedSince' )->andReturnUsing(
-			function ( int $since ): int {
-				$this->since[] = $since;
-				return 1 === count( $this->since ) ? 3 : 12;
+		Functions\when( 'wp_date' )->alias( static fn( string $format, ?int $ts = null ) => gmdate( $format, $ts ?? time() ) );
+
+		$this->had_wpdb      = array_key_exists( 'wpdb', $GLOBALS );
+		$this->previous_wpdb = $GLOBALS['wpdb'] ?? null;
+
+		// The count query binds the table and the `since` bound; the double
+		// records the bound and answers 3 for the first count, 12 after.
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( string $sql, ...$args ): string {
+				if ( str_contains( $sql, 'submission_date >= %d' ) && 'wp_ffc_submissions' === $args[0] ) {
+					$this->since[] = (int) $args[1];
+					return 'COUNT_SINCE';
+				}
+				return $sql;
 			}
 		);
+		$wpdb->shouldReceive( 'get_var' )->with( 'COUNT_SINCE' )->andReturnUsing(
+			fn(): string => 1 === count( $this->since ) ? '3' : '12'
+		);
+		$GLOBALS['wpdb'] = $wpdb;
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->previous_wpdb;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -79,14 +112,22 @@ class CertificatesDashboardSummaryTest extends TestCase {
 	}
 
 	public function test_counts_only_forms_whose_date_window_is_on_and_open(): void {
+		// Windows far from today on both sides, so the check does not depend
+		// on the day or the timezone the run happens in.
+		$open          = array(
+			'date_start' => '2000-01-01',
+			'date_end'   => '2999-12-31',
+		);
+		$closed        = array(
+			'date_start' => '2000-01-01',
+			'date_end'   => '2000-01-02',
+		);
 		$this->configs = array(
-			1 => array( 'datetime_enabled' => '1', 'open' => true ),
-			2 => array( 'datetime_enabled' => '1', 'open' => false ),
-			3 => array( 'datetime_enabled' => '0', 'open' => true ),
+			1 => array( 'datetime_enabled' => '1' ) + $open,
+			2 => array( 'datetime_enabled' => '1' ) + $closed,
+			3 => array( 'datetime_enabled' => '0' ) + $open,
 			4 => 'not an array',
 		);
-		$geo = Mockery::mock( 'alias:FreeFormCertificate\Security\Geofence' );
-		$geo->shouldReceive( 'validate_datetime' )->andReturnUsing( static fn( array $c ) => array( 'valid' => $c['open'] ) );
 
 		$this->assertSame( 1, ( new CertificatesDashboard() )->summary()['open'], 'off and closed windows do not count' );
 	}

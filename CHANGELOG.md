@@ -26,6 +26,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Tests: eight more classes run in the shared process** (#2125). Four only declared namespaced stubs, a class alias or an eval'd parent class; four mocked one collaborator, now real or confined to the tests that need it. Seven tests keep their own process, each with the reason beside it.
 - **Tests: six more classes run in the shared process** (#2127). Repositories that read the database now run for real over a `$wpdb` double, which every test restores; seven tests keep their own process, for an overload of the submission handler or a stand-in WordPress user query.
 - **Tests: the suite passes in reverse order** (#2123). Sixteen tests relied on what an earlier test left behind: a `SCRIPT_DEBUG` or `REST_REQUEST` constant, a namespaced stub that shadowed a global function, or a third-party double declared with a different body. Each test now chooses that state itself.
+- **Tests: eight more classes run in the shared process** (#2129). The audience, booking, profile, delivery-log, geofence and recruitment repositories they used to replace now run for real over a `$wpdb` double, and none of the eight needs a process of its own.
 
 ### Deprecated
 
