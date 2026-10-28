@@ -9,16 +9,8 @@
  * A file not listed here fails; a listed file that stopped isolating
  * fails until it is removed.
  *
- * This list is a debt register, not a target to grow.
+ * This list is a debt register, not a target to grow. It reached zero in
+ * #2174; an entry added back is a decision to defend in its docblock.
  */
 
-return array(
-	'AdminAjaxTest.php',
-	'AudienceAdminAudienceTest.php',
-	'AudienceAdminCalendarTest.php',
-	'AudienceAdminEnvironmentTest.php',
-	'AudienceShortcodeTest.php',
-	'RecruitmentCandidatesRestControllerTest.php',
-	'RecruitmentClassificationsRestControllerTest.php',
-	'SettingsActionHandlerTest.php',
-);
+return array();
