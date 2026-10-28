@@ -16,21 +16,37 @@ use FreeFormCertificate\Recruitment\RecruitmentCallIcs;
  * ownership read from the call up to the candidate's account, so a user
  * asking for somebody else's call gets nothing.
  *
- * Every reader is aliased, so each test runs in its own process.
+ * The five readers, Capabilities and IcsGenerator are the real ones, over a
+ * `$wpdb` double that answers `get_row()` from a per-table store keyed by id
+ * and records every lookup. The handler's refusals end in a throwing
+ * wp_die() stub, so no test reaches its headers or `exit`.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentCallIcs
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentCallIcsTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface */
-	private $calls;
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
-	/** @var Mockery\MockInterface */
-	private $notices;
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/**
+	 * Stored rows, by short table name (without the `wp_ffc_recruitment_`
+	 * prefix) and id.
+	 *
+	 * @var array<string, array<int, object>>
+	 */
+	private array $rows = array();
+
+	/**
+	 * Every `get_row()` lookup, as "<short table>#<id>".
+	 *
+	 * @var list<string>
+	 */
+	private array $reads = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -44,28 +60,61 @@ class RecruitmentCallIcsTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'absint' )->alias( static fn ( $v ) => abs( (int) $v ) );
 		Functions\when( 'wp_parse_url' )->alias( static fn ( $url, $part = -1 ) => parse_url( $url, $part ) );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
 
-		$this->calls   = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCallReader' );
-		$this->notices = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeReader' );
+		$this->reads = array();
+		$this->rows  = array(
+			'call'           => array(),
+			'classification' => array(
+				7 => (object) array( 'id' => 7, 'candidate_id' => 3, 'notice_id' => 10, 'adjutancy_id' => 1 ),
+			),
+			'candidate'      => array(
+				3 => (object) array( 'id' => 3, 'user_id' => '100' ),
+			),
+			'notice'         => array(
+				10 => (object) array( 'id' => 10, 'code' => 'EDT-15', 'name' => 'Temporary teachers', 'status' => 'definitive' ),
+			),
+			'adjutancy'      => array(
+				1 => (object) array( 'id' => 1, 'name' => 'Mathematics' ),
+			),
+		);
 
-		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationRepository' )
-			->shouldReceive( 'get_by_id' )->andReturnUsing(
-				static fn ( $id ) => 7 === $id ? (object) array( 'id' => 7, 'candidate_id' => 3, 'notice_id' => 10, 'adjutancy_id' => 1 ) : null
-			);
-		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' )
-			->shouldReceive( 'get_by_id' )->andReturnUsing(
-				static fn ( $id ) => 3 === $id ? (object) array( 'id' => 3, 'user_id' => '100' ) : null
-			);
-		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' )
-			->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 1, 'name' => 'Mathematics' ) );
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		// Every reader's get_by_id() prepares 'SELECT * FROM %i WHERE id = %d'
+		// with the table, then the id; the prepared string carries both.
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				$this->assertSame( 'SELECT * FROM %i WHERE id = %d', $sql, 'Only lookups by id are expected.' );
+				return $args[0] . '#' . (int) $args[1];
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $prepared ) {
+				[ $table, $id ] = explode( '#', (string) $prepared );
+				$this->assertStringStartsWith( 'wp_ffc_recruitment_', $table );
+				$short = substr( $table, strlen( 'wp_ffc_recruitment_' ) );
+				$this->assertArrayHasKey( $short, $this->rows, 'Unexpected table: ' . $table );
+				$this->reads[] = $short . '#' . $id;
+				return $this->rows[ $short ][ (int) $id ] ?? null;
+			}
+		);
 
-		$this->notices->shouldReceive( 'get_by_id' )->andReturn(
-			(object) array( 'id' => 10, 'code' => 'EDT-15', 'name' => 'Temporary teachers', 'status' => 'definitive' )
-		)->byDefault();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $wpdb;
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
+		unset( $_GET['call'], $_GET['_wpnonce'] );
 		parent::tearDown();
 	}
 
@@ -84,7 +133,7 @@ class RecruitmentCallIcsTest extends TestCase {
 	}
 
 	public function test_the_owner_gets_a_one_hour_event_at_the_presentation(): void {
-		$this->calls->shouldReceive( 'get_by_id' )->with( 55 )->andReturn( $this->call() );
+		$this->rows['call'][55] = $this->call();
 
 		$ics = RecruitmentCallIcs::build( 55, 100, false );
 
@@ -100,7 +149,7 @@ class RecruitmentCallIcsTest extends TestCase {
 	}
 
 	public function test_another_user_gets_nothing_unless_they_may_view_as_the_owner(): void {
-		$this->calls->shouldReceive( 'get_by_id' )->with( 55 )->andReturn( $this->call() );
+		$this->rows['call'][55] = $this->call();
 
 		$this->assertNull( RecruitmentCallIcs::build( 55, 200, false ), 'Somebody else\'s call.' );
 		$this->assertIsString( RecruitmentCallIcs::build( 55, 200, true ), 'A view-as holder sees the card, so it gets the file.' );
@@ -108,9 +157,9 @@ class RecruitmentCallIcsTest extends TestCase {
 	}
 
 	public function test_a_cancelled_missing_or_draft_call_gets_nothing(): void {
-		$this->calls->shouldReceive( 'get_by_id' )->with( 55 )->andReturn( $this->call( array( 'cancelled_at' => '1700000000' ) ) );
-		$this->calls->shouldReceive( 'get_by_id' )->with( 56 )->andReturn( null );
-		$this->calls->shouldReceive( 'get_by_id' )->with( 57 )->andReturn( $this->call( array( 'id' => 57, 'classification_id' => 999 ) ) );
+		$this->rows['call'][55] = $this->call( array( 'cancelled_at' => '1700000000' ) );
+		// No row 56.
+		$this->rows['call'][57] = $this->call( array( 'id' => 57, 'classification_id' => 999 ) );
 
 		$this->assertNull( RecruitmentCallIcs::build( 55, 100, false ) );
 		$this->assertNull( RecruitmentCallIcs::build( 56, 100, false ) );
@@ -119,14 +168,14 @@ class RecruitmentCallIcsTest extends TestCase {
 	}
 
 	public function test_a_draft_notice_gets_nothing(): void {
-		$this->calls->shouldReceive( 'get_by_id' )->andReturn( $this->call() );
-		$this->notices->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 10, 'code' => 'X', 'name' => 'X', 'status' => 'draft' ) );
+		$this->rows['call'][55]   = $this->call();
+		$this->rows['notice'][10] = (object) array( 'id' => 10, 'code' => 'X', 'name' => 'X', 'status' => 'draft' );
 
 		$this->assertNull( RecruitmentCallIcs::build( 55, 100, false ) );
 	}
 
 	public function test_a_late_presentation_ends_on_its_own_day_and_a_short_time_reads(): void {
-		$this->calls->shouldReceive( 'get_by_id' )->andReturn( $this->call( array( 'time_to_assume' => '23:30' ) ) );
+		$this->rows['call'][55] = $this->call( array( 'time_to_assume' => '23:30' ) );
 
 		$ics = (string) RecruitmentCallIcs::build( 55, 100, false );
 
@@ -156,10 +205,14 @@ class RecruitmentCallIcsTest extends TestCase {
 				throw new \RuntimeException( (string) $args['response'] );
 			}
 		);
-		$this->calls->shouldNotReceive( 'get_by_id' );
 
-		$this->expectExceptionMessage( '403' );
-		RecruitmentCallIcs::handle();
+		try {
+			RecruitmentCallIcs::handle();
+			$this->fail( 'The handler must refuse.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( '403', $e->getMessage() );
+		}
+		$this->assertSame( array(), $this->reads, 'A bad nonce must not read the call.' );
 	}
 
 	public function test_the_handler_refuses_another_users_call_with_404(): void {
@@ -175,7 +228,7 @@ class RecruitmentCallIcsTest extends TestCase {
 				throw new \RuntimeException( (string) $args['response'] );
 			}
 		);
-		$this->calls->shouldReceive( 'get_by_id' )->with( 55 )->andReturn( $this->call() );
+		$this->rows['call'][55] = $this->call();
 
 		$this->expectExceptionMessage( '404' );
 		RecruitmentCallIcs::handle();

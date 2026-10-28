@@ -14,13 +14,12 @@ use FreeFormCertificate\Recruitment\RecruitmentNoticesRestController;
  * Tests for the recruitment notices REST controller — route registration
  * plus the three endpoint handlers (list / create / update).
  *
- * Static dependencies (RecruitmentNoticeReader/Writer, RecruitmentNoticeStateMachine,
- * RecruitmentErrorMessages) are alias-mocked once per test class. Per-test
- * behaviour overrides are applied via `shouldReceive` on the stored mocks.
+ * The reader, the writer, the state machine and the error-message catalogue
+ * are the real classes, over a `$wpdb` double that holds the notice rows a
+ * test stores, answers the reads by id and status, and records every insert
+ * and update. A query the double does not expect fails the test.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentNoticesRestController
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentNoticesRestControllerTest extends TestCase {
 
@@ -28,26 +27,56 @@ class RecruitmentNoticesRestControllerTest extends TestCase {
 
 	private RecruitmentNoticesRestController $controller;
 
-	/** @var \Mockery\MockInterface */
-	private $repoMock;
-
-	/** @var \Mockery\MockInterface */
-	private $writerMock;
-
-	/** @var \Mockery\MockInterface */
-	private $smMock;
-
 	/** @var array<int, array{namespace: string, route: string, args: array}> */
 	private array $registered_routes = array();
+
+	/**
+	 * Stored notices, by id.
+	 *
+	 * @var array<int, object>
+	 */
+	private array $notices = array();
+
+	/**
+	 * Rows `get_all()` answers, by the status filter ('' for none).
+	 *
+	 * @var array<string, list<object>>
+	 */
+	private array $listed = array();
+
+	/** @var list<string> Every `get_results()` statement, as prepared. */
+	private array $list_queries = array();
+
+	/** @var list<array{0: string, 1: array<string, mixed>}> Every insert, as `[ table, data ]`. */
+	private array $inserts = array();
+
+	/** @var list<array{0: string, 1: array<string, mixed>, 2: array<string, mixed>}> Every update, as `[ table, data, where ]`. */
+	private array $updates = array();
+
+	/** @var int|false What the next `insert()` returns. */
+	private $insert_result = 1;
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'current_user_can' )->justReturn( false );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'current_time' )->justReturn( '2026-10-28 10:00:00' );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
 
 		$this->registered_routes = array();
 		Functions\when( 'register_rest_route' )->alias(
@@ -57,31 +86,90 @@ class RecruitmentNoticesRestControllerTest extends TestCase {
 			}
 		);
 
-		// Alias-mock the static dependencies. Only one alias per class per
-		// process is honoured by Mockery; subsequent shouldReceive() calls
-		// in tests use the SAME stored reference.
-		$this->repoMock   = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeReader' );
-		$this->writerMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeWriter' );
-		$this->repoMock->shouldReceive( 'get_all' )->andReturn( array() )->byDefault();
-		$this->repoMock->shouldReceive( 'get_by_id' )->andReturn( null )->byDefault();
-		$this->writerMock->shouldReceive( 'create' )->andReturn( false )->byDefault();
-		$this->writerMock->shouldReceive( 'update' )->andReturn( true )->byDefault();
-
-		$this->smMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeStateMachine' );
-		$this->smMock->shouldReceive( 'transition_to' )
-			->andReturn( array( 'success' => true, 'errors' => array() ) )
-			->byDefault();
-
-		$errMsgMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentErrorMessages' );
-		$errMsgMock->shouldReceive( 'translate' )->andReturnUsing( fn( $c ) => 'msg:' . $c );
-		$errMsgMock->shouldReceive( 'translate_all' )->andReturnUsing( fn( $codes ) => array_map( fn( $c ) => 'msg:' . $c, $codes ) );
+		$this->notices       = array();
+		$this->listed        = array();
+		$this->list_queries  = array();
+		$this->inserts       = array();
+		$this->updates       = array();
+		$this->insert_result = 1;
+		$GLOBALS['wpdb']     = $this->database();
 
 		$this->controller = new RecruitmentNoticesRestController();
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * A database over `$this->notices`; only the statements the notice
+	 * reader and writer issue are answered.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function database() {
+		$wpdb            = Mockery::mock( 'wpdb' );
+		$wpdb->prefix    = 'wp_';
+		$wpdb->insert_id = 0;
+
+		// Interpolates, so the reads below can dispatch on the statement.
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$values = ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args;
+				foreach ( $values as $v ) {
+					$sql = (string) preg_replace( '/%[ids]/', (string) $v, (string) $sql, 1 );
+				}
+				return $sql;
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				if ( 1 === preg_match( '/^SELECT \* FROM wp_ffc_recruitment_notice WHERE id = (\d+)$/', (string) $sql, $m ) ) {
+					return $this->notices[ (int) $m[1] ] ?? null;
+				}
+				$this->fail( 'Unexpected get_row: ' . $sql );
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$this->list_queries[] = (string) $sql;
+				if ( 'SELECT * FROM wp_ffc_recruitment_notice ORDER BY created_at DESC' === $sql ) {
+					return $this->listed[''] ?? array();
+				}
+				if ( 1 === preg_match( '/^SELECT \* FROM wp_ffc_recruitment_notice WHERE status = (\w+) ORDER BY created_at DESC$/', (string) $sql, $m ) ) {
+					return $this->listed[ $m[1] ] ?? array();
+				}
+				$this->fail( 'Unexpected get_results: ' . $sql );
+			}
+		);
+
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) use ( $wpdb ) {
+				$this->inserts[] = array( $table, $data );
+				if ( false !== $this->insert_result ) {
+					$wpdb->insert_id = 5;
+					$this->notices[5] = (object) array_merge( array( 'id' => 5 ), $data );
+				}
+				return $this->insert_result;
+			}
+		);
+
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				$this->updates[] = array( $table, $data, $where );
+				return 1;
+			}
+		);
+
+		return $wpdb;
 	}
 
 	private function make_request( array $params ): \WP_REST_Request {
@@ -144,28 +232,27 @@ class RecruitmentNoticesRestControllerTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_list_notices_returns_200_with_repository_payload(): void {
-		$notices = array(
+		$notices          = array(
 			(object) array( 'id' => 1, 'code' => 'EDITAL-A' ),
 			(object) array( 'id' => 2, 'code' => 'EDITAL-B' ),
 		);
-		$this->repoMock->shouldReceive( 'get_all' )->with( null )->andReturn( $notices );
+		$this->listed[''] = $notices;
 
 		$response = $this->controller->list_notices( $this->make_request( array() ) );
 
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertSame( $notices, $response->get_data() );
+		$this->assertSame( array( 'SELECT * FROM wp_ffc_recruitment_notice ORDER BY created_at DESC' ), $this->list_queries, 'No status filter reads every notice.' );
 	}
 
 	public function test_list_notices_passes_status_filter_through_to_repository(): void {
-		$captured = null;
-		$this->repoMock->shouldReceive( 'get_all' )->andReturnUsing( function ( $status ) use ( &$captured ) {
-			$captured = $status;
-			return array();
-		} );
+		$open                 = array( (object) array( 'id' => 3, 'code' => 'EDITAL-C' ) );
+		$this->listed['open'] = $open;
 
-		$this->controller->list_notices( $this->make_request( array( 'status' => 'open' ) ) );
+		$response = $this->controller->list_notices( $this->make_request( array( 'status' => 'open' ) ) );
 
-		$this->assertSame( 'open', $captured );
+		$this->assertSame( array( 'SELECT * FROM wp_ffc_recruitment_notice WHERE status = open ORDER BY created_at DESC' ), $this->list_queries );
+		$this->assertSame( $open, $response->get_data() );
 	}
 
 	// ------------------------------------------------------------------
@@ -173,25 +260,30 @@ class RecruitmentNoticesRestControllerTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_create_notice_returns_201_on_success(): void {
-		$created = (object) array( 'id' => 5, 'code' => 'NEW', 'name' => 'New' );
-		$this->writerMock->shouldReceive( 'create' )->with( 'NEW', 'New' )->andReturn( 5 );
-		$this->repoMock->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $created );
-
 		$response = $this->controller->create_notice(
-			$this->make_request( array( 'code' => 'NEW', 'name' => 'New' ) )
+			$this->make_request( array( 'code' => 'new', 'name' => 'New' ) )
 		);
+
+		$this->assertCount( 1, $this->inserts );
+		$this->assertSame( 'wp_ffc_recruitment_notice', $this->inserts[0][0] );
+		$this->assertSame( 'NEW', $this->inserts[0][1]['code'], 'The code is stored uppercased.' );
+		$this->assertSame( 'New', $this->inserts[0][1]['name'] );
+		$this->assertSame( 'draft', $this->inserts[0][1]['status'] );
 
 		$this->assertInstanceOf( \WP_REST_Response::class, $response );
 		$this->assertSame( 201, $response->get_status() );
-		$this->assertSame( $created, $response->get_data() );
+		$this->assertSame( $this->notices[5], $response->get_data(), 'The response carries the row read back by the new id.' );
 	}
 
 	public function test_create_notice_returns_wp_error_with_409_on_duplicate(): void {
-		// Default `create` returns false → duplicate path.
+		// A unique-key violation: the insert reports failure.
+		$this->insert_result = false;
+
 		$result = $this->controller->create_notice(
 			$this->make_request( array( 'code' => 'DUP', 'name' => 'Dup' ) )
 		);
 
+		$this->assertCount( 1, $this->inserts );
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'recruitment_notice_create_failed', $result->get_error_code() );
 		$this->assertSame( 409, $result->get_error_data()['status'] );
@@ -202,7 +294,7 @@ class RecruitmentNoticesRestControllerTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_update_notice_returns_404_when_notice_missing(): void {
-		// Default: update returns true, get_by_id returns null.
+		// No notice 999 is stored; the meta update itself reports success.
 		$result = $this->controller->update_notice(
 			$this->make_request( array( 'id' => 999, 'name' => 'X' ) )
 		);
@@ -213,8 +305,11 @@ class RecruitmentNoticesRestControllerTest extends TestCase {
 	}
 
 	public function test_update_notice_returns_409_when_state_machine_rejects_transition(): void {
-		$this->smMock->shouldReceive( 'transition_to' )->andReturn(
-			array( 'success' => false, 'errors' => array( 'recruitment_invalid_transition' ) )
+		// draft -> closed is not an allowed transition.
+		$this->notices[1] = (object) array(
+			'id'     => 1,
+			'code'   => 'EDITAL-A',
+			'status' => 'draft',
 		);
 
 		$result = $this->controller->update_notice(
@@ -223,17 +318,17 @@ class RecruitmentNoticesRestControllerTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertSame( 'recruitment_invalid_transition: draft->closed', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates, 'A refused transition writes nothing.' );
 	}
 
 	public function test_update_notice_passes_meta_fields_through_to_repository(): void {
-		$captured = null;
-		$this->writerMock->shouldReceive( 'update' )->andReturnUsing( function ( $id, $meta ) use ( &$captured ) {
-			$captured = compact( 'id', 'meta' );
-			return true;
-		} );
-		$this->repoMock->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 7 ) );
+		$this->notices[7] = (object) array(
+			'id'     => 7,
+			'status' => 'draft',
+		);
 
-		$this->controller->update_notice(
+		$response = $this->controller->update_notice(
 			$this->make_request(
 				array(
 					'id'                    => 7,
@@ -244,10 +339,13 @@ class RecruitmentNoticesRestControllerTest extends TestCase {
 			)
 		);
 
-		$this->assertNotNull( $captured );
-		$this->assertSame( 7, $captured['id'] );
-		$this->assertSame( 'Updated Name', $captured['meta']['name'] );
-		$this->assertSame( 'cfg', $captured['meta']['public_columns_config'] );
-		$this->assertArrayNotHasKey( 'ignored_field', $captured['meta'] );
+		$this->assertCount( 1, $this->updates );
+		[ $table, $data, $where ] = $this->updates[0];
+		$this->assertSame( 'wp_ffc_recruitment_notice', $table );
+		$this->assertSame( array( 'id' => 7 ), $where );
+		$this->assertSame( 'Updated Name', $data['name'] );
+		$this->assertSame( 'cfg', $data['public_columns_config'] );
+		$this->assertArrayNotHasKey( 'ignored_field', $data );
+		$this->assertSame( 200, $response->get_status() );
 	}
 }
