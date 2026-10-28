@@ -3,10 +3,9 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
-use FreeFormCertificate\Core\RequestInput;
-
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use FreeFormCertificate\Core\Encryption;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -20,19 +19,44 @@ use FreeFormCertificate\Tests\Support\CallLog;
  * the filter dropdown nav — including column_id()'s row-action assembly (the
  * bootstrap WP_List_Table stub does provide row_actions()).
  *
+ * Everything behind the table runs for real — AppointmentRepository (with its
+ * reader and writer), CalendarRepository, Capabilities, MagicLinkHelper,
+ * AppointmentReceiptHandler, Encryption, DocumentFormatter, PiiAccessPolicy,
+ * PiiReveal, DateFormatter and RequestInput — over a `$wpdb` double that
+ * answers each query by its SQL text from the rows a test stores, and
+ * records every query it ran. A query the double does not know fails the
+ * test.
+ *
  * @covers \FreeFormCertificate\SelfScheduling\AppointmentsListTable
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AppointmentsListTableTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface */
-	private $appt_repo;
+	private const APPOINTMENTS = '`wp_ffc_self_scheduling_appointments`';
 
-	/** @var Mockery\MockInterface */
-	private $cal_repo;
+	private const CALENDARS = '`wp_ffc_self_scheduling_calendars`';
+
+	/** @var array<int, array<string, mixed>> Calendar rows by id. */
+	private array $calendars = array();
+
+	/** @var list<array<string, mixed>> Rows the appointment list query answers. */
+	private array $appointment_rows = array();
+
+	/** @var int What the appointment COUNT(*) answers. */
+	private int $appointment_count = 0;
+
+	/** @var list<string> Every SQL string the double ran (get_row, get_results, get_var). */
+	private array $ran = array();
+
+	/** @var list<string> Queries the double did not recognise. */
+	private array $unexpected = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -46,24 +70,148 @@ class AppointmentsListTableTest extends TestCase {
 		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'admin_url' )->alias( fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
+		Functions\when( 'home_url' )->alias( fn( $p = '' ) => 'https://example.com' . $p );
+		Functions\when( 'add_query_arg' )->alias(
+			static function ( ...$args ) {
+				if ( is_array( $args[0] ) ) {
+					$query = $args[0];
+					$url   = (string) ( $args[1] ?? '' );
+				} else {
+					$query = array( $args[0] => $args[1] );
+					$url   = (string) ( $args[2] ?? '' );
+				}
+				return $url . ( false === strpos( $url, '?' ) ? '?' : '&' ) . http_build_query( $query );
+			}
+		);
 		Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
 		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'is_email' )->alias( static fn( $e ) => false !== filter_var( $e, FILTER_VALIDATE_EMAIL ) );
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( null );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'user_can' )->justReturn( false );
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		Functions\when( 'get_user_by' )->justReturn( false );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce' );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_date' )->alias(
+			static fn( $format, $ts = null, $tz = null ) => ( new \DateTimeImmutable( '@' . (int) $ts ) )->setTimezone( $tz ?? new \DateTimeZone( 'UTC' ) )->format( $format )
+		);
+		// Stubbed explicitly so DateFormatter and MagicLinkHelper read the
+		// same world whatever ran before: the time format, and no
+		// verification page stored (the magic link falls back to /valid/).
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) {
+				if ( 'ffc_settings' === $key ) {
+					return array( 'time_format' => 'H:i' );
+				}
+				return $default;
+			}
+		);
 
-		// Constructor instantiates both repositories with `new`.
-		$this->appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
-		$this->appt_repo->shouldReceive( 'findAll' )->andReturn( array() )->byDefault();
-		$this->appt_repo->shouldReceive( 'count' )->andReturn( 0 )->byDefault();
-		$this->cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
-		$this->cal_repo->shouldReceive( 'findById' )->andReturn( null )->byDefault();
-		$this->cal_repo->shouldReceive( 'getActiveCalendars' )->andReturn( array() )->byDefault();
+		$this->calendars         = array();
+		$this->appointment_rows  = array();
+		$this->appointment_count = 0;
+		$this->ran               = array();
+		$this->unexpected        = array();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $this->had_wpdb ? $GLOBALS['wpdb'] : null;
+		$GLOBALS['wpdb']   = $this->wpdb_double();
 	}
 
 	protected function tearDown(): void {
 		unset( $_GET['calendar_id'], $_GET['status'], $_GET['orderby'], $_GET['order'] );
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	protected function assertPostConditions(): void {
+		$this->assertSame( array(), $this->unexpected, 'The $wpdb double received a query it does not know.' );
+	}
+
+	/**
+	 * A `$wpdb` double: prepare() substitutes the bound values into the SQL
+	 * text, and each read answers from the rows the test stored.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function wpdb_double() {
+		$wpdb             = Mockery::mock( 'wpdb' );
+		$wpdb->prefix     = 'wp_';
+		$wpdb->last_error = '';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$args = 1 === count( $args ) && is_array( $args[0] ) ? $args[0] : $args;
+				$i    = 0;
+				return preg_replace_callback(
+					'/%[ids]/',
+					static function ( $m ) use ( &$i, $args ) {
+						$value = $args[ $i++ ];
+						if ( '%i' === $m[0] ) {
+							return '`' . $value . '`';
+						}
+						if ( '%d' === $m[0] ) {
+							return (string) (int) $value;
+						}
+						return "'" . addslashes( (string) $value ) . "'";
+					},
+					$sql
+				);
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				$this->ran[] = $sql;
+				if ( preg_match( '/^SELECT \* FROM ' . preg_quote( self::CALENDARS, '/' ) . ' WHERE id = (\d+)$/', $sql, $m ) ) {
+					return $this->calendars[ (int) $m[1] ] ?? null;
+				}
+				return $this->unexpected_query( $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$this->ran[] = $sql;
+				if ( 0 === strpos( $sql, 'SELECT * FROM ' . self::APPOINTMENTS . ' ' ) ) {
+					return $this->appointment_rows;
+				}
+				if ( "SELECT * FROM " . self::CALENDARS . " WHERE `status` = 'active' ORDER BY created_at DESC" === $sql ) {
+					return array_values(
+						array_filter( $this->calendars, static fn( $c ) => 'active' === ( $c['status'] ?? '' ) )
+					);
+				}
+				return $this->unexpected_query( $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				$this->ran[] = $sql;
+				if ( 0 === strpos( $sql, 'SELECT COUNT(*) FROM ' . self::APPOINTMENTS ) ) {
+					return (string) $this->appointment_count;
+				}
+				return $this->unexpected_query( $sql );
+			}
+		);
+		return $wpdb;
+	}
+
+	/**
+	 * Record a query the double does not know, and fail.
+	 *
+	 * @param string $sql The query.
+	 * @return never
+	 */
+	private function unexpected_query( string $sql ) {
+		$this->unexpected[] = $sql;
+		$this->fail( 'Unexpected query: ' . $sql );
 	}
 
 	private function call_protected( AppointmentsListTable $table, string $method, array $args = array() ) {
@@ -110,10 +258,7 @@ class AppointmentsListTableTest extends TestCase {
 
 	public function test_column_id_pending_editable_builds_all_actions(): void {
 		Functions\when( 'current_user_can' )->justReturn( true ); // manage → can edit.
-		Functions\when( 'add_query_arg' )->alias( fn( $a, $u = '' ) => $u . '?' . http_build_query( (array) $a ) );
 		Functions\when( 'wp_nonce_url' )->alias( fn( $u, $a = '' ) => $u . '&_n=1' );
-		Mockery::mock( 'alias:FreeFormCertificate\Generators\MagicLinkHelper' )
-			->shouldReceive( 'generate_magic_link' )->andReturn( 'https://example.com/magic' );
 
 		$table = new AppointmentsListTable();
 		$html  = $table->column_id( array( 'id' => 7, 'status' => 'pending', 'confirmation_token' => 'tok' ) );
@@ -123,12 +268,12 @@ class AppointmentsListTableTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-appointment-cancel', $html );
 		$this->assertStringContainsString( '>View<', $html, 'A manager is offered the manage-gated detail view.' );
 		$this->assertStringContainsString( 'appointment=7', $html );
-		$this->assertStringContainsString( 'https://example.com/magic', $html );
+		// The real MagicLinkHelper: no verification page stored, so /valid/.
+		$this->assertStringContainsString( 'https://example.com/valid/#token=tok', $html );
 	}
 
 	public function test_column_id_readonly_cancelled_shows_no_row_action(): void {
 		Functions\when( 'current_user_can' )->justReturn( false ); // read-only viewer.
-		Functions\when( 'add_query_arg' )->alias( fn( $a, $u = '' ) => $u . '?' . http_build_query( (array) $a ) );
 
 		$table = new AppointmentsListTable();
 		$html  = $table->column_id( array( 'id' => 9, 'status' => 'cancelled', 'confirmation_token' => 'tok' ) );
@@ -145,33 +290,30 @@ class AppointmentsListTableTest extends TestCase {
 
 	public function test_column_id_receipt_falls_back_to_handler_when_token_empty(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
-		Functions\when( 'add_query_arg' )->alias( fn( $a, $u = '' ) => $u . '?' . http_build_query( (array) $a ) );
-		Mockery::mock( 'alias:FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler' )
-			->shouldReceive( 'get_receipt_url' )->andReturn( 'https://example.com/receipt' );
 
 		$table = new AppointmentsListTable();
 		$html  = $table->column_id( array( 'id' => 11, 'status' => 'confirmed', 'confirmation_token' => '' ) );
 
-		$this->assertStringContainsString( 'https://example.com/receipt', $html );
+		// The real AppointmentReceiptHandler::get_receipt_url( 11, '' ).
+		$this->assertStringContainsString( 'https://example.com?ffc_appointment_receipt=11', $html );
+		$this->assertStringNotContainsString( '#token=', $html );
 	}
 
 	public function test_column_calendar_links_to_post_when_found(): void {
-		$this->cal_repo->shouldReceive( 'findById' )->with( 9 )->andReturn(
-			array( 'post_id' => 100, 'title' => 'Clinic' )
-		);
+		$this->calendars[9] = array( 'id' => 9, 'post_id' => 100, 'title' => 'Clinic', 'status' => 'active' );
 
 		$table = new AppointmentsListTable();
 		$out   = $table->column_calendar( array( 'calendar_id' => 9 ) );
 
 		$this->assertStringContainsString( 'post=100', $out );
 		$this->assertStringContainsString( 'Clinic', $out );
+		$this->assertSame( array( 'SELECT * FROM ' . self::CALENDARS . ' WHERE id = 9' ), $this->ran );
 	}
 
 	public function test_column_calendar_deleted_when_missing(): void {
-		$this->cal_repo->shouldReceive( 'findById' )->with( 9 )->andReturn( null );
-
 		$table = new AppointmentsListTable();
 		$this->assertSame( '(Deleted)', $table->column_calendar( array( 'calendar_id' => 9 ) ) );
+		$this->assertSame( array( 'SELECT * FROM ' . self::CALENDARS . ' WHERE id = 9' ), $this->ran );
 	}
 
 	public function test_column_name_prefers_user_display_name(): void {
@@ -193,14 +335,14 @@ class AppointmentsListTableTest extends TestCase {
 
 	/**
 	 * Put the current user (id 7) in one tier of the real PiiAccessPolicy for
-	 * the appointments domain, through the WordPress functions it reads, and
-	 * stub the email decryption, the mask and the nonce around column_email().
+	 * the appointments domain, through the WordPress functions it reads. The
+	 * address is decrypted by the real Encryption and masked by the real
+	 * DocumentFormatter.
 	 *
 	 * @param string $tier unmasked (manage_options) | admin_role
 	 *                     (ffc_appointments_admin) | reveal (the PII cap) | masked.
-	 * @param string $email Decrypted address decrypt_field() returns.
 	 */
-	private function driveEmailColumn( string $tier, string $email = 'a@b.com' ): void {
+	private function driveEmailColumn( string $tier ): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 		Functions\when( 'get_user_by' )->justReturn(
 			(object) array( 'roles' => 'admin_role' === $tier ? array( 'ffc_appointments_admin' ) : array( 'ffc_appointments_viewer' ) )
@@ -213,23 +355,17 @@ class AppointmentsListTableTest extends TestCase {
 				return 'ffc_view_appointments_pii' === $cap && 'reveal' === $tier;
 			}
 		);
-		Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce' );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
-			->shouldReceive( 'decrypt_field' )->andReturn( $email );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' )
-			->shouldReceive( 'mask_email' )->andReturnUsing( fn( $e ) => 'MASKED:' . (string) $e );
 	}
 
 	private function emailCellFor( string $tier ): string {
 		$this->driveEmailColumn( $tier );
 		$table = new AppointmentsListTable();
-		return $table->column_email( array( 'id' => 42, 'user_id' => 99, 'email_encrypted' => 'X' ) );
+		return $table->column_email( array( 'id' => 42, 'user_id' => 99, 'email_encrypted' => Encryption::encrypt( 'a@b.com' ) ) );
 	}
 
 	private function assertMaskedWithReveal( string $out ): void {
-		$this->assertStringNotContainsString( 'a@b.com', str_replace( 'MASKED:a@b.com', '', $out ), 'The clear address must not reach the list HTML.' );
-		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
+		$this->assertStringNotContainsString( 'a@b.com', $out, 'The clear address must not reach the list HTML.' );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">a***@b.com</span>', $out );
 		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii"', $out );
 		$this->assertStringContainsString( 'data-type="appointment" data-field="email" data-submission-id="42" data-nonce="test_nonce"', $out );
 	}
@@ -242,7 +378,7 @@ class AppointmentsListTableTest extends TestCase {
 		// The role alone unmasks nothing since #1863: its PII cap is what
 		// reveals, and this user holds the role without it.
 		$out = $this->emailCellFor( 'admin_role' );
-		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">a***@b.com</span>', $out );
 		$this->assertStringNotContainsString( 'ffc-reveal-pii', $out );
 	}
 
@@ -252,18 +388,20 @@ class AppointmentsListTableTest extends TestCase {
 
 	public function test_column_email_masked_tier_masks_without_button(): void {
 		$out = $this->emailCellFor( 'masked' );
-		$this->assertSame( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
+		$this->assertSame( '<span class="ffc-pii-value" data-field="email">a***@b.com</span>', $out );
 		$this->assertStringNotContainsString( 'ffc-reveal-pii', $out );
 	}
 
 	public function test_column_email_owner_gets_reveal_button(): void {
 		$this->driveEmailColumn( 'masked' );
 		$table = new AppointmentsListTable();
-		$this->assertMaskedWithReveal( $table->column_email( array( 'id' => 42, 'user_id' => 7, 'email_encrypted' => 'X' ) ) );
+		$this->assertMaskedWithReveal(
+			$table->column_email( array( 'id' => 42, 'user_id' => 7, 'email_encrypted' => Encryption::encrypt( 'a@b.com' ) ) )
+		);
 	}
 
 	public function test_column_email_empty_renders_dash_without_button(): void {
-		$this->driveEmailColumn( 'unmasked', '' );
+		$this->driveEmailColumn( 'unmasked' );
 		$table = new AppointmentsListTable();
 		$this->assertSame( '-', $table->column_email( array( 'id' => 42 ) ) );
 	}
@@ -273,16 +411,13 @@ class AppointmentsListTableTest extends TestCase {
 		$nonces = CallLog::record( 'wp_create_nonce', 'test_nonce' );
 		$table  = new AppointmentsListTable();
 
-		$table->column_email( array( 'id' => 1, 'email_encrypted' => 'X' ) );
-		$table->column_email( array( 'id' => 2, 'email_encrypted' => 'Y' ) );
+		$table->column_email( array( 'id' => 1, 'email_encrypted' => Encryption::encrypt( 'a@b.com' ) ) );
+		$table->column_email( array( 'id' => 2, 'email_encrypted' => Encryption::encrypt( 'c@d.com' ) ) );
 
 		$this->assertSame( 1, $nonces->count() );
 	}
 
 	public function test_column_time_formats_range(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )
-			->shouldReceive( 'format_wallclock_time' )->andReturn( '09:00', '10:00' );
-
 		$table = new AppointmentsListTable();
 		$this->assertSame(
 			'09:00 - 10:00',
@@ -302,58 +437,36 @@ class AppointmentsListTableTest extends TestCase {
 		$_GET['calendar_id'] = '9';
 		$_GET['status']      = 'confirmed';
 
-		Functions\when( 'get_user_by' )->justReturn( false );
-
-		$captured = array();
-		$this->appt_repo->shouldReceive( 'findAll' )->andReturnUsing(
-			function ( $conditions ) use ( &$captured ) {
-				$captured = $conditions;
-				return array( array( 'id' => 1 ) );
-			}
-		);
-		$this->appt_repo->shouldReceive( 'count' )->andReturn( 5 );
-
-		// RequestInput::get_get_string for the status filter.
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( 'confirmed' )
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
+		$this->appointment_rows  = array( array( 'id' => 1 ) );
+		$this->appointment_count = 5;
 
 		$table = new AppointmentsListTable();
 		$table->prepare_items();
 
-		$this->assertSame( 9, $captured['calendar_id'] );
-		$this->assertSame( 'confirmed', $captured['status'] );
-	}
-
-	/**
-	 * ORDER BY column and direction the last prepare_items() handed to
-	 * findAll() (#1770).
-	 *
-	 * @var array<int, string>
-	 */
-	private $captured_order = array();
-
-	/**
-	 * Mock the repository and the request once, so prepare_items() can run
-	 * repeatedly in one test with a different query string each time.
-	 */
-	private function capture_order(): void {
-		$this->appt_repo->shouldReceive( 'findAll' )->andReturnUsing(
-			function ( $conditions, $order_by, $order ) {
-				$this->captured_order = array( $order_by, $order );
-				return array();
-			}
+		$where = "WHERE `calendar_id` = '9' AND `status` = 'confirmed'";
+		$this->assertSame(
+			array(
+				'SELECT * FROM ' . self::APPOINTMENTS . " {$where} ORDER BY created_at DESC LIMIT 20 OFFSET 0",
+				'SELECT COUNT(*) FROM ' . self::APPOINTMENTS . " {$where}",
+			),
+			$this->ran
 		);
 
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
+		$pagination = new \ReflectionProperty( $table, '_pagination_args' );
+		$pagination->setAccessible( true );
+		$this->assertSame(
+			array(
+				'total_items' => 5,
+				'per_page'    => 20,
+				'total_pages' => 1,
+			),
+			$pagination->getValue( $table )
+		);
 	}
 
 	/**
-	 * Run prepare_items() under the given query string.
+	 * Run prepare_items() under the given query string and return the ORDER
+	 * BY column and direction the list query carried (#1770).
 	 *
 	 * @param array<string, string> $query Request query vars.
 	 * @return array<int, string>
@@ -363,16 +476,17 @@ class AppointmentsListTableTest extends TestCase {
 		foreach ( $query as $key => $value ) {
 			$_GET[ $key ] = $value;
 		}
-		$this->captured_order = array();
+		$this->ran = array();
 
 		$table = new AppointmentsListTable();
 		$table->prepare_items();
 
-		return $this->captured_order;
+		$this->assertMatchesRegularExpression( '/ ORDER BY (\S+) (ASC|DESC) LIMIT 20 OFFSET 0$/', $this->ran[0] );
+		preg_match( '/ ORDER BY (\S+) (ASC|DESC) LIMIT/', $this->ran[0], $m );
+		return array( $m[1], $m[2] );
 	}
 
 	public function test_prepare_items_default_order_is_created_at_desc(): void {
-		$this->capture_order();
 		$this->assertSame( array( 'created_at', 'DESC' ), $this->order_for( array() ) );
 	}
 
@@ -381,7 +495,6 @@ class AppointmentsListTableTest extends TestCase {
 	 * direction the header link asks for (#1770).
 	 */
 	public function test_prepare_items_sorts_by_every_declared_sortable_column(): void {
-		$this->capture_order();
 		$table   = new AppointmentsListTable();
 		$orderby = array_map(
 			static fn( $spec ) => $spec[0],
@@ -404,7 +517,6 @@ class AppointmentsListTableTest extends TestCase {
 	}
 
 	public function test_prepare_items_ignores_an_unlisted_orderby(): void {
-		$this->capture_order();
 		$this->assertSame(
 			array( 'created_at', 'DESC' ),
 			$this->order_for( array( 'orderby' => 'email_encrypted', 'order' => 'asc' ) )
@@ -425,10 +537,7 @@ class AppointmentsListTableTest extends TestCase {
 
 	public function test_column_id_waitlist_editable_offers_cancel_but_not_confirm(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'add_query_arg' )->alias( fn( $a, $u = '' ) => $u . '?' . http_build_query( (array) $a ) );
 		Functions\when( 'wp_nonce_url' )->alias( fn( $u, $a = '' ) => $u . '&_n=' . $a );
-		Mockery::mock( 'alias:FreeFormCertificate\Generators\MagicLinkHelper' )
-			->shouldReceive( 'generate_magic_link' )->andReturn( 'https://example.com/magic' );
 
 		$table = new AppointmentsListTable();
 		$html  = $table->column_id( array( 'id' => 21, 'status' => 'waitlist', 'confirmation_token' => 'tok' ) );
@@ -441,9 +550,6 @@ class AppointmentsListTableTest extends TestCase {
 
 	public function test_column_id_waitlist_readonly_offers_no_mutation(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
-		Functions\when( 'add_query_arg' )->alias( fn( $a, $u = '' ) => $u . '?' . http_build_query( (array) $a ) );
-		Mockery::mock( 'alias:FreeFormCertificate\Generators\MagicLinkHelper' )
-			->shouldReceive( 'generate_magic_link' )->andReturn( 'https://example.com/magic' );
 
 		$table = new AppointmentsListTable();
 		$html  = $table->column_id( array( 'id' => 21, 'status' => 'waitlist', 'confirmation_token' => 'tok' ) );
@@ -453,10 +559,6 @@ class AppointmentsListTableTest extends TestCase {
 	}
 
 	public function test_extra_tablenav_offers_waitlist_status_filter(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( '' )
-			->shouldReceive( 'get_get_int' )->andReturn( 0 );
-
 		$table = new AppointmentsListTable();
 
 		ob_start();
@@ -474,17 +576,12 @@ class AppointmentsListTableTest extends TestCase {
 		$out = ob_get_clean();
 
 		$this->assertSame( '', $out );
+		$this->assertSame( array(), $this->ran, 'The bottom nav reads no calendars.' );
 	}
 
 	public function test_extra_tablenav_renders_calendar_options(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( '' )
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-		$this->cal_repo->shouldReceive( 'getActiveCalendars' )->andReturn(
-			array( array( 'id' => 1, 'title' => 'Cal One' ) )
-		);
+		$this->calendars[1] = array( 'id' => 1, 'title' => 'Cal One', 'status' => 'active' );
+		$this->calendars[2] = array( 'id' => 2, 'title' => 'Cal Archived', 'status' => 'inactive' );
 
 		$table = new AppointmentsListTable();
 
@@ -493,6 +590,7 @@ class AppointmentsListTableTest extends TestCase {
 		$out = ob_get_clean();
 
 		$this->assertStringContainsString( 'Cal One', $out );
+		$this->assertStringNotContainsString( 'Cal Archived', $out, 'Only active calendars are offered.' );
 		$this->assertStringContainsString( 'All Statuses', $out );
 		// The filter submits under the name it always had, as a family button (#1904).
 		$this->assertStringContainsString( '<button type="submit" class="ffc-btn ffc-btn-neutral ffc-icon-filter" name="filter_action" value="Filter">Filter</button>', $out );
