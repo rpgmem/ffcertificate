@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Migrations\Strategies\CpfRfSplitMigrationStrategy;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for CpfRfSplitMigrationStrategy: splits combined cpf_rf into separate cpf/rf columns.
@@ -331,7 +332,7 @@ class CpfRfSplitMigrationStrategyTest extends TestCase {
 			// 11 digits → CPF branch.
 			array(
 				'id'               => 1,
-				'cpf_rf'           => '123.456.789-01',
+				'cpf_rf'           => substr( Identifiers::CPF_A, 0, 3 ) . '.' . substr( Identifiers::CPF_A, 3, 3 ) . '.' . substr( Identifiers::CPF_A, 6, 3 ) . '-' . substr( Identifiers::CPF_A, 9 ),
 				'cpf_rf_encrypted' => 'enc_cpf',
 				'cpf_rf_hash'      => 'hash_cpf',
 			),

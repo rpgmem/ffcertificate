@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\RecordGenerator;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for RecordGenerator: working-hours formatting, custom-fields section
@@ -21,6 +22,16 @@ use FreeFormCertificate\Reregistration\RecordGenerator;
 class RecordGeneratorTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * A CPF in its `ddd.ddd.ddd-dd` display form, built from the standard fixture.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function mask_cpf( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -557,7 +568,7 @@ class RecordGeneratorTest extends TestCase {
 	public function test_decrypt_field_values_decrypts_a_row_whose_field_is_no_longer_sensitive(): void {
 		$enc = Mockery::mock('overload:FreeFormCertificate\Core\Encryption');
 		$enc->shouldReceive('looks_like_envelope')->with('v2:ENVELOPE')->andReturn( true );
-		$enc->shouldReceive('decrypt')->with('v2:ENVELOPE')->andReturn('12345678901');
+		$enc->shouldReceive('decrypt')->with('v2:ENVELOPE')->andReturn(Identifiers::CPF_A);
 
 		// The flag says NOT sensitive. The value says otherwise, and the value wins.
 		$field  = (object) ['field_key' => 'cpf', 'is_sensitive' => 0];
@@ -566,7 +577,7 @@ class RecordGeneratorTest extends TestCase {
 		$result = RecordGenerator::decrypt_field_values([$field], $values);
 
 		$this->assertSame(
-			'12345678901',
+			Identifiers::CPF_A,
 			$result['cpf'],
 			'A stored envelope must be decrypted whatever the flag currently says — otherwise the ciphertext is exported as the CPF.'
 		);
@@ -587,17 +598,17 @@ class RecordGeneratorTest extends TestCase {
 	 */
 	public function test_decrypt_field_values_never_attempts_a_plaintext_row_whose_field_became_sensitive(): void {
 		$enc = Mockery::mock('overload:FreeFormCertificate\Core\Encryption');
-		$enc->shouldReceive('looks_like_envelope')->with('123.456.789-01')->andReturn( false );
+		$enc->shouldReceive('looks_like_envelope')->with(self::mask_cpf( Identifiers::CPF_A ))->andReturn( false );
 		$enc->shouldNotReceive('decrypt');
 
 		// The flag says sensitive. The value is a formatted CPF, which no
 		// `encrypt()` ever produced.
 		$field  = (object) ['field_key' => 'cpf', 'is_sensitive' => 1];
-		$values = ['cpf' => '123.456.789-01'];
+		$values = ['cpf' => self::mask_cpf( Identifiers::CPF_A )];
 
 		$result = RecordGenerator::decrypt_field_values([$field], $values);
 
-		$this->assertSame('123.456.789-01', $result['cpf'], 'A plaintext value must survive untouched.');
+		$this->assertSame(self::mask_cpf( Identifiers::CPF_A ), $result['cpf'], 'A plaintext value must survive untouched.');
 	}
 
 	// ==================================================================

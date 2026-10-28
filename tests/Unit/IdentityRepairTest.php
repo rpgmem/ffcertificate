@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Maintenance\IdentityRepair;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Rewriting a stored RF (#1368).
@@ -364,16 +365,14 @@ class IdentityRepairTest extends TestCase {
 	/**
 	 * An RF whose check digit matches.
 	 *
-	 * 7·1+6·2+5·3+4·4+3·5+2·6 = 77; 77 mod 11 = 0; dv = (11−0) mod 10 = 1.
-	 * Worth spelling out because r = 0 is one of the two residues that both
-	 * yield dv = 1 — the scheme's blind spot, recorded in #1345.
+	 * 7·5+6·1+5·8+4·1+3·7+2·8 = 122; 122 mod 11 = 1; dv = (11−1) mod 10 = 0.
 	 */
-	private const GOOD_RF = '1234561';
+	private const GOOD_RF = Identifiers::RF_A;
 
 	/**
 	 * The same six digits under the wrong check digit.
 	 */
-	private const BAD_RF = '1234560';
+	private const BAD_RF = Identifiers::RF_BAD_CHECK_DIGIT;
 
 	/**
 	 * A value whose check digit does not match is refused, and nothing is
@@ -866,7 +865,7 @@ class IdentityRepairTest extends TestCase {
 	/**
 	 * A valid CPF, by the two-check-digit rule `validate_cpf()` applies.
 	 */
-	private const GOOD_CPF = '52998224725';
+	private const GOOD_CPF = Identifiers::CPF_A;
 
 	/**
 	 * The mechanical case end to end: two hashes in, no value anywhere.
@@ -994,7 +993,7 @@ class IdentityRepairTest extends TestCase {
 	public function test_it_refuses_a_cpf_failing_its_check_digits(): void {
 		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
 
-		$result = $this->repair()->repair( 'subject', '52998224724', 0, 'cpf' );
+		$result = $this->repair()->repair( 'subject', Identifiers::CPF_BAD_CHECK_DIGIT, 0, 'cpf' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'ffc_identity_repair_invalid', $result->get_error_code() );

@@ -25,6 +25,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\UserDashboard\UserProfileFieldMap;
 use FreeFormCertificate\UserDashboard\UserProfileService;
 use FreeFormCertificate\UserDashboard\ViewPolicy;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * @covers \FreeFormCertificate\UserDashboard\UserProfileService
@@ -54,6 +55,26 @@ class UserProfileServiceTest extends TestCase {
 	 * @var array<string, mixed>|null
 	 */
 	private ?array $profile_row;
+
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
+
+	/**
+	 * A CPF as `DocumentFormatter::mask_cpf()` shows it: the first three digits
+	 * and the last two.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function cpf_mask( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.***.***-' . substr( $cpf, -2 );
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -182,16 +203,16 @@ class UserProfileServiceTest extends TestCase {
 	 */
 	public function test_read_usermeta_masks_sensitive_field_by_default(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( '51817842080' );
+		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( Identifiers::CPF_A );
 
 		$fmt = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmt->shouldReceive( 'mask_any' )->with( 'cpf', '51817842080' )->once()->andReturn( '123.***.***-01' );
+		$fmt->shouldReceive( 'mask_any' )->with( 'cpf', Identifiers::CPF_A )->once()->andReturn( self::cpf_mask( Identifiers::CPF_A ) );
 
 		$this->usermeta_store[42] = array( 'ffc_user_cpf' => 'ENC_CPF' );
 
 		$result = UserProfileService::read( 42, array( 'cpf' ) );
 
-		$this->assertSame( '123.***.***-01', $result['cpf'] );
+		$this->assertSame( self::cpf_mask( Identifiers::CPF_A ), $result['cpf'] );
 	}
 
 	/**
@@ -200,7 +221,7 @@ class UserProfileServiceTest extends TestCase {
 	 */
 	public function test_read_usermeta_returns_full_plaintext_when_policy_is_full(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( '51817842080' );
+		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( Identifiers::CPF_A );
 
 		// FULL policy triggers an audit entry via ActivityLog::log; stub it.
 		$log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
@@ -222,7 +243,7 @@ class UserProfileServiceTest extends TestCase {
 
 		$result = UserProfileService::read( 42, array( 'cpf' ), ViewPolicy::FULL );
 
-		$this->assertSame( '51817842080', $result['cpf'] );
+		$this->assertSame( Identifiers::CPF_A, $result['cpf'] );
 	}
 
 	/**
@@ -268,10 +289,10 @@ class UserProfileServiceTest extends TestCase {
 	 */
 	public function test_read_does_not_audit_masked_reads_even_for_sensitive_fields(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->andReturn( '51817842080' );
+		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->andReturn( Identifiers::CPF_A );
 
 		$fmt = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmt->shouldReceive( 'mask_any' )->andReturn( '123.***.***-01' );
+		$fmt->shouldReceive( 'mask_any' )->andReturn( self::cpf_mask( Identifiers::CPF_A ) );
 
 		// ActivityLog::log must NEVER be called on MASKED reads.
 		$log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
@@ -400,10 +421,10 @@ class UserProfileServiceTest extends TestCase {
 	 */
 	public function test_write_encrypts_sensitive_usermeta_and_stores_hash(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'encrypt' )->with( '51817842080' )->once()->andReturn( 'ENC' );
-		$enc->shouldReceive( 'hash' )->with( '51817842080' )->once()->andReturn( 'HASH' );
+		$enc->shouldReceive( 'encrypt' )->with( Identifiers::CPF_A )->once()->andReturn( 'ENC' );
+		$enc->shouldReceive( 'hash' )->with( Identifiers::CPF_A )->once()->andReturn( 'HASH' );
 
-		$result = UserProfileService::write( 42, array( 'cpf' => '51817842080' ) );
+		$result = UserProfileService::write( 42, array( 'cpf' => Identifiers::CPF_A ) );
 
 		$this->assertTrue( $result );
 		$this->assertSame( 'ENC', $this->usermeta_store[42]['ffc_user_cpf'] );
@@ -421,14 +442,14 @@ class UserProfileServiceTest extends TestCase {
 	 * **This is the defect that made #1313 necessary, stated as an
 	 * assertion.** This method used to encrypt and hash the value exactly as
 	 * handed to it, so a reregistration submitting the masked
-	 * `123.456.789-09` — which is what the form's own input mask produces —
+	 * `xxx.xxx.xxx-xx` form — which is what the form's own input mask produces —
 	 * wrote a hash of the punctuation, while submissions, appointments and
 	 * recruitment all wrote a hash of the digits. One person, two values,
 	 * never matching.
 	 *
 	 * The test above passes a value that is ALREADY digits, so it was green
 	 * throughout and could never have caught this. That is why the mask is the
-	 * whole point of this one: `with( '12345678909' )` fails if the raw string
+	 * whole point of this one: `with( Identifiers::CPF_A )` fails if the raw string
 	 * reaches `Encryption` again.
 	 *
 	 * @runInSeparateProcess
@@ -436,10 +457,10 @@ class UserProfileServiceTest extends TestCase {
 	 */
 	public function test_write_normalizes_a_masked_cpf_before_encrypting_and_hashing(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'encrypt' )->with( '12345678909' )->once()->andReturn( 'ENC' );
-		$enc->shouldReceive( 'hash' )->with( '12345678909' )->once()->andReturn( 'HASH' );
+		$enc->shouldReceive( 'encrypt' )->with( Identifiers::CPF_A )->once()->andReturn( 'ENC' );
+		$enc->shouldReceive( 'hash' )->with( Identifiers::CPF_A )->once()->andReturn( 'HASH' );
 
-		$result = UserProfileService::write( 42, array( 'cpf' => '123.456.789-09' ) );
+		$result = UserProfileService::write( 42, array( 'cpf' => self::masked( Identifiers::CPF_A ) ) );
 
 		$this->assertTrue( $result );
 		$this->assertSame( 'ENC', $this->usermeta_store[42]['ffc_user_cpf'] );

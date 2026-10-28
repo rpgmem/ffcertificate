@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Recruitment\RecruitmentCsvImporter;
 use FreeFormCertificate\Recruitment\CsvParser;
 use FreeFormCertificate\Recruitment\CsvValidator;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for RecruitmentCsvImporter.
@@ -100,7 +101,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 
 	public function test_parse_strips_utf8_bom(): void {
 		$bom = "\xEF\xBB\xBF";
-		$csv = $bom . "name,cpf,rf,email,adjutancy,rank,score,pcd\nAlice,12345678901,,a@b.com,mat,1,90,Sim";
+		$csv = $bom . "name,cpf,rf,email,adjutancy,rank,score,pcd\nAlice," . Identifiers::CPF_A . ",,a@b.com,mat,1,90,Sim";
 
 		$result = RecruitmentCsvImporter::parse( $csv );
 
@@ -111,11 +112,11 @@ class RecruitmentCsvImporterTest extends TestCase {
 
 	public function test_parse_skips_completely_empty_rows(): void {
 		$csv = "name,cpf,rf,email,adjutancy,rank,score,pcd\n"
-			. "Alice,12345678901,,a@b.com,mat,1,90,Sim\n"
+			. "Alice," . Identifiers::CPF_A . ",,a@b.com,mat,1,90,Sim\n"
 			. "\n"
 			. "    \n"
 			. ",,,,,,,\n"
-			. "Bob,98765432100,,b@b.com,mat,2,80,Não\n";
+			. "Bob," . Identifiers::CPF_B . ",,b@b.com,mat,2,80,Não\n";
 
 		$result = RecruitmentCsvImporter::parse( $csv );
 
@@ -127,9 +128,9 @@ class RecruitmentCsvImporterTest extends TestCase {
 
 	public function test_parse_records_line_numbers_for_each_row(): void {
 		$csv = "name,cpf,rf,email,adjutancy,rank,score,pcd\n"
-			. "Alice,12345678901,,a@b.com,mat,1,90,Sim\n"
+			. "Alice," . Identifiers::CPF_A . ",,a@b.com,mat,1,90,Sim\n"
 			. "\n"
-			. "Bob,98765432100,,b@b.com,mat,2,80,Não\n";
+			. "Bob," . Identifiers::CPF_B . ",,b@b.com,mat,2,80,Não\n";
 
 		$result = RecruitmentCsvImporter::parse( $csv );
 
@@ -139,7 +140,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 
 	public function test_parse_handles_optional_phone_column_when_present(): void {
 		$csv = "name,cpf,rf,email,adjutancy,rank,score,pcd,phone\n"
-			. "Alice,12345678901,,a@b.com,mat,1,90,Sim,11999998888";
+			. "Alice," . Identifiers::CPF_A . ",,a@b.com,mat,1,90,Sim,11999998888";
 
 		$result = RecruitmentCsvImporter::parse( $csv );
 
@@ -149,7 +150,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 
 	public function test_parse_defaults_phone_to_empty_when_column_missing(): void {
 		$csv = "name,cpf,rf,email,adjutancy,rank,score,pcd\n"
-			. "Alice,12345678901,,a@b.com,mat,1,90,Sim";
+			. "Alice," . Identifiers::CPF_A . ",,a@b.com,mat,1,90,Sim";
 
 		$result = RecruitmentCsvImporter::parse( $csv );
 
@@ -162,13 +163,13 @@ class RecruitmentCsvImporterTest extends TestCase {
 		// locale decimal separator. The importer must detect and use
 		// it transparently.
 		$csv = "name;cpf;rf;email;adjutancy;rank;score;pcd\n"
-			. "Alice;12345678901;;a@b.com;mat;1;90;Sim";
+			. "Alice;" . Identifiers::CPF_A . ";;a@b.com;mat;1;90;Sim";
 
 		$result = RecruitmentCsvImporter::parse( $csv );
 
 		$this->assertTrue( $result['ok'] );
 		$this->assertSame( 'Alice', $result['rows'][0]['name'] );
-		$this->assertSame( '12345678901', $result['rows'][0]['cpf'] );
+		$this->assertSame( Identifiers::CPF_A, $result['rows'][0]['cpf'] );
 		$this->assertSame( 'mat', $result['rows'][0]['adjutancy'] );
 	}
 
@@ -176,7 +177,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 		// Tie-breaker: `,` wins when counts are equal, and obviously when
 		// `,` outnumbers `;`. This pins the default behaviour.
 		$csv = "name,cpf,rf,email,adjutancy,rank,score,pcd\n"
-			. "Alice,12345678901,,a@b.com,mat,1,90,Sim";
+			. "Alice," . Identifiers::CPF_A . ",,a@b.com,mat,1,90,Sim";
 
 		$result = RecruitmentCsvImporter::parse( $csv );
 
@@ -186,7 +187,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 
 	public function test_parse_accepts_crlf_line_endings(): void {
 		$csv = "name,cpf,rf,email,adjutancy,rank,score,pcd\r\n"
-			. "Alice,12345678901,,a@b.com,mat,1,90,Sim\r\n";
+			. "Alice," . Identifiers::CPF_A . ",,a@b.com,mat,1,90,Sim\r\n";
 
 		$result = RecruitmentCsvImporter::parse( $csv );
 
@@ -276,7 +277,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array() );
 
 		$csv = "name,cpf,rf,email,adjutancy,rank,score,pcd\n"
-			. "Alice,12345678901,,a@b.com,mat,1,90,Sim";
+			. "Alice," . Identifiers::CPF_A . ",,a@b.com,mat,1,90,Sim";
 
 		$result = RecruitmentCsvImporter::import_preview( 5, $csv );
 
@@ -303,27 +304,29 @@ class RecruitmentCsvImporterTest extends TestCase {
 	}
 
 	public function test_normalise_cpf_passes_through_canonical_value(): void {
-		$out = $this->normalise( '51817842080', 11 );
-		$this->assertSame( '51817842080', $out['value'] );
+		$out = $this->normalise( Identifiers::CPF_A, 11 );
+		$this->assertSame( Identifiers::CPF_A, $out['value'] );
 		$this->assertFalse( $out['too_long'] );
 	}
 
 	public function test_normalise_cpf_strips_dots_and_dash(): void {
 		$out = $this->normalise( '518.178.420-80', 11 );
-		$this->assertSame( '51817842080', $out['value'] );
+		$this->assertSame( Identifiers::CPF_A, $out['value'] );
 		$this->assertFalse( $out['too_long'] );
 	}
 
 	public function test_normalise_cpf_pads_short_value_with_leading_zeros(): void {
 		// 10 digits → padded to 11.
-		$out = $this->normalise( '1234567890', 11 );
-		$this->assertSame( '01234567890', $out['value'] );
+		$out = $this->normalise( substr( Identifiers::CPF_LEADING_ZERO, 1 ), 11 );
+		$this->assertSame( Identifiers::CPF_LEADING_ZERO, $out['value'] );
 		$this->assertFalse( $out['too_long'] );
 	}
 
 	public function test_normalise_cpf_pads_very_short_value(): void {
+		// The padding itself is the subject, so the expectation is built the
+		// way the importer builds it rather than written as a CPF-wide literal.
 		$out = $this->normalise( '5', 11 );
-		$this->assertSame( '00000000005', $out['value'] );
+		$this->assertSame( str_pad( '5', 11, '0', STR_PAD_LEFT ), $out['value'] );
 	}
 
 	public function test_normalise_cpf_rejects_too_long_value(): void {
@@ -370,7 +373,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 	public function test_normalise_strips_spaces_and_slashes(): void {
 		// Pathological formatting still produces clean digits.
 		$out = $this->normalise( ' 518  / 178 / 420 - 80 ', 11 );
-		$this->assertSame( '51817842080', $out['value'] );
+		$this->assertSame( Identifiers::CPF_A, $out['value'] );
 		$this->assertFalse( $out['too_long'] );
 	}
 
@@ -419,7 +422,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 				// checking. Do not "simplify" it back to a repeated or sequential
 				// value: `validate_cpf()` refuses both, so a fixture that is not a
 				// CPF makes every test here assert the rejection path by accident.
-				'cpf'       => '51817842080',
+				'cpf'       => Identifiers::CPF_A,
 				'rf'        => '',
 				'email'     => 'alice@example.test',
 				'phone'     => '',
@@ -628,8 +631,8 @@ class RecruitmentCsvImporterTest extends TestCase {
 		// check passes and the candidate-field divergence rule fires: the
 		// first row is the reference, the second diverges on `name`.
 		$rows = array(
-			$this->csv_row( array( '_line' => 2, 'cpf' => '51817842080', 'name' => 'Alice', 'adjutancy' => 'mat' ) ),
-			$this->csv_row( array( '_line' => 3, 'cpf' => '51817842080', 'name' => 'Alicia', 'adjutancy' => 'por' ) ),
+			$this->csv_row( array( '_line' => 2, 'cpf' => Identifiers::CPF_A, 'name' => 'Alice', 'adjutancy' => 'mat' ) ),
+			$this->csv_row( array( '_line' => 3, 'cpf' => Identifiers::CPF_A, 'name' => 'Alicia', 'adjutancy' => 'por' ) ),
 		);
 
 		$errors = $this->validate_rows(
@@ -684,7 +687,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 	 * a value the pad repaired from one it manufactured.
 	 */
 	public function test_validate_accepts_a_cpf_the_zero_padding_repairs(): void {
-		$rows   = array( $this->csv_row( array( 'cpf' => '1234567890' ) ) );
+		$rows   = array( $this->csv_row( array( 'cpf' => substr( Identifiers::CPF_LEADING_ZERO, 1 ) ) ) );
 		$errors = $this->validate_rows( $rows );
 
 		$this->assertEmpty(

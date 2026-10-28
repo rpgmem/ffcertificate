@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Recruitment\CsvStagingService;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for CsvStagingService — the four-phase batched CSV import
@@ -113,7 +114,7 @@ class CsvStagingServiceTest extends TestCase {
 		return array(
 			'_line'       => 2,
 			'name'        => 'Alice',
-			'cpf'         => '123.456.789-01',
+			'cpf'         => substr( Identifiers::CPF_A, 0, 3 ) . '.' . substr( Identifiers::CPF_A, 3, 3 ) . '.' . substr( Identifiers::CPF_A, 6, 3 ) . '-' . substr( Identifiers::CPF_A, 9 ),
 			'rf'          => '',
 			'email'       => 'ALICE@test.com',
 			'phone'       => '11999',

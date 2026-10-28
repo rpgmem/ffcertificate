@@ -12,6 +12,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Security\RateLimiter;
 use FreeFormCertificate\Security\RateLimitChecker;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for RateLimiter: settings caching, check methods, verification, user limits.
@@ -19,6 +20,16 @@ use FreeFormCertificate\Security\RateLimitChecker;
 class RateLimiterTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * A CPF in its `ddd.ddd.ddd-dd` display form, built from the standard fixture.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function mask_cpf( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -392,11 +403,11 @@ class RateLimiterTest extends TestCase {
 				'ips'            => array(),
 				'emails'         => array(),
 				'email_domains'  => array(),
-				'cpfs'           => array( '12345678901' ),
+				'cpfs'           => array( Identifiers::CPF_A ),
 			),
 		) );
 
-		$result = RateLimiter::check_all( '10.0.0.1', null, '123.456.789-01', null );
+		$result = RateLimiter::check_all( '10.0.0.1', null, self::mask_cpf( Identifiers::CPF_A ), null );
 
 		$this->assertFalse( $result['allowed'] );
 	}
@@ -896,7 +907,7 @@ class RateLimiterTest extends TestCase {
 	private function stub_cpf_normalizer(): void {
 		// The CPF passes through DataSanitizer::normalize_cpf_rf, which
 		// strips punctuation. We pre-strip in our stubs so the test
-		// input "123.456.789-01" reaches the gate machinery as "12345678901".
+		// masked input reaches the gate machinery as its bare digits.
 		// No mock needed — the real function is pure and safe to invoke.
 	}
 
@@ -908,7 +919,7 @@ class RateLimiterTest extends TestCase {
 		// A non-empty return trips the gate.
 		$wpdb->shouldReceive( 'get_var' )->andReturn( '2099-12-31 23:59:59' );
 
-		$r = RateLimiter::check_cpf_limit( '12345678901', 7 );
+		$r = RateLimiter::check_cpf_limit( Identifiers::CPF_A, 7 );
 
 		$this->assertFalse( $r['allowed'] );
 		$this->assertSame( 'cpf_blocked', $r['reason'] );
@@ -930,7 +941,7 @@ class RateLimiterTest extends TestCase {
 			}
 		);
 
-		$r = RateLimiter::check_cpf_limit( '12345678901', 7 );
+		$r = RateLimiter::check_cpf_limit( Identifiers::CPF_A, 7 );
 
 		$this->assertFalse( $r['allowed'] );
 		$this->assertSame( 'cpf_month_limit', $r['reason'] );
@@ -961,7 +972,7 @@ class RateLimiterTest extends TestCase {
 			}
 		);
 
-		$r = RateLimiter::check_cpf_limit( '12345678901', 7 );
+		$r = RateLimiter::check_cpf_limit( Identifiers::CPF_A, 7 );
 
 		$this->assertTrue( $r['allowed'] );
 	}

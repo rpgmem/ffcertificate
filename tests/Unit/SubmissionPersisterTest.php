@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\Submission\SubmissionPersister;
 use FreeFormCertificate\Frontend\Submission\SubmissionContext;
 use FreeFormCertificate\Frontend\Submission\SubmissionRejected;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for SubmissionPersister — the submission persistence + reprint/quiz
@@ -849,13 +850,13 @@ class SubmissionPersisterTest extends TestCase {
 	public function test_find_quiz_submission_uses_rf_column_for_7_digits(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
 		$enc->shouldReceive( 'is_configured' )->andReturn( true );
-		$enc->shouldReceive( 'hash' )->with( '1234567' )->andReturn( 'rfhash' );
+		$enc->shouldReceive( 'hash' )->with( Identifiers::RF_A )->andReturn( 'rfhash' );
 
 		$srepo = Mockery::mock( 'alias:FreeFormCertificate\\Repositories\\SubmissionRepository' );
 		$srepo->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' );
 
 		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
-		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '1234567' );
+		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( Identifiers::RF_A );
 		$ds->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 
 		$row = (object) array( 'id' => '11' );
@@ -868,7 +869,7 @@ class SubmissionPersisterTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $row );
 
 		$persister = new SubmissionPersister( $this->bareHandler() );
-		$this->assertSame( $row, $persister->find_quiz_submission( 5, '1234567' ) );
+		$this->assertSame( $row, $persister->find_quiz_submission( 5, Identifiers::RF_A ) );
 	}
 
 	/**

@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\API\UserProfileRestController;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for UserProfileRestController: route registration, permission checks,
@@ -34,6 +35,24 @@ class UserProfileRestControllerTest extends TestCase {
 
 	/** @var Mockery\MockInterface Mock RateLimiter */
 	private $rate_limiter_mock;
+
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
+
+	/**
+	 * An RF in the `xxx.xxx-x` mask.
+	 *
+	 * @param string $rf Seven digits.
+	 */
+	private static function masked_rf( string $rf ): string {
+		return substr( $rf, 0, 3 ) . '.' . substr( $rf, 3, 3 ) . '-' . substr( $rf, 6 );
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -428,7 +447,7 @@ class UserProfileRestControllerTest extends TestCase {
 		$this->view_as_user_five();
 		$query = Mockery::mock( 'alias:FreeFormCertificate\Services\UserIdentifiersQueryService' );
 		$query->shouldReceive( 'get_cpfs_formatted_for_user' )->once()->with( 5 )
-			->andReturn( array( '123.456.789-01', '765.432-1' ) );
+			->andReturn( array( self::masked( Identifiers::CPF_A ), self::masked_rf( Identifiers::RF_A ) ) );
 		$this->activity_log_mock->shouldReceive( 'log' )->once()
 			->with( 'user_profile_pii_revealed', 'info', array( 'field_key' => 'cpf_rf', 'view_as' => true, 'subject_user_id' => 5 ), 1, 0 )
 			->andReturn( true );
@@ -438,8 +457,8 @@ class UserProfileRestControllerTest extends TestCase {
 		$this->assertSame(
 			array(
 				'field'  => 'cpf_rf',
-				'values' => array( '123.456.789-01', '765.432-1' ),
-				'value'  => '123.456.789-01',
+				'values' => array( self::masked( Identifiers::CPF_A ), self::masked_rf( Identifiers::RF_A ) ),
+				'value'  => self::masked( Identifiers::CPF_A ),
 			),
 			$result
 		);
@@ -461,12 +480,12 @@ class UserProfileRestControllerTest extends TestCase {
 		$this->stub_profile_reload();
 		$query = Mockery::mock( 'alias:FreeFormCertificate\Services\UserIdentifiersQueryService' );
 		$query->shouldReceive( 'get_cpfs_formatted_for_user' )->once()->with( 5 )
-			->andReturn( array( '123.456.789-01' ) );
+			->andReturn( array( self::masked( Identifiers::CPF_A ) ) );
 		$this->activity_log_mock->shouldNotReceive( 'log' );
 
 		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'field' => 'cpf_rf' ) ) );
 
-		$this->assertSame( '123.456.789-01', $result['value'] );
+		$this->assertSame( self::masked( Identifiers::CPF_A ), $result['value'] );
 	}
 
 	public function test_reveal_of_cpf_rf_refuses_a_viewer_the_policy_denies(): void {

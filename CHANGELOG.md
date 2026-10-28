@@ -30,6 +30,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Tests: eight more classes run in the shared process** (#2131). The user summary, user service, attendance, post-event form, reregistration actions, classification filter, reregistrations REST and check-in endpoint tests run their real repositories and services over a `$wpdb` double; none needs a process of its own.
 - **Tests: eight more classes run in the shared process** (#2134). The key-health notice, form-invite resolver, date-messages digest, notices REST, reregistration details, pending post-event forms, reason edit page and call ICS tests run their real repositories and services over a `$wpdb` double; only the healthy-keys test keeps its own process, because the bootstrap's keys cannot report healthy without a `define()`.
 - **Tests: eight more classes run in the shared process** (#2136). The reregistration import, recruitment dispatch, user certificates and appointments REST, identity-index backfill, activator migration, user capabilities and operator certificates tests run their real services over a `$wpdb` double; one test keeps its own process, for an unreadable pending count the real normalization strategy cannot produce.
+- **Tests: every CPF and RF fixture is a standard identifier** (#2138). About sixty test files carried their own values, some of them invalid without saying so; they now use `tests/Support/Identifiers.php`, which gains a valid CPF with a leading zero. The fixture guard also scans bare, masked CPF and masked RF literals, not only values under an identifier key.
 - **Tests: eight more classes run in the shared process** (#2142). The recruitment adjutancy, reason, notice and candidate list tables, the appointments list table and view, the adjutancies REST controller and the CSV download validator now run their real repositories over a `$wpdb` double; one validator test keeps its own process.
 
 ### Deprecated
@@ -47,6 +48,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The ALTCHA and device-test throttles count IPv6 by subscriber and let an unidentified address choose** (#2106). An address is canonicalised and an IPv6 caller counted by its /64 (`Core\IpAddress`); a visitor whose address cannot be read is let through by default, or counted together, per card on the Rate Limit tab. It used to share one bucket.
 - **The Rate Limit IP allow and deny lists accept IPv6 and CIDR ranges** (#2109). Lines are validated on save, stored canonical and matched by range through `Core\IpAddress`, shared with the trusted proxies; a line that is not an address or range is named on screen. An IPv4 address inside IPv6 masks as IPv4.
 - **A user's appointments and a calendar's appointments list by appointment date again** (#2137). The appointment reader's ORDER BY allowlist lacked `appointment_date`, so both listings silently sorted by `id` (creation order); the reader and its façade now share one list.
+- **The audience import sample's RF passes its own check digit** (#2138). The sample CSV offered an RF the importer refuses; its rows now carry a valid CPF and RF.
 
 ### Security
 

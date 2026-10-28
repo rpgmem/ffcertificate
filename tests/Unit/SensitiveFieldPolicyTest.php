@@ -32,6 +32,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Repositories\AppointmentRepository;
 use FreeFormCertificate\Submissions\SubmissionHandler;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * @coversNothing Cross-class characterization test (SubmissionHandler +
@@ -325,7 +326,7 @@ class SensitiveFieldPolicyTest extends TestCase {
 		$this->wpdb->insert_id = 1;
 
 		$email = 'Bob@Example.com';
-		$cpf   = '98765432100';
+		$cpf   = Identifiers::CPF_A;
 		$repo->createAppointment( array(
 			'calendar_id'        => 5,
 			'confirmation_token' => 't',

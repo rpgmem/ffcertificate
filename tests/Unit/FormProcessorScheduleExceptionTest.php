@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\Submission\SubmissionPersister;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for `FormProcessor::persist_schedule_exception()` — the Sprint 6
@@ -126,7 +127,7 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 				)
 			);
 
-		$this->invoke_persist( 555, 42, $this->full_payload(), '12345678900' );
+		$this->invoke_persist( 555, 42, $this->full_payload(), Identifiers::CPF_A );
 	}
 
 	public function test_persist_writes_only_present_override_when_one_end_is_null(): void {
@@ -138,7 +139,7 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 			555,
 			42,
 			$this->full_payload( array( 'start' => null ) ),
-			'12345678900'
+			Identifiers::CPF_A
 		);
 	}
 
@@ -154,7 +155,7 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 					'end'   => null,
 				)
 			),
-			'12345678900'
+			Identifiers::CPF_A
 		);
 	}
 
@@ -163,7 +164,7 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 	// ==================================================================
 
 	public function test_persist_emits_two_audit_rows_with_correct_context(): void {
-		$this->invoke_persist( 555, 42, $this->full_payload(), '12345678900' );
+		$this->invoke_persist( 555, 42, $this->full_payload(), Identifiers::CPF_A );
 
 		$audit = self::audit_rows();
 		$this->assertCount( 2, $audit );
@@ -173,7 +174,7 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 		$this->assertSame( 'info', $override_row['level'] );
 		$this->assertSame( 42, $override_row['context']['form_id'] );
 		$this->assertSame( 555, $override_row['context']['submission_id'] );
-		$this->assertSame( hash( 'sha256', '12345678900' ), $override_row['context']['participant_cpf_hash'] );
+		$this->assertSame( hash( 'sha256', Identifiers::CPF_A ), $override_row['context']['participant_cpf_hash'] );
 		$this->assertSame( str_repeat( 'a', 64 ), $override_row['context']['operator_cpf_hash'] );
 		$this->assertSame( '123.***.***-45', $override_row['context']['operator_cpf_masked'] );
 		$this->assertSame( '08:00', $override_row['context']['schedule_start_after'] );
@@ -207,7 +208,7 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 					'end'   => null,
 				)
 			),
-			'12345678900'
+			Identifiers::CPF_A
 		);
 
 		$audit = self::audit_rows();
@@ -267,7 +268,7 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 				)
 			);
 
-		$applied = $this->invoke_maybe_persist( 555, 42, $this->full_payload(), '12345678900' );
+		$applied = $this->invoke_maybe_persist( 555, 42, $this->full_payload(), Identifiers::CPF_A );
 
 		$this->assertTrue( $applied );
 	}
@@ -279,7 +280,7 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 		$this->mock_consume_wpdb( 0 );
 		$this->repo->shouldReceive( 'update' )->never();
 
-		$applied = $this->invoke_maybe_persist( 555, 42, $this->full_payload(), '12345678900' );
+		$applied = $this->invoke_maybe_persist( 555, 42, $this->full_payload(), Identifiers::CPF_A );
 
 		$this->assertFalse( $applied );
 		$this->assertSame( array(), ActivityLogBuffer::entries() );

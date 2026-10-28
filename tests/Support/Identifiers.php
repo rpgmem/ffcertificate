@@ -98,6 +98,18 @@ final class Identifiers {
 	public const RF_C = '7310242';
 
 	/**
+	 * A valid CPF that starts with zero (#2138).
+	 *
+	 * The case a spreadsheet creates: a numeric column drops the leading zero,
+	 * so `01234567890` arrives as `1234567890` and the import pads it back. A
+	 * test of that repair needs a real CPF with a leading zero, and none of the
+	 * three people above has one.
+	 *
+	 * @var string
+	 */
+	public const CPF_LEADING_ZERO = '01234567890';
+
+	/**
 	 * Eleven identical digits: refused STRUCTURALLY, before any digit is computed.
 	 *
 	 * Use this to exercise the repetition guard. It cannot show that a check
@@ -130,7 +142,7 @@ final class Identifiers {
 	 * @return array<int, string>
 	 */
 	public static function valid_cpfs(): array {
-		return array( self::CPF_A, self::CPF_B, self::CPF_C );
+		return array( self::CPF_A, self::CPF_B, self::CPF_C, self::CPF_LEADING_ZERO );
 	}
 
 	/**

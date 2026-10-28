@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Maintenance\IdentityRepair;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Correcting the document on ONE of two logins (#1397 sprint 4).
@@ -36,7 +37,7 @@ class IdentityScopedRepairTest extends TestCase {
 	 *
 	 * @var string
 	 */
-	private const GOOD_RF = '1234561';
+	private const GOOD_RF = Identifiers::RF_A;
 
 	/**
 	 * Every row each table holds, keyed by table.

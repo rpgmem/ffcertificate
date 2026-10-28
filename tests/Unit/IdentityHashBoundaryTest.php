@@ -7,6 +7,7 @@ use Brain\Monkey;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\SensitiveFieldRegistry;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * The identity hash boundary: one canonical form per identifier (#1313).
@@ -17,7 +18,7 @@ use FreeFormCertificate\Core\SensitiveFieldRegistry;
  * everywhere. What was NOT one thing is the string handed to it, because that
  * was decided by each call site. Five sites normalised a CPF to digits and
  * `UserProfileService` hashed the value exactly as stored -- so a
- * reregistration holding the masked `123.456.789-09` wrote a hash of the
+ * reregistration holding a masked `xxx.xxx.xxx-xx` CPF wrote a hash of the
  * punctuation while submissions, appointments and recruitment wrote a hash of
  * the digits. The same person, two values, never matching.
  *
@@ -94,10 +95,13 @@ class IdentityHashBoundaryTest extends TestCase {
 	 * @return array<string, array{0: string, 1: string, 2: string}>
 	 */
 	public function masked_identifiers(): array {
+		$cpf = Identifiers::CPF_A;
+		$rf  = Identifiers::RF_A;
+
 		return array(
-			'cpf with the form mask'   => array( 'cpf', '123.456.789-09', '12345678909' ),
-			'cpf with spaces'          => array( 'cpf', ' 123 456 789 09 ', '12345678909' ),
-			'rf with the form mask'    => array( 'rf', '123.456-7', '1234567' ),
+			'cpf with the form mask'   => array( 'cpf', substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 ), $cpf ),
+			'cpf with spaces'          => array( 'cpf', ' ' . substr( $cpf, 0, 3 ) . ' ' . substr( $cpf, 3, 3 ) . ' ' . substr( $cpf, 6, 3 ) . ' ' . substr( $cpf, 9, 2 ) . ' ', $cpf ),
+			'rf with the form mask'    => array( 'rf', substr( $rf, 0, 3 ) . '.' . substr( $rf, 3, 3 ) . '-' . substr( $rf, 6, 1 ), $rf ),
 			'ticket lowercased'        => array( 'ticket', '  abc-123 ', 'ABC-123' ),
 		);
 	}

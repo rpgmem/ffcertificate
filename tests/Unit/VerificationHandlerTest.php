@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\VerificationHandler;
 use FreeFormCertificate\Submissions\SubmissionHandler;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for VerificationHandler: certificate search with fallback chain,
@@ -25,6 +26,15 @@ class VerificationHandlerTest extends TestCase {
 	private $submission_handler;
 	private $renderer;
 	private \ReflectionClass $ref;
+
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -918,7 +928,7 @@ class VerificationHandlerTest extends TestCase {
 			'user_id'           => '10',
 			'auth_code'         => 'REREG1234567',
 			'status'            => 'submitted',
-			'data'              => '{"fields":{"display_name":"Maria Silva","cpf":"111.222.333-44"}}',
+			'data'              => '{"fields":{"display_name":"Maria Silva","cpf":"' . self::masked( Identifiers::CPF_A ) . '"}}',
 			'magic_token'       => 'reregtoken123',
 			'submitted_at'      => '2026-02-15 10:00:00',
 		);
@@ -940,7 +950,7 @@ class VerificationHandlerTest extends TestCase {
 		$this->assertSame( 'reregistration', $result['type'] );
 		$this->assertSame( 'Rematrícula 2026', $result['reregistration']['title'] );
 		$this->assertSame( 'Maria Silva', $result['reregistration']['display_name'] );
-		$this->assertSame( '111.222.333-44', $result['reregistration']['cpf'] );
+		$this->assertSame( self::masked( Identifiers::CPF_A ), $result['reregistration']['cpf'] );
 		$this->assertSame( 'submitted', $result['reregistration']['status'] );
 	}
 
@@ -966,7 +976,7 @@ class VerificationHandlerTest extends TestCase {
 			'user_id'           => '20',
 			'auth_code'         => 'RTKN12345678',
 			'status'            => 'approved',
-			'data'              => '{"fields":{"display_name":"João","cpf":"555.666.777-88"}}',
+			'data'              => '{"fields":{"display_name":"João","cpf":"' . self::masked( Identifiers::CPF_B ) . '"}}',
 			'magic_token'       => 'magictoken64hex',
 			'submitted_at'      => '2026-02-10',
 		);

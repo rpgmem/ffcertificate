@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationFrontend;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for the parts of ReregistrationFrontend's AJAX endpoints that run
@@ -36,6 +37,15 @@ class ReregistrationFrontendFlowTest extends TestCase {
 
 	/** @var Mockery\MockInterface */
 	private $submissions;
+
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -153,7 +163,7 @@ class ReregistrationFrontendFlowTest extends TestCase {
 		$generator->shouldReceive( 'get_custom_fields_for_reregistration' )->with( $current )->andReturn( $current_fields );
 		$generator->shouldReceive( 'decrypt_field_values' )->once()
 			->with( $source_fields, array( 'cpf' => 'CIPHER', 'phone' => '', 'retired' => 'x', 'name' => 'Ana' ) )
-			->andReturn( array( 'cpf' => '529.982.247-25', 'phone' => '', 'retired' => 'x', 'name' => 'Ana' ) );
+			->andReturn( array( 'cpf' => self::masked( Identifiers::CPF_A ), 'phone' => '', 'retired' => 'x', 'name' => 'Ana' ) );
 
 		$this->call( 'ajax_import_previous' );
 
@@ -161,7 +171,7 @@ class ReregistrationFrontendFlowTest extends TestCase {
 			array(
 				'type' => 'success',
 				'data' => array(
-					'fields' => array( 'cpf' => '529.982.247-25', 'name' => 'Ana' ),
+					'fields' => array( 'cpf' => self::masked( Identifiers::CPF_A ), 'name' => 'Ana' ),
 					'source' => array( 'title' => 'Census 2025' ),
 				),
 			),

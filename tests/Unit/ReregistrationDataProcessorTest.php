@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationDataProcessor;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for ReregistrationDataProcessor: sanitization and validation logic
@@ -28,6 +29,16 @@ use FreeFormCertificate\Reregistration\ReregistrationDataProcessor;
 class ReregistrationDataProcessorTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * A CPF in its `ddd.ddd.ddd-dd` display form, built from the standard fixture.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function mask_cpf( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -241,7 +252,7 @@ class ReregistrationDataProcessorTest extends TestCase {
 			'sexo'               => 'Male',
 			'estado_civil'       => 'Single',
 			'data_nascimento'    => '1990-01-15',
-			'cpf'                => '529.982.247-25', // Valid CPF
+			'cpf'                => self::mask_cpf( Identifiers::CPF_A ), // Valid CPF
 			'divisao_setor'      => json_encode( array(
 				'parent' => 'DRE - Gabinete',
 				'child'  => 'Assessoria',
