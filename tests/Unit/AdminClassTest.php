@@ -33,6 +33,9 @@ class AdminClassTest extends TestCase {
 	/** @var bool Whether `$wpdb` was set before this test. */
 	private bool $had_wpdb = false;
 
+	/** @var list<string> Every read the list-page `$wpdb` double answered, rendered. */
+	private array $list_queries = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -303,22 +306,10 @@ class AdminClassTest extends TestCase {
 		$this->assertTrue( true );
 	}
 
-	/**
-	 * Its own process: render_list_page() builds SubmissionsList itself and calls
-	 * its views(), which the bootstrap's WP_List_Table stub does not declare, so
-	 * SubmissionsList stays an overload mock here.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_display_submissions_page_dispatches_to_list_render(): void {
 		list( $admin ) = $this->makeAdmin();
 		// No action -> default 'list' -> render_list_page news up SubmissionsList.
-		$list = Mockery::mock( 'overload:FreeFormCertificate\Admin\SubmissionsList' );
-		$list->shouldReceive( 'prepare_items' )->andReturnNull();
-		$list->shouldReceive( 'views' )->andReturnNull();
-		$list->shouldReceive( 'search_box' )->andReturnNull();
-		$list->shouldReceive( 'display' )->andReturnNull();
+		$this->use_list_wpdb();
 
 		ob_start();
 		$admin->display_submissions_page();
@@ -326,27 +317,23 @@ class AdminClassTest extends TestCase {
 
 		$this->assertStringContainsString( 'wp-heading-inline', $html );
 		$this->assertStringContainsString( 'ffc-csv-export-btn', $html );
+		$this->assertSame(
+			array(
+				'SELECT * FROM wp_ffc_submissions WHERE status = publish ORDER BY id DESC LIMIT 20 OFFSET 0',
+				'SELECT COUNT(*) FROM wp_ffc_submissions WHERE status = publish',
+			),
+			$this->list_queries,
+			'The list view must load its first page of published submissions.'
+		);
 	}
 
 	// ==================================================================
 	// render_list_page() filter/button branches (via display)
 	// ==================================================================
 
-	/**
-	 * Its own process: render_list_page() builds SubmissionsList itself and calls
-	 * its views(), which the bootstrap's WP_List_Table stub does not declare, so
-	 * SubmissionsList stays an overload mock here.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_render_list_page_export_all_button_default(): void {
 		list( $admin ) = $this->makeAdmin();
-		$list = Mockery::mock( 'overload:FreeFormCertificate\Admin\SubmissionsList' );
-		$list->shouldReceive( 'prepare_items' )->andReturnNull();
-		$list->shouldReceive( 'views' )->andReturnNull();
-		$list->shouldReceive( 'search_box' )->andReturnNull();
-		$list->shouldReceive( 'display' )->andReturnNull();
+		$this->use_list_wpdb();
 
 		ob_start();
 		$admin->display_submissions_page();
@@ -356,24 +343,12 @@ class AdminClassTest extends TestCase {
 		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-neutral ffc-icon-download" id="ffc-csv-export-btn"', $html );
 	}
 
-	/**
-	 * Its own process: render_list_page() builds SubmissionsList itself and calls
-	 * its views(), which the bootstrap's WP_List_Table stub does not declare, so
-	 * SubmissionsList stays an overload mock here.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_render_list_page_export_filtered_button_with_filters(): void {
 		list( $admin ) = $this->makeAdmin();
 		$_GET['status'] = 'trash';
 		$_GET['filter_form_id'] = array( '7', '9' );
 
-		$list = Mockery::mock( 'overload:FreeFormCertificate\Admin\SubmissionsList' );
-		$list->shouldReceive( 'prepare_items' )->andReturnNull();
-		$list->shouldReceive( 'views' )->andReturnNull();
-		$list->shouldReceive( 'search_box' )->andReturnNull();
-		$list->shouldReceive( 'display' )->andReturnNull();
+		$this->use_list_wpdb();
 
 		ob_start();
 		$admin->display_submissions_page();
@@ -383,25 +358,14 @@ class AdminClassTest extends TestCase {
 		// Neutral either way: exporting is not the screen's work (#1904).
 		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-neutral ffc-icon-download" id="ffc-csv-export-btn"', $html );
 		$this->assertStringContainsString( 'data-status="trash"', $html );
+		$this->assertStringContainsString( 'WHERE status = trash AND form_id IN (7, 9) ORDER BY', $this->list_queries[0], 'The table must query the filters the button exports.' );
 	}
 
-	/**
-	 * Its own process: render_list_page() builds SubmissionsList itself and calls
-	 * its views(), which the bootstrap's WP_List_Table stub does not declare, so
-	 * SubmissionsList stays an overload mock here.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_render_list_page_handles_scalar_filter_form_id(): void {
 		list( $admin ) = $this->makeAdmin();
 		$_GET['filter_form_id'] = '5';
 
-		$list = Mockery::mock( 'overload:FreeFormCertificate\Admin\SubmissionsList' );
-		$list->shouldReceive( 'prepare_items' )->andReturnNull();
-		$list->shouldReceive( 'views' )->andReturnNull();
-		$list->shouldReceive( 'search_box' )->andReturnNull();
-		$list->shouldReceive( 'display' )->andReturnNull();
+		$this->use_list_wpdb();
 
 		ob_start();
 		$admin->display_submissions_page();
@@ -409,6 +373,7 @@ class AdminClassTest extends TestCase {
 
 		$this->assertStringContainsString( 'Export Filtered CSV', $html );
 		$this->assertStringContainsString( '[5]', $html );
+		$this->assertStringContainsString( 'WHERE status = publish AND form_id IN (5) ORDER BY', $this->list_queries[0], 'A scalar filter must reach the query as one form id.' );
 	}
 
 	// ==================================================================
@@ -874,6 +839,46 @@ class AdminClassTest extends TestCase {
 
 		$this->assertSame( 'migration_error', $query_args->args['msg'] );
 		$this->assertSame( rawurlencode( 'failed' ), $query_args->args['error_msg'] );
+	}
+
+	/**
+	 * Install a `$wpdb` double for the real SubmissionsList: it records the two
+	 * reads prepare_items() runs and answers an empty page; any other query
+	 * fails the test.
+	 */
+	private function use_list_wpdb(): void {
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
+		$this->list_queries = array();
+
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				foreach ( $args as $v ) {
+					$sql = (string) preg_replace( '/%[ids]/', (string) $v, (string) $sql, 1 );
+				}
+				return $sql;
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$this->list_queries[] = $sql;
+				if ( 0 !== strpos( $sql, 'SELECT * FROM wp_ffc_submissions WHERE ' ) ) {
+					$this->fail( 'Unexpected get_results(): ' . $sql );
+				}
+				return array();
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				$this->list_queries[] = $sql;
+				if ( 0 !== strpos( $sql, 'SELECT COUNT(*) FROM wp_ffc_submissions WHERE ' ) ) {
+					$this->fail( 'Unexpected get_var(): ' . $sql );
+				}
+				return '0';
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
 	}
 
 	/**
