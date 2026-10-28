@@ -163,6 +163,33 @@ class AppointmentReceiptHandlerTest extends TestCase {
 		$handler->handle_receipt_request();
 	}
 
+	/**
+	 * The owner, signed in and without a token, passes the access check and
+	 * reaches the pending-status gate. `user_id` arrives as the string `$wpdb`
+	 * returns, which the strict comparison never matched (#2160).
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_handle_receipt_request_lets_the_signed_in_owner_through(): void {
+		$this->stub_query_var( '7', '' );
+		Functions\when( 'wp_die' )->alias( fn( $msg ) => throw new \RuntimeException( $msg ) );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+
+		Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' )
+			->shouldReceive( 'findById' )->with( 7 )->andReturn(
+				array( 'id' => '7', 'confirmation_token' => 'tok', 'status' => 'pending', 'user_id' => '5' )
+			);
+		Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
+
+		$handler = new AppointmentReceiptHandler();
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'awaiting admin approval' );
+		$handler->handle_receipt_request();
+	}
+
 	// ==================================================================
 	// handle_receipt_request() — pending appointment blocked for non-admin
 	// ==================================================================
