@@ -23,7 +23,7 @@ use FreeFormCertificate\Frontend\PreflightTelemetry;
  *     action / level / context shape (including the SHA-256 IP hash,
  *     not the raw IP).
  *
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class PreflightTelemetryTest extends TestCase {

@@ -13,7 +13,7 @@ use FreeFormCertificate\Tests\Support\ButtonMarkup;
 
 /**
  * @covers \FreeFormCertificate\Frontend\VerificationResponseRenderer
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class VerificationResponseRendererTest extends TestCase {

@@ -19,7 +19,7 @@ use FreeFormCertificate\Reregistration\ReregistrationEmailHandler;
  * row SEEN, so a row whose send fails cannot stall the queue.
  *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationEmailHandler
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class ReregistrationInvitationBatchTest extends TestCase {

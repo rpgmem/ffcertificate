@@ -15,7 +15,7 @@ use FreeFormCertificate\Migrations\Strategies\EmailHashRehashMigrationStrategy;
  * email_hash values using the salted Encryption::hash().
  *
  * @covers \FreeFormCertificate\Migrations\Strategies\EmailHashRehashMigrationStrategy
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class EmailHashRehashMigrationStrategyTest extends TestCase {

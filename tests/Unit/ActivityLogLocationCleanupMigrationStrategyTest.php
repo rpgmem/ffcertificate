@@ -15,7 +15,7 @@ use PHPUnit\Framework\TestCase;
  * logged visitors' positions are deleted, and nothing else (#2040).
  *
  * @covers \FreeFormCertificate\Migrations\Strategies\ActivityLogLocationCleanupMigrationStrategy
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class ActivityLogLocationCleanupMigrationStrategyTest extends TestCase {

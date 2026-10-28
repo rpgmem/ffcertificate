@@ -19,7 +19,7 @@ use FreeFormCertificate\Admin\PreflightStatsService;
  *   - All three reasons counted (cookies / gps_denied / gps_prompt)
  *   - Unknown reasons silently dropped (don't crash on bad data)
  *
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  * @covers \FreeFormCertificate\Admin\PreflightStatsService
  */

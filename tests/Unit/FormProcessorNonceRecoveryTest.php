@@ -19,7 +19,7 @@ use FreeFormCertificate\Submissions\SubmissionHandler;
  * fresh nonce. Without this, iOS Safari + cached-HTML hosts would
  * keep surfacing "Security check failed" even after the user reloads.
  *
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class FormProcessorNonceRecoveryTest extends TestCase {

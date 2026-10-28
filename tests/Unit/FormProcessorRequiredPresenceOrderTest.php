@@ -23,7 +23,7 @@ use FreeFormCertificate\Submissions\SubmissionHandler;
  *
  * This test pins both contracts.
  *
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class FormProcessorRequiredPresenceOrderTest extends TestCase {

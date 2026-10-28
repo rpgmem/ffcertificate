@@ -42,7 +42,7 @@ use FreeFormCertificate\Reregistration\ReregistrationEmailHandler;
  * is the scheduling and the cursor.
  *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationEmailHandler
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class ReregistrationReminderBatchTest extends TestCase {
