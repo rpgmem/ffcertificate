@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -15,51 +16,93 @@ use FreeFormCertificate\Audience\AudienceBookingRules;
  * skips when they are blocked, and the predicate that makes a stored range
  * occupy each of its days.
  *
- * The holiday check and the working-hours window are aliased, so each test
- * runs in its own process.
+ * The holiday check (DateBlockingService) and the environment repository are
+ * the real classes: global holidays come through a `get_option` stub, and the
+ * environment row and its own holidays through the `$wpdb` double below.
  *
  * @covers \FreeFormCertificate\Audience\AudienceBookingRules
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AudienceBookingRangeTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface */
-	private $global_holiday;
-
-	/** @var Mockery\MockInterface */
-	private $environment;
-
-	/** @var list<string> Global holidays the test sets, answered by the holiday alias. */
+	/** @var list<string> Global holidays the test sets, answered through `ffc_global_holidays`. */
 	private array $global_holidays = array();
 
-	/** @var array<string, mixed>|null Working hours the test sets, answered by the environment alias. */
+	/** @var list<string> The space's own holidays, answered by the holidays COUNT query. */
+	private array $space_holidays = array();
+
+	/** @var array<string, mixed>|null Working hours the test sets, stored as JSON on environment 1. */
 	private ?array $working_hours = null;
+
+	/** @var int How many times an environment row was read. */
+	private int $environment_reads = 0;
+
+	/** @var array<int, mixed> Arguments of the last prepare(). */
+	private array $bound = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		Monkey\Functions\when( '__' )->returnArg();
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'get_option' )->alias(
+			function ( $name, $default_value = false ) {
+				if ( 'ffc_global_holidays' === $name ) {
+					return array_map( static fn( string $date ): array => array( 'date' => $date ), $this->global_holidays );
+				}
+				return $default_value;
+			}
+		);
 
-		global $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' );
 		$wpdb->prefix = 'wp_';
 		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( string $text ): string => addcslashes( $text, '_%\\' ) );
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				$this->bound = is_array( $args[0] ?? null ) ? $args[0] : $args;
+				return $sql;
+			}
+		);
+		// AudienceEnvironmentRepository::get_by_id(): environment 1, in schedule 1.
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function () {
+				++$this->environment_reads;
+				if ( 'wp_ffc_audience_environments' !== $this->bound[0] || 1 !== (int) $this->bound[1] ) {
+					return null;
+				}
+				return (object) array(
+					'id'            => '1',
+					'schedule_id'   => '1',
+					'working_hours' => null === $this->working_hours ? null : json_encode( $this->working_hours ),
+				);
+			}
+		);
+		// AudienceEnvironmentRepository::is_holiday(): the holidays COUNT binds the date last.
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			fn() => in_array( $this->bound[2] ?? null, $this->space_holidays, true ) ? '1' : '0'
+		);
 
-		$this->global_holiday = Mockery::mock( 'alias:FreeFormCertificate\Scheduling\DateBlockingService' );
-		$this->global_holiday->shouldReceive( 'is_global_holiday' )->andReturnUsing( fn( string $date ): bool => in_array( $date, $this->global_holidays, true ) );
-
-		$this->environment = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$this->environment->shouldReceive( 'is_holiday' )->andReturn( false );
-		$this->environment->shouldReceive( 'get_working_hours' )->andReturnUsing( fn(): ?array => $this->working_hours )->byDefault();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $wpdb;
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
-		Mockery::close();
 	}
 
 	public function test_range_days_includes_both_ends_across_a_month_and_a_leap_day(): void {
@@ -114,14 +157,13 @@ class AudienceBookingRangeTest extends TestCase {
 	}
 
 	public function test_occurrences_of_a_single_day_span_uses_the_chosen_hours_without_reading_the_window(): void {
-		$this->environment->shouldNotReceive( 'get_working_hours' );
-
 		$plan = AudienceBookingRules::occurrences( 1, '2026-03-16', '2026-03-16', '14:00', '16:00', 'span', false );
 
 		$this->assertSame(
 			array( array( 'date' => '2026-03-16', 'start_time' => '14:00', 'end_time' => '16:00' ) ),
 			$plan['days']
 		);
+		$this->assertSame( 0, $this->environment_reads, 'A single day never reads the working hours.' );
 	}
 
 	public function test_skipping_blocked_days_leaves_them_out_and_records_them(): void {
@@ -158,7 +200,7 @@ class AudienceBookingRangeTest extends TestCase {
 	}
 
 	public function test_a_blocked_day_is_kept_when_the_range_does_not_skip(): void {
-		$this->environment->shouldReceive( 'is_holiday' )->with( 1, '2026-03-17' )->andReturn( true );
+		$this->space_holidays = array( '2026-03-17' );
 
 		$plan = AudienceBookingRules::occurrences( 1, '2026-03-16', '2026-03-18', '09:00', '12:00', 'daily', false );
 
@@ -270,7 +312,6 @@ class AudienceBookingRangeTest extends TestCase {
 	}
 
 	public function test_a_daily_row_takes_its_own_hours_on_every_day(): void {
-		$this->environment->shouldNotReceive( 'get_working_hours' );
 		$row = (object) array(
 			'environment_id' => 1,
 			'booking_date'   => '2026-03-16',
@@ -281,6 +322,7 @@ class AudienceBookingRangeTest extends TestCase {
 		);
 
 		$this->assertSame( array( 'start_time' => '09:00', 'end_time' => '12:00' ), AudienceBookingRules::stored_day_times( $row, '2026-03-17' ) );
+		$this->assertSame( 0, $this->environment_reads, 'A daily row never reads the working hours.' );
 	}
 
 	public function test_overlap_keeps_a_middle_day_of_a_span_and_drops_touching_ends(): void {
