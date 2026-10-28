@@ -16,12 +16,12 @@ use FreeFormCertificate\UrlShortener\UrlShortenerRepository;
  * Tests for UrlShortenerQrRestController: the /ffc/v1/short-urls/{code}/qr
  * endpoint (permission gate, 404, png/svg base64 payloads, route registration).
  *
- * Runs in separate processes: it overloads UrlShortenerQrHandler (instantiated
- * inside the callback) and aliases Capabilities for the permission gate.
+ * Capabilities and UrlShortenerQrHandler are the real classes: the payload
+ * is a QR code the real generator drew (#2121). Only the generation-failure
+ * test overloads the handler, in a process of its own, because the real
+ * generator does not fail on a valid URL.
  *
  * @covers \FreeFormCertificate\UrlShortener\UrlShortenerQrRestController
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class UrlShortenerQrRestControllerTest extends TestCase {
 
@@ -43,6 +43,8 @@ class UrlShortenerQrRestControllerTest extends TestCase {
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'rest_ensure_response' )->returnArg();
 		Functions\when( 'is_wp_error' )->alias( static fn( $t ) => $t instanceof \WP_Error );
+		// No QR design or settings stored: the plain defaults.
+		Functions\when( 'get_option' )->justReturn( array() );
 
 		$this->service = Mockery::mock( UrlShortenerService::class );
 		$this->repo    = Mockery::mock( UrlShortenerRepository::class );
@@ -87,10 +89,11 @@ class UrlShortenerQrRestControllerTest extends TestCase {
 	}
 
 	public function test_check_permission_delegates_to_capability(): void {
-		$caps = Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' );
-		$caps->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_view_url_shortener' )->andReturn( true );
-
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_view_url_shortener' === $cap );
 		$this->assertTrue( $this->controller->check_permission() );
+
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$this->assertFalse( $this->controller->check_permission() );
 	}
 
 	public function test_get_qr_returns_404_when_not_found(): void {
@@ -109,15 +112,16 @@ class UrlShortenerQrRestControllerTest extends TestCase {
 		);
 		$this->service->shouldReceive( 'get_short_url' )->with( 'abc123' )->andReturn( 'https://example.com/go/abc123' );
 
-		$qr = Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerQrHandler' );
-		$qr->shouldReceive( 'generate_qr_base64' )->andReturn( 'PNGBASE64' );
+		// The generator writes the PNG to a temporary file and reads it back.
+		Functions\when( 'wp_tempnam' )->alias( static fn( $prefix = '' ) => tempnam( sys_get_temp_dir(), (string) $prefix ) );
+		Functions\when( 'wp_delete_file' )->alias( static fn( $file ) => @unlink( $file ) );
 
 		$result = $this->controller->get_qr( $this->request( array( 'code' => 'abc123', 'format' => 'png', 'size' => 300 ) ) );
 
 		$this->assertSame( 'abc123', $result['code'] );
 		$this->assertSame( 'https://example.com/go/abc123', $result['short_url'] );
 		$this->assertSame( 'png', $result['format'] );
-		$this->assertSame( 'PNGBASE64', $result['data_base64'] );
+		$this->assertStringStartsWith( "\x89PNG", (string) base64_decode( $result['data_base64'] ), 'a PNG drawn by the real generator' );
 	}
 
 	public function test_get_qr_svg_returns_base64_of_markup(): void {
@@ -126,16 +130,20 @@ class UrlShortenerQrRestControllerTest extends TestCase {
 		);
 		$this->service->shouldReceive( 'get_short_url' )->with( 'abc123' )->andReturn( 'https://example.com/go/abc123' );
 
-		$qr = Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerQrHandler' );
-		$qr->shouldReceive( 'generate_svg' )->andReturn( '<svg></svg>' );
-
 		$result = $this->controller->get_qr( $this->request( array( 'code' => 'abc123', 'format' => 'svg' ) ) );
 
 		$this->assertSame( 'svg', $result['format'] );
 		$this->assertSame( 'image/svg+xml', $result['mime'] );
-		$this->assertSame( base64_encode( '<svg></svg>' ), $result['data_base64'] );
+		$this->assertStringContainsString( '<svg', (string) base64_decode( $result['data_base64'] ) );
 	}
 
+	/**
+	 * The real generator draws any valid URL, so only an overload can make
+	 * it fail; the overload needs its own process.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_get_qr_returns_500_on_generation_failure(): void {
 		$this->repo->shouldReceive( 'findByShortCode' )->with( 'abc123' )->andReturn(
 			array( 'id' => 1, 'short_code' => 'abc123', 'status' => 'active' )
