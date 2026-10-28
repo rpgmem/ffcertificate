@@ -358,7 +358,11 @@ class EncryptionTest extends TestCase {
 		$mac = hash_hmac( 'sha256', 'ffc-hmac-key', self::DISTINCT_KEY, true );
 
 		$this->assertSame( 'secret-cpf-000', $decrypt->invoke( null, $ciphertext, substr( self::DISTINCT_KEY, 0, 32 ), $mac ) );
-		$this->assertNull( $decrypt->invoke( null, $ciphertext, substr( self::DISTINCT_KEY, 1, 32 ), $mac ), 'A shifted slice is another key.' );
+		// Not assertNull: the MAC key is the right one, so the HMAC check passes and
+		// CBC decrypts under the wrong key, whose last block carries valid PKCS#7
+		// padding about once in 256 random IVs (#2168). What holds every run is
+		// that the shifted slice never yields the plaintext.
+		$this->assertNotSame( 'secret-cpf-000', $decrypt->invoke( null, $ciphertext, substr( self::DISTINCT_KEY, 1, 32 ), $mac ), 'A shifted slice is another key.' );
 	}
 
 	public function test_key_health_report_reports_no_rekey_by_default(): void {
