@@ -14,19 +14,11 @@
 
 return array(
 	'AdminAjaxTest.php',
-	'AdminSubmissionEditPageTest.php',
-	'AdminUserCustomFieldsTest.php',
 	'AudienceAdminAudienceTest.php',
 	'AudienceAdminCalendarTest.php',
 	'AudienceAdminEnvironmentTest.php',
-	'AudienceRestControllerTest.php',
 	'AudienceShortcodeTest.php',
-	'DateMessagesAdminPageTest.php',
-	'FormRestControllerTest.php',
 	'RecruitmentCandidatesRestControllerTest.php',
 	'RecruitmentClassificationsRestControllerTest.php',
 	'SettingsActionHandlerTest.php',
-	'SettingsTest.php',
-	'UserAudienceRestControllerTest.php',
-	'UserProfileRestControllerTest.php',
 );

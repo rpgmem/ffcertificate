@@ -18,16 +18,16 @@ use FreeFormCertificate\Tests\Support\CallLog;
  * chain, save delegation, QR cache clearing guard clauses, migration execution
  * guard clauses, AJAX date preview, and cache action dispatch.
  *
- * Note: Methods that call exit; after wp_safe_redirect (handle_clear_qr_cache,
- * handle_migration_execution, handle_cache_actions happy paths) are tested only
- * up to the guard-clause returns. The exit; language construct cannot be stubbed,
- * so the full redirect+exit path is intentionally not tested to avoid killing
- * the PHPUnit process.
+ * The collaborators are the real classes: SettingsSaveHandler,
+ * SettingsActionHandler, SubmissionRepository, MigrationManager (with its
+ * registry and strategies) and FormCache. Storage is a `$wpdb` double that
+ * answers the queries these paths make and records every statement, and
+ * WordPress is global Brain\Monkey stubs. Each handler ends in
+ * `wp_safe_redirect(); exit;`, so the redirect stub throws and the redirect
+ * URL it received carries the outcome.
  *
  * @covers \FreeFormCertificate\Admin\Settings
  * @covers \FreeFormCertificate\Admin\SettingsActionHandler
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class SettingsTest extends TestCase {
 
@@ -36,46 +36,110 @@ class SettingsTest extends TestCase {
 	/** @var Settings */
 	private $settings;
 
-	/** @var Mockery\MockInterface overload mock for SettingsSaveHandler */
-	private $save_handler_mock;
-
 	/** @var Mockery\MockInterface */
 	private $wpdb;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var array<string, mixed> `$_GET` as an earlier test left it. */
+	private array $get_backup = array();
+
+	/** @var array<string, mixed> `$_POST` as an earlier test left it. */
+	private array $post_backup = array();
+
+	/** @var array<string, mixed> `$_REQUEST` as an earlier test left it. */
+	private array $request_backup = array();
+
+	/**
+	 * Tables `SHOW TABLES LIKE` reports as present.
+	 *
+	 * @var list<string>
+	 */
+	private array $tables = array();
+
+	/**
+	 * What `$wpdb->query()` answers, by the statement's first word.
+	 *
+	 * @var array<string, int|false>
+	 */
+	private array $query_results = array();
+
+	/**
+	 * Every statement `$wpdb->query()` ran, as [sql, bound args].
+	 *
+	 * @var list<array{0: string, 1: array<int, mixed>}>
+	 */
+	private array $queries = array();
+
+	/** @var array<int, mixed> Arguments of the last prepare(). */
+	private array $bound = array();
+
+	/** @var string|null The URL the last wp_safe_redirect() received. */
+	private ?string $redirect = null;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
-		// pcov does not record lines for files first autoloaded mid-test-method,
-		// so the extracted action handler's coverage would attribute to nothing.
-		// Preload the class here so pcov attributes its lines to this test.
-		class_exists( '\\FreeFormCertificate\\Admin\\SettingsActionHandler' );
+		$this->get_backup     = $_GET ?? array();
+		$this->post_backup    = $_POST ?? array();
+		$this->request_backup = $_REQUEST ?? array();
+		$this->tables         = array();
+		$this->query_results  = array();
+		$this->queries        = array();
+		$this->bound          = array();
+		$this->redirect       = null;
 
 		// SettingsTab's file does a top-level
 		// `require_once ABSPATH . 'wp-includes/formatting.php'` guarded by
-		// function_exists('wp_kses_post'). Define a stub BEFORE the autoloader
-		// first loads the base class (triggered by instantiating any real tab),
-		// so the require never fires against the non-existent test ABSPATH.
-		if ( ! function_exists( 'wp_kses_post' ) ) {
-			eval( 'function wp_kses_post( $v ) { return $v; }' );
-		}
+		// function_exists('wp_kses_post'). Stub it BEFORE the autoloader
+		// first loads the base class, so the require never fires against the
+		// non-existent test ABSPATH.
+		Functions\when( 'wp_kses_post' )->returnArg();
 		class_exists( '\\FreeFormCertificate\\Settings\\SettingsTab' );
+		// The page records the tab it resolved in a static; start from none.
+		\FreeFormCertificate\Settings\SettingsTab::set_resolved_active_tab( null );
 
-		// Mock $wpdb
-		global $wpdb;
-		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
-		$wpdb->prefix = 'wp_';
-		$this->wpdb   = $wpdb;
+		$this->wpdb         = Mockery::mock( 'wpdb' );
+		$this->wpdb->prefix = 'wp_';
+		$this->wpdb->posts  = 'wp_posts';
+		$this->wpdb->users  = 'wp_users';
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				$this->bound = $args;
+				return (string) $sql;
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = array( (string) $sql, $this->bound );
+				$verb            = strtoupper( (string) strtok( ltrim( (string) $sql ), ' ' ) );
+				return $this->query_results[ $verb ] ?? 0;
+			}
+		);
+		// `SHOW TABLES LIKE %s` binds the table name; a count answers zero.
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				if ( 0 === strpos( (string) $sql, 'SHOW TABLES LIKE' ) ) {
+					$name = (string) ( $this->bound[0] ?? '' );
+					return in_array( $name, $this->tables, true ) ? $name : null;
+				}
+				if ( false !== stripos( (string) $sql, 'COUNT(' ) ) {
+					return '0';
+				}
+				throw new \RuntimeException( 'Unexpected get_var: ' . $sql );
+			}
+		);
+		// The maintenance tools' read-only scans find nothing.
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
 
-		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () {
-			return func_get_args()[0];
-		} )->byDefault();
-		$this->wpdb->shouldReceive( 'query' )->andReturn( 0 )->byDefault();
-
-		// SettingsSaveHandler overload mock — instantiated by constructor via new
-		$this->save_handler_mock = Mockery::mock( 'overload:FreeFormCertificate\Admin\SettingsSaveHandler' );
-		$this->save_handler_mock->shouldReceive( 'handle_all_submissions' )
-			->byDefault();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $this->wpdb;
 
 		// Common WP stubs
 		Functions\when( '__' )->returnArg();
@@ -99,13 +163,29 @@ class SettingsTest extends TestCase {
 		Functions\when( 'absint' )->alias( function ( $val ) {
 			return abs( (int) $val );
 		} );
-		Functions\when( 'add_query_arg' )->justReturn( 'https://example.com/wp-admin/redirect' );
+		// Builds the query string, so the redirect URL carries the outcome.
+		Functions\when( 'add_query_arg' )->alias(
+			static function ( ...$args ) {
+				if ( is_array( $args[0] ) ) {
+					$params = $args[0];
+					$url    = (string) ( $args[1] ?? '' );
+				} else {
+					$params = array( $args[0] => $args[1] );
+					$url    = (string) ( $args[2] ?? '' );
+				}
+				foreach ( $params as $key => $value ) {
+					$url .= ( false === strpos( $url, '?' ) ? '?' : '&' ) . $key . '=' . $value;
+				}
+				return $url;
+			}
+		);
 		Functions\when( 'admin_url' )->alias( function ( $path = '' ) {
 			return 'https://example.com/wp-admin/' . $path;
 		} );
 		// Brain Monkey does not auto-stub esc_url, and the settings nav now
 		// renders module links through it on every display_settings_page call.
 		Functions\when( 'esc_url' )->returnArg();
+		// Also read by Debug::is_enabled(), so debug logging stays off.
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
@@ -113,6 +193,16 @@ class SettingsTest extends TestCase {
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
 		Functions\when( 'wp_cache_flush_group' )->justReturn( true );
+		Functions\when( 'is_wp_error' )->alias( static fn( $thing ) => $thing instanceof \WP_Error );
+		// LabelSorter (load_tabs) guards on function_exists( 'get_locale' ),
+		// so the branch is chosen here rather than inherited from test order.
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
+		Functions\when( 'wp_safe_redirect' )->alias(
+			function ( $url ) {
+				$this->redirect = (string) $url;
+				throw new \RuntimeException( 'redirect_called' );
+			}
+		);
 
 		// Stub add_action to capture registrations (constructor calls it)
 		Functions\when( 'add_action' )->justReturn( true );
@@ -123,10 +213,34 @@ class SettingsTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $_GET['ffc_clear_qr_cache'], $_GET['_wpnonce'], $_GET['ffc_run_migration'], $_GET['action'] );
-		unset( $_POST['format'], $_POST['custom_format'] );
+		$_GET     = $this->get_backup;
+		$_POST    = $this->post_backup;
+		$_REQUEST = $this->request_backup;
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
+		\FreeFormCertificate\Settings\SettingsTab::set_resolved_active_tab( null );
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * Run a handler that ends in wp_safe_redirect(); exit; and return the URL
+	 * it redirected to.
+	 *
+	 * @param callable $handler The handler call.
+	 * @return string
+	 */
+	private function redirect_of( callable $handler ): string {
+		try {
+			$handler();
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_called', $e->getMessage() );
+			return (string) $this->redirect;
+		}
+		$this->fail( 'The handler returned without redirecting.' );
 	}
 
 	// ==================================================================
@@ -141,9 +255,6 @@ class SettingsTest extends TestCase {
 		// Re-stub everything needed for construction
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'get_option' )->justReturn( array() );
-
-		$save_mock = Mockery::mock( 'overload:FreeFormCertificate\Admin\SettingsSaveHandler' );
-		$save_mock->shouldReceive( 'handle_all_submissions' )->byDefault();
 
 		Functions\expect( 'add_action' )
 			->once()
@@ -257,10 +368,20 @@ class SettingsTest extends TestCase {
 	// ==================================================================
 
 	public function test_handle_settings_submission_delegates_to_save_handler(): void {
-		$this->save_handler_mock->shouldReceive( 'handle_all_submissions' )
-			->once();
+		// The real save handler checks each form's nonce; with none posted it
+		// saves nothing, so the nonce checks are what it was reached by.
+		$actions = array();
+		Functions\when( 'wp_verify_nonce' )->alias(
+			static function ( $nonce, $action ) use ( &$actions ) {
+				$actions[] = $action;
+				return false;
+			}
+		);
 
 		$this->settings->handle_settings_submission();
+
+		$this->assertSame( array( 'ffc_settings_action', 'ffc_user_access_settings' ), $actions );
+		$this->assertSame( array(), $this->queries );
 	}
 
 	// ==================================================================
@@ -270,10 +391,9 @@ class SettingsTest extends TestCase {
 	public function test_handle_clear_qr_cache_does_nothing_without_get_params(): void {
 		unset( $_GET['ffc_clear_qr_cache'], $_GET['_wpnonce'] );
 
-		// wpdb->query should NOT be called
-		$this->wpdb->shouldReceive( 'query' )->never();
-
 		$this->settings->handle_clear_qr_cache();
+
+		$this->assertSame( array(), $this->queries, 'No statement may run without the request.' );
 	}
 
 	public function test_handle_clear_qr_cache_does_nothing_with_invalid_nonce(): void {
@@ -282,39 +402,30 @@ class SettingsTest extends TestCase {
 
 		Functions\when( 'wp_verify_nonce' )->justReturn( false );
 
-		// wpdb->query should NOT be called
-		$this->wpdb->shouldReceive( 'query' )->never();
-
 		$this->settings->handle_clear_qr_cache();
+
+		$this->assertSame( array(), $this->queries, 'No statement may run on a bad nonce.' );
 	}
 
 	/**
 	 * Test that handle_clear_qr_cache executes the UPDATE query when
-	 * GET params are present and nonce is valid.
-	 *
-	 * Note: The method calls exit; after wp_safe_redirect, which would
-	 * kill the PHPUnit process. We verify the query runs and the redirect
-	 * is called, then catch the exit via a custom wp_safe_redirect stub
-	 * that throws an exception.
+	 * GET params are present and nonce is valid, and redirects with the
+	 * number of rows it cleared.
 	 */
 	public function test_handle_clear_qr_cache_clears_and_redirects(): void {
 		$_GET['ffc_clear_qr_cache'] = '1';
 		$_GET['_wpnonce'] = 'valid_nonce';
 
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		$this->query_results['UPDATE'] = 5;
 
-		$this->wpdb->shouldReceive( 'query' )
-			->once()
-			->andReturn( 5 );
+		$url = $this->redirect_of( fn() => $this->settings->handle_clear_qr_cache() );
 
-		Functions\when( 'wp_safe_redirect' )->alias( function () {
-			throw new \RuntimeException( 'redirect_called' );
-		} );
-
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirect_called' );
-
-		$this->settings->handle_clear_qr_cache();
+		$this->assertCount( 1, $this->queries );
+		$this->assertStringContainsString( 'SET qr_code_cache = NULL', $this->queries[0][0] );
+		$this->assertSame( array( 'wp_ffc_submissions' ), $this->queries[0][1] );
+		$this->assertStringContainsString( 'msg=qr_cache_cleared', $url );
+		$this->assertStringContainsString( 'cleared=5', $url );
 	}
 
 	// ==================================================================
@@ -347,30 +458,30 @@ class SettingsTest extends TestCase {
 	}
 
 	public function test_handle_migration_runs_and_redirects(): void {
-		$_GET['ffc_run_migration'] = 'test_migration';
+		// A real registered migration: one batch deletes the logged
+		// locations, and the redirect reports how many rows it processed.
+		$_GET['ffc_run_migration'] = 'activity_log_location_cleanup';
 		$_GET['_wpnonce'] = 'valid_nonce';
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
-		Functions\when( 'is_wp_error' )->alias( function ( $thing ) {
-			return $thing instanceof \WP_Error;
-		} );
+		$nonce_actions = array();
+		Functions\when( 'wp_verify_nonce' )->alias(
+			static function ( $nonce, $action ) use ( &$nonce_actions ) {
+				$nonce_actions[] = $action;
+				return 1;
+			}
+		);
+		$this->tables[]                = 'wp_ffc_activity_log';
+		$this->query_results['DELETE'] = 42;
 
-		// MigrationManager overload mock
-		$migration_mock = Mockery::mock( 'overload:FreeFormCertificate\Migrations\MigrationManager' );
-		$migration_mock->shouldReceive( 'run_migration' )
-			->once()
-			->with( 'test_migration' )
-			->andReturn( array( 'processed' => 42 ) );
+		$url = $this->redirect_of( fn() => $this->settings->handle_migration_execution() );
 
-		Functions\when( 'wp_safe_redirect' )->alias( function () {
-			throw new \RuntimeException( 'redirect_called' );
-		} );
-
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirect_called' );
-
-		$this->settings->handle_migration_execution();
+		$this->assertSame( array( 'ffc_migration_activity_log_location_cleanup' ), $nonce_actions );
+		$this->assertCount( 1, $this->queries, 'One batch runs.' );
+		$this->assertStringStartsWith( 'DELETE FROM', $this->queries[0][0] );
+		$this->assertSame( array( 'wp_ffc_activity_log', 'ip_geolocation_debug', 500 ), $this->queries[0][1] );
+		$this->assertStringContainsString( 'migration_success=' . rawurlencode( 'Migration executed: 42 records processed.' ), $url );
+		$this->assertStringNotContainsString( 'migration_error', $url );
 	}
 
 
@@ -384,19 +495,24 @@ class SettingsTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 
-		$form_cache_mock = Mockery::mock( 'alias:FreeFormCertificate\Submissions\FormCache' );
-		$form_cache_mock->shouldReceive( 'warm_all_forms' )
-			->once()
-			->andReturn( 5 );
+		// Five published forms, each already cached: warming counts all five.
+		$queries = array();
+		Functions\when( 'get_posts' )->alias(
+			static function ( $args ) use ( &$queries ) {
+				$queries[] = $args;
+				return array( 11, 12, 13, 14, 15 );
+			}
+		);
+		Functions\when( 'wp_cache_get' )->alias(
+			static fn( $key ) => 0 === strpos( (string) $key, 'complete_' ) ? array( 'config' => array() ) : false
+		);
 
-		Functions\when( 'wp_safe_redirect' )->alias( function () {
-			throw new \RuntimeException( 'redirect_called' );
-		} );
+		$url = $this->redirect_of( fn() => $this->settings->handle_cache_actions() );
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirect_called' );
-
-		$this->settings->handle_cache_actions();
+		$this->assertCount( 1, $queries );
+		$this->assertSame( 'ffc_form', $queries[0]['post_type'] );
+		$this->assertStringContainsString( 'msg=cache_warmed', $url );
+		$this->assertStringContainsString( 'count=5', $url );
 	}
 
 	public function test_handle_cache_actions_clear_cache(): void {
@@ -405,22 +521,16 @@ class SettingsTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 
-		$form_cache_mock = Mockery::mock( 'alias:FreeFormCertificate\Submissions\FormCache' );
-		$form_cache_mock->shouldReceive( 'clear_all_cache' )
-			->once();
-		$form_cache_mock->shouldReceive( 'purge_external_caches_for_all_forms' )
-			->once()
-			->with( 'manual_clear_all' )
-			->andReturn( 0 );
+		$flush = CallLog::record( 'wp_cache_flush', true );
+		Functions\when( 'get_posts' )->justReturn( array( 7, 8 ) );
+		// Each published form's page cache is purged for the manual clear.
+		\Brain\Monkey\Actions\expectDone( 'ffc_form_cache_purged' )->once()->with( 7, 'manual_clear_all' );
+		\Brain\Monkey\Actions\expectDone( 'ffc_form_cache_purged' )->once()->with( 8, 'manual_clear_all' );
 
-		Functions\when( 'wp_safe_redirect' )->alias( function () {
-			throw new \RuntimeException( 'redirect_called' );
-		} );
+		$url = $this->redirect_of( fn() => $this->settings->handle_cache_actions() );
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirect_called' );
-
-		$this->settings->handle_cache_actions();
+		$this->assertSame( 1, $flush->count(), 'The object cache is flushed once.' );
+		$this->assertStringContainsString( 'msg=cache_cleared', $url );
 	}
 
 	public function test_handle_cache_actions_skips_without_permission(): void {
@@ -451,14 +561,8 @@ class SettingsTest extends TestCase {
 		Functions\when( 'update_option' )->justReturn( true );
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'delete_transient' )->justReturn( true );
-		// The lazily-built UrlShortenerRepository reads $wpdb->posts and runs a query.
-		$this->wpdb->posts = 'wp_posts';
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
-		Functions\when( 'wp_safe_redirect' )->alias(
-			function () {
-				throw new \RuntimeException( 'redirect_called' );
-			}
-		);
+		// The lazily-built UrlShortenerRepository reads $wpdb->posts and runs
+		// a query; setUp's $wpdb answers it with no rows.
 	}
 
 	public function test_handle_url_cleanup_does_nothing_without_request(): void {
@@ -494,10 +598,9 @@ class SettingsTest extends TestCase {
 		$this->arrange_url_cleanup_stubs();
 
 		// Dry-run preview runs the tool through to the redirect (which we trap).
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirect_called' );
+		$url = $this->redirect_of( fn() => $this->settings->handle_url_shortener_cleanup() );
 
-		$this->settings->handle_url_shortener_cleanup();
+		$this->assertStringContainsString( 'url_cleanup_msg=' . rawurlencode( 'Preview generated.' ), $url );
 	}
 
 	public function test_handle_url_cleanup_apply_requires_preview_first(): void {
@@ -506,10 +609,9 @@ class SettingsTest extends TestCase {
 		$this->arrange_url_cleanup_stubs();
 		Functions\when( 'get_transient' )->justReturn( false ); // No prior preview.
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirect_called' );
+		$url = $this->redirect_of( fn() => $this->settings->handle_url_shortener_cleanup() );
 
-		$this->settings->handle_url_shortener_cleanup();
+		$this->assertStringContainsString( 'url_cleanup_error=' . rawurlencode( 'Please run a preview first before deleting short URLs.' ), $url );
 	}
 
 	public function test_handle_url_cleanup_apply_runs_when_previewed(): void {
@@ -524,10 +626,9 @@ class SettingsTest extends TestCase {
 			)
 		);
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirect_called' );
+		$url = $this->redirect_of( fn() => $this->settings->handle_url_shortener_cleanup() );
 
-		$this->settings->handle_url_shortener_cleanup();
+		$this->assertStringContainsString( 'url_cleanup_msg=' . rawurlencode( 'Cleanup complete. Deleted 0 short URL(s).' ), $url );
 	}
 
 	// ==================================================================
@@ -547,11 +648,6 @@ class SettingsTest extends TestCase {
 		Functions\when( 'update_option' )->justReturn( true );
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'delete_transient' )->justReturn( true );
-		Functions\when( 'wp_safe_redirect' )->alias(
-			function () {
-				throw new \RuntimeException( 'redirect_called' );
-			}
-		);
 	}
 
 	public function test_handle_pubaccess_does_nothing_without_request(): void {
@@ -584,10 +680,9 @@ class SettingsTest extends TestCase {
 		$_POST['public_access_disable_days']      = '120';
 		$this->arrange_pubaccess_stubs();
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirect_called' );
+		$url = $this->redirect_of( fn() => $this->settings->handle_public_access_disabler() );
 
-		$this->settings->handle_public_access_disabler();
+		$this->assertStringContainsString( 'pubaccess_msg=' . rawurlencode( 'Preview generated.' ), $url );
 	}
 
 	public function test_handle_pubaccess_apply_requires_preview_first(): void {
@@ -596,10 +691,9 @@ class SettingsTest extends TestCase {
 		$this->arrange_pubaccess_stubs();
 		Functions\when( 'get_transient' )->justReturn( false );
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirect_called' );
+		$url = $this->redirect_of( fn() => $this->settings->handle_public_access_disabler() );
 
-		$this->settings->handle_public_access_disabler();
+		$this->assertStringContainsString( 'pubaccess_error=' . rawurlencode( 'Please run a preview first before disabling access.' ), $url );
 	}
 
 	public function test_handle_pubaccess_apply_runs_when_previewed(): void {
@@ -609,10 +703,9 @@ class SettingsTest extends TestCase {
 		Functions\when( 'get_transient' )->justReturn( 1 );
 		Functions\when( 'get_option' )->justReturn( array( 'public_access_disable_days' => 30 ) );
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirect_called' );
+		$url = $this->redirect_of( fn() => $this->settings->handle_public_access_disabler() );
 
-		$this->settings->handle_public_access_disabler();
+		$this->assertStringContainsString( 'pubaccess_msg=' . rawurlencode( 'Done. Disabled Public Operator Access on 0 form(s).' ), $url );
 	}
 
 	// ==================================================================
@@ -650,19 +743,11 @@ class SettingsTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 		Functions\when( 'set_transient' )->justReturn( true );
 		// The auditor lazily builds a SubmissionRepository and runs read-only
-		// queries against the mocked $wpdb.
-		$this->wpdb->users = 'wp_users';
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
-		Functions\when( 'wp_safe_redirect' )->alias(
-			function () {
-				throw new \RuntimeException( 'redirect_called' );
-			}
-		);
+		// queries against setUp's $wpdb, which finds no rows.
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirect_called' );
+		$url = $this->redirect_of( fn() => $this->settings->handle_submission_link_audit() );
 
-		$this->settings->handle_submission_link_audit();
+		$this->assertStringContainsString( 'submission_audit_msg=' . rawurlencode( 'Audit complete.' ), $url );
 	}
 
 	// ==================================================================
