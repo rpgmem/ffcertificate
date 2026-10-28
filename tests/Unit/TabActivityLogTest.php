@@ -5,7 +5,6 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Settings\Tabs\TabActivityLog;
@@ -83,15 +82,15 @@ class TabActivityLogTest extends TestCase {
 		$this->assertSame( 'ffc_export_activity_log', $this->tab->get_manage_cap() );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_render_delegates_to_activity_log_page(): void {
 		// With the log disabled, render_page() emits the disabled notice — a
-		// cheap way to prove the tab delegates to AdminActivityLogPage.
-		Mockery::mock( 'alias:\FreeFormCertificate\Settings\SettingsReader' )
-			->shouldReceive( 'activity_log_enabled' )->andReturn( false );
+		// cheap way to prove the tab delegates to AdminActivityLogPage. The
+		// real SettingsReader reads the stored flag off ffc_settings.
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) {
+				return 'ffc_settings' === $key ? array( 'enable_activity_log' => '0' ) : $default;
+			}
+		);
 
 		ob_start();
 		$this->tab->render();

@@ -112,21 +112,20 @@ class TabModulosTest extends TestCase {
 		$this->assertStringContainsString( 'expired-ticket cleanup is paused', $output );
 	}
 
-	/**
-	 * Its own process: a namespaced `file_exists` stub only takes effect where
-	 * that call site has not yet resolved to the global function, and an
-	 * earlier render in a shared process has already resolved it.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_render_outputs_error_when_view_missing(): void {
-		// Force the real render()'s file_exists() guard to fail so the
-		// error-notice branch executes.
-		Functions\when( 'FreeFormCertificate\\Settings\\Tabs\\file_exists' )->justReturn( false );
+		// Point the real render() at a view file that does not exist, so its
+		// file_exists() guard fails and the error-notice branch executes.
+		// Brain\Monkey cannot name an anonymous class's hook callback, so the
+		// subclass's init() registration is stubbed.
+		Functions\when( 'add_action' )->justReturn( true );
+		$tab = new class() extends TabModulos {
+			protected function view_path( string $file ): string {
+				return sys_get_temp_dir() . '/ffc-missing-view-' . $file;
+			}
+		};
 
 		ob_start();
-		$this->tab->render();
+		$tab->render();
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'notice notice-error', $output );
