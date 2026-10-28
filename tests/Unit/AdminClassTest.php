@@ -8,7 +8,9 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use Brain\Monkey\Filters;
 use FreeFormCertificate\Admin\Admin;
+use FreeFormCertificate\Migrations\Strategies\MigrationStrategyInterface;
 use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
@@ -22,9 +24,20 @@ class AdminClassTest extends TestCase {
 	/** Sentinel thrown in place of exit() after a redirect. */
 	private const REDIRECTED = 'FFC_TEST_REDIRECTED';
 
+	/** Key of the migration the migration tests register through the plugin's filters. */
+	private const MIGRATION_KEY = 'ffc_test_migration';
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $this->had_wpdb ? $GLOBALS['wpdb'] : null;
 		Functions\when( 'wp_admin_notice' )->alias(
 			static function ( $message, $args = array() ) {
 				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
@@ -89,6 +102,11 @@ class AdminClassTest extends TestCase {
 			$_GET['conflict_id'], $_GET['migrated'], $_GET['migration_name'], $_GET['error_msg']
 		);
 		unset( $_POST['ffc_action'] );
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -286,7 +304,12 @@ class AdminClassTest extends TestCase {
 	}
 
 	/**
+	 * Its own process: render_list_page() builds SubmissionsList itself and calls
+	 * its views(), which the bootstrap's WP_List_Table stub does not declare, so
+	 * SubmissionsList stays an overload mock here.
+	 *
 	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_display_submissions_page_dispatches_to_list_render(): void {
 		list( $admin ) = $this->makeAdmin();
@@ -310,7 +333,12 @@ class AdminClassTest extends TestCase {
 	// ==================================================================
 
 	/**
+	 * Its own process: render_list_page() builds SubmissionsList itself and calls
+	 * its views(), which the bootstrap's WP_List_Table stub does not declare, so
+	 * SubmissionsList stays an overload mock here.
+	 *
 	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_render_list_page_export_all_button_default(): void {
 		list( $admin ) = $this->makeAdmin();
@@ -329,7 +357,12 @@ class AdminClassTest extends TestCase {
 	}
 
 	/**
+	 * Its own process: render_list_page() builds SubmissionsList itself and calls
+	 * its views(), which the bootstrap's WP_List_Table stub does not declare, so
+	 * SubmissionsList stays an overload mock here.
+	 *
 	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_render_list_page_export_filtered_button_with_filters(): void {
 		list( $admin ) = $this->makeAdmin();
@@ -353,7 +386,12 @@ class AdminClassTest extends TestCase {
 	}
 
 	/**
+	 * Its own process: render_list_page() builds SubmissionsList itself and calls
+	 * its views(), which the bootstrap's WP_List_Table stub does not declare, so
+	 * SubmissionsList stays an overload mock here.
+	 *
 	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_render_list_page_handles_scalar_filter_form_id(): void {
 		list( $admin ) = $this->makeAdmin();
@@ -780,53 +818,110 @@ class AdminClassTest extends TestCase {
 		$admin->handle_migration_action();
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_handle_migration_action_dies_on_invalid_key(): void {
 		$_GET['ffc_migration'] = 'nope';
 		Functions\when( 'wp_die' )->alias( function ( $msg ) { throw new \DomainException( (string) $msg ); } );
 
-		$mgr = Mockery::mock( 'overload:FreeFormCertificate\Migrations\MigrationManager' );
-		$mgr->shouldReceive( 'get_migration' )->andReturn( null );
+		// The real registry knows no migration called "nope".
+		$this->use_migration_wpdb();
 
 		list( $admin ) = $this->makeAdmin();
 		$this->expectException( \DomainException::class );
+		$this->expectExceptionMessage( 'Invalid migration key' );
 		$admin->handle_migration_action();
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_handle_migration_action_success_redirects(): void {
-		$_GET['ffc_migration'] = 'cpf';
+		$_GET['ffc_migration'] = self::MIGRATION_KEY;
 
-		$mgr = Mockery::mock( 'overload:FreeFormCertificate\Migrations\MigrationManager' );
-		$mgr->shouldReceive( 'get_migration' )->andReturn( array( 'name' => 'CPF Migration' ) );
-		$mgr->shouldReceive( 'run_migration' )->andReturn( array( 'migrated' => 5 ) );
+		$strategy = Mockery::mock( MigrationStrategyInterface::class );
+		$strategy->shouldReceive( 'can_run' )->andReturn( true );
+		$strategy->shouldReceive( 'execute' )->once()->with( self::MIGRATION_KEY, Mockery::type( 'array' ), 0 )->andReturn( array( 'migrated' => 5 ) );
+		$this->register_migration( $strategy );
+		$query_args = $this->capture_query_args();
 
 		list( $admin ) = $this->makeAdmin();
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( self::REDIRECTED );
-		$admin->handle_migration_action();
+		try {
+			$admin->handle_migration_action();
+			$this->fail( 'A successful migration must redirect.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( self::REDIRECTED, $e->getMessage() );
+		}
+
+		$this->assertSame( 'migration_success', $query_args->args['msg'] );
+		$this->assertSame( rawurlencode( 'CPF Migration' ), $query_args->args['migration_name'] );
+		$this->assertSame( 5, $query_args->args['migrated'] );
+	}
+
+	public function test_handle_migration_action_error_redirects(): void {
+		$_GET['ffc_migration'] = self::MIGRATION_KEY;
+		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
+
+		// The strategy refuses to run, so the manager hands back its WP_Error.
+		$strategy = Mockery::mock( MigrationStrategyInterface::class );
+		$strategy->shouldReceive( 'can_run' )->andReturn( new \WP_Error( 'refused', 'failed' ) );
+		$strategy->shouldNotReceive( 'execute' );
+		$this->register_migration( $strategy );
+		$query_args = $this->capture_query_args();
+
+		list( $admin ) = $this->makeAdmin();
+		try {
+			$admin->handle_migration_action();
+			$this->fail( 'A failed migration must redirect.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( self::REDIRECTED, $e->getMessage() );
+		}
+
+		$this->assertSame( 'migration_error', $query_args->args['msg'] );
+		$this->assertSame( rawurlencode( 'failed' ), $query_args->args['error_msg'] );
 	}
 
 	/**
-	 * @runInSeparateProcess
+	 * Install a `$wpdb` double for the real MigrationManager: its strategies
+	 * read the table prefix when built, and any query fails the test.
 	 */
-	public function test_handle_migration_action_error_redirects(): void {
-		$_GET['ffc_migration'] = 'cpf';
-		Functions\when( 'is_wp_error' )->justReturn( true );
+	private function use_migration_wpdb(): void {
+		$wpdb            = Mockery::mock( 'wpdb' );
+		$wpdb->prefix    = 'wp_';
+		$GLOBALS['wpdb'] = $wpdb;
+	}
 
-		$err = Mockery::mock();
-		$err->shouldReceive( 'get_error_message' )->andReturn( 'failed' );
+	/**
+	 * Register a test migration and its strategy through the plugin's filters,
+	 * so the real MigrationManager, registry and status calculator reach it.
+	 *
+	 * @param MigrationStrategyInterface $strategy Strategy the calculator hands the key to.
+	 */
+	private function register_migration( MigrationStrategyInterface $strategy ): void {
+		$this->use_migration_wpdb();
+		Filters\expectApplied( 'ffcertificate_migrations_registry' )->andReturnUsing(
+			static function ( array $migrations ): array {
+				$migrations[ self::MIGRATION_KEY ] = array( 'name' => 'CPF Migration' );
+				return $migrations;
+			}
+		);
+		Filters\expectApplied( 'ffcertificate_migration_strategies' )->andReturnUsing(
+			static function ( array $strategies ) use ( $strategy ): array {
+				$strategies[ self::MIGRATION_KEY ] = $strategy;
+				return $strategies;
+			}
+		);
+	}
 
-		$mgr = Mockery::mock( 'overload:FreeFormCertificate\Migrations\MigrationManager' );
-		$mgr->shouldReceive( 'get_migration' )->andReturn( array( 'name' => 'CPF Migration' ) );
-		$mgr->shouldReceive( 'run_migration' )->andReturn( $err );
-
-		list( $admin ) = $this->makeAdmin();
-		$this->expectException( \RuntimeException::class );
-		$admin->handle_migration_action();
+	/**
+	 * Record the arguments of the last add_query_arg() call, which builds the redirect.
+	 *
+	 * @return \stdClass Its `args` property holds the last array passed.
+	 */
+	private function capture_query_args(): \stdClass {
+		$captured       = new \stdClass();
+		$captured->args = array();
+		Functions\when( 'add_query_arg' )->alias(
+			static function ( $args ) use ( $captured ) {
+				$captured->args = $args;
+				return '/?msg=test';
+			}
+		);
+		return $captured;
 	}
 }
