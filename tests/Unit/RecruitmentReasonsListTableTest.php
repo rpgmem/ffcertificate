@@ -8,19 +8,22 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Recruitment\RecruitmentReasonReader;
 use FreeFormCertificate\Recruitment\RecruitmentReasonsListTable;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * Smoke tests for the Reasons list table: column declarations, sortable +
- * bulk-action contracts, and the deterministic column renderers
- * (column_cb, column_default, column_applies_to "all" branch). Heavy
- * methods (column_slug with row_actions, prepare_items with DB) require
- * the full WordPress admin runtime and are out of scope.
+ * bulk-action contracts, the column renderers, prepare_items() and the
+ * gated bulk delete.
+ *
+ * The collaborators are the real ones — RecruitmentReasonReader,
+ * RecruitmentReasonWriter and Capabilities — over a `$wpdb` double that
+ * answers each query by its SQL text and bound id and records every delete.
+ * An unexpected query throws, which fails the test.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentReasonsListTable
  * @covers \FreeFormCertificate\Recruitment\AbstractRecruitmentListTable
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentReasonsListTableTest extends TestCase {
 
@@ -28,11 +31,38 @@ class RecruitmentReasonsListTableTest extends TestCase {
 
 	private RecruitmentReasonsListTable $table;
 
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var list<object> Rows the reason table holds. */
+	private array $rows = array();
+
+	/** @var array<int, int> Classification rows referencing each reason id. */
+	private array $references = array();
+
+	/**
+	 * Prepared statements, keyed by the token prepare() returned.
+	 *
+	 * @var array<string, array{0: string, 1: array<int, mixed>}>
+	 */
+	private array $prepared = array();
+
+	/** @var list<string> Every query the double answered, as its SQL text. */
+	private array $queries = array();
+
+	/**
+	 * Every `$wpdb->delete()`, as [table, where].
+	 *
+	 * @var list<array{0: string, 1: array<string, mixed>}>
+	 */
+	private array $deletes = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		// Preload the extracted base so pcov attributes its coverage.
-		class_exists( '\FreeFormCertificate\Recruitment\AbstractRecruitmentListTable' );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -48,42 +78,91 @@ class RecruitmentReasonsListTableTest extends TestCase {
 		Functions\when( 'admin_url' )->alias( fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
 		Functions\when( 'wp_nonce_url' )->alias( fn( $url, $action = -1 ) => $url . '&_wpnonce=test' );
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
 
-		// Real stub for the admin page (PAGE_SLUG constant).
-		if ( ! class_exists( '\FreeFormCertificate\Recruitment\RecruitmentAdminPage', false ) ) {
-			eval(
-				'namespace FreeFormCertificate\Recruitment;'
-				. ' class RecruitmentAdminPage { public const PAGE_SLUG = "ffc-recruitment"; }'
-			);
-		}
-		// Real stub for the reader: DEFAULT_COLOR constant + get_all(), with
-		// count_references / decode_applies_to driven by static closures the
-		// individual tests can override.
-		if ( ! class_exists( '\FreeFormCertificate\Recruitment\RecruitmentReasonReader', false ) ) {
-			eval(
-				'namespace FreeFormCertificate\Recruitment;'
-				. ' class RecruitmentReasonReader {'
-				. ' public const DEFAULT_COLOR = "#cccccc";'
-				. ' public static $rows = array();'
-				. ' public static $references = array();'
-				. ' public static function get_all() { return self::$rows; }'
-				. ' public static function count_references( $id ) { return self::$references[ $id ] ?? 0; }'
-				. ' public static function decode_applies_to( $stored ) {'
-				. ' return "" === $stored'
-				. ' ? array( "denied", "granted", "appeal_denied", "appeal_granted" )'
-				. ' : explode( ",", $stored ); } }'
-			);
-		}
-		\FreeFormCertificate\Recruitment\RecruitmentReasonReader::$rows       = array();
-		\FreeFormCertificate\Recruitment\RecruitmentReasonReader::$references = array();
+		$this->rows       = array();
+		$this->references = array();
+		$this->prepared   = array();
+		$this->queries    = array();
+		$this->deletes    = array();
+
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				$token                    = 'prepared#' . count( $this->prepared );
+				$this->prepared[ $token ] = array( (string) $sql, $args );
+				return $token;
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing( fn( $query ) => $this->answer( 'get_results', $query ) );
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing( fn( $query ) => $this->answer( 'get_var', $query ) );
+		$wpdb->shouldReceive( 'delete' )->andReturnUsing(
+			function ( $table, $where ) {
+				$this->deletes[] = array( $table, $where );
+				return 1;
+			}
+		);
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $wpdb;
 
 		$this->table = new RecruitmentReasonsListTable();
 	}
 
 	protected function tearDown(): void {
 		unset( $_REQUEST['s'], $_REQUEST['orderby'], $_REQUEST['order'], $_REQUEST['action'], $_REQUEST['action2'], $_REQUEST['reason_ids'] );
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * Answer one read by the SQL text and the values bound to it.
+	 *
+	 * @param string $method The `$wpdb` method that ran the query.
+	 * @param string $query  The token prepare() returned.
+	 * @return mixed
+	 */
+	private function answer( string $method, string $query ) {
+		if ( ! isset( $this->prepared[ $query ] ) ) {
+			throw new \RuntimeException( "Unprepared {$method}: {$query}" );
+		}
+		list( $sql, $args ) = $this->prepared[ $query ];
+		$this->queries[]    = $sql;
+		$table              = (string) ( $args[0] ?? '' );
+		$id                 = (int) ( $args[1] ?? 0 );
+
+		if ( 'get_results' === $method && 'SELECT * FROM %i ORDER BY label ASC' === $sql && 'wp_ffc_recruitment_reason' === $table ) {
+			return $this->rows;
+		}
+		if ( 'get_var' === $method && 'SELECT COUNT(*) FROM %i WHERE preview_reason_id = %d' === $sql && 'wp_ffc_recruitment_classification' === $table ) {
+			return (string) ( $this->references[ $id ] ?? 0 );
+		}
+		throw new \RuntimeException( "Unexpected {$method}: {$sql} " . json_encode( $args ) );
+	}
+
+	/**
+	 * The ids the double deleted from the reason table, in order.
+	 *
+	 * @return list<int>
+	 */
+	private function deleted_reason_ids(): array {
+		$ids = array();
+		foreach ( $this->deletes as $delete ) {
+			$this->assertSame( 'wp_ffc_recruitment_reason', $delete[0] );
+			$ids[] = (int) $delete[1]['id'];
+		}
+		return $ids;
 	}
 
 	/**
@@ -158,7 +237,10 @@ class RecruitmentReasonsListTableTest extends TestCase {
 	}
 
 	public function test_column_usage_delegates_to_repository_count(): void {
-		\FreeFormCertificate\Recruitment\RecruitmentReasonReader::$references = array( 7 => 5 );
+		$this->references = array(
+			7 => 5,
+			8 => 1,
+		);
 
 		$out = $this->call_protected( 'column_usage', array( array( 'id' => 7 ) ) );
 
@@ -201,7 +283,7 @@ class RecruitmentReasonsListTableTest extends TestCase {
 
 	public function test_column_color_falls_back_to_default_color_for_editor(): void {
 		$out = $this->call_protected( 'column_color', array( array( 'id' => 3 ) ) );
-		$this->assertStringContainsString( '#cccccc', $out );
+		$this->assertStringContainsString( RecruitmentReasonReader::DEFAULT_COLOR, $out );
 	}
 
 	// ------------------------------------------------------------------
@@ -251,7 +333,7 @@ class RecruitmentReasonsListTableTest extends TestCase {
 	}
 
 	public function test_prepare_items_populates_items(): void {
-		\FreeFormCertificate\Recruitment\RecruitmentReasonReader::$rows = array(
+		$this->rows = array(
 			$this->reason_obj( 1, 'alpha', 'Alpha' ),
 			$this->reason_obj( 2, 'beta', 'Beta' ),
 		);
@@ -259,12 +341,13 @@ class RecruitmentReasonsListTableTest extends TestCase {
 		$this->table->prepare_items();
 
 		$this->assertCount( 2, $this->get_items() );
+		$this->assertSame( array( 'SELECT * FROM %i ORDER BY label ASC' ), $this->queries );
 	}
 
 	public function test_prepare_items_applies_search_and_sort(): void {
 		$_REQUEST['orderby'] = 'slug';
 		$_REQUEST['order']   = 'asc';
-		\FreeFormCertificate\Recruitment\RecruitmentReasonReader::$rows = array(
+		$this->rows          = array(
 			$this->reason_obj( 1, 'gamma', 'Gamma label' ),
 			$this->reason_obj( 2, 'alpha', 'Alpha label' ),
 		);
@@ -280,48 +363,46 @@ class RecruitmentReasonsListTableTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_process_bulk_action_returns_early_without_action(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonWriter' )
-			->shouldReceive( 'delete' )->never();
+		$_REQUEST['reason_ids'] = array( '6' );
+		$caps                   = CallLog::record( 'current_user_can', true );
 
 		$this->call_protected( 'process_bulk_action' );
-		$this->assertTrue( true );
+
+		$this->assertSame( 0, $caps->count(), 'No action must not even consult the capability.' );
+		$this->assertSame( array(), $this->queries );
+		$this->assertSame( array(), $this->deletes );
 	}
 
 	public function test_process_bulk_action_blocked_without_manage_cap(): void {
-		$_REQUEST['action'] = 'bulk-delete';
+		$_REQUEST['action']     = 'bulk-delete';
+		$_REQUEST['reason_ids'] = array( '6' );
 
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
-		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonWriter' )
-			->shouldReceive( 'delete' )->never();
+		$caps    = CallLog::record( 'current_user_can', false );
+		$referer = CallLog::record( 'check_admin_referer', true );
 
 		$this->call_protected( 'process_bulk_action' );
-		$this->assertTrue( true );
+
+		$this->assertSame( 2, $caps->count(), 'Both manage_options and the reasons-manage cap are refused.' );
+		$this->assertSame( 0, $referer->count() );
+		$this->assertSame( array(), $this->queries );
+		$this->assertSame( array(), $this->deletes );
 	}
 
 	public function test_process_bulk_action_skips_referenced_reasons(): void {
 		$_REQUEST['action']     = 'bulk-delete';
 		$_REQUEST['reason_ids'] = array( '5', '6' );
 
-		Functions\when( 'check_admin_referer' )->justReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_recruitment_reasons' === $cap );
 
 		// Reason 5 has references → skipped; reason 6 is free → deleted.
-		\FreeFormCertificate\Recruitment\RecruitmentReasonReader::$references = array( 5 => 2, 6 => 0 );
-
-		$deleted = array();
-		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonWriter' )
-			->shouldReceive( 'delete' )->andReturnUsing(
-				function ( $id ) use ( &$deleted ) {
-					$deleted[] = $id;
-					return true;
-				}
-			);
+		$this->references = array(
+			5 => 2,
+			6 => 0,
+		);
 
 		$this->call_protected( 'process_bulk_action' );
 
-		$this->assertSame( array( 6 ), $deleted );
+		$this->assertSame( array( 6 ), $this->deleted_reason_ids() );
 	}
 
 	// ------------------------------------------------------------------
@@ -341,7 +422,7 @@ class RecruitmentReasonsListTableTest extends TestCase {
 		$out = $this->call_static_private( 'convert_rows', array( $rows ) );
 
 		$this->assertSame( 1, $out[0]['id'] );
-		$this->assertSame( '#cccccc', $out[0]['color'] );
+		$this->assertSame( RecruitmentReasonReader::DEFAULT_COLOR, $out[0]['color'] );
 		$this->assertSame( '', $out[0]['applies_to'] );
 	}
 
