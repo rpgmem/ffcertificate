@@ -44,6 +44,9 @@ class MigrationStatusCalculatorTest extends TestCase {
 		// the notice; stub it so each test chooses the branch rather than
 		// inheriting it from an earlier class.
 		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
+		// Debug guards on function_exists( 'get_option' ): stub it so the branch
+		// (debug off) is chosen here, not inherited from an earlier test.
+		Functions\when( 'get_option' )->justReturn( array() );
 
 		// Global WP stubs
 		Functions\when( '__' )->returnArg();
