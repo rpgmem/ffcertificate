@@ -302,7 +302,7 @@ class AudienceRestControllerTest extends TestCase {
 	 *
 	 * @param list<array{0: string, 1: string, 2: mixed}> $conditions From conditions().
 	 */
-	private function matches( object $row, array $conditions ): bool {
+	private function row_matches( object $row, array $conditions ): bool {
 		foreach ( $conditions as list( $field, $op, $value ) ) {
 			if ( 0 === strpos( $field, 'COALESCE' ) ) {
 				$actual = (string) ( ( $row->end_date ?? '' ) ?: $row->booking_date );
@@ -418,7 +418,7 @@ class AudienceRestControllerTest extends TestCase {
 			$rows = array();
 			foreach ( $this->bookings as $booking ) {
 				$row = $this->joined( $booking );
-				if ( null !== $row && $this->matches( $row, $this->conditions( $bound ) ) ) {
+				if ( null !== $row && $this->row_matches( $row, $this->conditions( $bound ) ) ) {
 					$rows[] = $row;
 				}
 			}
@@ -449,7 +449,7 @@ class AudienceRestControllerTest extends TestCase {
 				$conditions = $this->conditions( $bound );
 				$rows       = array();
 				foreach ( $by_table[ $bound[1] ] as $row ) {
-					if ( $this->matches( $row, $conditions ) ) {
+					if ( $this->row_matches( $row, $conditions ) ) {
 						$rows[] = clone $row;
 					}
 				}
