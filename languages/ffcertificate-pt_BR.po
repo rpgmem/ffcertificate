@@ -14514,7 +14514,7 @@ msgstr "Revogar tudo"
 
 #: includes/migrations/class-ffc-migration-registry.php:111 includes/migrations/strategies/class-ffc-rewrite-html-image-refs-migration-strategy.php:207
 msgid "Rewrite html/ Image References"
-msgstr "Reescrever HTML / Referências de imagem"
+msgstr "Reescrever as Referências de Imagem da Pasta html/"
 
 #: includes/settings/views/documentation/developer-hooks-api.php:35
 msgid "Rewrite the certificate HTML before it is rendered to PDF."

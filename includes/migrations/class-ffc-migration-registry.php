@@ -55,7 +55,7 @@ class MigrationRegistry {
 		$this->migrations['split_cpf_rf'] = array(
 			'name'        => __( 'Split CPF/RF', 'ffcertificate' ),
 			'description' => __( 'Separate combined CPF/RF column into individual CPF and RF columns', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-id',
+			'icon'        => 'ffc-icon-split',
 			'batch_size'  => 50,
 			'order'       => 1,
 			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the one-shot split of the combined CPF/RF column.
@@ -66,7 +66,7 @@ class MigrationRegistry {
 		$this->migrations['email_hash_rehash'] = array(
 			'name'        => __( 'Rehash Email Lookup Hashes', 'ffcertificate' ),
 			'description' => __( 'Recompute email_hash with the salted Encryption::hash() so lookups match cross-table writes.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-email',
+			'icon'        => 'ffc-icon-hash',
 			'batch_size'  => 100,
 			'order'       => 2,
 			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the one-shot rehash of the unsalted e-mail hashes.
@@ -79,7 +79,7 @@ class MigrationRegistry {
 		$this->migrations['key_rotation'] = array(
 			'name'        => __( 'Encryption Key Rotation', 'ffcertificate' ),
 			'description' => __( 'Re-encrypt stored personal data (submissions and appointments) under a strong FFC_ENCRYPTION_KEY defined in wp-config.php, rebuilding CPF/RF/email search hashes. Define the key first (Settings → Advanced → Encryption Key Health); run during low traffic, as hash-based lookups may transiently miss un-migrated rows until it completes.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-key',
+			'icon'        => 'ffc-icon-encryption',
 			'batch_size'  => 100,
 			'order'       => 4,
 		);
@@ -92,7 +92,7 @@ class MigrationRegistry {
 		$this->migrations['key_rotation_remaining'] = array(
 			'name'        => __( 'Encryption Key Rotation — Remaining Areas', 'ffcertificate' ),
 			'description' => __( 'Finish the key rotation over the areas the first pass never covered: recruitment candidates and reregistration submission bodies. Re-encrypts them under FFC_ENCRYPTION_KEY and rebuilds the CPF/RF/email search hashes under FFC_HASH_SALT — without this, candidate lookups by CPF or RF silently find nothing, and the data stays tied to the WordPress salts. Define both constants first (Settings → Advanced → Encryption Key Health).', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-key',
+			'icon'        => 'ffc-icon-encryption',
 			'batch_size'  => 50,
 			'order'       => 5,
 		);
@@ -117,7 +117,7 @@ class MigrationRegistry {
 		$this->migrations['identity_index_backfill'] = array(
 			'name'        => __( 'Backfill the Identity Index', 'ffcertificate' ),
 			'description' => __( 'Copy the CPF and RF hashes already linked to a user in submissions, appointments and recruitment candidacies into the indexed identity columns, so resolving a person is one indexed lookup instead of a scan of every module. Fills an empty column only: where one account carries two different identifiers the column is left empty, because that is a conflict to review rather than one to resolve by picking. Run "Canonicalise Stored Identifiers" first — this card refuses until it is complete.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-id',
+			'icon'        => 'ffc-icon-hash',
 			'batch_size'  => 50,
 			'order'       => 7,
 		);
@@ -153,7 +153,7 @@ class MigrationRegistry {
 		$this->migrations['name_parts_backfill'] = array(
 			'name'        => __( 'Split Full Names into First and Last Name', 'ffcertificate' ),
 			'description' => __( 'Fill WordPress\'s first and last name from the full name the plugin stores — first word, then the rest — on accounts where the whole name sits in the first name, or neither is filled. Account creation used to store the whole name as the first name. Parts somebody filled in by hand are not touched. Completion here means every such account was EXAMINED: a one-word name is read, left as it is, and counted as done.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-user',
+			'icon'        => 'ffc-icon-split',
 			'batch_size'  => 100,
 			'order'       => 10,
 		);
@@ -174,7 +174,7 @@ class MigrationRegistry {
 		$this->migrations['activity_log_clear_plaintext'] = array(
 			'name'        => __( 'Activity Log: Clear Plaintext on Encrypted Rows', 'ffcertificate' ),
 			'description' => __( 'NULL the plaintext context column on activity log rows that already store the JSON in context_encrypted.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-lock',
+			'icon'        => 'ffc-icon-log-clean',
 			'batch_size'  => 200,
 			'order'       => 3,
 			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the one-shot cleanup of rows written before the dual-storage fix.
@@ -186,7 +186,7 @@ class MigrationRegistry {
 		$this->migrations['activity_log_encrypt_ip'] = array(
 			'name'        => __( 'Activity Log: Encrypt Client IPs', 'ffcertificate' ),
 			'description' => __( 'Encrypt the client IP address of activity log rows written before addresses were stored encrypted, and clear the plaintext copy. An address that cannot be encrypted is cleared all the same.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-lock',
+			'icon'        => 'ffc-icon-encryption',
 			'batch_size'  => 200,
 			'order'       => 4,
 		);
@@ -196,7 +196,7 @@ class MigrationRegistry {
 		$this->migrations['rate_limit_logs_encrypt_ip'] = array(
 			'name'        => __( 'Rate Limit Log: Encrypt Addresses', 'ffcertificate' ),
 			'description' => __( 'Encrypt the request address of rate limit log rows written before addresses were stored encrypted, clear the plaintext copy, and identify blocked addresses by a keyed fingerprint instead of the address. An address that cannot be encrypted is cleared all the same. The log keeps 30 days by default, so the plaintext would also leave on its own.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-lock',
+			'icon'        => 'ffc-icon-encryption',
 			'batch_size'  => 200,
 			'order'       => 4,
 		);
@@ -206,7 +206,7 @@ class MigrationRegistry {
 		$this->migrations['activity_log_location_cleanup'] = array(
 			'name'        => __( 'Activity Log: Delete Logged Locations', 'ffcertificate' ),
 			'description' => __( 'Delete the "IP Geolocation Debug" activity log entries. Until this release every geofence area check wrote the visitor\'s position there: the exact GPS position of each audience check-in, and the position each IP address resolved to. The entries are debug output with no audit value. A check now logs its decision only, and only while geolocation debugging is on.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-lock',
+			'icon'        => 'ffc-icon-map-pin-x',
 			'batch_size'  => 500,
 			'order'       => 4,
 		);
@@ -216,7 +216,7 @@ class MigrationRegistry {
 		$this->migrations['activity_log_access_denied_ip'] = array(
 			'name'        => __( 'Activity Log: Clear Refused Addresses', 'ffcertificate' ),
 			'description' => __( 'Remove the visitor\'s address from the details of "Access Denied" activity log entries. Until this release a geofence refusal copied it there in clear; the entry\'s own address column keeps it, encrypted.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-lock',
+			'icon'        => 'ffc-icon-log-clean',
 			'batch_size'  => 500,
 			'order'       => 4,
 		);
@@ -226,7 +226,7 @@ class MigrationRegistry {
 		$this->migrations['import_legacy_templates'] = array(
 			'name'        => __( 'Import Legacy Certificate Templates', 'ffcertificate' ),
 			'description' => __( 'Import certificate layouts left in the plugin\'s html/ drop-folder into the reusable template pool (Certificate → Templates). Non-destructive and idempotent: shipped defaults are skipped and each file is imported once.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-file',
+			'icon'        => 'ffc-icon-template-load',
 			'batch_size'  => 20,
 			'order'       => 5,
 			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the html/ folder it reads left the plugin in 6.23.0.
@@ -239,7 +239,7 @@ class MigrationRegistry {
 		$this->migrations['rewrite_html_image_refs'] = array(
 			'name'        => __( 'Rewrite html/ Image References', 'ffcertificate' ),
 			'description' => __( 'Move images referenced from the legacy html/ folder into the Media Library and update stored certificate layouts, backgrounds and template-pool bodies to point at the new attachments. Idempotent; missing files are reported as errors.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-image',
+			'icon'        => 'ffc-icon-image-plus',
 			'batch_size'  => 10,
 			'order'       => 6,
 			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the html/ images it side-loads left the plugin in 6.23.0.
