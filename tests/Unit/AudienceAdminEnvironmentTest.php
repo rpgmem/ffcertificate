@@ -11,22 +11,76 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceAdminEnvironment;
 
 /**
+ * The Environments screen of Audience Calendars: its list, its form and the
+ * actions it handles.
+ *
+ * AudienceEnvironmentRepository and AudienceScheduleRepository are the real
+ * classes, over a `$wpdb` double that answers each read by its SQL text from
+ * the environment and calendar rows a test stores, records every write, and
+ * fails the test on any query it does not know. Every redirect ends in
+ * `exit`; the `wp_safe_redirect()` stub throws to stand in for it.
+ *
  * @covers \FreeFormCertificate\Audience\AudienceAdminEnvironment
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AudienceAdminEnvironmentTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	private const ENV_TABLE = 'wp_ffc_audience_environments';
+
+	private const SCHEDULE_TABLE = 'wp_ffc_audience_schedules';
+
+	/** @var array<int, array<string, mixed>> Stored environments, by id, in insertion order. */
+	private array $environments = array();
+
+	/** @var array<int, array<string, mixed>> Stored calendars, by id, in insertion order. */
+	private array $schedules = array();
+
+	/**
+	 * Every SELECT the double answered, as `[ sql, args ]`.
+	 *
+	 * @var list<array{0: string, 1: array<int, mixed>}>
+	 */
+	private array $reads = array();
+
+	/**
+	 * Every write the double received, as `[ op, table, data, where ]`.
+	 *
+	 * @var list<array{0: string, 1: string, 2: array<string, mixed>, 3: array<string, mixed>}>
+	 */
+	private array $writes = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> The `$_GET` an earlier test left, restored afterwards. */
+	private array $get_backup = array();
+
+	/** @var array<string, mixed> The `$_POST` an earlier test left, restored afterwards. */
+	private array $post_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->get_backup  = $_GET ?? array();
+		$this->post_backup = $_POST ?? array();
+		$_GET              = array();
+		$_POST             = array();
 		// handle_actions() acts only on its own screen (#1771).
 		$_GET['page'] = 'ffc-scheduling-environments';
 
+		$this->environments = array();
+		$this->schedules    = array();
+		$this->reads        = array();
+		$this->writes       = array();
+
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
@@ -35,9 +89,8 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		Functions\when( 'esc_attr_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
 		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/' );
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
@@ -46,26 +99,190 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $data ) => json_encode( $data ) );
 		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults = array() ) {
 			return array_merge( $defaults, (array) $args );
 		} );
 		Functions\when( 'sanitize_sql_orderby' )->returnArg();
 		Functions\when( 'sanitize_key' )->returnArg();
 		Functions\when( 'submit_button' )->justReturn( '' );
+		// CacheVersion reads and bumps its counter on every repository write.
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		Functions\when( 'update_option' )->justReturn( true );
 
-		global $wpdb;
-		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
-		$wpdb->prefix = 'wp_';
-		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () { return func_get_arg(0); } )->byDefault();
-		$wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
-		$wpdb->shouldReceive( 'get_var' )->andReturn( '0' )->byDefault();
-		$wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $this->wpdb_double();
 	}
 
 	protected function tearDown(): void {
-		unset( $_GET['action'], $_GET['id'], $_GET['message'], $_GET['page'] );
+		$_GET  = $this->get_backup;
+		$_POST = $this->post_backup;
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * A `$wpdb` that answers the two repositories' queries from the stored
+	 * rows: `SELECT *` (filtered by its `col = %x` conditions), the by-id
+	 * `get_row()`, and records insert / update / delete.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function wpdb_double() {
+		$wpdb            = Mockery::mock( 'wpdb' );
+		$wpdb->prefix    = 'wp_';
+		$wpdb->insert_id = 0;
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$flat = 1 === count( $args ) && is_array( $args[0] ) ? $args[0] : $args;
+				return array(
+					'sql'  => $sql,
+					'args' => array_values( $flat ),
+				);
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $q ) {
+				$this->reads[] = array( $q['sql'], $q['args'] );
+				if ( 1 === preg_match( '/^SELECT \* FROM %i\s*(?:WHERE (.+?))?\s*ORDER BY /', $q['sql'], $m ) ) {
+					return $this->select( $q['args'], $m[1] ?? '' );
+				}
+				$this->fail( 'Unexpected get_results(): ' . $q['sql'] );
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $q ) {
+				$this->reads[] = array( $q['sql'], $q['args'] );
+				if ( 'SELECT * FROM %i WHERE id = %d' === $q['sql'] ) {
+					$rows = $this->select( $q['args'], 'id = %d' );
+					return $rows[0] ?? null;
+				}
+				$this->fail( 'Unexpected get_row(): ' . $q['sql'] );
+			}
+		);
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) use ( $wpdb ) {
+				$this->writes[]  = array( 'insert', $table, $data, array() );
+				$wpdb->insert_id = 42;
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				$this->writes[] = array( 'update', $table, $data, $where );
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'delete' )->andReturnUsing(
+			function ( $table, $where ) {
+				$this->writes[] = array( 'delete', $table, array(), $where );
+				return 1;
+			}
+		);
+		return $wpdb;
+	}
+
+	/**
+	 * The stored rows of the table in `$args[0]` matching every `col = %x`
+	 * condition of `$where`, bound to `$args[1..]` in order.
+	 *
+	 * @param array<int, mixed> $args  Bound arguments, the table first.
+	 * @param string            $where The WHERE conditions.
+	 * @return list<object>
+	 */
+	private function select( array $args, string $where ): array {
+		$table = array_shift( $args );
+		if ( self::ENV_TABLE === $table ) {
+			$rows = $this->environments;
+		} elseif ( self::SCHEDULE_TABLE === $table ) {
+			$rows = $this->schedules;
+		} else {
+			$this->fail( 'Unexpected table: ' . (string) $table );
+		}
+		preg_match_all( '/(\w+) = %[ds]/', $where, $columns );
+		$out = array();
+		foreach ( $rows as $row ) {
+			foreach ( $columns[1] as $i => $column ) {
+				if ( (string) ( $row[ $column ] ?? '' ) !== (string) $args[ $i ] ) {
+					continue 2;
+				}
+			}
+			$out[] = (object) $row;
+		}
+		return $out;
+	}
+
+	/**
+	 * Store an environment row.
+	 *
+	 * @param array<string, mixed> $row Columns; `id` required.
+	 */
+	private function environment( array $row ): void {
+		$this->environments[ (int) $row['id'] ] = $row + array(
+			'schedule_id'   => 1,
+			'name'          => 'Env',
+			'description'   => '',
+			'color'         => '#3788d8',
+			'status'        => 'active',
+			'working_hours' => '',
+		);
+	}
+
+	/**
+	 * Store a calendar row.
+	 *
+	 * @param array<string, mixed> $row Columns; `id` required.
+	 */
+	private function schedule( array $row ): void {
+		$this->schedules[ (int) $row['id'] ] = $row + array(
+			'name'              => 'Cal',
+			'status'            => 'active',
+			'environment_label' => null,
+		);
+	}
+
+	/**
+	 * The writes the double received of one kind.
+	 *
+	 * @param string $op `insert`, `update` or `delete`.
+	 * @return list<array{0: string, 1: string, 2: array<string, mixed>, 3: array<string, mixed>}>
+	 */
+	private function writes_of( string $op ): array {
+		return array_values( array_filter( $this->writes, static fn( $w ) => $op === $w[0] ) );
+	}
+
+	/**
+	 * The SELECTs the double ran against one table.
+	 *
+	 * @param string $table Table name.
+	 * @return list<array{0: string, 1: array<int, mixed>}>
+	 */
+	private function reads_of( string $table ): array {
+		return array_values( array_filter( $this->reads, static fn( $r ) => $table === ( $r[1][0] ?? null ) ) );
+	}
+
+	/**
+	 * Run the handler until its redirect and return the URL.
+	 *
+	 * @param AudienceAdminEnvironment $page The page.
+	 * @return string
+	 */
+	private function redirect_of( AudienceAdminEnvironment $page ): string {
+		Functions\when( 'wp_safe_redirect' )->alias( static function ( $url ) { throw new \RuntimeException( 'redirect:' . $url ); } );
+		try {
+			$page->handle_actions();
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringStartsWith( 'redirect:', $e->getMessage() );
+			return substr( $e->getMessage(), strlen( 'redirect:' ) );
+		}
+		$this->fail( 'handle_actions() did not redirect.' );
 	}
 
 	// ==================================================================
@@ -97,6 +314,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		$page->handle_actions();
+		$this->assertSame( array(), $this->writes );
 	}
 
 	// ==================================================================
@@ -143,30 +361,16 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_list_sorts_by_calendar_then_name(): void {
-		Functions\when( 'esc_html__' )->returnArg();
-		Functions\when( 'esc_attr__' )->returnArg();
-
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'get_all' )->andReturn(
-			array(
-				(object) array( 'id' => 1, 'name' => 'Zeta', 'schedule_id' => 2, 'status' => 'active', 'color' => '#fff', 'description' => 'd' ),
-				(object) array( 'id' => 2, 'name' => 'Alpha', 'schedule_id' => 1, 'status' => 'inactive', 'color' => '#000', 'description' => '' ),
-			)
-		);
-
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn(
-			array(
-				(object) array( 'id' => 1, 'name' => 'Cal One' ),
-				(object) array( 'id' => 2, 'name' => 'Cal Two' ),
-			)
-		);
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
+		// Stored Zeta first, so only the screen's own sort can put Alpha first.
+		$this->environment( array( 'id' => 1, 'name' => 'Zeta', 'schedule_id' => 2, 'status' => 'active', 'color' => '#fff', 'description' => 'd' ) );
+		$this->environment( array( 'id' => 2, 'name' => 'Alpha', 'schedule_id' => 1, 'status' => 'inactive', 'color' => '#000', 'description' => '' ) );
+		$this->schedule( array( 'id' => 1, 'name' => 'Cal One' ) );
+		$this->schedule( array( 'id' => 2, 'name' => 'Cal Two' ) );
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		ob_start();
 		$page->render_view();
-		$output = ob_get_clean();
+		$output = (string) ob_get_clean();
 
 		// Alpha (Cal One) sorts before Zeta (Cal Two).
 		$this->assertLessThan( strpos( $output, 'Zeta' ), strpos( $output, 'Alpha' ) );
@@ -178,13 +382,8 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$escape = static fn( $text ) => htmlspecialchars( (string) $text, ENT_QUOTES );
 		Functions\when( 'esc_html' )->alias( $escape );
 		Functions\when( 'esc_attr' )->alias( $escape );
-		Functions\when( 'esc_attr__' )->returnArg();
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'get_all' )->andReturn(
-			array( (object) array( 'id' => 9, 'name' => 'Room A', 'schedule_id' => 3, 'status' => 'active', 'color' => '#fff', 'description' => '' ) )
-		);
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn( array( (object) array( 'id' => 3, 'name' => 'Cal Three' ) ) );
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
+		$this->environment( array( 'id' => 9, 'name' => 'Room A', 'schedule_id' => 3, 'status' => 'active', 'color' => '#fff', 'description' => '' ) );
+		$this->schedule( array( 'id' => 3, 'name' => 'Cal Three' ) );
 
 		ob_start();
 		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
@@ -200,11 +399,6 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	}
 
 	public function test_empty_environment_list_spans_every_column(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'get_all' )->andReturn( array() );
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn( array() );
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
-
 		ob_start();
 		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
 		$output = (string) ob_get_clean();
@@ -245,16 +439,9 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	 */
 	public function test_row_actions_render_only_for_the_cap_their_handler_checks( array $caps, bool $can_manage, bool $can_delete ): void {
 		$this->grant( $caps );
-		Functions\when( 'esc_attr__' )->returnArg();
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'get_all' )->andReturn(
-			array(
-				(object) array( 'id' => 1, 'name' => 'Active Room', 'schedule_id' => 1, 'status' => 'active', 'color' => '#fff', 'description' => '' ),
-				(object) array( 'id' => 2, 'name' => 'Inactive Room', 'schedule_id' => 1, 'status' => 'inactive', 'color' => '#000', 'description' => '' ),
-			)
-		);
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn( array( (object) array( 'id' => 1, 'name' => 'Cal One' ) ) );
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
+		$this->environment( array( 'id' => 1, 'name' => 'Active Room', 'schedule_id' => 1, 'status' => 'active', 'color' => '#fff', 'description' => '' ) );
+		$this->environment( array( 'id' => 2, 'name' => 'Inactive Room', 'schedule_id' => 1, 'status' => 'inactive', 'color' => '#000', 'description' => '' ) );
+		$this->schedule( array( 'id' => 1, 'name' => 'Cal One' ) );
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		ob_start();
@@ -269,24 +456,22 @@ class AudienceAdminEnvironmentTest extends TestCase {
 
 	public function test_render_list_filters_by_schedule(): void {
 		$_GET['schedule_id'] = '3';
-		Functions\when( 'esc_html__' )->returnArg();
-
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'get_all' )->with( array( 'schedule_id' => 3 ) )->once()->andReturn( array() );
-
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn( array() );
-		$schedRepo->shouldReceive( 'get_environment_label' )->with( 3 )->andReturn( 'Rooms' );
-		// The view switch names the views with the default label (#1761).
-		$schedRepo->shouldReceive( 'get_environment_label' )->withNoArgs()->andReturn( 'Environments' );
+		// The filtered calendar names its environments "Rooms"; the view
+		// switch names the views with the default label (#1761).
+		$this->schedule( array( 'id' => 3, 'name' => 'Cal Three', 'environment_label' => 'Rooms' ) );
+		$this->environment( array( 'id' => 5, 'name' => 'Elsewhere', 'schedule_id' => 4 ) );
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		ob_start();
 		$page->render_view();
-		$output = ob_get_clean();
+		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'Rooms', $output );
-		unset( $_GET['schedule_id'] );
+		$env_reads = $this->reads_of( self::ENV_TABLE );
+		$this->assertCount( 1, $env_reads, 'the environments are read once' );
+		$this->assertStringContainsString( 'WHERE schedule_id = %d', $env_reads[0][0] );
+		$this->assertSame( array( self::ENV_TABLE, 3 ), $env_reads[0][1] );
+		$this->assertStringNotContainsString( 'Elsewhere', $output );
 	}
 
 	// ==================================================================
@@ -295,34 +480,25 @@ class AudienceAdminEnvironmentTest extends TestCase {
 
 	public function test_render_form_new_shows_create_title(): void {
 		$_GET['action'] = 'new';
-		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
-
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environment' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn(
-			array( (object) array( 'id' => 1, 'name' => 'Cal' ) )
-		);
+		$this->schedule( array( 'id' => 1, 'name' => 'Cal' ) );
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		ob_start();
 		$page->render_view();
-		$output = ob_get_clean();
+		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'Cal', $output );
 		$this->assertStringContainsString( 'environment_name', $output );
-		unset( $_GET['action'] );
 	}
 
 	public function test_render_form_edit_loads_existing_with_working_hours(): void {
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '7';
-		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'get_by_id' )->with( 7 )->andReturn(
-			(object) array(
+		$this->environment(
+			array(
 				'id'            => 7,
 				'schedule_id'   => 2,
 				'name'          => 'My Room',
@@ -332,17 +508,12 @@ class AudienceAdminEnvironmentTest extends TestCase {
 				'working_hours' => json_encode( array( 'mon' => array( 'closed' => true, 'start' => '09:00', 'end' => '17:00' ) ) ),
 			)
 		);
-
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Room' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn(
-			array( (object) array( 'id' => 2, 'name' => 'Cal' ) )
-		);
+		$this->schedule( array( 'id' => 2, 'name' => 'Cal', 'environment_label' => 'Room' ) );
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		ob_start();
 		$page->render_view();
-		$output = ob_get_clean();
+		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'My Room', $output );
 		$this->assertStringContainsString( '#abcdef', $output );
@@ -351,18 +522,12 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		// The `.ffc-boxed` wrap is the hosting calendars page's (#1761).
 		$this->assertMatchesRegularExpression( '/<div class="card">\s*<h2 class="ffc-icon-building">Room<\/h2>/', $output );
 		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
-		unset( $_GET['action'], $_GET['id'] );
 	}
 
 	public function test_render_form_edit_missing_environment_dies(): void {
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '99';
-		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'wp_die' )->alias( static function ( $m ) { throw new \RuntimeException( (string) $m ); } );
-
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'get_by_id' )->with( 99 )->andReturn( null );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		$this->expectException( \RuntimeException::class );
@@ -376,7 +541,6 @@ class AudienceAdminEnvironmentTest extends TestCase {
 			$page->render_view();
 		} finally {
 			ob_end_clean();
-			unset( $_GET['action'], $_GET['id'] );
 		}
 	}
 
@@ -387,7 +551,6 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	public function test_handle_actions_creates_environment_and_redirects(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
-		Functions\when( 'wp_safe_redirect' )->alias( static function ( $url ) { throw new \RuntimeException( 'redirect:' . $url ); } );
 
 		$_POST = array(
 			'ffc_action'            => 'save_environment',
@@ -403,23 +566,17 @@ class AudienceAdminEnvironmentTest extends TestCase {
 			),
 		);
 
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'create' )->once()->with(
-			Mockery::on(
-				static function ( $data ) {
-					return 3 === $data['schedule_id']
-						&& 'New Env' === $data['name']
-						&& true === $data['working_hours']['tue']['closed']
-						&& '08:00' === $data['working_hours']['mon']['start'];
-				}
-			)
-		)->andReturn( 42 );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'message=created' );
-		$page->handle_actions();
+		$this->assertStringContainsString( 'message=created', $this->redirect_of( $page ) );
+
+		$inserts = $this->writes_of( 'insert' );
+		$this->assertCount( 1, $inserts );
+		$this->assertSame( self::ENV_TABLE, $inserts[0][1] );
+		$this->assertSame( 3, $inserts[0][2]['schedule_id'] );
+		$this->assertSame( 'New Env', $inserts[0][2]['name'] );
+		$hours = json_decode( (string) $inserts[0][2]['working_hours'], true );
+		$this->assertTrue( $hours['tue']['closed'] );
+		$this->assertSame( '08:00', $hours['mon']['start'] );
 	}
 
 	public function test_handle_actions_updates_environment(): void {
@@ -435,17 +592,16 @@ class AudienceAdminEnvironmentTest extends TestCase {
 			'environment_status'    => 'inactive',
 		);
 
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'update' )->once()->with( 5, Mockery::type( 'array' ) )->andReturn( true );
-
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environment' );
-
 		Functions\when( 'add_settings_error' )->justReturn( true );
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		$page->handle_actions();
-		$this->assertTrue( true );
+
+		$updates = $this->writes_of( 'update' );
+		$this->assertCount( 1, $updates );
+		$this->assertSame( self::ENV_TABLE, $updates[0][1] );
+		$this->assertSame( array( 'id' => 5 ), $updates[0][3] );
+		$this->assertSame( 'Edited', $updates[0][2]['name'] );
 	}
 
 	public function test_render_form_keeps_an_inactive_calendar_selected(): void {
@@ -454,7 +610,6 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		// saved past the required check (#1771).
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '7';
-		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->alias(
 			static function ( $a, $b ) {
@@ -462,9 +617,8 @@ class AudienceAdminEnvironmentTest extends TestCase {
 			}
 		);
 
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'get_by_id' )->with( 7 )->andReturn(
-			(object) array(
+		$this->environment(
+			array(
 				'id'            => 7,
 				'schedule_id'   => 4,
 				'name'          => 'Old Room',
@@ -474,21 +628,14 @@ class AudienceAdminEnvironmentTest extends TestCase {
 				'working_hours' => '',
 			)
 		);
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Room' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn(
-			array( (object) array( 'id' => 2, 'name' => 'Live Cal', 'status' => 'active' ) )
-		);
-		$schedRepo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn(
-			(object) array( 'id' => 4, 'name' => 'Archived Cal', 'status' => 'inactive' )
-		);
+		$this->schedule( array( 'id' => 2, 'name' => 'Live Cal', 'status' => 'active', 'environment_label' => 'Room' ) );
+		$this->schedule( array( 'id' => 4, 'name' => 'Archived Cal', 'status' => 'inactive', 'environment_label' => 'Room' ) );
 
 		ob_start();
 		try {
 			( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
 		} finally {
 			$output = (string) ob_get_clean();
-			unset( $_GET['action'], $_GET['id'] );
 		}
 
 		$this->assertMatchesRegularExpression( '#<option value="4"\s+selected="selected">\s*Archived Cal \(inactive\)\s*</option>#', $output );
@@ -497,12 +644,12 @@ class AudienceAdminEnvironmentTest extends TestCase {
 
 	/**
 	 * Render the environment form for the given query, with `selected()`
-	 * printing its attribute and two active calendars listed.
+	 * printing its attribute and two active calendars stored: 2 ("Cal Two")
+	 * and 3 ("Cal Three", whose environments are "Room").
 	 *
-	 * @param array<string, string> $get      Query arguments.
-	 * @param object|null           $existing The calendar get_by_id() answers, or null for none.
+	 * @param array<string, string> $get Query arguments.
 	 */
-	private function render_form_for( array $get, ?object $existing ): string {
+	private function render_form_for( array $get ): string {
 		$_GET = array_merge( $_GET, $get );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->alias(
@@ -510,24 +657,14 @@ class AudienceAdminEnvironmentTest extends TestCase {
 				echo (string) $a === (string) $b ? ' selected="selected"' : '';
 			}
 		);
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturnUsing(
-			static fn( $id = null, $singular = false ) => ( $id ? 'Room' : 'Environment' ) . ( $singular ? '' : 's' )
-		);
-		$schedRepo->shouldReceive( 'get_all' )->andReturn(
-			array(
-				(object) array( 'id' => 2, 'name' => 'Cal Two', 'status' => 'active' ),
-				(object) array( 'id' => 3, 'name' => 'Cal Three', 'status' => 'active' ),
-			)
-		);
-		$schedRepo->shouldReceive( 'get_by_id' )->andReturn( $existing );
+		$this->schedule( array( 'id' => 2, 'name' => 'Cal Two', 'status' => 'active' ) );
+		$this->schedule( array( 'id' => 3, 'name' => 'Cal Three', 'status' => 'active', 'environment_label' => 'Room' ) );
 
 		ob_start();
 		try {
 			( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
 		} finally {
 			$output = (string) ob_get_clean();
-			unset( $_GET['schedule_id'] );
 		}
 		return $output;
 	}
@@ -535,10 +672,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	public function test_render_form_new_preselects_the_requested_calendar(): void {
 		// The calendar editor's Environments tab opens Add New with its
 		// calendar (#1796).
-		$output = $this->render_form_for(
-			array( 'action' => 'new', 'schedule_id' => '3' ),
-			(object) array( 'id' => 3, 'name' => 'Cal Three', 'status' => 'active' )
-		);
+		$output = $this->render_form_for( array( 'action' => 'new', 'schedule_id' => '3' ) );
 
 		$this->assertMatchesRegularExpression( '#<option value="3"\s+selected="selected">\s*Cal Three\s*</option>#', $output );
 		$this->assertMatchesRegularExpression( '#<option value="2"\s*>\s*Cal Two\s*</option>#', $output );
@@ -548,7 +682,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	}
 
 	public function test_render_form_new_ignores_an_unknown_calendar(): void {
-		$output = $this->render_form_for( array( 'action' => 'new', 'schedule_id' => '99' ), null );
+		$output = $this->render_form_for( array( 'action' => 'new', 'schedule_id' => '99' ) );
 
 		$this->assertStringNotContainsString( 'selected="selected"', $output );
 		$this->assertMatchesRegularExpression( '#<option value=""\s*>\s*Select a calendar\s*</option>#', $output );
@@ -557,15 +691,14 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	}
 
 	public function test_render_form_new_ignores_a_value_that_is_not_an_id(): void {
-		$output = $this->render_form_for( array( 'action' => 'new', 'schedule_id' => 'abc' ), (object) array( 'id' => 3, 'name' => 'Cal Three', 'status' => 'active' ) );
+		$output = $this->render_form_for( array( 'action' => 'new', 'schedule_id' => 'abc' ) );
 
 		$this->assertStringNotContainsString( 'selected="selected"', $output );
 	}
 
 	public function test_render_form_edit_keeps_the_saved_calendar_over_the_query(): void {
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'get_by_id' )->with( 7 )->andReturn(
-			(object) array(
+		$this->environment(
+			array(
 				'id'            => 7,
 				'schedule_id'   => 2,
 				'name'          => 'My Room',
@@ -576,10 +709,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 			)
 		);
 
-		$output = $this->render_form_for(
-			array( 'action' => 'edit', 'id' => '7', 'schedule_id' => '3' ),
-			(object) array( 'id' => 3, 'name' => 'Cal Three', 'status' => 'active' )
-		);
+		$output = $this->render_form_for( array( 'action' => 'edit', 'id' => '7', 'schedule_id' => '3' ) );
 
 		$this->assertMatchesRegularExpression( '#<option value="2"\s+selected="selected">\s*Cal Two\s*</option>#', $output );
 		$this->assertMatchesRegularExpression( '#<option value="3"\s*>\s*Cal Three\s*</option>#', $output );
@@ -587,17 +717,16 @@ class AudienceAdminEnvironmentTest extends TestCase {
 
 	public function test_calendar_tab_add_new_carries_the_calendar(): void {
 		Functions\when( 'admin_url' )->returnArg();
-		Functions\when( 'esc_attr__' )->returnArg();
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'get_all' )->with( array( 'schedule_id' => 4 ) )->andReturn( array() );
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn( (object) array( 'id' => 4, 'name' => 'Cal Four' ) );
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Rooms' );
+		$this->schedule( array( 'id' => 4, 'name' => 'Cal Four', 'environment_label' => 'Rooms' ) );
 
 		ob_start();
 		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_calendar_tab( 4 );
 		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'href="admin.php?page=ffc-scheduling-calendars&view=environments&action=new&schedule_id=4" class="ffc-btn ffc-btn-create ffc-icon-plus">Add New</a>', $output );
+		$env_reads = $this->reads_of( self::ENV_TABLE );
+		$this->assertCount( 1, $env_reads );
+		$this->assertSame( array( self::ENV_TABLE, 4 ), $env_reads[0][1], 'the tab lists only this calendar\'s environments' );
 	}
 
 	/**
@@ -623,27 +752,17 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	public function test_list_add_new_carries_the_active_filter( array $get, string $expected ): void {
 		$_GET = array_merge( $_GET, $get );
 		Functions\when( 'admin_url' )->returnArg();
-		Functions\when( 'esc_html__' )->returnArg();
-		Functions\when( 'esc_attr__' )->returnArg();
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'get_all' )->andReturn( array() );
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn( array() );
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Rooms' );
 
-		try {
-			ob_start();
-			( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
-			$output = (string) ob_get_clean();
-		} finally {
-			unset( $_GET['schedule_id'] );
-		}
+		ob_start();
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
+		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'href="admin.php?page=ffc-scheduling-calendars&view=environments' . $expected . '" class="ffc-btn ffc-btn-create ffc-icon-plus">Add New</a>', $output );
 	}
 
 	/**
 	 * Run a save of environment 5 with the given working hours and return
-	 * what reached the repository.
+	 * the working hours that reached the database.
 	 *
 	 * @param array<string, array<string, string>> $posted Posted `working_hours`.
 	 * @param string                               $stored Stored `working_hours` JSON.
@@ -660,22 +779,20 @@ class AudienceAdminEnvironmentTest extends TestCase {
 			'environment_name'      => 'Room',
 			'working_hours'         => $posted,
 		);
-
-		$saved   = array();
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'id' => 5, 'working_hours' => $stored ) );
-		$envRepo->shouldReceive( 'update' )->once()->andReturnUsing(
-			static function ( $id, $data ) use ( &$saved ) {
-				$saved = $data['working_hours'];
-				return true;
-			}
+		$this->environment(
+			array(
+				'id'            => 5,
+				'schedule_id'   => 2,
+				'working_hours' => $stored,
+			)
 		);
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environment' );
 
 		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
-		$_POST = array();
-		return $saved;
+
+		$updates = $this->writes_of( 'update' );
+		$this->assertCount( 1, $updates );
+		$saved = json_decode( (string) $updates[0][2]['working_hours'], true );
+		return is_array( $saved ) ? $saved : array();
 	}
 
 	public function test_save_keeps_the_stored_times_of_a_closed_day(): void {
@@ -734,28 +851,19 @@ class AudienceAdminEnvironmentTest extends TestCase {
 			'environment_id'        => '5',
 		);
 
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldNotReceive( 'update' );
-		$envRepo->shouldNotReceive( 'create' );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-
 		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
 		$this->assertSame( 0, $nonce->count() );
+		$this->assertSame( array(), $this->writes );
 	}
 
 	public function test_handle_actions_save_aborts_on_bad_nonce(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( false );
 		$_POST = array( 'ffc_action' => 'save_environment', 'ffc_environment_nonce' => 'bad' );
 
-		// No repo expectations — must return before any persistence.
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldNotReceive( 'create' );
-		$envRepo->shouldNotReceive( 'update' );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-
+		// Must return before any persistence.
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		$page->handle_actions();
-		$this->assertTrue( true );
+		$this->assertSame( array(), $this->writes );
 	}
 
 	// ==================================================================
@@ -771,16 +879,10 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		);
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
-		Functions\when( 'wp_safe_redirect' )->alias( static function ( $url ) { throw new \RuntimeException( 'redirect:' . $url ); } );
-
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'update' )->once()->with( 8, array( 'status' => 'inactive' ) )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'message=deactivated' );
-		$page->handle_actions();
+		$this->assertStringContainsString( 'message=deactivated', $this->redirect_of( $page ) );
+		$this->assertSame( array( array( 'update', self::ENV_TABLE, array( 'status' => 'inactive' ), array( 'id' => 8 ) ) ), $this->writes );
 	}
 
 	// ==================================================================
@@ -796,17 +898,11 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		);
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
-		Functions\when( 'wp_safe_redirect' )->alias( static function ( $url ) { throw new \RuntimeException( 'redirect:' . $url ); } );
-
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'status' => 'inactive' ) );
-		$envRepo->shouldReceive( 'delete' )->once()->with( 9 )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$this->environment( array( 'id' => 9, 'status' => 'inactive' ) );
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'message=deleted' );
-		$page->handle_actions();
+		$this->assertStringContainsString( 'message=deleted', $this->redirect_of( $page ) );
+		$this->assertSame( array( array( 'delete', self::ENV_TABLE, array(), array( 'id' => 9 ) ) ), $this->writes );
 	}
 
 	public function test_handle_actions_delete_skips_active_environment(): void {
@@ -817,15 +913,13 @@ class AudienceAdminEnvironmentTest extends TestCase {
 			'_wpnonce' => 'n',
 		);
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
-
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'status' => 'active' ) );
-		$envRepo->shouldNotReceive( 'delete' );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$redirects = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_safe_redirect' );
+		$this->environment( array( 'id' => 9, 'status' => 'active' ) );
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		$page->handle_actions(); // no redirect — active item can't be deleted.
-		$this->assertTrue( true );
+		$this->assertSame( array(), $this->writes );
+		$this->assertSame( 0, $redirects->count() );
 	}
 
 	public function test_handle_actions_delete_denied_without_cap(): void {
@@ -841,13 +935,15 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		);
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'wp_die' )->alias( static function ( $m ) { throw new \RuntimeException( (string) $m ); } );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'permission to delete' );
-		$page->handle_actions();
+		try {
+			$page->handle_actions();
+			$this->fail( 'handle_actions() did not die.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'permission to delete', $e->getMessage() );
+		}
+		$this->assertSame( array(), $this->writes );
 	}
 
 	// ==================================================================
@@ -907,15 +1003,12 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		);
 		Functions\expect( 'wp_verify_nonce' )->once()->with( 'n', 'deactivate_environment_8' )->andReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
-		Functions\when( 'wp_safe_redirect' )->alias( static function ( $url ) { throw new \RuntimeException( 'redirect:' . $url ); } );
 
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'update' )->once()->with( 8, array( 'status' => 'inactive' ) )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirect:admin.php?page=ffc-scheduling-calendars&view=environments&message=deactivated' );
-		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
+		$this->assertSame(
+			'admin.php?page=ffc-scheduling-calendars&view=environments&message=deactivated',
+			$this->redirect_of( new AudienceAdminEnvironment( 'ffc-scheduling' ) )
+		);
+		$this->assertSame( array( array( 'update', self::ENV_TABLE, array( 'status' => 'inactive' ), array( 'id' => 8 ) ) ), $this->writes );
 	}
 
 	/**
@@ -931,16 +1024,13 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		);
 		Functions\expect( 'wp_verify_nonce' )->once()->with( 'n', 'delete_environment_9' )->andReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
-		Functions\when( 'wp_safe_redirect' )->alias( static function ( $url ) { throw new \RuntimeException( 'redirect:' . $url ); } );
+		$this->environment( array( 'id' => 9, 'status' => 'inactive' ) );
 
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'status' => 'inactive' ) );
-		$envRepo->shouldReceive( 'delete' )->once()->with( 9 )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirect:admin.php?page=ffc-scheduling-calendars&view=environments&message=deleted' );
-		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
+		$this->assertSame(
+			'admin.php?page=ffc-scheduling-calendars&view=environments&message=deleted',
+			$this->redirect_of( new AudienceAdminEnvironment( 'ffc-scheduling' ) )
+		);
+		$this->assertSame( array( array( 'delete', self::ENV_TABLE, array(), array( 'id' => 9 ) ) ), $this->writes );
 	}
 
 	/**
@@ -960,15 +1050,16 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		);
 		Functions\expect( 'wp_verify_nonce' )->once()->with( 'n', 'save_environment' )->andReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
-		Functions\when( 'wp_safe_redirect' )->alias( static function ( $url ) { throw new \RuntimeException( 'redirect:' . $url ); } );
 
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'create' )->once()->with( Mockery::on( static fn( $data ) => 3 === $data['schedule_id'] && 'New Env' === $data['name'] ) )->andReturn( 42 );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirect:admin.php?page=ffc-scheduling-calendars&view=environments&action=edit&id=42&message=created' );
-		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
+		// The double answers every insert with id 42.
+		$this->assertSame(
+			'admin.php?page=ffc-scheduling-calendars&view=environments&action=edit&id=42&message=created',
+			$this->redirect_of( new AudienceAdminEnvironment( 'ffc-scheduling' ) )
+		);
+		$inserts = $this->writes_of( 'insert' );
+		$this->assertCount( 1, $inserts );
+		$this->assertSame( 3, $inserts[0][2]['schedule_id'] );
+		$this->assertSame( 'New Env', $inserts[0][2]['name'] );
 	}
 
 	/**
@@ -997,12 +1088,15 @@ class AudienceAdminEnvironmentTest extends TestCase {
 				return true;
 			}
 		);
-
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'update' )->once()->with( 5, Mockery::on( static fn( $data ) => 'Edited' === $data['name'] && 'inactive' === $data['status'] ) )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' )->shouldReceive( 'get_environment_label' )->andReturn( 'Room' );
+		// The environment's calendar names its environments "Room".
+		$this->schedule( array( 'id' => 2, 'name' => 'Cal Two', 'environment_label' => 'Room' ) );
 
 		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
+		$updates = $this->writes_of( 'update' );
+		$this->assertCount( 1, $updates );
+		$this->assertSame( array( 'id' => 5 ), $updates[0][3] );
+		$this->assertSame( 'Edited', $updates[0][2]['name'] );
+		$this->assertSame( 'inactive', $updates[0][2]['status'] );
 		$this->assertSame( array( 'Room updated successfully.' ), $notices );
 	}
 
@@ -1020,10 +1114,12 @@ class AudienceAdminEnvironmentTest extends TestCase {
 				return true;
 			}
 		);
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' )->shouldReceive( 'get_environment_label' )->andReturn( 'Room' );
+		// The redirect carries no calendar, so the notice names the default
+		// label: the handler asks for calendar 0, which never exists.
+		$this->schedule( array( 'id' => 2, 'name' => 'Cal Two', 'environment_label' => 'Room' ) );
 
 		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
-		$this->assertSame( array( 'Room deleted successfully.' ), $notices );
+		$this->assertSame( array( 'Environment deleted successfully.' ), $notices );
 	}
 
 	public function test_actions_are_left_alone_on_the_calendars_view(): void {
@@ -1038,17 +1134,14 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		);
 		$nonces  = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_verify_nonce', 1 );
 		$notices = \FreeFormCertificate\Tests\Support\CallLog::record( 'add_settings_error', true );
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldNotReceive( 'update' );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
 
 		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
 		$this->assertSame( 0, $nonces->count(), 'no environment action was attempted' );
 		$this->assertSame( 0, $notices->count(), 'no environment notice was raised' );
+		$this->assertSame( array(), $this->writes, 'nothing was written' );
 	}
 
 	public function test_the_list_links_and_filter_point_at_the_view(): void {
-		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'wp_nonce_url' )->alias( static fn( $url, $action ) => $url . '&_wpnonce=' . $action );
 		$_GET = array(
@@ -1057,19 +1150,18 @@ class AudienceAdminEnvironmentTest extends TestCase {
 			'schedule_id' => '1',
 		);
 
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'get_all' )->with( array( 'schedule_id' => 1 ) )->andReturn(
-			array(
-				(object) array( 'id' => 1, 'name' => 'Active Room', 'schedule_id' => 1, 'status' => 'active', 'color' => '#fff', 'description' => '' ),
-				(object) array( 'id' => 2, 'name' => 'Inactive Room', 'schedule_id' => 1, 'status' => 'inactive', 'color' => '#000', 'description' => '' ),
-			)
-		);
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn( array( (object) array( 'id' => 1, 'name' => 'Cal One' ), (object) array( 'id' => 2, 'name' => 'Cal Two' ) ) );
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
+		$this->environment( array( 'id' => 1, 'name' => 'Active Room', 'schedule_id' => 1, 'status' => 'active', 'color' => '#fff', 'description' => '' ) );
+		$this->environment( array( 'id' => 2, 'name' => 'Inactive Room', 'schedule_id' => 1, 'status' => 'inactive', 'color' => '#000', 'description' => '' ) );
+		$this->schedule( array( 'id' => 1, 'name' => 'Cal One' ) );
+		$this->schedule( array( 'id' => 2, 'name' => 'Cal Two' ) );
 
 		ob_start();
 		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
 		$output = (string) ob_get_clean();
+
+		$env_reads = $this->reads_of( self::ENV_TABLE );
+		$this->assertCount( 1, $env_reads );
+		$this->assertSame( array( self::ENV_TABLE, 1 ), $env_reads[0][1], 'the list reads the filtered calendar\'s environments' );
 
 		$view = 'admin.php?page=ffc-scheduling-calendars&view=environments';
 		$this->assertStringContainsString( 'href="' . $view . '&action=new&schedule_id=1" class="ffc-btn ffc-btn-create ffc-icon-plus">Add New</a>', $output, 'the filtered list\'s Add New carries the calendar (#1801)' );
@@ -1116,9 +1208,8 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$_GET['id']     = '7';
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 
-		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$envRepo->shouldReceive( 'get_by_id' )->with( 7 )->andReturn(
-			(object) array(
+		$this->environment(
+			array(
 				'id'            => 7,
 				'schedule_id'   => 2,
 				'name'          => 'My Room',
@@ -1128,10 +1219,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 				'working_hours' => '',
 			)
 		);
-		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Room' );
-		$schedRepo->shouldReceive( 'get_all' )->andReturn( array( (object) array( 'id' => 2, 'name' => 'Cal', 'status' => 'active' ) ) );
-		$schedRepo->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 2, 'name' => 'Cal', 'status' => 'active' ) );
+		$this->schedule( array( 'id' => 2, 'name' => 'Cal', 'status' => 'active', 'environment_label' => 'Room' ) );
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		ob_start();

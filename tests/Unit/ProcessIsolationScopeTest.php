@@ -43,7 +43,7 @@ use PHPUnit\Framework\TestCase;
  * It sees presence, never need: a file that declares an `overload:` mock in
  * one of sixty tests passes, although the other fifty-nine do not need the
  * process. The files that isolate every test are therefore frozen in
- * tests/fixtures/class-isolation-baseline.php, a ratchet both ways: a new
+ * tests/fixtures/class-isolation-baseline.php (empty since #2174), a ratchet both ways: a new
  * file that isolates its whole class fails (isolate the tests that need it,
  * or argue it in the baseline), and one that stopped doing so fails until it
  * leaves the list. Regenerate after an intentional change:
@@ -152,10 +152,15 @@ class ProcessIsolationScopeTest extends TestCase {
 	 * annotation on the few tests that need it) must leave it, so the gain is locked in.
 	 */
 	public function test_class_level_isolation_matches_the_baseline(): void {
-		$current = array();
+		$current      = array();
+		$method_level = 0;
 		foreach ( self::test_files() as $file ) {
-			if ( self::isolates_every_test( (string) file_get_contents( $file ) ) ) {
+			$source = (string) file_get_contents( $file );
+			if ( self::isolates_every_test( $source ) ) {
 				$current[] = basename( $file );
+			}
+			if ( 1 === preg_match( '/@runInSeparateProcess\b/', $source ) ) {
+				++$method_level;
 			}
 		}
 		sort( $current );
@@ -181,7 +186,18 @@ class ProcessIsolationScopeTest extends TestCase {
 		/** @var list<string> $baseline */
 		$baseline = require self::BASELINE_FILE;
 
-		$this->assertNotEmpty( $current, 'The scan found no isolated class; it read nothing.' );
+		// The register is empty since #2174, so an empty scan is the expected
+		// answer and cannot prove the scan read anything. The same read must
+		// find every method-level annotation an independent traversal finds.
+		$recount = 0;
+		foreach ( (array) scandir( dirname( __DIR__ ) . '/Unit' ) as $entry ) {
+			if ( is_string( $entry ) && str_ends_with( $entry, '.php' )
+				&& 1 === preg_match( '/@runInSeparateProcess(?![A-Za-z])/', (string) file_get_contents( dirname( __DIR__ ) . '/Unit/' . $entry ) ) ) {
+				++$recount;
+			}
+		}
+		$this->assertGreaterThan( 0, $recount, 'The recount found no method-level isolation; it read nothing.' );
+		$this->assertSame( $recount, $method_level, 'The scan and the recount disagree about what the test files contain.' );
 		$this->assertSame(
 			array(),
 			array_values( array_diff( $current, $baseline ) ),
