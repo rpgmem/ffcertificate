@@ -143,13 +143,6 @@ class AudienceLoaderTest extends TestCase {
 	public function test_enqueue_admin_assets_enqueues_on_audience_page(): void {
 		$loader = AudienceLoader::get_instance();
 
-		// Stub the AssetHelper::asset_suffix call
-		// The class is already loaded via autoloader; we mock the static call
-		// by defining SCRIPT_DEBUG
-		if (!defined('SCRIPT_DEBUG')) {
-			define('SCRIPT_DEBUG', true);
-		}
-
 		Functions\expect('wp_enqueue_style')
 			->atLeast()->once();
 		Functions\expect('wp_enqueue_script')
@@ -161,8 +154,6 @@ class AudienceLoaderTest extends TestCase {
 		Functions\when('admin_url')->justReturn('https://example.com/wp-admin/admin-ajax.php');
 		Functions\when('rest_url')->justReturn('https://example.com/wp-json/ffc/v1/audience/');
 		Functions\when('wp_create_nonce')->justReturn('test-nonce');
-		Functions\when('sanitize_text_field')->returnArg();
-		Functions\when('wp_unslash')->returnArg();
 		Functions\when('sanitize_text_field')->returnArg();
 		Functions\when('wp_unslash')->returnArg();
 

@@ -34,6 +34,9 @@ class AdminAssetsManagerTest extends TestCase {
 		// LabelSorter guards on function_exists( 'get_locale' ): stub it so the
 		// branch is chosen here, not inherited from an earlier test.
 		Functions\when( 'get_locale' )->justReturn( 'en_US' );
+		// The form editor's code editor guards on function_exists(
+		// 'get_current_screen' ): no screen here, chosen rather than inherited.
+		Functions\when( 'get_current_screen' )->justReturn( null );
 
 		// pcov does not record lines for files first autoloaded mid-test-method,
 		// so the extracted conditional-assets class's coverage would attribute to

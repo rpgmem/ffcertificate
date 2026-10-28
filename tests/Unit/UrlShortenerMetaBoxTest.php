@@ -43,15 +43,9 @@ class UrlShortenerMetaBoxTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
-
-		// Namespaced stubs for AjaxTrait
-		Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
-
-		// Namespaced stubs for UrlShortener
-		Functions\when( 'FreeFormCertificate\UrlShortener\__' )->returnArg();
-		Functions\when( 'FreeFormCertificate\UrlShortener\get_permalink' )->justReturn( 'https://example.com/my-post' );
+		// Global stubs only: a namespaced one would shadow the global function
+		// for every later test in the process (#2123).
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/my-post' );
 
 		$this->service  = Mockery::mock( UrlShortenerService::class );
 		$this->meta_box = new UrlShortenerMetaBox( $this->service );
@@ -368,8 +362,8 @@ class UrlShortenerMetaBoxTest extends TestCase {
 
 	public function test_render_unpublished_no_record_shows_publish_hint(): void {
 		Functions\when( 'esc_html__' )->returnArg();
-		Functions\when( 'FreeFormCertificate\UrlShortener\esc_html__' )->returnArg();
-		Functions\when( 'FreeFormCertificate\UrlShortener\wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 
 		$post = $this->make_post( 3, 'draft', 'post' );
@@ -390,7 +384,7 @@ class UrlShortenerMetaBoxTest extends TestCase {
 
 	public function test_render_published_autocreate_fails_shows_error(): void {
 		Functions\when( 'esc_html__' )->returnArg();
-		Functions\when( 'FreeFormCertificate\UrlShortener\esc_html__' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
 
 		$post = $this->make_post( 4, 'publish', 'post' );
 		$post->post_title = 'Title';
@@ -516,14 +510,14 @@ class UrlShortenerMetaBoxTest extends TestCase {
 
 	public function test_enqueue_assets_skips_on_unrelated_hook(): void {
 		$this->service->shouldNotReceive( 'get_enabled_post_types' );
-		Functions\when( 'FreeFormCertificate\UrlShortener\get_post_type' )->justReturn( 'post' );
+		Functions\when( 'get_post_type' )->justReturn( 'post' );
 
 		$this->meta_box->enqueue_assets( 'index.php' );
 		$this->assertTrue( true );
 	}
 
 	public function test_enqueue_assets_skips_when_post_type_not_enabled(): void {
-		Functions\when( 'FreeFormCertificate\UrlShortener\get_post_type' )->justReturn( 'attachment' );
+		Functions\when( 'get_post_type' )->justReturn( 'attachment' );
 		$this->service->shouldReceive( 'get_enabled_post_types' )->andReturn( array( 'post', 'page' ) );
 
 		$this->meta_box->enqueue_assets( 'post.php' );
@@ -531,29 +525,12 @@ class UrlShortenerMetaBoxTest extends TestCase {
 	}
 
 	public function test_enqueue_assets_enqueues_on_enabled_post_edit(): void {
-		Functions\when( 'FreeFormCertificate\UrlShortener\get_post_type' )->justReturn( 'page' );
+		Functions\when( 'get_post_type' )->justReturn( 'page' );
 		$this->service->shouldReceive( 'get_enabled_post_types' )->andReturn( array( 'post', 'page' ) );
 
 		$enqueued = array();
-		Functions\when( 'FreeFormCertificate\UrlShortener\wp_enqueue_style' )->alias(
-			static function ( $h ) use ( &$enqueued ) {
-				$enqueued[] = $h;
-			}
-		);
-		Functions\when( 'FreeFormCertificate\UrlShortener\wp_enqueue_script' )->alias(
-			static function ( $h ) use ( &$enqueued ) {
-				$enqueued[] = $h;
-			}
-		);
-		// The meta box now calls AssetHelper::enqueue_common_style(), which
-		// enqueues from the Core namespace (#1126 B).
-		Functions\when( 'FreeFormCertificate\Core\wp_enqueue_style' )->alias(
-			static function ( $h ) use ( &$enqueued ) {
-				$enqueued[] = $h;
-			}
-		);
-		// Shared scripts and styles go through AssetRegistry, which calls the
-		// global functions (#1931).
+		// The meta box, AssetHelper::enqueue_common_style() and AssetRegistry
+		// all reach the global functions (#1126 B, #1931).
 		Functions\when( 'wp_enqueue_style' )->alias(
 			static function ( $h ) use ( &$enqueued ) {
 				$enqueued[] = $h;
@@ -564,9 +541,9 @@ class UrlShortenerMetaBoxTest extends TestCase {
 				$enqueued[] = $h;
 			}
 		);
-		Functions\when( 'FreeFormCertificate\UrlShortener\wp_localize_script' )->justReturn( true );
-		Functions\when( 'FreeFormCertificate\UrlShortener\admin_url' )->returnArg();
-		Functions\when( 'FreeFormCertificate\UrlShortener\wp_create_nonce' )->justReturn( 'nonce' );
+		Functions\when( 'wp_localize_script' )->justReturn( true );
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
 
 		$this->meta_box->enqueue_assets( 'post-new.php' );
 

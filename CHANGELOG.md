@@ -22,6 +22,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Settings → Data Migrations collapses finished cards** (#2115). A card at 100% shows one line with its name and a "Complete" chip; one with records pending, or whose status could not be read, stays open. Each card wears an icon of what it does, with four new ones in the registry: encryption, hash, log cleanup and a removed location.
 - **Tests: eight more classes run in the shared process** (#2117). They alias-mocked `Encryption`, `ActivityLog`, `Debug` or `DateFormatter`; the real services now run, and a logged row is read from the activity log's buffer. Two tests that need the cipher unconfigured or a decrypter spy keep their own process; two classes stay isolated for reasons outside these services.
 - **Tests: eleven more classes run in the shared process** (#2119). They alias-mocked a collaborator with no side effects, such as the captcha resolver, the badge and success-card renderers or the working-hours service; the real classes now run and each test checks what they draw. No class in the set stays isolated.
+- **Tests: the suite passes in reverse order** (#2123). Sixteen tests relied on what an earlier test left behind: a `SCRIPT_DEBUG` or `REST_REQUEST` constant, a namespaced stub that shadowed a global function, or a third-party double declared with a different body. Each test now chooses that state itself.
 
 ### Deprecated
 
