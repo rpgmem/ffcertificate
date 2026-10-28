@@ -500,6 +500,37 @@ class AppointmentValidatorTest extends TestCase {
 		$this->assertSame( 'capability_denied', $result->get_error_code() );
 	}
 
+	public function test_validate_a_booking_on_behalf_refuses_a_caller_without_the_staff_cap(): void {
+		// setUp's caller holds ffc_book_own_appointments only: booking for
+		// someone else is not booking their own (#2161).
+		$data              = $this->valid_data();
+		$data['booked_by'] = 5;
+
+		$result = $this->validator->validate( $data, $this->permissive_calendar() );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'capability_denied', $result->get_error_code() );
+	}
+
+	public function test_validate_a_booking_on_behalf_admits_the_staff_cap_without_book_own(): void {
+		Functions\when( 'current_user_can' )->alias( static fn ( $cap ) => 'ffc_manage_appointments' === $cap );
+		$data              = $this->valid_data();
+		$data['booked_by'] = 5;
+
+		$this->assertTrue( $this->validator->validate( $data, $this->permissive_calendar() ) );
+	}
+
+	public function test_validate_the_booking_form_still_requires_book_own_from_staff(): void {
+		// No `booked_by`: the public form's path, where the staff cap alone
+		// does not stand in for booking one's own appointment.
+		Functions\when( 'current_user_can' )->alias( static fn ( $cap ) => 'ffc_manage_appointments' === $cap );
+
+		$result = $this->validator->validate( $this->valid_data(), $this->permissive_calendar() );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'capability_denied', $result->get_error_code() );
+	}
+
 	public function test_validate_email_required_when_logged_out(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		$data = $this->valid_data();

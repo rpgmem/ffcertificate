@@ -226,9 +226,11 @@ class AppointmentRestController {
 				'confirm_override' => ! empty( $params['confirm_override'] ),
 			);
 
-			if ( is_user_logged_in() ) {
-				$appointment_data['user_id'] = get_current_user_id();
-			}
+			// Staff book on behalf of a person (#2161): the booking belongs to
+			// the person, so `user_id` stays empty and the handler links or
+			// creates their account from the CPF/RF and e-mail; the operator is
+			// recorded as the one who booked it.
+			$appointment_data['booked_by'] = get_current_user_id();
 
 			if ( ! class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentHandler' ) ) {
 				return new \WP_Error(

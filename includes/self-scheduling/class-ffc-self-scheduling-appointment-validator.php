@@ -335,8 +335,18 @@ class AppointmentValidator {
 			return true;
 		}
 
-		// 12. Validate user permissions (capability AND calendar config)
-		if ( is_user_logged_in() && ! $has_bypass ) {
+		// 12. Validate user permissions (capability AND calendar config). A
+		// member of staff booking on a person's behalf (#2161) is held to the
+		// staff capability, not to "book own": the booking is not theirs.
+		$on_behalf = ! empty( $data['booked_by'] );
+		if ( $on_behalf && ! $has_bypass ) {
+			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_appointments' ) ) {
+				return new \WP_Error(
+					'capability_denied',
+					__( 'You do not have permission to book appointments.', 'ffcertificate' )
+				);
+			}
+		} elseif ( is_user_logged_in() && ! $has_bypass ) {
 			if ( ! current_user_can( 'ffc_book_own_appointments' ) ) {
 				return new \WP_Error(
 					'capability_denied',

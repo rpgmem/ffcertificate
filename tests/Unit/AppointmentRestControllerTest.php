@@ -12,6 +12,7 @@ use FreeFormCertificate\API\AppointmentRestController;
 use FreeFormCertificate\Core\ActivityLog;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Core\IpAddress;
+use FreeFormCertificate\Core\SensitiveFieldRegistry;
 use FreeFormCertificate\Security\RateLimitChecker;
 use FreeFormCertificate\Tests\Support\Identifiers;
 
@@ -50,10 +51,17 @@ class AppointmentRestControllerTest extends TestCase {
 	private const CALENDARS    = 'wp_ffc_self_scheduling_calendars';
 	private const APPOINTMENTS = 'wp_ffc_self_scheduling_appointments';
 	private const BLOCKED_DATES = 'wp_ffc_self_scheduling_blocked_dates';
+	private const PROFILES     = 'wp_ffc_user_profiles';
 	private const CLIENT_IP    = '8.8.4.4';
 
 	/** The id the double gives the first appointment it stores. */
 	private const FIRST_NEW_ID = 101;
+
+	/** The account the identity index files the CPF under, when a test stores one. */
+	private const PERSON_ID = 77;
+
+	/** The id wp_create_user() gives the first account it creates. */
+	private const NEW_ACCOUNT_ID = 900;
 
 	/** @var array Captured route registrations */
 	private array $registered_routes = [];
@@ -97,6 +105,21 @@ class AppointmentRestControllerTest extends TestCase {
 	/** @var list<string> Queries the double was not written to answer. */
 	private array $unexpected = array();
 
+	/** @var array<int, array<string, mixed>> `ffc_user_profiles` rows (the identity index), by user id. */
+	private array $profiles = array();
+
+	/** @var list<array{0: string, 1: array<string, mixed>}> Every write to the identity index, as [insert|update, data]. */
+	private array $profile_writes = array();
+
+	/** @var array<string, int> WordPress accounts, by e-mail. */
+	private array $accounts_by_email = array();
+
+	/** @var list<array{0: string, 1: string}> Accounts wp_create_user() made, as [username, email]. */
+	private array $created_accounts = array();
+
+	/** @var list<string> The record-adoption UPDATEs the user linking ran. */
+	private array $adoptions = array();
+
 	/** @var bool Whether `$wpdb` was set before this test. */
 	private bool $had_wpdb = false;
 
@@ -124,6 +147,11 @@ class AppointmentRestControllerTest extends TestCase {
 		$this->transaction             = array();
 		$this->updates                 = array();
 		$this->unexpected              = array();
+		$this->profiles                = array();
+		$this->profile_writes          = array();
+		$this->accounts_by_email       = array();
+		$this->created_accounts        = array();
+		$this->adoptions               = array();
 
 		// Capture register_rest_route calls
 		Functions\when( 'register_rest_route' )->alias( function( $namespace, $route, $args ) {
@@ -299,6 +327,9 @@ class AppointmentRestControllerTest extends TestCase {
 				if ( 0 === strpos( $sql, 'SELECT id,count FROM `wp_ffc_rate_limits`' ) ) {
 					return null; // No counter row for this window yet.
 				}
+				if ( preg_match( '/^SELECT \* FROM `' . self::PROFILES . '` WHERE user_id = (\d+)$/', $sql, $m ) ) {
+					return $this->profiles[ (int) $m[1] ] ?? null;
+				}
 				$this->unexpected[] = 'get_row: ' . $sql;
 				return null;
 			}
@@ -307,6 +338,31 @@ class AppointmentRestControllerTest extends TestCase {
 			function ( $sql ) {
 				if ( 0 === strpos( $sql, 'SELECT count FROM `wp_ffc_rate_limits`' ) ) {
 					return null; // The day counter is empty.
+				}
+				// An established install: the identity index and the
+				// appointments table both exist.
+				if ( preg_match( "/^SHOW TABLES LIKE '(" . self::PROFILES . '|' . self::APPOINTMENTS . ")'$/", $sql, $m ) ) {
+					return $m[1];
+				}
+				// The user linking asks which account carries the identifier:
+				// the identity index answers from the rows the test stored,
+				// and no certificate submission carries it.
+				if ( preg_match( "/^SELECT user_id FROM `(" . self::PROFILES . "|wp_ffc_submissions)` WHERE \((.+)\) AND user_id IS NOT NULL LIMIT 1$/", $sql, $m ) ) {
+					if ( self::PROFILES !== $m[1] ) {
+						return null;
+					}
+					preg_match_all( "/(cpf_hash|rf_hash) = '([^']*)'/", $m[2], $pairs, PREG_SET_ORDER );
+					foreach ( $this->profiles as $user_id => $profile ) {
+						foreach ( $pairs as $pair ) {
+							if ( ( $profile[ $pair[1] ] ?? null ) === $pair[2] ) {
+								return (string) $user_id;
+							}
+						}
+					}
+					return null;
+				}
+				if ( preg_match( '/^SELECT id FROM `' . self::PROFILES . '` WHERE user_id = (\d+)$/', $sql, $m ) ) {
+					return isset( $this->profiles[ (int) $m[1] ] ) ? (string) $this->profiles[ (int) $m[1] ]['id'] : null;
 				}
 				if ( "SHOW TABLES LIKE 'wp_ffc_custom_fields'" === $sql ) {
 					// The activity log asks which custom fields are sensitive: none exist.
@@ -346,6 +402,11 @@ class AppointmentRestControllerTest extends TestCase {
 					$this->transaction[] = $sql;
 					return 1;
 				}
+				// The linking adopts the person's unlinked records: none here.
+				if ( preg_match( '/^UPDATE `(wp_ffc_submissions|' . self::APPOINTMENTS . ')` SET user_id = \d+ WHERE \(?(cpf_hash|rf_hash) = /', $sql ) ) {
+					$this->adoptions[] = $sql;
+					return 0;
+				}
 				$this->unexpected[] = 'query: ' . $sql;
 				return false;
 			}
@@ -365,6 +426,12 @@ class AppointmentRestControllerTest extends TestCase {
 					$this->appointments[ $wpdb->insert_id ] = array( 'id' => (string) $wpdb->insert_id ) + $data;
 					return 1;
 				}
+				if ( self::PROFILES === $table ) {
+					$this->profile_writes[]               = array( 'insert', $data );
+					$wpdb->insert_id                      = 500 + count( $this->profile_writes );
+					$this->profiles[ (int) $data['user_id'] ] = array( 'id' => (string) $wpdb->insert_id ) + $data;
+					return 1;
+				}
 				$this->unexpected[] = 'insert: ' . $table;
 				return false;
 			}
@@ -373,6 +440,11 @@ class AppointmentRestControllerTest extends TestCase {
 			function ( $table, $data, $where ) {
 				if ( self::APPOINTMENTS === $table ) {
 					$this->updates[] = array( $data, $where );
+					return 1;
+				}
+				if ( self::PROFILES === $table ) {
+					$this->profile_writes[]                       = array( 'update', $data );
+					$this->profiles[ (int) $where['user_id'] ] = $data + $this->profiles[ (int) $where['user_id'] ];
 					return 1;
 				}
 				$this->unexpected[] = 'update: ' . $table;
@@ -941,11 +1013,56 @@ class AppointmentRestControllerTest extends TestCase {
 	private function allow_booking(): void {
 		Functions\when( 'wp_rand' )->alias( static fn ( $min = 0, $max = 0 ) => random_int( (int) $min, (int) $max ) );
 		Functions\when( 'home_url' )->alias( static fn ( $path = '' ) => 'https://example.test' . $path );
+		$this->stub_accounts();
+	}
+
+	/**
+	 * Stub the WordPress user API the real UserCreator reaches when the
+	 * handler links the booking to the person (#2161).
+	 *
+	 * Accounts live in `$accounts_by_email`; wp_create_user() adds one. No
+	 * account has a user object to read (get_userdata() answers false), so
+	 * the capability grants stop at their own guard: they are
+	 * CapabilityManager's to test, not this controller's. The account
+	 * notification is switched off through its own setting, which is the
+	 * branch that returns before any mail is composed.
+	 */
+	private function stub_accounts(): void {
+		$this->settings['send_wp_user_email_appointment'] = 0;
+		Functions\when( 'get_user_by' )->alias(
+			function ( $field, $value ) {
+				if ( 'email' !== $field || ! isset( $this->accounts_by_email[ $value ] ) ) {
+					return false;
+				}
+				$user               = new \WP_User( $this->accounts_by_email[ $value ] );
+				$user->user_email   = $value;
+				$user->user_login   = 'existing';
+				$user->display_name = 'Existing Person';
+				return $user;
+			}
+		);
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'username_exists' )->justReturn( false );
+		Functions\when( 'remove_accents' )->returnArg();
+		Functions\when( 'sanitize_user' )->alias( static fn ( $name ) => strtolower( (string) preg_replace( '/[^A-Za-z0-9 _.@-]/', '', (string) $name ) ) );
+		Functions\when( 'wp_generate_password' )->justReturn( 'generated-password' );
+		Functions\when( 'wp_create_user' )->alias(
+			function ( $username, $password, $email ) {
+				$this->created_accounts[]          = array( (string) $username, (string) $email );
+				$user_id                           = self::NEW_ACCOUNT_ID + count( $this->created_accounts ) - 1;
+				$this->accounts_by_email[ $email ] = $user_id;
+				return $user_id;
+			}
+		);
+		Functions\when( 'wp_update_user' )->alias( static fn ( $data ) => (int) $data['ID'] );
+		Functions\when( 'update_user_meta' )->justReturn( true );
 	}
 
 	/**
 	 * Sign in as the caller the create route admits: an appointments operator
-	 * who may also book, so the validator's capability check passes.
+	 * (the Operator and Manager tiers), who holds `ffc_manage_appointments`
+	 * and NOT `ffc_book_own_appointments` — a booking made through this
+	 * route belongs to the person, not to the operator (#2161).
 	 *
 	 * @param int $user_id User ID.
 	 */
@@ -953,7 +1070,21 @@ class AppointmentRestControllerTest extends TestCase {
 		$this->allow_booking();
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( $user_id );
-		$this->holdCaps( array( 'ffc_manage_appointments', 'ffc_book_own_appointments' ) );
+		$this->holdCaps( array( 'ffc_manage_appointments' ) );
+	}
+
+	/**
+	 * The `appointment_booked_on_behalf` rows the activity log buffered.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private function on_behalf_log(): array {
+		return array_values(
+			array_filter(
+				$this->logged(),
+				static fn ( array $row ) => 'appointment_booked_on_behalf' === $row['action']
+			)
+		);
 	}
 
 	public function test_create_appointment_rate_limited(): void {
@@ -970,8 +1101,68 @@ class AppointmentRestControllerTest extends TestCase {
 		$this->assertSame( array(), $this->inserts, 'A refused request records no attempt.' );
 	}
 
-	public function test_create_appointment_attaches_user_id_when_logged_in(): void {
+	public function test_an_operator_without_book_own_books_on_behalf_of_a_person(): void {
+		// The Operator and Manager tiers hold ffc_manage_appointments and not
+		// ffc_book_own_appointments; before #2161 the validator asked for the
+		// second and refused them with `capability_denied`.
 		$this->sign_in_as_operator( 5 );
+		$this->store_calendar( array( 'id' => 3 ) );
+
+		$result = ( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
+			$this->make_request( array( 'id' => 3 ), $this->valid_booking() )
+		);
+
+		$this->assertIsArray( $result, 'The operator was refused instead of booking.' );
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( self::FIRST_NEW_ID, $result['appointment_id'] );
+		$this->assertCount( 1, $this->appointment_inserts );
+	}
+
+	public function test_create_appointment_files_the_booking_under_the_persons_existing_account(): void {
+		$this->sign_in_as_operator( 5 );
+		$this->settings['enable_activity_log'] = 1;
+		$this->store_calendar( array( 'id' => 3 ) );
+		// The identity index already knows the person behind this CPF.
+		$this->profiles[ self::PERSON_ID ] = array(
+			'id'       => '9',
+			'user_id'  => (string) self::PERSON_ID,
+			'cpf_hash' => SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A ),
+			'rf_hash'  => null,
+		);
+
+		$result = ( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
+			$this->make_request( array( 'id' => 3 ), $this->valid_booking() )
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertTrue( $result['success'] );
+		$this->assertCount( 1, $this->appointment_inserts );
+		$row = $this->appointment_inserts[0];
+		$this->assertSame( self::PERSON_ID, $row['user_id'], 'The booking belongs to the account the CPF resolves to.' );
+		$this->assertArrayNotHasKey( 'booked_by', $row, 'Who booked it is not a column.' );
+		$this->assertSame( array(), $this->created_accounts, 'A known person gets no second account.' );
+		$this->assertSame( array(), $this->profile_writes, 'The index already held the CPF, so nothing was rewritten.' );
+		$this->assertNotSame( array(), $this->adoptions, 'The real linking ran and looked for the person\'s unlinked records.' );
+
+		$logged = $this->on_behalf_log();
+		$this->assertCount( 1, $logged, 'The booking on behalf is recorded once.' );
+		$this->assertSame( ActivityLog::LEVEL_INFO, $logged[0]['level'] );
+		$this->assertSame( 5, $logged[0]['user_id'], 'The operator is the actor of the log line.' );
+		$this->assertSame(
+			array(
+				'appointment_id'   => self::FIRST_NEW_ID,
+				'calendar_id'      => 3,
+				'appointment_date' => $this->future_date(),
+				'start_time'       => '10:00',
+				'booked_for'       => self::PERSON_ID,
+			),
+			json_decode( (string) $logged[0]['context'], true )
+		);
+	}
+
+	public function test_create_appointment_creates_an_account_for_a_person_nobody_knows(): void {
+		$this->sign_in_as_operator( 5 );
+		$this->settings['enable_activity_log'] = 1;
 		$this->store_calendar( array( 'id' => 3 ) );
 
 		$result = ( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
@@ -980,9 +1171,23 @@ class AppointmentRestControllerTest extends TestCase {
 
 		$this->assertIsArray( $result );
 		$this->assertTrue( $result['success'] );
-		$this->assertSame( self::FIRST_NEW_ID, $result['appointment_id'] );
-		$this->assertCount( 1, $this->appointment_inserts );
-		$this->assertSame( 5, $this->appointment_inserts[0]['user_id'] );
+		$this->assertSame( array( array( 'ana', 'ana@example.com' ) ), $this->created_accounts, 'One account, for the e-mail the operator sent.' );
+		$row = $this->appointment_inserts[0];
+		$this->assertSame( self::NEW_ACCOUNT_ID, $row['user_id'], 'The booking belongs to the new account.' );
+		$this->assertNotSame( 5, $row['user_id'] );
+		$this->assertArrayNotHasKey( 'booked_by', $row, 'Who booked it is not a column.' );
+		$this->assertSame(
+			SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A ),
+			$this->profiles[ self::NEW_ACCOUNT_ID ]['cpf_hash'] ?? null,
+			'The identity index learned the new account\'s CPF.'
+		);
+
+		$logged = $this->on_behalf_log();
+		$this->assertCount( 1, $logged );
+		$this->assertSame( 5, $logged[0]['user_id'], 'The operator is the actor of the log line.' );
+		$context = json_decode( (string) $logged[0]['context'], true );
+		$this->assertSame( self::NEW_ACCOUNT_ID, $context['booked_for'] ?? null );
+		$this->assertSame( self::FIRST_NEW_ID, $context['appointment_id'] ?? null );
 	}
 
 	public function test_create_appointment_bubbles_handler_wp_error(): void {
