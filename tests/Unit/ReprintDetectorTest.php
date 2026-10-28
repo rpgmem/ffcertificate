@@ -8,18 +8,21 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\SensitiveFieldRegistry;
 use FreeFormCertificate\Frontend\ReprintDetector;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for ReprintDetector: reprint detection by ticket (hash + JSON fallback),
  * by CPF/RF (hash-based with split columns + JSON fallback), and result building.
  *
- * Alias mocks for Utils and Encryption are created in setUp to prevent
- * autoloading of the real classes.
+ * Encryption is the real class, configured by the test bootstrap's keys: a
+ * lookup is checked by the hash it sent to the query, and an e-mail by the
+ * ciphertext the real cipher wrote (#2117). The one test that needs the
+ * cipher NOT configured runs in its own process with an alias mock.
  *
  * @covers \FreeFormCertificate\Frontend\ReprintDetector
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class ReprintDetectorTest extends TestCase {
 
@@ -28,8 +31,12 @@ class ReprintDetectorTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
-	/** @var Mockery\MockInterface */
-	private $encMock;
+	/**
+	 * The arguments of every prepared query, in order.
+	 *
+	 * @var array<int, array<int, mixed>>
+	 */
+	private array $prepared = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -40,27 +47,17 @@ class ReprintDetectorTest extends TestCase {
 		$wpdb->prefix = 'wp_';
 		$this->wpdb = $wpdb;
 
-		// Alias mocks: prevent autoloading
-		$utilsMock = Mockery::mock('alias:\FreeFormCertificate\Core\Utils');
-		$utilsMock->shouldReceive('debug_log')->byDefault();
-
-		// IMPORTANT: store the Encryption alias mock so tests can add
-		// expectations to the SAME instance. Re-creating the alias mock in a
-		// test body creates a secondary mock that does NOT intercept static
-		// calls — those still go through the first alias mock. Default stubs
-		// here use byDefault() so tests can override with specific with()/once().
-		$this->encMock = Mockery::mock('alias:\FreeFormCertificate\Core\Encryption');
-		$this->encMock->shouldReceive('is_configured')->andReturn(true)->byDefault();
-		$this->encMock->shouldReceive('hash')->andReturn('default_hash')->byDefault();
-		$this->encMock->shouldReceive('decrypt')->andReturn(null)->byDefault();
-
 		Functions\when('__')->returnArg();
 		Functions\when('wp_unslash')->alias(function ($val) {
 			return is_string($val) ? stripslashes($val) : $val;
 		});
 
 		// Default wpdb stubs
-		$this->wpdb->shouldReceive('prepare')->andReturn('SQL')->byDefault();
+		$this->prepared = array();
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function ($query, ...$args) {
+			$this->prepared[] = $args;
+			return 'SQL';
+		})->byDefault();
 		$this->wpdb->shouldReceive('esc_like')->andReturnUsing(function ($val) {
 			return $val;
 		})->byDefault();
@@ -119,13 +116,6 @@ class ReprintDetectorTest extends TestCase {
 	// ==================================================================
 
 	public function test_detect_by_ticket_using_hash_when_encryption_configured(): void {
-		$encMock = $this->encMock;
-		$encMock->shouldReceive('is_configured')->andReturn(true);
-		$encMock->shouldReceive('hash')
-			->with('ABC123')
-			->andReturn('hashed_ticket');
-		$encMock->shouldReceive('decrypt')->andReturn(null);
-
 		// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
 		$row = $this->makeSubmissionRow([
 			'id' => 99,
@@ -138,6 +128,11 @@ class ReprintDetectorTest extends TestCase {
 
 		$result = ReprintDetector::detect(1, '', 'abc123');
 
+		$this->assertSame(
+			array( 'wp_ffc_submissions', 1, SensitiveFieldRegistry::hash_identifier( 'ticket', 'abc123' ) ),
+			$this->prepared[0],
+			'the lookup goes by the ticket hash'
+		);
 		$this->assertTrue($result['is_reprint']);
 		$this->assertSame(99, $result['id']);
 		$this->assertSame(1750000000, $result['date']);
@@ -149,11 +144,6 @@ class ReprintDetectorTest extends TestCase {
 	// ==================================================================
 
 	public function test_detect_by_ticket_falls_back_to_json_when_hash_misses(): void {
-		$encMock = $this->encMock;
-		$encMock->shouldReceive('is_configured')->andReturn(true);
-		$encMock->shouldReceive('hash')->andReturn('hashed_ticket');
-		$encMock->shouldReceive('decrypt')->andReturn(null);
-
 		$row = $this->makeSubmissionRow([
 			'id' => 55,
 			'data' => '{"ticket":"ABC-123","name":"Maria"}',
@@ -186,10 +176,18 @@ class ReprintDetectorTest extends TestCase {
 	// detect by ticket — encryption not configured, JSON only
 	// ==================================================================
 
+	/**
+	 * Whether the cipher is configured is fixed by the wp-config constants,
+	 * which the bootstrap defines for the whole process; only an alias mock
+	 * can answer "not configured", so this test has a process of its own.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_detect_by_ticket_uses_json_only_when_encryption_not_configured(): void {
-		$encMock = $this->encMock;
-		$encMock->shouldReceive('is_configured')->andReturn(false);
-		$encMock->shouldReceive('decrypt')->andReturn(null);
+		$encryption = Mockery::mock('alias:\FreeFormCertificate\Core\Encryption');
+		$encryption->shouldReceive('is_configured')->andReturn(false);
+		$encryption->shouldReceive('hash')->never();
 
 		$row = $this->makeSubmissionRow([
 			'id' => 10,
@@ -210,13 +208,6 @@ class ReprintDetectorTest extends TestCase {
 	// ==================================================================
 
 	public function test_detect_by_cpf_uses_cpf_hash_column_for_11_digit_ids(): void {
-		$encMock = $this->encMock;
-		$encMock->shouldReceive('is_configured')->andReturn(true);
-		$encMock->shouldReceive('hash')
-			->with('12345678901')
-			->andReturn('cpf_hashed');
-		$encMock->shouldReceive('decrypt')->andReturn(null);
-
 		$row = $this->makeSubmissionRow([
 			'id' => 77,
 			'data' => '{"cpf_rf":"123.456.789-01","name":"Pedro"}',
@@ -225,8 +216,12 @@ class ReprintDetectorTest extends TestCase {
 
 		$this->wpdb->shouldReceive('get_row')->once()->andReturn($row);
 
-		$result = ReprintDetector::detect(1, '123.456.789-01', '');
+		$result = ReprintDetector::detect(1, '518.178.420-80', '');
 
+		$this->assertSame(
+			array( 'wp_ffc_submissions', 1, 'cpf_hash', SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A ) ),
+			$this->prepared[0]
+		);
 		$this->assertTrue($result['is_reprint']);
 		$this->assertSame(77, $result['id']);
 	}
@@ -236,13 +231,6 @@ class ReprintDetectorTest extends TestCase {
 	// ==================================================================
 
 	public function test_detect_by_cpf_uses_rf_hash_column_for_7_digit_ids(): void {
-		$encMock = $this->encMock;
-		$encMock->shouldReceive('is_configured')->andReturn(true);
-		$encMock->shouldReceive('hash')
-			->with('1234567')
-			->andReturn('rf_hashed');
-		$encMock->shouldReceive('decrypt')->andReturn(null);
-
 		$row = $this->makeSubmissionRow([
 			'id' => 88,
 			'data' => '{"name":"Ana"}',
@@ -253,6 +241,10 @@ class ReprintDetectorTest extends TestCase {
 
 		$result = ReprintDetector::detect(1, '1234567', '');
 
+		$this->assertSame(
+			array( 'wp_ffc_submissions', 1, 'rf_hash', SensitiveFieldRegistry::hash_identifier( 'cpf', '1234567' ) ),
+			$this->prepared[0]
+		);
 		$this->assertTrue($result['is_reprint']);
 		$this->assertSame(88, $result['id']);
 	}
@@ -277,19 +269,13 @@ class ReprintDetectorTest extends TestCase {
 	// ==================================================================
 
 	public function test_detect_strips_cpf_formatting_before_hash(): void {
-		$encMock = $this->encMock;
-		$encMock->shouldReceive('is_configured')->andReturn(true);
-		$encMock->shouldReceive('hash')
-			->with('12345678901')
-			->once()
-			->andReturn('clean_hash');
-		$encMock->shouldReceive('decrypt')->andReturn(null);
-
 		$row = $this->makeSubmissionRow(['id' => 77]);
 		$this->wpdb->shouldReceive('get_row')->andReturn($row);
 
-		$result = ReprintDetector::detect(1, '123.456.789-01', '');
+		$result = ReprintDetector::detect(1, '518.178.420-80', '');
 
+		$this->assertCount( 1, $this->prepared );
+		$this->assertSame( Encryption::hash( Identifiers::CPF_A ), $this->prepared[0][3], 'the digits are hashed, not the formatted value' );
 		$this->assertTrue($result['is_reprint']);
 	}
 
@@ -298,11 +284,6 @@ class ReprintDetectorTest extends TestCase {
 	// ==================================================================
 
 	public function test_detect_ticket_takes_priority_over_cpf(): void {
-		$encMock = $this->encMock;
-		$encMock->shouldReceive('is_configured')->andReturn(true);
-		$encMock->shouldReceive('hash')->andReturn('ticket_hash');
-		$encMock->shouldReceive('decrypt')->andReturn(null);
-
 		$row = $this->makeSubmissionRow([
 			'id' => 66,
 			'data' => '{"ticket":"T100"}',
@@ -323,10 +304,6 @@ class ReprintDetectorTest extends TestCase {
 	// ==================================================================
 
 	public function test_reprint_result_includes_auth_code_from_column_when_missing_in_json(): void {
-		$encMock = $this->encMock;
-		$encMock->shouldReceive('is_configured')->andReturn(false);
-		$encMock->shouldReceive('decrypt')->andReturn(null);
-
 		$row = $this->makeSubmissionRow([
 			'id' => 11,
 			'data' => '{"name":"Test"}',
@@ -344,16 +321,10 @@ class ReprintDetectorTest extends TestCase {
 	// ==================================================================
 
 	public function test_reprint_result_includes_decrypted_email(): void {
-		$encMock = $this->encMock;
-		$encMock->shouldReceive('is_configured')->andReturn(false);
-		$encMock->shouldReceive('decrypt')
-			->with('encrypted_email_data')
-			->andReturn('user@example.com');
-
 		$row = $this->makeSubmissionRow([
 			'id' => 22,
 			'data' => '{"name":"Test"}',
-			'email_encrypted' => 'encrypted_email_data',
+			'email_encrypted' => Encryption::encrypt( 'user@example.com' ),
 		]);
 		$this->wpdb->shouldReceive('get_row')->andReturn($row);
 
@@ -368,10 +339,6 @@ class ReprintDetectorTest extends TestCase {
 	// ==================================================================
 
 	public function test_reprint_result_handles_null_data_field(): void {
-		$encMock = $this->encMock;
-		$encMock->shouldReceive('is_configured')->andReturn(false);
-		$encMock->shouldReceive('decrypt')->andReturn(null);
-
 		$row = $this->makeSubmissionRow([
 			'id' => 33,
 			'data' => null,
@@ -391,10 +358,6 @@ class ReprintDetectorTest extends TestCase {
 	// ==================================================================
 
 	public function test_reprint_result_handles_empty_string_data(): void {
-		$encMock = $this->encMock;
-		$encMock->shouldReceive('is_configured')->andReturn(false);
-		$encMock->shouldReceive('decrypt')->andReturn(null);
-
 		$row = $this->makeSubmissionRow([
 			'id' => 44,
 			'data' => '',
@@ -413,10 +376,6 @@ class ReprintDetectorTest extends TestCase {
 	// ==================================================================
 
 	public function test_reprint_result_handles_slashed_json_via_wp_unslash(): void {
-		$encMock = $this->encMock;
-		$encMock->shouldReceive('is_configured')->andReturn(false);
-		$encMock->shouldReceive('decrypt')->andReturn(null);
-
 		$slashed_json = '{"name":"John\\"s"}';
 		$row = $this->makeSubmissionRow([
 			'id' => 55,

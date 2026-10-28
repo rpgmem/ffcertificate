@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Services\UserIdentifiersQueryService;
 
 /**
@@ -18,9 +19,11 @@ use FreeFormCertificate\Services\UserIdentifiersQueryService;
  * to this service post-#343 group A); these cases pin the public
  * service contract directly for greppability + as a smoke check.
  *
+ * Encryption and DocumentFormatter are the real classes: the rows carry
+ * ciphertexts the real cipher wrote, and the masks are the real ones
+ * (#2117).
+ *
  * @covers \FreeFormCertificate\Services\UserIdentifiersQueryService
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class UserIdentifiersQueryServiceTest extends TestCase {
 
@@ -43,9 +46,6 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 		} );
 
 		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( fn ( $sql ) => $sql )->byDefault();
-
-		// Default Utils stub: the service calls get_submissions_table().
-		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
 	}
 
 	protected function tearDown(): void {
@@ -54,14 +54,8 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 	}
 
 	public function test_get_cpfs_masked_for_user_decrypts_and_masks(): void {
-		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encMock->shouldReceive( 'decrypt' )->andReturn( '12345678901' );
-
-		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmtMock->shouldReceive( 'mask_cpf' )->andReturn( '123.***.***-01' );
-
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
-			array( array( 'cpf_encrypted' => 'cipher', 'rf_encrypted' => null ) )
+			array( array( 'cpf_encrypted' => Encryption::encrypt( '12345678901' ), 'rf_encrypted' => null ) )
 		);
 
 		$out = UserIdentifiersQueryService::get_cpfs_masked_for_user( 42 );
@@ -76,50 +70,31 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 	}
 
 	public function test_get_cpfs_formatted_for_user_formats_by_type_and_dedupes(): void {
-		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encMock->shouldReceive( 'decrypt' )->andReturnUsing(
-			fn ( $v ) => array(
-				'c1' => '12345678901',
-				'c2' => '123.456.789-01',
-				'r1' => '7654321',
-			)[ $v ]
-		);
-
-		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmtMock->shouldReceive( 'format_cpf' )->andReturn( '123.456.789-01' );
-		$fmtMock->shouldReceive( 'format_rf' )->twice()->with( '7654321' )->andReturn( '765.432-1' );
-		$fmtMock->shouldNotReceive( 'mask_cpf' );
-
+		$r1 = Encryption::encrypt( '7654321' );
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
 			array(
 				// Both columns: the CPF wins, as in the masked list.
-				array( 'cpf_encrypted' => 'c1', 'rf_encrypted' => 'r1' ),
+				array( 'cpf_encrypted' => Encryption::encrypt( '12345678901' ), 'rf_encrypted' => $r1 ),
 				// The same CPF stored with punctuation: one entry.
-				array( 'cpf_encrypted' => 'c2', 'rf_encrypted' => null ),
-				array( 'cpf_encrypted' => null, 'rf_encrypted' => 'r1' ),
-				array( 'cpf_encrypted' => null, 'rf_encrypted' => 'r1' ),
+				array( 'cpf_encrypted' => Encryption::encrypt( '123.456.789-01' ), 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => null, 'rf_encrypted' => $r1 ),
+				array( 'cpf_encrypted' => null, 'rf_encrypted' => $r1 ),
 			)
 		);
 
 		$out = UserIdentifiersQueryService::get_cpfs_formatted_for_user( 42 );
 
+		// Formatted in full, never masked.
 		$this->assertSame( array( '123.456.789-01', '765.432-1' ), $out );
 	}
 
 	public function test_get_cpfs_formatted_for_user_skips_a_row_that_does_not_decrypt(): void {
-		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encMock->shouldReceive( 'decrypt' )->with( 'bad' )->andThrow( new \Exception( 'bad key' ) );
-		$encMock->shouldReceive( 'decrypt' )->with( 'empty' )->andReturn( '' );
-		$encMock->shouldReceive( 'decrypt' )->with( 'r1' )->andReturn( '7654321' );
-
-		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmtMock->shouldReceive( 'format_rf' )->andReturn( '765.432-1' );
-
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
 			array(
-				array( 'cpf_encrypted' => 'bad', 'rf_encrypted' => null ),
-				array( 'cpf_encrypted' => 'empty', 'rf_encrypted' => null ),
-				array( 'cpf_encrypted' => null, 'rf_encrypted' => 'r1' ),
+				// Not a ciphertext: decrypts to nothing.
+				array( 'cpf_encrypted' => 'not-a-ciphertext', 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => Encryption::encrypt( '' ), 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => null, 'rf_encrypted' => Encryption::encrypt( '7654321' ) ),
 			)
 		);
 
@@ -127,23 +102,17 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 	}
 
 	public function test_get_typed_identifiers_separates_cpfs_and_rfs(): void {
-		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encMock->shouldReceive( 'decrypt' )->andReturnUsing( fn ( $v ) => 'plain-' . $v );
-
-		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmtMock->shouldReceive( 'mask_cpf' )->andReturnUsing( fn ( $v ) => 'mask:' . $v );
-
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
 			array(
-				array( 'cpf_encrypted' => 'c1',  'rf_encrypted' => null ),
-				array( 'cpf_encrypted' => null,  'rf_encrypted' => 'r1' ),
+				array( 'cpf_encrypted' => Encryption::encrypt( '12345678901' ), 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => null, 'rf_encrypted' => Encryption::encrypt( '7654321' ) ),
 			)
 		);
 
 		$out = UserIdentifiersQueryService::get_typed_identifiers_for_user( 42 );
 
-		$this->assertSame( array( 'mask:plain-c1' ), $out['cpfs'] );
-		$this->assertSame( array( 'mask:plain-r1' ), $out['rfs'] );
+		$this->assertSame( array( '123.***.***-01' ), $out['cpfs'] );
+		$this->assertSame( array( '765.***-1' ), $out['rfs'] );
 	}
 
 	public function test_get_emails_for_user_falls_back_to_wp_account_when_no_encrypted_rows(): void {
@@ -157,10 +126,9 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 	}
 
 	public function test_get_emails_for_user_decrypts_and_dedups_against_wp_account(): void {
-		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encMock->shouldReceive( 'decrypt' )->andReturn( 'alice@example.com' );
-
-		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( 'cipher-1', 'cipher-2' ) );
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn(
+			array( Encryption::encrypt( 'alice@example.com' ), Encryption::encrypt( 'alice@example.com' ) )
+		);
 
 		$user              = new \stdClass();
 		$user->user_email  = 'alice@example.com';
@@ -183,6 +151,13 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 	 * every exception raised inside its loop, so an unmatched call there
 	 * is silently discarded and an expectation-based test passes against
 	 * the old behaviour too.
+	 *
+	 * The real cipher answers a non-ciphertext with NULL, so only a spy on
+	 * the decrypter can tell the two behaviours apart: this test keeps its
+	 * alias mock, and its own process.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_get_emails_for_user_drops_non_string_column_values(): void {
 		$seen    = array();
