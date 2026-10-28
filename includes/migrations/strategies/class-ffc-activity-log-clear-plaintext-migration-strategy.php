@@ -36,6 +36,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.DirectDatabaseQuery -- Schema and data statements against the plugin's own ffc_* tables during activation/migration. WordPress exposes no API for them, and there is nothing to cache on this path.
 /**
  * Strategy for clearing the plaintext context on encrypted activity log rows.
+ *
+ * @deprecated 6.43.0 A one-shot migration whose work is done (#2115).
+ * @removal    6.45.0
  */
 class ActivityLogClearPlaintextMigrationStrategy implements MigrationStrategyInterface {
 

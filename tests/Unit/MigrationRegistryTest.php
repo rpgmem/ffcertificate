@@ -386,4 +386,31 @@ class MigrationRegistryTest extends TestCase {
 			'The registry scan collapsed -- with no migrations beyond the gated two the test above proves nothing.'
 		);
 	}
+
+	/**
+	 * Exactly the five one-shot cards of #2115 are deprecated, all for the
+	 * same release; a card that stays carries no removal.
+	 */
+	public function test_the_deprecated_cards_name_their_removal_release(): void {
+		$registry = new MigrationRegistry();
+		$removals = array();
+		foreach ( $registry->get_all_migrations() as $key => $migration ) {
+			if ( isset( $migration['removal'] ) ) {
+				$removals[ $key ] = $migration['removal'];
+			}
+		}
+		ksort( $removals );
+
+		$this->assertSame(
+			array(
+				'activity_log_clear_plaintext' => '6.45.0',
+				'email_hash_rehash'            => '6.45.0',
+				'import_legacy_templates'      => '6.45.0',
+				'rewrite_html_image_refs'      => '6.45.0',
+				'split_cpf_rf'                 => '6.45.0',
+			),
+			$removals
+		);
+	}
+
 }

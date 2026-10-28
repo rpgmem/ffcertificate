@@ -42,21 +42,24 @@ class MigrationRegistry {
 	/**
 	 * Register all available migrations
 	 *
-	 * V5.0.0: Retired 10 completed migrations. Only split_cpf_rf remains
-	 * as it is still needed for legacy records with combined cpf_rf_hash.
+	 * An entry carrying `removal` is deprecated: its card says which release
+	 * deletes it, so an install still showing records pending runs it first
+	 * (#2115). The `@removal` marker beside it is what makes that release fire.
 	 *
 	 * @return void
 	 */
 	private function register_migrations(): void {
 		$this->migrations = array();
 
-		// v5.0.0: CPF/RF split migration (only active migration).
+		// v5.0.0: CPF/RF split migration.
 		$this->migrations['split_cpf_rf'] = array(
 			'name'        => __( 'Split CPF/RF', 'ffcertificate' ),
 			'description' => __( 'Separate combined CPF/RF column into individual CPF and RF columns', 'ffcertificate' ),
 			'icon'        => 'ffc-icon-id',
 			'batch_size'  => 50,
 			'order'       => 1,
+			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the one-shot split of the combined CPF/RF column.
+			'removal'     => '6.45.0',
 		);
 
 		// v5.3.1: Rehash legacy unsalted email_hash values in submissions and appointments.
@@ -66,6 +69,8 @@ class MigrationRegistry {
 			'icon'        => 'ffc-icon-email',
 			'batch_size'  => 100,
 			'order'       => 2,
+			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the one-shot rehash of the unsalted e-mail hashes.
+			'removal'     => '6.45.0',
 		);
 
 		// v6.19.0 (#857 S7b): Re-encrypt submissions + appointments PII under a
@@ -172,6 +177,8 @@ class MigrationRegistry {
 			'icon'        => 'ffc-icon-lock',
 			'batch_size'  => 200,
 			'order'       => 3,
+			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the one-shot cleanup of rows written before the dual-storage fix.
+			'removal'     => '6.45.0',
 		);
 
 		// #1574: the activity log wrote the client IP in clear until this
@@ -222,6 +229,8 @@ class MigrationRegistry {
 			'icon'        => 'ffc-icon-file',
 			'batch_size'  => 20,
 			'order'       => 5,
+			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the html/ folder it reads left the plugin in 6.23.0.
+			'removal'     => '6.45.0',
 		);
 
 		// v6.18.0 (#865): move images referenced from the legacy `html/` folder
@@ -233,6 +242,8 @@ class MigrationRegistry {
 			'icon'        => 'ffc-icon-image',
 			'batch_size'  => 10,
 			'order'       => 6,
+			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the html/ images it side-loads left the plugin in 6.23.0.
+			'removal'     => '6.45.0',
 		);
 
 		// Allow plugins to add custom migrations.
