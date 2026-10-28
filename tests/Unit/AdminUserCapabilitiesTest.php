@@ -86,6 +86,9 @@ class AdminUserCapabilitiesTest extends TestCase {
 		// Debug::is_enabled() and SettingsReader read this: nothing stored, so
 		// debug logging, the activity log and the grant e-mail are all off.
 		Functions\when( 'get_option' )->justReturn( array() );
+		// LabelSorter guards on function_exists( 'get_locale' ): choose the
+		// branch here, or it depends on whether an earlier test stubbed it.
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
 		Functions\when( 'get_userdata' )->justReturn( false );
 		Functions\when( 'absint' )->alias( 'intval' );
 		Functions\when( 'sanitize_key' )->returnArg();
