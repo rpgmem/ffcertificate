@@ -18,8 +18,7 @@ use FreeFormCertificate\Core\Utils;
  * (#2092).
  *
  * @covers \FreeFormCertificate\Core\Utils
- * @runClassInSeparateProcess
- * @preserveGlobalState disabled
+
  */
 class UtilsTest extends TestCase {
 

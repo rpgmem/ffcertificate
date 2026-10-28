@@ -12,7 +12,7 @@ use FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin;
 
 /**
  * @covers \FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class SelfSchedulingAdminTest extends TestCase {

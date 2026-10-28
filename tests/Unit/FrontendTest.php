@@ -12,7 +12,7 @@ use FreeFormCertificate\Frontend\Frontend;
 
 /**
  * @covers \FreeFormCertificate\Frontend\Frontend
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class FrontendTest extends TestCase {

@@ -21,7 +21,7 @@ use FreeFormCertificate\Submissions\SubmissionHandler;
  * Contract pinned here: when geofence rejects, RateLimiter::check_all
  * is NEVER invoked.
  *
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class FormProcessorGeofenceBeforeRateLimitTest extends TestCase {

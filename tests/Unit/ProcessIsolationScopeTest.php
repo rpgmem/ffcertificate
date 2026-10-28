@@ -31,10 +31,12 @@ use PHPUnit\Framework\TestCase;
  * a function the code under test guards with function_exists(), and was
  * fixed by having every test that reaches it stub it too.
  *
- * The runClassInSeparateProcess annotation is no cheaper: under PHPUnit 9.6 it measured
- * the same as one process per test, so it is not the alternative. A single
- * test that needs its own process carries the method-level runInSeparateProcess
- * annotation itself.
+ * The runClassInSeparateProcess annotation is no cheaper: under PHPUnit 9.6 it
+ * starts one process per test, exactly like the other, so it is not the
+ * alternative. It is refused outright, because this guard once read only the
+ * other spelling and 31 classes isolated every test under it, unseen (#2181).
+ * A single test that needs its own process carries the method-level
+ * runInSeparateProcess annotation itself.
  *
  * This docblock names those annotations without their at-sign on purpose:
  * PHPUnit reads an annotation anywhere in a docblock, prose included, so
@@ -43,7 +45,7 @@ use PHPUnit\Framework\TestCase;
  * It sees presence, never need: a file that declares an `overload:` mock in
  * one of sixty tests passes, although the other fifty-nine do not need the
  * process. The files that isolate every test are therefore frozen in
- * tests/fixtures/class-isolation-baseline.php (empty since #2174), a ratchet both ways: a new
+ * tests/fixtures/class-isolation-baseline.php, a ratchet both ways: a new
  * file that isolates its whole class fails (isolate the tests that need it,
  * or argue it in the baseline), and one that stopped doing so fails until it
  * leaves the list. Regenerate after an intentional change:
@@ -212,6 +214,40 @@ class ProcessIsolationScopeTest extends TestCase {
 	}
 
 	/**
+	 * No test file uses the class-level spelling this guard does not count.
+	 *
+	 * PHPUnit 9.6 runs every test of such a class in its own process, the
+	 * same cost as the counted annotation, so a class using it would carry
+	 * the debt off the register (#2181). PHPUnit reads the annotation from
+	 * prose too, so the at-sign form is refused anywhere in the file.
+	 */
+	public function test_no_class_uses_the_uncounted_class_annotation(): void {
+		$found = array();
+		foreach ( self::test_files() as $file ) {
+			if ( self::uses_uncounted_class_annotation( (string) file_get_contents( $file ) ) ) {
+				$found[] = basename( $file );
+			}
+		}
+
+		$this->assertSame(
+			array(),
+			$found,
+			"These files name the class-level runClassInSeparateProcess annotation with its at-sign.\n"
+			. "It isolates every test like @runTestsInSeparateProcesses, which the baseline counts; use that one:\n  "
+			. implode( "\n  ", $found )
+		);
+	}
+
+	/**
+	 * Whether the source carries the class-level spelling the register does not count.
+	 *
+	 * @param string $source PHP source of one test file.
+	 */
+	private static function uses_uncounted_class_annotation( string $source ): bool {
+		return 1 === preg_match( '/@' . 'runClassInSeparateProcess(?![A-Za-z])/', $source );
+	}
+
+	/**
 	 * An entry whose file stopped isolating, or now shows its reason, is stale.
 	 */
 	public function test_every_allowed_entry_still_needs_its_place(): void {
@@ -257,6 +293,9 @@ class ProcessIsolationScopeTest extends TestCase {
 		$this->assertFalse( self::isolates_without_reason( $bare . "class_alias( 'A', 'B' );\n" ) );
 		$this->assertFalse( self::isolates_without_reason( $bare . "eval( 'class A {}' );\n" ) );
 		$this->assertTrue( self::isolates_without_reason( $bare . "Functions\\when( 'fn' )->justReturn( 1 );\n" ) );
+		$this->assertTrue( self::uses_uncounted_class_annotation( "<?php\n/**\n * @" . "runClassInSeparateProcess\n */\nclass ProbeTest {}\n" ) );
+		$this->assertFalse( self::uses_uncounted_class_annotation( $bare ) );
+		$this->assertFalse( self::uses_uncounted_class_annotation( "<?php\n/**\n * The runClassInSeparateProcess annotation, named without its at-sign.\n */\nclass ProbeTest {}\n" ) );
 		$this->assertFalse( self::isolates_without_reason( "<?php\nclass ProbeTest {\n\t/**\n\t * @runInSeparateProcess\n\t */\n\tpublic function test_x() {}\n}\n" ) );
 		$this->assertTrue(
 			self::isolates_without_reason( "<?php\n/**\n * Avoids an alias mock, which would force `@runTestsInSeparateProcesses`.\n */\nclass ProbeTest {}\n" ),

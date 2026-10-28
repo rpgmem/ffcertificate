@@ -17,7 +17,7 @@ use FreeFormCertificate\Migrations\Strategies\CertificateCapabilityBackfillMigra
  * read it (#1345).
  *
  * @covers \FreeFormCertificate\Migrations\Strategies\CertificateCapabilityBackfillMigrationStrategy
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class CertificateCapabilityBackfillMigrationStrategyTest extends TestCase {

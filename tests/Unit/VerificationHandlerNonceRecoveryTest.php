@@ -23,8 +23,7 @@ use FreeFormCertificate\Submissions\SubmissionHandler;
  * shortcode stuck at "Security check failed" — same symptom that
  * the form submission flow hit, same root causes.
  *
- * @runClassInSeparateProcess
- * @preserveGlobalState disabled
+
  */
 class VerificationHandlerNonceRecoveryTest extends TestCase {
 

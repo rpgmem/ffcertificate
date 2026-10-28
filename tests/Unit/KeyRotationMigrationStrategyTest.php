@@ -23,7 +23,7 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  * fingerprint / completion state transitions are observable.
  *
  * @covers \FreeFormCertificate\Migrations\Strategies\KeyRotationMigrationStrategy
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class KeyRotationMigrationStrategyTest extends TestCase {

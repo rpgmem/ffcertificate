@@ -19,8 +19,7 @@ use FreeFormCertificate\UrlShortener\UrlShortenerRepository;
  * short URLs for published posts of the shortened post types.
  *
  * @covers \FreeFormCertificate\UrlShortener\UrlShortenerBackfillHandler
- * @runClassInSeparateProcess
- * @preserveGlobalState disabled
+
  */
 class UrlShortenerBackfillHandlerTest extends TestCase {
 

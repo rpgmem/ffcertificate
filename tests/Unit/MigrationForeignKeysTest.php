@@ -12,7 +12,7 @@ use FreeFormCertificate\Migrations\MigrationForeignKeys;
 
 /**
  * @covers \FreeFormCertificate\Migrations\MigrationForeignKeys
- * @runClassInSeparateProcess
+ * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class MigrationForeignKeysTest extends TestCase {
