@@ -41,11 +41,9 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 		Functions\when( 'wp_parse_args' )->alias(
 			fn ( $args, $defaults = array() ) => array_merge( $defaults, is_array( $args ) ? $args : array() )
 		);
-		// RequestInput::get_user_ip() sanitizes $_SERVER via Core-namespaced funcs.
+		// RequestInput::get_user_ip() reads $_SERVER through the global sanitizers.
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
 		Functions\when( 'is_email' )->alias(
 			fn ( $email ) => false !== filter_var( (string) $email, FILTER_VALIDATE_EMAIL )
 		);

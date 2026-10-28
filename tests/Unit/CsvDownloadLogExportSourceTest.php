@@ -48,8 +48,6 @@ class CsvDownloadLogExportSourceTest extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
 		Functions\when( 'nocache_headers' )->justReturn( null );
 		Functions\when( 'wp_date' )->justReturn( '2023-11-14 22:13:20' );
 		Functions\when( 'wp_die' )->alias(
