@@ -577,7 +577,7 @@ class IdentitySearchAjaxEndpointTest extends TestCase {
 	 * An all-digits term is an account number as well as a search, and an
 	 * account found both ways is listed once.
 	 *
-	 * Separate process: `WP_User_Query` is overloaded, which must not leak.
+	 * Its own process: the bootstrap does not declare `WP_User_Query`, so it is overloaded, which must not leak.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
