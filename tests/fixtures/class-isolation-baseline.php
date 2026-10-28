@@ -78,9 +78,7 @@ return array(
 	'SelfSchedulingLoaderTest.php',
 	'SettingsActionHandlerTest.php',
 	'SettingsTest.php',
-	'UserAppointmentsRestControllerTest.php',
 	'UserAudienceRestControllerTest.php',
-	'UserCertificatesRestControllerTest.php',
 	'UserProfileRestControllerTest.php',
 	'VerificationHandlerAjaxTest.php',
 );
