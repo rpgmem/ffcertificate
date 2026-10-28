@@ -330,6 +330,12 @@ class CalendarRestControllerTest extends TestCase {
 		$this->assertSame( 'calendar_private', $result->get_error_code() );
 	}
 
+	/**
+	 * The request carries the id as a string, as a URL route parameter does;
+	 * the repository must receive the int, because its `int $id` under
+	 * strict_types raises a TypeError the handler's catch cannot reach. The
+	 * overload mock enforces no parameter type, so the matcher checks it (#2146).
+	 */
 	public function test_get_calendar_returns_data_on_success(): void {
 		$calendar_data = array(
 			'id' => 3,
@@ -350,7 +356,8 @@ class CalendarRestControllerTest extends TestCase {
 		);
 
 		$this->calendar_repo_mock->shouldReceive( 'getWithWorkingHours' )
-			->with( '3' )
+			->with( Mockery::on( static fn( $id ): bool => 3 === $id ) )
+			->once()
 			->andReturn( $calendar_data );
 
 		$ctrl = new CalendarRestController( 'ffc/v1' );
@@ -369,6 +376,10 @@ class CalendarRestControllerTest extends TestCase {
 	// get_calendar_slots()
 	// ------------------------------------------------------------------
 
+	/**
+	 * A string id is cast before the handler call and answered as an int,
+	 * like every other calendar endpoint's `id` (#2146).
+	 */
 	public function test_get_calendar_slots_returns_slots_on_success(): void {
 		$slots = array(
 			array( 'time' => '09:00', 'available' => true ),
@@ -376,7 +387,7 @@ class CalendarRestControllerTest extends TestCase {
 		);
 
 		$this->appointment_handler_mock->shouldReceive( 'get_available_slots' )
-			->with( '3', '2026-04-01' )
+			->with( Mockery::on( static fn( $id ): bool => 3 === $id ), '2026-04-01' )
 			->once()
 			->andReturn( $slots );
 
@@ -387,14 +398,14 @@ class CalendarRestControllerTest extends TestCase {
 		$this->assertIsArray( $result );
 		$this->assertSame( $slots, $result['slots'] );
 		$this->assertSame( '2026-04-01', $result['date'] );
-		$this->assertSame( '3', $result['calendar_id'] );
+		$this->assertSame( 3, $result['calendar_id'] );
 	}
 
 	public function test_get_calendar_slots_propagates_wp_error(): void {
 		$wp_error = new \WP_Error( 'no_slots', 'No available slots', array( 'status' => 404 ) );
 
 		$this->appointment_handler_mock->shouldReceive( 'get_available_slots' )
-			->with( '3', '2026-04-01' )
+			->with( Mockery::on( static fn( $id ): bool => 3 === $id ), '2026-04-01' )
 			->once()
 			->andReturn( $wp_error );
 

@@ -217,7 +217,10 @@ class CalendarRestController {
 		}
 
 		try {
-			$calendar_id = $request->get_param( 'id' );
+			// A route parameter arrives as a string ("3"); under strict_types
+			// passing it on to an `int` parameter is a TypeError, which the
+			// `catch ( \Exception )` below does not reach (#2146).
+			$calendar_id = absint( $request->get_param( 'id' ) );
 
 			if ( ! class_exists( '\FreeFormCertificate\Repositories\CalendarRepository' ) ) {
 				return new \WP_Error(
@@ -302,8 +305,9 @@ class CalendarRestController {
 		}
 
 		try {
-			$calendar_id = $request->get_param( 'id' );
-			$date        = $request->get_param( 'date' );
+			// String route parameter, cast for the same reason as get_calendar() (#2146).
+			$calendar_id = absint( $request->get_param( 'id' ) );
+			$date        = (string) $request->get_param( 'date' );
 
 			if ( ! class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentHandler' ) ) {
 				return new \WP_Error(
