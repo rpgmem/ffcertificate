@@ -18,6 +18,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Per-IP submission rate limit.
+ *
+ * @phpstan-import-type RateLimitVerdict from RateLimitChecker
  */
 class IpLimiter implements RateLimitStrategy {
 
@@ -42,7 +44,7 @@ class IpLimiter implements RateLimitStrategy {
 	 *
 	 * @param string   $identifier IP address.
 	 * @param int|null $form_id    Form ID.
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public function check( string $identifier, ?int $form_id = null ): array {
 		$ip  = $identifier;

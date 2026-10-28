@@ -40,7 +40,7 @@ class IpRateLimitGuard {
 			if ( ! $rate_check['allowed'] ) {
 				throw new SubmissionRejected(
 					array(
-						'message'      => $rate_check['message'] ?? __( 'Too many requests. Please wait.', 'ffcertificate' ),
+						'message'      => $rate_check['message'],
 						'rate_limit'   => true,
 						'wait_seconds' => $rate_check['wait_seconds'] ?? 0,
 					)

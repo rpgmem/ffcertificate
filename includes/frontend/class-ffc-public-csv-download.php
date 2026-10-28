@@ -327,7 +327,7 @@ class PublicCsvDownload {
 			$ip         = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 			$rate_check = RateLimiter::check_ip_limit( $ip );
 			if ( empty( $rate_check['allowed'] ) ) {
-				$this->fail_redirect( $rate_check['message'] ?? __( 'Too many requests. Please wait.', 'ffcertificate' ) );
+				$this->fail_redirect( $rate_check['message'] );
 			}
 		}
 
@@ -437,7 +437,7 @@ class PublicCsvDownload {
 			$ip         = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 			$rate_check = RateLimiter::check_ip_limit( $ip );
 			if ( empty( $rate_check['allowed'] ) ) {
-				wp_send_json_error( array( 'message' => $rate_check['message'] ?? __( 'Too many requests. Please wait.', 'ffcertificate' ) ) );
+				wp_send_json_error( array( 'message' => $rate_check['message'] ) );
 			}
 		}
 

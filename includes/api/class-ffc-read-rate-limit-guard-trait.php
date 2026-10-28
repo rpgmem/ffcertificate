@@ -86,7 +86,7 @@ trait ReadRateLimitGuardTrait {
 			RateLimitLogger::log_attempt( 'read', $identifier, 'blocked', $reason, null );
 
 			$wait    = isset( $result['wait_seconds'] ) ? (int) $result['wait_seconds'] : 60;
-			$message = isset( $result['message'] ) ? (string) $result['message'] : __( 'Too many requests. Please slow down.', 'ffcertificate' );
+			$message = $result['message'];
 
 			return new \WP_Error(
 				'rate_limit_exceeded',
