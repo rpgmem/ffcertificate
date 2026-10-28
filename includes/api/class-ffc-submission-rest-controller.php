@@ -343,7 +343,7 @@ class SubmissionRestController {
 				if ( empty( $rate_check['allowed'] ) ) {
 					return new \WP_Error(
 						'ffc_rate_limited',
-						$rate_check['message'] ?? __( 'Too many requests. Please wait.', 'ffcertificate' ),
+						$rate_check['message'],
 						array( 'status' => 429 )
 					);
 				}
