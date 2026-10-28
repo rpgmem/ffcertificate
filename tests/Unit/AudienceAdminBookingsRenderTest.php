@@ -13,23 +13,44 @@ use FreeFormCertificate\Audience\AudienceAdminBookings;
 /**
  * Render tests for AudienceAdminBookings::render_page() that exercise the
  * populated-table path (export button, environment filter, and the per-row
- * loop with active/cancelled variants). These alias-mock the reader /
- * repository / capability collaborators, which pollute the global class table,
- * so the class runs each test in isolation. The empty-list smoke test lives in
- * the sibling AudienceAdminBookingsTest (real readers over a mocked $wpdb).
+ * loop with active/cancelled variants). The empty-list smoke test lives in
+ * the sibling AudienceAdminBookingsTest.
+ *
+ * The real collaborators run: AudienceBookingReader, AudienceScheduleRepository,
+ * AudienceEnvironmentRepository, AudienceBookingRules, DateFormatter,
+ * Capabilities, AudienceAdminAttendance, AdminUI / Button and AdminNotice.
+ * Their storage is a `$wpdb` double that answers each query by its SQL text
+ * from the rows a test sets and records every query it ran; a query it does
+ * not recognise fails the test. Capabilities are the ones `current_user_can()`
+ * is told the user holds.
  *
  * @covers \FreeFormCertificate\Audience\AudienceAdminBookings
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AudienceAdminBookingsRenderTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var list<object> Booking rows the bookings query answers. */
+	private array $bookings = array();
+
+	/** @var list<object> Environment rows the per-schedule query answers. */
+	private array $environments = array();
+
+	/** @var list<string> Capabilities the current user holds. */
+	private array $held_caps = array();
+
+	/** @var list<string> Every prepared SQL string the double ran. */
+	private array $ran = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		class_exists( '\FreeFormCertificate\Audience\AudienceAdminBookings' );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
@@ -48,17 +69,88 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_trim_words' )->returnArg();
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		Functions\when( 'wp_date' )->alias(
+			static fn( string $format, int $ts, ?\DateTimeZone $tz = null ): string => ( new \DateTimeImmutable( '@' . $ts ) )->setTimezone( $tz ?? new \DateTimeZone( 'UTC' ) )->format( $format )
+		);
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults = array() ) => array_merge( $defaults, (array) $args ) );
+		Functions\when( 'sanitize_sql_orderby' )->returnArg();
+		Functions\when( 'current_user_can' )->alias( fn( string $cap ): bool => in_array( $cap, $this->held_caps, true ) );
 
-		// DateFormatter → verbatim, deterministic output.
-		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' );
-		$df->shouldReceive( 'format_wallclock_date' )->andReturnUsing( static fn( $v ) => (string) $v )->byDefault();
-		$df->shouldReceive( 'format_wallclock_time' )->andReturnUsing( static fn( $v ) => (string) $v )->byDefault();
+		$this->had_wpdb = array_key_exists( 'wpdb', $GLOBALS );
+		if ( $this->had_wpdb ) {
+			$this->wpdb_backup = $GLOBALS['wpdb'];
+		}
+		$GLOBALS['wpdb'] = $this->wpdb_double();
 	}
 
 	protected function tearDown(): void {
 		unset( $_GET['schedule_id'], $_GET['environment_id'], $_GET['status'], $_GET['date_from'], $_GET['date_to'] );
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * A `$wpdb` that answers the page's four reads by SQL text.
+	 *
+	 * `prepare()` binds the arguments into the string (identifiers in
+	 * backticks), so the reads dispatch on the table and the bound ids.
+	 *
+	 * @return \Mockery\MockInterface
+	 */
+	private function wpdb_double() {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( string $sql, ...$args ): string {
+				if ( 1 === count( $args ) && is_array( $args[0] ) ) {
+					$args = $args[0];
+				}
+				return (string) preg_replace_callback(
+					'/%[ids]/',
+					static function ( array $m ) use ( &$args ): string {
+						$value = array_shift( $args );
+						if ( '%i' === $m[0] ) {
+							return '`' . $value . '`';
+						}
+						return '%d' === $m[0] ? (string) (int) $value : "'" . $value . "'";
+					},
+					$sql
+				);
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( string $sql ): array {
+				$this->ran[] = $sql;
+				if ( str_contains( $sql, 'FROM `wp_ffc_audience_bookings` b' ) ) {
+					return $this->bookings;
+				}
+				if ( str_contains( $sql, 'FROM `wp_ffc_audience_schedules`' ) ) {
+					return array( (object) array( 'id' => 5, 'name' => 'My Calendar' ) );
+				}
+				if ( str_contains( $sql, 'FROM `wp_ffc_audience_environments` WHERE schedule_id = 5' ) ) {
+					return $this->environments;
+				}
+				$this->fail( 'Unexpected get_results: ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( string $sql ) {
+				$this->ran[] = $sql;
+				if ( str_contains( $sql, 'FROM `wp_ffc_audience_schedules` WHERE id = 5' ) ) {
+					return (object) array( 'id' => 5, 'name' => 'My Calendar', 'environment_label' => 'Rooms' );
+				}
+				$this->fail( 'Unexpected get_row: ' . $sql );
+			}
+		);
+		return $wpdb;
 	}
 
 	private function active_booking(): object {
@@ -89,31 +181,30 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 		);
 	}
 
-	private function mock_repositories( array $bookings, bool $with_environments ): void {
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
-		$reader->shouldReceive( 'get_all' )->andReturn( $bookings );
-
-		$sched = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$sched->shouldReceive( 'get_all' )->andReturn(
-			array( (object) array( 'id' => 5, 'name' => 'My Calendar' ) )
-		);
-		$sched->shouldReceive( 'get_environment_label' )->andReturn( 'Rooms' );
-
-		$env = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$env->shouldReceive( 'get_by_schedule' )->andReturn(
-			$with_environments ? array( (object) array( 'id' => 33, 'name' => 'Room A' ) ) : array()
-		);
+	/**
+	 * Store the rows the bookings and environment queries answer.
+	 *
+	 * @param list<object> $bookings          Booking rows.
+	 * @param bool         $with_environments Whether schedule 5 has an environment.
+	 */
+	private function store( array $bookings, bool $with_environments ): void {
+		$this->bookings     = $bookings;
+		$this->environments = $with_environments ? array( (object) array( 'id' => 33, 'name' => 'Room A' ) ) : array();
 	}
 
-	private function mock_export_cap( bool $granted ): void {
-		$caps = Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' );
-		$caps->shouldReceive( 'current_user_can_admin_or' )->andReturn( $granted );
+	/**
+	 * Hold every capability (the site administrator) or none.
+	 *
+	 * @param bool $granted Whether the user is an administrator.
+	 */
+	private function grant_all( bool $granted ): void {
+		$this->held_caps = $granted ? array( 'manage_options' ) : array();
 	}
 
 	public function test_render_populated_table_with_export_button_and_env_filter(): void {
 		$_GET['schedule_id'] = '5'; // drives the environment-filter branch
-		$this->mock_repositories( array( $this->active_booking(), $this->cancelled_booking() ), true );
-		$this->mock_export_cap( true );
+		$this->store( array( $this->active_booking(), $this->cancelled_booking() ), true );
+		$this->grant_all( true );
 
 		Functions\when( 'get_users' )->justReturn(
 			array( (object) array( 'ID' => 2, 'display_name' => 'Ana Creator' ) )
@@ -138,15 +229,19 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 		// Type labels: known 'audience' mapped, unknown 'mystery' echoed raw.
 		$this->assertStringContainsString( 'Audience', $output );
 		$this->assertStringContainsString( 'mystery', $output );
-		// Environment filter option rendered (schedule_id > 0).
+		// Environment filter option rendered (schedule_id > 0), and the
+		// bookings query was narrowed to that schedule.
 		$this->assertStringContainsString( 'value="33"', $output );
+		$booking_queries = array_values( array_filter( $this->ran, static fn( string $sql ): bool => str_contains( $sql, 'FROM `wp_ffc_audience_bookings` b' ) ) );
+		$this->assertCount( 1, $booking_queries );
+		$this->assertStringContainsString( 'e.schedule_id = 5', $booking_queries[0] );
 		// Total line.
 		$this->assertStringContainsString( 'Total:', $output );
 	}
 
 	public function test_render_hides_export_button_without_capability(): void {
-		$this->mock_repositories( array( $this->active_booking() ), false );
-		$this->mock_export_cap( false );
+		$this->store( array( $this->active_booking() ), false );
+		$this->grant_all( false );
 
 		Functions\when( 'get_users' )->justReturn(
 			array( (object) array( 'ID' => 2, 'display_name' => 'Ana' ) )
@@ -182,10 +277,8 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 	 * @param bool         $sees_links Whether View / Cancel render.
 	 */
 	public function test_view_and_cancel_render_only_for_the_manage_tier( array $caps, bool $sees_links ): void {
-		$this->mock_repositories( array( $this->active_booking() ), false );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )
-			->andReturnUsing( static fn( string $cap ): bool => in_array( $cap, $caps, true ) );
+		$this->store( array( $this->active_booking() ), false );
+		$this->held_caps = $caps;
 		Functions\when( 'get_users' )->justReturn( array() );
 
 		$page = new AudienceAdminBookings( 'ffc-scheduling' );
@@ -203,10 +296,8 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 	 * holder of the check-in capability, and only on an active booking.
 	 */
 	public function test_attendance_link_renders_for_the_checkin_cap_on_active_rows(): void {
-		$this->mock_repositories( array( $this->active_booking(), $this->cancelled_booking() ), false );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )
-			->andReturnUsing( static fn( string $cap ): bool => 'ffc_checkin_audiences' === $cap );
+		$this->store( array( $this->active_booking(), $this->cancelled_booking() ), false );
+		$this->held_caps = array( 'ffc_checkin_audiences' );
 		Functions\when( 'get_users' )->justReturn( array() );
 
 		$page = new AudienceAdminBookings( 'ffc-scheduling' );
@@ -225,8 +316,8 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 	 * Scheduling column rules apply (#1787).
 	 */
 	public function test_title_filter_label_and_header_classes_match_the_other_lists(): void {
-		$this->mock_repositories( array( $this->active_booking() ), false );
-		$this->mock_export_cap( false );
+		$this->store( array( $this->active_booking() ), false );
+		$this->grant_all( false );
 		Functions\when( 'get_users' )->justReturn( array() );
 
 		$page = new AudienceAdminBookings( 'ffc-scheduling' );
@@ -259,8 +350,8 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 	public function test_individual_booking_type_shows_the_modal_label(): void {
 		$booking                = $this->active_booking();
 		$booking->booking_type  = 'individual';
-		$this->mock_repositories( array( $booking ), false );
-		$this->mock_export_cap( false );
+		$this->store( array( $booking ), false );
+		$this->grant_all( false );
 
 		Functions\when( 'get_users' )->justReturn( array() );
 
