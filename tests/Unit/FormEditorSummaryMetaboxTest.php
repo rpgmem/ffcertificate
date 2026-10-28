@@ -11,9 +11,10 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\FormEditorSummaryMetabox;
 
 /**
+ * The submission count comes from the real SubmissionRepository, over a
+ * `$wpdb` double that answers the count query (#2127).
+ *
  * @covers \FreeFormCertificate\Admin\FormEditorSummaryMetabox
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class FormEditorSummaryMetaboxTest extends TestCase {
 
@@ -26,6 +27,9 @@ class FormEditorSummaryMetaboxTest extends TestCase {
 	 */
 	private array $meta = array();
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -35,9 +39,12 @@ class FormEditorSummaryMetaboxTest extends TestCase {
 		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
 		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => '/wp-admin/' . $p );
 		Functions\when( 'get_post_meta' )->alias( fn( $id, $key ) => $this->meta[ $key ] ?? '' );
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
 	}
 
 	protected function tearDown(): void {
+		$GLOBALS['wpdb'] = $this->wpdb_backup;
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -55,9 +62,23 @@ class FormEditorSummaryMetaboxTest extends TestCase {
 	 * @return array<string, array{label: string, html: string, on: bool}>
 	 */
 	private function rows( int $count, string $status = 'publish' ): array {
-		$repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\SubmissionRepository' );
-		$repo->shouldReceive( 'countForExport' )->with( array( 20 ), 'publish' )->andReturn( $count );
+		$this->submissions( $count );
 		return array_column( ( new FormEditorSummaryMetabox() )->rows( $this->post( $status ) ), null, 'label' );
+	}
+
+	/**
+	 * A database whose published-submission count for form 20 is `$count`.
+	 *
+	 * Any other query fails the test: the double answers only the count.
+	 */
+	private function submissions( int $count ): void {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )
+			->with( 'SELECT COUNT(*) FROM %i WHERE form_id IN (%d) AND status = %s', 'wp_ffc_submissions', 20, 'publish' )
+			->andReturn( 'COUNT' );
+		$wpdb->shouldReceive( 'get_var' )->with( 'COUNT' )->andReturn( (string) $count );
+		$GLOBALS['wpdb'] = $wpdb;
 	}
 
 	public function test_a_new_form_reads_as_empty_and_open(): void {
@@ -100,8 +121,10 @@ class FormEditorSummaryMetaboxTest extends TestCase {
 	}
 
 	public function test_an_unsaved_form_does_not_query_submissions(): void {
-		$repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\SubmissionRepository' );
-		$repo->shouldNotReceive( 'countForExport' );
+		// No expectations: a count query fails the test.
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$GLOBALS['wpdb'] = $wpdb;
 
 		$rows = array_column( ( new FormEditorSummaryMetabox() )->rows( $this->post( 'auto-draft' ) ), null, 'label' );
 
@@ -109,8 +132,7 @@ class FormEditorSummaryMetaboxTest extends TestCase {
 	}
 
 	public function test_render_prints_a_definition_list_and_the_saved_state_note(): void {
-		$repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\SubmissionRepository' );
-		$repo->shouldReceive( 'countForExport' )->andReturn( 0 );
+		$this->submissions( 0 );
 
 		ob_start();
 		( new FormEditorSummaryMetabox() )->render( $this->post() );
