@@ -479,6 +479,24 @@ class AppointmentRepositoryTest extends TestCase {
 		$this->assertSame([], $result);
 	}
 
+	/**
+	 * The reader's listings sort by appointment date. Its ORDER BY allowlist
+	 * once lacked the column, so the sort fell back to `id`, which is
+	 * creation order (#2137).
+	 */
+	public function test_find_by_calendar_orders_by_appointment_date(): void {
+		$captured_sql = '';
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_sql) {
+			$captured_sql = func_get_args()[0];
+			return $captured_sql;
+		});
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+
+		$this->repo->findByCalendar(5);
+
+		$this->assertStringContainsString('ORDER BY appointment_date DESC', $captured_sql);
+	}
+
 	// ==================================================================
 	// findByUserId
 	// ==================================================================
@@ -496,6 +514,23 @@ class AppointmentRepositoryTest extends TestCase {
 		$result = $this->repo->findByUserId(10);
 
 		$this->assertCount(1, $result);
+	}
+
+	/**
+	 * Without a status filter the user listing goes through findAll(), whose
+	 * allowlist turned `appointment_date` into `id` until #2137.
+	 */
+	public function test_find_by_user_id_without_statuses_orders_by_appointment_date(): void {
+		$captured_sql = '';
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_sql) {
+			$captured_sql = func_get_args()[0];
+			return $captured_sql;
+		});
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+
+		$this->repo->findByUserId(10);
+
+		$this->assertStringContainsString('ORDER BY appointment_date DESC', $captured_sql);
 	}
 
 	public function test_find_by_user_id_with_statuses_uses_in_clause(): void {
