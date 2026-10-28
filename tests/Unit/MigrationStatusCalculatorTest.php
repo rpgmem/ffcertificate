@@ -17,13 +17,11 @@ use FreeFormCertificate\Migrations\MigrationStatusCalculator;
  * complex dependencies, so we bypass it using reflection and inject mock
  * strategies directly.
  *
- * Runs in separate processes because try_create_strategy() behaviour depends
- * on whether CpfRfSplitMigrationStrategy is already loaded (other test files
- * that load it change the outcome of lazy strategy creation in this suite).
+ * The lazy strategy creation fails without a `$wpdb` global, which is the
+ * branch the error-detail tests rely on; setUp() removes the global so the
+ * branch is chosen here rather than inherited from an earlier test (#2125).
  *
  * @covers \FreeFormCertificate\Migrations\MigrationStatusCalculator
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class MigrationStatusCalculatorTest extends TestCase {
 
@@ -34,28 +32,23 @@ class MigrationStatusCalculatorTest extends TestCase {
 	private $strategy;
 	private \ReflectionClass $ref;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		unset( $GLOBALS['wpdb'] );
 		// Several methods this class reaches are deprecated (#2089) and emit
 		// the notice; stub it so each test chooses the branch rather than
 		// inheriting it from an earlier class.
 		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
-		// WP_Error alias for Migrations namespace
-		if ( ! class_exists( 'FreeFormCertificate\Migrations\WP_Error' ) ) {
-			class_alias( 'WP_Error', 'FreeFormCertificate\Migrations\WP_Error' );
-		}
-
 		// Global WP stubs
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
 		Functions\when( 'apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
-
-		// Namespaced stubs: FreeFormCertificate\Migrations\*
-		Functions\when( 'FreeFormCertificate\Migrations\__' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Migrations\is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
-		Functions\when( 'FreeFormCertificate\Migrations\apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
 
 		// Create calculator WITHOUT calling constructor to avoid loading
 		// CpfRfSplitMigrationStrategy which has complex dependencies
@@ -71,6 +64,9 @@ class MigrationStatusCalculatorTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( null !== $this->wpdb_backup ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -106,9 +102,6 @@ class MigrationStatusCalculatorTest extends TestCase {
 		// this will fail because the class has complex dependencies.
 		// The constructor should catch the Throwable and store the error.
 		$registry = Mockery::mock( 'FreeFormCertificate\Migrations\MigrationRegistry' );
-
-		// We need to suppress the class_exists check for Utils
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\__' )->returnArg();
 
 		$calculator = new MigrationStatusCalculator( $registry );
 

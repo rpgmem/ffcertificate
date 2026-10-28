@@ -13,18 +13,19 @@ use PHPUnit\Framework\TestCase;
 /**
  * The one-click unsubscribe link and the page it opens (#1538).
  *
- * `OptOut` is an alias mock, so each test runs in its own process.
+ * A path that must not record anything runs against a `$wpdb` double with no
+ * expectations, so any read or write the opt-out reaches fails the test. The
+ * two paths that record one alias-mock `OptOut`, so they run in their own
+ * process (#2125).
  *
  * @covers \FreeFormCertificate\DateMessages\Unsubscribe
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class DateMessagesUnsubscribeTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface */
-	private $opt_out;
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
 
 	/**
 	 * What the last `wp_die()` was given: message and response code.
@@ -59,12 +60,14 @@ class DateMessagesUnsubscribeTest extends TestCase {
 			}
 		);
 
-		$this->opt_out = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\OptOut' );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = Mockery::mock( 'wpdb' );
 	}
 
 	protected function tearDown(): void {
 		$_GET  = array();
 		$_POST = array();
+		$GLOBALS['wpdb'] = $this->wpdb_backup;
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -121,7 +124,6 @@ class DateMessagesUnsubscribeTest extends TestCase {
 			'u' => '42',
 			't' => 'forged',
 		);
-		$this->opt_out->shouldReceive( 'set' )->never();
 
 		$this->handle();
 
@@ -133,7 +135,6 @@ class DateMessagesUnsubscribeTest extends TestCase {
 			'u' => '7',
 			't' => Unsubscribe::token( 7 ),
 		);
-		$this->opt_out->shouldReceive( 'set' )->never();
 
 		$this->handle();
 
@@ -145,7 +146,6 @@ class DateMessagesUnsubscribeTest extends TestCase {
 			'u' => '42',
 			't' => Unsubscribe::token( 42 ),
 		);
-		$this->opt_out->shouldReceive( 'set' )->never();
 
 		$this->handle();
 
@@ -162,13 +162,18 @@ class DateMessagesUnsubscribeTest extends TestCase {
 			'_wpnonce' => 'stale',
 		);
 		Functions\when( 'wp_verify_nonce' )->justReturn( false );
-		$this->opt_out->shouldReceive( 'set' )->never();
 
 		$this->handle();
 
 		$this->assertSame( 403, $this->died[1] );
 	}
 
+	/**
+	 * Its own process: `OptOut` is an alias mock here.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_a_post_with_token_and_nonce_records_the_opt_out(): void {
 		$_POST = array(
 			'u'        => '42',
@@ -176,7 +181,7 @@ class DateMessagesUnsubscribeTest extends TestCase {
 			'_wpnonce' => 'good',
 		);
 		Functions\expect( 'wp_verify_nonce' )->once()->with( 'good', Unsubscribe::ACTION . '_42' )->andReturn( 1 );
-		$this->opt_out->shouldReceive( 'set' )->once()->with( 42, false, 'personal' );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\OptOut' )->shouldReceive( 'set' )->once()->with( 42, false, 'personal' );
 
 		$this->handle();
 
@@ -184,6 +189,12 @@ class DateMessagesUnsubscribeTest extends TestCase {
 		$this->assertStringContainsString( 'date messages', $this->died[0] );
 	}
 
+	/**
+	 * Its own process: `OptOut` is an alias mock here.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_an_announcement_opt_out_confirms_announcements(): void {
 		$_POST = array(
 			'u'        => '42',
@@ -192,7 +203,7 @@ class DateMessagesUnsubscribeTest extends TestCase {
 			'_wpnonce' => 'good',
 		);
 		Functions\expect( 'wp_verify_nonce' )->once()->with( 'good', Unsubscribe::ACTION . '_42_announcement' )->andReturn( 1 );
-		$this->opt_out->shouldReceive( 'set' )->once()->with( 42, false, 'announcement' );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\OptOut' )->shouldReceive( 'set' )->once()->with( 42, false, 'announcement' );
 
 		$this->handle();
 

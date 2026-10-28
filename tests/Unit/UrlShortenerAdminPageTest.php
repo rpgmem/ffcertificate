@@ -18,13 +18,10 @@ use FreeFormCertificate\UrlShortener\UrlShortenerRepository;
  * Tests for UrlShortenerAdminPage: AJAX handlers (create, delete, trash,
  * restore, toggle, empty_trash) and admin action routing.
  *
- * Runs in separate processes to protect the files after it: in the shared
- * process it loads the real UrlShortener classes, which later files mock with
- * `overload:` and `alias:`, and 27 of their tests fail (measured in #2091).
+ * Global function stubs only: a namespaced one would shadow the global
+ * function for every later test in the process (#2125).
  *
  * @covers \FreeFormCertificate\UrlShortener\UrlShortenerAdminPage
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class UrlShortenerAdminPageTest extends TestCase {
 
@@ -60,19 +57,6 @@ class UrlShortenerAdminPageTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'esc_url_raw' )->returnArg();
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
-
-		// Namespaced stubs for AjaxTrait (FreeFormCertificate\Core namespace)
-		Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
-
-		// Namespaced stubs for UrlShortener namespace
-		Functions\when( 'FreeFormCertificate\UrlShortener\sanitize_text_field' )->returnArg();
-		Functions\when( 'FreeFormCertificate\UrlShortener\sanitize_key' )->returnArg();
-		Functions\when( 'FreeFormCertificate\UrlShortener\wp_unslash' )->returnArg();
-		Functions\when( 'FreeFormCertificate\UrlShortener\esc_url_raw' )->returnArg();
-		Functions\when( 'FreeFormCertificate\UrlShortener\absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
-		Functions\when( 'FreeFormCertificate\UrlShortener\__' )->returnArg();
 
 		$this->service = Mockery::mock( UrlShortenerService::class );
 		$this->page    = new UrlShortenerAdminPage( $this->service );

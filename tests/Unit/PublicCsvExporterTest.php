@@ -21,15 +21,14 @@ use FreeFormCertificate\Frontend\PublicCsvExporter;
  * Uses Reflection + newInstanceWithoutConstructor() to avoid the real
  * SubmissionRepository (which needs a wpdb).
  *
- * Runs in separate processes: the stream path defines namespaced helper stubs
- * (FreeFormCertificate\Frontend\__, apply_filters, header, …) that PHP cannot
- * undefine, which would otherwise leak "MissingFunctionExpectations" into
- * sibling Frontend-namespace tests.
+ * The class shares the process; the three stream_form_csv() tests run in
+ * their own. They intercept header(), an internal function Patchwork cannot
+ * redefine globally, so they declare it inside the Frontend namespace, and a
+ * namespaced function outlives the test and shadows the global one for every
+ * later Frontend test (#2125).
  *
  * @covers \FreeFormCertificate\Frontend\PublicCsvExporter
  * @covers \FreeFormCertificate\Frontend\Csv\PublicCsvRowFormatter
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class PublicCsvExporterTest extends TestCase {
 
@@ -48,12 +47,8 @@ class PublicCsvExporterTest extends TestCase {
 		class_exists( '\\FreeFormCertificate\Frontend\Csv\PublicCsvRowFormatter' );
 
 		Functions\when( '__' )->returnArg();
-		// The exporter calls i18n/escape helpers unqualified inside the Frontend
-		// namespace; once Brain Monkey defines a namespaced function in the
-		// process it must stay mocked, so stub them globally here.
-		Functions\when( 'FreeFormCertificate\Frontend\__' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Frontend\esc_html' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Frontend\esc_html__' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'get_the_title' )->justReturn( 'Public Test Form' );
 		Functions\when( 'get_userdata' )->alias( function ( $id ) {
 			$user = new \stdClass();
@@ -369,6 +364,13 @@ class PublicCsvExporterTest extends TestCase {
 	//  stream_form_csv() — synchronous export guard (over-limit path)
 	// ==================================================================
 
+	/**
+	 * Its own process: it declares header() and its neighbours inside the
+	 * Frontend namespace, which would outlive this test.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_stream_form_csv_renders_limit_page_when_over_threshold(): void {
 		// The exporter calls these unqualified inside the Frontend namespace,
 		// so intercept the namespaced resolutions (raw header() included, to
@@ -437,6 +439,13 @@ class PublicCsvExporterTest extends TestCase {
 		} );
 	}
 
+	/**
+	 * Its own process: it declares header() and its neighbours inside the
+	 * Frontend namespace, which would outlive this test.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_stream_form_csv_writes_header_and_rows_then_exits(): void {
 		$this->stub_stream_helpers();
 
@@ -511,6 +520,13 @@ class PublicCsvExporterTest extends TestCase {
 		$this->assertSame( $expected_message, $caught->getMessage() );
 	}
 
+	/**
+	 * Its own process: it declares header() and its neighbours inside the
+	 * Frontend namespace, which would outlive this test.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_stream_form_csv_header_only_when_no_rows(): void {
 		$this->stub_stream_helpers();
 		Functions\when( 'FreeFormCertificate\Frontend\do_action' )->alias(
