@@ -609,20 +609,22 @@ class PublicCsvDownload {
 		if ( ! $result['ok'] ) {
 			// Map the eligibility reason to a localised user-facing
 			// message — keeps the EarlyOpenAction service free of UX
-			// strings.
+			// strings. The map covers EarlyOpenRefusal's closed list of
+			// reasons, which PHPStan checks, so it has no fallback (#2169).
 			$reason   = $result['reason'];
 			$messages = array(
 				'unknown_form'        => __( 'Form not found.', 'ffcertificate' ),
 				'csv_disabled'        => __( 'Public access is disabled for this form.', 'ffcertificate' ),
 				'early_open_disabled' => __( 'Early-start is disabled for this form.', 'ffcertificate' ),
 				'bad_hash'            => __( 'Invalid access hash.', 'ffcertificate' ),
+				'already_opened'      => __( 'This form has already been opened early once.', 'ffcertificate' ),
 				'datetime_disabled'   => __( 'This form does not have a scheduled start time.', 'ffcertificate' ),
 				'no_start_date'       => __( 'This form does not have a scheduled start time.', 'ffcertificate' ),
 				'not_today'           => __( 'Early-start is only available on the form\'s scheduled start day.', 'ffcertificate' ),
 				'already_started'     => __( 'This form has already started.', 'ffcertificate' ),
 				'already_ended'       => __( 'This form has already ended.', 'ffcertificate' ),
 			);
-			$message  = $messages[ $reason ] ?? __( 'Unable to open the form right now.', 'ffcertificate' );
+			$message  = $messages[ $reason ];
 			wp_send_json_error(
 				array(
 					'reason'  => $reason,
@@ -696,7 +698,7 @@ class PublicCsvDownload {
 				'past_now'            => __( 'The new close time must be in the future.', 'ffcertificate' ),
 				'out_of_day'          => __( 'The new close time must stay within the same day.', 'ffcertificate' ),
 			);
-			$message  = $messages[ $reason ] ?? __( 'Unable to postpone the close right now.', 'ffcertificate' );
+			$message  = $messages[ $reason ];
 			wp_send_json_error(
 				array(
 					'reason'  => $reason,
@@ -765,7 +767,7 @@ class PublicCsvDownload {
 				'out_of_window'               => __( 'The override range must stay within the form\'s open window.', 'ffcertificate' ),
 				'no_change'                   => __( 'The override is identical to the baseline — nothing to do.', 'ffcertificate' ),
 			);
-			$message  = $messages[ $reason ] ?? __( 'Unable to create the schedule exception right now.', 'ffcertificate' );
+			$message  = $messages[ $reason ];
 			wp_send_json_error(
 				array(
 					'reason'  => $reason,

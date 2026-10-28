@@ -37,6 +37,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Service that decides whether a form is eligible for early-open and
  * executes the start-datetime flip when so.
+ *
+ * A refusal names its reason from a closed list, so the AJAX handler's
+ * message map is checked against it and needs no generic fallback (#2169).
+ *
+ * @phpstan-type EarlyOpenRefusal array{ok: false, reason: 'unknown_form'|'csv_disabled'|'bad_hash'|'early_open_disabled'|'already_opened'|'datetime_disabled'|'no_start_date'|'already_started'|'already_ended'|'not_today'}
  */
 class EarlyOpenAction {
 
@@ -77,7 +82,7 @@ class EarlyOpenAction {
 	 *
 	 * @param int    $form_id Form post id.
 	 * @param string $hash    Plaintext hash supplied by the public page.
-	 * @return array{ok: false, reason: string}|array{ok: true} ok=true when eligible.
+	 * @return EarlyOpenRefusal|array{ok: true} ok=true when eligible.
 	 *                                          reason is a stable string
 	 *                                          tag for telemetry / UX
 	 *                                          (`unknown_form`, `csv_disabled`,
@@ -211,7 +216,7 @@ class EarlyOpenAction {
 	 *                                         per-form audit ring buffer
 	 *                                         alongside the `action_early_open`
 	 *                                         result tag (#243 Sprint 6).
-	 * @return array{ok: false, reason: string}|array{ok: true, original_start_iso: string, new_start_iso: string}
+	 * @return EarlyOpenRefusal|array{ok: true, original_start_iso: string, new_start_iso: string}
 	 */
 	public static function execute( int $form_id, string $hash, array $audit_meta = array(), string $cpf_digits = '' ): array {
 		$eligibility = self::is_eligible( $form_id, $hash );
