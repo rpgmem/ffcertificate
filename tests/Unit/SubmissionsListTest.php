@@ -512,22 +512,19 @@ class SubmissionsListTest extends TestCase {
 	}
 
 	/**
-	 * Before the real MagicLinkHelper ran here, this test asserted the "No
-	 * token" placeholder for a handler that produced no link. The real
-	 * helper never returns an empty link for a SubmissionHandler: a token
-	 * that is not valid is replaced with a fresh random one, so the
-	 * placeholder branch is unreachable from this caller and the test
-	 * proves what happens instead.
+	 * A submission whose token the handler cannot ensure gets the "No token"
+	 * placeholder, never a link to a token nothing stores (#2187).
 	 */
-	public function test_pdf_button_replaces_an_invalid_handler_token_with_a_fresh_one(): void {
+	public function test_pdf_button_shows_no_token_when_the_handler_cannot_ensure_one(): void {
 		$this->stubStaticCollaborators( false, false );
 		$handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
 		$handler->shouldReceive( 'ensure_magic_token' )->once()->with( 0 )->andReturn( '' );
 		$list = $this->makeList( $handler );
 		$item = array( 'id' => 0, 'status' => 'publish' );
 		$out  = $this->call_protected( $list, 'render_pdf_button', array( $item ) );
-		$this->assertMatchesRegularExpression( '#href="' . preg_quote( self::VALID_URL, '#' ) . '\#token=[a-f0-9]{32}"#', $out );
-		$this->assertStringNotContainsString( 'ffc-no-token', $out );
+		$this->assertStringContainsString( 'ffc-no-token', $out );
+		$this->assertStringContainsString( 'No token', $out );
+		$this->assertStringNotContainsString( '#token=', $out );
 	}
 
 	// ==================================================================

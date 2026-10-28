@@ -67,26 +67,24 @@ class MagicLinkHelper {
 	/**
 	 * Ensure submission has magic token
 	 *
-	 * Generates token if missing and returns it
+	 * Asks the handler for the submission's stored token, creating one there
+	 * when it is missing.
 	 *
 	 * @param int    $submission_id Submission ID.
 	 * @param object $handler Submission handler instance.
-	 * @return string Magic token (32 hex characters)
+	 * @return string Magic token (32 hex characters), or '' when the handler could not provide a stored one.
 	 */
 	public static function ensure_token( int $submission_id, object $handler ): string {
 		if ( ! method_exists( $handler, 'ensure_magic_token' ) ) {
 			return '';
 		}
 
-		$token = $handler->ensure_magic_token( $submission_id );
+		$token = (string) $handler->ensure_magic_token( $submission_id );
 
-		// If token is not valid, generate a new one.
-		if ( ! self::is_valid_token( $token ) ) {
-			$token = bin2hex( random_bytes( 16 ) );  // Generates 32 hex characters
-			// Assuming handler saves the token; if not, add: $handler->save_magic_token( $submission_id, $token );.
-		}
-
-		return $token;
+		// Only a token the handler stored can open the verification page, so
+		// an invalid answer (a missing submission, a failed save) yields no
+		// token rather than a fresh one nothing stores (#2187).
+		return self::is_valid_token( $token ) ? $token : '';
 	}
 
 	/**
@@ -96,7 +94,7 @@ class MagicLinkHelper {
 	 *
 	 * @param int    $submission_id Submission ID.
 	 * @param object $handler Submission handler instance.
-	 * @return string Complete magic link URL
+	 * @return string Complete magic link URL, or '' when no stored token exists.
 	 */
 	public static function get_submission_magic_link( int $submission_id, object $handler ): string {
 		$token = self::ensure_token( $submission_id, $handler );
