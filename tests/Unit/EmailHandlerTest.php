@@ -195,10 +195,6 @@ class EmailHandlerTest extends TestCase {
 	// async_process_submission() — sends user email when enabled
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_async_sends_user_email_when_enabled(): void {
 		Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
 			if ( $key === 'admin_email' ) {
@@ -207,19 +203,7 @@ class EmailHandlerTest extends TestCase {
 			return $default;
 		} );
 		Functions\when( 'is_email' )->justReturn( true );
-
-		// DocumentFormatter is autoloaded (has real PREFIX_CERTIFICATE constant)
-		// Utils and MagicLinkHelper need alias mocks
-		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-		$utilsMock->shouldReceive( 'format_auth_code' )->andReturn( 'CERT-ABC123' );
-		$utilsMock->shouldReceive( 'format_document' )->andReturnArg( 0 );
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\HtmlPolicy' )->shouldReceive( 'get_allowed_html_tags' )->andReturn( array() );
-		$utilsMock->shouldReceive( 'debug_log' )->andReturn();
-
-		$magicMock = Mockery::mock( 'alias:\FreeFormCertificate\Generators\MagicLinkHelper' );
-		$magicMock->shouldReceive( 'generate_magic_link' )
-			->with( 'tok123' )
-			->andReturn( 'https://example.com/magic/tok123' );
+		Functions\when( 'trailingslashit' )->alias( fn( $u ) => rtrim( (string) $u, '/' ) . '/' );
 
 		$handler = new EmailHandler();
 		$handler->async_process_submission(
@@ -236,6 +220,8 @@ class EmailHandlerTest extends TestCase {
 		// At least 1 email sent (user email)
 		$this->assertGreaterThanOrEqual( 1, count( $this->sent_emails ) );
 		$this->assertSame( 'user@example.com', $this->sent_emails[0]['to'] );
+		// The real magic-link rendering carries the submission's token.
+		$this->assertStringContainsString( '#token=tok123', $this->sent_emails[0]['body'] );
 	}
 
 	public function test_user_email_substitutes_placeholders_and_runs_dsl(): void {
@@ -314,10 +300,6 @@ class EmailHandlerTest extends TestCase {
 	// async_process_submission() — skips user email when disabled
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_async_skips_user_email_when_disabled(): void {
 		Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
 			if ( $key === 'admin_email' ) {
@@ -326,12 +308,6 @@ class EmailHandlerTest extends TestCase {
 			return $default;
 		} );
 		Functions\when( 'is_email' )->justReturn( true );
-
-		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-		$utilsMock->shouldReceive( 'format_auth_code' )->andReturn( '' );
-		$utilsMock->shouldReceive( 'format_document' )->andReturnArg( 0 );
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\HtmlPolicy' )->shouldReceive( 'get_allowed_html_tags' )->andReturn( array() );
-		$utilsMock->shouldReceive( 'debug_log' )->andReturn();
 
 		$handler = new EmailHandler();
 		$handler->async_process_submission(
@@ -350,10 +326,6 @@ class EmailHandlerTest extends TestCase {
 		$this->assertSame( 'admin@example.com', $this->sent_emails[0]['to'] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_admin_notification_masks_the_personal_fields(): void {
 		// #1863: CPF, RF and e-mail reach staff masked, with a link to the
 		// screen where they are revealed; other fields stay as typed.
@@ -361,7 +333,6 @@ class EmailHandlerTest extends TestCase {
 			return 'admin_email' === $key ? 'admin@example.com' : $default;
 		} );
 		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\HtmlPolicy' )->shouldReceive( 'get_allowed_html_tags' )->andReturn( array() );
 
 		$handler = new EmailHandler();
 		$handler->async_process_submission(

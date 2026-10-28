@@ -20,12 +20,10 @@ use FreeFormCertificate\Admin\AdminActivityLogPage;
  * engine (issue #772); its per-source behavior lives in
  * ActivityLogExportSourceTest.
  *
- * Process isolation is required by the seven tests that use Mockery `alias:`
- * mocks for the static core helpers (ActivityLogQuery, Capabilities,
- * RequestInput, DateFormatter, SettingsReader) — alias mocks would otherwise
- * leak across the suite. It is declared on those seven and not on the class,
- * because an alias created in the child process never reaches the parent, so
- * the other 32 are protected either way and were forking for nothing (#1432).
+ * Every test runs in the shared process against the real core helpers
+ * (AssetHelper, AssetRegistry, SettingsReader, RequestInput, ActivityLogQuery,
+ * DateFormatter): settings come from a `get_option` stub, and the log table
+ * from a `$wpdb` double that answers each query by its SQL text.
  *
  * @covers \FreeFormCertificate\Admin\AdminActivityLogPage
  */
@@ -33,9 +31,30 @@ class AdminActivityLogPageTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> The superglobal as an earlier test left it. */
+	private array $get_backup = array();
+
+	/** @var array<string, mixed> The superglobal as an earlier test left it. */
+	private array $post_backup = array();
+
+	/** @var list<array{0: string, 1: string}> Every read the `$wpdb` double answered, as array( method, SQL ). */
+	private array $ran = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$this->get_backup  = $_GET ?? array();
+		$this->post_backup = $_POST ?? array();
+		$this->ran         = array();
 		// Shared scripts are enqueued through AssetRegistry, which registers
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).
@@ -72,10 +91,88 @@ class AdminActivityLogPageTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		$_GET  = array();
-		$_POST = array();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
+		$_GET  = $this->get_backup;
+		$_POST = $this->post_backup;
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * The plugin settings the real SettingsReader reads; any other option
+	 * read fails the test.
+	 *
+	 * @param array<string, mixed> $settings The `ffc_settings` option.
+	 */
+	private function stub_settings( array $settings ): void {
+		Functions\when( 'get_option' )->alias(
+			function ( $key, $fallback = false ) use ( $settings ) {
+				if ( 'ffc_settings' === $key ) {
+					return $settings;
+				}
+				$this->fail( 'Unexpected get_option(): ' . $key );
+			}
+		);
+	}
+
+	/**
+	 * What the real DateFormatter needs to render a row: default settings,
+	 * a UTC site timezone and a `wp_date` that formats in it.
+	 */
+	private function stub_date_formatting(): void {
+		$this->stub_settings( array() );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias(
+			static fn( $format, $ts, $tz = null ) => ( new \DateTimeImmutable( '@' . (int) $ts ) )->setTimezone( $tz ?? new \DateTimeZone( 'UTC' ) )->format( (string) $format )
+		);
+	}
+
+	/**
+	 * A `$wpdb` double for an empty activity log holding one distinct action:
+	 * the page query, the count, the action list and the 30-day stats. Any
+	 * other query fails the test.
+	 */
+	private function install_empty_log(): void {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static fn( ...$args ) => (string) $args[0]
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$this->ran[] = array( 'get_results', (string) $sql );
+				if ( false !== strpos( (string) $sql, 'SELECT * FROM %i WHERE 1=1' ) ) {
+					return array();
+				}
+				if ( false !== strpos( (string) $sql, 'GROUP BY' ) ) {
+					return array();
+				}
+				$this->fail( 'Unexpected get_results(): ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				$this->ran[] = array( 'get_var', (string) $sql );
+				if ( false !== strpos( (string) $sql, 'SELECT COUNT(*) FROM %i WHERE' ) ) {
+					return '0';
+				}
+				$this->fail( 'Unexpected get_var(): ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( $sql ) {
+				$this->ran[] = array( 'get_col', (string) $sql );
+				if ( false !== strpos( (string) $sql, 'SELECT DISTINCT action FROM %i' ) ) {
+					return array( 'submission_created' );
+				}
+				$this->fail( 'Unexpected get_col(): ' . $sql );
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
 	}
 
 	// ==================================================================
@@ -125,22 +222,17 @@ class AdminActivityLogPageTest extends TestCase {
 		$this->assertFalse($called);
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_enqueue_scripts_enqueues_and_localizes_on_correct_hook(): void {
-		$asset_helper = Mockery::mock('alias:\FreeFormCertificate\Core\AssetHelper');
-		$asset_helper->shouldReceive('asset_suffix')->andReturn('.min');
-		// enqueue_common_style() puts the token palette on the screen (#1126 B).
-		$asset_helper->shouldReceive('enqueue_common_style');
-
 		$scripts = [];
 		Functions\when('wp_enqueue_script')->alias(function ($handle) use (&$scripts) {
 			$scripts[] = $handle;
 		});
-		// The page also enqueues the shared progress-overlay stylesheet (#786).
-		Functions\when('wp_enqueue_style')->justReturn(true);
+		// The page also enqueues the token palette (#1126 B) and the shared
+		// progress-overlay stylesheet (#786).
+		$styles = [];
+		Functions\when('wp_enqueue_style')->alias(function ($handle) use (&$styles) {
+			$styles[] = $handle;
+		});
 		Functions\when('wp_create_nonce')->justReturn('nonce123');
 		$localized = null;
 		Functions\when('wp_localize_script')->alias(function ($handle, $var, $data) use (&$localized) {
@@ -156,6 +248,8 @@ class AdminActivityLogPageTest extends TestCase {
 		$this->assertContains('ffc-core', $scripts);
 		$this->assertContains('ffc-batched-export', $scripts);
 		$this->assertContains('ffc-admin-activity-log', $scripts);
+		$this->assertContains('ffc-common', $styles, 'enqueue_common_style() puts the token palette on the screen.');
+		$this->assertContains('ffc-progress-overlay', $styles);
 		$this->assertNotNull($localized);
 		$this->assertSame('nonce123', $localized['nonce']);
 		// Batched export (#772) needs the AJAX url + a dedicated job nonce.
@@ -170,13 +264,10 @@ class AdminActivityLogPageTest extends TestCase {
 	// render_page() - disabled state
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_render_page_shows_disabled_notice_when_activity_log_disabled(): void {
-		Mockery::mock('alias:\FreeFormCertificate\Settings\SettingsReader')
-			->shouldReceive('activity_log_enabled')->andReturn(false);
+		$this->stub_settings(array('enable_activity_log' => 0));
+		// No `$wpdb` at all: the disabled page must not query the log.
+		unset($GLOBALS['wpdb']);
 
 		Functions\when('esc_html_e')->alias(function ($text) {
 			echo $text;
@@ -195,29 +286,18 @@ class AdminActivityLogPageTest extends TestCase {
 	// render_page() - enabled state (includes the view file)
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_render_page_includes_view_when_enabled(): void {
-		Mockery::mock('alias:\FreeFormCertificate\Settings\SettingsReader')
-			->shouldReceive('activity_log_enabled')->andReturn(true);
-
-		Mockery::mock('alias:\FreeFormCertificate\Core\RequestInput')
-			->shouldReceive('get_get_string')->andReturn('')
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-
-		$query = Mockery::mock('alias:\FreeFormCertificate\Core\ActivityLogQuery');
-		$query->shouldReceive('get_activities')->andReturn([]);
-		$query->shouldReceive('count_activities')->andReturn(0);
-		$query->shouldReceive('distinct_actions')->andReturn(['submission_created']);
-		$query->shouldReceive('get_stats')->andReturn([
-			'total'     => 0,
-			'by_level'  => [],
-			'by_action' => [],
-		]);
+		$this->stub_settings(array('enable_activity_log' => 1));
+		$this->install_empty_log();
+		// No filter in the request; nothing cached, so every read reaches the table.
+		$_GET = array();
+		Functions\when('wp_parse_args')->alias(static fn($args, $defaults) => array_merge($defaults, $args));
+		Functions\when('get_transient')->justReturn(false);
+		$cached = array();
+		Functions\when('set_transient')->alias(function ($key) use (&$cached) {
+			$cached[] = $key;
+			return true;
+		});
 
 		// View-file helpers.
 		Functions\when('esc_html_e')->alias(function ($t) { echo $t; });
@@ -237,6 +317,14 @@ class AdminActivityLogPageTest extends TestCase {
 		// The view renders the empty-state message and the wrap heading.
 		$this->assertStringContainsString('No activity logs found.', $output);
 		$this->assertStringContainsString('Activity Log', $output);
+		// The distinct action reaches the filter, labelled.
+		$this->assertStringContainsString('value="submission_created"', $output);
+		$this->assertStringContainsString('Submission Created', $output);
+		// The page, the count, the action list and the stats each read the table.
+		$reads = array_map(static fn($r) => $r[0], $this->ran);
+		$this->assertContains('get_col', $reads);
+		$this->assertGreaterThanOrEqual(2, count(array_keys($reads, 'get_var', true)), 'The count and the stats total.');
+		$this->assertContains('ffc_activity_stats_30', $cached);
 	}
 
 	// Note: the "view file not found" fallback in render_page() is
@@ -292,14 +380,8 @@ class AdminActivityLogPageTest extends TestCase {
 		$this->assertSame('', AdminActivityLogPage::render_rows_html([]));
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_render_rows_html_renders_row_with_known_user(): void {
-		Mockery::mock('alias:\FreeFormCertificate\Core\DateFormatter')
-			->shouldReceive('format_date')->andReturn('01/01/2026')
-			->shouldReceive('format_time')->andReturn('00:00');
+		$this->stub_date_formatting();
 
 		$u = new \stdClass();
 		$u->display_name = 'Jane Doe';
@@ -328,14 +410,8 @@ class AdminActivityLogPageTest extends TestCase {
 		$this->assertStringContainsString('<details>', $html);
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_a_holder_of_the_reveal_cap_gets_a_reveal_and_details_stay_masked(): void {
-		Mockery::mock('alias:\FreeFormCertificate\Core\DateFormatter')
-			->shouldReceive('format_date')->andReturn('01/01/2026')
-			->shouldReceive('format_time')->andReturn('00:00');
+		$this->stub_date_formatting();
 		Functions\when('get_userdata')->justReturn(false);
 		Functions\when('wp_json_encode')->alias(static fn($v, $f = 0) => json_encode($v, $f));
 		Functions\when('esc_html_e')->alias(function ($t) { echo $t; });
@@ -365,14 +441,8 @@ class AdminActivityLogPageTest extends TestCase {
 		$this->assertStringContainsString('42', $html);
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_render_rows_html_renders_deleted_user_and_anonymous(): void {
-		Mockery::mock('alias:\FreeFormCertificate\Core\DateFormatter')
-			->shouldReceive('format_date')->andReturn('01/01/2026')
-			->shouldReceive('format_time')->andReturn('00:00');
+		$this->stub_date_formatting();
 
 		Functions\when('get_userdata')->justReturn(false);
 		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
@@ -403,15 +473,8 @@ class AdminActivityLogPageTest extends TestCase {
 		$this->assertStringContainsString('—', $html);
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_render_rows_html_renders_schedule_summary_above_dump(): void {
-		Mockery::mock('alias:\FreeFormCertificate\Core\DateFormatter')
-			->shouldReceive('format_date')->andReturn('01/01/2026')
-			->shouldReceive('format_time')->andReturn('00:00')
-			->shouldReceive('format_schedule')->andReturn('8h to 18h');
+		$this->stub_date_formatting();
 
 		Functions\when('get_userdata')->justReturn(false);
 		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
@@ -568,20 +631,8 @@ class AdminActivityLogPageTest extends TestCase {
 		);
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_render_schedule_exception_summary_for_override_action_lists_facts(): void {
-		Mockery::mock('alias:\FreeFormCertificate\Core\DateFormatter')
-			->shouldReceive('format_schedule')
-			->andReturnUsing(function ($start, $end) {
-				if ('08:00' === $start && '18:00' === $end) {
-					return '8h to 18h';
-				}
-				return '8h to 17h30';
-			});
-
+		// The real DateFormatter::format_schedule() renders both ranges.
 		$html = AdminActivityLogPage::render_schedule_exception_summary(
 			'schedule_override_created',
 			array(

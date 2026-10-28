@@ -25,6 +25,12 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
 	/** @var array Captured update_post_meta calls */
 	private $saved_meta = array();
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -46,6 +52,9 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
 			return true;
 		} );
 		Functions\when( 'get_post_meta' )->justReturn( false );
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
 
 		// $wpdb mock — no appointments by default, so the #941 booking locks
 		// stay inactive for the plain parse tests.
@@ -72,6 +81,11 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
 			$_POST['ffc_self_scheduling_email_config']
 		);
 		$this->saved_meta = array();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -464,6 +478,8 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
 	// ==================================================================
 
 	/**
+	 * Its own process: it defines DOING_AUTOSAVE, a constant no later test may inherit.
+	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
@@ -503,22 +519,27 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
 	}
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The real FormCache runs: its purge looks up the pages embedding this
+	 * calendar's shortcode, which is the call that proves the purge ran.
 	 */
 	public function test_save_calendar_data_orchestrates_saves_and_purges_cache(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'current_user_can' )->justReturn( true );
-		$purged = false;
-		Mockery::mock( 'alias:\FreeFormCertificate\Submissions\FormCache' )
-			->shouldReceive( 'purge_page_cache' )->andReturnUsing( function () use ( &$purged ) {
-				$purged = true;
-			} );
+		Functions\when( 'do_action' )->justReturn( null );
+		$lookups = array();
+		Functions\when( 'get_posts' )->alias(
+			static function ( $args ) use ( &$lookups ) {
+				$lookups[] = $args;
+				return array();
+			}
+		);
 
 		// No $_POST config → the three save_* helpers skip their writes; the
 		// orchestration still runs through to the cache purge.
 		$this->handler->save_calendar_data( 1, new \stdClass(), false );
 
-		$this->assertTrue( $purged );
+		$this->assertCount( 1, $lookups, 'The page-cache purge ran once.' );
+		$this->assertSame( '[ffc_self_scheduling id="1"', $lookups[0]['s'], 'It purges the pages embedding this calendar.' );
+		$this->assertEmpty( $this->saved_meta );
 	}
 }

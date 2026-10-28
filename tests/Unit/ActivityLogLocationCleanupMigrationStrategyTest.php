@@ -14,9 +14,10 @@ use PHPUnit\Framework\TestCase;
  * Tests for ActivityLogLocationCleanupMigrationStrategy: the debug rows that
  * logged visitors' positions are deleted, and nothing else (#2040).
  *
+ * Runs in the shared process over a `$wpdb` double; only global functions
+ * are stubbed, and the strategy imports `WP_Error`, so no alias is needed.
+ *
  * @covers \FreeFormCertificate\Migrations\Strategies\ActivityLogLocationCleanupMigrationStrategy
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class ActivityLogLocationCleanupMigrationStrategyTest extends TestCase {
 
@@ -43,9 +44,14 @@ class ActivityLogLocationCleanupMigrationStrategyTest extends TestCase {
 	/** When true, the count query keeps reporting rows the DELETE cannot reach. */
 	private bool $count_lies = false;
 
+	/** @var array{0: bool, 1: mixed} Whether `$wpdb` was set, and its value. */
+	private array $wpdb_backup = array( false, null );
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->wpdb_backup = array( array_key_exists( 'wpdb', $GLOBALS ), $GLOBALS['wpdb'] ?? null );
 
 		global $wpdb;
 		$wpdb             = Mockery::mock( 'wpdb' )->makePartial();
@@ -85,17 +91,17 @@ class ActivityLogLocationCleanupMigrationStrategyTest extends TestCase {
 			}
 		);
 
-		if ( ! class_exists( 'FreeFormCertificate\Migrations\Strategies\WP_Error' ) ) {
-			class_alias( 'WP_Error', 'FreeFormCertificate\Migrations\Strategies\WP_Error' );
-		}
-
 		Functions\when( '__' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\__' )->returnArg();
 
 		$this->strategy = new ActivityLogLocationCleanupMigrationStrategy();
 	}
 
 	protected function tearDown(): void {
+		if ( $this->wpdb_backup[0] ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup[1];
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
