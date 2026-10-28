@@ -196,7 +196,8 @@ class CalendarRepository extends AbstractRepository {
 	/**
 	 * Get public active calendars
 	 *
-	 * Returns active calendars with visibility = 'public'.
+	 * Returns active calendars with visibility = 'public', by title, the
+	 * same order the logged-in list uses (#2147).
 	 * Used for non-authenticated users.
 	 *
 	 * @since 4.7.0
@@ -210,8 +211,8 @@ class CalendarRepository extends AbstractRepository {
 				'status'     => 'active',
 				'visibility' => 'public',
 			),
-			'created_at',
-			'DESC',
+			'title',
+			'ASC',
 			$limit,
 			$offset
 		);
