@@ -59,7 +59,7 @@ class MigrationActionsAjaxEndpointTest extends TestCase {
 		$wpdb->prefix = 'wp_';
 		$GLOBALS['wpdb'] = $wpdb;
 
-		$this->post_backup = $_POST;
+		$this->post_backup = $_POST ?? array();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'sanitize_key' )->alias( function ( $key ) {

@@ -127,7 +127,7 @@ class RecruitmentPublicShortcodeListingTest extends TestCase {
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
 		$GLOBALS['wpdb']   = $wpdb;
 
-		$this->get_backup = $_GET;
+		$this->get_backup = $_GET ?? array();
 		$_GET             = array();
 	}
 
