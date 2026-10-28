@@ -803,6 +803,7 @@ class SubmissionHandler {
 	 * Ensure magic token exists
 	 *
 	 * @param int $submission_id Submission ID.
+	 * @return string The stored token, or '' when the submission is missing or the save failed.
 	 */
 	public function ensure_magic_token( int $submission_id ): string {
 		$submission = $this->repository->findById( $submission_id );
@@ -820,14 +821,14 @@ class SubmissionHandler {
 		// Generate new token.
 		$magic_token = $this->generate_magic_token();
 
-		// Save to database.
-		$this->repository->update(
+		// Save to database; a token the save refused would open nothing (#2187).
+		$saved = $this->repository->update(
 			$submission_id,
 			array(
 				'magic_token' => $magic_token,
 			)
 		);
 
-		return $magic_token;
+		return false === $saved ? '' : $magic_token;
 	}
 }
