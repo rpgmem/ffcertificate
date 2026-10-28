@@ -13,13 +13,11 @@ use PHPUnit\Framework\TestCase;
  *
  * The template runs in the scope of the renderer that includes it, so this
  * includes it from a stand-in; the audience picker it prints is the shared
- * component (#1648), doubled here. What is under test is the markup the
+ * component (#1648). What is under test is the markup the
  * template owns: the campaign and its emails each in a card with an icon
  * heading, inside the form; the import and invitation boxes as cards outside
- * it.
- *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
+ * it. The picker is the real component, over an install with no audiences
+ * (#2119).
  */
 class ReregistrationFormTemplateTest extends TestCase {
 
@@ -51,6 +49,12 @@ class ReregistrationFormTemplateTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, (array) $args ) );
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'sanitize_sql_orderby' )->returnArg();
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'esc_attr_e' )->echoArg();
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
 
 		global $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' );
@@ -76,15 +80,6 @@ class ReregistrationFormTemplateTest extends TestCase {
 	 * @return string
 	 */
 	private function render(): string {
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceTransferList' )
-			->shouldReceive( 'render' )
-			->with( array(), 'rereg_audience_ids[]', true )
-			->andReturnUsing(
-				static function () {
-					echo '<div class="transfer"></div>';
-				}
-			);
-
 		$host = new class() {
 			/**
 			 * Include the template the way the renderer does.
@@ -124,6 +119,8 @@ class ReregistrationFormTemplateTest extends TestCase {
 		$this->assertStringContainsString( '<h2 class="ffc-icon-user-check">Campaign</h2>', $form );
 		$this->assertStringContainsString( '<h2 class="ffc-icon-email">Email Notifications</h2>', $form );
 		$this->assertSame( 2, substr_count( $form, '<div class="card">' ) );
+		// The shared audience picker, under the field name the save handler reads.
+		$this->assertStringContainsString( 'rereg_audience_ids[]', $form );
 		// Every field the save handler reads is still posted by this form.
 		foreach ( array( 'rereg_title', 'rereg_start_date', 'rereg_end_date', 'rereg_status', 'rereg_auto_approve', 'rereg_email_invitation', 'rereg_email_reminder', 'rereg_email_confirmation', 'rereg_reminder_days' ) as $name ) {
 			$this->assertStringContainsString( 'name="' . $name . '"', $form, $name . ' left the form' );

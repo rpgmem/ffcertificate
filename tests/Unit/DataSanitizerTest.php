@@ -5,22 +5,27 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\DataSanitizer;
 
 /**
  * Tests for DataSanitizer: recursive data sanitization and
- * Brazilian name normalization.
+ * Brazilian name normalization. HtmlPolicy is the real class: the allowed
+ * tags wp_kses() receives are its own list (#2119).
  *
  * @covers \FreeFormCertificate\Core\DataSanitizer
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class DataSanitizerTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * The allowed-tags argument of every wp_kses() call.
+	 *
+	 * @var array<int, mixed>
+	 */
+	private array $kses_allowed = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -31,20 +36,13 @@ class DataSanitizerTest extends TestCase {
 			return strtolower(preg_replace('/[^a-zA-Z0-9_\-]/', '', $key));
 		});
 
-		// Stub wp_kses: for unit testing purposes, strip HTML tags
+		// Stub wp_kses: for unit testing purposes, strip HTML tags, and
+		// record the allowed list it was given.
+		$this->kses_allowed = array();
 		Functions\when('wp_kses')->alias(function ($data, $allowed_tags) {
+			$this->kses_allowed[] = $allowed_tags;
 			return strip_tags($data);
 		});
-
-		// Mock HtmlPolicy::get_allowed_html_tags() — called by recursive_sanitize
-		$utils_mock = Mockery::mock('alias:FreeFormCertificate\Core\HtmlPolicy');
-		$utils_mock->shouldReceive('get_allowed_html_tags')
-			->andReturn(array(
-				'b'      => array(),
-				'strong' => array(),
-				'i'      => array(),
-				'em'     => array(),
-			));
 	}
 
 	protected function tearDown(): void {
@@ -64,6 +62,15 @@ class DataSanitizerTest extends TestCase {
 	public function test_recursive_sanitize_string_strips_html_tags(): void {
 		$result = DataSanitizer::recursive_sanitize('<script>alert("xss")</script>');
 		$this->assertSame('alert("xss")', $result);
+	}
+
+	public function test_recursive_sanitize_filters_through_the_html_policy(): void {
+		DataSanitizer::recursive_sanitize('<b>bold</b>');
+
+		$this->assertSame(
+			array( \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() ),
+			$this->kses_allowed
+		);
 	}
 
 	public function test_recursive_sanitize_empty_string_returns_empty(): void {

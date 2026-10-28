@@ -8,15 +8,18 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Captcha\CaptchaProvider;
 use FreeFormCertificate\Frontend\DynamicFragments;
 
 /**
  * Tests for DynamicFragments: AJAX endpoint that returns fresh captcha/nonce data
  * for pages served from full-page cache.
  *
+ * The real CaptchaProvider resolves the strategy; a test stands its own
+ * strategy in for the configured one through the resolver's memo, so no
+ * class is alias-mocked (#2119).
+ *
  * @covers \FreeFormCertificate\Frontend\DynamicFragments
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class DynamicFragmentsTest extends TestCase {
 
@@ -33,6 +36,9 @@ class DynamicFragmentsTest extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'add_action' )->justReturn( true );
+		// No provider configured: the resolver picks the math strategy.
+		Functions\when( 'get_option' )->justReturn( array() );
+		CaptchaProvider::reset();
 
 		$this->json_responses = array();
 		$responses = &$this->json_responses;
@@ -49,6 +55,7 @@ class DynamicFragmentsTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		CaptchaProvider::reset();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -65,8 +72,8 @@ class DynamicFragmentsTest extends TestCase {
 	}
 
 	/**
-	 * Alias-mock the captcha resolver so the endpoint's own wiring is what is
-	 * under test.
+	 * Stand a fake strategy in for the configured one, so the endpoint's own
+	 * wiring is what is under test.
 	 *
 	 * The endpoint must not know what a challenge looks like — since #1053 PR2
 	 * it forwards whatever the configured strategy issues, so the assertions
@@ -87,8 +94,18 @@ class DynamicFragmentsTest extends TestCase {
 			$expectation->andReturnValues( $payloads );
 		}
 
-		$resolver = Mockery::mock( 'alias:\FreeFormCertificate\Core\Captcha\CaptchaProvider' );
-		$resolver->shouldReceive( 'resolve' )->andReturn( $provider );
+		self::use_strategy( $provider );
+	}
+
+	/**
+	 * Put a strategy in the resolver's memo under the configured (math) id.
+	 *
+	 * @param object $strategy The strategy resolve() must return.
+	 */
+	private static function use_strategy( $strategy ): void {
+		$memo = new \ReflectionProperty( CaptchaProvider::class, 'instances' );
+		$memo->setAccessible( true );
+		$memo->setValue( null, array( 'math' => $strategy ) );
 	}
 
 	// ==================================================================
@@ -243,8 +260,7 @@ class DynamicFragmentsTest extends TestCase {
 				return array( 'provider' => 'math', 'new_label' => 'l' . $calls, 'new_hash' => 'h' . $calls );
 			}
 		);
-		$resolver = Mockery::mock( 'alias:\FreeFormCertificate\Core\Captcha\CaptchaProvider' );
-		$resolver->shouldReceive( 'resolve' )->andReturn( $provider );
+		self::use_strategy( $provider );
 
 		$this->stubWordPress();
 

@@ -11,16 +11,14 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\SelfScheduling\AppointmentValidator;
 
 /**
- * Isolated coverage for AppointmentValidator's "restrict booking to business
- * hours" branch. The appointment-time working-hours gate (step 8) and the
- * business-hours gate (step 12b) both call WorkingHoursService with the SAME
- * calendar config, so the only way to pass step 8 yet fail step 12b is to
- * alias-mock WorkingHoursService and answer per the queried date — hence a
- * separate process.
+ * Coverage for AppointmentValidator's "restrict booking to business hours"
+ * branch. The appointment-time working-hours gate (step 8) asks about the
+ * appointment's date, the business-hours gate (step 12b) about the moment the
+ * booking is made, read from `current_time()`; both go to the real
+ * WorkingHoursService with the same calendar, so the two answers differ by
+ * the day each one asks about (#2119).
  *
  * @covers \FreeFormCertificate\SelfScheduling\AppointmentValidator
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AppointmentValidatorBusinessHoursTest extends TestCase {
 
@@ -87,12 +85,10 @@ class AppointmentValidatorBusinessHoursTest extends TestCase {
 	}
 
 	public function test_outside_business_hours_blocks_when_current_time_is_closed(): void {
-		// Step 8 (appointment 2030-01-15) passes; step 12b (current time) fails.
-		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\WorkingHoursService' )
-			->shouldReceive( 'is_within_working_hours' )
-			->andReturnUsing( fn ( $date ) => '2030-01-15' === $date )
-			->shouldReceive( 'is_working_day' )
-			->andReturn( true );
+		// The calendar opens on Tuesdays only. Step 8 asks about the
+		// appointment (Tuesday 2030-01-15) and passes; step 12b asks about
+		// now, a Monday, and fails.
+		Functions\when( 'current_time' )->justReturn( '2030-01-14 10:00:00' );
 
 		$result = $this->validator->validate( $this->data(), $this->calendar() );
 
@@ -101,10 +97,8 @@ class AppointmentValidatorBusinessHoursTest extends TestCase {
 	}
 
 	public function test_within_business_hours_allows_booking(): void {
-		// Both gates open → validation passes through to the end.
-		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\WorkingHoursService' )
-			->shouldReceive( 'is_within_working_hours' )->andReturn( true )
-			->shouldReceive( 'is_working_day' )->andReturn( true );
+		// Now is a Tuesday too: both gates open, validation passes to the end.
+		Functions\when( 'current_time' )->justReturn( '2030-01-08 10:00:00' );
 
 		$this->assertTrue( $this->validator->validate( $this->data(), $this->calendar() ) );
 	}
