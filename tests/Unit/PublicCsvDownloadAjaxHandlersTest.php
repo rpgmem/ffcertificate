@@ -534,9 +534,9 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		}
 	}
 
-	public function test_ajax_open_early_unmapped_reason_falls_back_to_generic(): void {
-		// `already_opened` is a reason the action returns and the handler
-		// has no message of its own for, so the generic one is shown.
+	public function test_ajax_open_early_reports_an_early_open_already_used(): void {
+		// The form was already opened early once; the refusal names that
+		// rather than a generic failure (#2169).
 		$this->configure_form( array( 'time_start' => '13:00' ), array( '_ffc_csv_public_start_opened_at' => time() - 60 ) );
 		$this->valid_post();
 
@@ -545,7 +545,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 			$this->fail( 'expected json_error' );
 		} catch ( \RuntimeException $e ) {
 			$this->assertSame( 'already_opened', $this->captured['payload']['reason'] );
-			$this->assertStringContainsString( 'Unable to open', $this->captured['payload']['message'] );
+			$this->assertSame( 'This form has already been opened early once.', $this->captured['payload']['message'] );
 		}
 	}
 
@@ -624,32 +624,6 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		}
 	}
 
-	/**
-	 * Every reason the real ExtendEndAction returns has a message of its own,
-	 * so the generic fallback is reachable only through a replaced action:
-	 * this test keeps its own process for the alias mock.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
-	public function test_ajax_extend_end_unknown_reason_generic(): void {
-		$this->valid_post();
-		Mockery::mock( 'alias:FreeFormCertificate\Frontend\ExtendEndAction' )
-			->shouldReceive( 'execute' )->andReturn(
-				array(
-					'ok'     => false,
-					'reason' => 'mystery',
-				)
-			);
-
-		try {
-			( new PublicCsvDownload() )->ajax_extend_end();
-			$this->fail( 'expected json_error' );
-		} catch ( \RuntimeException $e ) {
-			$this->assertStringContainsString( 'Unable to postpone', $this->captured['payload']['message'] );
-		}
-	}
-
 	public function test_ajax_extend_end_happy_path(): void {
 		$this->configure_form( array(), array( ExtendEndAction::META_ENABLED => '1' ) );
 		$this->valid_post();
@@ -709,32 +683,6 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		} catch ( \RuntimeException $e ) {
 			$this->assertSame( 'no_change', $this->captured['payload']['reason'] );
 			$this->assertStringContainsString( 'identical to the baseline', $this->captured['payload']['message'] );
-		}
-	}
-
-	/**
-	 * Every reason the real ScheduleExceptionAction returns has a message of
-	 * its own, so the generic fallback is reachable only through a replaced
-	 * action: this test keeps its own process for the alias mock.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
-	public function test_ajax_schedule_exception_unknown_reason_generic(): void {
-		$this->valid_post();
-		Mockery::mock( 'alias:FreeFormCertificate\Frontend\ScheduleExceptionAction' )
-			->shouldReceive( 'execute' )->andReturn(
-				array(
-					'ok'     => false,
-					'reason' => 'mystery',
-				)
-			);
-
-		try {
-			( new PublicCsvDownload() )->ajax_schedule_exception();
-			$this->fail( 'expected json_error' );
-		} catch ( \RuntimeException $e ) {
-			$this->assertStringContainsString( 'Unable to create', $this->captured['payload']['message'] );
 		}
 	}
 

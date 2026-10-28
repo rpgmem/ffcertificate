@@ -34,6 +34,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Service: stage a per-submission schedule override.
+ *
+ * A refusal names its reason from a closed list, so the AJAX handler's
+ * message map is checked against it and needs no generic fallback (#2169).
+ *
+ * @phpstan-type ScheduleExceptionRefusal array{ok: false, reason: 'unknown_form'|'csv_disabled'|'bad_hash'|'schedule_exception_disabled'|'datetime_disabled'|'no_window'|'not_started_yet'|'already_ended'|'bad_time_format'|'no_change'|'range_inverted'|'out_of_window'}
  */
 final class ScheduleExceptionAction {
 
@@ -43,7 +48,7 @@ final class ScheduleExceptionAction {
 	 *
 	 * @param int    $form_id Form post id.
 	 * @param string $hash    Plaintext hash supplied by the public page.
-	 * @return array{ok: false, reason: string}|array{ok: true} Stable reason
+	 * @return ScheduleExceptionRefusal|array{ok: true} Stable reason
 	 *           tags on failure: `unknown_form`, `csv_disabled`,
 	 *           `bad_hash`, `schedule_exception_disabled`,
 	 *           `datetime_disabled`, `no_window`, `not_started_yet`,
@@ -138,7 +143,7 @@ final class ScheduleExceptionAction {
 	 * @param string $cpf_digits     Operator's CPF (digits only), already
 	 *                               validated by the AJAX caller. Hashed
 	 *                               into the token; never stored plaintext.
-	 * @return array{ok: false, reason: string}|array{ok: true, token: string, form_url: string}
+	 * @return ScheduleExceptionRefusal|array{ok: true, token: string, form_url: string}
 	 */
 	public static function execute(
 		int $form_id,
@@ -230,7 +235,7 @@ final class ScheduleExceptionAction {
 	 * @param string $baseline_end     Effective baseline end.
 	 * @param string $window_start     Effective form window start (`time_start`).
 	 * @param string $window_end       Effective form window end (`time_end`, post-postpone).
-	 * @return array{ok: false, reason: string}|array{ok: true}
+	 * @return ScheduleExceptionRefusal|array{ok: true}
 	 */
 	private static function validate_overrides(
 		string $start_override,

@@ -6448,6 +6448,10 @@ msgstr "O recurso de início antecipado está desativado para este formulário �
 msgid "Early-start is disabled for this form."
 msgstr "O início antecipado está desativado para este formulário."
 
+#: includes/frontend/class-ffc-public-csv-download.php
+msgid "This form has already been opened early once."
+msgstr "Este formulário já foi aberto antecipadamente uma vez."
+
 #: includes/frontend/class-ffc-public-csv-download.php:592
 msgid "Early-start is only available on the form's scheduled start day."
 msgstr "O início antecipado está disponível apenas no dia de início programado do formulário."
@@ -18283,10 +18287,6 @@ msgstr "Digite para pesquisar..."
 msgid "Typical shared hosting has a 30–60s execution timeout. Estimates:"
 msgstr "A hospedagem compartilhada típica tem um tempo limite de execução de 30 a 60 segundos. Estimativas:"
 
-#: includes/frontend/class-ffc-public-csv-download.php:741
-msgid "Unable to create the schedule exception right now."
-msgstr "Não foi possível criar a exceção de horário agora."
-
 #: includes/security/class-ffc-geofence.php:382 includes/frontend/class-ffc-frontend.php:666
 msgid "Unable to determine your location."
 msgstr "Não foi possível determinar sua localização."
@@ -18298,14 +18298,6 @@ msgstr "Não foi possível determinar sua localização. No Safari/iOS, verifiqu
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:372
 msgid "Unable to determine your location. Please enable location services."
 msgstr "Não foi possível determinar sua localização. Por favor, ative os serviços de localização."
-
-#: includes/frontend/class-ffc-public-csv-download.php:596
-msgid "Unable to open the form right now."
-msgstr "Não foi possível abrir o formulário neste momento."
-
-#: includes/frontend/class-ffc-public-csv-download.php:671
-msgid "Unable to postpone the close right now."
-msgstr "Não é possível adiar o fechamento neste momento."
 
 #: includes/admin/class-ffc-admin-conditional-assets.php:440
 msgid "Unable to reveal this value."

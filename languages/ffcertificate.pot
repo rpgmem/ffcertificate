@@ -6440,6 +6440,10 @@ msgstr ""
 msgid "Early-start is disabled for this form."
 msgstr ""
 
+#: includes/frontend/class-ffc-public-csv-download.php
+msgid "This form has already been opened early once."
+msgstr ""
+
 #: includes/frontend/class-ffc-public-csv-download.php:592
 msgid "Early-start is only available on the form's scheduled start day."
 msgstr ""
@@ -18227,10 +18231,6 @@ msgstr ""
 msgid "Typical shared hosting has a 30–60s execution timeout. Estimates:"
 msgstr ""
 
-#: includes/frontend/class-ffc-public-csv-download.php:741
-msgid "Unable to create the schedule exception right now."
-msgstr ""
-
 #: includes/security/class-ffc-geofence.php:382 includes/frontend/class-ffc-frontend.php:666
 msgid "Unable to determine your location."
 msgstr ""
@@ -18241,14 +18241,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:372
 msgid "Unable to determine your location. Please enable location services."
-msgstr ""
-
-#: includes/frontend/class-ffc-public-csv-download.php:596
-msgid "Unable to open the form right now."
-msgstr ""
-
-#: includes/frontend/class-ffc-public-csv-download.php:671
-msgid "Unable to postpone the close right now."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-conditional-assets.php:440

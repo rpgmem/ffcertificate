@@ -33,6 +33,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Service: extend the form's scheduled close (postpone time_end).
+ *
+ * A refusal names its reason from a closed list, so the AJAX handler's
+ * message map is checked against it and needs no generic fallback (#2169).
+ *
+ * @phpstan-type ExtendEndRefusal array{ok: false, reason: 'unknown_form'|'csv_disabled'|'bad_hash'|'extend_end_disabled'|'datetime_disabled'|'no_end_date'|'not_started_yet'|'already_ended'|'not_today'|'already_postponed'|'bad_time_format'|'not_extending'|'past_now'|'out_of_day'}
  */
 final class ExtendEndAction {
 
@@ -59,7 +64,7 @@ final class ExtendEndAction {
 	 *
 	 * @param int    $form_id Form post id.
 	 * @param string $hash    Plaintext hash supplied by the public page.
-	 * @return array{ok: false, reason: string}|array{ok: true} ok=true when eligible.
+	 * @return ExtendEndRefusal|array{ok: true} ok=true when eligible.
 	 *                                          reason is a stable string tag
 	 *                                          (`unknown_form`, `csv_disabled`,
 	 *                                          `bad_hash`, `extend_end_disabled`,
@@ -178,7 +183,7 @@ final class ExtendEndAction {
 	 *                                           per-form audit ring buffer
 	 *                                           alongside `action_postpone_close`
 	 *                                           (#243 Sprint 6).
-	 * @return array{ok: false, reason: string}|array{ok: true, original_end_iso: string, new_end_iso: string}
+	 * @return ExtendEndRefusal|array{ok: true, original_end_iso: string, new_end_iso: string}
 	 */
 	public static function execute( int $form_id, string $hash, string $new_time_end, array $audit_meta = array(), string $cpf_digits = '' ): array {
 		$eligibility = self::is_eligible( $form_id, $hash );
@@ -258,7 +263,7 @@ final class ExtendEndAction {
 	 * @param string $new_time_end     User-supplied HH:MM.
 	 * @param string $current_time_end Stored time_end.
 	 * @param string $date_end         Stored date_end (Y-m-d).
-	 * @return array{ok: false, reason: string}|array{ok: true}
+	 * @return ExtendEndRefusal|array{ok: true}
 	 */
 	private static function validate_new_time_end( string $new_time_end, string $current_time_end, string $date_end ): array {
 		// Strict HH:MM with values in range. Reject anything else outright.
