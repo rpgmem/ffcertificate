@@ -8,7 +8,10 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Reregistration\ReregistrationImportStagingService;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
+use FreeFormCertificate\Tests\Support\CallLog;
 use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
@@ -21,15 +24,18 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  * promote phase writes through `process_submission()` with both e-mails
  * suppressed.
  *
- * The three collaborators are alias mocks, so each test that declares one
- * needs a process in which the real class was never loaded — Mockery refuses an alias for a class
- * that already exists, and in the full suite something earlier loads all three.
- * Under `--filter` nothing does, which is why these passed filtered and errored
- * thirteen times in the full run. Same annotation every sibling that alias-mocks
- * `CustomFieldReader` carries.
+ * Every collaborator is the real class — the custom-field reader and
+ * validator, the campaign repository, the sanitizer, `Encryption` (keyed by
+ * the bootstrap's constants), `UserManager` down to `UserCreator`, the
+ * audience writer, the submission reader and writer and the data processor —
+ * over a `$wpdb` double that holds the campaign, its audience and fields, the
+ * job, its staged rows and the seeded submissions, answers each query by its
+ * SQL text and records every write. A query the double does not know fails
+ * the test. User creation ends at stubbed `wp_create_user()` /
+ * `wp_update_user()`, and both mail paths at counted `wp_mail()` /
+ * `wp_new_user_notification()`.
  *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationImportStagingService
- * @preserveGlobalState disabled
  */
 class ReregistrationImportStagingServiceTest extends TestCase {
 
@@ -38,8 +44,73 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
-	/** @var list<array{sql: string, values: array<int, mixed>}> */
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var list<array{sql: string, values: array<int, mixed>}> Every prepare(), with its bound values. */
 	private array $queries = array();
+
+	/** @var list<array{table: string, data: array<string, mixed>, where: array<string, mixed>}> */
+	private array $updates = array();
+
+	/** @var list<array{table: string, data: array<string, mixed>}> */
+	private array $inserts = array();
+
+	/** @var list<string> Tables `$wpdb->delete()` was called on. */
+	private array $deletes = array();
+
+	/** @var list<int> Audiences linked to campaign 1. */
+	private array $campaign_audiences = array( 7 );
+
+	/** @var list<object> Active custom fields of audience 7. */
+	private array $fields = array();
+
+	/** @var object|null The job header row. */
+	private ?object $job = null;
+
+	/** @var list<object> The job's staged rows. */
+	private array $staged = array();
+
+	/** @var object|null Campaign 1. */
+	private ?object $campaign = null;
+
+	/** @var array<int, object|null> Seeded submission of campaign 1 per user id. */
+	private array $submissions = array();
+
+	/** @var array<string, int> Normalised CPF/RF of an existing account => user id. */
+	private array $people_by_id = array();
+
+	/** @var array<string, int> E-mail of an existing account => user id. */
+	private array $people_by_email = array();
+
+	/** @var int The id `wp_create_user()` answers with. */
+	private int $created_user_id = 42;
+
+	/** @var string What seeding a missing submission does: ok, lost_the_race or nothing_there. */
+	private string $seed_result = 'ok';
+
+	/** @var array{unprocessed: int, ready: int, skipped: int} Staging counts commit reads. */
+	private array $staging_counts = array(
+		'unprocessed' => 0,
+		'ready'       => 2,
+		'skipped'     => 1,
+	);
+
+	/** @var list<array<int, mixed>> Arguments of each `wp_create_user()` call. */
+	private array $created_users = array();
+
+	/** @var list<array<string, mixed>> Arguments of each `wp_update_user()` call. */
+	private array $user_updates = array();
+
+	/** @var list<string> Values `sanitize_text_field()` received. */
+	private array $sanitized = array();
+
+	private CallLog $mail;
+
+	private CallLog $user_notifications;
 
 	/**
 	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
@@ -66,124 +137,423 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		// pcov attribution preload (CLAUDE.md pcov gotcha).
 		class_exists( '\FreeFormCertificate\Reregistration\ReregistrationImportStagingService' );
 
-		global $wpdb;
-		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
-		$wpdb->prefix = 'wp_';
-		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
-			function ( $sql, ...$args ) {
-				$this->queries[] = array(
-					'sql'    => (string) $sql,
-					'values' => ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args,
-				);
-				return (string) $sql;
-			}
-		)->byDefault();
-		$wpdb->shouldReceive( 'query' )->andReturn( 1 )->byDefault();
-		$wpdb->shouldReceive( 'insert' )->andReturn( 1 )->byDefault();
-		$wpdb->shouldReceive( 'delete' )->andReturn( 1 )->byDefault();
-		$this->wpdb = $wpdb;
+		// promote_batch() flushes ActivityLog's buffer; start it empty.
+		ActivityLogBuffer::reset();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
 
 		Functions\when( 'wp_generate_uuid4' )->justReturn( 'job-uuid-0001' );
 		Functions\when( 'wp_json_encode' )->alias(
 			static fn( $v ) => json_encode( $v ) // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- the stub IS the alternative.
 		);
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// Debug off, activity log off, e-mails enabled: an install nobody configured.
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'is_wp_error' )->alias( static fn( $thing ) => $thing instanceof \WP_Error );
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults = array() ) => array_merge( (array) $defaults, (array) $args ) );
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'wp_rand' )->alias( static fn( $min = 0, $max = 0 ) => random_int( (int) $min, (int) $max ) );
+		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => trim( (string) $v ) );
+		Functions\when( 'sanitize_user' )->returnArg();
+		Functions\when( 'remove_accents' )->returnArg();
+		Functions\when( 'username_exists' )->justReturn( false );
+		Functions\when( 'wp_generate_password' )->justReturn( 'generatedpw' );
+		Functions\when( 'current_time' )->justReturn( '2026-10-28 10:00:00' );
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'get_user_meta' )->justReturn( '' );
+		Functions\when( 'update_user_meta' )->justReturn( true );
+
+		$this->sanitized = array();
+		$sanitized       = &$this->sanitized;
+		Functions\when( 'sanitize_text_field' )->alias(
+			static function ( $v ) use ( &$sanitized ) {
+				$sanitized[] = (string) $v;
+				return trim( strip_tags( (string) $v ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- the stub IS the alternative.
+			}
+		);
+
+		$people = &$this->people_by_email;
+		Functions\when( 'get_user_by' )->alias(
+			static function ( $field, $value ) use ( &$people ) {
+				if ( 'email' !== $field || ! isset( $people[ (string) $value ] ) ) {
+					return false;
+				}
+				$user             = new \WP_User( $people[ (string) $value ] );
+				$user->user_email = (string) $value;
+				return $user;
+			}
+		);
+
+		$this->created_users = array();
+		$created             = &$this->created_users;
+		$created_id          = &$this->created_user_id;
+		Functions\when( 'wp_create_user' )->alias(
+			static function ( $username, $password, $email = '' ) use ( &$created, &$created_id ) {
+				$created[] = array( $username, $password, $email );
+				if ( '' === (string) $email ) {
+					// What WordPress answers for an empty address.
+					return new \WP_Error( 'empty_user_email', 'Cannot create a user with an empty email address.' );
+				}
+				return $created_id;
+			}
+		);
+
+		$this->user_updates = array();
+		$user_updates       = &$this->user_updates;
+		Functions\when( 'wp_update_user' )->alias(
+			static function ( $data ) use ( &$user_updates ) {
+				$user_updates[] = (array) $data;
+				return (int) ( $data['ID'] ?? 0 );
+			}
+		);
+
+		$this->mail               = CallLog::record( 'wp_mail', true );
+		$this->user_notifications = CallLog::record( 'wp_new_user_notification', null );
+
+		$this->wpdb      = $this->database();
+		$GLOBALS['wpdb'] = $this->wpdb;
 	}
 
 	protected function tearDown(): void {
 		$this->queries = array();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
 
+	// ==================================================================
+	// The database double
+	// ==================================================================
+
 	/**
-	 * Build a field definition row the way CustomFieldReader returns one.
+	 * A `$wpdb` double over the fixture properties above.
+	 *
+	 * `prepare()` records its bound values and interpolates them, so each read
+	 * dispatches on the statement it would run. Anything it does not recognise
+	 * throws, so a query the import was not expected to make fails the test.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function database() {
+		$wpdb            = Mockery::mock( 'wpdb' );
+		$wpdb->prefix    = 'wp_';
+		$wpdb->insert_id = 0;
+
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				$values          = ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args;
+				$this->queries[] = array(
+					'sql'    => (string) $sql,
+					'values' => $values,
+				);
+				return (string) preg_replace_callback(
+					'/%[ids]/',
+					static function ( array $m ) use ( &$values ) {
+						$value = array_shift( $values );
+						if ( '%d' === $m[0] ) {
+							return (string) (int) $value;
+						}
+						return '%s' === $m[0] ? "'" . (string) $value . "'" : (string) $value;
+					},
+					(string) $sql
+				);
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing( fn( $sql ) => $this->answer_row( (string) $sql ) );
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing( fn( $sql ) => $this->answer_results( (string) $sql ) );
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing( fn( $sql ) => $this->answer_var( (string) $sql ) );
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing( fn( $sql ) => $this->answer_col( (string) $sql ) );
+		$wpdb->shouldReceive( 'query' )->andReturnUsing( fn( $sql ) => $this->answer_query( (string) $sql ) );
+
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) use ( $wpdb ) {
+				$this->inserts[] = array(
+					'table' => (string) $table,
+					'data'  => (array) $data,
+				);
+				return $this->answer_insert( $wpdb, (string) $table, (array) $data );
+			}
+		);
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				if ( ! in_array( $table, array( 'wp_ffc_reregistration_import_staging', 'wp_ffc_reregistration_import_jobs', 'wp_ffc_reregistration_submissions' ), true ) ) {
+					throw new \LogicException( 'Unexpected update of ' . $table );
+				}
+				$this->updates[] = array(
+					'table' => (string) $table,
+					'data'  => (array) $data,
+					'where' => (array) $where,
+				);
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'delete' )->andReturnUsing(
+			function ( $table ) {
+				$this->deletes[] = (string) $table;
+				return 1;
+			}
+		);
+
+		return $wpdb;
+	}
+
+	/** @return object|array<string, mixed>|null */
+	private function answer_row( string $sql ) {
+		if ( str_contains( $sql, 'FROM wp_ffc_reregistration_import_jobs WHERE job_id' ) ) {
+			return ( null !== $this->job && str_contains( $sql, "'" . $this->job->job_id . "'" ) ) ? $this->job : null;
+		}
+		if ( preg_match( '/FROM wp_ffc_audiences WHERE id = (\d+)/', $sql, $m ) ) {
+			return '7' === $m[1]
+				? (object) array(
+					'id'        => '7',
+					'name'      => 'Audience 7',
+					'parent_id' => null,
+				)
+				: null;
+		}
+		if ( str_contains( $sql, 'FROM wp_ffc_reregistrations WHERE id = 1' ) ) {
+			return $this->campaign;
+		}
+		if ( preg_match( '/FROM wp_ffc_reregistration_submissions WHERE reregistration_id = 1 AND user_id = (\d+)/', $sql, $m ) ) {
+			return $this->submissions[ (int) $m[1] ] ?? null;
+		}
+		if ( str_contains( $sql, 'FROM wp_ffc_user_profiles WHERE user_id' ) ) {
+			return null;
+		}
+		throw new \LogicException( 'Unexpected get_row: ' . $sql );
+	}
+
+	/** @return list<object> */
+	private function answer_results( string $sql ): array {
+		if ( str_contains( $sql, 'FROM wp_ffc_reregistration_import_staging WHERE job_id' ) ) {
+			return $this->staged;
+		}
+		if ( str_contains( $sql, 'FROM wp_ffc_custom_fields WHERE audience_id = 7 AND is_active = 1' ) ) {
+			// Cloned: the reader decorates each row it returns.
+			return array_map( static fn( object $f ) => clone $f, $this->fields );
+		}
+		throw new \LogicException( 'Unexpected get_results: ' . $sql );
+	}
+
+	/** @return string|null */
+	private function answer_var( string $sql ) {
+		if ( str_starts_with( $sql, 'SHOW TABLES LIKE' ) ) {
+			// Optional tables are absent: no appointment linking, no profile row on create.
+			return null;
+		}
+		if ( str_contains( $sql, 'SELECT user_id FROM wp_ffc_user_profiles WHERE (' ) ) {
+			preg_match_all( "/(?:cpf|rf)_hash = '([0-9a-f]+)'/", $sql, $m );
+			foreach ( $this->people_by_id as $identifier => $user_id ) {
+				if ( in_array( Encryption::hash( (string) $identifier ), $m[1], true ) ) {
+					return (string) $user_id;
+				}
+			}
+			return null;
+		}
+		if ( str_contains( $sql, 'SELECT user_id FROM wp_ffc_submissions WHERE (' ) ) {
+			return null;
+		}
+		if ( str_contains( $sql, 'FROM wp_ffc_audience_members WHERE audience_id' ) ) {
+			return '0';
+		}
+		if ( str_contains( $sql, 'WHERE auth_code =' ) || str_contains( $sql, 'WHERE validation_code =' ) ) {
+			return null;
+		}
+		if ( str_contains( $sql, 'SELECT id FROM wp_ffc_user_profiles WHERE user_id' ) ) {
+			return null;
+		}
+		if ( str_contains( $sql, 'FROM wp_ffc_reregistration_import_staging WHERE job_id' ) && str_contains( $sql, 'COUNT(*)' ) ) {
+			if ( str_contains( $sql, 'processed = 0' ) ) {
+				return (string) $this->staging_counts['unprocessed'];
+			}
+			if ( str_contains( $sql, "row_status = 'ready'" ) ) {
+				return (string) $this->staging_counts['ready'];
+			}
+			if ( str_contains( $sql, "row_status = 'skipped'" ) ) {
+				return (string) $this->staging_counts['skipped'];
+			}
+		}
+		throw new \LogicException( 'Unexpected get_var: ' . $sql );
+	}
+
+	/** @return list<string> */
+	private function answer_col( string $sql ): array {
+		if ( str_contains( $sql, 'FROM wp_ffc_reregistration_audiences WHERE reregistration_id = 1' ) ) {
+			return array_map( 'strval', $this->campaign_audiences );
+		}
+		throw new \LogicException( 'Unexpected get_col: ' . $sql );
+	}
+
+	/** @return int */
+	private function answer_query( string $sql ): int {
+		if ( str_starts_with( $sql, 'INSERT INTO wp_ffc_reregistration_import_staging' ) ) {
+			return 1;
+		}
+		if ( str_starts_with( $sql, 'DELETE' ) && str_contains( $sql, 'wp_ffc_reregistration_import_jobs' ) ) {
+			return 0;
+		}
+		if ( str_starts_with( $sql, 'UPDATE wp_ffc_reregistration_import_jobs SET processed_count' ) ) {
+			return 1;
+		}
+		if ( str_starts_with( $sql, 'UPDATE wp_ffc_submissions SET user_id' ) ) {
+			// No orphaned certificate to adopt.
+			return 0;
+		}
+		throw new \LogicException( 'Unexpected query: ' . $sql );
+	}
+
+	/**
+	 * @param Mockery\MockInterface $wpdb  The double, for `insert_id`.
+	 * @param string                $table Table written.
+	 * @param array<string, mixed>  $data  Row written.
+	 * @return int|false
+	 */
+	private function answer_insert( $wpdb, string $table, array $data ) {
+		switch ( $table ) {
+			case 'wp_ffc_reregistration_import_jobs':
+			case 'wp_ffc_user_profiles':
+				return 1;
+			case 'wp_ffc_audience_members':
+				$wpdb->insert_id = 5;
+				return 1;
+			case 'wp_ffc_reregistration_submissions':
+				$user_id = (int) $data['user_id'];
+				if ( 'nothing_there' === $this->seed_result ) {
+					// The INSERT did not land AND no row appeared: nothing to
+					// write into, so promotion of this row cannot proceed.
+					return false;
+				}
+				if ( 'lost_the_race' === $this->seed_result ) {
+					// The INSERT lost to `idx_reregistration_user` — and the
+					// row the winner created is right there.
+					$this->submissions[ $user_id ] = $this->submission( 888, 'pending' );
+					return false;
+				}
+				// A real seed makes the row findable on the re-read that follows.
+				$this->submissions[ $user_id ] = $this->submission( 777, 'pending' );
+				$wpdb->insert_id               = 777;
+				return 1;
+		}
+		throw new \LogicException( 'Unexpected insert into ' . $table );
+	}
+
+	/**
+	 * Data of the writes to one table, in order.
+	 *
+	 * @param string $table Unprefixed table name.
+	 * @return list<array<string, mixed>>
+	 */
+	private function updates_to( string $table ): array {
+		$out = array();
+		foreach ( $this->updates as $update ) {
+			if ( 'wp_' . $table === $update['table'] ) {
+				$out[] = $update['data'];
+			}
+		}
+		return $out;
+	}
+
+	/** @return list<array<string, mixed>> */
+	private function staging_updates(): array {
+		return $this->updates_to( 'ffc_reregistration_import_staging' );
+	}
+
+	/** @return list<array<string, mixed>> The submission writes `process_submission()` made. */
+	private function submission_writes(): array {
+		return $this->updates_to( 'ffc_reregistration_submissions' );
+	}
+
+	/**
+	 * Rows inserted into one table, in order.
+	 *
+	 * @param string $table Unprefixed table name.
+	 * @return list<array<string, mixed>>
+	 */
+	private function inserts_into( string $table ): array {
+		$out = array();
+		foreach ( $this->inserts as $insert ) {
+			if ( 'wp_' . $table === $insert['table'] ) {
+				$out[] = $insert['data'];
+			}
+		}
+		return $out;
+	}
+
+	// ==================================================================
+	// Fixtures
+	// ==================================================================
+
+	/**
+	 * Build a field definition row the way `ffc_custom_fields` stores one.
 	 *
 	 * @param string $key      Field key.
 	 * @param string $label    Field label.
 	 * @param bool   $required Whether the field is required.
+	 * @param string $type     Field type.
 	 * @return object
 	 */
-	private function field( string $key, string $label, bool $required = false ): object {
+	private function field( string $key, string $label, bool $required = false, string $type = 'text' ): object {
 		return (object) array(
-			'id'          => (string) crc32( $key ),
-			'field_key'   => $key,
-			'field_label' => $label,
-			'field_type'  => 'text',
-			'is_required' => $required ? '1' : '0',
+			'id'                => (string) crc32( $key ),
+			'audience_id'       => '7',
+			'field_key'         => $key,
+			'field_label'       => $label,
+			'field_type'        => $type,
+			'field_options'     => null,
+			'validation_rules'  => null,
+			'field_profile_key' => null,
+			'is_sensitive'      => '0',
+			'is_required'       => $required ? '1' : '0',
+			'is_active'         => '1',
 		);
 	}
 
 	/**
-	 * Point CustomFieldReader and ReregistrationRepository at fixtures.
+	 * Store campaign 1's audiences and audience 7's fields.
 	 *
 	 * @param list<object> $fields       Field definitions for the audience.
 	 * @param list<int>    $audience_ids Audiences linked to the campaign.
 	 * @return void
 	 */
 	private function with_campaign( array $fields, array $audience_ids = array( 7 ) ): void {
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' );
-		$reader->shouldReceive( 'get_by_audience_with_parents' )->andReturn( $fields );
-		$reader->shouldReceive( 'validate_field_value' )->andReturnUsing(
-			function ( object $field, $value ) {
-				$key = (string) $field->field_key;
-				if ( array_key_exists( $key, $this->field_validity ) && false === $this->field_validity[ $key ] ) {
-					return new \WP_Error( 'field_invalid_number', 'bad' );
-				}
-				return true;
-			}
-		);
-
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );
-		$repo->shouldReceive( 'get_audience_ids' )->andReturn( $audience_ids );
-
-		$sanitizer = Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' );
-		$sanitizer->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing(
-			static fn( string $v ) => (string) preg_replace( '/\D/', '', $v )
-		);
-		$sanitizer->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) );
-		$sanitizer->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
+		$this->fields             = $fields;
+		$this->campaign_audiences = $audience_ids;
 	}
 
 	/**
-	 * Wire the validate phase's collaborators.
+	 * Store the accounts and seeded submissions the validate phase reads.
 	 *
-	 * @param array<string, int>    $resolves    cpf|rf|email => user id (0 = would create).
-	 * @param array<int, ?object>   $submissions user id => seeded submission, or null.
-	 * @param array<string, bool>   $valid       field key => whether validation passes.
+	 * @param array<string, int>  $people      Normalised CPF/RF or e-mail => user id.
+	 * @param array<int, ?object> $submissions User id => seeded submission, or null.
 	 * @return void
 	 */
-	private function with_validation( array $resolves, array $submissions = array(), array $valid = array() ): void {
-		$encryption = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encryption->shouldReceive( 'hash' )->andReturnUsing( static fn( string $v ) => 'h:' . $v );
-
-		$manager = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' );
-		$manager->shouldReceive( 'resolve_existing_user' )->andReturnUsing(
-			static function ( ?string $cpf_hash, ?string $rf_hash, string $email ) use ( $resolves ): int {
-				foreach ( array( $cpf_hash, $rf_hash ) as $hash ) {
-					if ( null !== $hash && isset( $resolves[ $hash ] ) ) {
-						return $resolves[ $hash ];
-					}
-				}
-				return $resolves[ $email ] ?? 0;
+	private function with_validation( array $people, array $submissions = array() ): void {
+		foreach ( $people as $identifier => $user_id ) {
+			if ( str_contains( (string) $identifier, '@' ) ) {
+				$this->people_by_email[ (string) $identifier ] = $user_id;
+			} else {
+				$this->people_by_id[ (string) $identifier ] = $user_id;
 			}
-		);
-
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' );
-		$reader->shouldReceive( 'get_by_reregistration_and_user' )->andReturnUsing(
-			static fn( int $rereg_id, int $user_id ) => $submissions[ $user_id ] ?? null
-		);
-
-		$this->field_validity = $valid;
+		}
+		$this->submissions = $submissions;
 	}
-
-	/** @var array<string, bool> */
-	private array $field_validity = array();
 
 	/** A seeded submission row. */
 	private function submission( int $id, string $status ): object {
 		return (object) array(
-			'id'     => (string) $id,
-			'status' => $status,
+			'id'                => (string) $id,
+			'reregistration_id' => '1',
+			'status'            => $status,
 		);
 	}
 
@@ -201,9 +571,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	// map_header() — the decision: unknown column ignored and reported
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_header_matches_on_field_key_and_on_label(): void {
 		$this->with_campaign(
 			array(
@@ -218,9 +585,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertSame( array(), $map['ignored'] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_matching_ignores_case_and_surrounding_space(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
 
@@ -233,7 +597,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * The #1214 decision, stated as a test: a column matching no field is
 	 * ignored and reported — never a reason to refuse the file. An operator's
 	 * spreadsheet carries notes and working columns that are none of ours.
-	 * @runInSeparateProcess
 	 */
 	public function test_unknown_column_is_ignored_and_reported(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
@@ -249,7 +612,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * reported like any other column we cannot place. Letting the later one
 	 * overwrite would make the import depend on column order, which the
 	 * operator has no reason to think matters.
-	 * @runInSeparateProcess
 	 */
 	public function test_duplicate_column_for_one_field_keeps_the_first(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
@@ -260,9 +622,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertSame( array( 'CPF' ), $map['ignored'] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_required_field_without_a_column_is_reported_by_the_map(): void {
 		$this->with_campaign(
 			array(
@@ -285,7 +644,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * before anything is staged. An absent COLUMN means every row would fail,
 	 * so one line beats staging the file to say it once per row — and the
 	 * outcome is the same all-or-nothing the issue asked for.
-	 * @runInSeparateProcess
 	 */
 	public function test_required_column_absent_refuses_before_staging(): void {
 		$this->with_campaign(
@@ -303,9 +661,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertNull( $this->staging_insert(), 'Nothing may be staged when a required column is absent.' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_audience_outside_the_campaign_is_refused(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ), array( 99 ) );
 
@@ -315,9 +670,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertSame( array( 'rereg_import_audience_not_in_campaign' ), $result['errors'] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_a_header_matching_nothing_is_refused(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
 
@@ -327,9 +679,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertSame( array( 'rereg_import_no_column_matched' ), $result['errors'] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_a_header_with_no_body_rows_is_refused(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
 
@@ -343,9 +692,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	// ingest_job() — the staged row
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_the_row_is_staged_as_json_under_its_field_keys(): void {
 		$this->with_campaign(
 			array(
@@ -377,7 +723,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * The resolution columns are lifted out of the payload and normalised,
 	 * because validation and promotion query on them. The payload keeps what
 	 * the operator typed, so "this CPF is malformed" can quote it back.
-	 * @runInSeparateProcess
 	 */
 	public function test_identifiers_are_lifted_out_and_normalised(): void {
 		$this->with_campaign(
@@ -400,7 +745,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * `line_no` is the line in the file the operator opens; `row_no` counts
 	 * body rows. They differ by the header, which is exactly the off-by-one
 	 * an error message gets wrong.
-	 * @runInSeparateProcess
 	 */
 	public function test_row_and_line_numbers_differ_by_the_header(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
@@ -415,9 +759,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertSame( 3, $values[12] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_a_missing_cell_stages_as_empty_rather_than_shifting_the_row(): void {
 		$this->with_campaign(
 			array(
@@ -429,8 +770,8 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		// The second row is short: only one cell for two columns.
 		ReregistrationImportStagingService::ingest_job( 1, 7, "cpf,rf\n111,222\n333\n", 3 );
 
-		$values  = $this->staging_insert()['values'];
-		$second  = json_decode( (string) $values[15], true );
+		$values = $this->staging_insert()['values'];
+		$second = json_decode( (string) $values[15], true );
 		$this->assertSame( array( 'cpf' => '333', 'rf' => '' ), $second );
 	}
 
@@ -445,18 +786,16 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * @return array<string, mixed>
 	 */
 	private function run_validate( array $staged ): array {
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
-			(object) array(
-				'job_id'            => 'job-uuid-0001',
-				'reregistration_id' => '1',
-				'audience_id'       => '7',
-				'status'            => 'ingested',
-			)
+		$this->job = (object) array(
+			'job_id'            => 'job-uuid-0001',
+			'reregistration_id' => '1',
+			'audience_id'       => '7',
+			'status'            => 'ingested',
 		);
 
-		$rows = array();
+		$this->staged = array();
 		foreach ( $staged as $i => $row ) {
-			$rows[] = (object) array(
+			$this->staged[] = (object) array(
 				'id'             => (string) ( $i + 1 ),
 				'row_no'         => (string) ( $i + 1 ),
 				'line_no'        => (string) ( $i + 2 ),
@@ -466,56 +805,48 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 				'email'          => $row['email'] ?? '',
 			);
 		}
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( $rows );
-
-		$this->updates = array();
-		$this->wpdb->shouldReceive( 'update' )->andReturnUsing(
-			function ( $table, $data ) {
-				$this->updates[] = $data;
-				return 1;
-			}
-		);
 
 		return ReregistrationImportStagingService::validate_job( 'job-uuid-0001' );
 	}
 
-	/** @var list<array<string, mixed>> */
-	private array $updates = array();
-
 	/** The row_status written for the Nth staged row (0-based). */
 	private function row_status( int $index ): string {
-		return (string) ( $this->updates[ $index ]['row_status'] ?? '' );
+		return (string) ( $this->staging_updates()[ $index ]['row_status'] ?? '' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_a_clean_job_validates_and_is_ready_to_promote(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
-		$this->with_validation( array( 'h:51817842080' => 42 ), array( 42 => $this->submission( 900, 'pending' ) ) );
+		$this->with_validation( array( Identifiers::CPF_A => 42 ), array( 42 => $this->submission( 900, 'pending' ) ) );
 
-		$result = $this->run_validate( array( array( 'cpf' => '51817842080', 'payload' => '{"cpf":"111"}' ) ) );
+		$result = $this->run_validate( array( array( 'cpf' => Identifiers::CPF_A, 'payload' => (string) json_encode( array( 'cpf' => Identifiers::CPF_A ) ) ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- test fixture.
 
 		$this->assertTrue( $result['ok'] );
 		$this->assertSame( 'validated', $result['status'] );
 		$this->assertSame( 1, $result['ready'] );
 		$this->assertSame( 0, $result['failed'] );
-		$this->assertSame( 42, $this->updates[0]['user_id'] );
-		$this->assertSame( 900, $this->updates[0]['submission_id'], 'The seeded submission is recorded so promote re-reads a decision.' );
+		$this->assertSame( 42, $this->staging_updates()[0]['user_id'] );
+		$this->assertSame( 900, $this->staging_updates()[0]['submission_id'], 'The seeded submission is recorded so promote re-reads a decision.' );
 	}
 
 	/**
 	 * The #1214 decision: one bad row blocks the whole job. Promotion is
 	 * batched across requests and cannot roll back an earlier batch, so this
 	 * boundary is the only place all-or-nothing can hold.
-	 * @runInSeparateProcess
+	 *
+	 * `idade` is a number field and both rows carry a word in it, so the real
+	 * validator refuses each.
 	 */
 	public function test_one_invalid_row_blocks_the_entire_job(): void {
-		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ), $this->field( 'idade', 'Idade' ) ) );
+		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ), $this->field( 'idade', 'Idade', false, 'number' ) ) );
 		$this->with_validation(
-			array( 'h:111' => 42, 'h:222' => 43 ),
-			array( 42 => null, 43 => null ),
-			array( 'idade' => false )
+			array(
+				'111' => 42,
+				'222' => 43,
+			),
+			array(
+				42 => null,
+				43 => null,
+			)
 		);
 
 		$result = $this->run_validate(
@@ -536,12 +867,14 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * The other half of the decision: "already submitted" is expected state,
 	 * not a defect in the spreadsheet, so it skips its row and does NOT block.
 	 * The person got there first and their own answers are theirs to keep.
-	 * @runInSeparateProcess
 	 */
 	public function test_an_already_submitted_row_skips_without_blocking(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
 		$this->with_validation(
-			array( 'h:111' => 42, 'h:222' => 43 ),
+			array(
+				'111' => 42,
+				'222' => 43,
+			),
 			array(
 				42 => $this->submission( 900, 'approved' ),
 				43 => $this->submission( 901, 'pending' ),
@@ -563,12 +896,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertSame( 'ready', $this->row_status( 1 ) );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_a_draft_submission_is_still_fillable(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
-		$this->with_validation( array( 'h:111' => 42 ), array( 42 => $this->submission( 900, 'draft' ) ) );
+		$this->with_validation( array( '111' => 42 ), array( 42 => $this->submission( 900, 'draft' ) ) );
 
 		$result = $this->run_validate( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
 
@@ -580,7 +910,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * how a shared institutional mailbox presents: e-mail matching binds every
 	 * one of them to whichever account that address hits (#1295). Catching it
 	 * here means the operator sees it before a single write.
-	 * @runInSeparateProcess
 	 */
 	public function test_two_rows_resolving_to_one_user_block_the_job(): void {
 		$this->with_campaign( array( $this->field( 'email', 'E-mail' ) ) );
@@ -603,7 +932,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * A row that matches nobody and carries no e-mail cannot be promoted:
 	 * `wp_create_user` rejects an empty address, so it fails here rather than
 	 * halfway through a batch.
-	 * @runInSeparateProcess
 	 */
 	public function test_a_row_with_no_identifier_and_no_email_fails(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
@@ -619,7 +947,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * A row for somebody who does not exist yet is valid — promotion creates
 	 * them. Recording `user_id` as 0 is what lets the operator see, before any
 	 * write, how many accounts the import would open.
-	 * @runInSeparateProcess
 	 */
 	public function test_a_row_that_would_create_a_user_is_ready_and_visible(): void {
 		$this->with_campaign( array( $this->field( 'email', 'E-mail' ) ) );
@@ -629,15 +956,11 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 
 		$this->assertTrue( $result['ok'] );
 		$this->assertSame( 1, $result['ready'] );
-		$this->assertSame( 0, $this->updates[0]['user_id'], '0 means "promotion would create this one".' );
+		$this->assertSame( 0, $this->staging_updates()[0]['user_id'], '0 means "promotion would create this one".' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_an_unknown_job_is_refused(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
 
 		$result = ReregistrationImportStagingService::validate_job( 'nope' );
 
@@ -649,81 +972,40 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	// promote_batch() / commit_job() — sprint 4
 	// ==================================================================
 
-	/** @var array<string, list<array<int, mixed>>> */
-	private array $calls = array();
-
 	/**
-	 * Wire the promote phase's collaborators.
+	 * Store what the promote phase reads.
 	 *
-	 * Every write the phase makes is recorded rather than performed, so a test
-	 * can assert the SEQUENCE — which is what this phase is: resolve, add to the
+	 * A row whose CPF is `111` or `222` belongs to an existing account with id
+	 * $resolved_user (none when it is 0); a row with only an e-mail belongs to
+	 * nobody, so promotion creates the account and `wp_create_user()` answers
+	 * $resolved_user. Every write the phase makes is recorded, so a test can
+	 * assert the SEQUENCE — which is what this phase is: resolve, add to the
 	 * audience, seed the row, write through the processor.
 	 *
-	 * @param int          $resolved_user Id `get_or_create_user_dual()` answers with.
-	 * @param object|null  $seeded        Existing seeded submission, or null.
+	 * @param int         $resolved_user Id of the account a row resolves to.
+	 * @param object|null $seeded        Existing seeded submission, or null.
+	 * @param string      $seed_result   What seeding a missing row does.
 	 * @return void
 	 */
 	private function with_promotion( int $resolved_user = 42, ?object $seeded = null, string $seed_result = 'ok' ): void {
-		$this->calls = array();
+		$this->people_by_id = $resolved_user > 0
+			? array(
+				'111' => $resolved_user,
+				'222' => $resolved_user,
+			)
+			: array();
+		$this->created_user_id = $resolved_user;
+		$this->submissions     = array( $resolved_user => $seeded );
+		$this->seed_result     = $seed_result;
 
-		$record = function ( string $name ): callable {
-			return function ( ...$args ) use ( $name ) {
-				$this->calls[ $name ][] = $args;
-				return true;
-			};
-		};
-
-		$encryption = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encryption->shouldReceive( 'hash' )->andReturnUsing( static fn( string $v ) => 'h:' . $v );
-
-		$manager = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' );
-		$manager->shouldReceive( 'get_or_create_user_dual' )->andReturnUsing(
-			function ( ...$args ) use ( $resolved_user ) {
-				$this->calls['get_or_create_user_dual'][] = $args;
-				return $resolved_user;
-			}
+		$this->with_campaign(
+			array(
+				$this->field( 'cpf', 'CPF' ),
+				$this->field( 'rf', 'RF' ),
+				$this->field( 'email', 'E-mail' ),
+				$this->field( 'nome_completo', 'Full name' ),
+			)
 		);
-
-		$audience = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$audience->shouldReceive( 'add_member' )->andReturnUsing( $record( 'add_member' ) );
-
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' );
-		$reader->shouldReceive( 'get_by_reregistration_and_user' )->andReturnUsing(
-			function ( int $rereg_id, int $user_id ) use ( &$seeded ) {
-				$this->calls['get_by_reregistration_and_user'][] = array( $rereg_id, $user_id );
-				return $seeded;
-			}
-		);
-
-		$writer = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' );
-		$writer->shouldReceive( 'create' )->andReturnUsing(
-			function ( array $data ) use ( &$seeded, $seed_result ) {
-				$this->calls['create'][] = array( $data );
-				if ( 'nothing_there' === $seed_result ) {
-					// The INSERT did not land AND no row appeared: nothing to
-					// write into, so promotion of this row cannot proceed.
-					return false;
-				}
-				if ( 'lost_the_race' === $seed_result ) {
-					// The INSERT lost to `idx_reregistration_user` — and the
-					// row the winner created is right there.
-					$seeded = $this->submission( 888, 'pending' );
-					return false;
-				}
-				// A real seed makes the row findable on the re-read that follows.
-				$seeded = $this->submission( 777, 'pending' );
-				return 777;
-			}
-		);
-
-		$processor = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationDataProcessor' );
-		$processor->shouldReceive( 'sanitize_values' )->andReturnUsing(
-			function ( array $raw, object $rereg ) {
-				$this->calls['sanitize_values'][] = array( $raw );
-				return array( 'fields' => array( 'sanitized' => true ) );
-			}
-		);
-		$processor->shouldReceive( 'process_submission' )->andReturnUsing( $record( 'process_submission' ) );
 	}
 
 	/**
@@ -735,28 +1017,23 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * @return array<string, mixed>
 	 */
 	private function run_promote( array $staged, string $job_status = 'validated', int $total = 0 ): array {
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );
-		$repo->shouldReceive( 'get_by_id' )->andReturn(
-			(object) array(
-				'id'           => '1',
-				'auto_approve' => '0',
-			)
+		$this->campaign = (object) array(
+			'id'           => '1',
+			'auto_approve' => '0',
 		);
 
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
-			(object) array(
-				'job_id'            => 'job-uuid-0001',
-				'reregistration_id' => '1',
-				'audience_id'       => '7',
-				'status'            => $job_status,
-				'total'             => (string) ( 0 === $total ? count( $staged ) : $total ),
-				'processed_count'   => '0',
-			)
+		$this->job = (object) array(
+			'job_id'            => 'job-uuid-0001',
+			'reregistration_id' => '1',
+			'audience_id'       => '7',
+			'status'            => $job_status,
+			'total'             => (string) ( 0 === $total ? count( $staged ) : $total ),
+			'processed_count'   => '0',
 		);
 
-		$rows = array();
+		$this->staged = array();
 		foreach ( $staged as $i => $row ) {
-			$rows[] = (object) array(
+			$this->staged[] = (object) array(
 				'id'             => (string) ( $i + 1 ),
 				'line_no'        => (string) ( $i + 2 ),
 				'payload'        => $row['payload'] ?? '{}',
@@ -768,31 +1045,18 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 				'row_status'     => $row['row_status'] ?? 'ready',
 			);
 		}
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( $rows );
-
-		$this->updates = array();
-		$this->wpdb->shouldReceive( 'update' )->andReturnUsing(
-			function ( $table, $data ) {
-				$this->updates[] = $data;
-				return 1;
-			}
-		);
 
 		return ReregistrationImportStagingService::promote_batch( 'job-uuid-0001', 10 );
 	}
 
-	/** Arguments of the Nth recorded call to $name. */
-	private function call( string $name, int $index = 0 ): array {
-		return $this->calls[ $name ][ $index ] ?? array();
-	}
-
 	/**
-	 * The Nth STAGING-ROW update, skipping the job-header ones.
+	 * The Nth STAGING-ROW "processed" update, skipping every other write.
 	 *
 	 * `promote_batch()` flips the job to `promoting` on its first non-empty
-	 * batch, so the first recorded update is the header's, not a row's.
-	 * Indexing by position would make every assertion here depend on that flip
-	 * — which is a different fact, tested on its own.
+	 * batch and the processor writes the submission, so neither the first
+	 * update nor every update is a row's. Indexing by position would make
+	 * every assertion here depend on those writes — which are different
+	 * facts, tested on their own.
 	 *
 	 * @param int $index 0-based row-update ordinal.
 	 * @return array<string, mixed>
@@ -800,7 +1064,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	private function row_update( int $index = 0 ): array {
 		$rows = array_values(
 			array_filter(
-				$this->updates,
+				$this->staging_updates(),
 				static fn( array $data ): bool => array_key_exists( 'processed', $data )
 			)
 		);
@@ -808,9 +1072,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		return $rows[ $index ] ?? array();
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_a_ready_row_is_written_through_the_processor(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
 
@@ -819,7 +1080,14 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertTrue( $result['ok'] );
 		$this->assertSame( 1, $result['processed'] );
 		$this->assertTrue( $result['done'] );
-		$this->assertCount( 1, $this->calls['process_submission'] ?? array() );
+		$this->assertCount( 1, $this->submission_writes(), 'process_submission() writes the seeded row once.' );
+		$targets = array_values(
+			array_map(
+				static fn( array $u ) => $u['where'],
+				array_filter( $this->updates, static fn( array $u ) => 'wp_ffc_reregistration_submissions' === $u['table'] )
+			)
+		);
+		$this->assertSame( array( array( 'id' => 900 ) ), $targets, 'The write lands on the seeded submission.' );
 		$this->assertSame( 1, $this->row_update()['processed'] );
 		$this->assertSame( 42, $this->row_update()['user_id'] );
 		$this->assertSame( 900, $this->row_update()['submission_id'] );
@@ -829,17 +1097,24 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * The load-bearing rule of the whole phase (#1214): promotion writes through
 	 * `process_submission()` and never touches the `data` JSON itself, because
 	 * that method is where every `is_sensitive` value is encrypted.
-	 * @runInSeparateProcess
+	 *
+	 * With the real processor running, the only write carrying `data` is its
+	 * own — the submission row, written together with the status and the
+	 * auth code it generates — and the import's own tables never carry one.
 	 */
 	public function test_the_import_never_writes_the_submission_json_itself(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
 
 		$this->run_promote( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
 
-		foreach ( $this->updates as $data ) {
+		foreach ( array_merge( $this->staging_updates(), $this->updates_to( 'ffc_reregistration_import_jobs' ) ) as $data ) {
 			$this->assertArrayNotHasKey( 'data', $data, 'Only process_submission() may write the submission body.' );
 		}
-		$this->assertNotEmpty( $this->calls['process_submission'] ?? array() );
+		$writes = $this->submission_writes();
+		$this->assertCount( 1, $writes );
+		$this->assertArrayHasKey( 'data', $writes[0] );
+		$this->assertSame( 'submitted', $writes[0]['status'], 'The body arrives with the processor\'s own status change.' );
+		$this->assertArrayHasKey( 'auth_code', $writes[0], 'The body arrives with the auth code the processor generates.' );
 	}
 
 	/**
@@ -847,17 +1122,17 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * it does NOT sanitize — the public form's sanitizer lives in
 	 * `collect_form_data()`. Handing it the raw staged payload would write past
 	 * a boundary the form submit never skips.
-	 * @runInSeparateProcess
 	 */
 	public function test_the_payload_is_sanitized_the_way_a_form_submit_is(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
 
 		$this->run_promote( array( array( 'cpf' => '111', 'payload' => '{"cpf":"<b>111</b>"}' ) ) );
 
-		$this->assertSame( array( 'cpf' => '<b>111</b>' ), $this->call( 'sanitize_values' )[0], 'The raw payload reaches the sanitizer.' );
+		$this->assertContains( '<b>111</b>', $this->sanitized, 'The raw payload reaches the sanitizer.' );
+		$written = json_decode( (string) $this->submission_writes()[0]['data'], true );
 		$this->assertSame(
-			array( 'fields' => array( 'sanitized' => true ) ),
-			$this->call( 'process_submission' )[2],
+			'111',
+			$written['fields']['cpf'],
 			'What reaches the processor is the sanitizer output, never the raw payload.'
 		);
 	}
@@ -869,21 +1144,24 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * an operator filed it for them. The campaign's invitation still reaches
 	 * them (`get_awaiting_invitation()` selects on `invited_at IS NULL`,
 	 * whatever the status).
-	 * @runInSeparateProcess
+	 *
+	 * The row belongs to nobody yet, so the account is created and the
+	 * submission written — both places an e-mail would leave from.
 	 */
 	public function test_promotion_sends_no_email(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
 
-		$this->run_promote( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
+		$this->run_promote( array( array( 'email' => 'new@example.com', 'payload' => '{}' ) ) );
 
-		$this->assertFalse( $this->call( 'get_or_create_user_dual' )[5], 'A created account is not mailed by the importer.' );
-		$this->assertFalse( $this->call( 'process_submission' )[4], 'No confirmation per imported row.' );
+		$this->assertCount( 1, $this->created_users, 'The account is created on this path.' );
+		$this->assertCount( 1, $this->submission_writes(), 'The submission is written on this path.' );
+		$this->assertSame( 0, $this->user_notifications->count(), 'A created account is not mailed by the importer.' );
+		$this->assertSame( 0, $this->mail->count(), 'No confirmation per imported row.' );
 	}
 
 	/**
 	 * A user this import creates has no seeded row — saving the campaign seeds
 	 * one per audience member (#1234), and they were not a member then.
-	 * @runInSeparateProcess
 	 */
 	public function test_a_missing_seeded_row_is_created_before_the_write(): void {
 		$this->with_promotion( 42, null );
@@ -897,7 +1175,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 				'user_id'           => 42,
 				'status'            => 'pending',
 			),
-			$this->call( 'create' )[0],
+			$this->inserts_into( 'ffc_reregistration_submissions' )[0] ?? null,
 			'Seeded on the same terms the campaign save uses.'
 		);
 		$this->assertSame( 777, $this->row_update()['submission_id'] );
@@ -908,35 +1186,38 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * because `generate_username()` and `sync_user_metadata()` look for
 	 * `nome_completo` and its siblings AT THE TOP LEVEL. Wrapping it would give
 	 * every created account a random username with no visible failure.
-	 * @runInSeparateProcess
+	 *
+	 * The e-mail's local part is too short to be a username, so the name is
+	 * what the account is named after.
 	 */
 	public function test_the_payload_reaches_the_resolver_flat(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
 
 		$this->run_promote( array( array( 'email' => 'jo@example.com', 'payload' => '{"nome_completo":"Jo Silva"}' ) ) );
 
-		$this->assertSame(
-			array( 'nome_completo' => 'Jo Silva' ),
-			$this->call( 'get_or_create_user_dual' )[3],
-			'A wrapper here costs the created account its display name.'
-		);
+		$this->assertSame( 'josilva', $this->created_users[0][0] ?? null, 'A wrapper here costs the created account its username.' );
+		$this->assertSame( 'Jo Silva', $this->user_updates[0]['display_name'] ?? null, 'A wrapper here costs the created account its display name.' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_the_audience_the_operator_chose_gets_the_member(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
 
 		$this->run_promote( array( array( 'cpf' => '111', 'payload' => '{}' ) ) );
 
-		$this->assertSame( array( 7, 42 ), $this->call( 'add_member' ) );
+		$this->assertSame(
+			array(
+				array(
+					'audience_id' => 7,
+					'user_id'     => 42,
+				),
+			),
+			$this->inserts_into( 'ffc_audience_members' )
+		);
 	}
 
 	/**
 	 * A skipped row is counted so the progress bar reaches the end, and written
 	 * nowhere so the person who submitted first keeps their own answers.
-	 * @runInSeparateProcess
 	 */
 	public function test_a_skipped_row_advances_progress_and_writes_nothing(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
@@ -949,7 +1230,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		);
 
 		$this->assertSame( 2, $result['processed'] );
-		$this->assertCount( 1, $this->calls['process_submission'] ?? array(), 'Only the ready row is written.' );
+		$this->assertCount( 1, $this->submission_writes(), 'Only the ready row is written.' );
 		$this->assertSame( 43, $this->row_update()['user_id'], 'The skipped row keeps what validate resolved.' );
 		$this->assertSame( 1, $this->row_update()['processed'] );
 	}
@@ -958,14 +1239,13 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * The flip the `row_update()` helper exists to look past: a job moves to
 	 * `promoting` on its first non-empty batch, so a `commit_job()` or a second
 	 * `validate_job()` arriving mid-promote sees the phase it is really in.
-	 * @runInSeparateProcess
 	 */
 	public function test_the_first_batch_moves_the_job_to_promoting(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
 
 		$this->run_promote( array( array( 'cpf' => '111', 'payload' => '{}' ) ) );
 
-		$statuses = array_column( $this->updates, 'status' );
+		$statuses = array_column( $this->updates_to( 'ffc_reregistration_import_jobs' ), 'status' );
 		$this->assertContains( 'promoting', $statuses );
 	}
 
@@ -973,7 +1253,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * The request-level half of all-or-nothing: `validate_job()` refuses to
 	 * label a job with any failure as `validated`, and this refuses to promote
 	 * anything that is not.
-	 * @runInSeparateProcess
 	 */
 	public function test_a_blocked_job_cannot_promote(): void {
 		$this->with_promotion();
@@ -982,11 +1261,13 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 
 		$this->assertFalse( $result['ok'] );
 		$this->assertSame( array( 'rereg_import_job_invalid_state_for_promote' ), $result['errors'] );
-		$this->assertEmpty( $this->calls['process_submission'] ?? array() );
+		$this->assertSame( array(), $this->submission_writes() );
 	}
 
 	/**
-	 * @runInSeparateProcess
+	 * Both rows carry a CPF no account holds and no e-mail, so creating the
+	 * account fails (`wp_create_user()` refuses an empty address) and the
+	 * first row aborts the batch.
 	 */
 	public function test_a_failed_resolution_aborts_the_batch_naming_the_file_line(): void {
 		$this->with_promotion( 0, $this->submission( 900, 'pending' ) );
@@ -1000,13 +1281,12 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 
 		$this->assertFalse( $result['ok'] );
 		$this->assertSame( array( 'rereg_import_user_resolution_failed:2' ), $result['errors'], 'The line in the file is what makes it actionable.' );
-		$this->assertEmpty( $this->calls['process_submission'] ?? array() );
+		$this->assertSame( array(), $this->submission_writes() );
 	}
 
 	/**
 	 * An over-iterating client gets the job's own counters back rather than
 	 * whatever it thought it had sent.
-	 * @runInSeparateProcess
 	 */
 	public function test_an_exhausted_job_answers_with_its_own_counters(): void {
 		$this->with_promotion();
@@ -1026,38 +1306,23 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * @return array<string, mixed>
 	 */
 	private function run_commit( int $unprocessed, string $job_status = 'promoting' ): array {
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
-			(object) array(
-				'job_id'            => 'job-uuid-0001',
-				'reregistration_id' => '1',
-				'audience_id'       => '7',
-				'status'            => $job_status,
-				'total'             => '3',
-				'processed_count'   => '3',
-			)
+		$this->job = (object) array(
+			'job_id'            => 'job-uuid-0001',
+			'reregistration_id' => '1',
+			'audience_id'       => '7',
+			'status'            => $job_status,
+			'total'             => '3',
+			'processed_count'   => '3',
 		);
 
-		$counts = array( (string) $unprocessed, '2', '1' );
-		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
-			static function () use ( &$counts ) {
-				return array_shift( $counts ) ?? '0';
-			}
+		$this->staging_counts = array(
+			'unprocessed' => $unprocessed,
+			'ready'       => 2,
+			'skipped'     => 1,
 		);
-
-		$this->deletes = array();
-		$this->wpdb->shouldReceive( 'delete' )->andReturnUsing(
-			function ( $table ) {
-				$this->deletes[] = (string) $table;
-				return 1;
-			}
-		);
-		$this->wpdb->shouldReceive( 'update' )->andReturn( 1 );
 
 		return ReregistrationImportStagingService::commit_job( 'job-uuid-0001' );
 	}
-
-	/** @var list<string> */
-	private array $deletes = array();
 
 	public function test_commit_drops_the_cleartext_staging_and_reports(): void {
 		$result = $this->run_commit( 0 );
@@ -1119,40 +1384,31 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	// coverage-aware PR — so each is exercised rather than deferred.
 	// ------------------------------------------------------------------
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_promote_refuses_an_unknown_job(): void {
 		$this->with_promotion();
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
 
 		$result = ReregistrationImportStagingService::promote_batch( 'nope', 10 );
 
 		$this->assertFalse( $result['ok'] );
 		$this->assertSame( array( 'rereg_import_job_not_found' ), $result['errors'] );
-		$this->assertEmpty( $this->calls['process_submission'] ?? array() );
+		$this->assertSame( array(), $this->submission_writes() );
 	}
 
 	/**
 	 * The campaign can be deleted between validate and promote — the job
 	 * carries its id, not the row.
-	 * @runInSeparateProcess
 	 */
 	public function test_promote_refuses_when_the_campaign_is_gone(): void {
 		$this->with_promotion();
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );
-		$repo->shouldReceive( 'get_by_id' )->andReturn( null );
-
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
-			(object) array(
-				'job_id'            => 'job-uuid-0001',
-				'reregistration_id' => '1',
-				'audience_id'       => '7',
-				'status'            => 'validated',
-				'total'             => '1',
-				'processed_count'   => '0',
-			)
+		$this->campaign = null;
+		$this->job      = (object) array(
+			'job_id'            => 'job-uuid-0001',
+			'reregistration_id' => '1',
+			'audience_id'       => '7',
+			'status'            => 'validated',
+			'total'             => '1',
+			'processed_count'   => '0',
 		);
 
 		$result = ReregistrationImportStagingService::promote_batch( 'job-uuid-0001', 10 );
@@ -1162,8 +1418,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	}
 
 	public function test_commit_refuses_an_unknown_job(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
-
 		$result = ReregistrationImportStagingService::commit_job( 'nope' );
 
 		$this->assertFalse( $result['ok'] );
@@ -1174,7 +1428,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * With no row to write into, promotion of that row aborts the batch rather
 	 * than calling `process_submission()` with a null — which would write the
 	 * campaign's answers onto whatever id a null happened to cast to.
-	 * @runInSeparateProcess
 	 */
 	public function test_a_seed_that_leaves_no_row_aborts_the_batch(): void {
 		$this->with_promotion( 42, null, 'nothing_there' );
@@ -1183,7 +1436,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 
 		$this->assertFalse( $result['ok'] );
 		$this->assertSame( array( 'rereg_import_submission_seed_failed:2' ), $result['errors'] );
-		$this->assertEmpty( $this->calls['process_submission'] ?? array() );
+		$this->assertSame( array(), $this->submission_writes() );
 	}
 
 	/**
@@ -1192,7 +1445,6 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * promote, or the campaign being saved in a second tab (#1234) — fail this
 	 * INSERT while leaving the row there. Aborting on `false` would refuse a
 	 * row that exists.
-	 * @runInSeparateProcess
 	 */
 	public function test_a_seed_that_lost_the_unique_race_still_promotes(): void {
 		$this->with_promotion( 42, null, 'lost_the_race' );
@@ -1200,7 +1452,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$result = $this->run_promote( array( array( 'email' => 'new@example.com', 'payload' => '{}' ) ) );
 
 		$this->assertTrue( $result['ok'] );
-		$this->assertCount( 1, $this->calls['process_submission'] ?? array() );
+		$this->assertCount( 1, $this->submission_writes() );
 		$this->assertSame( 888, $this->row_update()['submission_id'], 'The winner\'s row is the one written into.' );
 	}
 }
