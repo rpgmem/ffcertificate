@@ -29,6 +29,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 class AppointmentReader extends AbstractRepository {
 
 	/**
+	 * ORDER BY columns this table adds to the generic set. The reader's own
+	 * listings sort by `appointment_date`, and the façade's Appointments list
+	 * sorts by both (#1770), so the one list serves both (#2137).
+	 *
+	 * @var array<int, string>
+	 */
+	public const ORDER_COLUMNS = array( 'calendar_id', 'appointment_date' );
+
+	/**
 	 * Get table name
 	 *
 	 * @return string
@@ -44,6 +53,17 @@ class AppointmentReader extends AbstractRepository {
 	 */
 	protected function get_cache_group(): string {
 		return 'ffc_self_scheduling_appointments';
+	}
+
+	/**
+	 * Allowed ORDER BY columns. Without them `sanitize_order_column()` turns
+	 * the `appointment_date` sort of findByCalendar() and findByUserId() into
+	 * an `id` sort, which is creation order, not date order (#2137).
+	 *
+	 * @return array<int, string>
+	 */
+	protected function get_allowed_order_columns(): array {
+		return array_merge( parent::get_allowed_order_columns(), self::ORDER_COLUMNS );
 	}
 
 	/**
