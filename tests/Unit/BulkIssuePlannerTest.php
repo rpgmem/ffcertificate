@@ -277,7 +277,7 @@ class BulkIssuePlannerTest extends TestCase {
 		yield 'empty row'          => array( array( '', '', '', '' ), BulkIssuePlanner::SKIP_EMPTY_ROW );
 		yield 'missing name'       => array( array( '  ', Identifiers::CPF_A, 'a@example.test', '' ), BulkIssuePlanner::SKIP_MISSING_NAME );
 		yield 'missing cpf'        => array( array( 'Ana', '', 'a@example.test', '' ), BulkIssuePlanner::SKIP_MISSING_CPF_RF );
-		yield 'cpf check digits'   => array( array( 'Ana', '11111111111', 'a@example.test', '' ), BulkIssuePlanner::SKIP_INVALID_CPF_RF );
+		yield 'cpf check digits'   => array( array( 'Ana', Identifiers::CPF_BAD_CHECK_DIGIT, 'a@example.test', '' ), BulkIssuePlanner::SKIP_INVALID_CPF_RF );
 		yield 'cpf too short'      => array( array( 'Ana', '1234', 'a@example.test', '' ), BulkIssuePlanner::SKIP_INVALID_CPF_RF );
 		yield 'malformed e-mail'   => array( array( 'Ana', Identifiers::CPF_A, 'ana@', '' ), BulkIssuePlanner::SKIP_INVALID_EMAIL );
 		yield 'blank e-mail'       => array( array( 'Ana', Identifiers::CPF_A, '', '' ), BulkIssuePlanner::SKIP_MISSING_EMAIL );

@@ -1090,7 +1090,7 @@ class IdentityConflictQueryTest extends TestCase {
 				array( 'user_id' => 438, 'h' => 'hashC', 'c' => 'cipherC' ),
 			),
 			// A and B are one digit apart; C is neither's near-miss.
-			array( 'cipherA' => Identifiers::RF_A, 'cipherB' => Identifiers::RF_BAD_CHECK_DIGIT, 'cipherC' => '9876543' )
+			array( 'cipherA' => Identifiers::RF_A, 'cipherB' => Identifiers::RF_BAD_CHECK_DIGIT, 'cipherC' => Identifiers::RF_B )
 		);
 
 		$this->assertSame(
@@ -1962,7 +1962,7 @@ class IdentityConflictQueryTest extends TestCase {
 		);
 		$this->assertSame(
 			IdentityConflictQuery::SHAPE_UNRELATED,
-			$shape->invoke( null, array( 'a' => '123456', 'b' => '9876543' ), 'rf', 2 ),
+			$shape->invoke( null, array( 'a' => '123456', 'b' => Identifiers::RF_BAD_CHECK_DIGIT ), 'rf', 2 ),
 			'One digit longer, but not by a single deletion.'
 		);
 	}
