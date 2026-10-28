@@ -13,9 +13,12 @@ use PHPUnit\Framework\TestCase;
 /**
  * Which form a booking leads to, when it is open and who may fill it in (#1948).
  *
+ * The calendar repository and the booking and attendance readers are the
+ * real classes; their tables answer through the `$wpdb` double below, which
+ * dispatches on the table each statement binds and on the ids it asks for,
+ * and fails on anything else.
+ *
  * @covers \FreeFormCertificate\Audience\AudiencePostEventForm
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AudiencePostEventFormTest extends TestCase {
 
@@ -23,17 +26,25 @@ class AudiencePostEventFormTest extends TestCase {
 
 	private const FORM = 40;
 
-	/** @var \Mockery\MockInterface */
-	private $schedules;
+	/** @var array<int, list<string>> Days each person was recorded present at booking 5. */
+	private array $present = array();
 
-	/** @var \Mockery\MockInterface */
-	private $attendance;
+	/** @var array<int, mixed> Arguments of the last prepare(). */
+	private array $bound = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'America/Sao_Paulo' ) );
 		Functions\when( 'get_post' )->alias(
 			static function ( $id ) {
@@ -45,26 +56,91 @@ class AudiencePostEventFormTest extends TestCase {
 			}
 		);
 
-		$this->schedules = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
-		$this->schedules->shouldReceive( 'get_by_id' )->with( 2 )->andReturn(
-			(object) array(
-				'id'                        => 2,
-				'post_event_form_id'        => (string) self::FORM,
-				'post_event_window_days'    => '3',
-				'post_event_attendees_only' => '0',
-			)
-		)->byDefault();
+		$this->present = array();
 
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' )
-			->shouldReceive( 'get_all_affected_users' )->andReturn( array( '7', '8', '7' ) );
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				$this->bound = is_array( $args[0] ?? null ) ? $args[0] : $args;
+				return $sql;
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing( fn( $sql ) => $this->row( (string) $sql ) );
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing( fn( $sql ) => $this->col( (string) $sql ) );
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing( fn( $sql ) => $this->results( (string) $sql ) );
 
-		$this->attendance = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceAttendanceReader' );
-		$this->attendance->shouldReceive( 'days_present' )->andReturn( array() )->byDefault();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $wpdb;
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * AudienceScheduleRepository::get_by_id(): calendar 2 names the form.
+	 *
+	 * @param string $sql Prepared statement.
+	 * @return object
+	 */
+	private function row( string $sql ): object {
+		if ( str_starts_with( $sql, 'SELECT * FROM %i WHERE id = %d' )
+			&& array( 'wp_ffc_audience_schedules', 2 ) === $this->bound ) {
+			return (object) array(
+				'id'                        => '2',
+				'post_event_form_id'        => (string) self::FORM,
+				'post_event_window_days'    => '3',
+				'post_event_attendees_only' => '0',
+			);
+		}
+
+		throw new \RuntimeException( 'Unexpected get_row: ' . $sql . ' ' . json_encode( $this->bound ) );
+	}
+
+	/**
+	 * The booking's users and the days a person was recorded present.
+	 *
+	 * @param string $sql Prepared statement.
+	 * @return list<string>
+	 */
+	private function col( string $sql ): array {
+		// AudienceBookingReader::get_booking_users(): 7 is listed twice, and
+		// still counts once.
+		if ( str_starts_with( $sql, 'SELECT user_id FROM %i WHERE booking_id = %d' )
+			&& array( 'wp_ffc_audience_booking_users', 5 ) === $this->bound ) {
+			return array( '7', '8', '7' );
+		}
+
+		// AudienceAttendanceReader::days_present().
+		if ( str_starts_with( $sql, 'SELECT attendance_date FROM %i WHERE booking_id = %d AND user_id = %d' )
+			&& 'wp_ffc_audience_attendance' === ( $this->bound[0] ?? null ) && 5 === ( $this->bound[1] ?? null ) ) {
+			return $this->present[ (int) $this->bound[2] ] ?? array();
+		}
+
+		throw new \RuntimeException( 'Unexpected get_col: ' . $sql . ' ' . json_encode( $this->bound ) );
+	}
+
+	/**
+	 * AudienceBookingReader::get_booking_audiences(): no audience on booking 5.
+	 *
+	 * @param string $sql Prepared statement.
+	 * @return array<int, object>
+	 */
+	private function results( string $sql ): array {
+		if ( str_starts_with( $sql, 'SELECT a.* FROM %i a' )
+			&& array( 'wp_ffc_audiences', 'wp_ffc_audience_booking_audiences', 5 ) === $this->bound ) {
+			return array();
+		}
+
+		throw new \RuntimeException( 'Unexpected get_results: ' . $sql . ' ' . json_encode( $this->bound ) );
 	}
 
 	private function booking( array $override = array() ): object {
@@ -194,8 +270,10 @@ class AudiencePostEventFormTest extends TestCase {
 				'attendance_min_percent'    => '100',
 			)
 		);
-		$this->attendance->shouldReceive( 'days_present' )->with( 5, 7 )->andReturn( array( '2027-03-01' ) );
-		$this->attendance->shouldReceive( 'days_present' )->with( 5, 8 )->andReturn( array( '2027-03-01', '2027-03-02' ) );
+		$this->present = array(
+			7 => array( '2027-03-01' ),
+			8 => array( '2027-03-01', '2027-03-02' ),
+		);
 
 		$absent = AudiencePostEventForm::eligibility( $booking, 7, $this->event_end() + 60 );
 		$this->assertInstanceOf( \WP_Error::class, $absent );
