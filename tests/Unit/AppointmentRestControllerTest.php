@@ -9,40 +9,110 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\API\AppointmentRestController;
+use FreeFormCertificate\Core\ActivityLog;
+use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\IpAddress;
+use FreeFormCertificate\Security\RateLimitChecker;
 
 /**
  * Tests for AppointmentRestController: route registration, create_appointment,
  * get_appointment, cancel_appointment, and check_appointment_access endpoints.
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
+ *
+ * Everything below the controller is real: CalendarRepository,
+ * AppointmentRepository (with its reader and writer), AppointmentHandler and
+ * its validator, RateLimiter down to RateLimitChecker, IpLimiter,
+ * RateCounter and RateLimitRepository, RequestInput and ClientIpResolver,
+ * Encryption (with the bootstrap's key constants), PiiAccessPolicy,
+ * DocumentFormatter, ActivityLog (read through its write buffer) and Debug.
+ * Storage is a `$wpdb` double that holds the calendar and appointment rows
+ * and answers the SQL by table, plus a transient map for the rate counters.
+ * The controller catches every \Exception, so a query the double does not
+ * expect is recorded and failed after the test rather than thrown where the
+ * controller would swallow it.
+ *
+ * The requests carry an integer `id`, and the stored appointment an integer
+ * `calendar_id`. A real route parameter arrives as a string and a real row as
+ * string columns, and this controller hands both, uncast, to the
+ * `int`-typed `findById()` and `cancel_appointment()`: under strict types
+ * that is a TypeError, an \Error its catch does not reach — the defect #2146
+ * fixed in the calendar controller.
+ *
+ * Three tests replace AppointmentHandler and run in their own process (their
+ * docblocks say why): the REST route never sends a CPF/RF, which the real
+ * validator requires, so the real handler cannot accept a booking made
+ * through this route.
+ *
+ * @covers \FreeFormCertificate\API\AppointmentRestController
  */
 class AppointmentRestControllerTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	private const CALENDARS    = 'wp_ffc_self_scheduling_calendars';
+	private const APPOINTMENTS = 'wp_ffc_self_scheduling_appointments';
+	private const CLIENT_IP    = '8.8.4.4';
+
 	/** @var array Captured route registrations */
 	private array $registered_routes = [];
 
-	/** @var \Mockery\MockInterface Mock for CalendarRepository (overload) */
-	private $calendar_repo_mock;
+	/** @var array<int, array<string, mixed>> Calendar rows the database holds, by id. */
+	private array $calendars = array();
 
-	/** @var \Mockery\MockInterface Mock for AppointmentRepository (overload) */
-	private $appointment_repo_mock;
+	/** @var array<int, array<string, mixed>> Appointment rows the database holds, by id. */
+	private array $appointments = array();
 
-	/** @var \Mockery\MockInterface Mock for AppointmentHandler (overload) */
-	private $appointment_handler_mock;
+	/** @var array<string, mixed> The stored `ffc_settings` option. */
+	private array $settings = array();
 
-	/** @var \Mockery\MockInterface Mock for RateLimiter (alias) */
-	private $rate_limiter_mock;
+	/** @var array<string, mixed> Transients, by key. */
+	private array $transients = array();
 
-	/** @var \Mockery\MockInterface Mock for RequestInput (alias) */
-	private $request_input_mock;
+	/** @var int|null The calendar read (1-based) that throws, or null. */
+	private ?int $calendar_read_throws_at = null;
+
+	/** @var bool Whether a read of the appointments table throws. */
+	private bool $appointment_read_throws = false;
+
+	/** @var int Calendar reads so far. */
+	private int $calendar_reads = 0;
+
+	/** @var list<int> Appointment ids read, in order. */
+	private array $appointment_reads = array();
+
+	/** @var list<array{0: string, 1: array<string, mixed>}> Every insert, as [table, data]. */
+	private array $inserts = array();
+
+	/** @var list<array{0: array<string, mixed>, 1: array<string, mixed>}> Every appointment update, as [data, where]. */
+	private array $updates = array();
+
+	/** @var list<string> Queries the double was not written to answer. */
+	private array $unexpected = array();
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var array<string, mixed> `$_SERVER` as an earlier test left it. */
+	private array $server_backup = array();
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
-		$this->registered_routes = [];
+		$this->registered_routes       = [];
+		$this->calendars               = array();
+		$this->appointments            = array();
+		$this->settings                = array();
+		$this->transients              = array();
+		$this->calendar_read_throws_at = null;
+		$this->appointment_read_throws = false;
+		$this->calendar_reads          = 0;
+		$this->appointment_reads       = array();
+		$this->inserts                 = array();
+		$this->updates                 = array();
+		$this->unexpected              = array();
 
 		// Capture register_rest_route calls
 		Functions\when( 'register_rest_route' )->alias( function( $namespace, $route, $args ) {
@@ -58,49 +128,253 @@ class AppointmentRestControllerTest extends TestCase {
 		Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'user_can' )->justReturn( false );
 		Functions\when( 'is_email' )->alias( function( $email ) { return (bool) filter_var( $email, FILTER_VALIDATE_EMAIL ); } );
-		Functions\when( 'sanitize_text_field' )->returnArg();
+		// As WordPress does it: a non-scalar becomes '', script/style blocks
+		// go with their content, the remaining tags are stripped.
+		Functions\when( 'sanitize_text_field' )->alias(
+			static function ( $value ) {
+				if ( ! is_scalar( $value ) ) {
+					return '';
+				}
+				$value = (string) preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', (string) $value );
+				return trim( strip_tags( $value ) );
+			}
+		);
 		Functions\when( 'sanitize_email' )->returnArg();
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
+		Functions\when( 'sanitize_key' )->alias( static fn ( $key ) => strtolower( (string) preg_replace( '/[^a-z0-9_\-]/i', '', (string) $key ) ) );
 		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'wp_json_encode' )->alias( static fn ( $data ) => json_encode( $data ) );
+		Functions\when( 'absint' )->alias( static fn ( $value ) => abs( (int) $value ) );
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+		Functions\when( 'get_option' )->alias(
+			function ( $name, $default_value = false ) {
+				if ( 'ffc_settings' === $name ) {
+					// Debug areas, the activity log and the e-mail kill-switch.
+					return $this->settings;
+				}
+				// The rate-limit settings (their defaults apply) and anything else.
+				return $default_value;
+			}
+		);
+		Functions\when( 'wp_parse_args' )->alias(
+			static fn ( $args, $defaults ) => array_merge( $defaults, is_array( $args ) ? $args : array() )
+		);
+		Functions\when( 'get_transient' )->alias( fn ( $key ) => $this->transients[ $key ] ?? false );
+		Functions\when( 'set_transient' )->alias(
+			function ( $key, $value ) {
+				$this->transients[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'current_time' )->justReturn( '2026-04-01 12:00:00' );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_timezone' )->alias( static fn () => new \DateTimeZone( 'UTC' ) );
 
-		// Overload mocks for classes instantiated with `new` inside the controller
-		$this->calendar_repo_mock = Mockery::mock( 'overload:\FreeFormCertificate\Repositories\CalendarRepository' );
-		$this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( null )->byDefault();
-		$this->calendar_repo_mock->shouldReceive( 'userHasSchedulingBypass' )->andReturn( false )->byDefault();
+		// RateLimitChecker memoises the settings it read first; ActivityLog
+		// keeps a static write buffer (its shutdown hook marked as registered,
+		// so logging does not reach add_action()).
+		$this->reset_statics();
 
-		$this->appointment_repo_mock = Mockery::mock( 'overload:\FreeFormCertificate\Repositories\AppointmentRepository' );
-		$this->appointment_repo_mock->shouldReceive( 'findById' )->andReturn( null )->byDefault();
+		// ClientIpResolver's legacy chain reads the forwarding headers first.
+		$this->server_backup = $_SERVER ?? array();
+		foreach ( array( 'HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'HTTP_USER_AGENT' ) as $header ) {
+			unset( $_SERVER[ $header ] );
+		}
+		$_SERVER['REMOTE_ADDR'] = self::CLIENT_IP;
 
-		$this->appointment_handler_mock = Mockery::mock( 'overload:\FreeFormCertificate\SelfScheduling\AppointmentHandler' );
-		$this->appointment_handler_mock->shouldReceive( 'process_appointment' )->andReturn( array( 'appointment_id' => 1, 'requires_approval' => false ) )->byDefault();
-		$this->appointment_handler_mock->shouldReceive( 'cancel_appointment' )->andReturn( true )->byDefault();
-
-		// Alias mocks for static-only classes
-		$utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-		$this->request_input_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
-		$this->request_input_mock->shouldReceive( 'get_user_ip' )->andReturn( '127.0.0.1' )->byDefault()
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) )
-			->shouldReceive( 'text_array' )->andReturnUsing( static fn( $raw ) => is_array( $raw ) ? array_map( static fn( $v ) => is_scalar( $v ) ? strip_tags( (string) $v ) : '', $raw ) : array() )->byDefault();
-		$utils_mock->shouldReceive( 'debug_log' )->byDefault();
-
-		$encryption_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
-		$encryption_mock->shouldReceive( 'decrypt_field' )->andReturnUsing( function( $row, $field ) {
-			return $row[ $field ] ?? '';
-		})->byDefault();
-
-		// RateLimiter alias
-		$this->rate_limiter_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
-		$this->rate_limiter_mock->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
-		$this->rate_limiter_mock->shouldReceive( 'record_attempt' )->byDefault();
-		Functions\when( 'get_option' )->justReturn( array() );
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $this->make_wpdb();
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
+		$_SERVER = $this->server_backup;
+		$this->reset_statics();
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * The controller turns any exception into `ffc_internal_error`, so an
+	 * unexpected query is checked here, outside its try block.
+	 */
+	protected function assertPostConditions(): void {
+		$this->assertSame( array(), $this->unexpected, 'Every query the code ran was one the double answers.' );
+	}
+
+	/**
+	 * Clear the static state the real classes keep between calls.
+	 */
+	private function reset_statics(): void {
+		$ref = new \ReflectionProperty( RateLimitChecker::class, 'settings_cache' );
+		$ref->setAccessible( true );
+		$ref->setValue( null, null );
+
+		$log = new \ReflectionClass( ActivityLog::class );
+		foreach ( array( 'write_buffer' => array(), 'shutdown_registered' => true ) as $name => $value ) {
+			$prop = $log->getProperty( $name );
+			$prop->setAccessible( true );
+			$prop->setValue( null, $value );
+		}
+	}
+
+	/**
+	 * Rows the activity log buffered during the test.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function logged(): array {
+		$prop = ( new \ReflectionClass( ActivityLog::class ) )->getProperty( 'write_buffer' );
+		$prop->setAccessible( true );
+		return (array) $prop->getValue();
+	}
+
+	/**
+	 * A `$wpdb` double that renders prepare() into plain SQL and answers by table.
+	 */
+	private function make_wpdb(): object {
+		$wpdb             = Mockery::mock( 'wpdb' );
+		$wpdb->prefix     = 'wp_';
+		$wpdb->last_error = '';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				if ( 1 === count( $args ) && is_array( $args[0] ) ) {
+					$args = $args[0];
+				}
+				$i = 0;
+				return (string) preg_replace_callback(
+					'/%[ids]/',
+					static function ( $m ) use ( &$i, $args ) {
+						$v = $args[ $i++ ] ?? '';
+						if ( '%i' === $m[0] ) {
+							return '`' . $v . '`';
+						}
+						if ( '%d' === $m[0] ) {
+							return (string) (int) $v;
+						}
+						return "'" . addslashes( (string) $v ) . "'";
+					},
+					(string) $sql
+				);
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				if ( preg_match( '/^SELECT \* FROM `' . self::CALENDARS . '` WHERE id = (\d+)$/', $sql, $m ) ) {
+					++$this->calendar_reads;
+					if ( $this->calendar_read_throws_at === $this->calendar_reads ) {
+						throw new \RuntimeException( 'boom' );
+					}
+					return $this->calendars[ (int) $m[1] ] ?? null;
+				}
+				if ( preg_match( '/^SELECT \* FROM `' . self::APPOINTMENTS . '` WHERE id = (\d+)$/', $sql, $m ) ) {
+					$this->appointment_reads[] = (int) $m[1];
+					if ( $this->appointment_read_throws ) {
+						throw new \RuntimeException( 'boom' );
+					}
+					return $this->appointments[ (int) $m[1] ] ?? null;
+				}
+				if ( 0 === strpos( $sql, 'SELECT id,count FROM `wp_ffc_rate_limits`' ) ) {
+					return null; // No counter row for this window yet.
+				}
+				$this->unexpected[] = 'get_row: ' . $sql;
+				return null;
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				if ( 0 === strpos( $sql, 'SELECT count FROM `wp_ffc_rate_limits`' ) ) {
+					return null; // The day counter is empty.
+				}
+				if ( "SHOW TABLES LIKE 'wp_ffc_custom_fields'" === $sql ) {
+					// The activity log asks which custom fields are sensitive: none exist.
+					return null;
+				}
+				$this->unexpected[] = 'get_var: ' . $sql;
+				return null;
+			}
+		);
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) {
+				if ( 'wp_ffc_rate_limits' === $table ) {
+					$this->inserts[] = array( $table, $data );
+					return 1;
+				}
+				$this->unexpected[] = 'insert: ' . $table;
+				return false;
+			}
+		);
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				if ( self::APPOINTMENTS === $table ) {
+					$this->updates[] = array( $data, $where );
+					return 1;
+				}
+				$this->unexpected[] = 'update: ' . $table;
+				return false;
+			}
+		);
+		return $wpdb;
+	}
+
+	/**
+	 * Store a calendar row under its id, with string columns as wpdb returns them.
+	 *
+	 * @param array<string, mixed> $over Columns to override.
+	 */
+	private function store_calendar( array $over = array() ): void {
+		$row = array_map(
+			'strval',
+			array_merge(
+				array(
+					'id'                     => '1',
+					'title'                  => 'Calendar',
+					'status'                 => 'active',
+					'scheduling_visibility'  => 'public',
+					'requires_approval'      => '0',
+					'allow_cancellation'     => '1',
+					'cancellation_min_hours' => '0',
+					'email_config'           => '{}',
+				),
+				$over
+			)
+		);
+		$this->calendars[ (int) $row['id'] ] = $row;
+	}
+
+	/**
+	 * Store an appointment row under its id, its email and phone encrypted as
+	 * the writer stores them.
+	 *
+	 * @param array<string, mixed> $row Appointment columns, with plaintext `email` and `phone`.
+	 */
+	private function store_appointment( array $row ): void {
+		foreach ( array( 'email', 'phone' ) as $field ) {
+			if ( isset( $row[ $field ] ) ) {
+				$row[ $field . '_encrypted' ] = Encryption::encrypt( (string) $row[ $field ] );
+				$row[ $field ]                = null;
+			}
+		}
+		$this->appointments[ (int) $row['id'] ] = $row;
+	}
+
+	/**
+	 * Hold exactly these capabilities.
+	 *
+	 * @param list<string> $caps Capabilities.
+	 */
+	private function holdCaps( array $caps ): void {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => in_array( $cap, $caps, true ) );
 	}
 
 	/**
@@ -113,6 +387,13 @@ class AppointmentRestControllerTest extends TestCase {
 		});
 		$req->shouldReceive( 'get_json_params' )->andReturn( $json_params );
 		return $req;
+	}
+
+	/**
+	 * The transient key the per-hour IP counter lives under.
+	 */
+	private function ip_hour_key(): string {
+		return 'ffc_rate_ip_' . md5( IpAddress::fingerprint( self::CLIENT_IP ) ) . '_hour';
 	}
 
 	// ------------------------------------------------------------------
@@ -151,30 +432,44 @@ class AppointmentRestControllerTest extends TestCase {
 	}
 
 	public function test_create_appointment_records_the_rate_limit_attempt(): void {
-		$this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'scheduling_visibility' => 'public' ) );
-		$this->rate_limiter_mock->shouldReceive( 'record_attempt' )->once()->with( 'ip', '127.0.0.1' );
+		// Inactive, so the real handler refuses right after the attempt is recorded.
+		$this->store_calendar( array( 'id' => 3, 'status' => 'inactive' ) );
 
 		( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
-			$this->make_request( array( 'id' => '3' ), $this->valid_booking() )
+			$this->make_request( array( 'id' => 3 ), $this->valid_booking() )
 		);
+
+		$this->assertSame( 1, $this->transients[ $this->ip_hour_key() ] ?? null, 'The hour counter of the caller\'s address went up by one.' );
+		$this->assertCount( 1, $this->inserts, 'Exactly one attempt reached the counter table.' );
+		$this->assertSame( 'ip', $this->inserts[0][1]['type'] );
+		$this->assertSame( IpAddress::fingerprint( self::CLIENT_IP ), $this->inserts[0][1]['identifier'] );
+		$this->assertSame( 'day', $this->inserts[0][1]['window_type'] );
 	}
 
+	/**
+	 * Runs in its own process: the real AppointmentHandler refuses every
+	 * REST booking (no CPF/RF reaches it), so only a replaced handler can
+	 * show what the controller hands over.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_create_appointment_sanitizes_custom_data_like_the_booking_form(): void {
-		$this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'scheduling_visibility' => 'public' ) );
 		$captured = null;
-		$this->appointment_handler_mock->shouldReceive( 'process_appointment' )->andReturnUsing(
-			function ( $data ) use ( &$captured ) {
-				$captured = $data;
-				return array( 'appointment_id' => 9, 'requires_approval' => false );
-			}
-		);
+		Mockery::mock( 'overload:\FreeFormCertificate\SelfScheduling\AppointmentHandler' )
+			->shouldReceive( 'process_appointment' )->andReturnUsing(
+				function ( $data ) use ( &$captured ) {
+					$captured = $data;
+					return array( 'appointment_id' => 9, 'requires_approval' => false );
+				}
+			);
+		$this->store_calendar( array( 'id' => 3 ) );
 		$raw = array( 'school' => '<script>x</script>EMEF', 'nested' => array( 'a' => 'b' ) );
-		$this->request_input_mock->shouldReceive( 'text_array' )->once()->with( $raw )->andReturn( array( 'school' => 'EMEF', 'nested' => '' ) );
 
 		$booking                = $this->valid_booking();
 		$booking['custom_data'] = $raw;
 		( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
-			$this->make_request( array( 'id' => '3' ), $booking )
+			$this->make_request( array( 'id' => 3 ), $booking )
 		);
 
 		$this->assertSame( array( 'school' => 'EMEF', 'nested' => '' ), $captured['custom_data'] );
@@ -199,7 +494,7 @@ class AppointmentRestControllerTest extends TestCase {
 
 	public function test_create_appointment_returns_error_when_params_empty(): void {
 		$ctrl = new AppointmentRestController( 'ffc/v1' );
-		$request = $this->make_request( array( 'id' => '1' ), [] );
+		$request = $this->make_request( array( 'id' => 1 ), [] );
 		$result = $ctrl->create_appointment( $request );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -209,7 +504,7 @@ class AppointmentRestControllerTest extends TestCase {
 	public function test_create_appointment_returns_error_when_required_fields_missing(): void {
 		$ctrl = new AppointmentRestController( 'ffc/v1' );
 		$request = $this->make_request(
-			array( 'id' => '1' ),
+			array( 'id' => 1 ),
 			array( 'date' => '2026-04-01', 'time' => '09:00' )
 		);
 		$result = $ctrl->create_appointment( $request );
@@ -221,7 +516,7 @@ class AppointmentRestControllerTest extends TestCase {
 	public function test_create_appointment_returns_error_for_invalid_email(): void {
 		$ctrl = new AppointmentRestController( 'ffc/v1' );
 		$request = $this->make_request(
-			array( 'id' => '1' ),
+			array( 'id' => 1 ),
 			array(
 				'date'  => '2026-04-01',
 				'time'  => '09:00',
@@ -236,11 +531,9 @@ class AppointmentRestControllerTest extends TestCase {
 	}
 
 	public function test_create_appointment_returns_error_when_calendar_not_found(): void {
-		$this->calendar_repo_mock->shouldReceive( 'findById' )->with( '1' )->andReturn( null );
-
 		$ctrl = new AppointmentRestController( 'ffc/v1' );
 		$request = $this->make_request(
-			array( 'id' => '1' ),
+			array( 'id' => 1 ),
 			array(
 				'date'  => '2026-04-01',
 				'time'  => '09:00',
@@ -252,17 +545,15 @@ class AppointmentRestControllerTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'calendar_not_found', $result->get_error_code() );
+		$this->assertSame( 1, $this->calendar_reads, 'Calendar 1 was looked up.' );
 	}
 
 	public function test_create_appointment_returns_error_for_private_scheduling_anon(): void {
-		$this->calendar_repo_mock->shouldReceive( 'findById' )->with( '1' )->andReturn( array(
-			'id' => 1,
-			'scheduling_visibility' => 'private',
-		));
+		$this->store_calendar( array( 'id' => 1, 'scheduling_visibility' => 'private' ) );
 
 		$ctrl = new AppointmentRestController( 'ffc/v1' );
 		$request = $this->make_request(
-			array( 'id' => '1' ),
+			array( 'id' => 1 ),
 			array(
 				'date'  => '2026-04-01',
 				'time'  => '09:00',
@@ -276,22 +567,27 @@ class AppointmentRestControllerTest extends TestCase {
 		$this->assertSame( 'scheduling_private', $result->get_error_code() );
 	}
 
+	/**
+	 * Runs in its own process: the real AppointmentHandler cannot accept a
+	 * REST booking (the route sends no CPF/RF, which its validator
+	 * requires), so the success answer needs a replaced handler.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_create_appointment_success_returns_data(): void {
-		$this->calendar_repo_mock->shouldReceive( 'findById' )->with( '1' )->andReturn( array(
-			'id' => 1,
-			'scheduling_visibility' => 'public',
-		));
-
-		$this->appointment_handler_mock->shouldReceive( 'process_appointment' )
+		Mockery::mock( 'overload:\FreeFormCertificate\SelfScheduling\AppointmentHandler' )
+			->shouldReceive( 'process_appointment' )
 			->once()
 			->andReturn( array(
 				'appointment_id'    => 42,
 				'requires_approval' => true,
 			));
+		$this->store_calendar( array( 'id' => 1 ) );
 
 		$ctrl = new AppointmentRestController( 'ffc/v1' );
 		$request = $this->make_request(
-			array( 'id' => '1' ),
+			array( 'id' => 1 ),
 			array(
 				'date'  => '2026-04-01',
 				'time'  => '09:00',
@@ -312,18 +608,17 @@ class AppointmentRestControllerTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_get_appointment_returns_error_when_not_found(): void {
-		$this->appointment_repo_mock->shouldReceive( 'findById' )->with( '99' )->andReturn( null );
-
 		$ctrl = new AppointmentRestController( 'ffc/v1' );
-		$request = $this->make_request( array( 'id' => '99' ) );
+		$request = $this->make_request( array( 'id' => 99 ) );
 		$result = $ctrl->get_appointment( $request );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'appointment_not_found', $result->get_error_code() );
+		$this->assertSame( array( 99 ), $this->appointment_reads );
 	}
 
 	public function test_get_appointment_returns_formatted_data_on_success(): void {
-		$appointment_data = array(
+		$this->store_appointment( array(
 			'id'               => 10,
 			'calendar_id'      => 1,
 			'appointment_date' => '2026-04-01',
@@ -335,16 +630,11 @@ class AppointmentRestControllerTest extends TestCase {
 			'phone'            => '11999998888',
 			'user_notes'       => 'Test note',
 			'created_at'       => '2026-03-01 10:00:00',
-		);
-
-		$this->appointment_repo_mock->shouldReceive( 'findById' )->with( '10' )->andReturn( $appointment_data );
-		$this->calendar_repo_mock->shouldReceive( 'findById' )->with( 1 )->andReturn( array(
-			'id'    => 1,
-			'title' => 'Test Calendar',
-		));
+		) );
+		$this->store_calendar( array( 'id' => 1, 'title' => 'Test Calendar' ) );
 
 		$ctrl = new AppointmentRestController( 'ffc/v1' );
-		$request = $this->make_request( array( 'id' => '10' ) );
+		$request = $this->make_request( array( 'id' => 10 ) );
 		$result = $ctrl->get_appointment( $request );
 
 		$this->assertIsArray( $result );
@@ -381,10 +671,10 @@ class AppointmentRestControllerTest extends TestCase {
 	public function test_get_appointment_gives_the_booker_their_own_email_and_phone(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 42 );
 		Functions\when( 'user_can' )->justReturn( false );
-		$this->appointment_repo_mock->shouldReceive( 'findById' )->andReturn( $this->owned_appointment() );
-		$this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'title' => 'Cal' ) );
+		$this->store_appointment( $this->owned_appointment() );
+		$this->store_calendar( array( 'id' => 1, 'title' => 'Cal' ) );
 
-		$result = ( new AppointmentRestController( 'ffc/v1' ) )->get_appointment( $this->make_request( array( 'id' => '10' ) ) );
+		$result = ( new AppointmentRestController( 'ffc/v1' ) )->get_appointment( $this->make_request( array( 'id' => 10 ) ) );
 
 		$this->assertSame( 'jane@example.com', $result['email'] );
 		$this->assertSame( '11999998888', $result['phone'] );
@@ -393,23 +683,26 @@ class AppointmentRestControllerTest extends TestCase {
 	public function test_get_appointment_reveals_to_a_pii_holder_only_on_request_and_audits(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 'ffc_view_appointments_pii' === $cap );
-		$this->appointment_repo_mock->shouldReceive( 'findById' )->andReturn( $this->owned_appointment() );
-		$this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'title' => 'Cal' ) );
-		Mockery::getConfiguration()->setConstantsMap(
-			array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_INFO' => 'info' ) )
-		);
-		Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' )
-			->shouldReceive( 'log' )->once()
-			->with( 'appointment_pii_revealed', 'info', array( 'field_key' => 'rest_api' ), 5, 10 );
+		$this->settings = array( 'enable_activity_log' => 1 );
+		$this->store_appointment( $this->owned_appointment() );
+		$this->store_calendar( array( 'id' => 1, 'title' => 'Cal' ) );
 		$ctrl = new AppointmentRestController( 'ffc/v1' );
 
-		$masked = $ctrl->get_appointment( $this->make_request( array( 'id' => '10' ) ) );
+		$masked = $ctrl->get_appointment( $this->make_request( array( 'id' => 10 ) ) );
 		$this->assertSame( 'j***@example.com', $masked['email'] );
 		$this->assertSame( '*********88', $masked['phone'] );
 
-		$clear = $ctrl->get_appointment( $this->make_request( array( 'id' => '10', 'reveal' => true ) ) );
+		$clear = $ctrl->get_appointment( $this->make_request( array( 'id' => 10, 'reveal' => true ) ) );
 		$this->assertSame( 'jane@example.com', $clear['email'] );
 		$this->assertSame( '11999998888', $clear['phone'] );
+
+		$logged = $this->logged();
+		$this->assertCount( 1, $logged, 'Only the revealing read is audited.' );
+		$this->assertSame( 'appointment_pii_revealed', $logged[0]['action'] );
+		$this->assertSame( ActivityLog::LEVEL_INFO, $logged[0]['level'] );
+		$this->assertSame( '{"field_key":"rest_api"}', $logged[0]['context'] );
+		$this->assertSame( 5, $logged[0]['user_id'] );
+		$this->assertSame( 10, $logged[0]['submission_id'] );
 	}
 
 	// ------------------------------------------------------------------
@@ -417,36 +710,42 @@ class AppointmentRestControllerTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_cancel_appointment_propagates_wp_error(): void {
-		$wp_error = new \WP_Error( 'cannot_cancel', 'Cannot cancel', array( 'status' => 400 ) );
-
-		$this->appointment_handler_mock->shouldReceive( 'cancel_appointment' )
-			->with( '5', '', '' )
-			->once()
-			->andReturn( $wp_error );
+		// An anonymous caller with no token may not cancel: the handler refuses.
+		$this->store_appointment( array( 'id' => 5, 'confirmation_token' => 'tok' ) + $this->owned_appointment() );
+		$this->store_calendar( array( 'id' => 1 ) );
 
 		$ctrl = new AppointmentRestController( 'ffc/v1' );
-		$request = $this->make_request( array( 'id' => '5' ), [] );
+		$request = $this->make_request( array( 'id' => 5 ), [] );
 		$result = $ctrl->cancel_appointment( $request );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'cannot_cancel', $result->get_error_code() );
+		$this->assertSame( 'unauthorized', $result->get_error_code() );
+		$this->assertSame( array( 5 ), $this->appointment_reads, 'Appointment 5 was the one looked up.' );
+		$this->assertSame( array(), $this->updates, 'A refused cancellation writes nothing.' );
 	}
 
 	public function test_cancel_appointment_returns_success(): void {
-		$this->appointment_handler_mock->shouldReceive( 'cancel_appointment' )
-			->with( '5', '', 'Scheduling conflict' )
-			->once()
-			->andReturn( true );
+		// A holder of the scheduling bypass cancels any booking.
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		$this->holdCaps( array( 'ffc_bypass_appointments' ) );
+		$this->store_appointment( array( 'id' => 5 ) + $this->owned_appointment() );
+		$this->store_calendar( array( 'id' => 1 ) );
 
 		$ctrl = new AppointmentRestController( 'ffc/v1' );
 		$request = $this->make_request(
-			array( 'id' => '5' ),
+			array( 'id' => 5 ),
 			array( 'reason' => 'Scheduling conflict' )
 		);
 		$result = $ctrl->cancel_appointment( $request );
 
 		$this->assertIsArray( $result );
 		$this->assertTrue( $result['success'] );
+		$this->assertCount( 1, $this->updates );
+		list( $data, $where ) = $this->updates[0];
+		$this->assertSame( array( 'id' => 5 ), $where );
+		$this->assertSame( 'cancelled', $data['status'] );
+		$this->assertSame( 'Scheduling conflict', $data['cancellation_reason'] );
+		$this->assertSame( 7, $data['cancelled_by'] );
 	}
 
 	// ------------------------------------------------------------------
@@ -454,19 +753,20 @@ class AppointmentRestControllerTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_check_appointment_access_bypass_returns_true(): void {
-		$this->calendar_repo_mock->shouldReceive( 'userHasSchedulingBypass' )->andReturn( true );
+		$this->holdCaps( array( 'ffc_bypass_appointments' ) );
 
 		$ctrl = new AppointmentRestController( 'ffc/v1' );
-		$request = $this->make_request( array( 'id' => '1' ) );
+		$request = $this->make_request( array( 'id' => 1 ) );
 
 		$this->assertTrue( $ctrl->check_appointment_access( $request ) );
+		$this->assertSame( array(), $this->appointment_reads, 'The bypass answers before any appointment is read.' );
 	}
 
 	public function test_check_appointment_access_not_logged_in_returns_false(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 
 		$ctrl = new AppointmentRestController( 'ffc/v1' );
-		$request = $this->make_request( array( 'id' => '1' ) );
+		$request = $this->make_request( array( 'id' => 1 ) );
 
 		$this->assertFalse( $ctrl->check_appointment_access( $request ) );
 	}
@@ -474,31 +774,26 @@ class AppointmentRestControllerTest extends TestCase {
 	public function test_check_appointment_access_own_appointment_returns_true(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 42 );
-
-		$this->appointment_repo_mock->shouldReceive( 'findById' )->with( '10' )->andReturn( array(
-			'id'      => 10,
-			'user_id' => 42,
-		));
+		// String columns, as wpdb returns them: the controller casts the owner.
+		$this->appointments[10] = array( 'id' => '10', 'user_id' => '42' );
 
 		$ctrl = new AppointmentRestController( 'ffc/v1' );
-		$request = $this->make_request( array( 'id' => '10' ) );
+		$request = $this->make_request( array( 'id' => 10 ) );
 
 		$this->assertTrue( $ctrl->check_appointment_access( $request ) );
+		$this->assertSame( array( 10 ), $this->appointment_reads );
 	}
 
 	public function test_check_appointment_access_other_appointment_returns_false(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 42 );
-
-		$this->appointment_repo_mock->shouldReceive( 'findById' )->with( '10' )->andReturn( array(
-			'id'      => 10,
-			'user_id' => 99,
-		));
+		$this->appointments[10] = array( 'id' => '10', 'user_id' => '99' );
 
 		$ctrl = new AppointmentRestController( 'ffc/v1' );
-		$request = $this->make_request( array( 'id' => '10' ) );
+		$request = $this->make_request( array( 'id' => 10 ) );
 
 		$this->assertFalse( $ctrl->check_appointment_access( $request ) );
+		$this->assertSame( array( 10 ), $this->appointment_reads );
 	}
 
 	// ------------------------------------------------------------------
@@ -511,31 +806,42 @@ class AppointmentRestControllerTest extends TestCase {
 	}
 
 	public function test_create_appointment_rate_limited(): void {
-		$this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'scheduling_visibility' => 'public' ) );
-		$this->rate_limiter_mock->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => false ) );
+		$this->store_calendar( array( 'id' => 3 ) );
+		// The caller's address is already at the default hourly cap.
+		$this->transients[ $this->ip_hour_key() ] = 5;
 
 		$result = ( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
-			$this->make_request( array( 'id' => '3' ), $this->valid_booking() )
+			$this->make_request( array( 'id' => 3 ), $this->valid_booking() )
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'rate_limit_exceeded', $result->get_error_code() );
+		$this->assertSame( array(), $this->inserts, 'A refused request records no attempt.' );
 	}
 
+	/**
+	 * Runs in its own process: the real AppointmentHandler refuses every
+	 * REST booking (no CPF/RF reaches it), so only a replaced handler can
+	 * show what the controller hands over.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_create_appointment_attaches_user_id_when_logged_in(): void {
+		$captured = null;
+		Mockery::mock( 'overload:\FreeFormCertificate\SelfScheduling\AppointmentHandler' )
+			->shouldReceive( 'process_appointment' )->andReturnUsing(
+				function ( $data ) use ( &$captured ) {
+					$captured = $data;
+					return array( 'appointment_id' => 9, 'requires_approval' => false );
+				}
+			);
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
-		$this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'scheduling_visibility' => 'public' ) );
-		$captured = null;
-		$this->appointment_handler_mock->shouldReceive( 'process_appointment' )->andReturnUsing(
-			function ( $data ) use ( &$captured ) {
-				$captured = $data;
-				return array( 'appointment_id' => 9, 'requires_approval' => false );
-			}
-		);
+		$this->store_calendar( array( 'id' => 3 ) );
 
 		$result = ( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
-			$this->make_request( array( 'id' => '3' ), $this->valid_booking() )
+			$this->make_request( array( 'id' => 3 ), $this->valid_booking() )
 		);
 
 		$this->assertIsArray( $result );
@@ -544,26 +850,25 @@ class AppointmentRestControllerTest extends TestCase {
 	}
 
 	public function test_create_appointment_bubbles_handler_wp_error(): void {
-		$this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'scheduling_visibility' => 'public' ) );
-		$this->appointment_handler_mock->shouldReceive( 'process_appointment' )->andReturn(
-			new \WP_Error( 'slot_full', 'full' )
-		);
+		// The controller does not read the status; the handler refuses an inactive calendar.
+		$this->store_calendar( array( 'id' => 3, 'status' => 'inactive' ) );
 
 		$result = ( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
-			$this->make_request( array( 'id' => '3' ), $this->valid_booking() )
+			$this->make_request( array( 'id' => 3 ), $this->valid_booking() )
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'slot_full', $result->get_error_code() );
+		$this->assertSame( 'calendar_inactive', $result->get_error_code() );
+		$this->assertSame( 2, $this->calendar_reads, 'The handler read the calendar again on its own.' );
 	}
 
 	public function test_create_appointment_wraps_exception(): void {
-		$this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'scheduling_visibility' => 'public' ) );
-		$this->appointment_handler_mock->shouldReceive( 'process_appointment' )->andThrow( new \RuntimeException( 'boom' ) );
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )->shouldReceive( 'log_rest_api' )->byDefault();
+		$this->store_calendar( array( 'id' => 3 ) );
+		// The controller's read succeeds; the handler's own read fails.
+		$this->calendar_read_throws_at = 2;
 
 		$result = ( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
-			$this->make_request( array( 'id' => '3' ), $this->valid_booking() )
+			$this->make_request( array( 'id' => 3 ), $this->valid_booking() )
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -571,11 +876,10 @@ class AppointmentRestControllerTest extends TestCase {
 	}
 
 	public function test_get_appointment_wraps_exception(): void {
-		$this->appointment_repo_mock->shouldReceive( 'findById' )->andThrow( new \RuntimeException( 'boom' ) );
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )->shouldReceive( 'log_rest_api' )->byDefault();
+		$this->appointment_read_throws = true;
 
 		$result = ( new AppointmentRestController( 'ffc/v1' ) )->get_appointment(
-			$this->make_request( array( 'id' => '5' ) )
+			$this->make_request( array( 'id' => 5 ) )
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -583,24 +887,24 @@ class AppointmentRestControllerTest extends TestCase {
 	}
 
 	public function test_cancel_appointment_wraps_exception(): void {
-		$this->appointment_handler_mock->shouldReceive( 'cancel_appointment' )->andThrow( new \RuntimeException( 'boom' ) );
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )->shouldReceive( 'log_rest_api' )->byDefault();
+		$this->appointment_read_throws = true;
 
 		$result = ( new AppointmentRestController( 'ffc/v1' ) )->cancel_appointment(
-			$this->make_request( array( 'id' => '5' ) )
+			$this->make_request( array( 'id' => 5 ) )
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'ffc_internal_error', $result->get_error_code() );
+		$this->assertSame( array( 5 ), $this->appointment_reads, 'The handler read appointment 5 when the storage failed.' );
 	}
 
 	public function test_check_appointment_access_false_when_appointment_missing(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
-		$this->appointment_repo_mock->shouldReceive( 'findById' )->andReturn( null );
 
 		$this->assertFalse(
-			( new AppointmentRestController( 'ffc/v1' ) )->check_appointment_access( $this->make_request( array( 'id' => '5' ) ) )
+			( new AppointmentRestController( 'ffc/v1' ) )->check_appointment_access( $this->make_request( array( 'id' => 5 ) ) )
 		);
+		$this->assertSame( array( 5 ), $this->appointment_reads );
 	}
 }
