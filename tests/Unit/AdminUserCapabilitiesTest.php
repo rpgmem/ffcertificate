@@ -18,104 +18,44 @@ use FreeFormCertificate\Admin\AdminUserCapabilities;
  * render output (HTML checkboxes), save guard clauses, grant/remove
  * capability logic, and Debug logging.
  *
+ * The collaborators run for real -- CapabilityManager, CapabilityCatalog,
+ * AudienceReader / AudienceWriter, AssetHelper / AssetRegistry, RequestInput,
+ * AdminUI and Debug -- over a `$wpdb` double that answers the audience queries
+ * from the rows a test stores, and records every membership write.
+ *
  * @covers \FreeFormCertificate\Admin\AdminUserCapabilities
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AdminUserCapabilitiesTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface alias mock for UserManager */
-	private $user_manager_mock;
+	/** @var list<object> Active audiences the audiences table answers. */
+	private array $audiences = array();
 
-	/** @var Mockery\MockInterface alias mock for Utils */
-	private $utils_mock;
+	/** @var array<int, list<int>> Audience ids each user belongs to, keyed by user id. */
+	private array $memberships = array();
 
-	/** @var Mockery\MockInterface alias mock for AudienceReader */
-	private $audience_repo_mock;
+	/** @var list<array<string, int>> Rows inserted into the members table. */
+	private array $member_inserts = array();
 
-	/** @var Mockery\MockInterface alias mock for AudienceWriter */
-	private $audience_writer_mock;
+	/** @var list<array<string, int>> Rows deleted from the members table. */
+	private array $member_deletes = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
-		// UserManager alias mock
-		$this->user_manager_mock = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\CapabilityManager' );
-		$this->user_manager_mock->shouldReceive( 'get_user_ffc_capabilities' )
-			->andReturn( array(
-				'ffc_view_own_certificates'      => true,
-				'ffc_download_own_certificates'  => false,
-				'ffc_view_own_certificate_history'   => false,
-				'ffc_book_own_appointments'          => false,
-				'ffc_view_own_appointments'       => false,
-				'ffc_cancel_own_appointments'    => false,
-				'ffc_bypass_appointments'          => false,
-				'ffc_view_own_audience_bookings'     => false,
-				'ffc_manage_reregistration'      => false,
-				'ffc_edit_certificates'         => false,
-			) )
-			->byDefault();
-		$this->user_manager_mock->shouldReceive( 'has_certificate_access' )
-			->andReturn( false )
-			->byDefault();
-		$this->user_manager_mock->shouldReceive( 'has_appointment_access' )
-			->andReturn( false )
-			->byDefault();
-		$this->user_manager_mock->shouldReceive( 'get_all_capabilities' )
-			->andReturn( array(
-				'ffc_view_own_certificates',
-				'ffc_download_own_certificates',
-				'ffc_view_own_certificate_history',
-				'ffc_book_own_appointments',
-				'ffc_view_own_appointments',
-				'ffc_cancel_own_appointments',
-				'ffc_bypass_appointments',
-				'ffc_view_own_audience_bookings',
-				'ffc_manage_reregistration',
-				'ffc_manage_recruitment',
-				'ffc_manage_certificates',
-				'ffc_export_certificates',
-				'ffc_manage_appointments',
-				'ffc_manage_audiences',
-				'ffc_view_activity_log',
-				'ffc_manage_custom_fields',
-				'ffc_view_as_user',
-				'ffc_manage_settings',
-				'ffc_view_recruitment',
-				'ffc_import_recruitment',
-				'ffc_call_recruitment',
-				'ffc_view_recruitment_pii',
-				'ffc_manage_recruitment_settings',
-				'ffc_manage_recruitment_reasons',
-				'ffc_edit_certificates',
-			) )
-			->byDefault();
-
-		// AudienceRepository alias mock — render() lists active audiences and
-		// the user's memberships for the editable membership checklist; save()
-		// diffs and applies add_member/remove_member.
-		$this->audience_repo_mock   = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$this->audience_writer_mock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$this->audience_repo_mock->shouldReceive( 'get_all' )->andReturn( array() )->byDefault();
-		$this->audience_repo_mock->shouldReceive( 'get_user_audiences' )->andReturn( array() )->byDefault();
-		$this->audience_writer_mock->shouldReceive( 'add_member' )->andReturn( 1 )->byDefault();
-		$this->audience_writer_mock->shouldReceive( 'remove_member' )->andReturn( true )->byDefault();
-
-		// Utils alias mock
-		$this->utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-		$ri_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' );
-		$ri_mock->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
-		$ri_mock->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
-		$ri_mock->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-		$asset_helper = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
-		$asset_helper->shouldReceive( 'asset_suffix' )->andReturn( '.min' )->byDefault();
-		$asset_helper->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
-		$ri_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
-			return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? $_POST[ $key ] : $default;
-		} )->byDefault();
+		$this->reset_role_snapshot();
+		$this->audiences      = array();
+		$this->memberships    = array();
+		$this->member_inserts = array();
+		$this->member_deletes = array();
 
 		// Common WP stubs
 		Functions\when( '__' )->returnArg();
@@ -143,12 +83,19 @@ class AdminUserCapabilitiesTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'user_can' )->justReturn( false );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		// Debug::is_enabled() and SettingsReader read this: nothing stored, so
+		// debug logging, the activity log and the grant e-mail are all off.
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'get_userdata' )->justReturn( false );
 		Functions\when( 'absint' )->alias( 'intval' );
 		Functions\when( 'sanitize_key' )->returnArg();
 		Functions\when( 'wp_create_nonce' )->justReturn( 'role-nonce' );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, (array) $args ) );
+		Functions\when( 'sanitize_sql_orderby' )->returnArg();
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( '_n' )->alias(
 			static function ( $single, $plural, $number ) {
 				return 1 === $number ? $single : $plural;
@@ -195,14 +142,90 @@ class AdminUserCapabilitiesTest extends TestCase {
 			}
 		};
 		Functions\when( 'wp_roles' )->justReturn( $roles_obj );
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $this->wpdb_double();
 	}
 
-	protected function tearDown(): void {
-		unset( $_POST['ffc_capabilities_nonce'] );
-		// Reset the per-request role snapshot so it never leaks between tests.
+	/**
+	 * A `$wpdb` that answers the audience reader's and writer's queries from
+	 * the stored audiences and memberships, records each membership write, and
+	 * fails the test on any other query.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function wpdb_double() {
+		$wpdb            = Mockery::mock( 'wpdb' );
+		$wpdb->prefix    = 'wp_';
+		$wpdb->insert_id = 0;
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$flat = 1 === count( $args ) && is_array( $args[0] ) ? $args[0] : $args;
+				return array(
+					'sql'  => $sql,
+					'args' => $flat,
+				);
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $q ) {
+				if ( false !== strpos( $q['sql'], 'INNER JOIN %i m ON a.id = m.audience_id' ) ) {
+					$member_of = $this->memberships[ (int) $q['args'][2] ] ?? array();
+					return array_map( static fn( $id ) => (object) array( 'id' => $id ), $member_of );
+				}
+				if ( 0 === strpos( $q['sql'], 'SELECT * FROM %i WHERE status = %s ORDER BY name ASC' ) ) {
+					$this->assertSame( array( 'wp_ffc_audiences', 'active' ), $q['args'] );
+					return $this->audiences;
+				}
+				$this->fail( 'Unexpected get_results(): ' . $q['sql'] );
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $q ) {
+				if ( 'SELECT COUNT(*) FROM %i WHERE audience_id = %d AND user_id = %d' === $q['sql'] ) {
+					$member_of = $this->memberships[ (int) $q['args'][2] ] ?? array();
+					return in_array( (int) $q['args'][1], $member_of, true ) ? '1' : '0';
+				}
+				$this->fail( 'Unexpected get_var(): ' . $q['sql'] );
+			}
+		);
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) use ( $wpdb ) {
+				$this->assertSame( 'wp_ffc_audience_members', $table, 'Only the members table is written.' );
+				$this->member_inserts[] = $data;
+				$wpdb->insert_id        = count( $this->member_inserts );
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'delete' )->andReturnUsing(
+			function ( $table, $where ) {
+				$this->assertSame( 'wp_ffc_audience_members', $table, 'Only the members table is written.' );
+				$this->member_deletes[] = $where;
+				return 1;
+			}
+		);
+		return $wpdb;
+	}
+
+	/**
+	 * Empty the per-request role snapshot the class keeps in a static.
+	 */
+	private function reset_role_snapshot(): void {
 		$ref = new \ReflectionProperty( AdminUserCapabilities::class, 'ffc_role_snapshot' );
 		$ref->setAccessible( true );
 		$ref->setValue( null, array() );
+	}
+
+	protected function tearDown(): void {
+		unset( $_POST['ffc_capabilities_nonce'], $_POST['ffc_audience'], $_GET['user_id'] );
+		// Reset the per-request role snapshot so it never leaks between tests.
+		$this->reset_role_snapshot();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -410,16 +433,11 @@ class AdminUserCapabilitiesTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'user_can' )->justReturn( false );
 
-		// No ffc_end_user role and no FFC capabilities
-		$this->user_manager_mock->shouldReceive( 'has_certificate_access' )
-			->with( 10 )
-			->andReturn( false );
-		$this->user_manager_mock->shouldReceive( 'has_appointment_access' )
-			->with( 10 )
-			->andReturn( false );
-
+		// No ffc_end_user role and no FFC capabilities: the real
+		// CapabilityManager reads the user and finds neither access kind.
 		$user = new \WP_User( 10 );
 		$user->roles = array( 'subscriber' );
+		Functions\when( 'get_userdata' )->alias( static fn( $id ) => 10 === $id ? $user : false );
 
 		ob_start();
 		AdminUserCapabilities::render_capability_fields( $user );
@@ -481,24 +499,20 @@ class AdminUserCapabilitiesTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'user_can' )->justReturn( false );
 
-		$this->audience_repo_mock->shouldReceive( 'get_all' )->andReturn(
-			array(
-				(object) array(
-					'id'    => 3,
-					'name'  => 'Teachers',
-					'color' => '#ff0000',
-				),
-				(object) array(
-					'id'    => 7,
-					'name'  => 'Staff',
-					'color' => '',
-				),
-			)
+		$this->audiences = array(
+			(object) array(
+				'id'    => 3,
+				'name'  => 'Teachers',
+				'color' => '#ff0000',
+			),
+			(object) array(
+				'id'    => 7,
+				'name'  => 'Staff',
+				'color' => '',
+			),
 		);
 		// The user is a member of audience 7 only.
-		$this->audience_repo_mock->shouldReceive( 'get_user_audiences' )->andReturn(
-			array( (object) array( 'id' => 7 ) )
-		);
+		$this->memberships = array( 5 => array( 7 ) );
 
 		$user        = new \WP_User( 5 );
 		$user->roles = array( 'ffc_end_user' );
@@ -793,23 +807,23 @@ class AdminUserCapabilitiesTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'current_user_can' )->justReturn( true );
 
-		$this->audience_repo_mock->shouldReceive( 'get_all' )->andReturn(
-			array( (object) array( 'id' => 3 ), (object) array( 'id' => 7 ) )
+		$this->audiences = array(
+			(object) array( 'id' => 3, 'name' => 'Teachers' ),
+			(object) array( 'id' => 7, 'name' => 'Staff' ),
 		);
 		// Already a member of 7 → only 3 should be added, nothing removed.
-		$this->audience_repo_mock->shouldReceive( 'get_user_audiences' )->andReturn(
-			array( (object) array( 'id' => 7 ) )
-		);
-		$this->audience_writer_mock->shouldReceive( 'add_member' )->once()->with( 3, 5 )->andReturn( 1 );
-		$this->audience_writer_mock->shouldReceive( 'remove_member' )->never();
+		$this->memberships = array( 5 => array( 7 ) );
 
 		$user = new \WP_User( 5 );
 		Functions\when( 'get_userdata' )->justReturn( $user );
 
 		AdminUserCapabilities::save_capability_fields( 5 );
 
-		unset( $_POST['ffc_audience'] );
-		$this->assertTrue( true );
+		$this->assertSame(
+			array( array( 'audience_id' => 3, 'user_id' => 5 ) ),
+			$this->member_inserts
+		);
+		$this->assertSame( array(), $this->member_deletes );
 	}
 
 	public function test_save_removes_audience_membership_when_unchecked(): void {
@@ -819,21 +833,19 @@ class AdminUserCapabilitiesTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'current_user_can' )->justReturn( true );
 
-		$this->audience_repo_mock->shouldReceive( 'get_all' )->andReturn(
-			array( (object) array( 'id' => 7 ) )
-		);
-		$this->audience_repo_mock->shouldReceive( 'get_user_audiences' )->andReturn(
-			array( (object) array( 'id' => 7 ) )
-		);
-		$this->audience_writer_mock->shouldReceive( 'remove_member' )->once()->with( 7, 5 )->andReturn( true );
-		$this->audience_writer_mock->shouldReceive( 'add_member' )->never();
+		$this->audiences   = array( (object) array( 'id' => 7, 'name' => 'Staff' ) );
+		$this->memberships = array( 5 => array( 7 ) );
 
 		$user = new \WP_User( 5 );
 		Functions\when( 'get_userdata' )->justReturn( $user );
 
 		AdminUserCapabilities::save_capability_fields( 5 );
 
-		$this->assertTrue( true );
+		$this->assertSame(
+			array( array( 'audience_id' => 7, 'user_id' => 5 ) ),
+			$this->member_deletes
+		);
+		$this->assertSame( array(), $this->member_inserts );
 	}
 
 	public function test_save_does_not_touch_audiences_when_none_active(): void {
@@ -844,16 +856,17 @@ class AdminUserCapabilitiesTest extends TestCase {
 
 		// No active audiences → the checklist never rendered → sync must be a
 		// no-op so an unrelated save can't wipe memberships.
-		$this->audience_repo_mock->shouldReceive( 'get_all' )->andReturn( array() );
-		$this->audience_writer_mock->shouldReceive( 'add_member' )->never();
-		$this->audience_writer_mock->shouldReceive( 'remove_member' )->never();
+		// The user still holds a stored membership the sync must not drop.
+		$this->audiences   = array();
+		$this->memberships = array( 5 => array( 7 ) );
 
 		$user = new \WP_User( 5 );
 		Functions\when( 'get_userdata' )->justReturn( $user );
 
 		AdminUserCapabilities::save_capability_fields( 5 );
 
-		$this->assertTrue( true );
+		$this->assertSame( array(), $this->member_inserts );
+		$this->assertSame( array(), $this->member_deletes );
 	}
 
 	// ==================================================================
@@ -861,10 +874,9 @@ class AdminUserCapabilitiesTest extends TestCase {
 	// ==================================================================
 
 	public function test_save_reaches_debug_log_path(): void {
-		// The Debug class is already loaded by the autoloader, so we cannot
-		// create an alias mock.  Instead, verify the save completes without
-		// error when the Debug class is present (class_exists returns true
-		// naturally since the autoloader loaded it).
+		// The real Debug class runs: verify the save completes without error
+		// when it is present (class_exists returns true naturally since the
+		// autoloader loaded it).
 		$_POST['ffc_capabilities_nonce'] = 'valid_nonce';
 		$_POST['ffc_cap_ffc_view_own_certificates'] = '1';
 
