@@ -10,12 +10,9 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * FormsListTable overrides one method of core's posts list table. Core's class
- * is not loaded without WordPress, so a minimal parent is declared here, in a
- * separate process so it cannot leak into another test.
+ * is not loaded without WordPress; tests/bootstrap.php declares a minimal one.
  *
  * @covers \FreeFormCertificate\Admin\FormsListTable
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class FormsListTableTest extends TestCase {
 
@@ -24,9 +21,6 @@ class FormsListTableTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		if ( ! class_exists( 'WP_Posts_List_Table' ) ) {
-			eval( 'class WP_Posts_List_Table extends WP_List_Table {}' ); // phpcs:ignore Squiz.PHP.Eval.Discouraged -- a parent class for the unit under test, declared only in this isolated process.
-		}
 		foreach ( array( '__', 'esc_html', 'esc_attr', 'esc_url', 'wp_unslash', 'sanitize_text_field', 'sanitize_key' ) as $fn ) {
 			Functions\when( $fn )->returnArg();
 		}

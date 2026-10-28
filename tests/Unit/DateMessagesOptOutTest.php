@@ -13,19 +13,22 @@ use PHPUnit\Framework\TestCase;
  * Everyone receives date messages until they say otherwise (#1538).
  *
  * @covers \FreeFormCertificate\DateMessages\OptOut
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class DateMessagesOptOutTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
 	}
 
 	protected function tearDown(): void {
+		$GLOBALS['wpdb'] = $this->wpdb_backup;
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -57,6 +60,12 @@ class DateMessagesOptOutTest extends TestCase {
 		$this->assertSame( array(), OptOut::among( array( 0, -3 ) ) );
 	}
 
+	/**
+	 * Its own process: `UserManager` is an alias mock here.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_set_sends_only_its_own_key_and_leaves_the_merge_to_update_profile(): void {
 		$manager = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' );
 		$manager->shouldReceive( 'get_profile' )->never();

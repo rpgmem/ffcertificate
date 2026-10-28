@@ -17,10 +17,10 @@ use FreeFormCertificate\Submissions\SubmissionHandler;
  * Coverage for PdfStage — generates the certificate PDF payload onto the
  * submission context, rejecting on a WP_Error from the generator.
  *
- * @covers \FreeFormCertificate\Frontend\Submission\PdfStage
+ * The refusal paths run the real PdfGenerator; only the success path, which
+ * would render a certificate, overloads it in its own process (#2125).
  *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
+ * @covers \FreeFormCertificate\Frontend\Submission\PdfStage
  */
 class PdfStageTest extends TestCase {
 
@@ -41,6 +41,12 @@ class PdfStageTest extends TestCase {
 		parent::tearDown();
 	}
 
+	/**
+	 * Its own process: `PdfGenerator` is an overload mock here.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_stores_pdf_data_on_success(): void {
 		$pdf = Mockery::mock( 'overload:\FreeFormCertificate\Generators\PdfGenerator' );
 		$pdf->shouldReceive( 'generate_pdf_data' )
@@ -60,25 +66,24 @@ class PdfStageTest extends TestCase {
 	}
 
 	public function test_an_attempt_awaiting_grading_gets_no_pdf(): void {
-		$pdf = Mockery::mock( 'overload:\FreeFormCertificate\Generators\PdfGenerator' );
-		$pdf->shouldReceive( 'generate_pdf_data' )->never();
+		// The generator would start by reading the submission.
+		$handler = Mockery::mock( SubmissionHandler::class );
+		$handler->shouldReceive( 'get_submission' )->never();
 
 		$ctx                   = new SubmissionContext();
 		$ctx->submission_id    = 7;
 		$ctx->awaiting_grading = true;
 
-		( new PdfStage( Mockery::mock( SubmissionHandler::class ) ) )->apply( $ctx );
+		( new PdfStage( $handler ) )->apply( $ctx );
 
 		$this->assertNull( $ctx->pdf_data );
 	}
 
 	public function test_rejects_when_generator_returns_wp_error(): void {
-		$error = new \WP_Error( 'pdf_failed', 'Could not render PDF.' );
-
-		$pdf = Mockery::mock( 'overload:\FreeFormCertificate\Generators\PdfGenerator' );
-		$pdf->shouldReceive( 'generate_pdf_data' )->once()->andReturn( $error );
-
+		// The real generator refuses a submission that does not exist.
+		Functions\when( '__' )->returnArg();
 		$handler = Mockery::mock( SubmissionHandler::class );
+		$handler->shouldReceive( 'get_submission' )->once()->with( 456 )->andReturn( null );
 
 		$ctx                = new SubmissionContext();
 		$ctx->submission_id = 456;
@@ -88,8 +93,8 @@ class PdfStageTest extends TestCase {
 			$this->fail( 'expected SubmissionRejected' );
 		} catch ( SubmissionRejected $e ) {
 			$payload = $e->get_payload();
-			$this->assertSame( 'pdf_failed', $payload['code'] );
-			$this->assertSame( 'Could not render PDF.', $payload['message'] );
+			$this->assertSame( 'submission_not_found', $payload['code'] );
+			$this->assertSame( 'Submission not found.', $payload['message'] );
 		}
 
 		// pdf_data stays untouched on the reject path.
