@@ -54,6 +54,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The audience import sample's RF passes its own check digit** (#2138). The sample CSV offered an RF the importer refuses; its rows now carry a valid CPF and RF.
 - **The calendar detail and slots REST endpoints no longer fail on a real request** (#2146). The string `id` route parameter is cast before it reaches an `int` parameter under strict types, and the logged-in calendar list is ordered by title, not by `id`.
 - **Visitors see the calendar list by title** (#2147). The public calendar list came back newest first while the logged-in one is ordered by title; both are alphabetical now.
+- **The per-CPF yearly limit counts a year** (#2156). It read the same 30 days as the monthly limit, so it never blocked a CPF the monthly one had let through; each period now has its own window, and an unknown period no longer passes PHPStan.
 
 ### Security
 
