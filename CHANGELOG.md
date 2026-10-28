@@ -61,6 +61,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The per-CPF yearly limit counts a year** (#2156). It read the same 30 days as the monthly limit, so it never blocked a CPF the monthly one had let through; each period now has its own window, and an unknown period no longer passes PHPStan.
 - **A booking through the REST API can succeed** (#2155). `POST /calendars/{id}/appointments` never passed the CPF/RF on, so every booking failed with `cpf_rf_required`; it now requires `cpf_rf`, and every route id is cast to an integer before the typed lookups it used to crash.
 - **A booking that needs approval is reported as pending, and an owner is recognised as the owner** (#2160). Two strict comparisons met the string `$wpdb` returns: the booking result said confirmed, and a signed-in owner could not cancel their appointment or open its receipt.
+- **Tests: the shifted-key encryption test no longer fails one run in 256** (#2168). It now asserts that a shifted key slice never yields the plaintext, instead of `null`, which CBC padding cannot guarantee when the MAC key is the right one.
 - **Opening a public CSV form early a second time says why it was refused** (#2169). The refusal showed a generic "Unable to open the form right now"; it now says the form was already opened early once. The early-open, postpone and schedule-exception refusals name their reasons from a closed list PHPStan checks, so the two unreachable generic messages and their tests' own processes are gone.
 
 ### Security
