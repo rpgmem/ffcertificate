@@ -262,7 +262,7 @@ class AudienceBookingWriter {
 	 *
 	 * @param int                  $id Booking ID.
 	 * @param array<string, mixed> $data Update data.
-	 * @return bool
+	 * @return bool False when the database refused the booking row's write.
 	 */
 	public static function update( int $id, array $data ): bool {
 		$wpdb  = self::db();
@@ -310,14 +310,19 @@ class AudienceBookingWriter {
 				}
 			}
 
+			// A failed write stops here, so a caller never reports a change
+			// the database refused (#2183). Zero rows changed is not a failure.
 			if ( ! empty( $update_data ) ) {
-				$wpdb->update(
+				$updated = $wpdb->update(
 					$table,
 					$update_data,
 					array( 'id' => $id ),
 					$format,
 					array( '%d' )
 				);
+				if ( false === $updated ) {
+					return false;
+				}
 			}
 		}
 

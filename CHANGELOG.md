@@ -68,6 +68,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Opening a public CSV form early a second time says why it was refused** (#2169). The refusal showed a generic "Unable to open the form right now"; it now says the form was already opened early once. The early-open, postpone and schedule-exception refusals name their reasons from a closed list PHPStan checks, so the two unreachable generic messages and their tests' own processes are gone.
 - **A new audience calendar keeps its event-list, badge and booking-label settings** (#2175). Creating a calendar stored the database defaults for those five settings and only saved the chosen values on the first edit.
 - **Environment notices use the calendar's own label** (#2176). After creating, deactivating or deleting an environment the notice always said "Environment" and read a calendar that does not exist; the redirect now names the environment's calendar.
+- **Audience Calendars: a cancel the database refused is no longer reported as done** (#2183). The booking writer's update ignored the database's answer, so the screen and the REST API said a booking was cancelled while it stayed active, and the cancellation hook still sent its notifications.
 
 ### Security
 
