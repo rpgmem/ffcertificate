@@ -649,7 +649,7 @@ class VerificationHandler {
 			return array(
 				'success' => false,
 				'html'    => '',
-				'message' => $rate_check['message'] ?? __( 'Too many requests. Please wait a moment and try again.', 'ffcertificate' ),
+				'message' => $rate_check['message'],
 			);
 		}
 

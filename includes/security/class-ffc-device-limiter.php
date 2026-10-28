@@ -27,6 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Device-fingerprint rate limit.
+ *
+ * @phpstan-import-type RateLimitVerdict from RateLimitChecker
  */
 class DeviceLimiter {
 
@@ -67,7 +69,7 @@ class DeviceLimiter {
 	 *
 	 * @param int                   $form_id Form ID (post ID).
 	 * @param array<string, string> $signals Map of signal name -> SHA-256 hex hash.
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public function check( int $form_id, array $signals ): array {
 		global $wpdb;

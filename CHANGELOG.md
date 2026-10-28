@@ -35,6 +35,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Tests: eight more classes run in the shared process** (#2144). The recruitment candidate edit page and its handlers, admin actions, dashboard calls section, e-mail dispatcher, the public recruitment shortcode's listing and render pipeline, and the calendar REST controller now run their real readers, repositories, `Encryption` and formatters over a `$wpdb` double.
 - **Tests: eight more classes run in the shared process** (#2150). The date-messages runner, activity log and migration actions AJAX endpoints, appointment reminder scanner, audience bookings render, CSV import edges and sample route now run their real collaborators over a `$wpdb` double; only the form-cache tests that declare third-party plugin symbols keep their own process.
 - **Tests: eight more classes run in the shared process** (#2152). The reregistration frontend flow, audience check-in, form-invite sending, rate-limit guard and strategies, audience editor tabs, scheduling frame controls and appointment REST controller now run their real collaborators over a `$wpdb` double; three appointment-create tests keep their own process.
+- **Rate limiting: a denial always carries its message** (#2153). Every rate-limit check declares it, so PHPStan holds each limiter to it; the ten caller-side fallback texts it proved unreachable are gone, with the two strings only they used.
 
 ### Deprecated
 
@@ -54,6 +55,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The audience import sample's RF passes its own check digit** (#2138). The sample CSV offered an RF the importer refuses; its rows now carry a valid CPF and RF.
 - **The calendar detail and slots REST endpoints no longer fail on a real request** (#2146). The string `id` route parameter is cast before it reaches an `int` parameter under strict types, and the logged-in calendar list is ordered by title, not by `id`.
 - **Visitors see the calendar list by title** (#2147). The public calendar list came back newest first while the logged-in one is ordered by title; both are alphabetical now.
+- **The per-CPF yearly limit counts a year** (#2156). It read the same 30 days as the monthly limit, so it never blocked a CPF the monthly one had let through; each period now has its own window, and an unknown period no longer passes PHPStan.
 - **A booking through the REST API can succeed** (#2155). `POST /calendars/{id}/appointments` never passed the CPF/RF on, so every booking failed with `cpf_rf_required`; it now requires `cpf_rf`, and every route id is cast to an integer before the typed lookups it used to crash.
 
 ### Security

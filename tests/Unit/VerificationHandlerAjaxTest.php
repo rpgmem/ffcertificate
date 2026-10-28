@@ -111,7 +111,7 @@ class VerificationHandlerAjaxTest extends TestCase {
 			} )
 			->shouldReceive( 'validate_security_fields' )->andReturn( true );
 		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
-		$rl->shouldReceive( 'check_verification' )->andReturn( array( 'allowed' => false ) );
+		$rl->shouldReceive( 'check_verification' )->andReturn( array( 'allowed' => false, 'message' => 'Too many verification attempts. Please wait 1 minute.' ) );
 
 		$_POST = array( 'nonce' => 'ok', 'ffc_auth_code' => 'CODE12345678' );
 
@@ -129,12 +129,14 @@ class VerificationHandlerAjaxTest extends TestCase {
 		// check returns the rate-limit message and never touches the repository
 		// (the un-stubbed SubmissionHandler mock would throw if it were called).
 		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
-		$rl->shouldReceive( 'check_verification' )->andReturn( array( 'allowed' => false ) );
+		$rl->shouldReceive( 'check_verification' )->andReturn( array( 'allowed' => false, 'message' => 'Too many verification attempts. Please wait 1 minute.' ) );
 
 		$result = $this->handler->verify_certificate( 'CODE12345678' );
 
+		// The limiter's own message reaches the visitor; a denial always
+		// carries one, so the handler has no fallback text of its own (#2153).
 		$this->assertFalse( $result['success'] );
-		$this->assertStringContainsString( 'Too many', $result['message'] );
+		$this->assertSame( 'Too many verification attempts. Please wait 1 minute.', $result['message'] );
 	}
 
 	public function test_verification_ajax_security_fields_fail_refreshes_captcha(): void {
@@ -379,7 +381,7 @@ class VerificationHandlerAjaxTest extends TestCase {
 
 	public function test_magic_ajax_rate_limited(): void {
 		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
-		$rl->shouldReceive( 'check_verification' )->andReturn( array( 'allowed' => false ) );
+		$rl->shouldReceive( 'check_verification' )->andReturn( array( 'allowed' => false, 'message' => 'Too many verification attempts. Please wait 1 minute.' ) );
 
 		$_POST = array( 'token' => str_repeat( 'ab', 16 ) );
 
@@ -427,7 +429,7 @@ class VerificationHandlerAjaxTest extends TestCase {
 		// First call (AJAX gate) allowed; second (inside verify_by_magic_token) blocked.
 		$rl->shouldReceive( 'check_verification' )->andReturn(
 			array( 'allowed' => true ),
-			array( 'allowed' => false )
+			array( 'allowed' => false, 'message' => 'Too many verification attempts. Please wait 1 minute.' )
 		);
 
 		$token = str_repeat( 'cd', 16 );

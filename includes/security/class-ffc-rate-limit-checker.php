@@ -20,6 +20,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Rate Limit Checker.
+ *
+ * A denial always carries the message shown to the visitor, so a caller
+ * never needs a fallback of its own (#2153).
+ *
+ * @phpstan-type RateLimitVerdict array{allowed: true}|array{allowed: false, message: string, reason?: string, wait_seconds?: int}
  */
 final class RateLimitChecker {
 
@@ -151,7 +156,7 @@ final class RateLimitChecker {
 	 * @param int|null                   $form_id Form ID.
 	 * @param array<string, string>|null $device_signals Device fingerprint hashes (cookie, ua, screen, ...).
 	 * @param bool                       $skip_device Set true to bypass the device fingerprint check (e.g. for managers).
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_all( string $ip, ?string $email = null, ?string $cpf = null, ?int $form_id = null, ?array $device_signals = null, bool $skip_device = false ): array {
 		$s = self::get_settings();
@@ -217,7 +222,7 @@ final class RateLimitChecker {
 	 *
 	 * @param string   $ip IP address.
 	 * @param int|null $form_id Form ID.
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_ip_limit( string $ip, ?int $form_id = null ): array {
 		return ( new IpLimiter( new RateLimitSupport() ) )->check( $ip, $form_id );
@@ -228,7 +233,7 @@ final class RateLimitChecker {
 	 *
 	 * @param string   $email Email address.
 	 * @param int|null $form_id Form ID.
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_email_limit( string $email, ?int $form_id = null ): array {
 		return ( new EmailLimiter( new RateLimitSupport() ) )->check( $email, $form_id );
@@ -239,7 +244,7 @@ final class RateLimitChecker {
 	 *
 	 * @param string   $cpf CPF document.
 	 * @param int|null $form_id Form ID.
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_cpf_limit( string $cpf, ?int $form_id = null ): array {
 		return ( new CpfLimiter( new RateLimitSupport() ) )->check( $cpf, $form_id );
@@ -248,7 +253,7 @@ final class RateLimitChecker {
 	/**
 	 * Check global limit.
 	 *
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_global_limit(): array {
 		$s  = self::get_settings()['global'];
@@ -329,7 +334,7 @@ final class RateLimitChecker {
 	 *
 	 * @param int                   $form_id Form ID (post ID).
 	 * @param array<string, string> $signals Map of signal name -> SHA-256 hex hash.
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_device_limit( int $form_id, array $signals ): array {
 		return ( new DeviceLimiter( new RateLimitSupport() ) )->check( $form_id, $signals );
@@ -367,7 +372,7 @@ final class RateLimitChecker {
 	 * that length the IP-only ceiling stops being sufficient.
 	 *
 	 * @param string $ip IP address.
-	 * @return array{allowed: bool, message?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_verification( string $ip ): array {
 		$settings = self::get_settings();
@@ -473,7 +478,7 @@ final class RateLimitChecker {
 	 * @param string      $ip IP address.
 	 * @param string|null $email Email address.
 	 * @param string|null $cpf CPF document.
-	 * @return array{allowed: bool, message?: string, reason?: string}
+	 * @return RateLimitVerdict
 	 */
 	private static function check_blacklist( string $ip, ?string $email, ?string $cpf ): array {
 		$s  = self::get_settings();
@@ -569,7 +574,7 @@ final class RateLimitChecker {
 	 * @param string $action  Action identifier (e.g. 'password_change', 'privacy_request').
 	 * @param int    $max_per_hour Max attempts per hour (default 5).
 	 * @param int    $max_per_day  Max attempts per day (default 10).
-	 * @return array{allowed: bool, message?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_user_limit( int $user_id, string $action = 'default', int $max_per_hour = 5, int $max_per_day = 10 ): array {
 		if ( $user_id <= 0 ) {
@@ -624,7 +629,7 @@ final class RateLimitChecker {
 	 * @since 6.6.2
 	 * @param string $ip            Client IP.
 	 * @param string $endpoint_key  Endpoint identifier (e.g. `calendar_slots`).
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_read_limit( string $ip, string $endpoint_key ): array {
 		$s        = self::get_settings();

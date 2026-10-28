@@ -185,7 +185,7 @@ class OperatorCertificatesRestController {
 			if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
 				$rate_check = \FreeFormCertificate\Security\RateLimiter::check_user_limit( $user_id, self::RATE_ACTION, self::RATE_PER_HOUR, self::RATE_PER_DAY );
 				if ( ! $rate_check['allowed'] ) {
-					return new \WP_Error( 'rate_limited', $rate_check['message'] ?? __( 'Too many requests. Please try again later.', 'ffcertificate' ), array( 'status' => 429 ) );
+					return new \WP_Error( 'rate_limited', $rate_check['message'], array( 'status' => 429 ) );
 				}
 			}
 

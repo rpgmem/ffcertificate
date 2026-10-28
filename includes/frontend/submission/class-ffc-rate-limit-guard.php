@@ -60,7 +60,7 @@ class RateLimitGuard {
 		if ( ! $rate_check['allowed'] ) {
 			throw new SubmissionRejected(
 				array(
-					'message'      => $rate_check['message'] ?? 'Rate limit exceeded.',
+					'message'      => $rate_check['message'],
 					'rate_limit'   => true,
 					'wait_seconds' => $rate_check['wait_seconds'] ?? 0,
 				)

@@ -18082,10 +18082,6 @@ msgstr "Muitas tentativas. Por favor, tente novamente em 1 minuto."
 msgid "Too many attempts. Please wait %s."
 msgstr "Muitas tentativas. Aguarde %s."
 
-#: includes/api/class-ffc-read-rate-limit-guard-trait.php:89
-msgid "Too many requests. Please slow down."
-msgstr "Muitas solicitações. Por favor, diminua o ritmo."
-
 #: includes/recruitment/class-ffc-recruitment-public-shortcode.php:145
 msgid "Too many requests. Please try again in a few seconds."
 msgstr "Muitas requisições. Tente novamente em alguns segundos."
@@ -18093,10 +18089,6 @@ msgstr "Muitas requisições. Tente novamente em alguns segundos."
 #: includes/api/class-ffc-operator-certificates-rest-controller.php:188 includes/api/class-ffc-appointment-rest-controller.php:186
 msgid "Too many requests. Please try again later."
 msgstr "Muitas solicitações. Tente novamente mais tarde."
-
-#: includes/frontend/class-ffc-verification-handler.php:631
-msgid "Too many requests. Please wait a moment and try again."
-msgstr "Muitas solicitações. Por favor, aguarde um momento e tente novamente."
 
 #: includes/security/class-ffc-rate-limit-checker.php:659 includes/settings/tabs/class-ffc-tab-rate-limit.php:140
 msgid "Too many requests. Please wait {time}."
