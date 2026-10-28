@@ -9,136 +9,368 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\AdminAjax;
+use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 use FreeFormCertificate\Tests\Support\CallLog;
 use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
- * Tests for AdminAjax: constructor hook registration and the search_user
- * AJAX handler.
+ * Tests for AdminAjax: constructor hook registration, the search_user AJAX
+ * handler and the PII reveal endpoints.
+ *
+ * Everything below the handler runs for real — AjaxTrait, Capabilities,
+ * RequestInput, PiiAccessPolicy, DocumentFormatter, Encryption (with the
+ * bootstrap's key constants), ActivityLog, SettingsReader, SubmissionHandler,
+ * AppointmentRepository, the reregistration, audience and custom-field
+ * readers, AdminUserCustomFields, DateMessagesAdminPage, UserManager,
+ * ActivityLogQuery and RateLimitStats — over a `$wpdb` double that answers
+ * each query by its SQL text from the rows a test stores, and fails on any
+ * query it does not know. The viewer is one account: its capabilities are a
+ * list both `current_user_can()` and `user_can()` read, so a policy tier is
+ * chosen by granting (or not) the module's PII capability, and the owner
+ * tier by making the viewer the record's owner. The audit is the real
+ * ActivityLog's write buffer, with the activity log switched on.
+ *
+ * The four search tests that reach `new \WP_User_Query` run in their own
+ * process: that WordPress class is not in the bootstrap, so each overloads it.
  *
  * @covers \FreeFormCertificate\Admin\AdminAjax
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AdminAjaxTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface Alias mock for Utils */
-	private $utils_mock;
-	private $caps_mock;
+	/** The viewer's account id. */
+	private const VIEWER = 4;
 
-	/** @var Mockery\MockInterface Overload mock for WP_User_Query */
-	private $user_query_mock;
+	/** Capabilities every test's viewer holds: each reveal type's surface, and no PII cap. */
+	private const SURFACE_CAPS = array(
+		'ffc_edit_certificates',
+		'ffc_view_certificates',
+		'ffc_view_appointments',
+		'ffc_view_reregistration',
+		'ffc_view_audiences',
+		'edit_users',
+		'ffc_view_date_messages',
+		'ffc_view_activity_log',
+		'ffc_view_settings',
+	);
 
-	/** @var Mockery\MockInterface */
-	private $wpdb;
+	/** @var int The account get_current_user_id() answers. */
+	private int $current_user = self::VIEWER;
 
-	/** @var Mockery\MockInterface Alias mock for Encryption */
-	private $encryption_mock;
+	/** @var list<string> Capabilities the viewer holds. */
+	private array $viewer_caps = array();
+
+	/** @var list<int> Accounts the viewer may edit (`edit_user`). */
+	private array $editable_users = array();
+
+	/** @var list<string> Every capability current_user_can() was asked about. */
+	private array $cap_checks = array();
+
+	/** @var list<string> Every capability user_can() was asked about. */
+	private array $policy_checks = array();
+
+	/** @var array<int, \WP_User> Accounts get_userdata() answers. */
+	private array $users = array();
+
+	/** @var array<int, array<string, mixed>> User meta, by account and key. */
+	private array $user_meta = array();
+
+	/** @var array<string, array<int, array<string, mixed>>> Stored rows, by table and id. */
+	private array $tables = array();
+
+	/** @var list<int> Accounts listed as members of an audience. */
+	private array $audience_members = array();
+
+	/** @var array<string, string> `cpf_hash` / `rf_hash` value => user_id stored on a submission. */
+	private array $identifier_owners = array();
+
+	/** @var list<string> Every SQL string the double ran. */
+	private array $queries = array();
+
+	/** @var array<string, mixed> The `$_POST` an earlier test left, restored afterwards. */
+	private array $post_backup = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
-		// Common WP function stubs
+		$this->post_backup = $_POST ?? array();
+		$_POST             = array();
+
+		$this->current_user      = self::VIEWER;
+		$this->viewer_caps       = self::SURFACE_CAPS;
+		$this->editable_users    = array();
+		$this->cap_checks        = array();
+		$this->policy_checks     = array();
+		$this->users             = array();
+		$this->user_meta         = array();
+		$this->tables            = array();
+		$this->audience_members  = array();
+		$this->identifier_owners = array();
+		$this->queries           = array();
+
+		// The real ActivityLog, logging into its buffer (never flushed).
+		ActivityLogBuffer::reset();
+		ActivityLogBuffer::stub_functions();
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_settings' === $key ? ActivityLogBuffer::ENABLED_SETTINGS : $default
+		);
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+
 		Functions\when( '__' )->returnArg();
-		Functions\when( 'sanitize_text_field' )->returnArg();
-		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'absint' )->alias( function ( $v ) {
-			return abs( (int) $v );
-		} );
 		Functions\when( 'add_action' )->justReturn( true );
 
-		// Stub wp_send_json_error to throw so we can detect "die" behavior
-		Functions\when( 'wp_send_json_error' )->alias( function ( $data = null ) {
-			$message = is_array( $data ) && isset( $data['message'] ) ? $data['message'] : 'wp_send_json_error';
-			throw new \RuntimeException( 'wp_send_json_error: ' . $message );
-		} );
-
-		// Stub wp_send_json_success to throw so we can capture success responses
-		Functions\when( 'wp_send_json_success' )->alias( function ( $data = null ) {
-			throw new AdminAjaxSuccessException( $data );
-		} );
-
-		// Default stubs for nonce/permission (pass by default)
-		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
-		Functions\when( 'current_user_can' )->justReturn( true );
-
-		// Utils alias mock — required by check_ajax_permission for 'manage_options'
-		$this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-		$this->caps_mock  = Mockery::mock( 'alias:\FreeFormCertificate\Core\Capabilities' );
-		$ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
-		$ri_mock->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
-		$ri_mock->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
-		$ri_mock->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-		$this->caps_mock->shouldReceive( 'current_user_can_manage' )->andReturn( true )->byDefault();
-		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )->byDefault();
-		$this->utils_mock->shouldReceive( 'debug_log' )->byDefault();
-		$ri_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
-			return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? $_POST[ $key ] : $default;
-		} )->byDefault();
-		$ri_mock->shouldReceive( 'get_post_int' )->andReturnUsing( function ( $key, $default = 0 ) {
-			return isset( $_POST[ $key ] ) ? (int) $_POST[ $key ] : $default;
-		} )->byDefault();
-
-		// Encryption alias mock — needed by search_user_by_cpf and the
-		// appointment reveal path (decrypt_appointment passes the row through).
-		$encryption_mock       = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
-		$this->encryption_mock = $encryption_mock;
-		$encryption_mock->shouldReceive( 'hash' )->andReturn( 'hashed_value' )->byDefault();
-		$encryption_mock->shouldReceive( 'decrypt_appointment' )->andReturnUsing(
-			function ( $row ) {
-				return $row;
+		// Stub wp_send_json_error to throw so we can detect "die" behavior.
+		Functions\when( 'wp_send_json_error' )->alias(
+			static function ( $data = null ) {
+				$message = is_array( $data ) && isset( $data['message'] ) ? $data['message'] : 'wp_send_json_error';
+				throw new \RuntimeException( 'wp_send_json_error: ' . $message );
 			}
-		)->byDefault();
+		);
+		// Stub wp_send_json_success to throw so we can capture success responses.
+		Functions\when( 'wp_send_json_success' )->alias(
+			static function ( $data = null ) {
+				throw new AdminAjaxSuccessException( $data );
+			}
+		);
 
-		// WP_User_Query overload mock
-		$this->user_query_mock = Mockery::mock( 'overload:\WP_User_Query' );
-		$this->user_query_mock->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
-
-		// wp_rand stub — returns varying values for code generation
-		Functions\when( 'wp_rand' )->alias( function ( $min, $max ) {
-			return mt_rand( $min, $max );
-		} );
-
-		// Default stubs
-		Functions\when( 'get_post_meta' )->justReturn( array() );
-		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->alias(
+			function ( $cap, ...$args ) {
+				$this->cap_checks[] = (string) $cap;
+				if ( 'edit_user' === $cap ) {
+					return in_array( (int) ( $args[0] ?? 0 ), $this->editable_users, true );
+				}
+				return in_array( $cap, $this->viewer_caps, true );
+			}
+		);
+		Functions\when( 'user_can' )->alias(
+			function ( $user_id, $cap ) {
+				$this->policy_checks[] = (string) $cap;
+				return (int) $user_id === $this->current_user && in_array( $cap, $this->viewer_caps, true );
+			}
+		);
+		Functions\when( 'get_current_user_id' )->alias( fn() => $this->current_user );
+		Functions\when( 'get_userdata' )->alias( fn( $id ) => $this->users[ (int) $id ] ?? false );
+		Functions\when( 'get_user_meta' )->alias(
+			fn( $user_id, $key = '', $single = false ) => $this->user_meta[ (int) $user_id ][ $key ] ?? ''
+		);
 		Functions\when( 'get_avatar_url' )->justReturn( 'https://example.com/avatar.jpg' );
 		// The user picker masks the addresses it lists (#1863).
 		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && false !== strpos( $v, '@' ) );
-		// reveal_pii passes get_current_user_id() to ActivityLog::log — the arg
-		// is evaluated even when the audit no-ops, so it must be defined.
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
-		// Global wpdb for search_user_by_cpf
-		global $wpdb;
-		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
-		$wpdb->prefix = 'wp_';
-		$wpdb->last_error = '';
-		$this->wpdb = $wpdb;
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' )->byDefault();
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null )->byDefault();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $this->database();
 	}
 
 	protected function tearDown(): void {
-		unset(
-			$_POST['nonce'],
-			$_POST['quantity'],
-			$_POST['form_id'],
-			$_POST['search']
-		);
+		ActivityLogBuffer::reset();
+		$_POST = $this->post_backup;
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * A `$wpdb` double reading the rows this test stored.
+	 *
+	 * `prepare()` interpolates, so each read dispatches on the query it ran.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function database() {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$values = ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args;
+				return (string) preg_replace_callback(
+					'/%[ids]/',
+					static function () use ( &$values ) {
+						return (string) array_shift( $values );
+					},
+					(string) $sql
+				);
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql, $output = OBJECT ) {
+				$this->queries[] = $sql;
+				if ( 1 === preg_match( '/FROM (\S+) WHERE id = (\d+)$/', $sql, $m ) ) {
+					$row = $this->tables[ $m[1] ][ (int) $m[2] ] ?? null;
+					if ( null === $row ) {
+						return null;
+					}
+					return ARRAY_A === $output ? $row : (object) $row;
+				}
+				$this->fail( 'Unexpected get_row(): ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = $sql;
+				if ( 0 === strpos( $sql, 'SHOW TABLES LIKE ' ) ) {
+					// No profile table: UserManager falls back to the account.
+					return null;
+				}
+				if ( 1 === preg_match( '/^SELECT COUNT\(\*\) FROM wp_ffc_audience_members WHERE user_id = (\d+)$/', $sql, $m ) ) {
+					return in_array( (int) $m[1], $this->audience_members, true ) ? '1' : '0';
+				}
+				if ( 1 === preg_match( '/^SELECT COUNT\(\*\) FROM wp_ffc_audience_schedule_permissions WHERE user_id = \d+$/', $sql ) ) {
+					return '0';
+				}
+				if ( 1 === preg_match( '/^SELECT user_id FROM wp_ffc_submissions WHERE (cpf_hash|rf_hash) = (\S+) AND user_id IS NOT NULL LIMIT 1$/', $sql, $m ) ) {
+					return $this->identifier_owners[ $m[1] . '=' . $m[2] ] ?? null;
+				}
+				$this->fail( 'Unexpected get_var(): ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = $sql;
+				if ( 1 === preg_match( '/INNER JOIN wp_ffc_audience_members m ON a.id = m.audience_id\s+WHERE m.user_id = (\d+)/', $sql, $m ) ) {
+					$rows = array();
+					foreach ( $this->tables['wp_ffc_audiences'] ?? array() as $audience ) {
+						if ( in_array( (int) $m[1], $audience['members'], true ) ) {
+							$rows[] = (object) $audience;
+						}
+					}
+					return $rows;
+				}
+				if ( 1 === preg_match( '/^SELECT \* FROM wp_ffc_custom_fields WHERE audience_id = (\d+) AND is_active = 1/', $sql, $m ) ) {
+					$rows = array();
+					foreach ( $this->tables['wp_ffc_custom_fields'] ?? array() as $field ) {
+						if ( (int) $m[1] === (int) $field['audience_id'] ) {
+							$rows[] = (object) $field;
+						}
+					}
+					return $rows;
+				}
+				$this->fail( 'Unexpected get_results(): ' . $sql );
+			}
+		);
+		return $wpdb;
 	}
 
 	/**
 	 * Helper: set up POST data for a valid search_user request.
 	 */
 	private function setup_valid_search_user( string $term = 'john' ): void {
-		$_POST['nonce'] = 'valid_nonce';
+		$_POST['nonce']  = 'valid_nonce';
 		$_POST['search'] = $term;
+	}
+
+	/**
+	 * Post a single reveal.
+	 *
+	 * @param string      $type  Reveal type; null posts none (the default, submission).
+	 * @param int         $id    Record id.
+	 * @param string      $field Field.
+	 */
+	private function post_reveal( ?string $type, int $id, string $field ): void {
+		$_POST['nonce'] = 'n';
+		if ( null !== $type ) {
+			$_POST['type'] = $type;
+		}
+		$_POST['submission_id'] = (string) $id;
+		$_POST['field']         = $field;
+	}
+
+	/**
+	 * Store a row.
+	 *
+	 * @param string               $table Table, with prefix.
+	 * @param int                  $id    Row id.
+	 * @param array<string, mixed> $row   Columns.
+	 */
+	private function store( string $table, int $id, array $row ): void {
+		$this->tables[ $table ][ $id ] = array( 'id' => (string) $id ) + $row;
+	}
+
+	/**
+	 * An account get_userdata() answers.
+	 *
+	 * @param int    $id           Account id.
+	 * @param string $email        Email.
+	 * @param string $display_name Display name.
+	 */
+	private function account( int $id, string $email, string $display_name = '' ): void {
+		$user               = new \WP_User( $id );
+		$user->user_email   = $email;
+		$user->display_name = $display_name;
+		$this->users[ $id ] = $user;
+	}
+
+	/**
+	 * Run reveal_pii() to its success response.
+	 *
+	 * @return mixed The response data.
+	 */
+	private function reveal() {
+		$ajax = new AdminAjax();
+		try {
+			$ajax->reveal_pii();
+		} catch ( AdminAjaxSuccessException $e ) {
+			return $e->getData();
+		}
+		$this->fail( 'Expected AdminAjaxSuccessException' );
+	}
+
+	/**
+	 * The one audit row a served reveal wrote.
+	 *
+	 * @param string               $action    Expected action.
+	 * @param array<string, mixed> $context   Expected context.
+	 * @param int                  $user_id   Expected actor.
+	 * @param int                  $object_id Expected record id.
+	 */
+	private function assertAuditedOnce( string $action, array $context, int $user_id, int $object_id ): void {
+		$entries = ActivityLogBuffer::entries();
+		$this->assertCount( 1, $entries, 'Exactly one audit row.' );
+		$this->assertSame(
+			array(
+				'action'  => $action,
+				'level'   => 'info',
+				'context' => $context,
+			),
+			ActivityLogBuffer::contexts()[0]
+		);
+		$this->assertSame( $user_id, $entries[0]['user_id'] );
+		$this->assertSame( $object_id, $entries[0]['submission_id'] );
+	}
+
+	/**
+	 * Prove the record's owner reached the policy: the same reveal, asked by
+	 * that owner, resolves to the owner tier, which checks no capability.
+	 *
+	 * @param int $owner The owner the record carries.
+	 */
+	private function assertOwnerTierFor( int $owner ): void {
+		$this->current_user  = $owner;
+		$this->policy_checks = array();
+		$this->reveal();
+		$this->assertSame( array(), $this->policy_checks, 'The owner reveals without a capability check.' );
+	}
+
+	/**
+	 * `Identifiers::CPF_A` in the `xxx.xxx.xxx-xx` shape `format_cpf()` returns.
+	 */
+	private static function masked_cpf_a(): string {
+		$cpf = Identifiers::CPF_A;
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
 	}
 
 	// ==================================================================
@@ -147,11 +379,13 @@ class AdminAjaxTest extends TestCase {
 
 	public function test_constructor_registers_ajax_hooks(): void {
 		$registered = array();
-		Functions\when( 'add_action' )->alias( function ( $hook, $callback ) use ( &$registered ) {
-			$registered[] = $hook;
-		} );
+		Functions\when( 'add_action' )->alias(
+			function ( $hook, $callback ) use ( &$registered ) {
+				$registered[] = $hook;
+			}
+		);
 
-		$ajax = new AdminAjax();
+		new AdminAjax();
 
 		$this->assertContains( 'wp_ajax_ffc_search_user', $registered );
 	}
@@ -166,8 +400,7 @@ class AdminAjaxTest extends TestCase {
 		// the trait's `manage_options` default. A caller lacking the cap and
 		// manage_options is denied.
 		$this->setup_valid_search_user( 'jane' );
-		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )
-			->with( 'ffc_edit_certificates' )->andReturn( false );
+		$this->viewer_caps = array_values( array_diff( $this->viewer_caps, array( 'ffc_edit_certificates' ) ) );
 
 		$ajax = new AdminAjax();
 
@@ -178,7 +411,7 @@ class AdminAjaxTest extends TestCase {
 	}
 
 	public function test_search_user_sends_error_for_short_term(): void {
-		$this->setup_valid_search_user( 'a' ); // Only 1 character
+		$this->setup_valid_search_user( 'a' ); // Only 1 character.
 
 		$ajax = new AdminAjax();
 
@@ -188,21 +421,16 @@ class AdminAjaxTest extends TestCase {
 		$ajax->search_user();
 	}
 
+	/**
+	 * Its own process: it overloads WP_User_Query, which the bootstrap does not declare.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_search_user_finds_by_numeric_id(): void {
 		$this->setup_valid_search_user( '42' );
-
-		$user = new \WP_User( 42 );
-		$user->display_name = 'Found User';
-		$user->user_email = 'found@example.com';
-
-		Functions\when( 'get_userdata' )->alias( function ( $id ) use ( $user ) {
-			if ( $id === 42 ) {
-				return $user;
-			}
-			return false;
-		} );
-
-		$this->user_query_mock->shouldReceive( 'get_results' )->andReturn( array() );
+		$this->account( 42, 'found@example.com', 'Found User' );
+		Mockery::mock( 'overload:WP_User_Query' )->shouldReceive( 'get_results' )->andReturn( array() );
 
 		$ajax = new AdminAjax();
 
@@ -218,15 +446,19 @@ class AdminAjaxTest extends TestCase {
 		}
 	}
 
+	/**
+	 * Its own process: it overloads WP_User_Query, which the bootstrap does not declare.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_search_user_finds_by_name_email(): void {
 		$this->setup_valid_search_user( 'jane' );
 
-		$user = new \WP_User( 55 );
-		$user->ID = 55;
+		$user               = new \WP_User( 55 );
 		$user->display_name = 'Jane Doe';
-		$user->user_email = 'jane@example.com';
-
-		$this->user_query_mock->shouldReceive( 'get_results' )->andReturn( array( $user ) );
+		$user->user_email   = 'jane@example.com';
+		Mockery::mock( 'overload:WP_User_Query' )->shouldReceive( 'get_results' )->andReturn( array( $user ) );
 
 		$ajax = new AdminAjax();
 
@@ -243,48 +475,42 @@ class AdminAjaxTest extends TestCase {
 		}
 	}
 
+	/**
+	 * Its own process: it overloads WP_User_Query, which the bootstrap does not declare.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_search_user_returns_error_when_none_found(): void {
 		$this->setup_valid_search_user( 'nonexistent' );
-
-		// get_userdata returns false (not numeric search anyway)
-		Functions\when( 'get_userdata' )->justReturn( false );
-		// WP_User_Query returns empty
-		$this->user_query_mock->shouldReceive( 'get_results' )->andReturn( array() );
-		// CPF search also returns nothing (search term is not numeric enough)
+		Mockery::mock( 'overload:WP_User_Query' )->shouldReceive( 'get_results' )->andReturn( array() );
 
 		$ajax = new AdminAjax();
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessageMatches( '/No users found/' );
-
-		$ajax->search_user();
+		try {
+			$ajax->search_user();
+			$this->fail( 'Expected an error response' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'No users found', $e->getMessage() );
+		}
+		// The term carries no digits, so the CPF/RF fallback never queries.
+		$this->assertSame( array(), $this->queries );
 	}
 
+	/**
+	 * Its own process: it overloads WP_User_Query, which the bootstrap does not declare.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_search_user_falls_back_to_cpf_search(): void {
-		// CPF with enough digits for the fallback search
-		$this->setup_valid_search_user( '51817842080' );
+		// A CPF, so the numeric-id lookup and the name search find nobody.
+		$this->setup_valid_search_user( Identifiers::CPF_A );
+		Mockery::mock( 'overload:WP_User_Query' )->shouldReceive( 'get_results' )->andReturn( array() );
 
-		// get_userdata returns false (numeric but no WP user with that ID)
-		Functions\when( 'get_userdata' )->justReturn( false );
-
-		// WP_User_Query returns empty
-		$this->user_query_mock->shouldReceive( 'get_results' )->andReturn( array() );
-
-		// CPF search: wpdb returns a user_id, then get_userdata returns a user
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '77' );
-
-		$cpf_user = new \WP_User( 77 );
-		$cpf_user->ID = 77;
-		$cpf_user->display_name = 'CPF User';
-		$cpf_user->user_email = 'cpf@example.com';
-
-		Functions\when( 'get_userdata' )->alias( function ( $id ) use ( $cpf_user ) {
-			if ( $id === 77 ) {
-				return $cpf_user;
-			}
-			return false;
-		} );
+		// A submission carries that CPF's hash, linked to account 77.
+		$this->identifier_owners[ 'cpf_hash=' . Encryption::hash( Identifiers::CPF_A ) ] = '77';
+		$this->account( 77, 'cpf@example.com', 'CPF User' );
 
 		$ajax = new AdminAjax();
 
@@ -304,48 +530,8 @@ class AdminAjaxTest extends TestCase {
 	// reveal_pii (#739 §3.3)
 	// ==================================================================
 
-	/**
-	 * `Identifiers::CPF_A` in the `xxx.xxx.xxx-xx` shape `format_cpf()` returns.
-	 */
-	private static function masked_cpf_a(): string {
-		$cpf = Identifiers::CPF_A;
-		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
-	}
-
-	/**
-	 * Alias-mock Core\PiiAccessPolicy with its TIER_* constants mapped so the
-	 * handler's production references resolve.
-	 *
-	 * @return \Mockery\MockInterface
-	 */
-	private function mock_pii_policy() {
-		Mockery::getConfiguration()->setConstantsMap(
-			array(
-				'FreeFormCertificate\Core\PiiAccessPolicy' => array(
-					'TIER_MASKED'   => 'masked',
-					'TIER_REVEAL'   => 'reveal',
-					'TIER_UNMASKED' => 'unmasked',
-				),
-			)
-		);
-		return Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' );
-	}
-
-	/**
-	 * Overload-mock SubmissionHandler so get_submission returns a fixed row.
-	 *
-	 * @param array<string,mixed> $row Row fields.
-	 * @return void
-	 */
-	private function mock_submission( array $row ): void {
-		$handler = Mockery::mock( 'overload:\FreeFormCertificate\Submissions\SubmissionHandler' );
-		$handler->shouldReceive( 'get_submission' )->andReturn( $row );
-	}
-
 	public function test_reveal_pii_rejects_unsupported_field(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['submission_id'] = '5';
-		$_POST['field']         = 'ssn';
+		$this->post_reveal( null, 5, 'ssn' );
 
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
@@ -354,144 +540,103 @@ class AdminAjaxTest extends TestCase {
 	}
 
 	public function test_reveal_pii_denied_for_masked_tier(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['submission_id'] = '5';
-		$_POST['field']         = 'cpf';
-
-		$this->mock_submission(
+		$this->post_reveal( null, 5, 'cpf' );
+		$this->store(
+			'wp_ffc_submissions',
+			5,
 			array(
-				'cpf'     => '51817842080',
-				'user_id' => 9,
+				'cpf_encrypted' => Encryption::encrypt( Identifiers::CPF_A ),
+				'user_id'       => '9',
 			)
 		);
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'masked' );
-
-		$ajax = new AdminAjax();
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessageMatches( '/permission to reveal/' );
-		$ajax->reveal_pii();
-	}
-
-	public function test_reveal_pii_cpf_success_formats_and_audits(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['submission_id'] = '5';
-		$_POST['field']         = 'cpf';
-
-		$this->mock_submission(
-			array(
-				'cpf'     => '51817842080',
-				'user_id' => 9,
-			)
-		);
-
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
-
-		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$df->shouldReceive( 'format_cpf' )->with( '51817842080' )->andReturn( self::masked_cpf_a() );
-
-		// The reveal tier calls the real ActivityLog::log; keep the audit log
-		// disabled so it early-returns without a DB write (its LEVEL_INFO
-		// constant is genuinely defined this way, avoiding the alias-mock
-		// constants-map fragility).
-		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
-			->shouldReceive( 'activity_log_enabled' )->once()->andReturn( false );
 
 		$ajax = new AdminAjax();
 		try {
 			$ajax->reveal_pii();
-			$this->fail( 'Expected AdminAjaxSuccessException' );
-		} catch ( AdminAjaxSuccessException $e ) {
-			$data = $e->getData();
-			$this->assertSame(
-				array(
-					'field' => 'cpf',
-					'value' => self::masked_cpf_a(),
-				),
-				$data
-			);
+			$this->fail( 'Expected a 403' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'permission to reveal', $e->getMessage() );
 		}
+		$this->assertContains( 'ffc_view_certificates_pii', $this->policy_checks );
+		$this->assertSame( array(), ActivityLogBuffer::entries(), 'A refused reveal is not audited.' );
+	}
+
+	public function test_reveal_pii_cpf_success_formats_and_audits(): void {
+		$this->post_reveal( null, 5, 'cpf' );
+		$this->store(
+			'wp_ffc_submissions',
+			5,
+			array(
+				'cpf_encrypted' => Encryption::encrypt( Identifiers::CPF_A ),
+				'user_id'       => '9',
+			)
+		);
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
+
+		$this->assertSame(
+			array(
+				'field' => 'cpf',
+				'value' => self::masked_cpf_a(),
+			),
+			$this->reveal()
+		);
+		$this->assertAuditedOnce( 'submission_pii_revealed', array( 'field_key' => 'cpf' ), self::VIEWER, 5 );
 	}
 
 	public function test_reveal_pii_unmasked_tier_returns_value_and_audits(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['submission_id'] = '5';
-		$_POST['field']         = 'cpf';
-
-		$this->mock_submission(
+		$this->post_reveal( null, 5, 'cpf' );
+		$this->store(
+			'wp_ffc_submissions',
+			5,
 			array(
-				'cpf'     => '51817842080',
-				'user_id' => 9,
+				'cpf_encrypted' => Encryption::encrypt( Identifiers::CPF_A ),
+				'user_id'       => '9',
 			)
 		);
-
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'unmasked' );
-
-		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$df->shouldReceive( 'format_cpf' )->andReturn( self::masked_cpf_a() );
+		// The owner of the record: the policy's unmasked tier.
+		$this->current_user = 9;
 
 		// Every served reveal reaches the audit (#1655): the unmasked tier
 		// calls here from the submission edit page and the appointment detail
 		// page, which mask for it.
-		// The log is kept switched off, so the call proves the path and
-		// honours the switch without a DB write.
-		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
-			->shouldReceive( 'activity_log_enabled' )->once()->andReturn( false );
-
-		$ajax = new AdminAjax();
-		$this->expectException( AdminAjaxSuccessException::class );
-		$ajax->reveal_pii();
+		$this->assertSame( self::masked_cpf_a(), $this->reveal()['value'] );
+		$this->assertSame( array(), $this->policy_checks, 'The owner tier checks no capability.' );
+		$this->assertAuditedOnce( 'submission_pii_revealed', array( 'field_key' => 'cpf' ), 9, 5 );
 	}
 
 	public function test_reveal_pii_ip_returns_the_stored_ip_and_audits(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['submission_id'] = '5';
-		$_POST['field']         = 'ip';
-
-		$this->mock_submission(
+		$this->post_reveal( null, 5, 'ip' );
+		$this->store(
+			'wp_ffc_submissions',
+			5,
 			array(
-				'user_ip' => '203.0.113.7',
-				'user_id' => 9,
+				'user_ip_encrypted' => Encryption::encrypt( '203.0.113.7' ),
+				'user_id'           => '9',
 			)
 		);
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
 
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
-
+		$this->assertSame(
+			array(
+				'field' => 'ip',
+				'value' => '203.0.113.7',
+			),
+			$this->reveal()
+		);
 		// The IP reveal goes through the same audit as email and CPF (#1760).
-		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
-			->shouldReceive( 'activity_log_enabled' )->once()->andReturn( false );
-
-		$ajax = new AdminAjax();
-		try {
-			$ajax->reveal_pii();
-			$this->fail( 'Expected AdminAjaxSuccessException' );
-		} catch ( AdminAjaxSuccessException $e ) {
-			$this->assertSame(
-				array(
-					'field' => 'ip',
-					'value' => '203.0.113.7',
-				),
-				$e->getData()
-			);
-		}
+		$this->assertAuditedOnce( 'submission_pii_revealed', array( 'field_key' => 'ip' ), self::VIEWER, 5 );
 	}
 
 	public function test_reveal_pii_ip_denied_for_masked_tier(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['submission_id'] = '5';
-		$_POST['field']         = 'ip';
-
-		$this->mock_submission(
+		$this->post_reveal( null, 5, 'ip' );
+		$this->store(
+			'wp_ffc_submissions',
+			5,
 			array(
-				'user_ip' => '203.0.113.7',
-				'user_id' => 9,
+				'user_ip_encrypted' => Encryption::encrypt( '203.0.113.7' ),
+				'user_id'           => '9',
 			)
 		);
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'masked' );
 
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
@@ -499,107 +644,62 @@ class AdminAjaxTest extends TestCase {
 		$ajax->reveal_pii();
 	}
 
-	/**
-	 * Overload-mock AppointmentRepository so findById returns a fixed row.
-	 *
-	 * @param array<string,mixed> $row Row fields.
-	 * @return void
-	 */
-	private function mock_appointment( array $row ): void {
-		$repo = Mockery::mock( 'overload:\FreeFormCertificate\Repositories\AppointmentRepository' );
-		$repo->shouldReceive( 'findById' )->andReturn( $row );
-	}
-
 	public function test_reveal_pii_appointment_cpf_reveal_tier_returns_value(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'appointment';
-		$_POST['submission_id'] = '7';
-		$_POST['field']         = 'cpf';
-
-		$this->mock_appointment(
+		$this->post_reveal( 'appointment', 7, 'cpf' );
+		$this->store(
+			'wp_ffc_self_scheduling_appointments',
+			7,
 			array(
-				'cpf'     => '51817842080',
-				'user_id' => 3,
+				'cpf_encrypted' => Encryption::encrypt( Identifiers::CPF_A ),
+				'user_id'       => '3',
 			)
 		);
+		$this->viewer_caps[] = 'ffc_view_appointments_pii';
 
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
-
-		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$df->shouldReceive( 'format_cpf' )->with( '51817842080' )->andReturn( self::masked_cpf_a() );
-
-		// Reveal tier audits via the real ActivityLog; keep the log disabled so
-		// it early-returns without a DB write.
-		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
-			->shouldReceive( 'activity_log_enabled' )->andReturn( false );
-
-		$ajax = new AdminAjax();
-		try {
-			$ajax->reveal_pii();
-			$this->fail( 'Expected AdminAjaxSuccessException' );
-		} catch ( AdminAjaxSuccessException $e ) {
-			$this->assertSame(
-				array(
-					'field' => 'cpf',
-					'value' => self::masked_cpf_a(),
-				),
-				$e->getData()
-			);
-		}
+		$this->assertSame(
+			array(
+				'field' => 'cpf',
+				'value' => self::masked_cpf_a(),
+			),
+			$this->reveal()
+		);
+		$this->assertAuditedOnce( 'appointment_pii_revealed', array( 'field_key' => 'cpf' ), self::VIEWER, 7 );
 	}
 
 	public function test_reveal_pii_appointment_unmasked_tier_returns_value_and_audits(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'appointment';
-		$_POST['submission_id'] = '7';
-		$_POST['field']         = 'email';
-
-		$this->mock_appointment(
+		$this->post_reveal( 'appointment', 7, 'email' );
+		$this->store(
+			'wp_ffc_self_scheduling_appointments',
+			7,
 			array(
-				'email'   => 'alice@example.com',
-				'user_id' => 3,
+				'email_encrypted' => Encryption::encrypt( 'alice@example.com' ),
+				'user_id'         => '3',
 			)
 		);
-
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'unmasked' );
+		$this->current_user = 3;
 
 		// The appointment detail page masks for the unmasked tier too (#1813),
 		// so this call is how that tier sees the value, and it is audited.
-		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
-			->shouldReceive( 'activity_log_enabled' )->once()->andReturn( false );
-
-		$ajax = new AdminAjax();
-		try {
-			$ajax->reveal_pii();
-			$this->fail( 'Expected AdminAjaxSuccessException' );
-		} catch ( AdminAjaxSuccessException $e ) {
-			$this->assertSame(
-				array(
-					'field' => 'email',
-					'value' => 'alice@example.com',
-				),
-				$e->getData()
-			);
-		}
+		$this->assertSame(
+			array(
+				'field' => 'email',
+				'value' => 'alice@example.com',
+			),
+			$this->reveal()
+		);
+		$this->assertAuditedOnce( 'appointment_pii_revealed', array( 'field_key' => 'email' ), 3, 7 );
 	}
 
 	public function test_reveal_pii_appointment_masked_tier_denied(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'appointment';
-		$_POST['submission_id'] = '7';
-		$_POST['field']         = 'email';
-
-		$this->mock_appointment(
+		$this->post_reveal( 'appointment', 7, 'email' );
+		$this->store(
+			'wp_ffc_self_scheduling_appointments',
+			7,
 			array(
-				'email'   => 'x@y.com',
-				'user_id' => 3,
+				'email_encrypted' => Encryption::encrypt( 'x@y.com' ),
+				'user_id'         => '3',
 			)
 		);
-
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'masked' );
 
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
@@ -611,145 +711,91 @@ class AdminAjaxTest extends TestCase {
 	// reveal_pii() — reregistration (#1815)
 	// ==================================================================
 
-	/**
-	 * Alias-mock the reregistration submission reader so get_by_id returns a
-	 * fixed row.
-	 *
-	 * @param object|null $row Submission row.
-	 * @return void
-	 */
-	private function mock_reregistration_submission( ?object $row ): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
-			->shouldReceive( 'get_by_id' )->with( 11 )->andReturn( $row );
-	}
-
 	public function test_reveal_pii_reregistration_email_comes_from_the_account_and_audits(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'reregistration';
-		$_POST['submission_id'] = '11';
-		$_POST['field']         = 'email';
-
-		$this->mock_reregistration_submission(
-			(object) array(
-				'id'      => '11',
+		$this->post_reveal( 'reregistration', 11, 'email' );
+		$this->store(
+			'wp_ffc_reregistration_submissions',
+			11,
+			array(
 				'user_id' => '3',
 				'data'    => null,
 			)
 		);
-		Functions\when( 'get_userdata' )->alias(
-			static fn ( $id ) => 3 === $id ? (object) array( 'user_email' => 'maria@example.org' ) : false
+		$this->account( 3, 'maria@example.org' );
+		$this->viewer_caps[] = 'ffc_view_reregistration_pii';
+
+		$this->assertSame(
+			array(
+				'field' => 'email',
+				'value' => 'maria@example.org',
+			),
+			$this->reveal()
 		);
-
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->once()
-			->with( 'ffc_view_reregistration_pii', 3 )->andReturn( 'reveal' );
-
-		// The audit runs through the real ActivityLog, switched off so it
-		// returns before any write; `once()` is what proves it was reached.
-		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
-			->shouldReceive( 'activity_log_enabled' )->once()->andReturn( false );
-
-		$ajax = new AdminAjax();
-		try {
-			$ajax->reveal_pii();
-			$this->fail( 'Expected AdminAjaxSuccessException' );
-		} catch ( AdminAjaxSuccessException $e ) {
-			$this->assertSame(
-				array(
-					'field' => 'email',
-					'value' => 'maria@example.org',
-				),
-				$e->getData()
-			);
-		}
+		$this->assertSame( array( 'ffc_view_reregistration_pii' ), array_values( array_diff( $this->policy_checks, array( 'manage_options' ) ) ) );
+		$this->assertAuditedOnce( 'reregistration_pii_revealed', array( 'field_key' => 'email' ), self::VIEWER, 11 );
+		$this->assertOwnerTierFor( 3 );
 	}
 
 	public function test_reveal_pii_reregistration_decrypts_the_cpf_from_the_data_json(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'reregistration';
-		$_POST['submission_id'] = '11';
-		$_POST['field']         = 'cpf';
-
-		$this->mock_reregistration_submission(
-			(object) array(
-				'id'      => '11',
+		$this->post_reveal( 'reregistration', 11, 'cpf' );
+		$this->store(
+			'wp_ffc_reregistration_submissions',
+			11,
+			array(
 				'user_id' => '3',
-				'data'    => (string) json_encode( array( 'fields' => array( 'cpf' => 'ENVELOPE' ) ) ),
+				'data'    => (string) json_encode( array( 'fields' => array( 'cpf' => Encryption::encrypt( Identifiers::CPF_A ) ) ) ),
 			)
 		);
-		$this->encryption_mock->shouldReceive( 'looks_like_envelope' )->with( 'ENVELOPE' )->andReturn( true );
-		$this->encryption_mock->shouldReceive( 'decrypt' )->once()->with( 'ENVELOPE' )->andReturn( '51817842080' );
+		$this->viewer_caps[] = 'ffc_view_reregistration_pii';
 
-		$this->mock_pii_policy()->shouldReceive( 'resolve' )->andReturn( 'reveal' );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' )
-			->shouldReceive( 'format_cpf' )->with( '51817842080' )->andReturn( '518.178.420-80' );
-		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
-			->shouldReceive( 'activity_log_enabled' )->once()->andReturn( false );
-
-		$ajax = new AdminAjax();
-		try {
-			$ajax->reveal_pii();
-			$this->fail( 'Expected AdminAjaxSuccessException' );
-		} catch ( AdminAjaxSuccessException $e ) {
-			$this->assertSame(
-				array(
-					'field' => 'cpf',
-					'value' => '518.178.420-80',
-				),
-				$e->getData()
-			);
-		}
+		$this->assertSame(
+			array(
+				'field' => 'cpf',
+				'value' => self::masked_cpf_a(),
+			),
+			$this->reveal()
+		);
+		$this->assertCount( 1, ActivityLogBuffer::entries() );
 	}
 
 	public function test_reveal_pii_reregistration_masked_tier_denied(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'reregistration';
-		$_POST['submission_id'] = '11';
-		$_POST['field']         = 'email';
-
-		$this->mock_reregistration_submission(
-			(object) array(
-				'id'      => '11',
+		$this->post_reveal( 'reregistration', 11, 'email' );
+		$this->store(
+			'wp_ffc_reregistration_submissions',
+			11,
+			array(
 				'user_id' => '3',
 				'data'    => null,
 			)
 		);
-		Functions\when( 'get_userdata' )->justReturn( (object) array( 'user_email' => 'maria@example.org' ) );
-		$this->mock_pii_policy()->shouldReceive( 'resolve' )->andReturn( 'masked' );
-		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
-			->shouldReceive( 'activity_log_enabled' )->never();
+		$this->account( 3, 'maria@example.org' );
 
 		$ajax = new AdminAjax();
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessageMatches( '/permission to reveal/' );
-		$ajax->reveal_pii();
+		try {
+			$ajax->reveal_pii();
+			$this->fail( 'Expected a 403' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'permission to reveal', $e->getMessage() );
+		}
+		$this->assertSame( array(), ActivityLogBuffer::entries(), 'A refused reveal is not audited.' );
 	}
 
 	public function test_reveal_pii_reregistration_requires_the_surface_cap(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'reregistration';
-		$_POST['submission_id'] = '11';
-		$_POST['field']         = 'email';
-
-		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )
-			->with( 'ffc_view_reregistration' )->andReturn( false );
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
-			->shouldReceive( 'get_by_id' )->never();
+		$this->post_reveal( 'reregistration', 11, 'email' );
+		$this->viewer_caps = array_values( array_diff( $this->viewer_caps, array( 'ffc_view_reregistration' ) ) );
 
 		$ajax = new AdminAjax();
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessageMatches( '/You do not have permission\./' );
-		$ajax->reveal_pii();
+		try {
+			$ajax->reveal_pii();
+			$this->fail( 'Expected a 403' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertMatchesRegularExpression( '/You do not have permission\./', $e->getMessage() );
+		}
+		$this->assertSame( array(), $this->queries, 'The submission is never read.' );
 	}
 
 	public function test_reveal_pii_reregistration_reports_an_unknown_submission(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'reregistration';
-		$_POST['submission_id'] = '11';
-		$_POST['field']         = 'email';
-
-		$this->mock_reregistration_submission( null );
+		$this->post_reveal( 'reregistration', 11, 'email' );
 
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
@@ -762,82 +808,37 @@ class AdminAjaxTest extends TestCase {
 	// people on the audience screens.
 	// ==================================================================
 
-	/**
-	 * Alias-mock the policy and ActivityLog together (one constants map
-	 * serves both) and expect exactly one audit row for the reveal.
-	 *
-	 * @param string $action    Expected audit action.
-	 * @param string $field     Expected field_key.
-	 * @param int    $object_id Expected object id.
-	 * @return \Mockery\MockInterface The policy mock.
-	 */
-	private function mock_policy_and_audit( string $action, string $field, int $object_id ) {
-		Mockery::getConfiguration()->setConstantsMap(
-			array(
-				'FreeFormCertificate\Core\PiiAccessPolicy' => array(
-					'TIER_MASKED'   => 'masked',
-					'TIER_REVEAL'   => 'reveal',
-					'TIER_UNMASKED' => 'unmasked',
-				),
-				'FreeFormCertificate\Core\ActivityLog'     => array(
-					'LEVEL_INFO' => 'info',
-				),
-			)
-		);
-		Functions\when( 'get_current_user_id' )->justReturn( 4 );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' )
-			->shouldReceive( 'log' )
-			->once()
-			->with( $action, 'info', array( 'field_key' => $field ), 4, $object_id );
-		return Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' );
-	}
-
 	public function test_reveal_pii_account_email_returns_the_linked_accounts_email_and_audits(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['submission_id'] = '5';
-		$_POST['field']         = 'account_email';
-
-		$this->mock_submission(
+		$this->post_reveal( null, 5, 'account_email' );
+		$this->store(
+			'wp_ffc_submissions',
+			5,
 			array(
-				'email'   => 'typed@x.com',
-				'user_id' => 9,
+				'email_encrypted' => Encryption::encrypt( 'typed@x.com' ),
+				'user_id'         => '9',
 			)
 		);
-		Functions\when( 'get_userdata' )->alias(
-			static fn( $id ) => 9 === $id ? (object) array( 'ID' => 9, 'user_email' => 'account@x.com' ) : false
-		);
-
-		$policy = $this->mock_policy_and_audit( 'submission_pii_revealed', 'account_email', 5 );
+		$this->account( 9, 'account@x.com' );
 		// The submission's own gate, with its linked account as owner.
-		$policy->shouldReceive( 'resolve' )
-			->with( 'ffc_view_certificates_pii', 9 )
-			->andReturn( 'reveal' );
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
 
-		$ajax = new AdminAjax();
-		try {
-			$ajax->reveal_pii();
-			$this->fail( 'Expected AdminAjaxSuccessException' );
-		} catch ( AdminAjaxSuccessException $e ) {
-			$this->assertSame(
-				array(
-					'field' => 'account_email',
-					'value' => 'account@x.com',
-				),
-				$e->getData(),
-				'the account email, not the email typed on the submission'
-			);
-		}
+		$this->assertSame(
+			array(
+				'field' => 'account_email',
+				'value' => 'account@x.com',
+			),
+			$this->reveal(),
+			'the account email, not the email typed on the submission'
+		);
+		$this->assertContains( 'ffc_view_certificates_pii', $this->policy_checks );
+		$this->assertAuditedOnce( 'submission_pii_revealed', array( 'field_key' => 'account_email' ), self::VIEWER, 5 );
+		$this->assertOwnerTierFor( 9 );
 	}
 
 	public function test_reveal_pii_account_email_denied_for_masked_tier(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['submission_id'] = '5';
-		$_POST['field']         = 'account_email';
-
-		$this->mock_submission( array( 'user_id' => 9 ) );
-		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 9, 'user_email' => 'account@x.com' ) );
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'masked' );
+		$this->post_reveal( null, 5, 'account_email' );
+		$this->store( 'wp_ffc_submissions', 5, array( 'user_id' => '9' ) );
+		$this->account( 9, 'account@x.com' );
 
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
@@ -846,13 +847,10 @@ class AdminAjaxTest extends TestCase {
 	}
 
 	public function test_reveal_pii_account_email_of_an_unlinked_submission_has_no_value(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['submission_id'] = '5';
-		$_POST['field']         = 'account_email';
-
-		$this->mock_submission( array( 'email' => 'typed@x.com' ) );
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'unmasked' );
+		$this->post_reveal( null, 5, 'account_email' );
+		// No linked account; the viewer may reveal, so only the missing value refuses.
+		$this->store( 'wp_ffc_submissions', 5, array( 'email_encrypted' => Encryption::encrypt( 'typed@x.com' ) ) );
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
 
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
@@ -861,10 +859,7 @@ class AdminAjaxTest extends TestCase {
 	}
 
 	public function test_reveal_pii_account_email_is_a_submission_field_only(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'appointment';
-		$_POST['submission_id'] = '7';
-		$_POST['field']         = 'account_email';
+		$this->post_reveal( 'appointment', 7, 'account_email' );
 
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
@@ -872,60 +867,30 @@ class AdminAjaxTest extends TestCase {
 		$ajax->reveal_pii();
 	}
 
-	/**
-	 * The listed-account check of the audience type.
-	 *
-	 * @param bool $listed Whether the account is on an audience screen.
-	 * @return void
-	 */
-	private function mock_audience_listing( bool $listed ): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
-			->shouldReceive( 'is_member_of_any' )->andReturn( $listed );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' )
-			->shouldReceive( 'has_any_permission' )->andReturn( false );
-	}
-
 	public function test_reveal_pii_audience_account_returns_the_email_and_audits_under_its_own_action(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'audience_account';
-		$_POST['submission_id'] = '7';
-		$_POST['field']         = 'email';
-
-		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_view_audiences' )->once()->andReturn( true );
-		$this->mock_audience_listing( true );
-		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 7, 'user_email' => 'member@x.com' ) );
-
-		$policy = $this->mock_policy_and_audit( 'audience_account_email_revealed', 'email', 7 );
+		$this->post_reveal( 'audience_account', 7, 'email' );
+		$this->audience_members = array( 7 );
+		$this->account( 7, 'member@x.com' );
 		// The audience module's own gate (#1863), with the listed account as owner.
-		$policy->shouldReceive( 'resolve' )
-			->with( 'ffc_view_audiences_pii', 7 )
-			->andReturn( 'reveal' );
+		$this->viewer_caps[] = 'ffc_view_audiences_pii';
 
-		$ajax = new AdminAjax();
-		try {
-			$ajax->reveal_pii();
-			$this->fail( 'Expected AdminAjaxSuccessException' );
-		} catch ( AdminAjaxSuccessException $e ) {
-			$this->assertSame(
-				array(
-					'field' => 'email',
-					'value' => 'member@x.com',
-				),
-				$e->getData()
-			);
-		}
+		$this->assertSame(
+			array(
+				'field' => 'email',
+				'value' => 'member@x.com',
+			),
+			$this->reveal()
+		);
+		$this->assertSame( 1, count( array_keys( $this->cap_checks, 'ffc_view_audiences', true ) ), 'The surface cap is checked once.' );
+		$this->assertContains( 'ffc_view_audiences_pii', $this->policy_checks );
+		$this->assertAuditedOnce( 'audience_account_email_revealed', array( 'field_key' => 'email' ), self::VIEWER, 7 );
+		$this->assertOwnerTierFor( 7 );
 	}
 
 	public function test_reveal_pii_audience_account_denied_for_masked_tier(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'audience_account';
-		$_POST['submission_id'] = '7';
-		$_POST['field']         = 'email';
-
-		$this->mock_audience_listing( true );
-		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 7, 'user_email' => 'member@x.com' ) );
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'masked' );
+		$this->post_reveal( 'audience_account', 7, 'email' );
+		$this->audience_members = array( 7 );
+		$this->account( 7, 'member@x.com' );
 
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
@@ -934,12 +899,7 @@ class AdminAjaxTest extends TestCase {
 	}
 
 	public function test_reveal_pii_audience_account_refuses_an_account_no_audience_screen_lists(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'audience_account';
-		$_POST['submission_id'] = '1';
-		$_POST['field']         = 'email';
-
-		$this->mock_audience_listing( false );
+		$this->post_reveal( 'audience_account', 1, 'email' );
 		$log = CallLog::record( 'get_userdata', false );
 
 		$ajax = new AdminAjax();
@@ -953,10 +913,7 @@ class AdminAjaxTest extends TestCase {
 	}
 
 	public function test_reveal_pii_audience_account_serves_only_the_email(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'audience_account';
-		$_POST['submission_id'] = '7';
-		$_POST['field']         = 'cpf';
+		$this->post_reveal( 'audience_account', 7, 'cpf' );
 
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
@@ -965,12 +922,12 @@ class AdminAjaxTest extends TestCase {
 	}
 
 	/**
-	 * @return array<string, array{0: string, 1: string, 2: string, 3: string, 4: string}>
+	 * @return array<string, array{0: string, 1: string, 2: string, 3: string, 4: string, 5: string}>
 	 */
 	public function address_reveal_types(): array {
 		return array(
-			'activity log entry'   => array( 'activity_log', 'ffc_view_activity_log', 'ffc_view_activity_log_pii', 'activity_log_ip_revealed', 'FreeFormCertificate\Core\ActivityLogQuery|ip_of' ),
-			'rate limit log entry' => array( 'rate_limit_log', 'ffc_view_settings', 'ffc_view_settings_pii', 'rate_limit_ip_revealed', 'FreeFormCertificate\Security\RateLimitStats|address_of' ),
+			'activity log entry'   => array( 'activity_log', 'ffc_view_activity_log', 'ffc_view_activity_log_pii', 'activity_log_ip_revealed', 'wp_ffc_activity_log', 'user_ip_encrypted' ),
+			'rate limit log entry' => array( 'rate_limit_log', 'ffc_view_settings', 'ffc_view_settings_pii', 'rate_limit_ip_revealed', 'wp_ffc_rate_limit_logs', 'ip_address_encrypted' ),
 		);
 	}
 
@@ -980,49 +937,45 @@ class AdminAjaxTest extends TestCase {
 	 *
 	 * @dataProvider address_reveal_types
 	 */
-	public function test_reveal_pii_an_address_reveals_through_its_screen_cap_and_audits( string $type, string $surface, string $pii_cap, string $action, string $loader ): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = $type;
-		$_POST['submission_id'] = '31';
-		$_POST['field']         = 'ip';
+	public function test_reveal_pii_an_address_reveals_through_its_screen_cap_and_audits( string $type, string $surface, string $pii_cap, string $action, string $table, string $column ): void {
+		$this->post_reveal( $type, 31, 'ip' );
+		$this->store( $table, 31, array( $column => Encryption::encrypt( '2804:14c::9' ) ) );
+		$this->viewer_caps[] = $pii_cap;
 
-		list( $class, $method ) = explode( '|', $loader );
-		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->with( $surface )->once()->andReturn( true );
-		Mockery::mock( 'alias:' . $class )->shouldReceive( $method )->once()->with( 31 )->andReturn( '2804:14c::9' );
+		$this->assertSame(
+			array(
+				'field' => 'ip',
+				'value' => '2804:14c::9',
+			),
+			$this->reveal()
+		);
+		$this->assertSame( 1, count( array_keys( $this->cap_checks, $surface, true ) ), 'The surface cap is checked once.' );
+		$this->assertCount( 1, $this->queries, 'The entry is read once.' );
+		$this->assertStringContainsString( "FROM {$table} WHERE id = 31", $this->queries[0] );
+		$this->assertAuditedOnce( $action, array( 'field_key' => 'ip' ), self::VIEWER, 31 );
 
-		$policy = $this->mock_policy_and_audit( $action, 'ip', 31 );
-		// A log line has no owner, so the owner tier can never apply.
-		$policy->shouldReceive( 'resolve' )->with( $pii_cap, null )->andReturn( 'reveal' );
-
-		$ajax = new AdminAjax();
+		// A log line has no owner, so the owner tier can never apply: even
+		// the account whose id equals the entry's goes through the capability.
+		$this->current_user  = 31;
+		$this->viewer_caps   = array( $surface );
+		$this->policy_checks = array();
+		$ajax                = new AdminAjax();
 		try {
 			$ajax->reveal_pii();
-			$this->fail( 'Expected AdminAjaxSuccessException' );
-		} catch ( AdminAjaxSuccessException $e ) {
-			$this->assertSame(
-				array(
-					'field' => 'ip',
-					'value' => '2804:14c::9',
-				),
-				$e->getData()
-			);
+			$this->fail( 'Expected a 403' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'permission to reveal', $e->getMessage() );
 		}
+		$this->assertContains( $pii_cap, $this->policy_checks );
 	}
 
 	/**
 	 * @dataProvider address_reveal_types
 	 */
-	public function test_reveal_pii_an_address_is_refused_without_the_reveal_cap( string $type, string $surface, string $pii_cap, string $action, string $loader ): void {
+	public function test_reveal_pii_an_address_is_refused_without_the_reveal_cap( string $type, string $surface, string $pii_cap, string $action, string $table, string $column ): void {
 		unset( $surface, $pii_cap, $action );
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = $type;
-		$_POST['submission_id'] = '31';
-		$_POST['field']         = 'ip';
-
-		list( $class, $method ) = explode( '|', $loader );
-		Mockery::mock( 'alias:' . $class )->shouldReceive( $method )->andReturn( '203.0.113.9' );
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'masked' );
+		$this->post_reveal( $type, 31, 'ip' );
+		$this->store( $table, 31, array( $column => Encryption::encrypt( '203.0.113.9' ) ) );
 
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
@@ -1033,15 +986,11 @@ class AdminAjaxTest extends TestCase {
 	/**
 	 * @dataProvider address_reveal_types
 	 */
-	public function test_reveal_pii_an_entry_without_an_address_is_not_found( string $type, string $surface, string $pii_cap, string $action, string $loader ): void {
-		unset( $surface, $pii_cap, $action );
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = $type;
-		$_POST['submission_id'] = '31';
-		$_POST['field']         = 'ip';
-
-		list( $class, $method ) = explode( '|', $loader );
-		Mockery::mock( 'alias:' . $class )->shouldReceive( $method )->andReturn( '' );
+	public function test_reveal_pii_an_entry_without_an_address_is_not_found( string $type, string $surface, string $pii_cap, string $action, string $table, string $column ): void {
+		unset( $surface, $pii_cap, $action, $column );
+		$this->post_reveal( $type, 31, 'ip' );
+		// The entry exists and carries no address.
+		$this->store( $table, 31, array( 'identifier' => 'form:3' ) );
 
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
@@ -1053,10 +1002,7 @@ class AdminAjaxTest extends TestCase {
 	 * @dataProvider address_reveal_types
 	 */
 	public function test_reveal_pii_an_address_type_serves_only_the_address( string $type ): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = $type;
-		$_POST['submission_id'] = '31';
-		$_POST['field']         = 'email';
+		$this->post_reveal( $type, 31, 'email' );
 
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
@@ -1069,37 +1015,6 @@ class AdminAjaxTest extends TestCase {
 	// ==================================================================
 
 	/**
-	 * The policy, and an ActivityLog that records every call.
-	 *
-	 * @param array<int, array<int, mixed>> $calls Receives each log() call.
-	 * @return \Mockery\MockInterface The policy mock.
-	 */
-	private function mock_policy_and_page_audit( array &$calls ) {
-		Mockery::getConfiguration()->setConstantsMap(
-			array(
-				'FreeFormCertificate\Core\PiiAccessPolicy' => array(
-					'TIER_MASKED'   => 'masked',
-					'TIER_REVEAL'   => 'reveal',
-					'TIER_UNMASKED' => 'unmasked',
-				),
-				'FreeFormCertificate\Core\ActivityLog'     => array(
-					'LEVEL_INFO' => 'info',
-				),
-			)
-		);
-		Functions\when( 'get_current_user_id' )->justReturn( 4 );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' )
-			->shouldReceive( 'log' )
-			->andReturnUsing(
-				static function ( ...$args ) use ( &$calls ) {
-					$calls[] = $args;
-					return true;
-				}
-			);
-		return Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' );
-	}
-
-	/**
 	 * Post a page reveal of these items.
 	 *
 	 * @param array<int, array<string, mixed>> $items Items.
@@ -1107,7 +1022,7 @@ class AdminAjaxTest extends TestCase {
 	 */
 	private function post_page( array $items ): void {
 		$_POST['nonce'] = 'n';
-		$_POST['items'] = (string) wp_json_encode_for_test( $items );
+		$_POST['items'] = (string) json_encode( $items );
 	}
 
 	public function test_reveal_pii_page_registers_its_action(): void {
@@ -1131,17 +1046,17 @@ class AdminAjaxTest extends TestCase {
 				array( 'type' => 'submission', 'id' => 6, 'field' => 'email' ),
 			)
 		);
-		$handler = Mockery::mock( 'overload:\FreeFormCertificate\Submissions\SubmissionHandler' );
-		$handler->shouldReceive( 'get_submission' )->andReturnUsing(
-			static fn( $id ) => array(
-				'email'   => 'p' . $id . '@x.com',
-				'user_id' => 90 + $id,
-			)
-		);
-
-		$calls  = array();
-		$policy = $this->mock_policy_and_page_audit( $calls );
-		$policy->shouldReceive( 'resolve' )->with( 'ffc_view_certificates_pii', Mockery::any() )->andReturn( 'reveal' );
+		foreach ( array( 5, 6 ) as $id ) {
+			$this->store(
+				'wp_ffc_submissions',
+				$id,
+				array(
+					'email_encrypted' => Encryption::encrypt( 'p' . $id . '@x.com' ),
+					'user_id'         => (string) ( 90 + $id ),
+				)
+			);
+		}
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
 
 		$ajax = new AdminAjax();
 		try {
@@ -1159,22 +1074,16 @@ class AdminAjaxTest extends TestCase {
 			);
 		}
 
-		$this->assertSame(
+		// One audit row for the page, naming every record.
+		$this->assertAuditedOnce(
+			'submission_pii_revealed',
 			array(
-				array(
-					'submission_pii_revealed',
-					'info',
-					array(
-						'field_key'  => 'page',
-						'fields'     => array( 'email' ),
-						'record_ids' => array( 5, 6 ),
-					),
-					4,
-					0,
-				),
+				'field_key'  => 'page',
+				'fields'     => array( 'email' ),
+				'record_ids' => array( 5, 6 ),
 			),
-			$calls,
-			'One audit row for the page, naming every record.'
+			self::VIEWER,
+			0
 		);
 	}
 
@@ -1187,19 +1096,18 @@ class AdminAjaxTest extends TestCase {
 				array( 'type' => 'nope', 'id' => 1, 'field' => 'email' ),
 			)
 		);
-		$this->mock_submission(
+		$this->store(
+			'wp_ffc_submissions',
+			5,
 			array(
-				'email'   => 'p@x.com',
-				'user_id' => 9,
+				'email_encrypted' => Encryption::encrypt( 'p@x.com' ),
+				'user_id'         => '9',
 			)
 		);
-		$this->mock_audience_listing( true );
-		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 7, 'user_email' => 'member@x.com' ) );
-
-		$calls  = array();
-		$policy = $this->mock_policy_and_page_audit( $calls );
-		$policy->shouldReceive( 'resolve' )->with( 'ffc_view_certificates_pii', 9 )->andReturn( 'reveal' );
-		$policy->shouldReceive( 'resolve' )->with( 'ffc_view_audiences_pii', 7 )->andReturn( 'masked' );
+		$this->audience_members = array( 7 );
+		$this->account( 7, 'member@x.com' );
+		// The certificates PII cap, and not the audiences one.
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
 
 		$ajax = new AdminAjax();
 		try {
@@ -1211,14 +1119,14 @@ class AdminAjaxTest extends TestCase {
 			$this->assertSame( 'p@x.com', $data['values'][0]['value'] );
 		}
 
-		$this->assertCount( 1, $calls );
-		$this->assertSame( 'submission_pii_revealed', $calls[0][0] );
+		$this->assertCount( 1, ActivityLogBuffer::entries() );
+		$this->assertSame( 'submission_pii_revealed', ActivityLogBuffer::contexts()[0]['action'] );
 	}
 
 	public function test_reveal_pii_page_skips_a_domain_whose_surface_cap_is_missing(): void {
 		$this->post_page( array( array( 'type' => 'submission', 'id' => 5, 'field' => 'email' ) ) );
-		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_view_certificates' )->andReturn( false );
-		$log = CallLog::record( 'get_userdata', false );
+		$this->viewer_caps = array_values( array_diff( $this->viewer_caps, array( 'ffc_view_certificates' ) ) );
+		$log               = CallLog::record( 'get_userdata', false );
 
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
@@ -1227,6 +1135,7 @@ class AdminAjaxTest extends TestCase {
 			$ajax->reveal_pii_page();
 		} finally {
 			$this->assertSame( 0, $log->count() );
+			$this->assertSame( array(), $this->queries );
 		}
 	}
 
@@ -1264,60 +1173,43 @@ class AdminAjaxTest extends TestCase {
 	// ==================================================================
 
 	public function test_reveal_pii_user_profile_serves_a_sensitive_field_to_whoever_may_edit_the_user(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'user_profile';
-		$_POST['submission_id'] = '12';
-		$_POST['field']         = 'cf_3';
-
-		Functions\when( 'current_user_can' )->alias( static fn( $cap, $id = null ) => 'edit_user' === $cap && 12 === $id );
-		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 12 ) );
-		Functions\when( 'get_current_user_id' )->justReturn( 4 );
-		Mockery::getConfiguration()->setConstantsMap(
-			array(
-				'FreeFormCertificate\Admin\AdminUserCustomFields' => array(
-					'REVEAL_TYPE' => 'user_profile',
-					'PII_CAP'     => 'ffc_view_audiences_pii',
-				),
-				'FreeFormCertificate\Core\PiiAccessPolicy'        => array(
-					'TIER_MASKED'   => 'masked',
-					'TIER_REVEAL'   => 'reveal',
-					'TIER_UNMASKED' => 'unmasked',
-				),
-				'FreeFormCertificate\Core\ActivityLog'            => array(
-					'LEVEL_INFO' => 'info',
-				),
-			)
+		$this->post_reveal( 'user_profile', 12, 'cf_3' );
+		$this->editable_users = array( 12 );
+		$this->account( 12, 'person@x.com' );
+		// Account 12 is in audience 2, whose custom field 3 is sensitive free text.
+		$this->tables['wp_ffc_audiences'][2]     = array(
+			'id'        => '2',
+			'name'      => 'Teachers',
+			'parent_id' => null,
+			'status'    => 'active',
+			'members'   => array( 12 ),
 		);
-		Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUserCustomFields' )
-			->shouldReceive( 'sensitive_values' )->with( 12 )->andReturn( array( 3 => '5181780' ) );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' )
-			->shouldReceive( 'log' )->once()
-			->with( 'user_profile_pii_revealed', 'info', array( 'field_key' => 'cf_3' ), 4, 12 );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
-			->shouldReceive( 'resolve' )->with( 'ffc_view_audiences_pii', 12 )->andReturn( 'reveal' );
+		$this->tables['wp_ffc_custom_fields'][3] = array(
+			'id'                => '3',
+			'audience_id'       => '2',
+			'field_type'        => 'text',
+			'is_sensitive'      => '1',
+			'field_profile_key' => '',
+		);
+		$this->user_meta[12]['ffc_custom_fields_data'] = array( 'field_3' => Identifiers::RF_A );
+		$this->viewer_caps[]                            = 'ffc_view_audiences_pii';
 
-		$ajax = new AdminAjax();
-		try {
-			$ajax->reveal_pii();
-			$this->fail( 'Expected AdminAjaxSuccessException' );
-		} catch ( AdminAjaxSuccessException $e ) {
-			$this->assertSame(
-				array(
-					'field' => 'cf_3',
-					'value' => '5181780',
-				),
-				$e->getData()
-			);
-		}
+		$this->assertSame(
+			array(
+				'field' => 'cf_3',
+				'value' => Identifiers::RF_A,
+			),
+			$this->reveal()
+		);
+		$this->assertContains( 'ffc_view_audiences_pii', $this->policy_checks );
+		$this->assertAuditedOnce( 'user_profile_pii_revealed', array( 'field_key' => 'cf_3' ), self::VIEWER, 12 );
+		$this->editable_users[] = 12;
+		$this->assertOwnerTierFor( 12 );
 	}
 
 	public function test_reveal_pii_user_profile_refuses_a_user_the_viewer_cannot_edit(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'user_profile';
-		$_POST['submission_id'] = '12';
-		$_POST['field']         = 'cf_3';
-
-		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'edit_user' !== $cap );
+		$this->post_reveal( 'user_profile', 12, 'cf_3' );
+		$this->account( 12, 'person@x.com' );
 
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
@@ -1326,10 +1218,7 @@ class AdminAjaxTest extends TestCase {
 	}
 
 	public function test_reveal_pii_user_profile_serves_only_custom_field_keys(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'user_profile';
-		$_POST['submission_id'] = '12';
-		$_POST['field']         = 'email';
+		$this->post_reveal( 'user_profile', 12, 'email' );
 
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
@@ -1338,65 +1227,22 @@ class AdminAjaxTest extends TestCase {
 	}
 
 	public function test_reveal_pii_date_messages_person_serves_the_name_of_a_listed_person(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'date_messages_person';
-		$_POST['submission_id'] = '15';
-		$_POST['field']         = 'name';
+		$this->post_reveal( 'date_messages_person', 15, 'name' );
+		$this->account( 15, 'maria@x.com', 'Maria da Silva' );
+		// A birth date on the profile is what lists a person.
+		$this->user_meta[15]['ffc_user_birth_date'] = (string) Encryption::encrypt( '1990-05-20' );
+		$this->viewer_caps[]                        = 'ffc_view_date_messages_pii';
 
-		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 15, 'display_name' => 'Maria da Silva' ) );
-		Mockery::getConfiguration()->setConstantsMap(
-			array(
-				'FreeFormCertificate\DateMessages\DateMessagesAdminPage' => array(
-					'REVEAL_TYPE' => 'date_messages_person',
-					'VIEW_CAP'    => 'ffc_view_date_messages',
-					'PII_CAP'     => 'ffc_view_date_messages_pii',
-				),
-				'FreeFormCertificate\Core\PiiAccessPolicy'               => array(
-					'TIER_MASKED'   => 'masked',
-					'TIER_REVEAL'   => 'reveal',
-					'TIER_UNMASKED' => 'unmasked',
-				),
-				'FreeFormCertificate\Core\ActivityLog'                   => array(
-					'LEVEL_INFO' => 'info',
-				),
-			)
-		);
-		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DateMessagesAdminPage' )
-			->shouldReceive( 'is_listed' )->with( 15 )->andReturn( true );
-		Functions\when( 'get_current_user_id' )->justReturn( 4 );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' )
-			->shouldReceive( 'log' )->once()
-			->with( 'date_messages_pii_revealed', 'info', array( 'field_key' => 'name' ), 4, 15 );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
-			->shouldReceive( 'resolve' )->with( 'ffc_view_date_messages_pii', 15 )->andReturn( 'reveal' );
-
-		$ajax = new AdminAjax();
-		try {
-			$ajax->reveal_pii();
-			$this->fail( 'Expected AdminAjaxSuccessException' );
-		} catch ( AdminAjaxSuccessException $e ) {
-			$this->assertSame( 'Maria da Silva', $e->getData()['value'] );
-		}
+		$this->assertSame( 'Maria da Silva', $this->reveal()['value'] );
+		$this->assertContains( 'ffc_view_date_messages_pii', $this->policy_checks );
+		$this->assertAuditedOnce( 'date_messages_pii_revealed', array( 'field_key' => 'name' ), self::VIEWER, 15 );
+		$this->assertOwnerTierFor( 15 );
 	}
 
 	public function test_reveal_pii_date_messages_person_refuses_someone_the_panel_cannot_list(): void {
-		$_POST['nonce']         = 'n';
-		$_POST['type']          = 'date_messages_person';
-		$_POST['submission_id'] = '15';
-		$_POST['field']         = 'name';
-
-		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 15, 'display_name' => 'Maria' ) );
-		Mockery::getConfiguration()->setConstantsMap(
-			array(
-				'FreeFormCertificate\DateMessages\DateMessagesAdminPage' => array(
-					'REVEAL_TYPE' => 'date_messages_person',
-					'VIEW_CAP'    => 'ffc_view_date_messages',
-					'PII_CAP'     => 'ffc_view_date_messages_pii',
-				),
-			)
-		);
-		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DateMessagesAdminPage' )
-			->shouldReceive( 'is_listed' )->with( 15 )->andReturn( false );
+		$this->post_reveal( 'date_messages_person', 15, 'name' );
+		// No birth date: the upcoming-dates panel never lists this account.
+		$this->account( 15, 'maria@x.com', 'Maria' );
 
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
@@ -1427,14 +1273,4 @@ class AdminAjaxSuccessException extends \RuntimeException {
 	public function getData() {
 		return $this->data;
 	}
-}
-
-/**
- * JSON for a posted field, without WordPress.
- *
- * @param mixed $value Value.
- * @return string
- */
-function wp_json_encode_for_test( $value ): string {
-	return (string) json_encode( $value );
 }
