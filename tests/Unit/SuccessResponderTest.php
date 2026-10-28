@@ -15,20 +15,14 @@ use FreeFormCertificate\Submissions\SubmissionHandler;
 /**
  * Coverage for SuccessResponder — builds the success message and final
  * response payload (message, pdf_data, html, optional quiz block) onto the
- * context. SuccessHtmlRenderer is alias-mocked so only the responder's own
- * message/branch logic is under test.
+ * context. SuccessHtmlRenderer is the real class: the card is rendered from
+ * its template, and what the responder hands it is read off the HTML (#2119).
  *
  * @covers \FreeFormCertificate\Frontend\Submission\SuccessResponder
- *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class SuccessResponderTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
-
-	/** @var \Mockery\MockInterface Alias mock of the success-card renderer. */
-	private $renderer;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -39,11 +33,18 @@ class SuccessResponderTest extends TestCase {
 		Functions\when( 'esc_html' )->returnArg();
 		// sprintf-style translator passthrough already handled by __ returnArg.
 
-		// Static HTML renderer is mocked — return a sentinel regardless of args.
-		$this->renderer = Mockery::mock( 'alias:\FreeFormCertificate\Frontend\Submission\SuccessHtmlRenderer' );
-		$this->renderer->shouldReceive( 'generate_success_html' )
-			->andReturn( '<div class="ffc-success">OK</div>' )
-			->byDefault();
+		// What the real success card reads while it renders.
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html_e' )->echoArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'get_post_meta' )->justReturn( array() );
+		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Workshop' ) );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias(
+			static fn( $format, $ts = null, $tz = null ) => ( new \DateTimeImmutable( '@' . (int) $ts ) )->format( $format )
+		);
 	}
 
 	protected function tearDown(): void {
@@ -62,7 +63,8 @@ class SuccessResponderTest extends TestCase {
 		$this->responder()->apply( $ctx );
 
 		$this->assertSame( 'Success!', $ctx->response['message'] );
-		$this->assertSame( '<div class="ffc-success">OK</div>', $ctx->response['html'] );
+		$this->assertStringContainsString( 'ffc-success-response', $ctx->response['html'] );
+		$this->assertStringContainsString( 'Workshop', $ctx->response['html'], 'the card names the form' );
 		$this->assertArrayNotHasKey( 'quiz', $ctx->response );
 	}
 
@@ -71,16 +73,9 @@ class SuccessResponderTest extends TestCase {
 		$ctx->form_config = array();
 		$ctx->pdf_data    = array( 'filename' => 'certificado_425_C-50IYW9J01HNR.pdf' );
 
-		$this->renderer->shouldReceive( 'generate_success_html' )
-			->once()
-			->withArgs(
-				static fn( ...$args ): bool => 'certificado_425_C-50IYW9J01HNR.pdf' === ( $args[6] ?? null )
-			)
-			->andReturn( '<div>named</div>' );
-
 		$this->responder()->apply( $ctx );
 
-		$this->assertSame( '<div>named</div>', $ctx->response['html'] );
+		$this->assertStringContainsString( 'certificado_425_C-50IYW9J01HNR.pdf', $ctx->response['html'] );
 	}
 
 	public function test_an_attempt_awaiting_grading_says_so_and_carries_no_pdf(): void {

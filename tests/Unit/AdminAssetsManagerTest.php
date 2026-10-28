@@ -31,6 +31,9 @@ class AdminAssetsManagerTest extends TestCase {
 		// registered, so nothing is localized twice (#1931).
 		Functions\when( 'wp_register_script' )->justReturn( false );
 		Functions\when( 'number_format_i18n' )->alias( static fn( $n, $d = 0 ) => number_format( (float) $n, (int) $d ) );
+		// LabelSorter guards on function_exists( 'get_locale' ): stub it so the
+		// branch is chosen here, not inherited from an earlier test.
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
 
 		// pcov does not record lines for files first autoloaded mid-test-method,
 		// so the extracted conditional-assets class's coverage would attribute to

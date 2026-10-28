@@ -5,7 +5,6 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Recruitment\RecruitmentRestSupport;
@@ -13,11 +12,10 @@ use FreeFormCertificate\Recruitment\RecruitmentRestSupport;
 /**
  * Tests for the RecruitmentRestSupport trait — permission gates + WP_Error
  * envelope helpers shared by every domain REST controller under
- * ffcertificate/v1/recruitment.
+ * ffcertificate/v1/recruitment. The messages come from the real
+ * RecruitmentErrorMessages (#2119).
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentRestSupport
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentRestSupportTraitTest extends TestCase {
 
@@ -54,15 +52,6 @@ class RecruitmentRestSupportTraitTest extends TestCase {
 				return $this->wp_error_from_envelope_with_blocked( $envelope, $status );
 			}
 		};
-
-		// RecruitmentErrorMessages is used by the WP_Error helpers — alias-mock it.
-		$messagesMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentErrorMessages' );
-		$messagesMock->shouldReceive( 'translate' )->andReturnUsing( function ( $code ) {
-			return 'msg:' . $code;
-		} );
-		$messagesMock->shouldReceive( 'translate_all' )->andReturnUsing( function ( $codes ) {
-			return array_map( fn( $c ) => 'msg:' . $c, $codes );
-		} );
 	}
 
 	protected function tearDown(): void {
@@ -138,16 +127,19 @@ class RecruitmentRestSupportTraitTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_wp_error_from_envelope_uses_first_code_for_top_level_message(): void {
-		$err = $this->host->call_wp_error_from_envelope( array( 'recruitment_a', 'recruitment_b' ), 400 );
+		$err = $this->host->call_wp_error_from_envelope( array( 'recruitment_notice_not_found', 'recruitment_notice_create_failed' ), 400 );
 
 		$this->assertInstanceOf( \WP_Error::class, $err );
-		$this->assertSame( 'recruitment_a', $err->get_error_code() );
-		$this->assertSame( 'msg:recruitment_a', $err->get_error_message() );
+		$this->assertSame( 'recruitment_notice_not_found', $err->get_error_code() );
+		$this->assertSame( 'Notice not found.', $err->get_error_message() );
 
 		$data = $err->get_error_data();
 		$this->assertSame( 400, $data['status'] );
-		$this->assertSame( array( 'recruitment_a', 'recruitment_b' ), $data['errors'] );
-		$this->assertSame( array( 'msg:recruitment_a', 'msg:recruitment_b' ), $data['messages'] );
+		$this->assertSame( array( 'recruitment_notice_not_found', 'recruitment_notice_create_failed' ), $data['errors'] );
+		$this->assertSame(
+			array( 'Notice not found.', 'Could not create the notice. Please try again.' ),
+			$data['messages']
+		);
 	}
 
 	public function test_wp_error_from_envelope_defaults_to_recruitment_error_when_empty(): void {
