@@ -247,6 +247,38 @@ class RateLimitRepositoryTest extends TestCase {
 		$this->assertSame( 1, RateLimitRepository::get_submission_count( 'cpf', Identifiers::RF_A, 'day', null ) );
 	}
 
+	/**
+	 * @dataProvider submission_window_provider
+	 */
+	public function test_get_submission_count_looks_back_over_each_periods_own_window( string $period, int $days ): void {
+		// `year` used to fall through to the 30-day window (#2156).
+		$queries = array();
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturnUsing(
+			static function ( $sql ) use ( &$queries ) {
+				$queries[] = $sql;
+				return '0';
+			}
+		);
+
+		RateLimitRepository::get_submission_count( 'cpf', Identifiers::CPF_A, $period, null );
+
+		$this->assertCount( 1, $queries );
+		$this->assertStringContainsString( sprintf( 'INTERVAL %d DAY', $days ), $queries[0] );
+		$this->assertSame( 1, substr_count( $queries[0], 'INTERVAL' ), 'One window per count.' );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: int}>
+	 */
+	public function submission_window_provider(): array {
+		return array(
+			'day'   => array( 'day', 1 ),
+			'week'  => array( 'week', 7 ),
+			'month' => array( 'month', 30 ),
+			'year'  => array( 'year', 365 ),
+		);
+	}
+
 	public function test_get_submission_count_unknown_field_returns_zero(): void {
 		$this->assertSame( 0, RateLimitRepository::get_submission_count( 'phone', '999', 'day', null ) );
 	}

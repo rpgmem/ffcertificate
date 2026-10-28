@@ -297,6 +297,25 @@ class RateLimitStrategiesTest extends TestCase {
 		$this->assertSame( 'abuse', $block['blocked_reason'] );
 	}
 
+	public function test_cpf_year_limit_counts_a_year_not_the_month(): void {
+		// Fifty submissions older than a month and younger than a year: the
+		// monthly window sees none, the yearly one sees all fifty. The yearly
+		// count used to read the same 30 days as the monthly one, so this CPF
+		// was allowed (#2156).
+		$this->submissions['cpf_hash:365'] = 50;
+		$s   = array( 'cpf' => array( 'check_database' => true, 'max_per_month' => 5, 'max_per_year' => 50, 'block_threshold' => 10, 'block_duration' => 24, 'message' => 'Yearly limit reached.' ) );
+		$res = ( new CpfLimiter( $this->support( $s ) ) )->check( Identifiers::CPF_A, 7 );
+
+		$this->assertFalse( $res['allowed'] );
+		$this->assertSame( 'cpf_year_limit', $res['reason'] );
+		$this->assertSame( 'Yearly limit reached.', $res['message'] );
+		$windows = array_map(
+			static fn ( array $read ): int => $read[3],
+			array_values( array_filter( $this->reads, static fn ( array $read ): bool => 'submissions' === $read[0] ) )
+		);
+		$this->assertSame( array( 30, 365 ), $windows, 'The month is counted over 30 days and the year over 365.' );
+	}
+
 	public function test_cpf_allows_when_under_limits(): void {
 		$s = array( 'cpf' => array( 'check_database' => true, 'max_per_month' => 5, 'max_per_year' => 50, 'block_threshold' => 10, 'block_duration' => 24, 'message' => 'x' ) );
 		$this->assertTrue( ( new CpfLimiter( $this->support( $s ) ) )->check( Identifiers::CPF_A, 7 )['allowed'] );
