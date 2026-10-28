@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Core\SensitiveFieldRegistry;
 use FreeFormCertificate\Frontend\ReprintDetector;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for ReprintDetector: reprint detection by ticket (hash + JSON fallback),
@@ -215,10 +216,10 @@ class ReprintDetectorTest extends TestCase {
 
 		$this->wpdb->shouldReceive('get_row')->once()->andReturn($row);
 
-		$result = ReprintDetector::detect(1, '123.456.789-01', '');
+		$result = ReprintDetector::detect(1, '518.178.420-80', '');
 
 		$this->assertSame(
-			array( 'wp_ffc_submissions', 1, 'cpf_hash', SensitiveFieldRegistry::hash_identifier( 'cpf', '12345678901' ) ),
+			array( 'wp_ffc_submissions', 1, 'cpf_hash', SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A ) ),
 			$this->prepared[0]
 		);
 		$this->assertTrue($result['is_reprint']);
@@ -271,10 +272,10 @@ class ReprintDetectorTest extends TestCase {
 		$row = $this->makeSubmissionRow(['id' => 77]);
 		$this->wpdb->shouldReceive('get_row')->andReturn($row);
 
-		$result = ReprintDetector::detect(1, '123.456.789-01', '');
+		$result = ReprintDetector::detect(1, '518.178.420-80', '');
 
 		$this->assertCount( 1, $this->prepared );
-		$this->assertSame( Encryption::hash( '12345678901' ), $this->prepared[0][3], 'the digits are hashed, not the formatted value' );
+		$this->assertSame( Encryption::hash( Identifiers::CPF_A ), $this->prepared[0][3], 'the digits are hashed, not the formatted value' );
 		$this->assertTrue($result['is_reprint']);
 	}
 
