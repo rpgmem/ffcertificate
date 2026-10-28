@@ -9,13 +9,23 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\API\UserAudienceRestController;
+use FreeFormCertificate\Audience\AudienceFormInvite;
 
 /**
  * Tests for UserAudienceRestController: route registration, permission checks,
- * and endpoint callback error paths.
+ * and every endpoint over the real audience classes.
+ *
+ * AudienceQueryService, AudienceReader, AudienceWriter, AudienceTreeRules,
+ * AudienceSelfJoinLimit, AudiencePostEventPending (with AudiencePostEventForm,
+ * AudienceFormInvite and the invite reader and mailer), AudienceBookingRules,
+ * BadgeHtml and DateFormatter run for real. The `$wpdb` double below keeps
+ * the audiences, memberships and bookings a test stores, answers each query
+ * by its SQL text and the values bound to it, and records every membership
+ * written or deleted. The controller catches every exception, so a query
+ * the double does not know is recorded and fails the test in
+ * assertPostConditions() instead of passing as an error response.
+ *
  * @covers \FreeFormCertificate\API\UserAudienceRestController
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class UserAudienceRestControllerTest extends TestCase {
 
@@ -24,13 +34,60 @@ class UserAudienceRestControllerTest extends TestCase {
 	/** @var array Captured route registrations */
 	private array $registered_routes = [];
 
-	/** @var object Mock $wpdb */
+	/** @var array<int, array<string, mixed>> Audience rows by id. */
+	private array $audiences = array();
+
+	/** @var list<array{id: int, audience_id: int, user_id: int}> Membership rows, oldest first. */
+	private array $memberships = array();
+
+	/** @var int The id the next membership row receives. */
+	private int $next_membership_id = 1;
+
+	/** @var list<array<string, mixed>> Audience booking rows. */
+	private array $bookings = array();
+
+	/** @var array<int, list<int>> Participants by booking id. */
+	private array $participants = array();
+
+	/** @var list<array{booking_id: int, name: string, color: string}> The audiences each booking names. */
+	private array $booking_audiences = array();
+
+	/** @var bool Whether the audiences table and its allow_self_join column exist. */
+	private bool $schema = true;
+
+	/** @var array<string, mixed> Stored options, read through get_option(). */
+	private array $options = array();
+
+	/** @var string|null A query fragment the double throws on, to drive the error paths. */
+	private ?string $throw_on = null;
+
+	/** @var list<string> Memberships, as "audience:user", whose delete fails. */
+	private array $failing_deletes = array();
+
+	/** @var list<array<string, int>> Every membership insert, as its data. */
+	private array $inserts = array();
+
+	/** @var list<array<string, int>> Every membership delete, as its where clause. */
+	private array $deletes = array();
+
+	/** @var list<array<int, mixed>> Every prepare() call, as its argument list. */
+	private array $prepared = array();
+
+	/** @var list<string> Queries the double did not recognise. */
+	private array $unexpected = array();
+
+	/** @var Mockery\MockInterface Mock $wpdb */
 	private $wpdb;
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		class_exists( '\\FreeFormCertificate\\API\\UserAudienceRestController' );
 
 		$this->registered_routes = [];
 
@@ -47,75 +104,366 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
 		Functions\when( 'rest_ensure_response' )->alias( function( $data ) { return $data; } );
 		Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
-		Functions\when( 'get_option' )->justReturn( 'F j, Y' );
-		Functions\when( 'date_i18n' )->alias( function( $format, $timestamp = false ) {
-			return date( $format, $timestamp ?: time() );
-		});
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) => array_key_exists( $key, $this->options ) ? $this->options[ $key ] : $default
+		);
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, (array) $args ) );
+		Functions\when( 'sanitize_sql_orderby' )->returnArg();
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		// AudienceWriter::add_member() grants the audience capability to the
+		// user it reads here; no account answers, so the grant does nothing.
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias(
+			static fn( $format, $ts = null, $tz = null ) => ( new \DateTimeImmutable( '@' . (int) $ts ) )->setTimezone( $tz ?? new \DateTimeZone( 'UTC' ) )->format( $format )
+		);
 
-		// Alias mocks for static-only dependencies
-		$utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-		$utils_mock->shouldReceive( 'debug_log' )->byDefault();
+		$this->audiences          = array();
+		$this->memberships        = array();
+		$this->next_membership_id = 1;
+		$this->bookings           = array();
+		$this->participants       = array();
+		$this->booking_audiences  = array();
+		$this->schema             = true;
+		// DateFormatter reads the plugin settings: none stored, so the default formats.
+		$this->options            = array( 'ffc_settings' => array() );
+		$this->throw_on           = null;
+		$this->failing_deletes    = array();
+		$this->inserts            = array();
+		$this->deletes            = array();
+		$this->prepared           = array();
+		$this->unexpected         = array();
 
-		$user_manager_mock = Mockery::mock( 'alias:\FreeFormCertificate\UserDashboard\CapabilityManager' );
-		$user_manager_mock->shouldReceive( 'grant_audience_capabilities' )->byDefault();
-
-		// UserManager alias so the class_exists() guard in join_audience_group()
-		// resolves true and the CapabilityManager grant branch is exercised.
-		Mockery::mock( 'alias:\FreeFormCertificate\UserDashboard\UserManager' );
-
-		// Audience data-access dependencies (static). Overridable per-test.
-		$this->query_service = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceQueryService' );
-		$this->query_service->shouldReceive( 'find_user_bookings' )->andReturn( array() )->byDefault();
-		$this->query_service->shouldReceive( 'find_user_joinable_audiences' )->andReturn( array() )->byDefault();
-		$this->query_service->shouldReceive( 'count_user_self_join_memberships' )->andReturn( 0 )->byDefault();
-
-		$this->reader = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceReader' );
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( null )->byDefault();
-		$this->reader->shouldReceive( 'is_member' )->andReturn( false )->byDefault();
-
-		$this->writer = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceWriter' );
-		$this->writer->shouldReceive( 'add_member' )->andReturn( 1 )->byDefault();
-		$this->writer->shouldReceive( 'remove_member' )->andReturn( true )->byDefault();
-
-		// Tree access (#1918): open trees by default, each group its own root.
-		$this->tree = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceTreeRules' );
-		$this->tree->shouldReceive( 'root_id' )->andReturnUsing( static fn( int $id ): int => $id )->byDefault();
-		$this->tree->shouldReceive( 'access' )->andReturn( array( 'members_only' => false, 'require_membership' => false ) )->byDefault();
-		$this->tree->shouldReceive( 'memberships' )->andReturn( array() )->byDefault();
-		$this->tree->shouldReceive( 'can_see' )->andReturn( true )->byDefault();
-		$this->tree->shouldReceive( 'is_last_kept_group' )->andReturn( false )->byDefault();
-		$this->tree->shouldReceive( 'groups_kept_on_leave_all' )->andReturn( array() )->byDefault();
-
-		// Global $wpdb mock
-		$this->wpdb = Mockery::mock( 'wpdb' )->makePartial();
-		$this->wpdb->prefix = 'wp_';
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn( '' )->byDefault();
-		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( function( $v ) { return (string) $v; } )->byDefault();
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' )->byDefault();
-		$this->wpdb->shouldReceive( 'insert' )->andReturn( 1 )->byDefault();
-		$this->wpdb->shouldReceive( 'delete' )->andReturn( 1 )->byDefault();
-		$this->wpdb->shouldReceive( 'query' )->andReturn( 0 )->byDefault();
-		$GLOBALS['wpdb'] = $this->wpdb;
+		$this->install_wpdb();
 	}
 
-	/** @var \Mockery\MockInterface AudienceQueryService alias */
-	private $query_service;
-
-	/** @var \Mockery\MockInterface AudienceReader alias */
-	private $reader;
-
-	/** @var \Mockery\MockInterface AudienceWriter alias */
-	private $writer;
-
-	/** @var \Mockery\MockInterface AudienceTreeRules alias */
-	private $tree;
-
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
-		unset( $GLOBALS['wpdb'] );
 		parent::tearDown();
+	}
+
+	protected function assertPostConditions(): void {
+		$this->assertSame( array(), $this->unexpected, 'The $wpdb double received a query it does not know.' );
+	}
+
+	/**
+	 * The `$wpdb` double over the arrays above.
+	 */
+	private function install_wpdb(): void {
+		$this->wpdb            = Mockery::mock( 'wpdb' );
+		$this->wpdb->prefix    = 'wp_';
+		$this->wpdb->insert_id = 0;
+
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( string $text ): string => addcslashes( $text, '_%\\' ) );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( ...$args ) {
+				$flat             = 2 === count( $args ) && is_array( $args[1] ) ? array_merge( array( $args[0] ), $args[1] ) : $args;
+				$this->prepared[] = $flat;
+				return 'Q' . ( count( $this->prepared ) - 1 ) . ':' . $flat[0];
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( fn( $sql ) => $this->read_var( (string) $sql ) );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturnUsing( fn( $sql ) => $this->read_row( (string) $sql ) );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing( fn( $sql ) => $this->read_results( (string) $sql ) );
+		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing( fn( $sql ) => $this->read_col( (string) $sql ) );
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing( fn( $sql ) => $this->run_query( (string) $sql ) );
+		$this->wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) {
+				if ( 'wp_ffc_audience_members' !== $table ) {
+					return $this->unknown( 'insert', (string) $table );
+				}
+				$this->inserts[]       = $data;
+				$id                    = $this->next_membership_id++;
+				$this->memberships[]   = array(
+					'id'          => $id,
+					'audience_id' => (int) $data['audience_id'],
+					'user_id'     => (int) $data['user_id'],
+				);
+				$this->wpdb->insert_id = $id;
+				return 1;
+			}
+		);
+		$this->wpdb->shouldReceive( 'delete' )->andReturnUsing(
+			function ( $table, $where ) {
+				if ( 'wp_ffc_audience_members' !== $table ) {
+					return $this->unknown( 'delete', (string) $table );
+				}
+				$this->deletes[] = $where;
+				if ( in_array( $where['audience_id'] . ':' . $where['user_id'], $this->failing_deletes, true ) ) {
+					return false;
+				}
+				$before            = count( $this->memberships );
+				$this->memberships = array_values(
+					array_filter(
+						$this->memberships,
+						static fn( array $m ): bool => ! ( $m['audience_id'] === (int) $where['audience_id'] && $m['user_id'] === (int) $where['user_id'] )
+					)
+				);
+				return $before - count( $this->memberships );
+			}
+		);
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $this->wpdb;
+	}
+
+	/**
+	 * Record a query the double does not know and stop the code that ran it.
+	 *
+	 * @return never
+	 */
+	private function unknown( string $method, string $sql ) {
+		$this->unexpected[] = $method . '(): ' . $sql;
+		throw new \LogicException( 'Unexpected ' . $method . '(): ' . $sql );
+	}
+
+	/**
+	 * The prepare() argument list behind a prepared query string, after
+	 * throwing when the test asked for this query to fail.
+	 *
+	 * @return array<int, mixed>
+	 */
+	private function bound( string $sql ): array {
+		if ( null !== $this->throw_on && false !== strpos( $sql, $this->throw_on ) ) {
+			throw new \RuntimeException( 'boom' );
+		}
+		if ( preg_match( '/^Q(\d+):/', $sql, $match ) ) {
+			return $this->prepared[ (int) $match[1] ] ?? array();
+		}
+		return array( $sql );
+	}
+
+	/**
+	 * Every prepare() call whose SQL contains $needle.
+	 *
+	 * @return list<array<int, mixed>>
+	 */
+	private function preparedWith( string $needle ): array {
+		return array_values( array_filter( $this->prepared, static fn( array $call ): bool => false !== strpos( (string) $call[0], $needle ) ) );
+	}
+
+	/**
+	 * Whether a user holds a membership of an audience.
+	 */
+	private function holds( int $audience_id, int $user_id ): bool {
+		foreach ( $this->memberships as $membership ) {
+			if ( $membership['audience_id'] === $audience_id && $membership['user_id'] === $user_id ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * A user's memberships of self-join audiences.
+	 *
+	 * @return list<array{id: int, audience_id: int, user_id: int}>
+	 */
+	private function self_join_memberships( int $user_id ): array {
+		return array_values(
+			array_filter(
+				$this->memberships,
+				fn( array $m ): bool => $m['user_id'] === $user_id && ! empty( $this->audiences[ $m['audience_id'] ]['allow_self_join'] )
+			)
+		);
+	}
+
+	private function read_var( string $sql ) {
+		$bound = $this->bound( $sql );
+		if ( false !== strpos( $sql, 'SHOW TABLES LIKE %s' ) ) {
+			return $this->schema ? $bound[1] : null;
+		}
+		if ( false !== strpos( $sql, 'SELECT COUNT(*) FROM %i WHERE audience_id = %d AND user_id = %d' ) ) {
+			// AudienceReader::is_member().
+			return $this->holds( (int) $bound[2], (int) $bound[3] ) ? '1' : '0';
+		}
+		if ( false !== strpos( $sql, 'WHERE m.user_id = %d AND a.allow_self_join = 1' ) && false !== strpos( $sql, 'COUNT(*)' ) ) {
+			// AudienceQueryService::count_user_self_join_memberships().
+			return (string) count( $this->self_join_memberships( (int) $bound[3] ) );
+		}
+		return $this->unknown( 'get_var', $sql );
+	}
+
+	private function read_row( string $sql ) {
+		$bound = $this->bound( $sql );
+		if ( false !== strpos( $sql, 'SELECT * FROM %i WHERE id = %d' ) && 'wp_ffc_audiences' === $bound[1] ) {
+			// AudienceReader::get_by_id().
+			$row = $this->audiences[ (int) $bound[2] ] ?? null;
+			return null === $row ? null : (object) $row;
+		}
+		if ( false !== strpos( $sql, 'SELECT id, name FROM %i WHERE id = %d AND allow_self_join = 1' ) ) {
+			$row = $this->audiences[ (int) $bound[2] ] ?? null;
+			return null !== $row && ! empty( $row['allow_self_join'] )
+				? (object) array(
+					'id'   => $row['id'],
+					'name' => $row['name'],
+				)
+				: null;
+		}
+		return $this->unknown( 'get_row', $sql );
+	}
+
+	private function read_results( string $sql ) {
+		$bound = $this->bound( $sql );
+		if ( false !== strpos( $sql, 'SHOW COLUMNS FROM %i LIKE %s' ) ) {
+			return $this->schema ? array( (object) array( 'Field' => 'allow_self_join' ) ) : array();
+		}
+		if ( false !== strpos( $sql, 'SELECT a.id, a.name, a.color, a.parent_id, a.allow_self_join' ) ) {
+			// AudienceQueryService::find_user_joinable_audiences(): active audiences by name.
+			$rows = array();
+			foreach ( $this->audiences as $audience ) {
+				if ( 'active' !== $audience['status'] ) {
+					continue;
+				}
+				$rows[] = array(
+					'id'              => (string) $audience['id'],
+					'name'            => $audience['name'],
+					'color'           => $audience['color'],
+					'parent_id'       => null === $audience['parent_id'] ? null : (string) $audience['parent_id'],
+					'allow_self_join' => (string) $audience['allow_self_join'],
+					'is_member'       => $this->holds( $audience['id'], (int) $bound[3] ) ? '1' : '0',
+				);
+			}
+			usort( $rows, static fn( $a, $b ) => strcmp( $a['name'], $b['name'] ) );
+			return $rows;
+		}
+		if ( false !== strpos( $sql, 'SELECT * FROM %i WHERE parent_id = %d' ) && 'wp_ffc_audiences' === $bound[1] ) {
+			// AudienceReader::get_children().
+			$rows = array();
+			foreach ( $this->audiences as $audience ) {
+				if ( $audience['parent_id'] === (int) $bound[2] ) {
+					$rows[] = (object) $audience;
+				}
+			}
+			return $rows;
+		}
+		if ( false !== strpos( $sql, 'SELECT a.id, a.name, a.allow_self_join, m.id AS membership_id' ) ) {
+			// AudienceTreeRules::memberships(): the user's memberships among the tree's ids, by name.
+			$user = (int) $bound[3];
+			$ids  = array_map( 'intval', array_slice( $bound, 4 ) );
+			$rows = array();
+			foreach ( $this->memberships as $membership ) {
+				if ( $membership['user_id'] === $user && in_array( $membership['audience_id'], $ids, true ) ) {
+					$audience = $this->audiences[ $membership['audience_id'] ];
+					$rows[]   = array(
+						'id'              => (string) $audience['id'],
+						'name'            => $audience['name'],
+						'allow_self_join' => (string) $audience['allow_self_join'],
+						'membership_id'   => (string) $membership['id'],
+					);
+				}
+			}
+			usort( $rows, static fn( $a, $b ) => strcmp( $a['name'], $b['name'] ) );
+			return $rows;
+		}
+		if ( false !== strpos( $sql, 'SELECT DISTINCT b.*, e.name as environment_name, s.name as schedule_name' ) ) {
+			// AudienceQueryService::find_user_bookings(): the bookings the user takes part in.
+			$user = (int) $bound[7];
+			return array_values(
+				array_filter(
+					$this->bookings,
+					fn( array $b ): bool => in_array( $user, $this->participants[ (int) $b['id'] ] ?? array(), true )
+				)
+			);
+		}
+		if ( false !== strpos( $sql, 'WHERE ba.booking_id IN (' ) ) {
+			// The batch load of every listed booking's audiences.
+			preg_match( '/IN \(([\d,]+)\)/', $sql, $match );
+			$ids = array_map( 'intval', explode( ',', $match[1] ) );
+			return array_values(
+				array_filter( $this->booking_audiences, static fn( array $a ): bool => in_array( $a['booking_id'], $ids, true ) )
+			);
+		}
+		if ( false !== strpos( $sql, 'WHERE ba.booking_id = %d' ) ) {
+			// AudienceBookingReader::get_booking_audiences(): participants are named directly.
+			return array();
+		}
+		if ( false !== strpos( $sql, 'WHERE audience_booking_id = %d' ) ) {
+			// AudienceFormInviteReader::answers(): nobody answered yet.
+			return array();
+		}
+		return $this->unknown( 'get_results', $sql );
+	}
+
+	private function read_col( string $sql ) {
+		$bound = $this->bound( $sql );
+		if ( false !== strpos( $sql, 'SELECT m.audience_id FROM %i m' ) ) {
+			// AudienceTreeRules::groups_kept_on_leave_all(): the user's self-join groups.
+			return array_map( static fn( array $m ): string => (string) $m['audience_id'], $this->self_join_memberships( (int) $bound[3] ) );
+		}
+		if ( false !== strpos( $sql, 'SELECT user_id FROM %i WHERE booking_id = %d' ) ) {
+			return array_map( 'strval', $this->participants[ (int) $bound[2] ] ?? array() );
+		}
+		return $this->unknown( 'get_col', $sql );
+	}
+
+	private function run_query( string $sql ) {
+		$bound = $this->bound( $sql );
+		if ( false !== strpos( $sql, 'DELETE m FROM %i m INNER JOIN %i a' ) ) {
+			// Every self-join membership of the user, except the kept groups.
+			$user   = (int) $bound[3];
+			$kept   = array_map( 'intval', array_slice( $bound, 4 ) );
+			$before = count( $this->memberships );
+			$this->memberships = array_values(
+				array_filter(
+					$this->memberships,
+					fn( array $m ): bool => ! ( $m['user_id'] === $user && ! empty( $this->audiences[ $m['audience_id'] ]['allow_self_join'] ) && ! in_array( $m['audience_id'], $kept, true ) )
+				)
+			);
+			return $before - count( $this->memberships );
+		}
+		return $this->unknown( 'query', $sql );
+	}
+
+	/**
+	 * Store an audience.
+	 *
+	 * @param array<string, mixed> $extra Other columns (members_only, require_membership, color, status).
+	 */
+	private function audience( int $id, string $name, ?int $parent_id, bool $self_join, array $extra = array() ): void {
+		$this->audiences[ $id ] = array_merge(
+			array(
+				'id'                 => $id,
+				'name'               => $name,
+				'color'              => '',
+				'parent_id'          => $parent_id,
+				'allow_self_join'    => $self_join ? 1 : 0,
+				'status'             => 'active',
+				'members_only'       => 0,
+				'require_membership' => 0,
+			),
+			$extra
+		);
+	}
+
+	/**
+	 * Store a membership; memberships stored later have higher ids.
+	 */
+	private function member( int $audience_id, int $user_id ): void {
+		$this->memberships[] = array(
+			'id'          => $this->next_membership_id++,
+			'audience_id' => $audience_id,
+			'user_id'     => $user_id,
+		);
+	}
+
+	/**
+	 * Store a booking user 5 takes part in.
+	 *
+	 * @param array<string, mixed> $row Booking row.
+	 * @param list<int>            $participants Users booked on it.
+	 */
+	private function stored_booking( array $row, array $participants = array( 5 ) ): void {
+		$this->bookings[]                           = $row;
+		$this->participants[ (int) $row['id'] ] = $participants;
 	}
 
 	/**
@@ -205,13 +553,12 @@ class UserAudienceRestControllerTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'capability_denied', $result->get_error_code() );
+		$this->assertSame( array(), $this->preparedWith( 'environment_name' ), 'No booking is read.' );
 	}
 
 	public function test_get_user_audience_bookings_returns_empty_when_no_bookings(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( true );
-
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
 
 		$ctrl    = new UserAudienceRestController( 'ffc/v1' );
 		$request = $this->make_request();
@@ -220,6 +567,7 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->assertIsArray( $result );
 		$this->assertSame( 0, $result['total'] );
 		$this->assertEmpty( $result['bookings'] );
+		$this->assertSame( array( 5, 5 ), array_slice( $this->preparedWith( 'environment_name' )[0], 7, 2 ), 'The bookings of user 5 are read.' );
 	}
 
 	public function test_get_user_audience_bookings_renders_wall_clock_without_tz_shift(): void {
@@ -233,9 +581,6 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'current_time' )->justReturn( '2026-06-06' );
-		Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
-			return 'ffc_settings' === $key ? array() : ( false !== $default ? $default : '' );
-		} );
 		Functions\when( 'wp_timezone' )->alias( static function () {
 			return new \DateTimeZone( '-03:00' );
 		} );
@@ -247,23 +592,20 @@ class UserAudienceRestControllerTest extends TestCase {
 			return $dt->format( $format );
 		} );
 
-		$booking_row = array(
-			'id'               => 1,
-			'booking_date'     => '2026-06-05',
-			'start_time'       => '09:00:00',
-			'end_time'         => '17:00:00',
-			'status'           => 'active',
-			'environment_id'   => 2,
-			'environment_name' => 'Env',
-			'schedule_name'    => 'Sched',
-			'description'      => '',
-			// The service always sets this key — an empty batch-load yields an
-			// empty list, never an absent key — so the fixture has to as well,
-			// or it tests a row shape production never produces (#1060).
-			'audiences'        => array(),
+		// The service loads each booking's audiences in one batch; this one has none.
+		$this->stored_booking(
+			array(
+				'id'               => 1,
+				'booking_date'     => '2026-06-05',
+				'start_time'       => '09:00:00',
+				'end_time'         => '17:00:00',
+				'status'           => 'active',
+				'environment_id'   => 2,
+				'environment_name' => 'Env',
+				'schedule_name'    => 'Sched',
+				'description'      => '',
+			)
 		);
-		// Service returns the single booking row (audience batch-load empty).
-		$this->query_service->shouldReceive( 'find_user_bookings' )->andReturn( array( $booking_row ) );
 
 		$ctrl    = new UserAudienceRestController( 'ffc/v1' );
 		$result  = $ctrl->get_user_audience_bookings( $this->make_request() );
@@ -278,6 +620,7 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->assertSame( '17:00', $row['end_time'], 'end time must not shift' );
 		$this->assertSame( '2026-06-05', $row['booking_date_raw'] );
 		$this->assertTrue( $row['is_past'], '2026-06-05 is before site-local today 2026-06-06' );
+		$this->assertSame( array(), $row['audiences'], 'An empty batch load yields an empty list, never an absent key (#1060).' );
 	}
 
 	public function test_get_user_audience_bookings_maps_rows_and_audiences(): void {
@@ -289,30 +632,31 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'wp_date' )->justReturn( '' );
 		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 
-		$booking = array(
-			'id'               => 7,
-			'booking_date'     => '2099-12-31',
-			'start_time'       => '08:00:00',
-			'end_time'         => '',
-			'status'           => 'cancelled',
-			'environment_id'   => 3,
-			'environment_name' => 'Room',
-			'schedule_name'    => 'Sched',
-			'description'      => 'desc',
-			'audiences'        => array(
-				array(
-					'id'    => 1,
-					'name'  => 'Group',
-					'color' => '#fafafa',
-				),
-				array(
-					'id'    => 2,
-					'name'  => 'Other',
-					'color' => 'red;background:url(x)',
-				),
+		$this->stored_booking(
+			array(
+				'id'               => 7,
+				'booking_date'     => '2099-12-31',
+				'start_time'       => '08:00:00',
+				'end_time'         => '',
+				'status'           => 'cancelled',
+				'environment_id'   => 3,
+				'environment_name' => 'Room',
+				'schedule_name'    => 'Sched',
+				'description'      => 'desc',
+			)
+		);
+		$this->booking_audiences = array(
+			array(
+				'booking_id' => 7,
+				'name'       => 'Group',
+				'color'      => '#fafafa',
+			),
+			array(
+				'booking_id' => 7,
+				'name'       => 'Other',
+				'color'      => 'red;background:url(x)',
 			),
 		);
-		$this->query_service->shouldReceive( 'find_user_bookings' )->andReturn( array( $booking ) );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->get_user_audience_bookings( $this->make_request() );
@@ -328,16 +672,15 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->assertFalse( $row['is_past'], 'future date is not past' );
 		// Each audience carries the text colour computed over its own colour
 		// (#1826); a value that is not a hex colour never reaches the payload.
+		// The batch load reads the name and colour of each audience, no id.
 		$this->assertSame(
 			array(
 				array(
-					'id'         => 1,
 					'name'       => 'Group',
 					'color'      => '#fafafa',
 					'text_color' => '#000000',
 				),
 				array(
-					'id'         => 2,
 					'name'       => 'Other',
 					'color'      => '#e9ecef',
 					'text_color' => '#000000',
@@ -356,23 +699,20 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'wp_date' )->justReturn( '' );
 		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 
-		$this->query_service->shouldReceive( 'find_user_bookings' )->andReturn(
+		$this->stored_booking(
 			array(
-				array(
-					'id'               => 9,
-					'booking_date'     => '2026-06-05',
-					'end_date'         => '2026-06-08',
-					'time_mode'        => 'span',
-					'skipped_dates'    => '["2026-06-08"]',
-					'start_time'       => '14:00:00',
-					'end_time'         => '10:00:00',
-					'status'           => 'active',
-					'environment_id'   => 2,
-					'environment_name' => 'Env',
-					'schedule_name'    => 'Sched',
-					'description'      => 'Course',
-					'audiences'        => array(),
-				),
+				'id'               => 9,
+				'booking_date'     => '2026-06-05',
+				'end_date'         => '2026-06-08',
+				'time_mode'        => 'span',
+				'skipped_dates'    => '["2026-06-08"]',
+				'start_time'       => '14:00:00',
+				'end_time'         => '10:00:00',
+				'status'           => 'active',
+				'environment_id'   => 2,
+				'environment_name' => 'Env',
+				'schedule_name'    => 'Sched',
+				'description'      => 'Course',
 			)
 		);
 
@@ -387,21 +727,56 @@ class UserAudienceRestControllerTest extends TestCase {
 	/**
 	 * A booking row the controller can format.
 	 *
+	 * @param int                  $id    Booking ID.
+	 * @param array<string, mixed> $extra Other columns.
+	 * @return array<string, mixed>
+	 */
+	private function plain_booking( int $id, array $extra = array() ): array {
+		return array_merge(
+			array(
+				'id'               => $id,
+				'booking_date'     => '2026-06-01',
+				'start_time'       => '08:00:00',
+				'end_time'         => '10:00:00',
+				'status'           => 'active',
+				'environment_id'   => 3,
+				'environment_name' => 'Room',
+				'schedule_name'    => 'Sched',
+				'description'      => 'desc',
+			),
+			$extra
+		);
+	}
+
+	/**
+	 * A booking that ended two days ago with its own post-event form (form 50,
+	 * open for seven days), and the published page that embeds the form.
+	 *
 	 * @param int $id Booking ID.
 	 * @return array<string, mixed>
 	 */
-	private function plain_booking( int $id ): array {
-		return array(
-			'id'               => $id,
-			'booking_date'     => '2026-06-01',
-			'start_time'       => '08:00:00',
-			'end_time'         => '10:00:00',
-			'status'           => 'active',
-			'environment_id'   => 3,
-			'environment_name' => 'Room',
-			'schedule_name'    => 'Sched',
-			'description'      => 'desc',
-			'audiences'        => array(),
+	private function booking_with_an_open_form( int $id ): array {
+		$form              = new \WP_Post();
+		$form->ID          = 50;
+		$form->post_type   = 'ffc_form';
+		$form->post_status = 'publish';
+		Functions\when( 'get_post' )->alias( static fn( $post_id ) => 50 === (int) $post_id ? $form : null );
+		Functions\when( 'get_the_title' )->justReturn( 'Evaluation' );
+		Functions\when( 'get_posts' )->justReturn( array( 300 ) );
+		Functions\when( 'get_post_field' )->justReturn( '[ffc_form id="50"]' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.org/form/' );
+		Functions\when( 'add_query_arg' )->alias( static fn( $key, $value, $url ) => $url . '?' . $key . '=' . $value );
+		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+
+		// Two days back, so the window is open whichever second the test runs at.
+		return $this->plain_booking(
+			$id,
+			array(
+				'booking_date'           => gmdate( 'Y-m-d', time() - 2 * DAY_IN_SECONDS ),
+				'post_event_custom'      => 1,
+				'post_event_form_id'     => 50,
+				'post_event_window_days' => 7,
+			)
 		);
 	}
 
@@ -409,26 +784,25 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'current_time' )->justReturn( '2026-06-06' );
-		Functions\when( 'wp_date' )->justReturn( '' );
-		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
 
-		$waiting = array(
-			'form_title'   => 'Evaluation',
-			'url'          => 'https://example.org/form/?ffc_invite=abc',
-			'closes_at'    => 1800000000,
-			'closes_label' => '2027-01-15 12:00',
-		);
-		$this->query_service->shouldReceive( 'find_user_bookings' )->andReturn( array( $this->plain_booking( 7 ), $this->plain_booking( 8 ) ) );
-		Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudiencePostEventPending' )
-			->shouldReceive( 'for_user' )
-			->twice()
-			->with( Mockery::type( 'object' ), 5, Mockery::type( 'int' ), true )
-			->andReturnUsing( static fn( object $b ) => 7 === (int) $b->id ? $waiting : null );
+		// Booking 7 waits for user 5's answer; booking 8 has no form.
+		$waiting = $this->booking_with_an_open_form( 7 );
+		$this->stored_booking( $waiting );
+		$this->stored_booking( $this->plain_booking( 8 ) );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )->get_user_audience_bookings( $this->make_request() );
 
-		$this->assertSame( $waiting, $result['bookings'][0]['post_event'] );
+		$closes = ( new \DateTimeImmutable( $waiting['booking_date'] . ' 10:00', new \DateTimeZone( 'UTC' ) ) )->getTimestamp() + 7 * DAY_IN_SECONDS;
+		$this->assertSame(
+			array(
+				'form_title'   => 'Evaluation',
+				'url'          => 'https://example.org/form/?ffc_invite=' . AudienceFormInvite::code( 7, 5, 50 ),
+				'closes_at'    => $closes,
+				'closes_label' => gmdate( 'd/m/Y H:i', $closes ),
+			),
+			$result['bookings'][0]['post_event']
+		);
 		$this->assertNull( $result['bookings'][1]['post_event'] );
 		$this->assertSame( 1, $result['pending_post_event'] );
 		$this->assertSame( 'You have 1 certificate form to fill in. Find it under Actions.', $result['pending_label'] );
@@ -440,27 +814,23 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
 		Functions\when( 'current_time' )->justReturn( '2026-06-06' );
-		Functions\when( 'wp_date' )->justReturn( '' );
-		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
 
-		$this->query_service->shouldReceive( 'find_user_bookings' )->with( 9 )->andReturn( array( $this->plain_booking( 7 ) ) );
-		Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudiencePostEventPending' )
-			->shouldReceive( 'for_user' )->once()
-			->with( Mockery::type( 'object' ), 9, Mockery::type( 'int' ), false )
-			->andReturn( null );
+		$this->stored_booking( $this->booking_with_an_open_form( 7 ), array( 9 ) );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )->get_user_audience_bookings( $this->make_request( array( 'viewAsUserId' => '9' ) ) );
 
-		$this->assertSame( 0, $result['pending_post_event'] );
-		$this->assertSame( '', $result['pending_label'] );
+		$this->assertSame( array( 9, 9 ), array_slice( $this->preparedWith( 'environment_name' )[0], 7, 2 ), 'The viewed user\'s bookings are read.' );
+		$this->assertSame( 'Evaluation', $result['bookings'][0]['post_event']['form_title'], 'The form waiting for user 9 is shown.' );
+		$this->assertSame( '', $result['bookings'][0]['post_event']['url'], 'Someone viewing as the user never gets the user\'s own link.' );
+		$this->assertSame( 1, $result['pending_post_event'] );
 	}
 
 	public function test_get_user_audience_bookings_returns_500_on_exception(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( true );
 
-		$this->query_service->shouldReceive( 'find_user_bookings' )
-			->andThrow( new \Exception( 'boom' ) );
+		$this->throw_on = 'SELECT DISTINCT b.*, e.name as environment_name';
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->get_user_audience_bookings( $this->make_request() );
@@ -490,7 +860,8 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( false );
 
 		// table_exists returns false (SHOW TABLES LIKE returns null)
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$this->schema = false;
+		$this->audience( 1, 'Solo', null, true );
 
 		$ctrl    = new UserAudienceRestController( 'ffc/v1' );
 		$request = $this->make_request();
@@ -501,18 +872,16 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->assertArrayHasKey( 'parents', $result );
 		$this->assertEmpty( $result['parents'] );
 		$this->assertSame( 2, $result['max_groups'] );
+		$this->assertSame( array(), $this->preparedWith( 'a.allow_self_join,' ), 'The audiences are never read.' );
 	}
 
 	public function test_get_joinable_groups_returns_empty_parents_when_no_audiences(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		// Schema guard passes: table + column exist.
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_audiences' );
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'allow_self_join' ) ) );
-
-		// Service returns empty flat list → early empty parents return.
-		$this->query_service->shouldReceive( 'find_user_joinable_audiences' )->andReturn( array() );
+		// Schema guard passes: table + column exist. No active audience is
+		// stored, so the service returns an empty list → early empty parents return.
+		$this->audience( 1, 'Archived', null, true, array( 'status' => 'inactive' ) );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->get_joinable_groups( $this->make_request() );
@@ -528,25 +897,21 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_audiences' );
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'allow_self_join' ) ) );
-
-		// Per-node model (#792): the service now returns EVERY active
-		// audience with its own `allow_self_join` flag; the controller
-		// applies the appears/button/header rules.
-		$flat = array(
-			// Non-joinable parent — kept only as a header for its joinable child.
-			array( 'id' => 1, 'parent_id' => null, 'name' => 'Parent', 'color' => '#000', 'allow_self_join' => false, 'is_member' => false ),
-			// Joinable child (button + member).
-			array( 'id' => 2, 'parent_id' => 1, 'name' => 'Child A', 'color' => '#111', 'allow_self_join' => true, 'is_member' => true ),
-			// Non-joinable leaf child → dropped (no button, no children).
-			array( 'id' => 3, 'parent_id' => 1, 'name' => 'Child B', 'color' => '#222', 'allow_self_join' => false, 'is_member' => false ),
-			// Standalone joinable top-level group (button + member).
-			array( 'id' => 4, 'parent_id' => null, 'name' => 'Solo', 'color' => '#333', 'allow_self_join' => true, 'is_member' => true ),
-			// Non-joinable top-level leaf → dropped entirely.
-			array( 'id' => 5, 'parent_id' => null, 'name' => 'Hidden', 'color' => '#444', 'allow_self_join' => false, 'is_member' => false ),
-		);
-		$this->query_service->shouldReceive( 'find_user_joinable_audiences' )->andReturn( $flat );
+		// Per-node model (#792): the service returns EVERY active audience
+		// with its own `allow_self_join` flag; the controller applies the
+		// appears/button/header rules.
+		// Non-joinable parent — kept only as a header for its joinable child.
+		$this->audience( 1, 'Parent', null, false, array( 'color' => '#000' ) );
+		// Joinable child (button + member).
+		$this->audience( 2, 'Child A', 1, true, array( 'color' => '#111' ) );
+		// Non-joinable leaf child → dropped (no button, no children).
+		$this->audience( 3, 'Child B', 1, false, array( 'color' => '#222' ) );
+		// Standalone joinable top-level group (button + member).
+		$this->audience( 4, 'Solo', null, true, array( 'color' => '#333' ) );
+		// Non-joinable top-level leaf → dropped entirely.
+		$this->audience( 5, 'Hidden', null, false, array( 'color' => '#444' ) );
+		$this->member( 2, 5 );
+		$this->member( 4, 5 );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->get_joinable_groups( $this->make_request() );
@@ -588,16 +953,11 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_audiences' );
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'allow_self_join' ) ) );
-
 		// A joinable parent that ALSO has a joinable child: it must expose
 		// BOTH its own button (joinable + is_member) AND the child list.
-		$flat = array(
-			array( 'id' => 1, 'parent_id' => null, 'name' => 'Both', 'color' => '#000', 'allow_self_join' => true, 'is_member' => false ),
-			array( 'id' => 2, 'parent_id' => 1, 'name' => 'Kid', 'color' => '#111', 'allow_self_join' => true, 'is_member' => true ),
-		);
-		$this->query_service->shouldReceive( 'find_user_joinable_audiences' )->andReturn( $flat );
+		$this->audience( 1, 'Both', null, true, array( 'color' => '#000' ) );
+		$this->audience( 2, 'Kid', 1, true, array( 'color' => '#111' ) );
+		$this->member( 2, 5 );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->get_joinable_groups( $this->make_request() );
@@ -620,18 +980,13 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_audiences' );
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'allow_self_join' ) ) );
-
 		// The "descendants only" shape the split self-join produces (#1896):
 		// the parent's own flag off, its children and grandchild on.
-		$flat = array(
-			array( 'id' => 1, 'parent_id' => null, 'name' => 'Parent', 'color' => '#000', 'allow_self_join' => false, 'is_member' => false ),
-			array( 'id' => 2, 'parent_id' => 1, 'name' => 'Child A', 'color' => '#111', 'allow_self_join' => true, 'is_member' => false ),
-			array( 'id' => 3, 'parent_id' => 1, 'name' => 'Child B', 'color' => '#222', 'allow_self_join' => true, 'is_member' => false ),
-			array( 'id' => 4, 'parent_id' => 2, 'name' => 'Grandchild', 'color' => '#333', 'allow_self_join' => true, 'is_member' => true ),
-		);
-		$this->query_service->shouldReceive( 'find_user_joinable_audiences' )->andReturn( $flat );
+		$this->audience( 1, 'Parent', null, false, array( 'color' => '#000' ) );
+		$this->audience( 2, 'Child A', 1, true, array( 'color' => '#111' ) );
+		$this->audience( 3, 'Child B', 1, true, array( 'color' => '#222' ) );
+		$this->audience( 4, 'Grandchild', 2, true, array( 'color' => '#333' ) );
+		$this->member( 4, 5 );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->get_joinable_groups( $this->make_request() );
@@ -654,10 +1009,7 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_audiences' );
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'allow_self_join' ) ) );
-		$this->query_service->shouldReceive( 'find_user_joinable_audiences' )
-			->andThrow( new \Exception( 'boom' ) );
+		$this->throw_on = 'SELECT a.id, a.name, a.color, a.parent_id';
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->get_joinable_groups( $this->make_request() );
@@ -698,14 +1050,13 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		// get_by_id returns null → invalid_group.
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( null );
-
+		// No audience 10 is stored → invalid_group.
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'invalid_group', $result->get_error_code() );
+		$this->assertSame( array(), $this->inserts );
 	}
 
 	public function test_join_audience_group_returns_error_when_group_not_self_joinable(): void {
@@ -713,70 +1064,68 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( false );
 
 		// Active child but allow_self_join = 0.
-		$group = (object) array( 'status' => 'active', 'allow_self_join' => 0, 'parent_id' => 1, 'name' => 'G' );
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $group );
+		$this->audience( 1, 'Staff', null, false );
+		$this->audience( 10, 'G', 1, false );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'invalid_group', $result->get_error_code() );
+		$this->assertSame( array(), $this->inserts );
 	}
 
 	public function test_join_audience_group_returns_error_when_already_member(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$group = (object) array( 'status' => 'active', 'allow_self_join' => 1, 'parent_id' => 1, 'name' => 'G' );
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $group );
-		$this->reader->shouldReceive( 'is_member' )->andReturn( true );
+		$this->audience( 1, 'Staff', null, false );
+		$this->audience( 10, 'G', 1, true );
+		$this->member( 10, 5 );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'already_member', $result->get_error_code() );
+		$this->assertSame( array(), $this->inserts );
 	}
 
 	public function test_join_audience_group_returns_error_when_max_reached(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$group = (object) array( 'status' => 'active', 'allow_self_join' => 1, 'parent_id' => 1, 'name' => 'G' );
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $group );
-		$this->reader->shouldReceive( 'is_member' )->andReturn( false );
-		$this->query_service->shouldReceive( 'count_user_self_join_memberships' )->andReturn( 2 );
+		$this->audience( 1, 'Staff', null, false );
+		$this->audience( 10, 'G', 1, true );
+		// Two self-join groups held already: the default limit.
+		$this->audience( 30, 'Chess', null, true );
+		$this->audience( 31, 'Choir', null, true );
+		$this->member( 30, 5 );
+		$this->member( 31, 5 );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'max_groups_reached', $result->get_error_code() );
+		$this->assertSame( array(), $this->inserts );
 	}
 
 	/**
-	 * Stub the stored self-join limit (#1916); every other option keeps the
-	 * value setUp() gives it.
+	 * Store the self-join limit (#1916); every other option keeps the value
+	 * setUp() gives it.
 	 *
 	 * @param mixed $limit Raw stored value.
 	 */
 	private function store_self_join_limit( $limit ): void {
-		Functions\when( 'get_option' )->alias(
-			static fn( $key, $default = false ) => 'ffc_aud_max_self_join_groups' === $key ? $limit : 'F j, Y'
-		);
+		$this->options['ffc_aud_max_self_join_groups'] = $limit;
 	}
 
 	public function test_get_joinable_groups_reports_the_configured_limit(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 		$this->store_self_join_limit( '5' );
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_audiences' );
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'allow_self_join' ) ) );
-		$this->query_service->shouldReceive( 'find_user_joinable_audiences' )->andReturn(
-			array(
-				array( 'id' => 1, 'parent_id' => null, 'name' => 'Solo', 'color' => '#333', 'allow_self_join' => true, 'is_member' => false ),
-			)
-		);
+		$this->audience( 1, 'Solo', null, true, array( 'color' => '#333' ) );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->get_joinable_groups( $this->make_request() );
@@ -807,37 +1156,37 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 		$this->store_self_join_limit( $stored );
-		$group = (object) array( 'status' => 'active', 'allow_self_join' => 1, 'parent_id' => 1, 'name' => 'G' );
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $group );
-		$this->reader->shouldReceive( 'is_member' )->andReturn( false );
-		$count = $expected;
-		$this->query_service->shouldReceive( 'count_user_self_join_memberships' )->andReturnUsing(
-			static function () use ( &$count ) {
-				return $count;
-			}
-		);
+		$this->audience( 1, 'Staff', null, false );
+		$this->audience( 10, 'G', 1, true );
+		// Exactly as many self-join groups held as the limit allows.
+		for ( $i = 0; $i < $expected; $i++ ) {
+			$this->audience( 100 + $i, 'Group ' . $i, null, true );
+			$this->member( 100 + $i, 5 );
+		}
 		$ctrl = new UserAudienceRestController( 'ffc/v1' );
 
 		$refused = $ctrl->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
 		$this->assertInstanceOf( \WP_Error::class, $refused );
 		$this->assertSame( 'max_groups_reached', $refused->get_error_code() );
 		$this->assertStringContainsString( 'maximum of ' . $expected . ' groups', $refused->get_error_message() );
+		$this->assertSame( array(), $this->inserts );
 
-		$count   = $expected - 1;
+		// One group fewer held: the join goes through.
+		array_shift( $this->memberships );
 		$allowed = $ctrl->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
 		$this->assertIsArray( $allowed );
 		$this->assertTrue( $allowed['success'] );
+		$this->assertSame( array( array( 'audience_id' => 10, 'user_id' => 5 ) ), $this->inserts );
 	}
 
 	public function test_join_audience_group_succeeds(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$group = (object) array( 'status' => 'active', 'allow_self_join' => 1, 'parent_id' => 1, 'name' => 'My Group' );
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $group );
-		$this->reader->shouldReceive( 'is_member' )->andReturn( false );
-		$this->query_service->shouldReceive( 'count_user_self_join_memberships' )->andReturn( 1 );
-		$this->writer->shouldReceive( 'add_member' )->once()->with( 10, 5 )->andReturn( 1 );
+		$this->audience( 1, 'Staff', null, false );
+		$this->audience( 10, 'My Group', 1, true );
+		$this->audience( 30, 'Chess', null, true );
+		$this->member( 30, 5 );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
@@ -845,6 +1194,7 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->assertIsArray( $result );
 		$this->assertTrue( $result['success'] );
 		$this->assertStringContainsString( 'My Group', $result['message'] );
+		$this->assertSame( array( array( 'audience_id' => 10, 'user_id' => 5 ) ), $this->inserts );
 	}
 
 	public function test_join_audience_group_succeeds_for_a_top_level_self_join_group(): void {
@@ -854,11 +1204,7 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$group = (object) array( 'status' => 'active', 'allow_self_join' => 1, 'parent_id' => null, 'name' => 'Solo' );
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $group );
-		$this->reader->shouldReceive( 'is_member' )->andReturn( false );
-		$this->query_service->shouldReceive( 'count_user_self_join_memberships' )->andReturn( 0 );
-		$this->writer->shouldReceive( 'add_member' )->once()->with( 10, 5 )->andReturn( 1 );
+		$this->audience( 10, 'Solo', null, true );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
@@ -866,6 +1212,7 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->assertIsArray( $result );
 		$this->assertTrue( $result['success'] );
 		$this->assertStringContainsString( 'Solo', $result['message'] );
+		$this->assertSame( array( array( 'audience_id' => 10, 'user_id' => 5 ) ), $this->inserts );
 	}
 
 	public function test_join_audience_group_succeeds_for_a_parent_that_also_has_children(): void {
@@ -875,24 +1222,22 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$group = (object) array( 'status' => 'active', 'allow_self_join' => 1, 'parent_id' => null, 'name' => 'Parent' );
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $group );
-		$this->reader->shouldReceive( 'is_member' )->andReturn( false );
-		$this->query_service->shouldReceive( 'count_user_self_join_memberships' )->andReturn( 0 );
-		$this->writer->shouldReceive( 'add_member' )->once()->with( 10, 5 )->andReturn( 1 );
+		$this->audience( 10, 'Parent', null, true );
+		$this->audience( 11, 'Child', 10, true );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
 
 		$this->assertIsArray( $result );
 		$this->assertTrue( $result['success'] );
+		$this->assertSame( array( array( 'audience_id' => 10, 'user_id' => 5 ) ), $this->inserts );
 	}
 
 	public function test_join_audience_group_returns_500_on_exception(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$this->reader->shouldReceive( 'get_by_id' )->andThrow( new \Exception( 'boom' ) );
+		$this->throw_on = 'SELECT * FROM %i WHERE id = %d';
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
@@ -933,23 +1278,24 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		// get_row returns null → invalid_group.
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
+		// Audience 10 does not allow self-join, so the lookup finds nothing → invalid_group.
+		$this->audience( 10, 'G', null, false );
+		$this->member( 10, 5 );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->leave_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'invalid_group', $result->get_error_code() );
+		$this->assertSame( array(), $this->deletes );
 	}
 
 	public function test_leave_audience_group_returns_error_when_not_member(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn( (object) array( 'id' => 10, 'name' => 'G' ) );
-		// delete returns 0 rows → not_member.
-		$this->wpdb->shouldReceive( 'delete' )->andReturn( 0 );
+		// The delete removes no row → not_member.
+		$this->audience( 10, 'G', null, true );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->leave_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
@@ -962,7 +1308,7 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$this->wpdb->shouldReceive( 'get_row' )->andThrow( new \Exception( 'boom' ) );
+		$this->throw_on = 'SELECT id, name FROM %i';
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->leave_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
@@ -975,8 +1321,8 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn( (object) array( 'id' => 10, 'name' => 'My Group' ) );
-		$this->wpdb->shouldReceive( 'delete' )->andReturn( 1 );
+		$this->audience( 10, 'My Group', null, true );
+		$this->member( 10, 5 );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->leave_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
@@ -984,6 +1330,8 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->assertIsArray( $result );
 		$this->assertTrue( $result['success'] );
 		$this->assertStringContainsString( 'My Group', $result['message'] );
+		$this->assertSame( array( array( 'audience_id' => 10, 'user_id' => 5 ) ), $this->deletes );
+		$this->assertFalse( $this->holds( 10, 5 ) );
 	}
 
 	// ------------------------------------------------------------------
@@ -1005,7 +1353,13 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$this->wpdb->shouldReceive( 'query' )->andReturn( 3 );
+		// Three self-join groups go; the group an administrator put the user in stays.
+		foreach ( array( 21, 22, 23 ) as $id ) {
+			$this->audience( $id, 'Open ' . $id, null, true );
+			$this->member( $id, 5 );
+		}
+		$this->audience( 30, 'Assigned', null, false );
+		$this->member( 30, 5 );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->leave_all_audience_groups( $this->make_request() );
@@ -1013,13 +1367,14 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->assertIsArray( $result );
 		$this->assertTrue( $result['success'] );
 		$this->assertSame( 3, $result['removed'] );
+		$this->assertTrue( $this->holds( 30, 5 ) );
 	}
 
 	public function test_leave_all_returns_500_on_exception(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$this->wpdb->shouldReceive( 'query' )->andThrow( new \Exception( 'boom' ) );
+		$this->throw_on = 'DELETE m FROM';
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
 			->leave_all_audience_groups( $this->make_request() );
@@ -1033,28 +1388,43 @@ class UserAudienceRestControllerTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	/**
-	 * The schema guard passes and the service answers with one tree:
-	 * 1 (top-level, no button) → 2, 3 (self-join).
+	 * One tree: 1 (top-level, no button) → 2, 3 (self-join).
+	 *
+	 * @param bool $members_only       The tree takes only its members.
+	 * @param bool $require_membership The tree keeps its members in one group.
 	 */
-	private function one_tree( bool $member_of_2 ): void {
-		Functions\when( 'get_current_user_id' )->justReturn( 5 );
-		Functions\when( 'current_user_can' )->justReturn( false );
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_audiences' );
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'allow_self_join' ) ) );
-		$this->query_service->shouldReceive( 'find_user_joinable_audiences' )->andReturn(
+	private function staff_tree( bool $members_only = false, bool $require_membership = false ): void {
+		$this->audience(
+			1,
+			'Staff',
+			null,
+			false,
 			array(
-				array( 'id' => 1, 'parent_id' => null, 'name' => 'Staff', 'color' => '', 'allow_self_join' => false, 'is_member' => false ),
-				array( 'id' => 2, 'parent_id' => 1, 'name' => 'Morning', 'color' => '', 'allow_self_join' => true, 'is_member' => $member_of_2 ),
-				array( 'id' => 3, 'parent_id' => 1, 'name' => 'Evening', 'color' => '', 'allow_self_join' => true, 'is_member' => false ),
+				'members_only'       => $members_only ? 1 : 0,
+				'require_membership' => $require_membership ? 1 : 0,
 			)
 		);
-		$this->tree->shouldReceive( 'root_id' )->andReturn( 1 );
+		$this->audience( 2, 'Morning', 1, true );
+		$this->audience( 3, 'Evening', 1, true );
+	}
+
+	/**
+	 * The schema guard passes and user 5 asks for the joinable groups of the
+	 * Staff tree.
+	 *
+	 * @param bool $member_of_2 Whether user 5 holds Morning.
+	 */
+	private function one_tree( bool $member_of_2, bool $members_only = false, bool $require_membership = false ): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$this->staff_tree( $members_only, $require_membership );
+		if ( $member_of_2 ) {
+			$this->member( 2, 5 );
+		}
 	}
 
 	public function test_a_members_only_tree_is_hidden_from_a_non_member(): void {
-		$this->one_tree( false );
-		$this->tree->shouldReceive( 'access' )->with( 1 )->andReturn( array( 'members_only' => true, 'require_membership' => false ) );
-		$this->tree->shouldReceive( 'memberships' )->with( 1, 5 )->andReturn( array() );
+		$this->one_tree( false, true );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )->get_joinable_groups( $this->make_request() );
 
@@ -1062,10 +1432,9 @@ class UserAudienceRestControllerTest extends TestCase {
 	}
 
 	public function test_a_members_only_tree_shows_to_an_admin_added_member(): void {
-		$this->one_tree( false );
-		$this->tree->shouldReceive( 'access' )->with( 1 )->andReturn( array( 'members_only' => true, 'require_membership' => false ) );
+		$this->one_tree( false, true );
 		// A group without self-join: an administrator put the user there.
-		$this->tree->shouldReceive( 'memberships' )->with( 1, 5 )->andReturn( array( array( 'id' => 1, 'name' => 'Staff', 'self_join' => false ) ) );
+		$this->member( 1, 5 );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )->get_joinable_groups( $this->make_request() );
 
@@ -1078,126 +1447,127 @@ class UserAudienceRestControllerTest extends TestCase {
 	}
 
 	public function test_the_last_group_of_a_keep_tree_is_locked_in_the_payload(): void {
-		$this->one_tree( true );
-		$this->tree->shouldReceive( 'access' )->with( 1 )->andReturn( array( 'members_only' => true, 'require_membership' => true ) );
-		$this->tree->shouldReceive( 'memberships' )->with( 1, 5 )->andReturn( array( array( 'id' => 2, 'name' => 'Morning', 'self_join' => true ) ) );
-		$keeps = array( array( 'tree_id' => 1, 'tree_name' => 'Staff', 'group_id' => 2, 'group_name' => 'Morning' ) );
-		$this->tree->shouldReceive( 'groups_kept_on_leave_all' )->with( 5 )->andReturn( $keeps );
+		$this->one_tree( true, true, true );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )->get_joinable_groups( $this->make_request() );
 
-		$children = $result['parents'][0]['children'];
-		$this->assertTrue( $children[0]['leave_locked'] );
-		$this->assertArrayNotHasKey( 'leave_locked', $children[1] );
+		$children = array_column( $result['parents'][0]['children'], null, 'id' );
+		$this->assertTrue( $children[2]['leave_locked'] );
+		$this->assertArrayNotHasKey( 'leave_locked', $children[3] );
 		$this->assertSame( array( array( 'id' => 2, 'name' => 'Morning' ) ), $result['trees'][0]['held'] );
-		$this->assertSame( $keeps, $result['leave_all_keeps'] );
+		$this->assertSame(
+			array( array( 'tree_id' => 1, 'tree_name' => 'Staff', 'group_id' => 2, 'group_name' => 'Morning' ) ),
+			$result['leave_all_keeps']
+		);
 	}
 
 	public function test_no_group_is_locked_while_another_of_the_tree_is_held(): void {
-		$this->one_tree( true );
-		$this->tree->shouldReceive( 'access' )->with( 1 )->andReturn( array( 'members_only' => true, 'require_membership' => true ) );
-		$this->tree->shouldReceive( 'memberships' )->with( 1, 5 )->andReturn(
-			array(
-				array( 'id' => 1, 'name' => 'Staff', 'self_join' => false ),
-				array( 'id' => 2, 'name' => 'Morning', 'self_join' => true ),
-			)
-		);
+		$this->one_tree( true, true, true );
+		$this->member( 1, 5 );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )->get_joinable_groups( $this->make_request() );
 
-		$this->assertArrayNotHasKey( 'leave_locked', $result['parents'][0]['children'][0] );
-	}
-
-	private function self_join_group( int $id, string $name ): object {
-		return (object) array( 'id' => $id, 'name' => $name, 'status' => 'active', 'allow_self_join' => '1' );
+		$children = array_column( $result['parents'][0]['children'], null, 'id' );
+		$this->assertArrayNotHasKey( 'leave_locked', $children[2] );
 	}
 
 	public function test_join_into_a_members_only_tree_by_a_non_member_is_refused(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
-		$this->reader->shouldReceive( 'get_by_id' )->with( 3 )->andReturn( $this->self_join_group( 3, 'Evening' ) );
-		$this->tree->shouldReceive( 'can_see' )->andReturn( false );
-		$this->writer->shouldNotReceive( 'add_member' );
+		$this->staff_tree( true );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )->join_audience_group( $this->make_request( array( 'group_id' => 3 ) ) );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'members_only', $result->get_error_code() );
+		$this->assertSame( array(), $this->inserts );
 	}
 
 	public function test_leaving_the_last_group_of_a_keep_tree_is_refused(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn( (object) array( 'id' => 2, 'name' => 'Morning' ) );
-		$this->tree->shouldReceive( 'is_last_kept_group' )->with( 2, 5 )->andReturn( true );
-		$this->wpdb->shouldNotReceive( 'delete' );
+		$this->staff_tree( true, true );
+		$this->member( 2, 5 );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )->leave_audience_group( $this->make_request( array( 'group_id' => 2 ) ) );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'keep_one_group', $result->get_error_code() );
+		$this->assertSame( array(), $this->deletes );
+		$this->assertTrue( $this->holds( 2, 5 ) );
 	}
 
 	public function test_leaving_is_allowed_while_another_group_of_the_tree_is_held(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn( (object) array( 'id' => 2, 'name' => 'Morning' ) );
-		$this->tree->shouldReceive( 'is_last_kept_group' )->with( 2, 5 )->andReturn( false );
-		$this->wpdb->shouldReceive( 'delete' )->once()->andReturn( 1 );
+		$this->staff_tree( true, true );
+		$this->member( 2, 5 );
+		$this->member( 3, 5 );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )->leave_audience_group( $this->make_request( array( 'group_id' => 2 ) ) );
 
 		$this->assertTrue( $result['success'] );
+		$this->assertSame( array( array( 'audience_id' => 2, 'user_id' => 5 ) ), $this->deletes );
 	}
 
 	/**
-	 * Runs leave-all with what the rules keep, and returns the response and
-	 * the arguments bound to the DELETE.
+	 * Runs leave-all as user 5, and returns the response and the arguments
+	 * bound to the DELETE.
 	 *
-	 * @param list<array<string, mixed>> $kept What groups_kept_on_leave_all() answers.
 	 * @return array{0: mixed, 1: array<int, mixed>, 2: string}
 	 */
-	private function leave_all_with( array $kept ): array {
+	private function leave_all(): array {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
-		$this->tree->shouldReceive( 'groups_kept_on_leave_all' )->with( 5 )->andReturn( $kept );
-
-		$bound = array();
-		$sql   = '';
-		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
-			static function ( $query, $args = array() ) use ( &$bound, &$sql ) {
-				$sql   = (string) $query;
-				$bound = is_array( $args ) ? $args : array();
-				return 'DELETE';
-			}
-		);
-		$this->wpdb->shouldReceive( 'query' )->once()->with( 'DELETE' )->andReturn( 4 );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )->leave_all_audience_groups( $this->make_request() );
-		return array( $result, $bound, $sql );
+
+		$delete = $this->preparedWith( 'DELETE m FROM' );
+		$this->assertCount( 1, $delete, 'One DELETE runs.' );
+		return array( $result, array_slice( $delete[0], 1 ), (string) $delete[0][0] );
+	}
+
+	/**
+	 * The Staff tree keeps its members, and user 5 joined Evening before
+	 * Morning; three groups of an open tree are held as well.
+	 */
+	private function a_kept_staff_tree_and_an_open_one(): void {
+		$this->staff_tree( true, true );
+		$this->member( 3, 5 );
+		$this->member( 2, 5 );
+		foreach ( array( 21, 22, 23 ) as $id ) {
+			$this->audience( $id, 'Open ' . $id, null, true );
+			$this->member( $id, 5 );
+		}
 	}
 
 	/** Mixed trees: one kept tree holds back its first group, the rest goes. */
 	public function test_leave_all_keeps_the_first_group_of_a_kept_tree(): void {
+		$this->a_kept_staff_tree_and_an_open_one();
 		$kept = array( array( 'tree_id' => 1, 'tree_name' => 'Staff', 'group_id' => 3, 'group_name' => 'Evening' ) );
 
-		list( $result, $bound, $sql ) = $this->leave_all_with( $kept );
+		list( $result, $bound, $sql ) = $this->leave_all();
 
 		$this->assertStringContainsString( 'NOT IN (%d)', $sql );
 		$this->assertSame( array( 'wp_ffc_audience_members', 'wp_ffc_audiences', 5, 3 ), $bound );
 		$this->assertTrue( $result['success'] );
 		$this->assertSame( 4, $result['removed'] );
 		$this->assertSame( $kept, $result['kept'] );
+		$this->assertTrue( $this->holds( 3, 5 ) );
 	}
 
 	/** Several kept trees: one group held back in each, all excluded at once. */
 	public function test_leave_all_keeps_one_group_in_each_kept_tree(): void {
+		$this->a_kept_staff_tree_and_an_open_one();
+		$this->audience( 9, 'Clubs', null, false, array( 'members_only' => 1, 'require_membership' => 1 ) );
+		$this->audience( 10, 'Chess', 9, true );
+		$this->member( 10, 5 );
 		$kept = array(
 			array( 'tree_id' => 1, 'tree_name' => 'Staff', 'group_id' => 3, 'group_name' => 'Evening' ),
 			array( 'tree_id' => 9, 'tree_name' => 'Clubs', 'group_id' => 10, 'group_name' => 'Chess' ),
 		);
 
-		list( $result, $bound, $sql ) = $this->leave_all_with( $kept );
+		list( $result, $bound, $sql ) = $this->leave_all();
 
 		$this->assertStringContainsString( 'NOT IN (%d,%d)', $sql );
 		$this->assertSame( array( 'wp_ffc_audience_members', 'wp_ffc_audiences', 5, 3, 10 ), $bound );
@@ -1205,25 +1575,30 @@ class UserAudienceRestControllerTest extends TestCase {
 	}
 
 	public function test_leave_all_without_a_kept_tree_leaves_everything(): void {
-		list( $result, $bound, $sql ) = $this->leave_all_with( array() );
+		$this->staff_tree();
+		$this->member( 2, 5 );
+		$this->member( 3, 5 );
+
+		list( $result, $bound, $sql ) = $this->leave_all();
 
 		$this->assertStringNotContainsString( 'NOT IN', $sql );
 		$this->assertSame( array( 'wp_ffc_audience_members', 'wp_ffc_audiences', 5 ), $bound );
 		$this->assertSame( array(), $result['kept'] );
 		$this->assertSame( 'You left all groups.', $result['message'] );
+		$this->assertSame( 2, $result['removed'] );
 	}
 
-	/** Groups 2 and 3 share top-level 1; group 8 belongs to top-level 7. */
-	private function switch_setup(): void {
+	/** Groups 2, 3 and 6 share top-level 1; group 8 belongs to top-level 7. User 5 holds 2. */
+	private function switch_setup( bool $holds_2 = true ): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
-		$this->reader->shouldReceive( 'get_by_id' )->with( 2 )->andReturn( $this->self_join_group( 2, 'Morning' ) );
-		$this->reader->shouldReceive( 'get_by_id' )->with( 3 )->andReturn( $this->self_join_group( 3, 'Evening' ) );
-		$this->reader->shouldReceive( 'get_by_id' )->with( 8 )->andReturn( $this->self_join_group( 8, 'Other' ) );
-		$this->reader->shouldReceive( 'is_member' )->with( 2, 5 )->andReturn( true );
-		$this->reader->shouldReceive( 'is_member' )->with( 3, 5 )->andReturn( false );
-		$this->reader->shouldReceive( 'is_member' )->with( 8, 5 )->andReturn( false );
-		$this->tree->shouldReceive( 'root_id' )->andReturnUsing( static fn( int $id ): int => 8 === $id ? 7 : 1 );
+		$this->staff_tree();
+		$this->audience( 6, 'Late', 1, true );
+		$this->audience( 7, 'Elsewhere', null, false );
+		$this->audience( 8, 'Other', 7, true );
+		if ( $holds_2 ) {
+			$this->member( 2, 5 );
+		}
 	}
 
 	private function switch_request( int $from, int $to ) {
@@ -1233,56 +1608,59 @@ class UserAudienceRestControllerTest extends TestCase {
 
 	public function test_switch_joins_the_target_and_leaves_the_current_group(): void {
 		$this->switch_setup();
-		$this->writer->shouldReceive( 'add_member' )->once()->with( 3, 5 )->andReturn( 1 );
-		$this->writer->shouldReceive( 'remove_member' )->once()->with( 2, 5 )->andReturn( true );
 
 		$result = $this->switch_request( 2, 3 );
 
 		$this->assertTrue( $result['success'] );
 		$this->assertStringContainsString( 'Evening', $result['message'] );
+		$this->assertSame( array( array( 'audience_id' => 3, 'user_id' => 5 ) ), $this->inserts );
+		$this->assertSame( array( array( 'audience_id' => 2, 'user_id' => 5 ) ), $this->deletes );
+		$this->assertTrue( $this->holds( 3, 5 ) );
+		$this->assertFalse( $this->holds( 2, 5 ) );
 	}
 
 	public function test_switch_across_trees_is_refused_even_at_the_limit(): void {
 		$this->switch_setup();
-		$this->query_service->shouldReceive( 'count_user_self_join_memberships' )->andReturn( 2 );
-		$this->writer->shouldNotReceive( 'add_member' );
-		$this->writer->shouldNotReceive( 'remove_member' );
+		// A second self-join group held: the user is at the default limit.
+		$this->audience( 30, 'Chess', null, true );
+		$this->member( 30, 5 );
 
 		$result = $this->switch_request( 2, 8 );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'different_tree', $result->get_error_code() );
+		$this->assertSame( array(), $this->inserts );
+		$this->assertSame( array(), $this->deletes );
 	}
 
 	public function test_switch_to_a_group_without_self_join_is_refused(): void {
 		$this->switch_setup();
-		$this->reader->shouldReceive( 'get_by_id' )->with( 4 )->andReturn( (object) array( 'id' => 4, 'name' => 'Closed', 'status' => 'active', 'allow_self_join' => '0' ) );
-		$this->writer->shouldNotReceive( 'add_member' );
+		$this->audience( 4, 'Closed', 1, false );
 
 		$result = $this->switch_request( 2, 4 );
 
 		$this->assertSame( 'invalid_group', $result->get_error_code() );
+		$this->assertSame( array(), $this->inserts );
 	}
 
 	public function test_switch_into_a_tree_the_user_may_not_see_is_refused(): void {
-		$this->switch_setup();
-		$this->tree->shouldReceive( 'can_see' )->with( 1, 5 )->andReturn( false );
-		$this->writer->shouldNotReceive( 'add_member' );
+		// A members-only Staff tree of which user 5 holds no group.
+		$this->switch_setup( false );
+		$this->audiences[1]['members_only'] = 1;
 
 		$result = $this->switch_request( 2, 3 );
 
 		$this->assertSame( 'members_only', $result->get_error_code() );
+		$this->assertSame( array(), $this->inserts );
 	}
 
 	public function test_switch_from_a_group_the_user_does_not_hold_is_refused(): void {
 		$this->switch_setup();
-		$this->reader->shouldReceive( 'get_by_id' )->with( 6 )->andReturn( $this->self_join_group( 6, 'Late' ) );
-		$this->reader->shouldReceive( 'is_member' )->with( 6, 5 )->andReturn( false );
-		$this->writer->shouldNotReceive( 'add_member' );
 
 		$result = $this->switch_request( 6, 3 );
 
 		$this->assertSame( 'not_member', $result->get_error_code() );
+		$this->assertSame( array(), $this->inserts );
 	}
 
 	public function test_switch_needs_two_different_groups(): void {
@@ -1294,10 +1672,16 @@ class UserAudienceRestControllerTest extends TestCase {
 
 	public function test_a_failed_leave_rolls_the_join_back(): void {
 		$this->switch_setup();
-		$this->writer->shouldReceive( 'add_member' )->once()->with( 3, 5 )->andReturn( 1 );
-		$this->writer->shouldReceive( 'remove_member' )->once()->with( 2, 5 )->andReturn( false );
-		$this->writer->shouldReceive( 'remove_member' )->once()->with( 3, 5 )->andReturn( true );
+		$this->failing_deletes = array( '2:5' );
 
 		$this->assertSame( 'switch_group_error', $this->switch_request( 2, 3 )->get_error_code() );
+		$this->assertSame( array( array( 'audience_id' => 3, 'user_id' => 5 ) ), $this->inserts );
+		$this->assertSame(
+			array( array( 'audience_id' => 2, 'user_id' => 5 ), array( 'audience_id' => 3, 'user_id' => 5 ) ),
+			$this->deletes,
+			'The leave is tried, then the join is undone.'
+		);
+		$this->assertTrue( $this->holds( 2, 5 ), 'The user stays where they were.' );
+		$this->assertFalse( $this->holds( 3, 5 ) );
 	}
 }
