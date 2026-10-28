@@ -15,13 +15,13 @@ use PHPUnit\Framework\TestCase;
  * Each integration is detected with `class_exists()` / `function_exists()` /
  * `defined()`, so a test has to DECLARE the integration to reach its branch —
  * and a declared class, function or constant outlives the test in the process.
- * Every test here therefore runs in its own process, so the stubs it declares
- * never change which branch a later test elsewhere takes. The same isolation
- * lets `WP_DEBUG` be true here while `FormCacheTest` pins it false.
+ * A test that declares one therefore runs in its own process (method-level
+ * isolation, with the reason on the method), so the doubles it declares never
+ * change which branch a later test elsewhere takes; the same isolation lets
+ * `WP_DEBUG` be true here while `FormCacheTest` pins it false. A test that
+ * declares nothing runs in the shared process.
  *
  * @covers \FreeFormCertificate\Submissions\FormCache
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class FormCacheThirdPartyPurgeTest extends TestCase {
 
@@ -30,19 +30,31 @@ class FormCacheThirdPartyPurgeTest extends TestCase {
 	 */
 	private string $log_file = '';
 
+	/**
+	 * The `error_log` ini value before the test, restored in tearDown.
+	 *
+	 * @var string|false
+	 */
+	private $saved_error_log = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
 		$GLOBALS['ffc_test_purges'] = array();
 		$this->log_file             = (string) tempnam( sys_get_temp_dir(), 'ffc-log' );
-		ini_set( 'error_log', $this->log_file ); // phpcs:ignore WordPress.PHP.IniSet.Risky -- Child process only: captures Debug::log() output for assertion.
+		$this->saved_error_log      = ini_get( 'error_log' );
+		ini_set( 'error_log', $this->log_file ); // phpcs:ignore WordPress.PHP.IniSet.Risky -- Captures Debug::log() output for assertion; restored in tearDown.
 
 		// Form-processor debug area on, so a swallowed failure leaves a breadcrumb.
 		Functions\when( 'get_option' )->justReturn( array( Debug::AREA_FORM_PROCESSOR => 1 ) );
 	}
 
 	protected function tearDown(): void {
+		if ( false !== $this->saved_error_log ) {
+			ini_set( 'error_log', $this->saved_error_log ); // phpcs:ignore WordPress.PHP.IniSet.Risky -- Restores the value setUp replaced.
+		}
+		unset( $GLOBALS['ffc_test_purges'], $GLOBALS['ffc_test_purge_throw'] );
 		if ( '' !== $this->log_file && file_exists( $this->log_file ) ) {
 			unlink( $this->log_file );
 		}
@@ -108,6 +120,12 @@ class FormCacheThirdPartyPurgeTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Declares the W3TC / LiteSpeed classes and the WP Super Cache / WP Rocket / W3TC functions with eval.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_purge_all_pages_flushes_every_detected_cache(): void {
 		$this->declare_cache_classes( false );
 		$this->declare_cache_functions( false );
@@ -133,6 +151,12 @@ class FormCacheThirdPartyPurgeTest extends TestCase {
 		$this->assertSame( '', $this->log(), 'nothing failed, so nothing is logged' );
 	}
 
+	/**
+	 * Declares the W3TC / LiteSpeed classes with eval.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_purge_all_pages_falls_back_to_flush_all_and_tolerates_a_missing_component(): void {
 		$this->declare_cache_classes( false );
 		Functions\when( 'do_action' )->justReturn( null );
@@ -158,6 +182,12 @@ class FormCacheThirdPartyPurgeTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Declares throwing W3TC / LiteSpeed classes and cache functions with eval.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_purge_all_pages_survives_every_integration_throwing_and_logs_each(): void {
 		$this->declare_cache_classes( true );
 		$this->declare_cache_functions( true );
@@ -178,6 +208,12 @@ class FormCacheThirdPartyPurgeTest extends TestCase {
 		}
 	}
 
+	/**
+	 * Declares the W3TC / LiteSpeed classes and the cache functions with eval.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_purge_external_caches_purges_the_form_in_every_detected_cache(): void {
 		$this->declare_cache_classes( false );
 		$this->declare_cache_functions( false );
@@ -196,6 +232,12 @@ class FormCacheThirdPartyPurgeTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Declares throwing W3TC / LiteSpeed classes and cache functions with eval.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_purge_external_caches_logs_each_failure_with_the_form_id(): void {
 		$this->declare_cache_classes( true );
 		$this->declare_cache_functions( true );
@@ -216,6 +258,12 @@ class FormCacheThirdPartyPurgeTest extends TestCase {
 		}
 	}
 
+	/**
+	 * Defines LSCWP_V and declares the cache functions with eval.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_purge_page_cache_purges_the_embedding_pages(): void {
 		define( 'LSCWP_V', '6.0' );
 		$this->declare_cache_functions( false );
@@ -241,6 +289,12 @@ class FormCacheThirdPartyPurgeTest extends TestCase {
 		$this->assertSame( array( 'rocket_post:10', 'rocket_post:11', 'w3tc_posts:', 'wpsc_clear:' ), $GLOBALS['ffc_test_purges'] );
 	}
 
+	/**
+	 * Defines LSCWP_V, which no later test may inherit.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_purge_page_cache_purges_all_of_litespeed_when_no_page_embeds_the_form(): void {
 		define( 'LSCWP_V', '6.0' );
 		Functions\when( 'get_posts' )->justReturn( array() );
@@ -256,6 +310,12 @@ class FormCacheThirdPartyPurgeTest extends TestCase {
 		$this->assertSame( array( array( 'litespeed_purge_all' ) ), $actions );
 	}
 
+	/**
+	 * Defines WP_DEBUG as true, while FormCacheTest pins it false in the shared process.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_form_config_logs_the_miss_and_the_hit_under_wp_debug(): void {
 		define( 'WP_DEBUG', true );
 		$cached = false;
