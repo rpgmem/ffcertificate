@@ -330,20 +330,9 @@ class TabRateLimitTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		Functions\when( 'sanitize_key' )->alias( fn ( $v ) => strtolower( (string) $v ) );
-		// RequestInput::get_post_string (Core namespace) uses these unqualified.
-		// Plain stable passthroughs (NOT Brain\Monkey stubs) so they survive
-		// tearDown without leaving a torn-down expectation that could poison a
-		// later same-process test.
-		self::define_core_passthrough( 'wp_unslash' );
-		self::define_core_passthrough( 'sanitize_text_field' );
-	}
-
-	/** Define a stable passthrough in the Core namespace, once per process. */
-	private static function define_core_passthrough( string $name ): void {
-		$fqn = 'FreeFormCertificate\\Core\\' . $name;
-		if ( ! function_exists( $fqn ) ) {
-			eval( "namespace FreeFormCertificate\\Core; function {$name}( \$v ) { return \$v; }" );
-		}
+		// RequestInput (Core namespace) calls these unqualified and PHP falls
+		// back to the global stubs above. A namespaced copy would outlive this
+		// test and shadow the global function for every later Core test (#2123).
 	}
 
 	// ------------------------------------------------------------------

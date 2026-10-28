@@ -1042,13 +1042,24 @@ class FormCacheTest extends TestCase {
 		$this->assertSame( array( 7, '' ), $captured );
 	}
 
+	/**
+	 * Declare the WP Super Cache double once, for every test that reaches it.
+	 *
+	 * A function cannot be undeclared, so whichever test runs first decides the
+	 * body for the rest of the process: one shared body that both records the
+	 * call and throws on request keeps the two tests independent of their order.
+	 */
+	private static function declare_wp_super_cache(): void {
+		if ( ! function_exists( 'wpsc_delete_post_cache' ) ) {
+			// phpcs:ignore Squiz.PHP.Eval.Discouraged -- Declares a third-party function the class under test probes for.
+			eval( 'function wpsc_delete_post_cache( $id ) { if ( ! empty( $GLOBALS["__wpsc_should_throw"] ) ) { throw new \RuntimeException( "boom" ); } $GLOBALS["__wpsc_called_with"] = $id; }' );
+		}
+	}
+
 	public function test_purge_external_caches_calls_wp_super_cache_when_available(): void {
 		$GLOBALS['__wpsc_called_with'] = null;
 		$GLOBALS['__wpsc_should_throw'] = false;
-		if ( ! function_exists( 'wpsc_delete_post_cache' ) ) {
-			// phpcs:ignore Squiz.PHP.Eval.Discouraged -- defining a missing global stub for the test.
-			eval( 'function wpsc_delete_post_cache( $id ) { if ( ! empty( $GLOBALS["__wpsc_should_throw"] ) ) { throw new \RuntimeException( "boom" ); } $GLOBALS["__wpsc_called_with"] = $id; }' );
-		}
+		self::declare_wp_super_cache();
 
 		Functions\when( 'do_action' )->justReturn( true );
 
@@ -1075,10 +1086,7 @@ class FormCacheTest extends TestCase {
 
 	public function test_purge_external_caches_swallows_third_party_exceptions(): void {
 		$GLOBALS['__wpsc_should_throw'] = true;
-		if ( ! function_exists( 'wpsc_delete_post_cache' ) ) {
-			// phpcs:ignore Squiz.PHP.Eval.Discouraged -- stub already defined by sibling tests; harmless to redeclare guard.
-			eval( 'function wpsc_delete_post_cache( $id ) { if ( ! empty( $GLOBALS["__wpsc_should_throw"] ) ) { throw new \RuntimeException( "boom" ); } }' );
-		}
+		self::declare_wp_super_cache();
 		$hook_fired = false;
 		Functions\when( 'do_action' )->alias( function () use ( &$hook_fired ) {
 			$hook_fired = true;

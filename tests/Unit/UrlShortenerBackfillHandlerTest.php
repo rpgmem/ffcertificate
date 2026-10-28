@@ -41,12 +41,10 @@ class UrlShortenerBackfillHandlerTest extends TestCase {
 
 		Functions\when( '__' )->returnArg();
 
-		// AjaxTrait reads POST through RequestInput (\FreeFormCertificate\Core\*).
-		Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\absint' )->alias( static function ( $v ) {
-			return abs( (int) $v );
-		} );
+		// AjaxTrait reads POST through RequestInput, which resolves the global
+		// functions: a namespaced stub would shadow them for every later test
+		// in the process (#2123).
+		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'absint' )->alias( static function ( $v ) {
 			return abs( (int) $v );
@@ -57,8 +55,7 @@ class UrlShortenerBackfillHandlerTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'current_user_can' )->justReturn( true );
 
-		// get_permalink resolves inside the UrlShortener namespace.
-		Functions\when( 'FreeFormCertificate\UrlShortener\get_permalink' )->justReturn( 'https://example.com/p' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/p' );
 
 		$this->service = Mockery::mock( UrlShortenerService::class );
 		$this->repo    = Mockery::mock( UrlShortenerRepository::class );
