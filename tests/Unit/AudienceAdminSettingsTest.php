@@ -22,6 +22,12 @@ class AudienceAdminSettingsTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
+		// The holiday and visibility handlers branch on $_POST / $_GET, so
+		// each test starts from empty superglobals rather than whatever an
+		// earlier test left there (random-order seed 13256766).
+		$_POST = array();
+		$_GET  = array();
+
 		// `LabelSorter::locale()` is guarded by `function_exists( 'get_locale' )`,
 		// so this used to take the no-WordPress branch only because nothing in
 		// the process had defined that function yet — an accident of file
@@ -76,7 +82,8 @@ class AudienceAdminSettingsTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $_POST['ffc_visibility_action'], $_POST['_wpnonce'], $_GET['tab'] );
+		$_POST = array();
+		$_GET  = array();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
