@@ -161,17 +161,51 @@ class ReregistrationFieldOptions {
 	}
 
 	/**
-	 * Jornada options.
+	 * Jornada options: the workload or category (#2225). Stored values, not
+	 * translated, like the union names.
 	 *
 	 * @return array<string>
 	 */
 	public static function get_work_schedule_options(): array {
 		return array(
-			'JB.30',
-			'JBD.30',
-			'JEIF.40',
-			'JB.20',
+			'Apoio à Educação - 40h',
+			'JB - 20h/a',
+			'JBD - 30h/a',
+			'JEIF - 30h/a',
+			'J - 30h/a (CEI)',
+			'JBE - 40h',
 		);
+	}
+
+	/**
+	 * The jornada options shipped before #2225, which seeded rows and stored
+	 * submissions still carry.
+	 */
+	public const LEGACY_WORK_SCHEDULE_OPTIONS = array( 'JB.30', 'JBD.30', 'JEIF.40', 'JB.20' );
+
+	/**
+	 * Where each legacy jornada value lands among the current options. JB.30
+	 * has no equivalent, so it maps to nothing and the participant chooses.
+	 */
+	public const LEGACY_WORK_SCHEDULE_MAP = array(
+		'JBD.30'  => 'JBD - 30h/a',
+		'JEIF.40' => 'JBE - 40h',
+		'JB.20'   => 'JB - 20h/a',
+		'JB.30'   => '',
+	);
+
+	/**
+	 * A jornada value as the current options name it: a legacy value is
+	 * mapped, anything else is returned as given.
+	 *
+	 * @param mixed $value Stored value.
+	 * @return mixed
+	 */
+	public static function current_work_schedule( $value ) {
+		if ( is_string( $value ) && array_key_exists( $value, self::LEGACY_WORK_SCHEDULE_MAP ) ) {
+			return self::LEGACY_WORK_SCHEDULE_MAP[ $value ];
+		}
+		return $value;
 	}
 
 	/**

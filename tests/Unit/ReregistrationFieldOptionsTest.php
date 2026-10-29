@@ -106,8 +106,32 @@ class ReregistrationFieldOptionsTest extends TestCase {
 
 		$this->assertIsArray( $options );
 		$this->assertNotEmpty( $options );
-		$this->assertContains( 'JB.30', $options );
-		$this->assertContains( 'JEIF.40', $options );
+		$this->assertSame(
+			array( 'Apoio à Educação - 40h', 'JB - 20h/a', 'JBD - 30h/a', 'JEIF - 30h/a', 'J - 30h/a (CEI)', 'JBE - 40h' ),
+			$options,
+			'The workload or category list of #2225.'
+		);
+	}
+
+	/**
+	 * A legacy jornada value lands on its current option; JB.30 has none and
+	 * empties, and anything else passes through (#2225).
+	 */
+	public function test_a_legacy_work_schedule_maps_to_the_current_option(): void {
+		$this->assertSame( 'JBD - 30h/a', ReregistrationFieldOptions::current_work_schedule( 'JBD.30' ) );
+		$this->assertSame( 'JBE - 40h', ReregistrationFieldOptions::current_work_schedule( 'JEIF.40' ) );
+		$this->assertSame( 'JB - 20h/a', ReregistrationFieldOptions::current_work_schedule( 'JB.20' ) );
+		$this->assertSame( '', ReregistrationFieldOptions::current_work_schedule( 'JB.30' ) );
+		$this->assertSame( 'JEIF - 30h/a', ReregistrationFieldOptions::current_work_schedule( 'JEIF - 30h/a' ) );
+		$this->assertSame( array( 'x' ), ReregistrationFieldOptions::current_work_schedule( array( 'x' ) ) );
+		$legacy = ReregistrationFieldOptions::LEGACY_WORK_SCHEDULE_OPTIONS;
+		$mapped = array_keys( ReregistrationFieldOptions::LEGACY_WORK_SCHEDULE_MAP );
+		sort( $legacy );
+		sort( $mapped );
+		$this->assertSame( $legacy, $mapped, 'Every legacy option has a mapping, and nothing else does.' );
+		foreach ( ReregistrationFieldOptions::LEGACY_WORK_SCHEDULE_MAP as $target ) {
+			$this->assertTrue( '' === $target || in_array( $target, ReregistrationFieldOptions::get_work_schedule_options(), true ), $target );
+		}
 	}
 
 	public function test_dual_post_options_non_empty(): void {

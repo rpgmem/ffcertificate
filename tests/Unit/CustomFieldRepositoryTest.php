@@ -336,6 +336,52 @@ class CustomFieldRepositoryTest extends TestCase {
 		$this->assertSame('child_field', $result[2]->field_key);
 	}
 
+	/**
+	 * A key the parent and the child both carry renders once, with the
+	 * child's definition, in the parent's place (#2225).
+	 */
+	public function test_get_for_audiences_keeps_one_field_per_key_and_the_child_wins(): void {
+		$parent = $this->make_audience(5, 'Parent', null);
+		$child  = $this->make_audience(10, 'Child', 5);
+
+		$this->wpdb->shouldReceive('get_row')->andReturn($child, $parent);
+		$this->wpdb->shouldReceive('get_results')->andReturn(
+			[
+				$this->make_field(['id' => 200, 'audience_id' => 5, 'field_key' => 'vinculo', 'field_label' => 'Parent label']),
+				$this->make_field(['id' => 201, 'audience_id' => 5, 'field_key' => 'rf']),
+			],
+			[
+				$this->make_field(['id' => 300, 'audience_id' => 10, 'field_key' => 'vinculo', 'field_label' => 'Child label']),
+				$this->make_field(['id' => 301, 'audience_id' => 10, 'field_key' => 'only_child']),
+			]
+		);
+
+		$result = CustomFieldReader::get_for_audiences([10]);
+
+		$this->assertSame(['vinculo', 'rf', 'only_child'], array_map(fn($f) => $f->field_key, $result));
+		$this->assertSame(300, (int) $result[0]->id, 'The child definition replaces the parent one.');
+		$this->assertSame('Child label', $result[0]->field_label);
+	}
+
+	/**
+	 * Two audiences of the same depth carrying one key: the first listed wins.
+	 */
+	public function test_get_for_audiences_between_equal_depths_the_first_audience_wins(): void {
+		$a = $this->make_audience(20, 'A', null);
+		$b = $this->make_audience(30, 'B', null);
+
+		$this->wpdb->shouldReceive('get_row')->andReturn($a, $b);
+		$this->wpdb->shouldReceive('get_results')->andReturn(
+			[$this->make_field(['id' => 1, 'audience_id' => 20, 'field_key' => 'jornada'])],
+			[$this->make_field(['id' => 2, 'audience_id' => 30, 'field_key' => 'jornada'])]
+		);
+
+		$result = CustomFieldReader::get_for_audiences([20, 30]);
+
+		$this->assertCount(1, $result);
+		$this->assertSame(1, (int) $result[0]->id);
+	}
+
 	public function test_get_by_audience_with_parents_adds_source_properties(): void {
 		$audience = $this->make_audience(10, 'My Audience', null);
 		$field = $this->make_field(['id' => 1, 'audience_id' => 10]);

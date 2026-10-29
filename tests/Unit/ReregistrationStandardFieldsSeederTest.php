@@ -5,9 +5,11 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use FreeFormCertificate\Tests\Support\CallLog;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Reregistration\ReregistrationFieldOptions;
 use FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder;
 
 /**
@@ -473,13 +475,19 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 	public function test_register_hooks_the_union_relabel_on_admin_init(): void {
 		$hooked = array();
 		Functions\when( 'add_action' )->alias( function ( $hook, $callback ) use ( &$hooked ) {
-			$hooked[ $hook ] = $callback;
+			$hooked[ $hook ][] = $callback;
 			return true;
 		});
 
 		ReregistrationStandardFieldsSeeder::register();
 
-		$this->assertSame( array( ReregistrationStandardFieldsSeeder::class, 'maybe_relabel_union' ), $hooked['admin_init'] ?? null );
+		$this->assertSame(
+			array(
+				array( ReregistrationStandardFieldsSeeder::class, 'maybe_relabel_union' ),
+				array( ReregistrationStandardFieldsSeeder::class, 'maybe_update_schedule_fields' ),
+			),
+			$hooked['admin_init'] ?? null
+		);
 	}
 
 	/**
@@ -535,5 +543,73 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		$this->wpdb->shouldReceive( 'update' )->never();
 
 		ReregistrationStandardFieldsSeeder::maybe_relabel_union();
+	}
+
+	// ==================================================================
+	// maybe_update_schedule_fields() -- the labels and options of #2225
+	// ==================================================================
+
+	/**
+	 * The three labels move off what was shipped, and the two jornada fields
+	 * still on the legacy list take the current one; a list an operator
+	 * changed stays, and the flag is written.
+	 */
+	public function test_update_schedule_fields_relabels_and_replaces_only_the_shipped_values(): void {
+		$options = array();
+		Functions\when( 'get_option' )->justReturn( false );
+		Functions\when( 'update_option' )->alias( function ( $key, $value, $autoload = null ) use ( &$options ) {
+			$options[ $key ] = array( $value, $autoload );
+			return true;
+		});
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
+
+		$selects = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function ( ...$args ) use ( &$selects ) {
+			$selects[] = $args;
+			return $args;
+		});
+		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing( function ( $q ) {
+			$values = $q[1];
+			return array( 'vinculo' => array( '11' ), 'jornada' => array( '12' ), 'horario_trabalho' => array() )[ $values[1] ] ?? array();
+		});
+		$legacy = json_encode( array( 'choices' => array( 'JB.30', 'JBD.30', 'JEIF.40', 'JB.20' ) ) );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing( function ( $q ) use ( $legacy ) {
+			return 'jornada' === $q[2]
+				? array( array( 'id' => '21', 'field_options' => $legacy ), array( 'id' => '22', 'field_options' => json_encode( array( 'choices' => array( 'Edited' ) ) ) ) )
+				: array( array( 'id' => '23', 'field_options' => $legacy ) );
+		});
+
+		$updates = array();
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing( function ( $table, $data, $where ) use ( &$updates ) {
+			$updates[ $where['id'] ] = $data;
+			return 1;
+		});
+
+		ReregistrationStandardFieldsSeeder::maybe_update_schedule_fields();
+
+		$this->assertSame( array( 'field_label' => 'Employment Bond' ), $updates[11] );
+		$this->assertSame( array( 'field_label' => 'Workload or Category' ), $updates[12] );
+		$current = json_encode( array( 'choices' => ReregistrationFieldOptions::get_work_schedule_options() ) );
+		$this->assertSame( array( 'field_options' => $current ), $updates[21] );
+		$this->assertSame( array( 'field_options' => $current ), $updates[23], 'The accumulation jornada follows the same list.' );
+		$this->assertArrayNotHasKey( 22, $updates, 'A list an operator changed stays.' );
+		$this->assertCount( 4, $updates );
+
+		$labels = array_values( array_filter( $selects, fn( $q ) => str_contains( (string) $q[0], 'field_label IN' ) ) );
+		$this->assertSame( array( 'wp_ffc_custom_fields', 'horario_trabalho', 'Working Hours', 'Horários de Funcionamento' ), $labels[2][1] );
+		$this->assertSame( array( '1', false ), $options[ ReregistrationStandardFieldsSeeder::SCHEDULE_FIELDS_OPTION ] ?? null );
+	}
+
+	public function test_update_schedule_fields_runs_once(): void {
+		Functions\when( 'get_option' )->justReturn( '1' );
+		$writes = CallLog::record( 'update_option', true );
+		$this->wpdb->shouldReceive( 'get_col' )->never();
+		$this->wpdb->shouldReceive( 'update' )->never();
+
+		ReregistrationStandardFieldsSeeder::maybe_update_schedule_fields();
+
+		$this->assertSame( 0, $writes->count() );
 	}
 }

@@ -441,22 +441,7 @@ class ReregistrationDataProcessor {
 	 * @return list<CustomFieldRow>
 	 */
 	private static function get_fields_for_reregistration( object $rereg ): array {
-		$audience_ids = ReregistrationRepository::get_audience_ids( (int) $rereg->id );
-		$all          = array();
-		$seen         = array();
-
-		foreach ( $audience_ids as $aud_id ) {
-			$fields = CustomFieldReader::get_by_audience_with_parents( (int) $aud_id, true );
-			foreach ( $fields as $field ) {
-				$id = (int) $field->id;
-				if ( ! isset( $seen[ $id ] ) ) {
-					$seen[ $id ] = true;
-					$all[]       = $field;
-				}
-			}
-		}
-
-		return $all;
+		return CustomFieldReader::get_for_audiences( ReregistrationRepository::get_audience_ids( (int) $rereg->id ) );
 	}
 
 	/**

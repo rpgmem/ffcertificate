@@ -282,6 +282,10 @@ class ReregistrationFrontendFlowTest extends TestCase {
 					$this->audience_lookups[] = $q['args'][1];
 					return array_map( 'strval', $this->campaign_audiences[ $q['args'][1] ] ?? array() );
 				}
+				// The latest-answers prefill (#2225): no other campaign answered.
+				if ( str_starts_with( $q['sql'], 'SELECT data FROM %i' ) ) {
+					return array();
+				}
 				$this->fail( 'Unexpected get_col(): ' . $q['sql'] );
 			}
 		);

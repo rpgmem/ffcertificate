@@ -471,20 +471,9 @@ class VerificationHandler {
 		// page then printed as the person's CPF. The reader decides from the
 		// envelope now, so the flag is not consulted and neither direction of a
 		// flag change can misread. Only the field KEYS are gathered here.
-		$audience_ids = \FreeFormCertificate\Reregistration\ReregistrationRepository::get_audience_ids( (int) $rereg->id );
-		$seen         = array();
-		$fields       = array();
-
-		foreach ( $audience_ids as $aud_id ) {
-			foreach ( \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_audience_with_parents( (int) $aud_id, true ) as $field ) {
-				if ( isset( $seen[ (int) $field->id ] ) ) {
-					continue;
-				}
-
-				$seen[ (int) $field->id ] = true;
-				$fields[]                 = $field;
-			}
-		}
+		$fields = \FreeFormCertificate\Reregistration\CustomFieldReader::get_for_audiences(
+			\FreeFormCertificate\Reregistration\ReregistrationRepository::get_audience_ids( (int) $rereg->id )
+		);
 
 		return \FreeFormCertificate\Reregistration\RecordGenerator::decrypt_field_values( $fields, $values );
 	}

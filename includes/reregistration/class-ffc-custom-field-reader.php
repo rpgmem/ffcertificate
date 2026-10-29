@@ -239,6 +239,48 @@ class CustomFieldReader {
 	}
 
 	/**
+	 * The fields a form over several audiences shows, one per `field_key`
+	 * (#2225).
+	 *
+	 * Every audience carries its own copy of the standard fields, so a form
+	 * reaching a child and its parent -- or two audiences -- met the same key
+	 * once per copy, each with its own id, and posted it twice. The most
+	 * specific definition wins: a child's over its parent's, since that is
+	 * where an operator customised it. Between audiences of equal depth the
+	 * first one listed wins. A field keeps the place of its first
+	 * occurrence, so the order the parent set stays.
+	 *
+	 * @param array<int> $audience_ids Audience IDs, in display order.
+	 * @param bool       $active_only  Only active fields.
+	 * @return list<CustomFieldRow>
+	 */
+	public static function get_for_audiences( array $audience_ids, bool $active_only = true ): array {
+		$fields = array();
+		$depths = array();
+
+		foreach ( $audience_ids as $aud_id ) {
+			$chain = array();
+			foreach ( self::get_by_audience_with_parents( (int) $aud_id, $active_only ) as $field ) {
+				$source = (int) ( $field->source_audience_id ?? 0 );
+				if ( ! isset( $chain[ $source ] ) ) {
+					$chain[ $source ] = count( $chain );
+				}
+				$depth = $chain[ $source ];
+				$key   = (string) $field->field_key;
+				if ( ! isset( $fields[ $key ] ) ) {
+					$fields[ $key ] = $field;
+					$depths[ $key ] = $depth;
+				} elseif ( $depth > $depths[ $key ] ) {
+					$fields[ $key ] = $field;
+					$depths[ $key ] = $depth;
+				}
+			}
+		}
+
+		return array_values( $fields );
+	}
+
+	/**
 	 * Get all fields for a user based on their audience memberships.
 	 *
 	 * @param int  $user_id    User ID.
@@ -711,5 +753,41 @@ class CustomFieldReader {
 			}
 		}
 		return $ids;
+	}
+
+	/**
+	 * The stored options of every standard field with a given key, by id --
+	 * what a one-shot options update needs to compare against the shipped
+	 * list before touching a row (#2225).
+	 *
+	 * @param string $field_key Standard field key.
+	 * @return array<int, string> Field id => raw `field_options` JSON ('' when NULL).
+	 */
+	public static function standard_field_options( string $field_key ): array {
+		if ( '' === $field_key ) {
+			return array();
+		}
+		global $wpdb;
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, field_options FROM %i WHERE field_source = 'standard' AND field_key = %s",
+				self::get_table_name(),
+				$field_key
+			),
+			ARRAY_A
+		);
+		if ( ! is_array( $rows ) ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $rows as $row ) {
+			$id = is_array( $row ) && is_numeric( $row['id'] ?? null ) ? (int) $row['id'] : 0;
+			if ( $id > 0 ) {
+				$out[ $id ] = is_string( $row['field_options'] ?? null ) ? $row['field_options'] : '';
+			}
+		}
+		return $out;
 	}
 }
