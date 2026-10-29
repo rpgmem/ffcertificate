@@ -72,8 +72,12 @@ class CertTemplateSeeder {
 	 *
 	 * Version 8 sizes model 5's QR code to its 170 px box and moves model 6's
 	 * signatures and footer up, so its QR code stays inside the frame (#2076).
+	 *
+	 * Version 9 refreshes the record default: the layout of #2227 never reached
+	 * an install that picked the pool's default, because no bump carried it, and
+	 * each e-mail now takes a full row (#2235).
 	 */
-	private const SEED_VERSION = 8;
+	private const SEED_VERSION = 9;
 
 	/**
 	 * Directory (relative to the plugin root) holding the default background
