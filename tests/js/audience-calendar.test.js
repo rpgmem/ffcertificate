@@ -330,6 +330,26 @@ describe('ffc-audience-calendar — renderCalendar grid', () => {
 		expect(window.$('.ffc-badge-closed').length).toBeGreaterThanOrEqual(1);
 	});
 
+	it('names a closed cell with its cell name, or leaves it blank when switched off (#2215)', async () => {
+		api.state.config = { schedules: [] };
+		api.state.currentDate = new Date(2026, 5, 1);
+		window.FFC.rest.mockResolvedValue({ bookings: [], holidays: [], closed_weekdays: [0] });
+		window.ffcAudience.strings.closedCell = 'Fechado <b>';
+		api.renderCalendar();
+		await flush();
+		expect(window.$('.ffc-badge-closed').first().text()).toBe('Fechado <b>');
+		expect(window.$('.ffc-badge-closed b').length).toBe(0);
+
+		window.ffcAudience.strings.showClosedLabel = false;
+		api.renderCalendar();
+		await flush();
+		expect(window.$('.ffc-day.ffc-closed').length).toBeGreaterThanOrEqual(1);
+		expect(window.$('.ffc-badge-closed').length).toBe(0);
+
+		delete window.ffcAudience.strings.closedCell;
+		delete window.ffcAudience.strings.showClosedLabel;
+	});
+
 	it('labels an optional holiday apart in its cell and the event list (#2202)', async () => {
 		window.ffcAudience.strings.closedDateKinds = {
 			holiday: { label: 'Holiday', short: 'Holiday' },

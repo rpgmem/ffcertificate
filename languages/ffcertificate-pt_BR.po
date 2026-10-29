@@ -29392,20 +29392,8 @@ msgctxt "optional holiday, in a calendar day cell"
 msgid "Optional"
 msgstr "Facult"
 
-msgid "Calendar colors saved."
-msgstr "Cores do calendário salvas."
-
-msgid "Holiday Colors"
-msgstr "Cores dos Feriados"
-
-msgid "The color of the holiday and optional holiday labels on the public calendars, in the light theme. The dark theme keeps its own colors, and the text on each label turns white or black to stay readable."
-msgstr "A cor dos rótulos de feriado e de ponto facultativo nos calendários públicos, no tema claro. O tema escuro mantém as próprias cores, e o texto de cada rótulo fica branco ou preto para continuar legível."
-
-msgid "Save Colors"
-msgstr "Salvar Cores"
-
-msgid "A closed date, global or on a calendar's Closed dates tab, is a holiday or an optional holiday. Both block bookings the same way; the public calendars label them apart, in the day cell, the legend and the event list. The colors of the two labels in the light theme are set under Holiday Colors on the same General tab, and the text on each turns white or black to stay readable."
-msgstr "Uma data fechada, global ou na aba Datas fechadas de um calendário, é um feriado ou um ponto facultativo. Os dois bloqueiam reservas da mesma forma; os calendários públicos os rotulam de modo diferente, na célula do dia, na legenda e na lista de eventos. As cores dos dois rótulos no tema claro são definidas em Cores dos Feriados, na mesma aba Geral, e o texto de cada uma fica branco ou preto para continuar legível."
+msgid "A closed date, global or on a calendar's Closed dates tab, is a holiday or an optional holiday. Both block bookings the same way; the public calendars label them apart, in the day cell, the legend and the event list. Calendar Colors and Labels, on the same General tab, sets the light-theme color and the names of each state both calendars draw: available, booked, holiday, optional holiday and closed. An empty name keeps the default, the text on each color turns white or black to stay readable, and a switch hides the closed day's name from its cells."
+msgstr "Uma data fechada, global ou na aba Datas fechadas de um calendário, é um feriado ou um ponto facultativo. Os dois bloqueiam reservas do mesmo jeito; os calendários públicos os identificam à parte, no dia, na legenda e na lista de eventos. Cores e Rótulos do Calendário, na mesma aba Geral, define a cor no tema claro e os nomes de cada situação que os dois calendários desenham: disponível, reservado, feriado, ponto facultativo e fechado. Um nome vazio mantém o padrão, o texto sobre cada cor fica branco ou preto para continuar legível, e uma chave oculta o nome do dia fechado nos dias."
 
 msgid "Holiday updated successfully."
 msgstr "Feriado atualizado com sucesso."
@@ -29415,3 +29403,74 @@ msgstr "O feriado não foi alterado: a data é inválida ou outro feriado já a 
 
 msgid "Each closed date in the two lists has an Edit button, which opens the row in place to change its date, type or description. A date another closed date of the same list already uses is refused."
 msgstr "Cada data fechada das duas listas tem um botão Editar, que abre a linha no próprio lugar para mudar a data, o tipo ou a descrição. Uma data que outra data fechada da mesma lista já usa é recusada."
+
+#. translators: %s: contrast ratio, such as 5.1
+#, php-format
+msgid "%s:1 on white"
+msgstr "%s:1 sobre o branco"
+
+#. translators: %s: contrast ratio, such as 3.2
+#, php-format
+msgid "%s:1 on white: the day number is hard to read (4.5:1 recommended)."
+msgstr "%s:1 sobre o branco: o número do dia fica difícil de ler (recomendado 4,5:1)."
+
+#. translators: a booking count badge in a calendar day
+msgid "2 bookings"
+msgstr "2 reservas"
+
+msgid "A day with no opening hours: day badge and legend dot."
+msgstr "Dia sem atendimento: selo do dia e ponto da legenda."
+
+msgid "Calendar Colors and Labels"
+msgstr "Cores e Rótulos do Calendário"
+
+msgid "Calendar colors and labels restored to their defaults."
+msgstr "Cores e rótulos do calendário restaurados para o padrão."
+
+msgid "Calendar colors and labels saved."
+msgstr "Cores e rótulos do calendário salvos."
+
+msgid "Day badge and legend dot."
+msgstr "Selo do dia e ponto da legenda."
+
+msgid "Day border, day number and legend dot."
+msgstr "Borda e número do dia, e ponto da legenda."
+
+msgid "Day cell name"
+msgstr "Nome no dia"
+
+#. translators: %s: calendar state, such as Holiday
+#, php-format
+msgid "Day cell name: %s"
+msgstr "Nome no dia: %s"
+
+msgid "How each state looks and is named on the personal and the audience calendars. Colors apply to the light theme; the dark theme keeps its own, and the text on each color turns white or black to stay readable. An empty name uses the default shown in the field."
+msgstr "Como cada situação aparece e é chamada nos calendários pessoais e de público. As cores valem para o tema claro; o tema escuro mantém as próprias, e o texto sobre cada cor fica branco ou preto para continuar legível. Um nome vazio usa o padrão mostrado no campo."
+
+msgid "Legend name"
+msgstr "Nome na legenda"
+
+#. translators: %s: calendar state, such as Available
+#, php-format
+msgid "Legend name: %s"
+msgstr "Nome na legenda: %s"
+
+msgid "No text"
+msgstr "Sem texto"
+
+msgid "Save Colors and Labels"
+msgstr "Salvar Cores e Rótulos"
+
+#. translators: %s: the closed day's cell name, such as Closed
+#, php-format
+msgid "Show \"%s\" in closed day cells"
+msgstr "Exibir \"%s\" nos dias fechados"
+
+msgid "The bookings badge and legend dot. The badge text is the calendar's booking label."
+msgstr "O selo de reservas e o ponto da legenda. O texto do selo é o rótulo de reserva do calendário."
+
+msgid "The calendar's booking label"
+msgstr "O rótulo de reserva do calendário"
+
+msgid "When off, a closed day keeps its grey background and no text."
+msgstr "Desligado, o dia fechado mantém o fundo cinza e fica sem texto."

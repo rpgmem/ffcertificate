@@ -164,8 +164,8 @@ class AudienceLoaderTest extends TestCase {
 		$loader = AudienceLoader::get_instance();
 
 		Functions\when('get_option')->alias(
-			static fn( $name, $default = false ) => 'ffc_closed_date_colors' === $name
-				? array( 'holiday' => '#123456', 'optional' => '#4f6b8f' )
+			static fn( $name, $default = false ) => 'ffc_calendar_appearance' === $name
+				? array( 'colors' => array( 'holiday' => '#123456', 'optional' => '#4f6b8f' ) )
 				: $default
 		);
 		Functions\when('sanitize_hex_color')->returnArg();

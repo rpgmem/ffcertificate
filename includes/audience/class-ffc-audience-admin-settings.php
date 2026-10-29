@@ -185,7 +185,6 @@ class AudienceAdminSettings {
 		$calendars_count       = wp_count_posts( 'ffc_self_scheduling' );
 		$published             = isset( $calendars_count->publish ) ? $calendars_count->publish : 0;
 		$audience_active_count = absint( AudienceScheduleRepository::count( array( 'status' => 'active' ) ) );
-		$closed_date_colors    = \FreeFormCertificate\Scheduling\ClosedDateKind::colors();
 
 		include FFC_PLUGIN_DIR . 'templates/admin/audience/general-tab.php';
 	}
@@ -315,10 +314,11 @@ class AudienceAdminSettings {
 		// calendars screen uses `holiday_deleted` for its own holidays (#1771).
 		if ( RequestInput::get_get_string( 'page' ) === $this->menu_slug . '-settings' && isset( $_GET['message'] ) ) {
 			$messages = array(
-				'holiday_added'   => __( 'Holiday added successfully.', 'ffcertificate' ),
-				'holiday_deleted' => __( 'Holiday deleted successfully.', 'ffcertificate' ),
-				'holiday_updated' => __( 'Holiday updated successfully.', 'ffcertificate' ),
-				'colors_saved'    => __( 'Calendar colors saved.', 'ffcertificate' ),
+				'holiday_added'    => __( 'Holiday added successfully.', 'ffcertificate' ),
+				'holiday_deleted'  => __( 'Holiday deleted successfully.', 'ffcertificate' ),
+				'holiday_updated'  => __( 'Holiday updated successfully.', 'ffcertificate' ),
+				'colors_saved'     => __( 'Calendar colors and labels saved.', 'ffcertificate' ),
+				'appearance_reset' => __( 'Calendar colors and labels restored to their defaults.', 'ffcertificate' ),
 			);
 			$message  = RequestInput::get_get_string( 'message' );
 			if ( isset( $messages[ $message ] ) ) {
@@ -328,10 +328,10 @@ class AudienceAdminSettings {
 			}
 		}
 
-		// Closed-date colours (#2202), light theme only.
-		if ( isset( $_POST['ffc_action'] ) && 'save_closed_date_colors' === $_POST['ffc_action'] ) {
-			if ( ! isset( $_POST['ffc_closed_date_colors_nonce'] ) ||
-				! wp_verify_nonce( RequestInput::get_post_string( 'ffc_closed_date_colors_nonce' ), 'ffc_closed_date_colors' ) ) {
+		// Calendar colours and labels (#2202, #2215), colours in the light theme only.
+		if ( isset( $_POST['ffc_action'] ) && 'save_calendar_appearance' === $_POST['ffc_action'] ) {
+			if ( ! isset( $_POST['ffc_calendar_appearance_nonce'] ) ||
+				! wp_verify_nonce( RequestInput::get_post_string( 'ffc_calendar_appearance_nonce' ), 'ffc_calendar_appearance' ) ) {
 				return;
 			}
 
@@ -339,13 +339,20 @@ class AudienceAdminSettings {
 				return;
 			}
 
-			$posted = array();
-			foreach ( \FreeFormCertificate\Scheduling\ClosedDateKind::all() as $kind ) {
-				$posted[ $kind ] = RequestInput::get_post_string( 'closed_date_color_' . $kind );
+			if ( RequestInput::has_post( 'calendar_appearance_reset' ) ) {
+				\FreeFormCertificate\Scheduling\CalendarAppearance::reset();
+				$message = 'appearance_reset';
+			} else {
+				\FreeFormCertificate\Scheduling\CalendarAppearance::save(
+					RequestInput::get_post_array( 'calendar_color' ),
+					RequestInput::get_post_array( 'calendar_legend' ),
+					RequestInput::get_post_array( 'calendar_cell' ),
+					RequestInput::has_post( 'calendar_show_closed_label' )
+				);
+				$message = 'colors_saved';
 			}
-			\FreeFormCertificate\Scheduling\ClosedDateKind::save_colors( $posted );
 
-			wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=general&message=colors_saved' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=general&message=' . $message ) );
 			exit;
 		}
 

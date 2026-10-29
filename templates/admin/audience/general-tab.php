@@ -2,8 +2,8 @@
 /**
  * Template: Audience admin settings — General tab (status summary + global holidays).
  * In-scope: $holidays (array), $published (int|string published calendars),
- * $audience_active_count (int active audience schedules), $closed_date_colors
- * (kind => hex, #2202), $this->menu_slug.
+ * $audience_active_count (int active audience schedules), $this->menu_slug.
+ * The calendar colours and labels card reads CalendarAppearance (#2215).
  *
  * Extracted verbatim from the matching AudienceAdminSettings method
  * (rpgmem/ffcertificate coverage hygiene); markup byte-identical. The
@@ -185,32 +185,134 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php endif; ?>
 		</div>
 
-		<!-- Closed-date colours (#2202) -->
+		<!-- Calendar colours and labels (#2202, #2215) -->
+		<?php
+		$ffc_appearance      = \FreeFormCertificate\Scheduling\CalendarAppearance::stored();
+		$ffc_available_ratio = \FreeFormCertificate\Scheduling\CalendarAppearance::available_contrast( $ffc_appearance['colors']['available'] );
+		$ffc_state_hints     = array(
+			'available' => __( 'Day border, day number and legend dot.', 'ffcertificate' ),
+			'booked'    => __( 'The bookings badge and legend dot. The badge text is the calendar\'s booking label.', 'ffcertificate' ),
+			'holiday'   => __( 'Day badge and legend dot.', 'ffcertificate' ),
+			'optional'  => __( 'Day badge and legend dot.', 'ffcertificate' ),
+			'closed'    => __( 'A day with no opening hours: day badge and legend dot.', 'ffcertificate' ),
+		);
+		?>
 		<div class="card">
-			<h2 class="ffc-icon-palette"><?php esc_html_e( 'Holiday Colors', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-palette"><?php esc_html_e( 'Calendar Colors and Labels', 'ffcertificate' ); ?></h2>
 			<p class="description">
-				<?php esc_html_e( 'The color of the holiday and optional holiday labels on the public calendars, in the light theme. The dark theme keeps its own colors, and the text on each label turns white or black to stay readable.', 'ffcertificate' ); ?>
+				<?php esc_html_e( 'How each state looks and is named on the personal and the audience calendars. Colors apply to the light theme; the dark theme keeps its own, and the text on each color turns white or black to stay readable. An empty name uses the default shown in the field.', 'ffcertificate' ); ?>
 			</p>
 			<form method="post">
-				<?php wp_nonce_field( 'ffc_closed_date_colors', 'ffc_closed_date_colors_nonce' ); ?>
-				<input type="hidden" name="ffc_action" value="save_closed_date_colors">
-				<table class="form-table" role="presentation">
+				<?php wp_nonce_field( 'ffc_calendar_appearance', 'ffc_calendar_appearance_nonce' ); ?>
+				<input type="hidden" name="ffc_action" value="save_calendar_appearance">
+				<table class="widefat striped ffc-calendar-appearance-table">
+					<thead>
+						<tr>
+							<th scope="col"><?php esc_html_e( 'State', 'ffcertificate' ); ?></th>
+							<th scope="col"><?php esc_html_e( 'Color', 'ffcertificate' ); ?></th>
+							<th scope="col"><?php esc_html_e( 'Legend name', 'ffcertificate' ); ?></th>
+							<th scope="col"><?php esc_html_e( 'Day cell name', 'ffcertificate' ); ?></th>
+							<th scope="col"><?php esc_html_e( 'Preview', 'ffcertificate' ); ?></th>
+						</tr>
+					</thead>
 					<tbody>
-						<?php foreach ( \FreeFormCertificate\Scheduling\ClosedDateKind::all() as $ffc_kind ) : ?>
+						<?php foreach ( \FreeFormCertificate\Scheduling\CalendarAppearance::states() as $ffc_state ) : ?>
+							<?php $ffc_has_cell = in_array( $ffc_state, \FreeFormCertificate\Scheduling\CalendarAppearance::CELL_STATES, true ); ?>
 							<tr>
 								<th scope="row">
-									<label for="closed_date_color_<?php echo esc_attr( $ffc_kind ); ?>"><?php echo esc_html( \FreeFormCertificate\Scheduling\ClosedDateKind::label( $ffc_kind ) ); ?></label>
+									<label for="calendar_color_<?php echo esc_attr( $ffc_state ); ?>"><?php echo esc_html( \FreeFormCertificate\Scheduling\CalendarAppearance::default_legend( $ffc_state ) ); ?></label>
+									<p class="description"><?php echo esc_html( $ffc_state_hints[ $ffc_state ] ); ?></p>
 								</th>
 								<td>
 									<?php // The picker the Email Model and Date Messages use (wp-color-picker); its Default button restores the shipped colour. ?>
-									<input type="text" name="closed_date_color_<?php echo esc_attr( $ffc_kind ); ?>" id="closed_date_color_<?php echo esc_attr( $ffc_kind ); ?>" class="ffc-closed-date-color"
-											value="<?php echo esc_attr( $closed_date_colors[ $ffc_kind ] ); ?>"
-											data-default-color="<?php echo esc_attr( \FreeFormCertificate\Scheduling\ClosedDateKind::DEFAULT_COLORS[ $ffc_kind ] ); ?>">
+									<input type="text" name="calendar_color[<?php echo esc_attr( $ffc_state ); ?>]" id="calendar_color_<?php echo esc_attr( $ffc_state ); ?>" class="ffc-calendar-color"
+											value="<?php echo esc_attr( $ffc_appearance['colors'][ $ffc_state ] ); ?>"
+											data-default-color="<?php echo esc_attr( \FreeFormCertificate\Scheduling\CalendarAppearance::DEFAULT_COLORS[ $ffc_state ] ); ?>">
+								</td>
+								<td>
+									<input type="text" name="calendar_legend[<?php echo esc_attr( $ffc_state ); ?>]" maxlength="40"
+											aria-label="<?php echo esc_attr( sprintf( /* translators: %s: calendar state, such as Available */ __( 'Legend name: %s', 'ffcertificate' ), \FreeFormCertificate\Scheduling\CalendarAppearance::default_legend( $ffc_state ) ) ); ?>"
+											value="<?php echo esc_attr( $ffc_appearance['legend'][ $ffc_state ] ); ?>"
+											placeholder="<?php echo esc_attr( \FreeFormCertificate\Scheduling\CalendarAppearance::default_legend( $ffc_state ) ); ?>">
+								</td>
+								<td>
+									<?php if ( $ffc_has_cell ) : ?>
+										<input type="text" name="calendar_cell[<?php echo esc_attr( $ffc_state ); ?>]" maxlength="40"
+												aria-label="<?php echo esc_attr( sprintf( /* translators: %s: calendar state, such as Holiday */ __( 'Day cell name: %s', 'ffcertificate' ), \FreeFormCertificate\Scheduling\CalendarAppearance::default_legend( $ffc_state ) ) ); ?>"
+												value="<?php echo esc_attr( $ffc_appearance['cell'][ $ffc_state ] ); ?>"
+												placeholder="<?php echo esc_attr( \FreeFormCertificate\Scheduling\CalendarAppearance::default_cell( $ffc_state ) ); ?>">
+									<?php else : ?>
+										<span class="description"><?php echo esc_html( 'available' === $ffc_state ? __( 'No text', 'ffcertificate' ) : __( 'The calendar\'s booking label', 'ffcertificate' ) ); ?></span>
+									<?php endif; ?>
+								</td>
+								<td>
+									<span class="ffc-calendar-state-preview ffc-calendar-state-preview-<?php echo esc_attr( $ffc_state ); ?>">
+										<?php
+										if ( 'available' === $ffc_state ) {
+											echo '15';
+										} elseif ( 'booked' === $ffc_state ) {
+											/* translators: a booking count badge in a calendar day */
+											esc_html_e( '2 bookings', 'ffcertificate' );
+										} else {
+											echo esc_html( \FreeFormCertificate\Scheduling\CalendarAppearance::cell( $ffc_state ) );
+										}
+										?>
+									</span>
+									<?php if ( 'available' === $ffc_state && null !== $ffc_available_ratio ) : ?>
+										<?php if ( $ffc_available_ratio < 4.5 ) : ?>
+											<p class="ffc-icon-warning ffc-icon-tone-warning ffc-calendar-contrast">
+												<?php
+												/* translators: %s: contrast ratio, such as 3.2 */
+												echo esc_html( sprintf( __( '%s:1 on white: the day number is hard to read (4.5:1 recommended).', 'ffcertificate' ), number_format_i18n( $ffc_available_ratio, 1 ) ) );
+												?>
+											</p>
+										<?php else : ?>
+											<p class="ffc-icon-success ffc-icon-tone-success ffc-calendar-contrast">
+												<?php
+												/* translators: %s: contrast ratio, such as 5.1 */
+												echo esc_html( sprintf( __( '%s:1 on white', 'ffcertificate' ), number_format_i18n( $ffc_available_ratio, 1 ) ) );
+												?>
+											</p>
+										<?php endif; ?>
+									<?php endif; ?>
 								</td>
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
 				</table>
-				<?php \FreeFormCertificate\Admin\AdminUI::render_save_button( __( 'Save Colors', 'ffcertificate' ), array( 'value' => __( 'Save Colors', 'ffcertificate' ) ) ); ?>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_toggle(
+					array(
+						'name'        => 'calendar_show_closed_label',
+						'checked'     => $ffc_appearance['show_closed_label'],
+						/* translators: %s: the closed day's cell name, such as Closed */
+						'label'       => sprintf( __( 'Show "%s" in closed day cells', 'ffcertificate' ), \FreeFormCertificate\Scheduling\CalendarAppearance::cell( 'closed' ) ),
+						'description' => __( 'When off, a closed day keeps its grey background and no text.', 'ffcertificate' ),
+						'class'       => 'ffc-mt-xl',
+					)
+				);
+				?>
+				<p class="submit">
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Save Colors and Labels', 'ffcertificate' ),
+							'category' => 'primary',
+							'icon'     => 'save',
+							'type'     => 'submit',
+						)
+					);
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Restore Defaults', 'ffcertificate' ),
+							'category' => 'caution',
+							'icon'     => 'restore',
+							'type'     => 'submit',
+							'name'     => 'calendar_appearance_reset',
+							'value'    => '1',
+						)
+					);
+					?>
+				</p>
 			</form>
 		</div>
