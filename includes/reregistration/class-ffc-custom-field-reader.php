@@ -756,6 +756,76 @@ class CustomFieldReader {
 	}
 
 	/**
+	 * Ids of the standard fields with a given key that carry no validation
+	 * rules, for a one-shot step that gives them the definition's.
+	 *
+	 * @param string $field_key Standard field key.
+	 * @return list<int>
+	 */
+	public static function standard_field_ids_without_rules( string $field_key ): array {
+		if ( '' === $field_key ) {
+			return array();
+		}
+		global $wpdb;
+
+		$rows = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT id FROM %i WHERE field_source = 'standard' AND field_key = %s AND ( validation_rules IS NULL OR validation_rules = '' OR validation_rules = 'null' )",
+				self::get_table_name(),
+				$field_key
+			)
+		);
+		if ( ! is_array( $rows ) ) {
+			return array();
+		}
+
+		$ids = array();
+		foreach ( $rows as $raw ) {
+			$id = is_numeric( $raw ) ? (int) $raw : 0;
+			if ( $id > 0 ) {
+				$ids[] = $id;
+			}
+		}
+		return $ids;
+	}
+
+	/**
+	 * Where a standard field sits in each audience that carries it:
+	 * `audience_id => sort_order`, for a one-shot step that places a new
+	 * field beside an existing one.
+	 *
+	 * @param string $field_key Standard field key.
+	 * @return array<int, int>
+	 */
+	public static function standard_field_positions( string $field_key ): array {
+		if ( '' === $field_key ) {
+			return array();
+		}
+		global $wpdb;
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT audience_id, sort_order FROM %i WHERE field_source = 'standard' AND field_key = %s",
+				self::get_table_name(),
+				$field_key
+			),
+			ARRAY_A
+		);
+		if ( ! is_array( $rows ) ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $rows as $row ) {
+			$audience_id = is_array( $row ) && is_numeric( $row['audience_id'] ?? null ) ? (int) $row['audience_id'] : 0;
+			if ( $audience_id > 0 ) {
+				$out[ $audience_id ] = is_numeric( $row['sort_order'] ?? null ) ? (int) $row['sort_order'] : 0;
+			}
+		}
+		return $out;
+	}
+
+	/**
 	 * The stored options of every standard field with a given key, by id --
 	 * what a one-shot options update needs to compare against the shipped
 	 * list before touching a row (#2225).

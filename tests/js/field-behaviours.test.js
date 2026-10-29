@@ -40,12 +40,29 @@ describe('FFC.Fields masks', () => {
 		['rf', '1234567', '123.456-7'],
 		['number', 'a1b2', '12'],
 		['cin', '123456789', '12.345.678-9'],
+		['cin', '12345678x', '12.345.678-X'],
+		['cin', '1X2345678', '12.345.678'],
 	];
 
 	it.each(cases)('%s masks %s as %s', (mask, raw, expected) => {
 		document.body.innerHTML = `<div id="c"><input data-mask="${mask}"></div>`;
 		window.FFC.Fields.initMasks(window.$('#c'));
 		expect(type(window.$('#c input'), raw)).toBe(expected);
+	});
+
+	it('shapes a value the field already holds when it loads', () => {
+		document.body.innerHTML = '<div id="c"><input data-mask="cpf" value="52998224725"><input data-mask="rf" value="8026335"><input data-mask="cep" value=""></div>';
+		window.FFC.Fields.initMasks(window.$('#c'));
+		const $inputs = window.$('#c input');
+		expect($inputs.eq(0).val()).toBe('529.982.247-25');
+		expect($inputs.eq(1).val()).toBe('802.633-5');
+		expect($inputs.eq(2).val()).toBe('');
+	});
+
+	it('leaves a stored phone as it is, so an international number keeps its code', () => {
+		document.body.innerHTML = '<div id="c"><input data-mask="phone" value="+55 11 98765-4321"></div>';
+		window.FFC.Fields.initMasks(window.$('#c'));
+		expect(window.$('#c input').val()).toBe('+55 11 98765-4321');
 	});
 
 	it('leaves an unknown mask alone', () => {
@@ -62,7 +79,7 @@ describe('FFC.Fields masks', () => {
 });
 
 describe('FFC.Fields format checks', () => {
-	const S = { invalidCpf: 'bad cpf', invalidEmail: 'bad email', invalidPhone: 'bad phone', invalidFormat: 'bad' };
+	const S = { invalidCpf: 'bad cpf', invalidRf: 'bad rf', invalidEmail: 'bad email', invalidPhone: 'bad phone', invalidFormat: 'bad' };
 
 	it('accepts a valid CPF and refuses wrong digits or a repeated run', () => {
 		expect(window.FFC.Fields.validateCpf('529.982.247-25')).toBe(true);
@@ -79,6 +96,8 @@ describe('FFC.Fields format checks', () => {
 		expect(window.FFC.Fields.formatError('(11) 98765-4321', 'phone', S)).toBe('');
 		expect(window.FFC.Fields.formatError('123', 'phone', S)).toBe('bad phone');
 		expect(window.FFC.Fields.formatError('x', 'unknown', S)).toBe('');
+		expect(window.FFC.Fields.formatError('518.178-0', 'rf', S)).toBe('');
+		expect(window.FFC.Fields.formatError('51817', 'rf', S)).toBe('bad rf');
 	});
 
 	it('checks a custom pattern with its own message, and ignores a broken one', () => {

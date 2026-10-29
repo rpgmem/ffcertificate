@@ -9476,10 +9476,6 @@ msgstr ""
 msgid "Institutional Email"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-record.php:108
-msgid "Institutional email"
-msgstr ""
-
 #: includes/admin/class-ffc-admin.php:542
 msgid "Insufficient permissions"
 msgstr ""
@@ -29175,6 +29171,7 @@ msgid "The location row grades how precise the reading is against a reference ar
 msgstr ""
 
 msgid "Holidays, global closures and the weekdays the space is closed are left out instead of refusing the booking."
+msgstr ""
 
 msgid "(optional: read only when the date comes from a column of the file)"
 msgstr ""
@@ -29446,4 +29443,54 @@ msgid "An environment is deactivated before it can be deleted, and one that any 
 msgstr ""
 
 msgid "Not deleted: bookings use it. It stays inactive, so it takes no new bookings, and its bookings keep their place."
+msgstr ""
+
+msgid "Workload:"
+msgstr ""
+
+msgid "Post/Role:"
+msgstr ""
+
+msgid "Institutional Email (@edu)"
+msgstr ""
+
+msgid "View answers"
+msgstr ""
+
+msgid "How values are printed:"
+msgstr ""
+
+msgid "CPF, RF, RG and CEP are printed in their usual shape (000.000.000-00, 000.000-0, 00.000.000-0, 00000-000), whether they were stored masked or bare."
+msgstr ""
+
+msgid "A date field is printed in the PDF date format set in the date settings."
+msgstr ""
+
+msgid "A work schedule is a table with the days across and entry, lunch break and exit down, so the record stays on one A4 page with a second post."
+msgstr ""
+
+msgid "The items of the acknowledgment notice are numbered \"1-\", \"2-\" and so on, in a column of their own."
+msgstr ""
+
+msgid "Institutional email (@sme)"
+msgstr ""
+
+msgid "Institutional email (@edu)"
+msgstr ""
+
+msgid "The second post's workload, role and work schedule together (HTML section), empty when no second post is held"
+msgstr ""
+
+msgid "The contact fields carry two institutional e-mails, one @sme and one @edu, and a personal one. The @edu field reaches the audiences created before it on the first admin request after the update, placed right after the @sme one and not required."
+msgstr ""
+
+msgid "View answers on a reregistration they sent, which opens their answers under the row even after the campaign closed. CPF, RF, RG, phones, e-mails and the birth date arrive masked behind a Reveal button; viewing as a user, the reveal is recorded in the activity log."
+msgstr ""
+
+msgid "Invalid RF."
+msgstr ""
+
+#. translators: %s: field label
+#, php-format
+msgid "%s must be a valid RF."
 msgstr ""

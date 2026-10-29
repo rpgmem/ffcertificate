@@ -139,7 +139,10 @@
                 return;
             }
 
-            $input.val(fields[key]);
+            // An imported value is shaped like a typed one.
+            var masks = window.FFC && FFC.Fields && FFC.Fields.masks;
+            var format = masks && masks[$input.attr('data-mask')];
+            $input.val(format ? format(String(fields[key])) : fields[key]);
             filled++;
         });
 

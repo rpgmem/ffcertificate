@@ -9490,10 +9490,6 @@ msgstr "Endereço institucional em Configurações > Geral"
 msgid "Institutional Email"
 msgstr "E-mail Institucional"
 
-#: includes/settings/views/documentation/feature-record.php:108
-msgid "Institutional email"
-msgstr "E-mail Institucional"
-
 #: includes/admin/class-ffc-admin.php:542
 msgid "Insufficient permissions"
 msgstr "Permissões insuficientes"
@@ -10490,11 +10486,11 @@ msgstr "Menor valor = mais agressivo. Deixe em branco para herdar o padrão glob
 
 #: includes/reregistration/class-ffc-record-generator.php:251
 msgid "Lunch In"
-msgstr "Refeição em"
+msgstr "Retorno da refeição"
 
 #: includes/reregistration/class-ffc-record-generator.php:250
 msgid "Lunch Out"
-msgstr "Retorno refeição"
+msgstr "Saída para refeição"
 
 #: includes/settings/views/documentation/reference-validation-url.php:45
 msgid "Magic (download) link with custom text and color — custom text may contain spaces"
@@ -29531,3 +29527,53 @@ msgstr "Um ambiente é desativado antes de poder ser excluído, e um ambiente ci
 
 msgid "Not deleted: bookings use it. It stays inactive, so it takes no new bookings, and its bookings keep their place."
 msgstr "Não excluído: há agendamentos que o usam. Continua inativo, sem receber novos agendamentos, e os agendamentos mantêm o local."
+
+msgid "Workload:"
+msgstr "Jornada:"
+
+msgid "Post/Role:"
+msgstr "Cargo/Função:"
+
+msgid "Institutional Email (@edu)"
+msgstr "E-mail Institucional (@edu)"
+
+msgid "View answers"
+msgstr "Ver respostas"
+
+msgid "How values are printed:"
+msgstr "Como os valores são impressos:"
+
+msgid "CPF, RF, RG and CEP are printed in their usual shape (000.000.000-00, 000.000-0, 00.000.000-0, 00000-000), whether they were stored masked or bare."
+msgstr "CPF, RF, RG e CEP são impressos no formato usual (000.000.000-00, 000.000-0, 00.000.000-0, 00000-000), tenham sido gravados com ou sem máscara."
+
+msgid "A date field is printed in the PDF date format set in the date settings."
+msgstr "Um campo de data é impresso no formato de data do PDF definido nas configurações de data."
+
+msgid "A work schedule is a table with the days across and entry, lunch break and exit down, so the record stays on one A4 page with a second post."
+msgstr "Um horário de trabalho é uma tabela com os dias nas colunas e entrada, intervalo de refeição e saída nas linhas, para que a ficha caiba em uma folha A4 mesmo com acúmulo de cargo."
+
+msgid "The items of the acknowledgment notice are numbered \"1-\", \"2-\" and so on, in a column of their own."
+msgstr "Os itens do termo de ciência são numerados \"1-\", \"2-\" e assim por diante, em uma coluna própria."
+
+msgid "Institutional email (@sme)"
+msgstr "E-mail institucional (@sme)"
+
+msgid "Institutional email (@edu)"
+msgstr "E-mail institucional (@edu)"
+
+msgid "The second post's workload, role and work schedule together (HTML section), empty when no second post is held"
+msgstr "Jornada, cargo/função e horário do acúmulo de cargo juntos (seção HTML), vazio quando não há acúmulo"
+
+msgid "The contact fields carry two institutional e-mails, one @sme and one @edu, and a personal one. The @edu field reaches the audiences created before it on the first admin request after the update, placed right after the @sme one and not required."
+msgstr "Os campos de contato trazem dois e-mails institucionais, um @sme e um @edu, e um pessoal. O campo @edu chega aos públicos criados antes dele na primeira requisição ao painel após a atualização, logo depois do @sme e sem ser obrigatório."
+
+msgid "View answers on a reregistration they sent, which opens their answers under the row even after the campaign closed. CPF, RF, RG, phones, e-mails and the birth date arrive masked behind a Reveal button; viewing as a user, the reveal is recorded in the activity log."
+msgstr "Ver respostas em um recadastramento enviado, que abre as respostas abaixo da linha mesmo depois de encerrada a campanha. CPF, RF, RG, telefones, e-mails e a data de nascimento chegam mascarados atrás de um botão Revelar; ao visualizar como usuário, a revelação é registrada no log de atividades."
+
+msgid "Invalid RF."
+msgstr "RF inválido."
+
+#. translators: %s: field label
+#, php-format
+msgid "%s must be a valid RF."
+msgstr "%s deve ser um RF válido."

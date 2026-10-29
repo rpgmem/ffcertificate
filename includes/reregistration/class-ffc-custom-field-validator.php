@@ -155,6 +155,18 @@ class CustomFieldValidator {
 					}
 					break;
 
+				case 'rf':
+					// The plugin's one RF rule: seven digits, and the check
+					// digit when Settings require it (#2227).
+					if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_rf( $str_value ) ) {
+						return new \WP_Error(
+							'field_invalid_rf',
+							/* translators: %s: field label */
+							sprintf( __( '%s must be a valid RF.', 'ffcertificate' ), $field->field_label )
+						);
+					}
+					break;
+
 				case 'email':
 					if ( ! is_email( $str_value ) ) {
 						return new \WP_Error(

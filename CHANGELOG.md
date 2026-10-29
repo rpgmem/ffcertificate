@@ -15,6 +15,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Scheduling: a personal calendar's closed days show their name too** (#2218). A non-working weekday, or a date outside a custom schedule, carries the closed cell name from Calendar Colors and Labels, and the switch hides it, as on the audience calendars.
 - **Scheduling: the bookings badge and an available day are named with the other calendar states** (#2221). Calendar Colors and Labels takes a singular and a plural booking name and an optional available-day name that both calendars use; an audience calendar's own booking label still wins.
 - **Scheduling: a calendar can name its own states** (#2223). A personal calendar's Names tab and an audience calendar's Calendar names field override the general legend and day-cell names and the show-closed-name switch; an empty field keeps the general name. Colours stay general.
+- **Reregistration: the participant reads their answers on the dashboard, and the form has an @edu e-mail** (#2227). View answers opens a sent submission's answers under its row, even after the campaign closed, with personal data masked behind Reveal (audited when viewing as a user). A new standard field, Institutional Email (@edu), reaches existing audiences after the @sme one.
 
 ### Changed
 
@@ -92,6 +93,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Tests: the submissions list test no longer inherits another test's sort order** (#2217). The URL shortener test left `orderby`, `order`, `paged` and `status` in `$_GET`, and the list test read them without choosing them, so random seed 83011022 failed. Each now sets or clears what it reads.
 - **Reregistration: a field shared by several audiences shows once, and a second campaign opens with the first one's answers** (#2225). The most specific audience's field wins; the form prefills from the latest other campaign (rejected ones excepted), mapping former workload codes. Vínculo, workload and work-hours labels and options updated.
 - **Audience Calendars: an environment with bookings can no longer be deleted** (#2229). Deleting it left its bookings pointing at nothing, so the user dashboard named the place "Unknown". The delete is refused with a notice, and the Environments list no longer offers it; the environment stays inactive.
+- **Reregistration: the Record PDF prints documents in their shape and fits one A4 page** (#2227). CPF, RF, RG and CEP are masked for print, the birth date follows the PDF date format, number, complement and CEP get their own cells, the three e-mails print, second-post rows print only when one is held, the schedule runs days across, and the notice is numbered "1-". Form masks now shape a loaded value too, and the RF field is checked with the plugin's RF rule.
 
 ### Security
 

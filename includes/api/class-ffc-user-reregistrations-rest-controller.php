@@ -3,7 +3,8 @@
  * User Reregistrations REST Controller
  *
  * Handles:
- *   GET /user/reregistrations – Current user's reregistration submissions
+ *   GET /user/reregistrations              – Current user's reregistration submissions
+ *   GET /user/reregistrations/{id}/answers – One submission's answers, read-only
  *
  * @package FreeFormCertificate\API
  * @since 4.12.7  Extracted from UserDataRestController
@@ -23,6 +24,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class UserReregistrationsRestController {
 
 	use UserContextTrait;
+
+	/**
+	 * The module reveal cap, which decides who may see the answers unmasked.
+	 */
+	private const PII_CAP = 'ffc_view_reregistration_pii';
 
 	/**
 	 * API namespace
@@ -51,6 +57,89 @@ class UserReregistrationsRestController {
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_user_reregistrations' ),
 				'permission_callback' => 'is_user_logged_in',
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/user/reregistrations/(?P<id>\\d+)/answers',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_submission_answers' ),
+				'permission_callback' => 'is_user_logged_in',
+				'args'                => array(
+					'id'     => array(
+						'type'              => 'integer',
+						'required'          => true,
+						'sanitize_callback' => 'absint',
+					),
+					'reveal' => array(
+						'type'    => 'boolean',
+						'default' => false,
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * GET /user/reregistrations/{id}/answers
+	 *
+	 * The answers of one of the user's own submissions, so one that can no
+	 * longer be edited can still be read. Personal data arrives masked; the
+	 * owner reveals their own without an audit row, and an administrator in
+	 * "view as user" reveals it audited, like every other dashboard reveal
+	 * (#1863, #1897).
+	 *
+	 * @since 6.43.0
+	 * @param \WP_REST_Request $request REST request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function get_submission_answers( $request ) {
+		$ctx     = $this->resolve_user_context( $request );
+		$user_id = $ctx['user_id'];
+		if ( $user_id <= 0 ) {
+			return new \WP_Error( 'not_logged_in', __( 'You must be logged in', 'ffcertificate' ), array( 'status' => 401 ) );
+		}
+
+		$submission = \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_by_id( absint( $request->get_param( 'id' ) ) );
+		// Another person's submission answers the same as a missing one, so
+		// the endpoint does not confirm which ids exist.
+		if ( ! $submission || (int) $submission->user_id !== $user_id || empty( $submission->submitted_at ) ) {
+			return new \WP_Error( 'ffc_submission_not_found', __( 'Submission not found.', 'ffcertificate' ), array( 'status' => 404 ) );
+		}
+
+		$tier       = \FreeFormCertificate\Core\PiiAccessPolicy::resolve_on_screen( self::PII_CAP, $user_id );
+		$can_reveal = \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED !== $tier;
+		$reveal     = (bool) $request->get_param( 'reveal' );
+		if ( $reveal && ! $can_reveal ) {
+			return new \WP_Error( 'ffc_reveal_denied', __( 'You do not have permission to reveal this field.', 'ffcertificate' ), array( 'status' => 403 ) );
+		}
+
+		$answers = \FreeFormCertificate\Reregistration\ReregistrationSubmissionAnswers::build( $submission, $reveal );
+		if ( null === $answers ) {
+			return new \WP_Error( 'ffc_submission_not_found', __( 'Submission not found.', 'ffcertificate' ), array( 'status' => 404 ) );
+		}
+
+		if ( $reveal && $ctx['is_view_as'] ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'reregistration_pii_revealed',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+				array(
+					'view_as'         => true,
+					'subject_user_id' => $user_id,
+				),
+				get_current_user_id(),
+				(int) $submission->id
+			);
+		}
+
+		return rest_ensure_response(
+			array(
+				'submission_id' => (int) $submission->id,
+				'rows'          => $answers['rows'],
+				'masked'        => $answers['has_masked'],
+				'can_reveal'    => $can_reveal && $answers['has_masked'],
 			)
 		);
 	}
@@ -140,6 +229,7 @@ class UserReregistrationsRestController {
 					'days_left'             => $is_active ? max( 0, (int) ( ( $end_ts - time() ) / 86400 ) ) : 0,
 					'can_download'          => $can_download,
 					'can_submit'            => $can_submit,
+					'can_view_answers'      => ! empty( $sub->submitted_at ),
 					'is_active'             => $is_active,
 					'auth_code'             => ! empty( $sub->auth_code )
 						? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $sub->auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )

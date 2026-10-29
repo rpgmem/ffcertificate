@@ -200,7 +200,7 @@ class ReregistrationSubmissionDetailsRendererTest extends TestCase {
 		);
 
 		$this->assertStringContainsString( '[KSES]<table', $html, 'working_hours field type must go through wp_kses_post' );
-		$this->assertStringContainsString( '>Mon</td>', $html );
+		$this->assertStringContainsString( '>Mon</th>', $html );
 	}
 
 	public function test_non_html_field_value_is_escaped_via_esc_html(): void {

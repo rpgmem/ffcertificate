@@ -332,10 +332,11 @@ class RecordGeneratorTest extends TestCase {
 
 		$result = $this->invokePrivateStatic('format_working_hours', [$json]);
 
-		// Should have the header row + 1 data row, not 2 data rows.
-		// The second entry has empty entry1 AND empty exit2, so it gets skipped.
-		$tr_count = substr_count($result, '<tr>');
-		$this->assertSame(2, $tr_count); // 1 header + 1 data row
+		// Days run across: the day with empty entry1 AND empty exit2 is
+		// skipped, so the header carries one day column, not two.
+		$this->assertSame(5, substr_count($result, '<tr>'), 'A day row and four time rows.');
+		$this->assertSame(1, substr_count($result, '>Mon</th>'));
+		$this->assertStringNotContainsString('>Tue</th>', $result);
 	}
 
 	public function test_format_working_hours_includes_day_labels(): void {
@@ -584,7 +585,8 @@ class RecordGeneratorTest extends TestCase {
 
 		// The shipped default notice mentions these programmes.
 		$this->assertStringContainsString('SISPATRI', $result);
-		$this->assertStringContainsString('<ol>', $result);
+		$this->assertStringNotContainsString('<ol>', $result, 'The list is drawn as numbered rows.');
+		$this->assertStringContainsString('>6-</td>', $result);
 	}
 
 	public function test_resolve_acknowledgment_html_falls_back_when_field_html_empty(): void {
@@ -984,7 +986,7 @@ class RecordGeneratorTest extends TestCase {
 	 * @param string $auth_code Raw code stored on the row.
 	 * @return array<string, mixed> Variables handed to the template.
 	 */
-	private function runRecordWithStatus(string $status, string $auth_code, ?array &$seen = null): array {
+	private function runRecordWithStatus(string $status, string $auth_code, ?array &$seen = null, ?array $fields = null, ?array $values = null): array {
 		Functions\when('__')->returnArg();
 		Functions\when('esc_html__')->returnArg();
 		Functions\when('esc_html')->returnArg();
@@ -1020,7 +1022,7 @@ class RecordGeneratorTest extends TestCase {
 			'id'                => 42,
 			'reregistration_id' => 9,
 			'user_id'           => 7,
-			'data'              => json_encode(array('fields' => array('display_name' => 'João'))),
+			'data'              => json_encode(array('fields' => $values ?? array('display_name' => 'João'))),
 			'status'            => $status,
 			'submitted_at'      => 1700000000,
 			'auth_code'         => $auth_code,
@@ -1032,7 +1034,7 @@ class RecordGeneratorTest extends TestCase {
 			'start_date'    => '2026-02-15 00:00:00',
 		);
 
-		$this->storeRecord($submission, $rereg, array(
+		$this->storeRecord($submission, $rereg, $fields ?? array(
 			(object) array('id' => 100, 'field_key' => 'display_name', 'field_label' => 'Name', 'field_type' => 'text', 'field_source' => 'standard', 'is_sensitive' => 0),
 		));
 
@@ -1045,6 +1047,101 @@ class RecordGeneratorTest extends TestCase {
 		RecordGenerator::generate_record_data(42);
 
 		return $captured;
+	}
+
+	/**
+	 * A standard field for the record tests below.
+	 */
+	private function standardField(int $id, string $key, string $type = 'text', string $mask = ''): object {
+		return (object) array('id' => $id, 'field_key' => $key, 'field_label' => $key, 'field_type' => $type, 'field_source' => 'standard', 'field_mask' => $mask, 'is_sensitive' => 0);
+	}
+
+	public function test_the_second_post_block_is_composed_only_when_one_is_held(): void {
+		$fields = array(
+			$this->standardField(1, 'acumulo_cargos', 'select'),
+			$this->standardField(2, 'jornada_acumulo', 'select'),
+			$this->standardField(3, 'cargo_funcao_acumulo'),
+		);
+		$values = array('acumulo_cargos' => 'I hold', 'jornada_acumulo' => 'JB - 20h/a', 'cargo_funcao_acumulo' => 'Teacher');
+
+		$seen = null;
+		$held = $this->runRecordWithStatus('approved', 'MA6DE5LHPFTC', $seen, $fields, $values);
+		$this->assertStringContainsString('Workload:', $held['acumulo_details']);
+		$this->assertStringContainsString('JB - 20h/a', $held['acumulo_details']);
+		$this->assertStringContainsString('Teacher', $held['acumulo_details']);
+
+		$values['acumulo_cargos'] = 'I do not hold';
+		$none = $this->runRecordWithStatus('approved', 'MA6DE5LHPFTC', $seen, $fields, $values);
+		$this->assertSame('', $none['acumulo_details'], 'No second post, no Workload and Post/Role rows.');
+	}
+
+	public function test_the_edu_email_is_its_own_line_and_the_sme_one_no_longer_borrows_the_account(): void {
+		$seen     = null;
+		$captured = $this->runRecordWithStatus('approved', 'MA6DE5LHPFTC', $seen, array($this->standardField(1, 'email_institucional', 'text', 'email')), array('email_institucional' => ''));
+
+		$this->assertSame('', $captured['email_institucional'], 'The account e-mail is not printed as the @sme one.');
+		$this->assertSame('', $captured['email_institucional_edu'], 'A campaign without the field still fills the placeholder.');
+	}
+
+	public function test_the_default_template_reads_the_new_placeholders(): void {
+		$template = (string) file_get_contents(dirname(__DIR__, 2) . '/templates/documents/default_ficha_template.html');
+
+		foreach (array('{{acumulo_details}}', '{{email_institucional_edu}}', '{{endereco_complemento}}', 'CIN/CPF:', 'RG:') as $needle) {
+			$this->assertStringContainsString($needle, $template);
+		}
+		$this->assertStringNotContainsString('{{jornada_acumulo}}', $template, 'The second-post rows come composed, so they can vanish.');
+		$this->assertStringNotContainsString('{{endereco_numero}} {{endereco_complemento}}', $template, 'Number and complement have a cell each.');
+	}
+
+	/**
+	 * @dataProvider provideDisplayMasks
+	 */
+	public function test_build_standard_field_variables_prints_documents_in_their_usual_shape(string $mask, string $stored, string $printed): void {
+		$vars = $this->invokePrivateStatic('build_standard_field_variables', [[$this->standardField(1, 'doc', 'text', $mask)], ['doc' => $stored], false]);
+
+		$this->assertSame($printed, $vars['doc']);
+	}
+
+	public function provideDisplayMasks(): array {
+		return array(
+			'cpf bare'          => array('cpf', '51817842080', '518.178.420-80'),
+			'cpf already masked' => array('cpf', '518.178.420-80', '518.178.420-80'),
+			'rf'                => array('rf', '5181780', '518.178-0'),
+			'rg'                => array('cin', '279047058', '27.904.705-8'),
+			'rg with an X'      => array('cin', '27904705x', '27.904.705-X'),
+			'cep'               => array('cep', '08615070', '08615-070'),
+			'unknown length'    => array('cpf', '123', '123'),
+			'no mask'           => array('', '51817842080', '51817842080'),
+		);
+	}
+
+	public function test_format_field_value_prints_a_date_in_the_pdf_format(): void {
+		Functions\when('get_option')->justReturn(array('date_format' => 'd/m/Y', 'date_format_pdf' => 'd-m-Y'));
+		Functions\when('wp_date')->alias(static fn($format, $ts = null) => gmdate($format, $ts ?? time()));
+		Functions\when('wp_timezone')->alias(static fn() => new \DateTimeZone('UTC'));
+		$field = $this->standardField(1, 'data_nascimento', 'date');
+
+		$this->assertSame('12-10-1985', RecordGenerator::format_field_value($field, '1985-10-12'));
+		$this->assertSame('not a date', RecordGenerator::format_field_value($field, 'not a date'), 'A value that is not a date is printed as stored.');
+	}
+
+	public function test_number_list_items_numbers_every_item_with_a_dash(): void {
+		$html = RecordGenerator::number_list_items('<p>Intro</p><ol><li><strong>A:</strong> one</li><li>two</li></ol>');
+
+		$this->assertStringStartsWith('<p>Intro</p><table', $html);
+		$this->assertStringNotContainsString('<ol', $html);
+		$this->assertStringContainsString('>1-</td><td style="padding:0 0 2px;vertical-align:top"><strong>A:</strong> one</td>', $html);
+		$this->assertStringContainsString('>2-</td>', $html);
+		$this->assertSame('<p>No list</p>', RecordGenerator::number_list_items('<p>No list</p>'));
+	}
+
+	public function test_format_working_hours_puts_days_in_columns_and_names_the_lunch_break(): void {
+		$json = json_encode(array(array('day' => 1, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00')));
+
+		$html = $this->invokePrivateStatic('format_working_hours', [$json]);
+
+		$this->assertMatchesRegularExpression('#>Lunch Out</th><td[^>]*>12:00</td>#', $html, 'Lunch Out is the time the break starts.');
+		$this->assertMatchesRegularExpression('#>Lunch In</th><td[^>]*>13:00</td>#', $html);
 	}
 
 	public function test_generate_record_data_uses_synthetic_code_without_auth_code(): void {
