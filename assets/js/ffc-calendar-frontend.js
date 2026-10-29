@@ -757,6 +757,15 @@
             }
         }
 
+        // A working day inside the booking window, and not a holiday: what
+        // the cell marks as available and may name (#2221).
+        function isAvailable(dateStr, date) {
+            if (calendarHolidays[dateStr]) {
+                return false;
+            }
+            return workingDays.indexOf(date.getDay()) !== -1 && date >= minDate && date <= maxDate;
+        }
+
         // A closed date's names, full and short, by kind (#2202).
         function kindNames(kind) {
             var fallback = ffcCalendar.strings.holiday || 'Holiday';
@@ -825,23 +834,7 @@
                 { 'class': 'ffc-closed', label: ffcCalendar.strings.closed || 'Closed' }
             ],
             getDayClasses: function(dateStr, date) {
-                var classes = [];
-                var weekday = date.getDay();
-                var isHoliday = calendarHolidays[dateStr];
-
-                if (isHoliday) {
-                    return classes;
-                }
-
-                var isAfterMin = date >= minDate;
-                var isBeforeMax = date <= maxDate;
-                var isWorkingDay = workingDays.indexOf(weekday) !== -1;
-
-                if (isWorkingDay && isAfterMin && isBeforeMax) {
-                    classes.push('ffc-available');
-                }
-
-                return classes;
+                return isAvailable(dateStr, date) ? ['ffc-available'] : [];
             },
             getDayContent: function(dateStr, date, isHoliday, isClosed) {
                 if (isHoliday) {
@@ -869,7 +862,10 @@
                     var singularLabel = ffcCalendar.strings.booking || 'booking';
                     var pluralLabel = ffcCalendar.strings.bookings || 'bookings';
                     var label = count === 1 ? singularLabel : pluralLabel;
-                    return '<span class="ffc-day-badge ffc-badge-bookings">' + count + ' ' + label + '</span>';
+                    return '<span class="ffc-day-badge ffc-badge-bookings">' + count + ' ' + escapeAttr(label) + '</span>';
+                }
+                if (ffcCalendar.strings.availableCell && isAvailable(dateStr, date)) {
+                    return '<span class="ffc-day-badge ffc-badge-available">' + escapeAttr(ffcCalendar.strings.availableCell) + '</span>';
                 }
                 return '';
             },

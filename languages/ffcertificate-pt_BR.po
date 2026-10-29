@@ -5272,10 +5272,6 @@ msgstr "Regex Personalizada"
 msgid "Custom regular expression pattern"
 msgstr "Padrão de expressão regular personalizado"
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:380
-msgid "Custom singular/plural label for the booking count shown in calendar day cells (e.g. \"session\" / \"sessions\"). Leave empty to use default."
-msgstr "Rótulo personalizado no singular/plural para a contagem de reservas exibida nas células do calendário (por exemplo, \"sessão\" / \"sessões\"). Deixe em branco para usar o padrão."
-
 #: includes/settings/views/documentation/reference-qr-codes.php:38
 msgid "Custom size (150x150 pixels)"
 msgstr "Tamanho personalizado (150x150 pixels)"
@@ -29414,10 +29410,6 @@ msgstr "%s:1 sobre o branco"
 msgid "%s:1 on white: the day number is hard to read (4.5:1 recommended)."
 msgstr "%s:1 sobre o branco: o número do dia fica difícil de ler (recomendado 4,5:1)."
 
-#. translators: a booking count badge in a calendar day
-msgid "2 bookings"
-msgstr "2 reservas"
-
 msgid "A day with no opening hours: day badge and legend dot."
 msgstr "Dia sem atendimento: selo do dia e ponto da legenda."
 
@@ -29432,9 +29424,6 @@ msgstr "Cores e rótulos do calendário salvos."
 
 msgid "Day badge and legend dot."
 msgstr "Selo do dia e ponto da legenda."
-
-msgid "Day border, day number and legend dot."
-msgstr "Borda e número do dia, e ponto da legenda."
 
 msgid "Day cell name"
 msgstr "Nome no dia"
@@ -29466,11 +29455,28 @@ msgstr "Salvar Cores e Rótulos"
 msgid "Show \"%s\" in closed day cells"
 msgstr "Exibir \"%s\" nos dias fechados"
 
-msgid "The bookings badge and legend dot. The badge text is the calendar's booking label."
-msgstr "O selo de reservas e o ponto da legenda. O texto do selo é o rótulo de reserva do calendário."
-
-msgid "The calendar's booking label"
-msgstr "O rótulo de reserva do calendário"
-
 msgid "When off, a closed day keeps its grey background and no text."
 msgstr "Desligado, o dia fechado mantém o fundo cinza e fica sem texto."
+
+#. translators: %s: Singular or Plural
+#, php-format
+msgid "Booking badge name (%s)"
+msgstr "Nome no selo de reservas (%s)"
+
+msgid "Custom singular/plural label for the booking count shown in calendar day cells (e.g. \"session\" / \"sessions\"). Leave empty to use the name set in Calendar Colors and Labels, on the General tab of the Scheduling settings."
+msgstr "Rótulo personalizado no singular/plural para a contagem de reservas exibida nas células do calendário (por exemplo, \"sessão\" / \"sessões\"). Deixe em branco para usar o nome definido em Cores e Rótulos do Calendário, na aba Geral das configurações de Agendamento."
+
+msgid "Plural"
+msgstr "Plural"
+
+msgid "Singular"
+msgstr "Singular"
+
+msgid "The bookings badge and legend dot. A calendar's own booking label wins over these names."
+msgstr "O selo de reservas e o ponto da legenda. O rótulo de reserva do próprio calendário prevalece sobre estes nomes."
+
+msgid "Day border, day number and legend dot. A day cell name, when set, shows on available days with no bookings."
+msgstr "Borda e número do dia, e ponto da legenda. Um nome no dia, se definido, aparece nos dias disponíveis sem reservas."
+
+msgid "The Booked row also names the bookings badge, in the singular and the plural (\"1 booking\", \"2 bookings\"). An audience calendar's own booking label, on its settings tab, wins over these names. The Available row has no day cell name by default; one set there shows on available days that have no bookings yet."
+msgstr "A linha Reservado também dá nome ao selo de reservas, no singular e no plural (\"1 reserva\", \"2 reservas\"). O rótulo de reserva do próprio calendário de público, na aba de configurações dele, prevalece sobre estes nomes. A linha Disponível não tem nome no dia por padrão; um nome definido ali aparece nos dias disponíveis que ainda não têm reservas."

@@ -70,6 +70,23 @@ final class CalendarAppearance {
 	public const CELL_STATES = array( ClosedDateKind::HOLIDAY, ClosedDateKind::OPTIONAL, self::CLOSED );
 
 	/**
+	 * The booked day's badge reads "N <name>", in the singular for one
+	 * booking and the plural otherwise (#2221).
+	 */
+	public const BOOKING_SINGULAR = 'booking_singular';
+
+	/**
+	 * See {@see self::BOOKING_SINGULAR}.
+	 */
+	public const BOOKING_PLURAL = 'booking_plural';
+
+	/**
+	 * Every name a day cell can carry: an available day's (none by default),
+	 * the closed states' and the booking badge's two forms.
+	 */
+	public const CELL_NAMES = array( self::AVAILABLE, ClosedDateKind::HOLIDAY, ClosedDateKind::OPTIONAL, self::CLOSED, self::BOOKING_SINGULAR, self::BOOKING_PLURAL );
+
+	/**
 	 * Every state, in the order the legend and the card list them.
 	 *
 	 * @return list<string>
@@ -107,10 +124,19 @@ final class CalendarAppearance {
 	 * @return string
 	 */
 	public static function default_cell( string $state ): string {
-		if ( ClosedDateKind::OPTIONAL === $state ) {
-			return _x( 'Optional', 'optional holiday, in a calendar day cell', 'ffcertificate' );
+		switch ( $state ) {
+			case self::AVAILABLE:
+				// An available day carries no text unless the card names it (#2221).
+				return '';
+			case ClosedDateKind::OPTIONAL:
+				return _x( 'Optional', 'optional holiday, in a calendar day cell', 'ffcertificate' );
+			case self::BOOKING_SINGULAR:
+				return __( 'booking', 'ffcertificate' );
+			case self::BOOKING_PLURAL:
+				return __( 'bookings', 'ffcertificate' );
+			default:
+				return self::default_legend( $state );
 		}
-		return self::default_legend( $state );
 	}
 
 	/**
@@ -130,7 +156,7 @@ final class CalendarAppearance {
 			$colors[ $state ] = $value ? strtolower( $value ) : $default;
 			$legend[ $state ] = isset( $raw['legend'][ $state ] ) && is_string( $raw['legend'][ $state ] ) ? $raw['legend'][ $state ] : '';
 		}
-		foreach ( self::CELL_STATES as $state ) {
+		foreach ( self::CELL_NAMES as $state ) {
 			$cell[ $state ] = isset( $raw['cell'][ $state ] ) && is_string( $raw['cell'][ $state ] ) ? $raw['cell'][ $state ] : '';
 		}
 
@@ -208,7 +234,7 @@ final class CalendarAppearance {
 			}
 			$out['legend'][ $state ] = isset( $legend[ $state ] ) ? self::clean_name( $legend[ $state ] ) : '';
 		}
-		foreach ( self::CELL_STATES as $state ) {
+		foreach ( self::CELL_NAMES as $state ) {
 			$out['cell'][ $state ] = isset( $cell[ $state ] ) ? self::clean_name( $cell[ $state ] ) : '';
 		}
 		update_option( self::OPTION, $out, false );
@@ -248,7 +274,7 @@ final class CalendarAppearance {
 	/**
 	 * The labels the calendar scripts need.
 	 *
-	 * @return array{available: string, booked: string, holiday: string, closed: string, closedCell: string, showClosedLabel: bool, closedDateKinds: array<string, array{label: string, short: string}>}
+	 * @return array{available: string, booked: string, holiday: string, closed: string, closedCell: string, availableCell: string, booking: string, bookings: string, showClosedLabel: bool, closedDateKinds: array<string, array{label: string, short: string}>}
 	 */
 	public static function strings(): array {
 		return array(
@@ -257,6 +283,9 @@ final class CalendarAppearance {
 			'holiday'         => self::legend( ClosedDateKind::HOLIDAY ),
 			'closed'          => self::legend( self::CLOSED ),
 			'closedCell'      => self::cell( self::CLOSED ),
+			'availableCell'   => self::cell( self::AVAILABLE ),
+			'booking'         => self::cell( self::BOOKING_SINGULAR ),
+			'bookings'        => self::cell( self::BOOKING_PLURAL ),
 			'showClosedLabel' => self::show_closed_label(),
 			'closedDateKinds' => ClosedDateKind::strings(),
 		);

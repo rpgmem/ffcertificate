@@ -590,14 +590,14 @@ class AudienceAdminCalendar {
 						<div class="ffc-aud-flex-center">
 							<input type="text" name="schedule_booking_label_singular" id="schedule_booking_label_singular" class="regular-text ffc-aud-maxw-160"
 									value="<?php echo esc_attr( $schedule->booking_label_singular ?? '' ); ?>"
-									placeholder="<?php echo esc_attr__( 'booking', 'ffcertificate' ); ?>">
+									placeholder="<?php echo esc_attr( \FreeFormCertificate\Scheduling\CalendarAppearance::cell( \FreeFormCertificate\Scheduling\CalendarAppearance::BOOKING_SINGULAR ) ); ?>">
 							<span>/</span>
 							<input type="text" name="schedule_booking_label_plural" id="schedule_booking_label_plural" class="regular-text ffc-aud-maxw-160"
 									value="<?php echo esc_attr( $schedule->booking_label_plural ?? '' ); ?>"
-									placeholder="<?php echo esc_attr__( 'bookings', 'ffcertificate' ); ?>">
+									placeholder="<?php echo esc_attr( \FreeFormCertificate\Scheduling\CalendarAppearance::cell( \FreeFormCertificate\Scheduling\CalendarAppearance::BOOKING_PLURAL ) ); ?>">
 						</div>
 						<p class="description">
-							<?php esc_html_e( 'Custom singular/plural label for the booking count shown in calendar day cells (e.g. "session" / "sessions"). Leave empty to use default.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Custom singular/plural label for the booking count shown in calendar day cells (e.g. "session" / "sessions"). Leave empty to use the name set in Calendar Colors and Labels, on the General tab of the Scheduling settings.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>
