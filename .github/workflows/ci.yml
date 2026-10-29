@@ -154,6 +154,25 @@ jobs:
           echo "::error::One or more coverage shards (the PHP 8.3 run) did not succeed (result=${{ needs.coverage-shard.result }})."
           exit 1
 
+  # The whole suite in one process, in reverse order (#2197). The shards above
+  # each run a subset in the declared order, so a test that only passes
+  # because an earlier one left state behind is never seen there; #2123
+  # requires the suite to pass reversed, and #2195 found three tests on
+  # develop that did not. One process, not a shard: reversing a subset only
+  # reorders within it. Deterministic, so a failure reproduces locally with
+  # the same command. The random-order alarm lives in suite-order.yml.
+  test-reverse:
+    name: PHPUnit (PHP 8.4, reverse order)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-composer
+        with:
+          php-version: '8.4'
+      - name: Run PHPUnit in reverse order
+        run: vendor/bin/phpunit --order-by=reverse
+
   # The #563 coverage campaign grew the suite to ~6200 tests, many of them
   # @runTestsInSeparateProcesses (alias-mock containment) — slow under pcov on
   # 2-core runners (the single-process coverage run hit both the 30m timeout and

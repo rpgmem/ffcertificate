@@ -336,9 +336,11 @@ The "Verify minified assets are up to date" CI job catches build freshness on bo
 
 ### CI gates (all gating, enforced on `main` and `develop`)
 
-- PHP: PHPStan (level 8) · Row shapes (PHPStan level 9, reported for the classes that read `$wpdb` rows) · WPCS · PHPUnit (8.3/8.4) · Coverage ≥ floor (clover, env `COVERAGE_FLOOR_LINES` in `.github/workflows/ci.yml`).
+- PHP: PHPStan (level 8) · Row shapes (PHPStan level 9, reported for the classes that read `$wpdb` rows) · WPCS · PHPUnit (8.3/8.4) · PHPUnit in reverse order (8.4, see below) · Coverage ≥ floor (clover, env `COVERAGE_FLOOR_LINES` in `.github/workflows/ci.yml`).
 - JS / CSS: ESLint (zero-error) · Stylelint (zero-error) · Vitest + coverage ≥ floor (env `JS_COVERAGE_FLOOR_LINES` in `.github/workflows/lint.yml`).
 - Misc: CodeQL (javascript) · Composer audit · Review dependency changes · Verify minified assets are up to date · **Fresh install (PHP 8.3)**, on the latest WordPress and on the declared floor — see below.
+
+**The suite runs in three orders, and only two of them gate (#2197).** The shards run it in the declared order. `PHPUnit (PHP 8.4, reverse order)` runs the whole suite in one process with `--order-by=reverse` and gates: #2123 requires the suite to pass reversed, and until this job existed nothing checked it, so three order-dependent tests sat on `develop` until #2195 found them by hand. It is one process, not a shard, because reversing a subset only reorders within it. `.github/workflows/suite-order.yml` runs it with `--order-by=random` on every push to `develop`, daily and on demand, and never on a pull request: it is an **alarm, not a gate**, because a fixed order can only ever show the dependencies it happens to break, while a random one finds new ones at a moment unrelated to the change in front of it. Its seed is in the log; replay a failure with `vendor/bin/phpunit --order-by=random --random-order-seed=<seed>`, open an issue with the seed and the failing pair, and fix the test that reads state it did not set. Whether the random run should gate is decided later, from its record.
 
 The same gates run on PRs to `develop` and on the release PR `develop → main`. Develop must stay deployable to the testes site, so we don't relax gates there — a green develop is the precondition for opening the next release PR.
 
