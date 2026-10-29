@@ -204,20 +204,23 @@ class AudienceLoaderTest extends TestCase {
 	}
 
 	/**
-	 * Runs alone: it resets the process-wide SourceRegistry.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * Starts from an empty SourceRegistry, so only this init() can register the
+	 * source, and puts back the factories an earlier test registered.
 	 */
 	public function test_init_in_admin_registers_the_bookings_export_source(): void {
 		Functions\when('is_admin')->justReturn(true);
 		Functions\when('add_shortcode')->justReturn(null);
+		$factories = new \ReflectionProperty(\FreeFormCertificate\Core\SourceRegistry::class, 'factories');
+		$factories->setAccessible(true);
+		$saved = $factories->getValue();
 		\FreeFormCertificate\Core\SourceRegistry::reset();
 
-		AudienceLoader::get_instance()->init();
-
-		$source = \FreeFormCertificate\Core\SourceRegistry::get(\FreeFormCertificate\Audience\AudienceBookingExportSource::TYPE);
-		\FreeFormCertificate\Core\SourceRegistry::reset();
+		try {
+			AudienceLoader::get_instance()->init();
+			$source = \FreeFormCertificate\Core\SourceRegistry::get(\FreeFormCertificate\Audience\AudienceBookingExportSource::TYPE);
+		} finally {
+			$factories->setValue(null, $saved);
+		}
 
 		$this->assertInstanceOf(\FreeFormCertificate\Audience\AudienceBookingExportSource::class, $source);
 	}
