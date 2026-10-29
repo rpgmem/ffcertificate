@@ -390,8 +390,14 @@
 }
 
 .ffc-shortcode .ffc-badge-holiday {
-    background: var(--ffc-warning);
-    color: var(--ffc-text-on-warning);
+    background: var(--ffc-holiday);
+    color: var(--ffc-text-on-holiday);
+}
+
+/* An optional holiday (#2202): closed like a holiday, labelled apart. */
+.ffc-shortcode .ffc-badge-holiday.ffc-badge-optional-holiday {
+    background: var(--ffc-optional-holiday);
+    color: var(--ffc-text-on-optional-holiday);
 }
 
 .ffc-shortcode .ffc-badge-closed {
@@ -432,7 +438,11 @@
 }
 
 .ffc-shortcode .ffc-legend-dot.ffc-holiday {
-    background: var(--ffc-warning);
+    background: var(--ffc-holiday);
+}
+
+.ffc-shortcode .ffc-legend-dot.ffc-optional-holiday {
+    background: var(--ffc-optional-holiday);
 }
 
 .ffc-shortcode .ffc-legend-dot.ffc-closed {
@@ -1390,7 +1400,8 @@
        gives them their badge shape back. */
     .ffc-shortcode .ffc-badge-bookings,
     .ffc-shortcode .ffc-badge-closed,
-    .ffc-shortcode .ffc-badge-holiday {
+    .ffc-shortcode .ffc-badge-holiday,
+    .ffc-shortcode .ffc-badge-holiday.ffc-badge-optional-holiday {
         border: 1px solid CanvasText;
     }
 }
@@ -1398,7 +1409,11 @@
 /* Event list: a holiday's accent stripe. It lived in a script-written
    `style=""` until #1837. */
 .ffc-shortcode .ffc-event-list-item.ffc-event-list-holiday {
-    border-left: 3px solid var(--ffc-warning);
+    border-left: 3px solid var(--ffc-holiday);
+}
+
+.ffc-shortcode .ffc-event-list-item.ffc-event-list-holiday.ffc-event-list-optional-holiday {
+    border-left-color: var(--ffc-optional-holiday);
 }
 
 /* Booking form: why a space cannot be booked on the chosen date (#1859).

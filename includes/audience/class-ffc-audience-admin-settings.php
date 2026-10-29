@@ -185,6 +185,7 @@ class AudienceAdminSettings {
 		$calendars_count       = wp_count_posts( 'ffc_self_scheduling' );
 		$published             = isset( $calendars_count->publish ) ? $calendars_count->publish : 0;
 		$audience_active_count = absint( AudienceScheduleRepository::count( array( 'status' => 'active' ) ) );
+		$closed_date_colors    = \FreeFormCertificate\Scheduling\ClosedDateKind::colors();
 
 		include FFC_PLUGIN_DIR . 'templates/admin/audience/general-tab.php';
 	}
@@ -316,11 +317,33 @@ class AudienceAdminSettings {
 			$messages = array(
 				'holiday_added'   => __( 'Holiday added successfully.', 'ffcertificate' ),
 				'holiday_deleted' => __( 'Holiday deleted successfully.', 'ffcertificate' ),
+				'colors_saved'    => __( 'Calendar colors saved.', 'ffcertificate' ),
 			);
 			$message  = RequestInput::get_get_string( 'message' );
 			if ( isset( $messages[ $message ] ) ) {
 				add_settings_error( 'ffc_audience', 'ffc_message', $messages[ $message ], 'success' );
 			}
+		}
+
+		// Closed-date colours (#2202), light theme only.
+		if ( isset( $_POST['ffc_action'] ) && 'save_closed_date_colors' === $_POST['ffc_action'] ) {
+			if ( ! isset( $_POST['ffc_closed_date_colors_nonce'] ) ||
+				! wp_verify_nonce( RequestInput::get_post_string( 'ffc_closed_date_colors_nonce' ), 'ffc_closed_date_colors' ) ) {
+				return;
+			}
+
+			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+				return;
+			}
+
+			$posted = array();
+			foreach ( \FreeFormCertificate\Scheduling\ClosedDateKind::all() as $kind ) {
+				$posted[ $kind ] = RequestInput::get_post_string( 'closed_date_color_' . $kind );
+			}
+			\FreeFormCertificate\Scheduling\ClosedDateKind::save_colors( $posted );
+
+			wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=general&message=colors_saved' ) );
+			exit;
 		}
 
 		// Add global holiday (POST).
@@ -336,6 +359,7 @@ class AudienceAdminSettings {
 
 			$date        = RequestInput::get_post_string( 'global_holiday_date' );
 			$description = RequestInput::get_post_string( 'global_holiday_description' );
+			$kind        = \FreeFormCertificate\Scheduling\ClosedDateKind::normalize( RequestInput::get_post_string( 'global_holiday_kind' ) );
 
 			if ( ! empty( $date ) ) {
 				$holidays = get_option( 'ffc_global_holidays', array() );
@@ -353,6 +377,7 @@ class AudienceAdminSettings {
 					$holidays[] = array(
 						'date'        => $date,
 						'description' => $description,
+						'kind'        => $kind,
 					);
 					update_option( 'ffc_global_holidays', $holidays );
 				}

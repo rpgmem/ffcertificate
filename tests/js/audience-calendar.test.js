@@ -330,6 +330,57 @@ describe('ffc-audience-calendar — renderCalendar grid', () => {
 		expect(window.$('.ffc-badge-closed').length).toBeGreaterThanOrEqual(1);
 	});
 
+	it('labels an optional holiday apart in its cell and the event list (#2202)', async () => {
+		window.ffcAudience.strings.closedDateKinds = {
+			holiday: { label: 'Holiday', short: 'Holiday' },
+			optional: { label: 'Optional Holiday', short: 'Optional' },
+		};
+		api.state.config = { schedules: [] };
+		api.state.currentDate = new Date(2026, 5, 1);
+		window.FFC.rest.mockResolvedValue({
+			bookings: [],
+			holidays: [
+				{ holiday_date: '2026-06-04', description: 'Corpus Christi', kind: 'optional' },
+				{ holiday_date: '2026-06-10', description: 'Feriado', kind: 'holiday' },
+			],
+			holiday_kinds: { '2026-06-11': 'optional' },
+			closed_weekdays: [],
+		});
+		api.renderCalendar();
+		await flush();
+
+		const $optional = window.$('.ffc-day[data-date="2026-06-04"] .ffc-badge-holiday');
+		expect($optional.hasClass('ffc-badge-optional-holiday')).toBe(true);
+		expect($optional.text()).toBe('Optional');
+		expect($optional.attr('aria-label')).toBe('Optional Holiday');
+		expect($optional.attr('title')).toBe('Optional Holiday');
+
+		const $holiday = window.$('.ffc-day[data-date="2026-06-10"] .ffc-badge-holiday');
+		expect($holiday.hasClass('ffc-badge-optional-holiday')).toBe(false);
+		expect($holiday.text()).toBe('Holiday');
+
+		const $items = window.$('#ffc-event-list-content .ffc-event-list-holiday');
+		expect($items.filter('[data-date="2026-06-04"]').hasClass('ffc-event-list-optional-holiday')).toBe(true);
+		expect($items.filter('[data-date="2026-06-04"]').find('.ffc-event-list-time').text()).toBe('Optional Holiday');
+		expect($items.filter('[data-date="2026-06-10"]').hasClass('ffc-event-list-optional-holiday')).toBe(false);
+		expect(api.state.holidayKinds['2026-06-11']).toBe('optional');
+
+		delete window.ffcAudience.strings.closedDateKinds;
+	});
+
+	it('falls back to the plain holiday label when the kinds are not localized', async () => {
+		api.state.config = { schedules: [] };
+		api.state.currentDate = new Date(2026, 5, 1);
+		window.FFC.rest.mockResolvedValue({
+			bookings: [],
+			holidays: [{ holiday_date: '2026-06-04', description: '', kind: 'optional' }],
+			closed_weekdays: [],
+		});
+		api.renderCalendar();
+		await flush();
+		expect(window.$('.ffc-day[data-date="2026-06-04"] .ffc-badge-holiday').text()).toBe('Holiday');
+	});
+
 	it('renders a bookings badge counting only active bookings on a day', async () => {
 		api.state.config = { schedules: [{ bookingLabelSingular: 'Aula', bookingLabelPlural: 'Aulas' }] };
 		api.state.currentDate = new Date(2026, 5, 1);

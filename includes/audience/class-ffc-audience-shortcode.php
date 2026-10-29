@@ -335,6 +335,7 @@ class AudienceShortcode {
 				<span class="ffc-legend-item"><span class="ffc-legend-dot ffc-available"></span> <?php esc_html_e( 'Available', 'ffcertificate' ); ?></span>
 				<span class="ffc-legend-item"><span class="ffc-legend-dot ffc-booked"></span> <?php esc_html_e( 'Booked', 'ffcertificate' ); ?></span>
 				<span class="ffc-legend-item"><span class="ffc-legend-dot ffc-holiday"></span> <?php esc_html_e( 'Holiday', 'ffcertificate' ); ?></span>
+				<span class="ffc-legend-item"><span class="ffc-legend-dot ffc-optional-holiday"></span> <?php echo esc_html( \FreeFormCertificate\Scheduling\ClosedDateKind::label( \FreeFormCertificate\Scheduling\ClosedDateKind::OPTIONAL ) ); ?></span>
 				<span class="ffc-legend-item"><span class="ffc-legend-dot ffc-closed"></span> <?php esc_html_e( 'Closed', 'ffcertificate' ); ?></span>
 			</div>
 		</div>
@@ -921,6 +922,8 @@ class AudienceShortcode {
 
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-audience-css' );
+		// The holiday colours chosen in Scheduling settings (#2202).
+		\FreeFormCertificate\Scheduling\ClosedDateKind::enqueue_colors( 'ffc-audience-css' );
 	}
 
 	/**
@@ -1026,6 +1029,7 @@ class AudienceShortcode {
 						__( 'December', 'ffcertificate' ),
 					),
 					'holiday'                => __( 'Holiday', 'ffcertificate' ),
+					'closedDateKinds'        => \FreeFormCertificate\Scheduling\ClosedDateKind::strings(),
 					'closed'                 => __( 'Closed', 'ffcertificate' ),
 					'available'              => __( 'Available', 'ffcertificate' ),
 					'booked'                 => __( 'Booked', 'ffcertificate' ),

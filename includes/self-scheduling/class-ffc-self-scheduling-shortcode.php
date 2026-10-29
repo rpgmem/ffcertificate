@@ -79,6 +79,8 @@ class SelfSchedulingShortcode {
 
 		// Enqueue shared calendar styles (same as ffc-audience).
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-audience-css' );
+		// The holiday colours chosen in Scheduling settings (#2202).
+		\FreeFormCertificate\Scheduling\ClosedDateKind::enqueue_colors( 'ffc-audience-css' );
 
 		// Enqueue calendar frontend styles (timeslots, form, confirmation).
 		wp_enqueue_style(
@@ -168,6 +170,7 @@ class SelfSchedulingShortcode {
 					),
 					'today'                => __( 'Today', 'ffcertificate' ),
 					'holiday'              => __( 'Holiday', 'ffcertificate' ),
+					'closedDateKinds'      => \FreeFormCertificate\Scheduling\ClosedDateKind::strings(),
 					'closed'               => __( 'Closed', 'ffcertificate' ),
 					'available'            => __( 'Available', 'ffcertificate' ),
 					'booked'               => __( 'Booked', 'ffcertificate' ),

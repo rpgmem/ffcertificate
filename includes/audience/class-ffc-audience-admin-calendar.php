@@ -718,6 +718,10 @@ class AudienceAdminCalendar {
 						<label for="holiday_date"><strong><?php esc_html_e( 'Date', 'ffcertificate' ); ?></strong></label><br>
 						<input type="date" name="holiday_date" id="holiday_date" required class="ffc-aud-w-180">
 					</div>
+					<div>
+						<span><strong><?php esc_html_e( 'Type', 'ffcertificate' ); ?></strong></span><br>
+						<?php \FreeFormCertificate\Admin\AdminUI::render_segmented( \FreeFormCertificate\Scheduling\ClosedDateKind::control_args( 'holiday_kind' ) ); ?>
+					</div>
 					<div class="ffc-aud-flex-200">
 						<label for="holiday_description"><strong><?php esc_html_e( 'Description (optional)', 'ffcertificate' ); ?></strong></label><br>
 						<input type="text" name="holiday_description" id="holiday_description" class="regular-text" placeholder="<?php esc_attr_e( 'e.g., Christmas Day', 'ffcertificate' ); ?>">
@@ -748,6 +752,7 @@ class AudienceAdminCalendar {
 				<thead>
 					<tr>
 						<th class="ffc-aud-w-150"><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th>
+						<th class="ffc-aud-w-180"><?php esc_html_e( 'Type', 'ffcertificate' ); ?></th>
 						<th><?php esc_html_e( 'Description', 'ffcertificate' ); ?></th>
 						<?php if ( $can_manage ) : ?>
 						<th class="ffc-aud-w-100"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
@@ -758,6 +763,7 @@ class AudienceAdminCalendar {
 					<?php foreach ( $holidays as $holiday ) : ?>
 						<tr>
 							<td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $holiday->holiday_date ) ); ?></td>
+							<td><?php echo \FreeFormCertificate\Scheduling\ClosedDateKind::pill( (string) ( $holiday->kind ?? '' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pill() escapes its class and label. ?></td>
 							<td><?php echo esc_html( $holiday->description ? $holiday->description : '—' ); ?></td>
 							<?php if ( $can_manage ) : ?>
 							<td>
@@ -1003,9 +1009,10 @@ class AudienceAdminCalendar {
 			$schedule_id  = isset( $_POST['schedule_id'] ) ? absint( $_POST['schedule_id'] ) : 0;
 			$holiday_date = RequestInput::get_post_string( 'holiday_date' );
 			$description  = RequestInput::get_post_string( 'holiday_description' );
+			$kind         = RequestInput::get_post_string( 'holiday_kind' );
 
 			if ( $schedule_id > 0 && $holiday_date ) {
-				AudienceEnvironmentRepository::add_holiday( $schedule_id, $holiday_date, $description );
+				AudienceEnvironmentRepository::add_holiday( $schedule_id, $holiday_date, $description, $kind );
 				add_settings_error( 'ffc_audience', 'ffc_message', __( 'Holiday added successfully.', 'ffcertificate' ), 'success' );
 			}
 		}

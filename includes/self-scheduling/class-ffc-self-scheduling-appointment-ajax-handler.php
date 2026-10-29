@@ -405,10 +405,16 @@ class AppointmentAjaxHandler {
 
 			// Get holidays for the month (global + calendar-specific blocked dates).
 			$holidays = array();
+			// The optional holidays among them (#2202); every other date reads
+			// as a holiday, a calendar's own blocked dates included.
+			$holiday_kinds = array();
 
 			$global_holidays = \FreeFormCertificate\Scheduling\DateBlockingService::get_global_holidays( $start_date, $end_date );
 			foreach ( $global_holidays as $gh ) {
 				$holidays[ $gh['date'] ] = $gh['description'] ? $gh['description'] : __( 'Holiday', 'ffcertificate' );
+				if ( \FreeFormCertificate\Scheduling\ClosedDateKind::OPTIONAL === \FreeFormCertificate\Scheduling\ClosedDateKind::normalize( $gh['kind'] ?? null ) ) {
+					$holiday_kinds[ $gh['date'] ] = \FreeFormCertificate\Scheduling\ClosedDateKind::OPTIONAL;
+				}
 			}
 
 			$blocked = $blocked_repo->getBlockedDatesInRange( $calendar_id, $start_date, $end_date );
@@ -429,8 +435,9 @@ class AppointmentAjaxHandler {
 
 			wp_send_json_success(
 				array(
-					'counts'   => $counts,
-					'holidays' => $holidays,
+					'counts'        => $counts,
+					'holidays'      => $holidays,
+					'holiday_kinds' => (object) $holiday_kinds,
 				)
 			);
 

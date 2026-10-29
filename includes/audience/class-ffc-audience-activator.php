@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '5';
+	public const SCHEMA_REVISION = '6';
 
 	/**
 	 * Option holding the revision last applied.
@@ -243,6 +243,7 @@ class AudienceActivator {
             schedule_id bigint(20) unsigned NOT NULL,
             holiday_date date NOT NULL,
             description varchar(255) DEFAULT NULL,
+            kind varchar(20) NOT NULL DEFAULT 'holiday',
             created_by bigint(20) unsigned NOT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -913,6 +914,7 @@ class AudienceActivator {
 		$healed = self::migrate_booking_range_columns() && $healed;
 		$healed = self::migrate_booking_attendance_columns() && $healed;
 		$healed = self::migrate_post_event_form_columns() && $healed;
+		$healed = self::migrate_holiday_kind_column() && $healed;
 
 		// The attendance tables of #1947 and the invitations of #1948 reach
 		// upgraded installs here: the version-gated chain below never creates
@@ -993,6 +995,26 @@ class AudienceActivator {
 		self::add_column_if_missing( $table_name, 'attendance_min_percent', 'tinyint(3) unsigned DEFAULT NULL', 'attendance_mode' );
 
 		return self::has_columns( $table_name, array( 'attendance_mode', 'attendance_min_percent' ) );
+	}
+
+	/**
+	 * Add the kind to closed dates (#2202): a holiday or an optional holiday.
+	 * It defaults to `holiday`, so every closed date stored before reads as
+	 * it did.
+	 *
+	 * @return bool Whether the table now has the column, or does not exist yet.
+	 */
+	private static function migrate_holiday_kind_column(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_holidays';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing( $table_name, 'kind', "varchar(20) NOT NULL DEFAULT 'holiday'", 'description' );
+
+		return self::has_columns( $table_name, array( 'kind' ) );
 	}
 
 	/**

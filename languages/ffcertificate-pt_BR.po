@@ -29384,3 +29384,25 @@ msgstr "Um card concluído fica recolhido em uma linha, com o nome e um selo \"C
 
 msgid "A card marked \"Deprecated\" is a one-shot migration whose work is done and that a later release removes; the card names that release. If it still shows records pending on your site, run it before updating to that release."
 msgstr "Um card marcado como \"Obsoleta\" é uma migração de execução única que já cumpriu seu papel e que uma versão futura remove; o card informa essa versão. Se ele ainda mostra registros pendentes no seu site, execute-o antes de atualizar para essa versão."
+
+msgid "Optional Holiday"
+msgstr "Ponto Facultativo"
+
+msgctxt "optional holiday, in a calendar day cell"
+msgid "Optional"
+msgstr "Facult"
+
+msgid "Calendar colors saved."
+msgstr "Cores do calendário salvas."
+
+msgid "Holiday Colors"
+msgstr "Cores dos Feriados"
+
+msgid "The color of the holiday and optional holiday labels on the public calendars, in the light theme. The dark theme keeps its own colors, and the text on each label turns white or black to stay readable."
+msgstr "A cor dos rótulos de feriado e de ponto facultativo nos calendários públicos, no tema claro. O tema escuro mantém as próprias cores, e o texto de cada rótulo fica branco ou preto para continuar legível."
+
+msgid "Save Colors"
+msgstr "Salvar Cores"
+
+msgid "A closed date, global or on a calendar's Closed dates tab, is a holiday or an optional holiday. Both block bookings the same way; the public calendars label them apart, in the day cell, the legend and the event list. The colors of the two labels in the light theme are set under Holiday Colors on the same General tab, and the text on each turns white or black to stay readable."
+msgstr "Uma data fechada, global ou na aba Datas fechadas de um calendário, é um feriado ou um ponto facultativo. Os dois bloqueiam reservas da mesma forma; os calendários públicos os rotulam de modo diferente, na célula do dia, na legenda e na lista de eventos. As cores dos dois rótulos no tema claro são definidas em Cores dos Feriados, na mesma aba Geral, e o texto de cada uma fica branco ou preto para continuar legível."

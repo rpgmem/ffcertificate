@@ -716,14 +716,17 @@ class AudienceAdminSettingsTest extends TestCase {
 			'ffc_global_holiday_nonce'   => 'n',
 			'global_holiday_date'        => '2026-12-25',
 			'global_holiday_description' => 'Christmas',
+			'global_holiday_kind'        => 'optional',
 		);
 
 		$this->run_holiday_action();
 
+		// The kind is stored with the new entry (#2202); the one stored
+		// before carries none and keeps reading as a holiday.
 		$this->assertSame(
 			array(
 				array( 'date' => '2026-01-01', 'description' => 'New Year' ),
-				array( 'date' => '2026-12-25', 'description' => 'Christmas' ),
+				array( 'date' => '2026-12-25', 'description' => 'Christmas', 'kind' => 'optional' ),
 			),
 			$written['ffc_global_holidays']
 		);

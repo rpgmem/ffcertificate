@@ -840,6 +840,7 @@ class AudienceAdminCalendarTest extends TestCase {
 			'schedule_id'         => '5',
 			'holiday_date'        => '2026-12-25',
 			'holiday_description' => 'Xmas',
+			'holiday_kind'        => 'optional',
 		);
 
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
@@ -854,6 +855,7 @@ class AudienceAdminCalendarTest extends TestCase {
 						'schedule_id'  => 5,
 						'holiday_date' => '2026-12-25',
 						'description'  => 'Xmas',
+						'kind'         => 'optional',
 						'created_by'   => self::VIEWER,
 					),
 					array(),
@@ -1031,7 +1033,9 @@ class AudienceAdminCalendarTest extends TestCase {
 		// The calendar form: fields locked and no save without manage.
 		$this->assertSame( ! $can_manage, str_contains( $output, 'Read-only — you can view this page' ) );
 		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '<fieldset disabled class="ffc-readonly-lock">' ) );
-		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '</fieldset>' ) );
+		// The closed-date type control is a fieldset of its own (#2202), drawn
+		// only for the manage tier; it is not the lock.
+		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '</fieldset>' ) - substr_count( $output, '<fieldset id="holiday_kind"' ) );
 		$this->assertSame( $can_manage, str_contains( $output, 'value="Update Calendar" form="ffc-schedule-form">Update Calendar</button>' ) );
 		if ( ! $can_manage ) {
 			$open  = (int) strpos( $output, '<fieldset disabled' );

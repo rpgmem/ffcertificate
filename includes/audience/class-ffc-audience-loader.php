@@ -242,6 +242,11 @@ class AudienceLoader {
 		if ( 'ffc-scheduling-calendars' === $page ) {
 			\FreeFormCertificate\Admin\AdminUI::enqueue_shortcode_copy();
 		}
+		// The holiday colours (#2202) use the picker the Email Model uses.
+		if ( 'ffc-scheduling-settings' === $page ) {
+			wp_enqueue_style( 'wp-color-picker' );
+			wp_enqueue_script( 'wp-color-picker' );
+		}
 		if ( 'ffc-scheduling-audiences' === $page ) {
 			wp_enqueue_script( 'jquery-ui-sortable' );
 
