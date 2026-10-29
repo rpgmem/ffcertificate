@@ -670,3 +670,8 @@
         border: 1px solid CanvasText;
     }
 }
+
+/* The booked row's two names, singular above plural (#2221). */
+.ffc-calendar-appearance-table .ffc-calendar-booking-name + .ffc-calendar-booking-name {
+    margin-top: var(--ffc-spacing-2xs);
+}

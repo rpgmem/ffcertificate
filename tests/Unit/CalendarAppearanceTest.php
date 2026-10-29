@@ -182,6 +182,17 @@ final class CalendarAppearanceTest extends TestCase {
 		$this->assertSame( array( 'label', 'short' ), array_keys( $strings['closedDateKinds']['optional'] ) );
 	}
 
+	public function test_the_booking_badge_takes_its_two_names_from_the_card(): void {
+		$this->assertSame( 'booking', CalendarAppearance::cell( CalendarAppearance::BOOKING_SINGULAR ) );
+		$this->assertSame( 'bookings', CalendarAppearance::cell( CalendarAppearance::BOOKING_PLURAL ) );
+
+		CalendarAppearance::save( array(), array(), array( 'booking_singular' => 'sessão', 'booking_plural' => '' ), true );
+
+		$strings = CalendarAppearance::strings();
+		$this->assertSame( 'sessão', $strings['booking'] );
+		$this->assertSame( 'bookings', $strings['bookings'], 'An empty plural keeps the default (#2221).' );
+	}
+
 	public function test_the_available_contrast_is_measured_on_white(): void {
 		$this->assertGreaterThan( 4.5, CalendarAppearance::available_contrast( '#00801e' ) );
 		$this->assertLessThan( 4.5, CalendarAppearance::available_contrast( '#ffd54f' ) );

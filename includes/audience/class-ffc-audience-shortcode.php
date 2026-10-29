@@ -971,9 +971,10 @@ class AudienceShortcode {
 		// serving the nonce of whoever the cache entry was generated for.
 		wp_enqueue_script( 'ffc-dynamic-fragments' );
 
-		// Resolve custom booking labels from schedule config (first non-empty wins).
-		$booking_singular = __( 'booking', 'ffcertificate' );
-		$booking_plural   = __( 'bookings', 'ffcertificate' );
+		// Resolve custom booking labels from schedule config (first non-empty
+		// wins), else the name set in Calendar Colors and Labels (#2221).
+		$booking_singular = \FreeFormCertificate\Scheduling\CalendarAppearance::cell( \FreeFormCertificate\Scheduling\CalendarAppearance::BOOKING_SINGULAR );
+		$booking_plural   = \FreeFormCertificate\Scheduling\CalendarAppearance::cell( \FreeFormCertificate\Scheduling\CalendarAppearance::BOOKING_PLURAL );
 		foreach ( $schedules as $sch ) {
 			if ( ! empty( $sch->booking_label_singular ) ) {
 				$booking_singular = $sch->booking_label_singular;

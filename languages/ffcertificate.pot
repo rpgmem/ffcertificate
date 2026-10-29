@@ -5266,10 +5266,6 @@ msgstr ""
 msgid "Custom regular expression pattern"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:380
-msgid "Custom singular/plural label for the booking count shown in calendar day cells (e.g. \"session\" / \"sessions\"). Leave empty to use default."
-msgstr ""
-
 #: includes/settings/views/documentation/reference-qr-codes.php:38
 msgid "Custom size (150x150 pixels)"
 msgstr ""
@@ -29330,10 +29326,6 @@ msgstr ""
 msgid "%s:1 on white: the day number is hard to read (4.5:1 recommended)."
 msgstr ""
 
-#. translators: a booking count badge in a calendar day
-msgid "2 bookings"
-msgstr ""
-
 msgid "A day with no opening hours: day badge and legend dot."
 msgstr ""
 
@@ -29382,11 +29374,25 @@ msgstr ""
 msgid "Show \"%s\" in closed day cells"
 msgstr ""
 
-msgid "The bookings badge and legend dot. The badge text is the calendar's booking label."
-msgstr ""
-
-msgid "The calendar's booking label"
-msgstr ""
-
 msgid "When off, a closed day keeps its grey background and no text."
+msgstr ""
+
+#. translators: %s: Singular or Plural
+#, php-format
+msgid "Booking badge name (%s)"
+msgstr ""
+
+msgid "Custom singular/plural label for the booking count shown in calendar day cells (e.g. \"session\" / \"sessions\"). Leave empty to use the name set in Calendar Colors and Labels, on the General tab of the Scheduling settings."
+msgstr ""
+
+msgid "Plural"
+msgstr ""
+
+msgid "Singular"
+msgstr ""
+
+msgid "The bookings badge and legend dot. A calendar's own booking label wins over these names."
+msgstr ""
+
+msgid "The Booked row also names the bookings badge, in the singular and the plural (\"1 booking\", \"2 bookings\"). An audience calendar's own booking label, on its settings tab, wins over these names."
 msgstr ""
