@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Privacy\PrivacyHandler;
 use FreeFormCertificate\Privacy\PrivacyExporters;
 use FreeFormCertificate\Privacy\PrivacyErasers;
@@ -27,9 +28,20 @@ class PrivacyHandlerTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb = array_key_exists('wpdb', $GLOBALS);
+		if ($this->had_wpdb) {
+			$this->wpdb_backup = $GLOBALS['wpdb'];
+		}
 
 		global $wpdb;
 		$wpdb = Mockery::mock('wpdb');
@@ -58,6 +70,11 @@ class PrivacyHandlerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ($this->had_wpdb) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset($GLOBALS['wpdb']);
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -350,19 +367,18 @@ class PrivacyHandlerTest extends TestCase {
 
 	/**
 	 * The birth date is stored encrypted, so the export decrypts it rather
-	 * than handing the subject ciphertext (#1538).
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * than handing the subject ciphertext (#1538). The ciphertext is made by
+	 * the real Encryption with the bootstrap's key constants, which is also
+	 * what decrypts it on the way out.
 	 */
 	public function test_export_profile_includes_the_decrypted_birth_date(): void {
-		$enc = Mockery::mock('alias:FreeFormCertificate\Core\Encryption');
-		$enc->shouldReceive('decrypt')->with('ENC_BIRTH')->andReturn('1990-05-20');
+		$ciphertext = (string) Encryption::encrypt('1990-05-20');
+		$this->assertNotSame('', $ciphertext, 'The bootstrap keys must make Encryption usable.');
 
 		$user = $this->make_user(42, 'user@example.com', 'Jane Doe');
 		Functions\when('get_user_by')->justReturn($user);
-		Functions\when('get_user_meta')->alias(function ($uid, $key) {
-			return 'ffc_user_birth_date' === $key ? 'ENC_BIRTH' : '';
+		Functions\when('get_user_meta')->alias(function ($uid, $key) use ($ciphertext) {
+			return 'ffc_user_birth_date' === $key ? $ciphertext : '';
 		});
 		Functions\when('wp_date')->alias(function ($format, $ts) {
 			return gmdate('Y-m-d', $ts);
@@ -379,7 +395,7 @@ class PrivacyHandlerTest extends TestCase {
 
 		$this->assertContains('Birth date', $names);
 		$this->assertSame('1990-05-20', $values[array_search('Birth date', $names, true)]);
-		$this->assertNotContains('ENC_BIRTH', $values, 'Ciphertext must never reach an LGPD export.');
+		$this->assertNotContains($ciphertext, $values, 'Ciphertext must never reach an LGPD export.');
 	}
 
 	// ==================================================================
