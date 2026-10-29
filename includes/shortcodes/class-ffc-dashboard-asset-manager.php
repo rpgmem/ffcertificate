@@ -390,6 +390,7 @@ class DashboardAssetManager {
 					'submittedAt'              => __( 'Submitted', 'ffcertificate' ),
 					'validationCode'           => __( 'Validation Code', 'ffcertificate' ),
 					'downloadRecord'           => __( 'Download Record', 'ffcertificate' ),
+					'viewAnswers'              => __( 'View answers', 'ffcertificate' ),
 					'active'                   => __( 'Active', 'ffcertificate' ),
 					'completed'                => __( 'Completed', 'ffcertificate' ),
 					'editReregistration'       => __( 'Edit', 'ffcertificate' ),

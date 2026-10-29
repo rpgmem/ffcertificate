@@ -79,9 +79,14 @@
         },
         // CIN: XX.XXX.XXX-X.
         cin: function (value) {
-            var v = value.replace(/\D/g, '').substring(0, 9);
+            // The check digit of an RG may be an X; only the ninth place takes it.
+            var t = value.toUpperCase().replace(/[^0-9X]/g, '');
+            var v = t.replace(/X/g, '').substring(0, 9);
+            if (v.length === 8 && /^\d{8}X/.test(t)) {
+                v += 'X';
+            }
             if (v.length > 8) {
-                return v.replace(/(\d{2})(\d{3})(\d{3})(\d{1})/, '$1.$2.$3-$4');
+                return v.replace(/(\d{2})(\d{3})(\d{3})([\dX])/, '$1.$2.$3-$4');
             }
             if (v.length > 5) {
                 return v.replace(/(\d{2})(\d{3})(\d{1,3})/, '$1.$2.$3');
@@ -102,6 +107,12 @@
             var format = MASKS[$(this).attr('data-mask')];
             if (!format) {
                 return;
+            }
+            // A value that arrived from the server or an import is stored
+            // bare as often as masked, so it is shaped on load too, not only
+            // as the participant types.
+            if (this.value) {
+                this.value = format(this.value);
             }
             $(this).on('input', function () {
                 this.value = format(this.value);

@@ -764,6 +764,50 @@
 .ffc-reregistrations-table.ffc-table-past td { color: var(--ffc-text-muted); }
 .ffc-reregistrations-table .ffc-row-past { background: var(--ffc-bg-alt); }
 
+/* A submission's answers, opened under its row (#2227). The cell is the
+   row's last, so it undoes the action cell's nowrap and spacing. */
+.ffc-reregistrations-table td.ffc-rereg-answers {
+    white-space: normal;
+    color: var(--ffc-text);
+    background: var(--ffc-bg);
+}
+
+.ffc-reregistrations-table td.ffc-rereg-answers > * + * {
+    margin-left: 0;
+}
+
+.ffc-rereg-answers-actions {
+    margin: 0 0 var(--ffc-spacing-sm);
+}
+
+.ffc-rereg-answers-list {
+    display: grid;
+    grid-template-columns: minmax(140px, max-content) 1fr;
+    gap: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
+    margin: 0;
+}
+
+.ffc-rereg-answers-list dt {
+    font-weight: 600;
+    color: var(--ffc-text-muted);
+}
+
+.ffc-rereg-answers-list dd {
+    margin: 0;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+    .ffc-rereg-answers-list {
+        grid-template-columns: 1fr;
+    }
+
+    .ffc-rereg-answers-list dd {
+        margin-bottom: var(--ffc-spacing-xs);
+    }
+}
+
 .ffc-reregistrations-table .ffc-auth-code {
     font-family: 'Courier New', Courier, monospace;
     font-size: var(--ffc-font-size-xs);

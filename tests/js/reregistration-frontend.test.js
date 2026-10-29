@@ -1091,6 +1091,27 @@ describe('rereg import previous', () => {
 		expect(window.$('#f1').val()).toBe('Maria Silva');
 	});
 
+	it('shapes an imported document like a typed one', async () => {
+		const html = FORM_HTML.replace(
+			'</form>',
+			'<div class="ffc-rereg-field" data-field-key="cpf"><input type="text" id="f3" name="ffc_fields[cpf]" data-mask="cpf"></div></form>'
+		);
+		document.body.innerHTML = '<button class="ffc-rereg-open-form" data-reregistration-id="9"></button>';
+		vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
+			if (payload && payload.action === 'ffc_import_previous_reregistration') {
+				return postChain({ done: { success: true, data: { fields: { cpf: '52998224725' } } } });
+			}
+			return postChain({ done: { success: true, data: { html } } });
+		});
+		window.$('.ffc-rereg-open-form').trigger('click');
+		await flush();
+
+		window.$('.ffc-rereg-import-btn').trigger('click');
+		await flush();
+
+		expect(window.$('#f3').val()).toBe('529.982.247-25');
+	});
+
 	it('hides the offer after importing', async () => {
 		await mountImport({ fields: { display_name: 'Maria Silva' } });
 

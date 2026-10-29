@@ -485,6 +485,7 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 			array(
 				array( ReregistrationStandardFieldsSeeder::class, 'maybe_relabel_union' ),
 				array( ReregistrationStandardFieldsSeeder::class, 'maybe_update_schedule_fields' ),
+				array( ReregistrationStandardFieldsSeeder::class, 'maybe_add_edu_email_field' ),
 			),
 			$hooked['admin_init'] ?? null
 		);
@@ -611,5 +612,69 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		ReregistrationStandardFieldsSeeder::maybe_update_schedule_fields();
 
 		$this->assertSame( 0, $writes->count() );
+	}
+
+	// ==================================================================
+	// maybe_add_edu_email_field() -- the @edu e-mail on seeded audiences
+	// ==================================================================
+
+	/**
+	 * Every audience carrying the @sme field gains the @edu one at the same
+	 * position, except one that already has it; the flag is written.
+	 */
+	public function test_add_edu_email_field_inserts_beside_the_sme_field(): void {
+		$options = array();
+		Functions\when( 'get_option' )->justReturn( false );
+		Functions\when( 'update_option' )->alias( function ( $key, $value, $autoload = null ) use ( &$options ) {
+			$options[ $key ] = array( $value, $autoload );
+			return true;
+		});
+
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( ...$args ) => $args );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing( function ( $q ) {
+			$this->assertSame( 'email_institucional', $q[2] );
+			return array(
+				array( 'audience_id' => '5', 'sort_order' => '20' ),
+				array( 'audience_id' => '6', 'sort_order' => '21' ),
+			);
+		});
+		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing( static function ( $q ) {
+			return 6 === $q[2] ? array( 'email_institucional', 'email_institucional_edu' ) : array( 'email_institucional' );
+		});
+
+		$inserted = array();
+		$this->wpdb->shouldReceive( 'insert' )->andReturnUsing( function ( $table, $data ) use ( &$inserted ) {
+			$inserted[] = $data;
+			return 1;
+		});
+
+		ReregistrationStandardFieldsSeeder::maybe_add_edu_email_field();
+
+		$this->assertCount( 1, $inserted, 'An audience that already has the key is left alone.' );
+		$this->assertSame( 5, $inserted[0]['audience_id'] );
+		$this->assertSame( 'email_institucional_edu', $inserted[0]['field_key'] );
+		$this->assertSame( 'standard', $inserted[0]['field_source'] );
+		$this->assertSame( 'email', $inserted[0]['field_mask'] );
+		$this->assertSame( 20, $inserted[0]['sort_order'], 'It takes the @sme field\'s position.' );
+		$this->assertSame( 0, $inserted[0]['is_required'] );
+		$this->assertSame( array( '1', false ), $options[ ReregistrationStandardFieldsSeeder::EDU_EMAIL_FIELD_OPTION ] ?? null );
+	}
+
+	public function test_add_edu_email_field_runs_once(): void {
+		Functions\when( 'get_option' )->justReturn( '1' );
+		$writes = CallLog::record( 'update_option', true );
+		$this->wpdb->shouldReceive( 'get_results' )->never();
+		$this->wpdb->shouldReceive( 'insert' )->never();
+
+		ReregistrationStandardFieldsSeeder::maybe_add_edu_email_field();
+
+		$this->assertSame( 0, $writes->count() );
+	}
+
+	public function test_the_edu_email_field_is_seeded_after_the_sme_one(): void {
+		$keys = array_column( ReregistrationStandardFieldsSeeder::get_standard_fields_definition(), 'field_key' );
+		$sme  = array_search( 'email_institucional', $keys, true );
+
+		$this->assertSame( 'email_institucional_edu', $keys[ $sme + 1 ] );
 	}
 }

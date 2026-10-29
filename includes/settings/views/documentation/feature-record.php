@@ -29,6 +29,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</div>
 
 	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'How values are printed:', 'ffcertificate' ); ?></h4>
+		<ul>
+			<li><?php esc_html_e( 'CPF, RF, RG and CEP are printed in their usual shape (000.000.000-00, 000.000-0, 00.000.000-0, 00000-000), whether they were stored masked or bare.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'A date field is printed in the PDF date format set in the date settings.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'A work schedule is a table with the days across and entry, lunch break and exit down, so the record stays on one A4 page with a second post.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'The items of the acknowledgment notice are numbered "1-", "2-" and so on, in a column of their own.', 'ffcertificate' ); ?></li>
+		</ul>
+	</div>
+
+	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Template Variables:', 'ffcertificate' ); ?></h4>
 		<p><?php esc_html_e( 'The record template supports these variables:', 'ffcertificate' ); ?></p>
 
@@ -110,7 +120,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tbody>
 				<tr><td><code>{{phone}}</code></td><td><?php esc_html_e( 'Phone number', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>{{celular}}</code></td><td><?php esc_html_e( 'Mobile phone', 'ffcertificate' ); ?></td></tr>
-				<tr><td><code>{{email_institucional}}</code></td><td><?php esc_html_e( 'Institutional email', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>{{email_institucional}}</code></td><td><?php esc_html_e( 'Institutional email (@sme)', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>{{email_institucional_edu}}</code></td><td><?php esc_html_e( 'Institutional email (@edu)', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>{{email_particular}}</code></td><td><?php esc_html_e( 'Personal email', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>{{contato_emergencia}}</code></td><td><?php esc_html_e( 'Emergency contact name', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>{{tel_emergencia}}</code></td><td><?php esc_html_e( 'Emergency contact phone', 'ffcertificate' ); ?></td></tr>
@@ -132,6 +143,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>{{jornada_acumulo}}</code></td><td><?php esc_html_e( 'Accumulation working hours', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>{{cargo_funcao_acumulo}}</code></td><td><?php esc_html_e( 'Accumulated position/function', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>{{horario_trabalho_acumulo}}</code></td><td><?php esc_html_e( 'Accumulated work schedule (HTML section)', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>{{acumulo_details}}</code></td><td><?php esc_html_e( 'The second post\'s workload, role and work schedule together (HTML section), empty when no second post is held', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>{{sindicato}}</code></td><td><?php esc_html_e( 'Union', 'ffcertificate' ); ?></td></tr>
 			</tbody>
 		</table>
