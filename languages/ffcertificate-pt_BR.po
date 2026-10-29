@@ -29577,3 +29577,27 @@ msgstr "RF inválido."
 #, php-format
 msgid "%s must be a valid RF."
 msgstr "%s deve ser um RF válido."
+
+#. translators: %s: field label
+#, php-format
+msgid "%s must be a valid CEP."
+msgstr "%s deve ser um CEP válido."
+
+#. translators: %s: field label
+#, php-format
+msgid "%s is not a valid CEP: all digits are the same."
+msgstr "%s não é um CEP válido: todos os dígitos são iguais."
+
+#. translators: %s: state abbreviation (UF)
+#, php-format
+msgid "This CEP does not belong to %s. Check the CEP or the UF."
+msgstr "Este CEP não pertence a %s. Confira o CEP ou a UF."
+
+msgid "Invalid CEP."
+msgstr "CEP inválido."
+
+msgid "Invalid CEP: all digits are the same."
+msgstr "CEP inválido: todos os dígitos são iguais."
+
+msgid "The CEP is checked without any outside lookup: it needs eight digits, cannot repeat one digit eight times, and must fall in the Correios range of the UF chosen in the same form. A CEP from another state is refused with a message naming the UF, since either field may be the typo. A CEP that passes can still not exist; only a lookup can tell."
+msgstr "O CEP é conferido sem consulta externa: precisa ter oito dígitos, não pode repetir o mesmo dígito oito vezes e deve estar na faixa dos Correios da UF escolhida no mesmo formulário. Um CEP de outro estado é recusado com uma mensagem que cita a UF, já que o erro pode estar em qualquer um dos dois campos. Um CEP aceito ainda pode não existir; só uma consulta confirma."

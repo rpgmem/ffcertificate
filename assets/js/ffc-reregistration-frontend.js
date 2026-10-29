@@ -211,6 +211,23 @@
         $container.on('blur', 'input, textarea, select', function () {
             validateField($(this));
         });
+        // The CEP is checked against the UF, so a new UF re-checks a CEP
+        // already typed (#2233).
+        $container.on('change', '.ffc-rereg-field[data-field-key="uf"] select', function () {
+            var $cep = $container.find('.ffc-rereg-field[data-format="cep"] input');
+            if (($cep.val() || '').trim()) {
+                validateField($cep);
+            }
+        });
+    }
+
+    /**
+     * The UF chosen in the same form as $field, or ''.
+     */
+    function formUf($field) {
+        return ($field.closest('form')
+            .find('.ffc-rereg-field[data-field-key="uf"] select, .ffc-rereg-field[data-field-key="uf"] input')
+            .first().val() || '');
     }
 
     function validateField($field) {
@@ -234,7 +251,8 @@
                 val,
                 $wrap.data('format') || $field.data('format'),
                 S,
-                { pattern: $wrap.data('regex'), message: $wrap.data('regex-msg') }
+                { pattern: $wrap.data('regex'), message: $wrap.data('regex-msg') },
+                { uf: formUf($field) }
             );
         }
 

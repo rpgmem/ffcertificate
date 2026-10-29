@@ -487,6 +487,7 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 				array( ReregistrationStandardFieldsSeeder::class, 'maybe_update_schedule_fields' ),
 				array( ReregistrationStandardFieldsSeeder::class, 'maybe_add_edu_email_field' ),
 				array( ReregistrationStandardFieldsSeeder::class, 'maybe_validate_rf_fields' ),
+				array( ReregistrationStandardFieldsSeeder::class, 'maybe_validate_cep_fields' ),
 			),
 			$hooked['admin_init'] ?? null
 		);
@@ -726,5 +727,53 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		$defs = array_column( ReregistrationStandardFieldsSeeder::get_standard_fields_definition(), null, 'field_key' );
 
 		$this->assertSame( array( 'format' => 'rf' ), $defs['rf']['validation'] );
+	}
+
+	// ==================================================================
+	// maybe_validate_cep_fields() -- the CEP format check on seeded rows (#2233)
+	// ==================================================================
+
+	public function test_validate_cep_fields_gives_rule_less_rows_the_cep_format(): void {
+		$options = array();
+		Functions\when( 'get_option' )->justReturn( false );
+		Functions\when( 'update_option' )->alias( function ( $key, $value, $autoload = null ) use ( &$options ) {
+			$options[ $key ] = array( $value, $autoload );
+			return true;
+		});
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( ...$args ) => $args );
+		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing( function ( $q ) {
+			$this->assertStringContainsString( 'validation_rules IS NULL', $q[0] );
+			$this->assertSame( 'cep', $q[2] );
+			return array( '41' );
+		});
+		$updates = array();
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing( function ( $table, $data, $where ) use ( &$updates ) {
+			$updates[ $where['id'] ] = $data;
+			return 1;
+		});
+
+		ReregistrationStandardFieldsSeeder::maybe_validate_cep_fields();
+
+		$this->assertSame( array( 41 => array( 'validation_rules' => json_encode( array( 'format' => 'cep' ) ) ) ), $updates );
+		$this->assertSame( array( '1', false ), $options[ ReregistrationStandardFieldsSeeder::CEP_VALIDATION_OPTION ] ?? null );
+	}
+
+	public function test_validate_cep_fields_runs_once(): void {
+		Functions\when( 'get_option' )->justReturn( '1' );
+		$writes = CallLog::record( 'update_option', true );
+		$this->wpdb->shouldReceive( 'get_col' )->never();
+
+		ReregistrationStandardFieldsSeeder::maybe_validate_cep_fields();
+
+		$this->assertSame( 0, $writes->count() );
+	}
+
+	public function test_the_cep_field_is_seeded_with_the_cep_format(): void {
+		$defs = array_column( ReregistrationStandardFieldsSeeder::get_standard_fields_definition(), null, 'field_key' );
+
+		$this->assertSame( array( 'format' => 'cep' ), $defs['cep']['validation'] );
 	}
 }

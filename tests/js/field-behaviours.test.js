@@ -1,7 +1,7 @@
 // Coverage for the field behaviours shared by the reregistration form and
 // the wp-admin user screen (`assets/js/ffc-field-behaviours.js`), and for the
 // admin glue that wires them (`assets/js/ffc-admin-user-fields.js`).
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
@@ -104,6 +104,50 @@ describe('FFC.Fields format checks', () => {
 		expect(window.FFC.Fields.formatError('abc', 'custom_regex', S, { pattern: '^\\d+$', message: 'digits only' })).toBe('digits only');
 		expect(window.FFC.Fields.formatError('abc', 'custom_regex', S, { pattern: '^\\d+$' })).toBe('bad');
 		expect(window.FFC.Fields.formatError('abc', 'custom_regex', S, { pattern: '(' })).toBe('');
+	});
+});
+
+describe('FFC.Fields CEP check (#2233)', () => {
+	const S = { invalidCep: 'bad cep', cepRepeated: 'same digits', cepWrongUf: 'not in %s' };
+	let saved;
+
+	beforeEach(() => {
+		saved = window.ffcCoreConfig;
+		// A slice of CepRule::RANGES, which the server sends whole.
+		window.ffcCoreConfig = Object.assign({}, saved, {
+			cepRanges: {
+				SP: [[1000, 19999]],
+				RJ: [[20000, 28999]],
+				DF: [[70000, 72799], [73000, 73699]],
+				GO: [[72800, 72999], [73700, 76799]],
+			},
+		});
+	});
+	afterEach(() => {
+		window.ffcCoreConfig = saved;
+	});
+
+	it('passes a CEP in its UF, masked or bare, and without a UF', () => {
+		expect(window.FFC.Fields.formatError('08615-070', 'cep', S, null, { uf: 'SP' })).toBe('');
+		expect(window.FFC.Fields.formatError('08615070', 'cep', S, null, { uf: 'sp' })).toBe('');
+		expect(window.FFC.Fields.formatError('28615-070', 'cep', S)).toBe('');
+	});
+
+	it('names each reason a CEP is refused', () => {
+		expect(window.FFC.Fields.formatError('0861-507', 'cep', S)).toBe('bad cep');
+		expect(window.FFC.Fields.formatError('11111-111', 'cep', S)).toBe('same digits');
+		expect(window.FFC.Fields.formatError('00999-999', 'cep', S)).toBe('bad cep');
+		expect(window.FFC.Fields.formatError('28615-070', 'cep', S, null, { uf: 'SP' })).toBe('not in SP');
+	});
+
+	it('reads both ranges of a state that has two', () => {
+		expect(window.FFC.Fields.cepProblem('73000-000', 'DF')).toBe('');
+		expect(window.FFC.Fields.cepProblem('72900-000', 'DF')).toBe('uf');
+		expect(window.FFC.Fields.cepProblem('72900-000', 'GO')).toBe('');
+	});
+
+	it('skips the UF check for a UF the table does not know', () => {
+		expect(window.FFC.Fields.cepProblem('28615-070', 'XX')).toBe('');
 	});
 });
 

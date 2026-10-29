@@ -33,12 +33,14 @@ class CustomFieldValidator {
 	/**
 	 * Validate a field value against its definition.
 	 *
-	 * @param object $field Field definition object.
+	 * @param object               $field Field definition object.
 	 * @phpstan-param CustomFieldRow $field
-	 * @param mixed  $value Value to validate.
+	 * @param mixed                $value   Value to validate.
+	 * @param array<string, mixed> $context The form's other values by field key, for a rule that
+	 *                                      reads a sibling (the CEP reads `uf`); empty skips it.
 	 * @return true|\WP_Error True if valid, WP_Error with message if invalid.
 	 */
-	public static function validate( object $field, $value ) {
+	public static function validate( object $field, $value, array $context = array() ) {
 		// Required check.
 		if ( ! empty( $field->is_required ) && self::is_empty_value( $value ) ) {
 			return new \WP_Error(
@@ -104,7 +106,7 @@ class CustomFieldValidator {
 		// Format validation from validation_rules.
 		$rules = CustomFieldReader::get_validation_rules( $field );
 		if ( ! empty( $rules ) ) {
-			$format_result = self::validate_format( $field, $value, $rules );
+			$format_result = self::validate_format( $field, $value, $rules, $context );
 			if ( is_wp_error( $format_result ) ) {
 				return $format_result;
 			}
@@ -119,10 +121,11 @@ class CustomFieldValidator {
 	 * @param object               $field Field definition.
 	 * @phpstan-param CustomFieldRow $field
 	 * @param mixed                $value Value to validate.
-	 * @param array<string, mixed> $rules Validation rules.
+	 * @param array<string, mixed> $rules   Validation rules.
+	 * @param array<string, mixed> $context The form's other values by field key.
 	 * @return true|\WP_Error
 	 */
-	private static function validate_format( object $field, $value, array $rules ) {
+	private static function validate_format( object $field, $value, array $rules, array $context = array() ) {
 		$str_value = (string) $value;
 
 		// Min/max length.
@@ -164,6 +167,13 @@ class CustomFieldValidator {
 							/* translators: %s: field label */
 							sprintf( __( '%s must be a valid RF.', 'ffcertificate' ), $field->field_label )
 						);
+					}
+					break;
+
+				case 'cep':
+					$cep_error = self::cep_error( $field, $str_value, $context );
+					if ( null !== $cep_error ) {
+						return $cep_error;
 					}
 					break;
 
@@ -209,6 +219,41 @@ class CustomFieldValidator {
 		}
 
 		return true;
+	}
+
+	/**
+	 * The CEP rule's refusal as an error, or null when the CEP passes (#2233).
+	 *
+	 * The UF check reads the `uf` field of the same form -- a stored field key
+	 * -- and runs only when that value is present.
+	 *
+	 * @param object               $field   Field definition.
+	 * @phpstan-param CustomFieldRow $field
+	 * @param string               $cep     Submitted CEP.
+	 * @param array<string, mixed> $context The form's other values by field key.
+	 * @return \WP_Error|null
+	 */
+	private static function cep_error( object $field, string $cep, array $context ): ?\WP_Error {
+		$uf     = is_string( $context['uf'] ?? null ) ? $context['uf'] : '';
+		$reason = \FreeFormCertificate\Core\CepRule::check( $cep, $uf );
+
+		switch ( $reason ) {
+			case \FreeFormCertificate\Core\CepRule::OK:
+				return null;
+			case \FreeFormCertificate\Core\CepRule::REPEATED:
+				/* translators: %s: field label */
+				$message = sprintf( __( '%s is not a valid CEP: all digits are the same.', 'ffcertificate' ), $field->field_label );
+				break;
+			case \FreeFormCertificate\Core\CepRule::UF:
+				/* translators: %s: state abbreviation (UF) */
+				$message = sprintf( __( 'This CEP does not belong to %s. Check the CEP or the UF.', 'ffcertificate' ), strtoupper( trim( $uf ) ) );
+				break;
+			default:
+				/* translators: %s: field label */
+				$message = sprintf( __( '%s must be a valid CEP.', 'ffcertificate' ), $field->field_label );
+		}
+
+		return new \WP_Error( 'field_invalid_cep', $message );
 	}
 
 	/**

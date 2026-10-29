@@ -259,16 +259,66 @@
     }
 
     /**
+     * The UF whose range holds a CEP, or '' when none does -- the server's
+     * `CepRule::state_of()`, over the table it sends as
+     * `ffcCoreConfig.cepRanges`.
+     */
+    function cepState(digits) {
+        var ranges = (window.ffcCoreConfig && window.ffcCoreConfig.cepRanges) || {};
+        var prefix = parseInt(digits.substring(0, 5), 10);
+        var found = '';
+        Object.keys(ranges).forEach(function (uf) {
+            ranges[uf].forEach(function (range) {
+                if (!found && prefix >= range[0] && prefix <= range[1]) {
+                    found = uf;
+                }
+            });
+        });
+        return found;
+    }
+
+    /**
+     * Why a CEP is refused -- 'format', 'repeated', 'range' or 'uf' -- or ''
+     * when it passes: the server's `CepRule::check()` (#2233).
+     *
+     * @param {string} cep
+     * @param {string} [uf] The UF chosen in the same form; '' skips that check.
+     * @return {string}
+     */
+    function cepProblem(cep, uf) {
+        var val = String(cep || '').trim();
+        if (!/^\d{5}-?\d{3}$/.test(val)) {
+            return 'format';
+        }
+        var digits = val.replace('-', '');
+        if (/^(\d)\1{7}$/.test(digits)) {
+            return 'repeated';
+        }
+        var state = cepState(digits);
+        if (!state) {
+            return 'range';
+        }
+        var ranges = (window.ffcCoreConfig && window.ffcCoreConfig.cepRanges) || {};
+        uf = String(uf || '').trim().toUpperCase();
+        if (uf && ranges[uf] && uf !== state) {
+            return 'uf';
+        }
+        return '';
+    }
+
+    /**
      * The message for a value that breaks its format, or '' when it is fine.
      * An empty value is fine here; requiredness is the caller's question.
      *
      * @param {string} value
-     * @param {string} format   cpf | rf | email | phone | custom_regex
-     * @param {Object} strings  invalidCpf, invalidRf, invalidEmail, invalidPhone, invalidFormat
+     * @param {string} format   cpf | rf | cep | email | phone | custom_regex
+     * @param {Object} strings  invalidCpf, invalidRf, invalidCep, cepRepeated, cepWrongUf,
+     *                          invalidEmail, invalidPhone, invalidFormat
      * @param {Object} [regex]  {pattern, message} for custom_regex
+     * @param {Object} [context] {uf} -- the form's UF, for the CEP check
      * @return {string}
      */
-    function formatError(value, format, strings, regex) {
+    function formatError(value, format, strings, regex, context) {
         var S = strings || {};
         var val = String(value || '').trim();
 
@@ -280,6 +330,17 @@
         }
         if (format === 'rf') {
             return validateRf(val) ? '' : (S.invalidRf || 'Invalid RF.');
+        }
+        if (format === 'cep') {
+            var uf = (context && context.uf) || '';
+            var problem = cepProblem(val, uf);
+            if (problem === 'repeated') {
+                return S.cepRepeated || 'Invalid CEP: all digits are the same.';
+            }
+            if (problem === 'uf') {
+                return (S.cepWrongUf || 'This CEP does not belong to %s. Check the CEP or the UF.').replace('%s', String(uf).trim().toUpperCase());
+            }
+            return problem ? (S.invalidCep || 'Invalid CEP.') : '';
         }
         if (format === 'email') {
             return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) ? '' : (S.invalidEmail || 'Invalid email.');
@@ -304,6 +365,7 @@
         initDualPost: initDualPost,
         validateCpf: validateCpf,
         validateRf: validateRf,
+        cepProblem: cepProblem,
         formatError: formatError
     };
 

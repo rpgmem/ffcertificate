@@ -220,7 +220,7 @@ class ReregistrationDataProcessor {
 			}
 
 			// Delegate type-aware validation to the repository helper.
-			$check = CustomFieldReader::validate_field_value( $field, $value );
+			$check = CustomFieldReader::validate_field_value( $field, $value, $values );
 			if ( is_wp_error( $check ) ) {
 				$errors[ $name ] = $check->get_error_message();
 				continue;

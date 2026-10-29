@@ -194,6 +194,10 @@ class DashboardAssetManager {
 					'required'          => __( 'This field is required.', 'ffcertificate' ),
 					'invalidCpf'        => __( 'Invalid CPF.', 'ffcertificate' ),
 					'invalidRf'         => __( 'Invalid RF.', 'ffcertificate' ),
+					'invalidCep'        => __( 'Invalid CEP.', 'ffcertificate' ),
+					'cepRepeated'       => __( 'Invalid CEP: all digits are the same.', 'ffcertificate' ),
+					/* translators: %s: state abbreviation (UF) */
+					'cepWrongUf'        => __( 'This CEP does not belong to %s. Check the CEP or the UF.', 'ffcertificate' ),
 					'invalidEmail'      => __( 'Invalid email.', 'ffcertificate' ),
 					'invalidPhone'      => __( 'Invalid phone number.', 'ffcertificate' ),
 					'invalidFormat'     => __( 'Invalid format.', 'ffcertificate' ),
