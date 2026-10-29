@@ -19,14 +19,13 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Scheduling;
 
-use FreeFormCertificate\Core\ContrastColor;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * The kinds of closed date, their labels and their colours.
+ * The kinds of closed date. Their names and colours are set with the other
+ * calendar states in `CalendarAppearance` (#2215).
  */
 final class ClosedDateKind {
 
@@ -40,30 +39,6 @@ final class ClosedDateKind {
 	 * An optional holiday (*ponto facultativo*).
 	 */
 	public const OPTIONAL = 'optional';
-
-	/**
-	 * Option holding the light-theme colour of each kind.
-	 */
-	public const COLORS_OPTION = 'ffc_closed_date_colors';
-
-	/**
-	 * Light-theme defaults, chosen so white text clears 4.5:1 on each
-	 * (5.33:1 and 5.48:1). The same values are the `:root` tokens in
-	 * `ffc-common.css`; `ClosedDateKindTest` holds the two together.
-	 */
-	public const DEFAULT_COLORS = array(
-		self::HOLIDAY  => '#8a6500',
-		self::OPTIONAL => '#4f6b8f',
-	);
-
-	/**
-	 * The CSS custom property each kind's background is read from, and its
-	 * text colour after it with `--ffc-text-on-` in front.
-	 */
-	private const TOKENS = array(
-		self::HOLIDAY  => 'holiday',
-		self::OPTIONAL => 'optional-holiday',
-	);
 
 	/**
 	 * Every kind, the default first.
@@ -93,9 +68,7 @@ final class ClosedDateKind {
 	 * @return string
 	 */
 	public static function label( string $kind ): string {
-		return self::OPTIONAL === self::normalize( $kind )
-			? __( 'Optional Holiday', 'ffcertificate' )
-			: __( 'Holiday', 'ffcertificate' );
+		return CalendarAppearance::legend( self::normalize( $kind ) );
 	}
 
 	/**
@@ -106,9 +79,7 @@ final class ClosedDateKind {
 	 * @return string
 	 */
 	public static function short_label( string $kind ): string {
-		return self::OPTIONAL === self::normalize( $kind )
-			? _x( 'Optional', 'optional holiday, in a calendar day cell', 'ffcertificate' )
-			: __( 'Holiday', 'ffcertificate' );
+		return CalendarAppearance::cell( self::normalize( $kind ) );
 	}
 
 	/**
@@ -158,75 +129,5 @@ final class ClosedDateKind {
 			'legend'  => __( 'Type', 'ffcertificate' ),
 			'size'    => 'sm',
 		);
-	}
-
-	/**
-	 * The light-theme colour of each kind: the stored one when it is a hex
-	 * colour, else the default.
-	 *
-	 * @return array<string, string>
-	 */
-	public static function colors(): array {
-		$stored = get_option( self::COLORS_OPTION, array() );
-		$stored = is_array( $stored ) ? $stored : array();
-		$out    = array();
-		foreach ( self::DEFAULT_COLORS as $kind => $default ) {
-			$value        = isset( $stored[ $kind ] ) ? sanitize_hex_color( (string) $stored[ $kind ] ) : '';
-			$out[ $kind ] = $value ? $value : $default;
-		}
-		return $out;
-	}
-
-	/**
-	 * Store the colours posted for each kind. A value that is not a hex
-	 * colour keeps what was stored, so a cleared field changes nothing.
-	 *
-	 * @param array<string, mixed> $posted Kind => colour.
-	 * @return void
-	 */
-	public static function save_colors( array $posted ): void {
-		$colors = self::colors();
-		foreach ( array_keys( self::DEFAULT_COLORS ) as $kind ) {
-			$value = isset( $posted[ $kind ] ) ? sanitize_hex_color( (string) $posted[ $kind ] ) : '';
-			if ( $value ) {
-				$colors[ $kind ] = strtolower( $value );
-			}
-		}
-		update_option( self::COLORS_OPTION, $colors, false );
-	}
-
-	/**
-	 * The CSS that applies the chosen colours, in the light theme only: the
-	 * dark palette is measured by `DarkModeCssTest` and a colour picked for a
-	 * white page is not mixed into it. The text on each colour comes from
-	 * `ContrastColor::on()`, so no saved colour can make its label illegible.
-	 * Empty when every colour is the default, which the stylesheet already
-	 * declares.
-	 *
-	 * @return string
-	 */
-	public static function inline_css(): string {
-		$declarations = '';
-		foreach ( self::colors() as $kind => $color ) {
-			if ( strtolower( $color ) === self::DEFAULT_COLORS[ $kind ] ) {
-				continue;
-			}
-			$token         = self::TOKENS[ $kind ];
-			$declarations .= '--ffc-' . $token . ':' . $color . ';--ffc-text-on-' . $token . ':' . ContrastColor::on( $color ) . ';';
-		}
-		return '' === $declarations ? '' : ':root:not(.ffc-dark-mode){' . $declarations . '}';
-	}
-
-	/**
-	 * Attach the colours to a stylesheet the calendar has enqueued.
-	 *
-	 * @param string $handle Stylesheet handle.
-	 * @return void
-	 */
-	public static function enqueue_colors( string $handle ): void {
-		$css = self::inline_css();
-		if ( '' !== $css ) {
-			wp_add_inline_style( $handle, $css );
-		}
 	}
 }

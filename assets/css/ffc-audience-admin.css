@@ -611,3 +611,62 @@
     display: flex;
     gap: var(--ffc-spacing-xs);
 }
+
+/* ==========================================================================
+   Calendar colours and labels (#2215): each state drawn the way the public
+   calendars draw it, reading the same tokens, so a saved colour shows here.
+   ========================================================================== */
+.ffc-calendar-appearance-table input[type="text"]:not(.ffc-calendar-color) {
+    width: 100%;
+    max-width: 220px;
+}
+
+.ffc-calendar-state-preview {
+    display: inline-block;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-xs);
+    font-size: var(--ffc-font-size-xs);
+    white-space: nowrap;
+}
+
+.ffc-calendar-state-preview.ffc-calendar-state-preview-available {
+    border: 2px solid var(--ffc-cal-available);
+    background: var(--ffc-bg);
+    color: var(--ffc-cal-available);
+    font-weight: 600;
+}
+
+.ffc-calendar-state-preview.ffc-calendar-state-preview-booked {
+    background: var(--ffc-cal-booked);
+    color: var(--ffc-text-on-cal-booked);
+}
+
+.ffc-calendar-state-preview.ffc-calendar-state-preview-holiday {
+    background: var(--ffc-holiday);
+    color: var(--ffc-text-on-holiday);
+}
+
+.ffc-calendar-state-preview.ffc-calendar-state-preview-optional {
+    background: var(--ffc-optional-holiday);
+    color: var(--ffc-text-on-optional-holiday);
+}
+
+.ffc-calendar-state-preview.ffc-calendar-state-preview-closed {
+    background: var(--ffc-cal-closed);
+    color: var(--ffc-text-on-cal-closed);
+}
+
+.ffc-calendar-contrast {
+    margin: var(--ffc-spacing-2xs) 0 0;
+    font-size: var(--ffc-font-size-xs);
+}
+
+@media (forced-colors: active) {
+    /* Read, not clicked: the border keeps the label shape. */
+    .ffc-calendar-state-preview.ffc-calendar-state-preview-booked,
+    .ffc-calendar-state-preview.ffc-calendar-state-preview-holiday,
+    .ffc-calendar-state-preview.ffc-calendar-state-preview-optional,
+    .ffc-calendar-state-preview.ffc-calendar-state-preview-closed {
+        border: 1px solid CanvasText;
+    }
+}

@@ -332,11 +332,17 @@ class AudienceShortcode {
 
 			<!-- Legend -->
 			<div class="ffc-calendar-legend">
-				<span class="ffc-legend-item"><span class="ffc-legend-dot ffc-available"></span> <?php esc_html_e( 'Available', 'ffcertificate' ); ?></span>
-				<span class="ffc-legend-item"><span class="ffc-legend-dot ffc-booked"></span> <?php esc_html_e( 'Booked', 'ffcertificate' ); ?></span>
-				<span class="ffc-legend-item"><span class="ffc-legend-dot ffc-holiday"></span> <?php esc_html_e( 'Holiday', 'ffcertificate' ); ?></span>
-				<span class="ffc-legend-item"><span class="ffc-legend-dot ffc-optional-holiday"></span> <?php echo esc_html( \FreeFormCertificate\Scheduling\ClosedDateKind::label( \FreeFormCertificate\Scheduling\ClosedDateKind::OPTIONAL ) ); ?></span>
-				<span class="ffc-legend-item"><span class="ffc-legend-dot ffc-closed"></span> <?php esc_html_e( 'Closed', 'ffcertificate' ); ?></span>
+				<?php
+				foreach ( array(
+					'available' => 'ffc-available',
+					'booked'    => 'ffc-booked',
+					'holiday'   => 'ffc-holiday',
+					'optional'  => 'ffc-optional-holiday',
+					'closed'    => 'ffc-closed',
+				) as $ffc_state => $ffc_dot ) :
+					?>
+					<span class="ffc-legend-item"><span class="ffc-legend-dot <?php echo esc_attr( $ffc_dot ); ?>"></span> <?php echo esc_html( \FreeFormCertificate\Scheduling\CalendarAppearance::legend( $ffc_state ) ); ?></span>
+				<?php endforeach; ?>
 			</div>
 		</div>
 
@@ -923,7 +929,7 @@ class AudienceShortcode {
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-audience-css' );
 		// The holiday colours chosen in Scheduling settings (#2202).
-		\FreeFormCertificate\Scheduling\ClosedDateKind::enqueue_colors( 'ffc-audience-css' );
+		\FreeFormCertificate\Scheduling\CalendarAppearance::enqueue_colors( 'ffc-audience-css' );
 	}
 
 	/**
@@ -994,89 +1000,88 @@ class AudienceShortcode {
 				'timeFormat'             => \FreeFormCertificate\Core\DateFormatter::resolve_time_format(),
 				'firstDayOfWeek'         => (int) get_option( 'start_of_week', 0 ),
 				'multipleAudiencesColor' => get_option( 'ffc_aud_multiple_audiences_color', '' ),
-				'strings'                => array(
-					'loading'                => __( 'Loading...', 'ffcertificate' ),
-					'error'                  => __( 'An error occurred. Please try again.', 'ffcertificate' ),
-					'noBookings'             => __( 'No bookings for this day.', 'ffcertificate' ),
-					'noActiveBookings'       => __( 'No active bookings for this day.', 'ffcertificate' ),
-					'bookingCreated'         => __( 'Booking created successfully!', 'ffcertificate' ),
-					'bookingCancelled'       => __( 'Booking cancelled successfully.', 'ffcertificate' ),
-					'confirmCancel'          => __( 'Are you sure you want to cancel this booking?', 'ffcertificate' ),
-					'cancelConfirm'          => AudienceBookingRules::cancel_strings(),
-					'cancelReason'           => __( 'Please provide a reason for cancellation:', 'ffcertificate' ),
-					'invalidTime'            => __( 'End time must be after start time.', 'ffcertificate' ),
-					'fillTimeFields'         => __( 'Please fill in the time fields.', 'ffcertificate' ),
-					'selectAudience'         => __( 'Please select at least one audience.', 'ffcertificate' ),
-					'selectUser'             => __( 'Please select at least one user.', 'ffcertificate' ),
-					'descriptionRequired'    => __( 'Description is required (15-300 characters).', 'ffcertificate' ),
-					'conflictWarning'        => __( 'Warning: Conflicts detected with existing bookings.', 'ffcertificate' ),
-					'audienceSameDayWarning' => __( 'Warning: The following groups already have bookings on this day:', 'ffcertificate' ),
-					'membersOverlapping'     => __( 'member(s) have overlapping bookings.', 'ffcertificate' ),
-					'hardConflict'           => __( 'This time slot is already booked for this environment. You cannot create a booking at this time.', 'ffcertificate' ),
-					'noConflicts'            => __( 'No conflicts found. You may proceed.', 'ffcertificate' ),
-					'months'                 => array(
-						__( 'January', 'ffcertificate' ),
-						__( 'February', 'ffcertificate' ),
-						__( 'March', 'ffcertificate' ),
-						__( 'April', 'ffcertificate' ),
-						__( 'May', 'ffcertificate' ),
-						__( 'June', 'ffcertificate' ),
-						__( 'July', 'ffcertificate' ),
-						__( 'August', 'ffcertificate' ),
-						__( 'September', 'ffcertificate' ),
-						__( 'October', 'ffcertificate' ),
-						__( 'November', 'ffcertificate' ),
-						__( 'December', 'ffcertificate' ),
-					),
-					'holiday'                => __( 'Holiday', 'ffcertificate' ),
-					'closedDateKinds'        => \FreeFormCertificate\Scheduling\ClosedDateKind::strings(),
-					'closed'                 => __( 'Closed', 'ffcertificate' ),
-					'available'              => __( 'Available', 'ffcertificate' ),
-					'booked'                 => __( 'Booked', 'ffcertificate' ),
-					'cancel'                 => __( 'Cancel', 'ffcertificate' ),
-					'cancelled'              => __( 'Cancelled', 'ffcertificate' ),
-					'timeout'                => __( 'Request timed out. Please try again.', 'ffcertificate' ),
-					'checkConflicts'         => __( 'Check Conflicts', 'ffcertificate' ),
-					'booking'                => $booking_singular,
-					'bookings'               => $booking_plural,
-					'createBooking'          => __( 'Create Booking', 'ffcertificate' ),
-					/* translators: %s: the dates of a booking range that another booking already takes. */
-					'collidingDays'          => __( 'Already booked on: %s', 'ffcertificate' ),
-					'newBooking'             => __( 'New Booking', 'ffcertificate' ),
-					'environmentLabel'       => __( 'Environment', 'ffcertificate' ),
-					'allEnvironments'        => __( 'All Environments', 'ffcertificate' ),
-					'allDay'                 => __( 'All Day', 'ffcertificate' ),
-					'events'                 => __( 'Events', 'ffcertificate' ),
-					'noEvents'               => __( 'No events this month.', 'ffcertificate' ),
-					'multipleAudiences'      => __( 'Multiple audiences', 'ffcertificate' ),
-					// The "all spaces" option of the filter (#1859): "All" before
-					// the calendar's own plural label.
-					'all'                    => __( 'All', 'ffcertificate' ),
-					/* translators: %s: environment label (plural) */
-					'allOf'                  => __( 'All %s', 'ffcertificate' ),
-					// Why a space cannot be booked on a date (#1859).
-					'reasonClosed'           => __( 'Closed', 'ffcertificate' ),
-					'reasonHoliday'          => __( 'Holiday', 'ffcertificate' ),
-					'reasonOutsideHours'     => __( 'Outside hours', 'ffcertificate' ),
-					'reasonPast'             => __( 'Past date', 'ffcertificate' ),
-					'reasonBeyondWindow'     => __( 'Beyond the booking window', 'ffcertificate' ),
-					'noOpenEnvironments'     => __( 'No space is open on this date.', 'ffcertificate' ),
-					'override'               => \FreeFormCertificate\Core\OverrideWarning::strings(),
-					// The booking dialog's audience picker and range hints (#2008).
-					'noneSelected'           => __( 'None selected', 'ffcertificate' ),
-					/* translators: %d: how many more audiences are chosen than the summary names. */
-					'moreAudiences'          => __( '+%d more', 'ffcertificate' ),
-					/* translators: %s: audience name. */
-					'removeAudience'         => __( 'Remove %s', 'ffcertificate' ),
-					'onePerson'              => __( '1 person', 'ffcertificate' ),
-					/* translators: %d: number of people an audience reaches (more than one). */
-					'people'                 => __( '%d people', 'ffcertificate' ),
-					/* translators: 1: start time, 2: end time. */
-					'hintDaily'              => __( '%1$s–%2$s on each day', 'ffcertificate' ),
-					/* translators: 1: start time, 2: first day, 3: end time, 4: last day. */
-					'hintSpan'               => __( 'From %1$s on %2$s to %3$s on %4$s', 'ffcertificate' ),
-					'endDateRequired'        => __( 'Choose the last day.', 'ffcertificate' ),
-					'endDateInvalid'         => __( 'The last day must come after the first.', 'ffcertificate' ),
+				'strings'                => array_merge(
+					// The state names (#2215): the administrator's, else the translated default.
+					\FreeFormCertificate\Scheduling\CalendarAppearance::strings(),
+					array(
+						'loading'                => __( 'Loading...', 'ffcertificate' ),
+						'error'                  => __( 'An error occurred. Please try again.', 'ffcertificate' ),
+						'noBookings'             => __( 'No bookings for this day.', 'ffcertificate' ),
+						'noActiveBookings'       => __( 'No active bookings for this day.', 'ffcertificate' ),
+						'bookingCreated'         => __( 'Booking created successfully!', 'ffcertificate' ),
+						'bookingCancelled'       => __( 'Booking cancelled successfully.', 'ffcertificate' ),
+						'confirmCancel'          => __( 'Are you sure you want to cancel this booking?', 'ffcertificate' ),
+						'cancelConfirm'          => AudienceBookingRules::cancel_strings(),
+						'cancelReason'           => __( 'Please provide a reason for cancellation:', 'ffcertificate' ),
+						'invalidTime'            => __( 'End time must be after start time.', 'ffcertificate' ),
+						'fillTimeFields'         => __( 'Please fill in the time fields.', 'ffcertificate' ),
+						'selectAudience'         => __( 'Please select at least one audience.', 'ffcertificate' ),
+						'selectUser'             => __( 'Please select at least one user.', 'ffcertificate' ),
+						'descriptionRequired'    => __( 'Description is required (15-300 characters).', 'ffcertificate' ),
+						'conflictWarning'        => __( 'Warning: Conflicts detected with existing bookings.', 'ffcertificate' ),
+						'audienceSameDayWarning' => __( 'Warning: The following groups already have bookings on this day:', 'ffcertificate' ),
+						'membersOverlapping'     => __( 'member(s) have overlapping bookings.', 'ffcertificate' ),
+						'hardConflict'           => __( 'This time slot is already booked for this environment. You cannot create a booking at this time.', 'ffcertificate' ),
+						'noConflicts'            => __( 'No conflicts found. You may proceed.', 'ffcertificate' ),
+						'months'                 => array(
+							__( 'January', 'ffcertificate' ),
+							__( 'February', 'ffcertificate' ),
+							__( 'March', 'ffcertificate' ),
+							__( 'April', 'ffcertificate' ),
+							__( 'May', 'ffcertificate' ),
+							__( 'June', 'ffcertificate' ),
+							__( 'July', 'ffcertificate' ),
+							__( 'August', 'ffcertificate' ),
+							__( 'September', 'ffcertificate' ),
+							__( 'October', 'ffcertificate' ),
+							__( 'November', 'ffcertificate' ),
+							__( 'December', 'ffcertificate' ),
+						),
+						'cancel'                 => __( 'Cancel', 'ffcertificate' ),
+						'cancelled'              => __( 'Cancelled', 'ffcertificate' ),
+						'timeout'                => __( 'Request timed out. Please try again.', 'ffcertificate' ),
+						'checkConflicts'         => __( 'Check Conflicts', 'ffcertificate' ),
+						'booking'                => $booking_singular,
+						'bookings'               => $booking_plural,
+						'createBooking'          => __( 'Create Booking', 'ffcertificate' ),
+						/* translators: %s: the dates of a booking range that another booking already takes. */
+						'collidingDays'          => __( 'Already booked on: %s', 'ffcertificate' ),
+						'newBooking'             => __( 'New Booking', 'ffcertificate' ),
+						'environmentLabel'       => __( 'Environment', 'ffcertificate' ),
+						'allEnvironments'        => __( 'All Environments', 'ffcertificate' ),
+						'allDay'                 => __( 'All Day', 'ffcertificate' ),
+						'events'                 => __( 'Events', 'ffcertificate' ),
+						'noEvents'               => __( 'No events this month.', 'ffcertificate' ),
+						'multipleAudiences'      => __( 'Multiple audiences', 'ffcertificate' ),
+						// The "all spaces" option of the filter (#1859): "All" before
+						// the calendar's own plural label.
+						'all'                    => __( 'All', 'ffcertificate' ),
+						/* translators: %s: environment label (plural) */
+						'allOf'                  => __( 'All %s', 'ffcertificate' ),
+						// Why a space cannot be booked on a date (#1859).
+						'reasonClosed'           => __( 'Closed', 'ffcertificate' ),
+						'reasonHoliday'          => __( 'Holiday', 'ffcertificate' ),
+						'reasonOutsideHours'     => __( 'Outside hours', 'ffcertificate' ),
+						'reasonPast'             => __( 'Past date', 'ffcertificate' ),
+						'reasonBeyondWindow'     => __( 'Beyond the booking window', 'ffcertificate' ),
+						'noOpenEnvironments'     => __( 'No space is open on this date.', 'ffcertificate' ),
+						'override'               => \FreeFormCertificate\Core\OverrideWarning::strings(),
+						// The booking dialog's audience picker and range hints (#2008).
+						'noneSelected'           => __( 'None selected', 'ffcertificate' ),
+						/* translators: %d: how many more audiences are chosen than the summary names. */
+						'moreAudiences'          => __( '+%d more', 'ffcertificate' ),
+						/* translators: %s: audience name. */
+						'removeAudience'         => __( 'Remove %s', 'ffcertificate' ),
+						'onePerson'              => __( '1 person', 'ffcertificate' ),
+						/* translators: %d: number of people an audience reaches (more than one). */
+						'people'                 => __( '%d people', 'ffcertificate' ),
+						/* translators: 1: start time, 2: end time. */
+						'hintDaily'              => __( '%1$s–%2$s on each day', 'ffcertificate' ),
+						/* translators: 1: start time, 2: first day, 3: end time, 4: last day. */
+						'hintSpan'               => __( 'From %1$s on %2$s to %3$s on %4$s', 'ffcertificate' ),
+						'endDateRequired'        => __( 'Choose the last day.', 'ffcertificate' ),
+						'endDateInvalid'         => __( 'The last day must come after the first.', 'ffcertificate' ),
+					)
 				),
 			)
 		);

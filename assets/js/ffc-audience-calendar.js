@@ -548,7 +548,11 @@
                     if (isHoliday) {
                         html += holidayBadge(dateStr);
                     } else if (isClosed) {
-                        html += '<span class="ffc-day-badge ffc-badge-closed">' + ffcAudience.strings.closed + '</span>';
+                        // The cell name and whether it shows are set with the
+                        // other calendar states (#2215).
+                        if (ffcAudience.strings.showClosedLabel !== false) {
+                            html += '<span class="ffc-day-badge ffc-badge-closed">' + escapeHtml(ffcAudience.strings.closedCell || ffcAudience.strings.closed) + '</span>';
+                        }
                     } else if (bookingCount > 0) {
                         var bLabel = bookingCount === 1 ? getBookingLabel('singular') : getBookingLabel('plural');
                         html += '<span class="ffc-day-badge ffc-badge-bookings">' + bookingCount + ' ' + escapeHtml(bLabel) + '</span>';

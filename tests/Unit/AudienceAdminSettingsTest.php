@@ -43,6 +43,8 @@ class AudienceAdminSettingsTest extends TestCase {
 		Functions\when( 'esc_textarea' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'esc_attr_e' )->alias( function ( $text ) { echo $text; } );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n, $d = 0 ) => number_format( (float) $n, (int) $d ) );
+		Functions\when( '_x' )->returnArg();
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
@@ -712,6 +714,66 @@ class AudienceAdminSettingsTest extends TestCase {
 		Functions\when( 'get_option' )->alias( function ( $key, $default = false ) use ( $stored ) {
 			return 'ffc_global_holidays' === $key ? $stored : $default;
 		} );
+	}
+
+	public function test_saving_the_calendar_appearance_stores_colours_names_and_switch(): void {
+		Functions\when( 'sanitize_hex_color' )->returnArg();
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+		$_POST     = array(
+			'ffc_action'                    => 'save_calendar_appearance',
+			'ffc_calendar_appearance_nonce' => 'n',
+			'calendar_color'                => array( 'booked' => '#123456' ),
+			'calendar_legend'               => array( 'closed' => 'Encerrado' ),
+			'calendar_cell'                 => array( 'closed' => 'Fechado' ),
+		);
+
+		$this->run_holiday_action();
+
+		$stored = $written['ffc_calendar_appearance'];
+		$this->assertSame( '#123456', $stored['colors']['booked'] );
+		$this->assertSame( 'Encerrado', $stored['legend']['closed'] );
+		$this->assertSame( 'Fechado', $stored['cell']['closed'] );
+		$this->assertFalse( $stored['show_closed_label'], 'An unticked switch posts nothing, which is off.' );
+		$this->assertSame( array( 'https://example.com/wp-admin/' ), $redirects->getArrayCopy() );
+	}
+
+	public function test_restoring_the_calendar_appearance_deletes_the_option(): void {
+		$deleted = array();
+		Functions\when( 'delete_option' )->alias(
+			static function ( $name ) use ( &$deleted ) {
+				$deleted[] = $name;
+				return true;
+			}
+		);
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+		$_POST     = array(
+			'ffc_action'                    => 'save_calendar_appearance',
+			'ffc_calendar_appearance_nonce' => 'n',
+			'calendar_appearance_reset'     => '1',
+			'calendar_color'                => array( 'booked' => '#123456' ),
+		);
+
+		$this->run_holiday_action();
+
+		$this->assertSame( array( 'ffc_calendar_appearance' ), $deleted );
+		$this->assertArrayNotHasKey( 'ffc_calendar_appearance', $written->getArrayCopy(), 'Restore ignores the posted values.' );
+		$this->assertCount( 1, $redirects );
+	}
+
+	public function test_the_calendar_appearance_is_not_saved_on_a_bad_nonce(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( false );
+		$written = $this->record_writes();
+		$_POST   = array(
+			'ffc_action'                    => 'save_calendar_appearance',
+			'ffc_calendar_appearance_nonce' => 'bad',
+			'calendar_color'                => array( 'booked' => '#123456' ),
+		);
+
+		$this->run_holiday_action();
+
+		$this->assertArrayNotHasKey( 'ffc_calendar_appearance', $written->getArrayCopy() );
 	}
 
 	public function test_adding_a_new_holiday_appends_it_and_redirects(): void {

@@ -328,17 +328,17 @@
 }
 
 .ffc-shortcode .ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month) {
-    border-color: var(--ffc-success);
+    border-color: var(--ffc-cal-available);
     border-width: 2px;
 }
 
 .ffc-shortcode .ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month) .ffc-day-number {
-    color: var(--ffc-success);
+    color: var(--ffc-cal-available);
 }
 
 .ffc-shortcode .ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month):hover {
-    border-color: var(--ffc-success);
-    box-shadow: 0 0 0 2px var(--ffc-success-border);
+    border-color: var(--ffc-cal-available);
+    box-shadow: 0 0 0 2px var(--ffc-cal-available-ring);
 }
 
 .ffc-shortcode .ffc-day.ffc-selected {
@@ -385,8 +385,8 @@
 }
 
 .ffc-shortcode .ffc-badge-bookings {
-    background: var(--ffc-primary);
-    color: var(--ffc-text-on-primary);
+    background: var(--ffc-cal-booked);
+    color: var(--ffc-text-on-cal-booked);
 }
 
 .ffc-shortcode .ffc-badge-holiday {
@@ -401,8 +401,8 @@
 }
 
 .ffc-shortcode .ffc-badge-closed {
-    background: var(--ffc-bg-alt);
-    color: var(--ffc-text-secondary);
+    background: var(--ffc-cal-closed);
+    color: var(--ffc-text-on-cal-closed);
 }
 
 /* Calendar Legend */
@@ -430,11 +430,11 @@
 }
 
 .ffc-shortcode .ffc-legend-dot.ffc-available {
-    background: var(--ffc-success);
+    background: var(--ffc-cal-available);
 }
 
 .ffc-shortcode .ffc-legend-dot.ffc-booked {
-    background: var(--ffc-primary);
+    background: var(--ffc-cal-booked);
 }
 
 .ffc-shortcode .ffc-legend-dot.ffc-holiday {
@@ -446,7 +446,7 @@
 }
 
 .ffc-shortcode .ffc-legend-dot.ffc-closed {
-    background: var(--ffc-gray-400);
+    background: var(--ffc-cal-closed-dot);
 }
 
 /* Loading State */

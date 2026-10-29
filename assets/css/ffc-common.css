@@ -190,6 +190,16 @@
     --ffc-text-on-holiday: #ffffff;
     --ffc-optional-holiday: #4f6b8f;      /* 5,48:1 with white. */
     --ffc-text-on-optional-holiday: #ffffff;
+    /* The other calendar states (#2215): chains to the palette, so the dark
+       theme follows by itself. `CalendarAppearance::inline_css()` sets them
+       to the administrator's colour, in the light theme only. */
+    --ffc-cal-available: var(--ffc-success);
+    --ffc-cal-available-ring: var(--ffc-success-border);
+    --ffc-cal-booked: var(--ffc-primary);
+    --ffc-text-on-cal-booked: var(--ffc-text-on-primary);
+    --ffc-cal-closed: var(--ffc-bg-alt);
+    --ffc-text-on-cal-closed: var(--ffc-text-secondary);
+    --ffc-cal-closed-dot: var(--ffc-gray-400);
 
     /* Semantic Tokens - Inverse surface (M3's inverseSurface/inverseOnSurface)
        The toast bubble is inverted chrome on purpose: dark on a light page.
