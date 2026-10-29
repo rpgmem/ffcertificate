@@ -57,6 +57,8 @@
 .ffc-user-dashboard .ffc-cancel-appointment,
 .ffc-user-dashboard .ffc-cal-export-btn,
 .ffc-user-dashboard .ffc-btn-post-event,
+.ffc-user-dashboard .ffc-rereg-answers-toggle,
+.ffc-user-dashboard .ffc-rereg-answers-reveal,
 .ffc-audience-join-item .ffc-btn,
 .ffc-audience-switch-picker .ffc-btn {
     min-height: 0;
@@ -508,6 +510,7 @@
 .ffc-user-dashboard .ffc-btn-pdf,
 .ffc-user-dashboard .ffc-btn-receipt,
 .ffc-user-dashboard .ffc-btn-edit,
+.ffc-user-dashboard .ffc-rereg-answers-toggle,
 .ffc-user-dashboard .ffc-cancel-appointment {
     vertical-align: middle;
 }
