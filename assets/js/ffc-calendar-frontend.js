@@ -757,9 +757,20 @@
             }
         }
 
+        // A closed date's names, full and short, by kind (#2202).
+        function kindNames(kind) {
+            var fallback = ffcCalendar.strings.holiday || 'Holiday';
+            return ((ffcCalendar.strings.closedDateKinds || {})[kind]) || { label: fallback, short: fallback };
+        }
+
+        function escapeAttr(text) {
+            return $('<span>').text(String(text)).html().replace(/"/g, '&quot;');
+        }
+
         // Store booking counts, holidays and tracking
         var bookingCounts = {};
         var calendarHolidays = {};
+        var calendarHolidayKinds = {};
         var fetchId = 0;
 
         // Function to fetch booking counts and holidays for a month
@@ -779,6 +790,7 @@
                     if (data && data.counts) {
                         bookingCounts = data.counts;
                     }
+                    calendarHolidayKinds = (data && data.holiday_kinds) || {};
                     if (data && data.holidays) {
                         calendarHolidays = data.holidays;
                         if (calendar) {
@@ -809,6 +821,7 @@
                 { 'class': 'ffc-available', label: ffcCalendar.strings.available || 'Available' },
                 { 'class': 'ffc-booked', label: ffcCalendar.strings.booked || 'Booked' },
                 { 'class': 'ffc-holiday', label: ffcCalendar.strings.holiday || 'Holiday' },
+                { 'class': 'ffc-optional-holiday', label: kindNames('optional').label },
                 { 'class': 'ffc-closed', label: ffcCalendar.strings.closed || 'Closed' }
             ],
             getDayClasses: function(dateStr, date) {
@@ -832,7 +845,13 @@
             },
             getDayContent: function(dateStr, date, isHoliday) {
                 if (isHoliday) {
-                    return '<span class="ffc-day-badge ffc-badge-holiday">' + (ffcCalendar.strings.holiday || 'Holiday') + '</span>';
+                    // The cell shows the short name and says the full one to a
+                    // screen reader and on hover (#2202).
+                    var optional = calendarHolidayKinds[dateStr] === 'optional';
+                    var names = kindNames(optional ? 'optional' : 'holiday');
+                    return '<span class="ffc-day-badge ffc-badge-holiday' + (optional ? ' ffc-badge-optional-holiday' : '') + '"' +
+                        ' role="img" aria-label="' + escapeAttr(names.label) + '" title="' + escapeAttr(names.label) + '">' +
+                        escapeAttr(names.short) + '</span>';
                 }
 
                 var count = bookingCounts[dateStr] ? bookingCounts[dateStr] : 0;

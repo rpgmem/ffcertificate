@@ -123,7 +123,12 @@ final class AdminStylesheetTokensTest extends TestCase {
 		// 123 -> 124 in #1748: the ink of the toggle's optional mark. The knob
 		// is white in both themes by decision, so what is drawn on it cannot
 		// follow a token that lightens in the dark theme.
-		'ffc-common.css'                => 124,
+		//
+		// 124 -> 132 in #2202: the holiday and optional-holiday labels, a
+		// background and its text per kind, in each theme. Their own tokens
+		// rather than the warning family's, because the light theme takes
+		// white text there and Scheduling settings may repaint them.
+		'ffc-common.css'                => 132,
 		'ffc-device-check.css'          => 0,
 		'ffc-code-editor-dark.css'      => 35,
 		// 12 -> 10 in #1881: the button loading state left with its two white

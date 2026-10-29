@@ -37,6 +37,35 @@
     }
 
     /**
+     * What a closed date is (#2202): `optional` for an optional holiday,
+     * `holiday` for everything else, a date with no recorded kind included.
+     */
+    function holidayKind(dateStr) {
+        return (state.holidayKinds || {})[dateStr] === 'optional' ? 'optional' : 'holiday';
+    }
+
+    /**
+     * A kind's names: the full one and the one a day cell has room for.
+     */
+    function kindStrings(kind) {
+        var S = ffcAudience.strings || {};
+        var fallback = S.holiday || 'Holiday';
+        return (S.closedDateKinds || {})[kind] || { label: fallback, short: fallback };
+    }
+
+    /**
+     * A closed date's badge in its day cell. The cell shows the short name and
+     * says the full one to a screen reader and on hover (#2202).
+     */
+    function holidayBadge(dateStr) {
+        var kind = holidayKind(dateStr);
+        var names = kindStrings(kind);
+        return '<span class="ffc-day-badge ffc-badge-holiday' + (kind === 'optional' ? ' ffc-badge-optional-holiday' : '') + '"' +
+            ' role="img" aria-label="' + escapeHtml(names.label) + '" title="' + escapeHtml(names.label) + '">' +
+            escapeHtml(names.short) + '</span>';
+    }
+
+    /**
      * A colour dot. The colour is an operator's choice, so it stays inline as
      * the dot's custom property; anything not a hex colour is dropped and the
      * dot takes the text colour.
@@ -517,7 +546,7 @@
                     html += '<div class="ffc-day-content">';
 
                     if (isHoliday) {
-                        html += '<span class="ffc-day-badge ffc-badge-holiday">' + ffcAudience.strings.holiday + '</span>';
+                        html += holidayBadge(dateStr);
                     } else if (isClosed) {
                         html += '<span class="ffc-day-badge ffc-badge-closed">' + ffcAudience.strings.closed + '</span>';
                     } else if (bookingCount > 0) {
@@ -620,9 +649,13 @@
                     });
                 }
 
+                state.holidayKinds = response.holiday_kinds || {};
                 if (response.holidays) {
                     response.holidays.forEach(function(holiday) {
                         state.holidays[holiday.holiday_date] = holiday.description || true;
+                        if (!state.holidayKinds[holiday.holiday_date] && holiday.kind) {
+                            state.holidayKinds[holiday.holiday_date] = holiday.kind;
+                        }
                     });
                 }
 
@@ -762,9 +795,10 @@
 
             if (evt.type === 'holiday') {
                 // Holiday item
-                var holidayLabel = ffcAudience.strings.holiday || 'Holiday';
+                var holidayOptional = holidayKind(evt.date) === 'optional';
+                var holidayLabel = kindStrings(holidayOptional ? 'optional' : 'holiday').label;
                 var holidayDesc = evt.data.description || '';
-                html += '<div class="ffc-event-list-item ffc-event-list-holiday" data-date="' + evt.date + '">';
+                html += '<div class="ffc-event-list-item ffc-event-list-holiday' + (holidayOptional ? ' ffc-event-list-optional-holiday' : '') + '" data-date="' + evt.date + '">';
                 html += '<span class="ffc-event-list-time ffc-all-day">' + escapeHtml(holidayLabel) + '</span>';
                 if (holidayDesc) {
                     html += '<span class="ffc-event-list-desc">' + escapeHtml(holidayDesc) + '</span>';

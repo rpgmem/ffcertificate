@@ -29300,3 +29300,25 @@ msgstr ""
 
 msgid "A card marked \"Deprecated\" is a one-shot migration whose work is done and that a later release removes; the card names that release. If it still shows records pending on your site, run it before updating to that release."
 msgstr ""
+
+msgid "Optional Holiday"
+msgstr ""
+
+msgctxt "optional holiday, in a calendar day cell"
+msgid "Optional"
+msgstr ""
+
+msgid "Calendar colors saved."
+msgstr ""
+
+msgid "Holiday Colors"
+msgstr ""
+
+msgid "The color of the holiday and optional holiday labels on the public calendars, in the light theme. The dark theme keeps its own colors, and the text on each label turns white or black to stay readable."
+msgstr ""
+
+msgid "Save Colors"
+msgstr ""
+
+msgid "A closed date, global or on a calendar's Closed dates tab, is a holiday or an optional holiday. Both block bookings the same way; the public calendars label them apart, in the day cell, the legend and the event list. The colors of the two labels in the light theme are set under Holiday Colors on the same General tab, and the text on each turns white or black to stay readable."
+msgstr ""

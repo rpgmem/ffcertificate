@@ -2,7 +2,8 @@
 /**
  * Template: Audience admin settings — General tab (status summary + global holidays).
  * In-scope: $holidays (array), $published (int|string published calendars),
- * $audience_active_count (int active audience schedules), $this->menu_slug.
+ * $audience_active_count (int active audience schedules), $closed_date_colors
+ * (kind => hex, #2202), $this->menu_slug.
  *
  * Extracted verbatim from the matching AudienceAdminSettings method
  * (rpgmem/ffcertificate coverage hygiene); markup byte-identical. The
@@ -73,6 +74,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 							</td>
 						</tr>
 						<tr>
+							<th scope="row"><?php esc_html_e( 'Type', 'ffcertificate' ); ?></th>
+							<td>
+								<?php \FreeFormCertificate\Admin\AdminUI::render_segmented( \FreeFormCertificate\Scheduling\ClosedDateKind::control_args( 'global_holiday_kind' ) ); ?>
+							</td>
+						</tr>
+						<tr>
 							<th scope="row">
 								<label for="global_holiday_description"><?php esc_html_e( 'Description', 'ffcertificate' ); ?></label>
 							</th>
@@ -106,6 +113,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<thead>
 						<tr>
 							<th><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th>
+							<th><?php esc_html_e( 'Type', 'ffcertificate' ); ?></th>
 							<th><?php esc_html_e( 'Description', 'ffcertificate' ); ?></th>
 							<th><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
 						</tr>
@@ -123,6 +131,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 									echo esc_html( '' !== $formatted_holiday ? $formatted_holiday : $holiday['date'] );
 									?>
 								</td>
+								<td><?php echo \FreeFormCertificate\Scheduling\ClosedDateKind::pill( (string) ( $holiday['kind'] ?? '' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pill() escapes its class and label. ?></td>
 								<td><?php echo esc_html( $holiday['description'] ?? '' ); ?></td>
 								<td>
 									<?php
@@ -151,4 +160,34 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php esc_html_e( 'No global holidays configured.', 'ffcertificate' ); ?>
 				</p>
 			<?php endif; ?>
+		</div>
+
+		<!-- Closed-date colours (#2202) -->
+		<div class="card">
+			<h2 class="ffc-icon-palette"><?php esc_html_e( 'Holiday Colors', 'ffcertificate' ); ?></h2>
+			<p class="description">
+				<?php esc_html_e( 'The color of the holiday and optional holiday labels on the public calendars, in the light theme. The dark theme keeps its own colors, and the text on each label turns white or black to stay readable.', 'ffcertificate' ); ?>
+			</p>
+			<form method="post">
+				<?php wp_nonce_field( 'ffc_closed_date_colors', 'ffc_closed_date_colors_nonce' ); ?>
+				<input type="hidden" name="ffc_action" value="save_closed_date_colors">
+				<table class="form-table" role="presentation">
+					<tbody>
+						<?php foreach ( \FreeFormCertificate\Scheduling\ClosedDateKind::all() as $ffc_kind ) : ?>
+							<tr>
+								<th scope="row">
+									<label for="closed_date_color_<?php echo esc_attr( $ffc_kind ); ?>"><?php echo esc_html( \FreeFormCertificate\Scheduling\ClosedDateKind::label( $ffc_kind ) ); ?></label>
+								</th>
+								<td>
+									<?php // The picker the Email Model and Date Messages use (wp-color-picker); its Default button restores the shipped colour. ?>
+									<input type="text" name="closed_date_color_<?php echo esc_attr( $ffc_kind ); ?>" id="closed_date_color_<?php echo esc_attr( $ffc_kind ); ?>" class="ffc-closed-date-color"
+											value="<?php echo esc_attr( $closed_date_colors[ $ffc_kind ] ); ?>"
+											data-default-color="<?php echo esc_attr( \FreeFormCertificate\Scheduling\ClosedDateKind::DEFAULT_COLORS[ $ffc_kind ] ); ?>">
+								</td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+				<?php \FreeFormCertificate\Admin\AdminUI::render_save_button( __( 'Save Colors', 'ffcertificate' ), array( 'value' => __( 'Save Colors', 'ffcertificate' ) ) ); ?>
+			</form>
 		</div>

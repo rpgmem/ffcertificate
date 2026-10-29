@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Database repository for audience environment records.
  *
  * @phpstan-type EnvironmentRow \stdClass&object{id: numeric-string, schedule_id: numeric-string, name: string, color?: string, description: string|null, working_hours: string|null, status: string, created_at: string, updated_at: string}
- * @phpstan-type HolidayRow \stdClass&object{id: numeric-string, schedule_id: numeric-string, holiday_date: string, description: string|null, created_by: numeric-string, created_at: string}
+ * @phpstan-type HolidayRow \stdClass&object{id: numeric-string, schedule_id: numeric-string, holiday_date: string, description: string|null, kind?: string, created_by: numeric-string, created_at: string}
  */
 class AudienceEnvironmentRepository {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -388,9 +388,10 @@ class AudienceEnvironmentRepository {
 	 * @param int         $schedule_id Schedule ID.
 	 * @param string      $date Date (Y-m-d).
 	 * @param string|null $description Optional description.
+	 * @param string      $kind        A `ClosedDateKind` value (#2202); unknown reads as a holiday.
 	 * @return int|false Holiday ID or false on failure
 	 */
-	public static function add_holiday( int $schedule_id, string $date, ?string $description = null ) {
+	public static function add_holiday( int $schedule_id, string $date, ?string $description = null, string $kind = \FreeFormCertificate\Scheduling\ClosedDateKind::HOLIDAY ) {
 		$wpdb  = self::db();
 		$table = self::get_holidays_table_name();
 
@@ -400,9 +401,10 @@ class AudienceEnvironmentRepository {
 				'schedule_id'  => $schedule_id,
 				'holiday_date' => $date,
 				'description'  => $description,
+				'kind'         => \FreeFormCertificate\Scheduling\ClosedDateKind::normalize( $kind ),
 				'created_by'   => get_current_user_id(),
 			),
-			array( '%d', '%s', '%s', '%d' )
+			array( '%d', '%s', '%s', '%s', '%d' )
 		);
 
 		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_DOMAIN );

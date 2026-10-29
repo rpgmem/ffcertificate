@@ -17,6 +17,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+use FreeFormCertificate\Scheduling\ClosedDateKind;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -513,16 +515,29 @@ class AudienceRestController {
 				return array(
 					'holiday_date' => $h->holiday_date,
 					'description'  => $h->description,
+					'kind'         => ClosedDateKind::normalize( $h->kind ?? null ),
 				);
 			},
 			$holidays
 		);
 
+		// What each closed date is (#2202), for the cell's label. A date
+		// closed as a holiday anywhere in scope reads as a holiday.
+		$holiday_kinds = array();
+		$note_kind     = static function ( string $date, $kind ) use ( &$holiday_kinds ): void {
+			$kind = ClosedDateKind::normalize( $kind );
+			if ( ! isset( $holiday_kinds[ $date ] ) || ClosedDateKind::HOLIDAY === $kind ) {
+				$holiday_kinds[ $date ] = $kind;
+			}
+		};
+
 		foreach ( $global_holidays as $gh ) {
 			$holidays_formatted[] = array(
 				'holiday_date' => $gh['date'],
 				'description'  => $gh['description'] ?? __( 'Holiday', 'ffcertificate' ),
+				'kind'         => ClosedDateKind::normalize( $gh['kind'] ?? null ),
 			);
+			$note_kind( (string) $gh['date'], $gh['kind'] ?? null );
 		}
 
 		// Which spaces are open on which days (#1859). Without an environment
@@ -540,6 +555,7 @@ class AudienceRestController {
 			$dates = array();
 			foreach ( AudienceEnvironmentRepository::get_holidays( (int) $scope_schedule_id, $start_date, $end_date ) as $h ) {
 				$dates[] = $h->holiday_date;
+				$note_kind( (string) $h->holiday_date, $h->kind ?? null );
 			}
 			$schedule_holidays[ (string) $scope_schedule_id ] = $dates;
 		}
@@ -553,6 +569,7 @@ class AudienceRestController {
 				'environments'      => $availability,
 				'schedule_holidays' => $schedule_holidays,
 				'global_holidays'   => array_column( $global_holidays, 'date' ),
+				'holiday_kinds'     => (object) $holiday_kinds,
 			),
 			200
 		);

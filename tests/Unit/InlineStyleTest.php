@@ -73,7 +73,7 @@ final class InlineStyleTest extends TestCase {
 
 	private const NOSCRIPT = 'inside <noscript>: reveals the no-JS fallback, which a stylesheet cannot do because it cannot know scripts are off and we do not own <html> to carry a no-js class';
 
-	private const GENERATED = 'generated on purpose from settings or the icon registry (menu mask, recruitment badge palette, public design), attached to the sheet it extends';
+	private const GENERATED = 'generated on purpose from settings or the icon registry (menu mask, recruitment badge palette, public design, holiday colours), attached to the sheet it extends';
 
 	private const OPTION_FILTER = 'the initial hidden state of a reason <option> the script filters, and the very state it reads back (`style.display === "none"`)';
 
@@ -274,6 +274,9 @@ final class InlineStyleTest extends TestCase {
 		),
 		'includes/reregistration/class-ffc-reregistration-custom-fields-page.php' => array(
 			'style=: style="--ffc-color:<?php echo esc_attr( $audience->color ); ?>' => array( 1, self::OPERATOR_COLOUR ),
+		),
+		'includes/scheduling/class-ffc-closed-date-kind.php' => array(
+			'wp_add_inline_style: wp_add_inline_style( $handle' => array( 1, self::GENERATED ),
 		),
 		'includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php' => array(
 			'style=: style="margin: 20px 0;'                                    => array( 2, self::EMAIL_BODY ),

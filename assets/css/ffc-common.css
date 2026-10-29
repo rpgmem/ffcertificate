@@ -182,6 +182,14 @@
                                        Deliberately NOT redeclared in the dark block: the warning
                                        is a mid-light tone in both themes, so the same dark text
                                        serves — 8,67:1 on dark's #f0b849. */
+    /* Closed-date labels (#2202): a holiday and an optional holiday. Their
+       own tokens, not the warning ones, because the light theme takes white
+       text here and Scheduling settings may repaint them (light theme only,
+       through `ClosedDateKind::inline_css()`). */
+    --ffc-holiday: #8a6500;               /* 5,33:1 with white. */
+    --ffc-text-on-holiday: #ffffff;
+    --ffc-optional-holiday: #4f6b8f;      /* 5,48:1 with white. */
+    --ffc-text-on-optional-holiday: #ffffff;
 
     /* Semantic Tokens - Inverse surface (M3's inverseSurface/inverseOnSurface)
        The toast bubble is inverted chrome on purpose: dark on a light page.
@@ -248,6 +256,10 @@
     --ffc-success-hover: #6ec071;
     --ffc-success-light: #1a2e1a;
     --ffc-warning: #f0b849;
+    --ffc-holiday: #f0b849;
+    --ffc-text-on-holiday: #2e2200;       /* 8,67:1. */
+    --ffc-optional-holiday: #9fb4cf;
+    --ffc-text-on-optional-holiday: #1b2129; /* 7,64:1. */
     --ffc-warning-light: #332b10;
     --ffc-danger: #e88080;          /* 4,78:1 on the card — was #e57373, 4,29:1 (#1126 B). */
     --ffc-danger-hover: #ee9595;
@@ -3598,3 +3610,32 @@ body.wp-admin .ffc-btn-icon::before {
     height: 100%;
     border: 0;
 }
+
+/* A closed date's kind in the admin lists (#2202). */
+.ffc-closed-date-pill {
+    display: inline-block;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
+    border-radius: var(--ffc-radius-full);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ffc-closed-date-pill.ffc-closed-date-pill-holiday {
+    background: var(--ffc-holiday);
+    color: var(--ffc-text-on-holiday);
+}
+
+.ffc-closed-date-pill.ffc-closed-date-pill-optional {
+    background: var(--ffc-optional-holiday);
+    color: var(--ffc-text-on-optional-holiday);
+}
+
+@media (forced-colors: active) {
+    /* Read, not clicked: the border keeps the pill shape. */
+    .ffc-closed-date-pill.ffc-closed-date-pill-holiday,
+    .ffc-closed-date-pill.ffc-closed-date-pill-optional {
+        border: 1px solid CanvasText;
+    }
+}
+

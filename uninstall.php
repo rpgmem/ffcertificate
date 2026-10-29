@@ -194,6 +194,7 @@ $ffcertificate_options = array(
 	'ffc_bulk_issue_db_version',
 	'ffc_user_access_settings',
 	'ffc_global_holidays',
+	'ffc_closed_date_colors', // Written only when the holiday colours are saved (#2202).
 	'ffc_cleanup_days',
 	'ffc_migration_data_cleanup_completed',
 	'ffc_migration_name_normalization_errors',

@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Scheduling: optional holidays and configurable holiday colours** (#2202). A global holiday or a calendar's closed date can be marked an optional holiday; it closes the day like a holiday and is labelled apart in the day cell, the legend and the event list. Settings → Scheduling sets each kind's light-theme colour, with the text colour chosen for contrast.
+
 ### Changed
 
 - **Tests: duplicates removed, `UtilsTest` split by subject** (#2092). Four pairs of identical tests now each build the case their name describes, which found that the `{{schedule}}` test only passed through the legacy reader. `UtilsTest` keeps its 19 `Utils` cases; 37 that repeated another file were removed and the rest moved to their class's file. Coverage unchanged.

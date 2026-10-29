@@ -676,9 +676,10 @@ class AudienceEnvironmentRepositoryTest extends TestCase {
 					return $data['schedule_id'] === 10
 						&& $data['holiday_date'] === '2025-12-25'
 						&& $data['description'] === 'Christmas'
+						&& $data['kind'] === 'holiday'
 						&& $data['created_by'] === 1;
 				}),
-				['%d', '%s', '%s', '%d']
+				['%d', '%s', '%s', '%s', '%d']
 			)
 			->andReturn(1);
 
@@ -695,6 +696,22 @@ class AudienceEnvironmentRepositoryTest extends TestCase {
 		$this->assertFalse($result);
 	}
 
+	public function test_add_holiday_stores_an_optional_kind_and_reads_anything_else_as_holiday(): void {
+		$this->wpdb->insert_id = 57;
+		$kinds = array();
+		$this->wpdb->shouldReceive('insert')
+			->twice()
+			->andReturnUsing(function($table, $data) use (&$kinds) {
+				$kinds[] = $data['kind'];
+				return 1;
+			});
+
+		AudienceEnvironmentRepository::add_holiday(10, '2025-11-20', 'Consciência Negra', 'optional');
+		AudienceEnvironmentRepository::add_holiday(10, '2025-11-21', null, 'whatever');
+
+		$this->assertSame(array('optional', 'holiday'), $kinds);
+	}
+
 	public function test_add_holiday_with_null_description(): void {
 		$this->wpdb->insert_id = 56;
 
@@ -705,7 +722,7 @@ class AudienceEnvironmentRepositoryTest extends TestCase {
 				Mockery::on(function($data) {
 					return $data['description'] === null;
 				}),
-				['%d', '%s', '%s', '%d']
+				['%d', '%s', '%s', '%s', '%d']
 			)
 			->andReturn(1);
 

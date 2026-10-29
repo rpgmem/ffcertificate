@@ -516,6 +516,12 @@
 
     $(document).ready(function() {
         FFCAudienceAdmin.init();
+
+        // The holiday colours (#2202) take the picker the Email Model uses;
+        // its Default button restores the colour the plugin ships with.
+        if (typeof $.fn.wpColorPicker === 'function') {
+            $('.ffc-closed-date-color').wpColorPicker();
+        }
     });
 
 })(jQuery);
