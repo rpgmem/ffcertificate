@@ -2,7 +2,7 @@
 Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.8
-Tested up to: 7.1.3
+Tested up to: 7.1.4
 Stable tag: 6.42.0
 Requires PHP: 8.3
 License: AGPLv3 or later
