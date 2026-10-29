@@ -915,7 +915,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		$out = '';
 		switch ( $current ) {
 			case 'empty':
-				$out .= self::cls_button( $id, 'call', __( 'Call', 'ffcertificate' ), 'neutral', 'phone' );
+				$out .= self::cls_button( $id, 'call', __( 'Call', 'ffcertificate' ), 'neutral', 'user-call' );
 				break;
 			case 'called':
 				$out .= self::cls_button( $id, 'accepted', __( 'Mark accepted', 'ffcertificate' ), 'neutral', 'checkmark' );

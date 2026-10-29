@@ -63,6 +63,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **CI: the PHP suite runs in reverse order as a gate and in random order as an alarm** (#2197). A new required job runs the whole suite with `--order-by=reverse`, and a separate workflow runs it in a random order on pushes to `develop`, daily and on demand, printing the seed to replay.
 - **Audience Calendars: the environment filter shows each environment's colour** (#2201). A list with a colour dot per environment replaces the native select, which stays as the value the calendar reads; keyboard and screen readers operate it as a select, and "All" carries no dot.
 - **Tests: two more order dependencies found by the random-order run are fixed** (#2208). `FrontendTest` inherited the rate-limit settings cache from an earlier test, and a holiday test inherited `$_POST` from its neighbour; both now start from the state they assert on.
+- **Admin: list toggles lose the redundant "Active" label, and recruitment Call wears a person-being-called icon** (#2239). The toggles on Short URLs and Date Messages keep their accessible name; the Call and Call selected buttons use the new `user-call` icon instead of the phone, which stays in the registry.
 
 ### Deprecated
 
