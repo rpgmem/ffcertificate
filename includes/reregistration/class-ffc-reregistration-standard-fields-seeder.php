@@ -51,6 +51,7 @@ class ReregistrationStandardFieldsSeeder {
 		add_action( 'admin_init', array( __CLASS__, 'maybe_add_edu_email_field' ) );
 		// Same hook, so the seeded rows match the definition from one request on.
 		add_action( 'admin_init', array( __CLASS__, 'maybe_validate_rf_fields' ) );
+		add_action( 'admin_init', array( __CLASS__, 'maybe_validate_cep_fields' ) );
 	}
 
 	/**
@@ -215,6 +216,32 @@ class ReregistrationStandardFieldsSeeder {
 		}
 
 		update_option( self::RF_VALIDATION_OPTION, '1', false );
+	}
+
+	/**
+	 * Option flagging that the seeded CEP fields validate as a CEP.
+	 */
+	public const CEP_VALIDATION_OPTION = 'ffc_cep_field_validated';
+
+	/**
+	 * Give the seeded `cep` fields the offline CEP check (#2233).
+	 *
+	 * Same shape as {@see self::maybe_validate_rf_fields()}: a row an operator
+	 * gave rules of its own keeps them; runs once, and the flag is written
+	 * even when nothing matched.
+	 *
+	 * @return void
+	 */
+	public static function maybe_validate_cep_fields(): void {
+		if ( get_option( self::CEP_VALIDATION_OPTION ) ) {
+			return;
+		}
+
+		foreach ( CustomFieldReader::standard_field_ids_without_rules( 'cep' ) as $id ) {
+			CustomFieldWriter::update( $id, array( 'validation_rules' => array( 'format' => 'cep' ) ) );
+		}
+
+		update_option( self::CEP_VALIDATION_OPTION, '1', false );
 	}
 
 	/**
@@ -530,7 +557,7 @@ class ReregistrationStandardFieldsSeeder {
 				'mask'         => 'cep',
 				'required'     => 0,
 				'options'      => null,
-				'validation'   => null,
+				'validation'   => array( 'format' => 'cep' ),
 			),
 			array(
 				'field_key'    => 'phone',

@@ -457,6 +457,49 @@ class CustomFieldValidatorTest extends TestCase {
 	}
 
 	// ==================================================================
+	// validate_format — CEP format (#2233)
+	// ==================================================================
+
+	public function test_validate_cep_accepts_a_cep_in_the_forms_uf(): void {
+		$field = $this->make_field( array( 'validation_rules' => array( 'format' => 'cep' ) ) );
+
+		$this->assertTrue( CustomFieldValidator::validate( $field, '08615-070', array( 'uf' => 'SP' ) ) );
+		$this->assertTrue( CustomFieldValidator::validate( $field, '08615070' ), 'Without a UF in the form the UF check is skipped.' );
+	}
+
+	public function test_validate_cep_refuses_a_bad_format_and_repeated_digits(): void {
+		$field = $this->make_field( array( 'validation_rules' => array( 'format' => 'cep' ) ) );
+
+		$bad = CustomFieldValidator::validate( $field, '0861-507' );
+		$this->assertInstanceOf( \WP_Error::class, $bad );
+		$this->assertSame( 'field_invalid_cep', $bad->get_error_code() );
+		$this->assertStringContainsString( 'must be a valid CEP', $bad->get_error_message() );
+
+		$repeated = CustomFieldValidator::validate( $field, '11111-111' );
+		$this->assertInstanceOf( \WP_Error::class, $repeated );
+		$this->assertStringContainsString( 'all digits are the same', $repeated->get_error_message() );
+	}
+
+	public function test_validate_cep_refuses_a_cep_from_another_uf_naming_it(): void {
+		$field = $this->make_field( array( 'validation_rules' => array( 'format' => 'cep' ) ) );
+
+		$result = CustomFieldValidator::validate( $field, '28615-070', array( 'uf' => 'sp' ) );
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'field_invalid_cep', $result->get_error_code() );
+		$this->assertSame( 'This CEP does not belong to SP. Check the CEP or the UF.', $result->get_error_message() );
+	}
+
+	public function test_an_empty_optional_cep_passes_and_an_empty_required_one_does_not(): void {
+		$optional = $this->make_field( array( 'validation_rules' => array( 'format' => 'cep' ) ) );
+		$this->assertTrue( CustomFieldValidator::validate( $optional, '' ) );
+
+		$required = $this->make_field( array( 'validation_rules' => array( 'format' => 'cep' ), 'is_required' => 1 ) );
+		$result   = CustomFieldValidator::validate( $required, '' );
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'field_required', $result->get_error_code() );
+	}
+
+	// ==================================================================
 	// validate_format — email format
 	// ==================================================================
 

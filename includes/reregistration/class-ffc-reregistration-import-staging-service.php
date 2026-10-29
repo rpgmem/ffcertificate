@@ -363,7 +363,7 @@ class ReregistrationImportStagingService {
 
 			if ( 'ready' === $status ) {
 				foreach ( $fields as $key => $field ) {
-					$check = CustomFieldReader::validate_field_value( $field, $payload[ $key ] ?? '' );
+					$check = CustomFieldReader::validate_field_value( $field, $payload[ $key ] ?? '', $payload );
 					if ( is_wp_error( $check ) ) {
 						$status = 'failed';
 						$error  = sprintf( '%s:%s', (string) $check->get_error_code(), $key );

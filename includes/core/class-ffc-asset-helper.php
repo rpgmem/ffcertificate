@@ -124,16 +124,18 @@ final class AssetHelper {
 	 * What `ffc-core` is localized with as `ffcCoreConfig`, on every screen
 	 * that registers it: the version, the field-message strings and whether an
 	 * RF must carry a matching check digit, so the browser's RF check agrees
-	 * with {@see DocumentFormatter::validate_rf()} (#1920).
+	 * with {@see DocumentFormatter::validate_rf()} (#1920), and the CEP ranges
+	 * by UF, so the browser's CEP check reads {@see CepRule::RANGES} (#2233).
 	 *
 	 * @since 6.41.0
-	 * @return array{version: string, strings: array<string, string>, rfCheckDigit: bool}
+	 * @return array{version: string, strings: array<string, string>, rfCheckDigit: bool, cepRanges: array<string, list<array{0: int, 1: int}>>}
 	 */
 	public static function core_script_config(): array {
 		return array(
 			'version'      => FFC_VERSION,
 			'strings'      => FieldMessage::script_strings(),
 			'rfCheckDigit' => DocumentFormatter::rf_check_digit_enforced(),
+			'cepRanges'    => CepRule::RANGES,
 		);
 	}
 

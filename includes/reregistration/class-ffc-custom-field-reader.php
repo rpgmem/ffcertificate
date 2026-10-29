@@ -539,13 +539,14 @@ class CustomFieldReader {
 	/**
 	 * Validate a field value against its definition.
 	 *
-	 * @param object $field Field definition object.
-	 * @param mixed  $value Value to validate.
+	 * @param object               $field   Field definition object.
+	 * @param mixed                $value   Value to validate.
+	 * @param array<string, mixed> $context The form's other values by field key.
 	 * @phpstan-param CustomFieldRow $field
 	 * @return true|\WP_Error True if valid, WP_Error with message if invalid.
 	 */
-	public static function validate_field_value( object $field, $value ) {
-		return CustomFieldValidator::validate( $field, $value );
+	public static function validate_field_value( object $field, $value, array $context = array() ) {
+		return CustomFieldValidator::validate( $field, $value, $context );
 	}
 
 	/**

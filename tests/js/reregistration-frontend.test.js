@@ -371,6 +371,26 @@ describe('rereg blur validation', () => {
 		expect(window.$('.ffc-rereg-field .ffc-field-message').length).toBe(0);
 	});
 
+	it('checks a CEP against the UF and re-checks it when the UF changes (#2233)', async () => {
+		const saved = window.ffcCoreConfig;
+		window.ffcCoreConfig = Object.assign({}, saved, { cepRanges: { SP: [[1000, 19999]], RJ: [[20000, 28999]] } });
+		await mountForm(`
+			<div class="ffc-rereg-field" data-field-key="uf"><select name="fields[uf]"><option>SP</option><option>RJ</option></select></div>
+			<div class="ffc-rereg-field" data-field-key="cep" data-format="cep"><input id="cep" name="fields[cep]" value="28615-070" /></div>
+		`);
+
+		window.$('#cep').trigger('blur');
+		await flush();
+		expect(window.$('#cep').attr('aria-invalid')).toBe('true');
+		expect(window.$('[data-field-key="cep"] .ffc-field-message').text()).toContain('SP');
+
+		window.$('[name="fields[uf]"]').val('RJ').trigger('change');
+		await flush();
+		expect(window.$('#cep').attr('aria-invalid')).toBeUndefined();
+
+		window.ffcCoreConfig = saved;
+	});
+
 	it('flags invalid CPF and clears on valid CPF', async () => {
 		await mountForm(`
 			<div class="ffc-rereg-field" data-format="cpf">

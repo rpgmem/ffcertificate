@@ -29494,3 +29494,27 @@ msgstr ""
 #, php-format
 msgid "%s must be a valid RF."
 msgstr ""
+
+#. translators: %s: field label
+#, php-format
+msgid "%s must be a valid CEP."
+msgstr ""
+
+#. translators: %s: field label
+#, php-format
+msgid "%s is not a valid CEP: all digits are the same."
+msgstr ""
+
+#. translators: %s: state abbreviation (UF)
+#, php-format
+msgid "This CEP does not belong to %s. Check the CEP or the UF."
+msgstr ""
+
+msgid "Invalid CEP."
+msgstr ""
+
+msgid "Invalid CEP: all digits are the same."
+msgstr ""
+
+msgid "The CEP is checked without any outside lookup: it needs eight digits, cannot repeat one digit eight times, and must fall in the Correios range of the UF chosen in the same form. A CEP from another state is refused with a message naming the UF, since either field may be the typo. A CEP that passes can still not exist; only a lookup can tell."
+msgstr ""
