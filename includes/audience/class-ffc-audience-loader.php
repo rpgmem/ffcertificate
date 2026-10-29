@@ -220,6 +220,9 @@ class AudienceLoader {
 			array( 'ffc-common' ),
 			FFC_VERSION
 		);
+		// The admin lists draw the closed-date pills too, so the colours an
+		// administrator picked reach them as they reach the calendars (#2210).
+		\FreeFormCertificate\Scheduling\ClosedDateKind::enqueue_colors( 'ffc-audience-admin' );
 
 		// Admin JS.
 		wp_enqueue_script(

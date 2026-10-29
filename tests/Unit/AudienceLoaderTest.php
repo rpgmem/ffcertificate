@@ -160,6 +160,38 @@ class AudienceLoaderTest extends TestCase {
 		$loader->enqueue_admin_assets('toplevel_page_ffc-audience');
 	}
 
+	public function test_admin_pills_take_the_chosen_holiday_colours(): void {
+		$loader = AudienceLoader::get_instance();
+
+		Functions\when('get_option')->alias(
+			static fn( $name, $default = false ) => 'ffc_closed_date_colors' === $name
+				? array( 'holiday' => '#123456', 'optional' => '#4f6b8f' )
+				: $default
+		);
+		Functions\when('sanitize_hex_color')->returnArg();
+		Functions\when('wp_enqueue_style')->justReturn(true);
+		Functions\when('wp_enqueue_script')->justReturn(true);
+		Functions\when('wp_localize_script')->justReturn(true);
+		Functions\when('admin_url')->justReturn('https://example.com/wp-admin/admin-ajax.php');
+		Functions\when('rest_url')->justReturn('https://example.com/wp-json/ffc/v1/audience/');
+		Functions\when('wp_create_nonce')->justReturn('test-nonce');
+		Functions\when('sanitize_text_field')->returnArg();
+		Functions\when('wp_unslash')->returnArg();
+		$inline = array();
+		Functions\when('wp_add_inline_style')->alias(
+			static function ( $handle, $css ) use ( &$inline ) {
+				$inline[] = array( $handle, $css );
+				return true;
+			}
+		);
+
+		$loader->enqueue_admin_assets('ffc-scheduling_page_ffc-scheduling-settings');
+
+		$admin = array_values( array_filter( $inline, static fn( $call ) => 'ffc-audience-admin' === $call[0] ) );
+		$this->assertCount( 1, $admin, 'The admin sheet carries the chosen colours (#2210).' );
+		$this->assertStringContainsString( '--ffc-holiday:#123456', $admin[0][1] );
+	}
+
 	// ==================================================================
 	// enqueue_frontend_assets() — bail when no post
 	// ==================================================================
