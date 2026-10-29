@@ -174,9 +174,10 @@ class AudienceShortcode {
 					. esc_html__( 'You are viewing this calendar as an administrator (bypass active).', 'ffcertificate' ),
 					'',
 					array(
-						'role' => 'note',
-						'html' => true,
-						'hook' => 'admin-bypass',
+						'role'    => 'note',
+						'html'    => true,
+						'hook'    => 'admin-bypass',
+						'classes' => self::notice_classes( $schedules ),
 					)
 				);
 			}
@@ -214,6 +215,25 @@ class AudienceShortcode {
 		);
 
 		return $bypass_notice . self::render_calendar_html( $schedules, $config, $atts, true );
+	}
+
+	/**
+	 * Layout classes for a notice printed above the calendar (#2200).
+	 *
+	 * The notice sits outside the calendar, so without these it takes the
+	 * content's full width while the calendar is capped; the wide variant
+	 * follows the wrapper when the event list sits beside the calendar.
+	 *
+	 * @param array<int, object> $schedules Schedules the calendar shows.
+	 * @phpstan-param list<ScheduleRow> $schedules
+	 * @return list<string>
+	 */
+	private static function notice_classes( array $schedules ): array {
+		$classes = array( 'ffc-calendar-notice' );
+		if ( self::should_show_event_list( $schedules ) && 'side' === self::get_event_list_position( $schedules ) ) {
+			$classes[] = 'ffc-calendar-notice-wide';
+		}
+		return $classes;
 	}
 
 	/**
@@ -714,8 +734,9 @@ class AudienceShortcode {
 			__( 'You do not have access to any calendars.', 'ffcertificate' ),
 			'',
 			array(
-				'role' => 'note',
-				'hook' => 'audience-no-access',
+				'role'    => 'note',
+				'hook'    => 'audience-no-access',
+				'classes' => array( 'ffc-calendar-notice' ),
 			)
 		);
 	}
