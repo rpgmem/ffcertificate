@@ -69,6 +69,7 @@
         // Masks, dependent selects and the dual-post toggle are shared with
         // the wp-admin user screen (ffc-field-behaviours.js).
         FFC.Fields.initMasks($container);
+        FFC.Fields.initCepLookup($container);
         initBlurValidation($container);
         FFC.Fields.initDualPost($container, S.dualPostShowValue);
         initWorkingHours($container);

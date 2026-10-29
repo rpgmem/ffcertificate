@@ -293,6 +293,7 @@ $ffcertificate_options = array(
 	// Flag of the one-shot step giving the seeded RF fields their format check.
 	'ffc_rf_field_validated',
 	'ffc_cep_field_validated',
+	'ffc_cep_before_address',
 	'ffc_recruitment_public_cache_version',
 	// The admin's chosen record (ficha) template, written only when the
 	// Reregistration tab is saved -- which is why the fresh-install gate never

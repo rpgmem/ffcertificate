@@ -52,6 +52,8 @@ class ReregistrationStandardFieldsSeeder {
 		// Same hook, so the seeded rows match the definition from one request on.
 		add_action( 'admin_init', array( __CLASS__, 'maybe_validate_rf_fields' ) );
 		add_action( 'admin_init', array( __CLASS__, 'maybe_validate_cep_fields' ) );
+		// Same hook: the form must ask for the CEP before the address it fills.
+		add_action( 'admin_init', array( __CLASS__, 'maybe_move_cep_before_address' ) );
 	}
 
 	/**
@@ -242,6 +244,67 @@ class ReregistrationStandardFieldsSeeder {
 		}
 
 		update_option( self::CEP_VALIDATION_OPTION, '1', false );
+	}
+
+	/**
+	 * Option flagging that the CEP was moved before the address.
+	 */
+	public const CEP_ORDER_OPTION = 'ffc_cep_before_address';
+
+	/**
+	 * Put the `cep` field right before `endereco` in every audience (#2234).
+	 *
+	 * The address lookup fills the address from the CEP, so the CEP has to be
+	 * typed first; it used to be seeded last in the contact group. Every
+	 * audience that has both fields is reordered -- one an administrator
+	 * reordered by hand included, by the maintainer's decision -- and an
+	 * audience where `cep` already precedes `endereco` is left alone. Only the
+	 * CEP moves: the fields between the two shift down by one, and the
+	 * audience's sort orders are renumbered 0..n-1 in their existing order so
+	 * a tie cannot hide the move. Runs once; the Record PDF is unaffected,
+	 * because its template places each value by placeholder.
+	 *
+	 * @return void
+	 */
+	public static function maybe_move_cep_before_address(): void {
+		if ( get_option( self::CEP_ORDER_OPTION ) ) {
+			return;
+		}
+
+		foreach ( array_keys( CustomFieldReader::standard_field_positions( 'cep' ) ) as $audience_id ) {
+			self::move_cep_before_address( (int) $audience_id );
+		}
+
+		update_option( self::CEP_ORDER_OPTION, '1', false );
+	}
+
+	/**
+	 * Reorder one audience; true when anything moved.
+	 *
+	 * @param int $audience_id Audience ID.
+	 * @return bool
+	 */
+	private static function move_cep_before_address( int $audience_id ): bool {
+		$fields = CustomFieldReader::get_by_audience( $audience_id, false );
+		$keys   = array_map( static fn( $field ) => (string) $field->field_key, $fields );
+
+		$cep     = array_search( 'cep', $keys, true );
+		$address = array_search( 'endereco', $keys, true );
+		if ( false === $cep || false === $address || $cep < $address ) {
+			return false;
+		}
+
+		$cep_field = $fields[ $cep ];
+		array_splice( $fields, $cep, 1 );
+		array_splice( $fields, $address, 0, array( $cep_field ) );
+
+		foreach ( $fields as $index => $field ) {
+			if ( (int) $field->sort_order !== $index ) {
+				CustomFieldWriter::update( (int) $field->id, array( 'sort_order' => $index ) );
+			}
+		}
+
+		return true;
 	}
 
 	/**
@@ -473,6 +536,18 @@ class ReregistrationStandardFieldsSeeder {
 
 			// ───── Contact Information ─────.
 			array(
+				'field_key'    => 'cep',
+				'field_label'  => __( 'Zip Code', 'ffcertificate' ),
+				'field_type'   => 'text',
+				'field_group'  => self::GROUP_CONTACT,
+				'profile_key'  => null,
+				'is_sensitive' => 0,
+				'mask'         => 'cep',
+				'required'     => 0,
+				'options'      => null,
+				'validation'   => array( 'format' => 'cep' ),
+			),
+			array(
 				'field_key'    => 'endereco',
 				'field_label'  => __( 'Address', 'ffcertificate' ),
 				'field_type'   => 'text',
@@ -546,18 +621,6 @@ class ReregistrationStandardFieldsSeeder {
 					'default' => 'SP',
 				),
 				'validation'   => null,
-			),
-			array(
-				'field_key'    => 'cep',
-				'field_label'  => __( 'Zip Code', 'ffcertificate' ),
-				'field_type'   => 'text',
-				'field_group'  => self::GROUP_CONTACT,
-				'profile_key'  => null,
-				'is_sensitive' => 0,
-				'mask'         => 'cep',
-				'required'     => 0,
-				'options'      => null,
-				'validation'   => array( 'format' => 'cep' ),
 			),
 			array(
 				'field_key'    => 'phone',

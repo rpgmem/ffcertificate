@@ -287,6 +287,10 @@ class Settings {
 		return array(
 			'cleanup_enabled'            => false,
 			'validate_rf_check_digit'    => false,
+			// Settings → General: the address lookup by CEP (#2234). Off by
+			// default -- it sends each CEP typed to a third party.
+			'cep_lookup_enabled'         => false,
+			'cep_lookup_primary'         => 'viacep',
 			'cleanup_days'               => 365,
 			'quiz_focus_grace_ms'        => 1000,
 			// Settings → Certificates: check the visitor's browser (#2030).

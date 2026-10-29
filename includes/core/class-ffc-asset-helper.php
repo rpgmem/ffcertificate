@@ -128,7 +128,7 @@ final class AssetHelper {
 	 * by UF, so the browser's CEP check reads {@see CepRule::RANGES} (#2233).
 	 *
 	 * @since 6.41.0
-	 * @return array{version: string, strings: array<string, string>, rfCheckDigit: bool, cepRanges: array<string, list<array{0: int, 1: int}>>}
+	 * @return array{version: string, strings: array<string, string>, rfCheckDigit: bool, cepRanges: array<string, list<array{0: int, 1: int}>>, cepLookup: mixed}
 	 */
 	public static function core_script_config(): array {
 		return array(
@@ -136,6 +136,14 @@ final class AssetHelper {
 			'strings'      => FieldMessage::script_strings(),
 			'rfCheckDigit' => DocumentFormatter::rf_check_digit_enforced(),
 			'cepRanges'    => CepRule::RANGES,
+			/**
+			 * The address lookup's browser settings, or null when the lookup
+			 * is off (#2234). `Integrations\CepLookupEndpoint` supplies it, so
+			 * Core names no integration.
+			 *
+			 * @param array{url: string, action: string, nonce: string}|null $config
+			 */
+			'cepLookup'    => apply_filters( 'ffcertificate_cep_lookup_script_config', null ),
 		);
 	}
 

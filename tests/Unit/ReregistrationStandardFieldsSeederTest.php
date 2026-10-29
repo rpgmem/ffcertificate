@@ -488,6 +488,7 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 				array( ReregistrationStandardFieldsSeeder::class, 'maybe_add_edu_email_field' ),
 				array( ReregistrationStandardFieldsSeeder::class, 'maybe_validate_rf_fields' ),
 				array( ReregistrationStandardFieldsSeeder::class, 'maybe_validate_cep_fields' ),
+				array( ReregistrationStandardFieldsSeeder::class, 'maybe_move_cep_before_address' ),
 			),
 			$hooked['admin_init'] ?? null
 		);
@@ -775,5 +776,114 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		$defs = array_column( ReregistrationStandardFieldsSeeder::get_standard_fields_definition(), null, 'field_key' );
 
 		$this->assertSame( array( 'format' => 'cep' ), $defs['cep']['validation'] );
+	}
+
+	// ==================================================================
+	// maybe_move_cep_before_address() -- the CEP typed before the address (#2234)
+	// ==================================================================
+
+	/**
+	 * Answer the two reads the reorder makes: which audiences have a
+	 * standard `cep`, and each audience's fields in their order.
+	 *
+	 * @param array<int, list<array{0: int, 1: string, 2: int}>> $audiences id => [field id, key, sort order], in query order.
+	 * @param array<int, array<string, mixed>>                    $updates   Writes by field id, filled as they happen.
+	 * @return void
+	 */
+	private function audiences_with_fields( array $audiences, array &$updates ): void {
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( ...$args ) => $args );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $q ) use ( $audiences ) {
+				if ( false !== strpos( $q[0], 'field_source' ) ) {
+					return array_map(
+						static fn( $id ) => array( 'audience_id' => (string) $id, 'sort_order' => '0' ),
+						array_keys( $audiences )
+					);
+				}
+				$fields = $audiences[ (int) $q[1][1] ] ?? array();
+				return array_map(
+					static fn( $f ) => (object) array( 'id' => (string) $f[0], 'field_key' => $f[1], 'sort_order' => (string) $f[2] ),
+					$fields
+				);
+			}
+		);
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing(
+			static function ( $table, $data, $where ) use ( &$updates ) {
+				$updates[ (int) $where['id'] ] = $data;
+				return 1;
+			}
+		);
+	}
+
+	public function test_move_cep_puts_it_right_before_the_address_and_renumbers(): void {
+		$options = array();
+		Functions\when( 'get_option' )->justReturn( false );
+		Functions\when( 'update_option' )->alias( function ( $key, $value, $autoload = null ) use ( &$options ) {
+			$options[ $key ] = array( $value, $autoload );
+			return true;
+		});
+		$updates = array();
+		$this->audiences_with_fields(
+			array(
+				// The seeded order: the CEP last in the contact group.
+				7 => array( array( 1, 'nome_completo', 0 ), array( 2, 'endereco', 1 ), array( 3, 'endereco_numero', 2 ), array( 4, 'bairro', 3 ), array( 5, 'cep', 4 ), array( 6, 'telefone', 5 ) ),
+				// Reordered by hand, with a tie, listed as the query sorts it:
+				// still moved, and the tie renumbered.
+				8 => array( array( 11, 'endereco', 3 ), array( 12, 'cidade', 3 ), array( 10, 'cep', 9 ) ),
+			),
+			$updates
+		);
+
+		ReregistrationStandardFieldsSeeder::maybe_move_cep_before_address();
+
+		$this->assertSame(
+			array(
+				5  => array( 'sort_order' => 1 ),
+				2  => array( 'sort_order' => 2 ),
+				3  => array( 'sort_order' => 3 ),
+				4  => array( 'sort_order' => 4 ),
+				10 => array( 'sort_order' => 0 ),
+				11 => array( 'sort_order' => 1 ),
+				12 => array( 'sort_order' => 2 ),
+			),
+			$updates,
+			'Only the rows whose position changed are written; nome_completo and telefone keep theirs.'
+		);
+		$this->assertSame( array( '1', false ), $options[ ReregistrationStandardFieldsSeeder::CEP_ORDER_OPTION ] ?? null );
+	}
+
+	public function test_move_cep_leaves_an_audience_already_in_order_or_missing_a_field(): void {
+		Functions\when( 'get_option' )->justReturn( false );
+		Functions\when( 'update_option' )->justReturn( true );
+		$updates = array();
+		$this->audiences_with_fields(
+			array(
+				7 => array( array( 1, 'cep', 0 ), array( 2, 'endereco', 1 ) ),
+				8 => array( array( 3, 'cep', 0 ), array( 4, 'bairro', 1 ) ),
+			),
+			$updates
+		);
+
+		ReregistrationStandardFieldsSeeder::maybe_move_cep_before_address();
+
+		$this->assertSame( array(), $updates );
+	}
+
+	public function test_move_cep_runs_once(): void {
+		Functions\when( 'get_option' )->justReturn( '1' );
+		$writes = CallLog::record( 'update_option', true );
+		$this->wpdb->shouldReceive( 'get_results' )->never();
+
+		ReregistrationStandardFieldsSeeder::maybe_move_cep_before_address();
+
+		$this->assertSame( 0, $writes->count() );
+	}
+
+	public function test_the_cep_is_seeded_right_before_the_address(): void {
+		$keys = array_column( ReregistrationStandardFieldsSeeder::get_standard_fields_definition(), 'field_key' );
+
+		$this->assertSame( array_search( 'endereco', $keys, true ) - 1, array_search( 'cep', $keys, true ) );
 	}
 }

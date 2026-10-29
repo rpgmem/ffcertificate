@@ -11,6 +11,7 @@
  * - the dual-post toggle (the accumulation fields follow `acumulo_cargos`)
  * - format checks (`cpf`, `email`, `phone`, `custom_regex`) and the CPF and RF
  *   validators every screen shares
+ * - the address lookup by CEP (#2234), when Settings → General turns it on
  *
  * Every function takes the container it works in, so a screen wires only the
  * part of the page that holds fields, and binds directly on the elements --
@@ -358,9 +359,214 @@
         return '';
     }
 
+    /**
+     * Address fields the lookup fills, by the key of its answer. The number
+     * and the complement are never touched: the CEP does not know them.
+     */
+    var CEP_TARGETS = {
+        street: 'endereco',
+        neighborhood: 'bairro',
+        city: 'cidade',
+        uf: 'uf'
+    };
+
+    /** The shortest a lookup shows its progress: friction on purpose (#2234). */
+    var CEP_MIN_MS = 3000;
+
+    /** The longest the browser waits for the server's answer. */
+    var CEP_ABORT_MS = 6000;
+
+    /** How long a filled field stays highlighted. */
+    var CEP_HIGHLIGHT_MS = 1500;
+
+    function fieldControl($container, key) {
+        return $container.find('[data-field-key="' + key + '"]')
+            .find('input, select, textarea').not('[type="hidden"]').first();
+    }
+
+    /** Address fields read-only while the lookup runs; a select cannot be. */
+    function lockAddress($controls, locked) {
+        $controls.each(function () {
+            var $c = $(this);
+            if (locked) {
+                if (this.tagName === 'SELECT') {
+                    $c.attr('data-ffc-cep-tabindex', $c.attr('tabindex') || '')
+                        .attr({ tabindex: '-1', 'aria-disabled': 'true' });
+                } else if (!this.readOnly) {
+                    $c.prop('readOnly', true).attr('data-ffc-cep-locked', '1');
+                }
+                $c.addClass('ffc-cep-locked');
+                return;
+            }
+            if (this.tagName === 'SELECT' && $c.is('[data-ffc-cep-tabindex]')) {
+                var previous = $c.attr('data-ffc-cep-tabindex');
+                if (previous) {
+                    $c.attr('tabindex', previous);
+                } else {
+                    $c.removeAttr('tabindex');
+                }
+                $c.removeAttr('data-ffc-cep-tabindex aria-disabled');
+            } else if ($c.attr('data-ffc-cep-locked')) {
+                $c.prop('readOnly', false).removeAttr('data-ffc-cep-locked');
+            }
+            $c.removeClass('ffc-cep-locked');
+        });
+    }
+
+    /**
+     * Writes the non-empty parts of an address into the form. A value the
+     * participant typed is replaced only by a value the lookup has; a UF is
+     * set only when it is one of the select's options.
+     *
+     * @return {{filled: Array, street: boolean}}
+     */
+    function applyAddress($container, address) {
+        var filled = [];
+        Object.keys(CEP_TARGETS).forEach(function (part) {
+            var value = String((address && address[part]) || '').trim();
+            var $control = fieldControl($container, CEP_TARGETS[part]);
+            if (!value || !$control.length) {
+                return;
+            }
+            if ($control.is('select')) {
+                var has = $control.find('option').filter(function () {
+                    return this.value === value;
+                }).length;
+                if (!has) {
+                    return;
+                }
+            }
+            $control.val(value).trigger('change');
+            filled.push($control[0]);
+        });
+        return {
+            filled: filled,
+            street: !!String((address && address.street) || '').trim()
+        };
+    }
+
+    /**
+     * Fills the address from the CEP (#2234): on eight digits that pass the
+     * offline rule, the server asks the configured provider, the address
+     * fields wait read-only for at least three seconds, and what came back
+     * fills the form. A CEP the provider does not know releases at once.
+     * Nothing here blocks the submit.
+     *
+     * Off when `ffcCoreConfig.cepLookup` is null (the setting is off, or no
+     * one is logged in) or the form has no CEP field.
+     *
+     * @param {jQuery} $container
+     */
+    function initCepLookup($container) {
+        var config = window.ffcCoreConfig && window.ffcCoreConfig.cepLookup;
+        var $cep = fieldControl($container, 'cep');
+        if (!config || !config.url || !$cep.length) {
+            return;
+        }
+        var S = config.strings || {};
+        var $address = $();
+        Object.keys(CEP_TARGETS).forEach(function (part) {
+            $address = $address.add(fieldControl($container, CEP_TARGETS[part]));
+        });
+
+        var $progress = $('<span class="ffc-cep-progress" aria-hidden="true" hidden><span class="ffc-cep-progress-bar"></span></span>');
+        var $status = $('<span class="ffc-cep-status" role="status" aria-live="polite"></span>');
+        $cep.after($progress, $status);
+
+        var token = 0;
+        var looked = String($cep.val() || '').replace('-', '');
+
+        function finish(ticket, text) {
+            if (ticket !== token) {
+                return;
+            }
+            lockAddress($address, false);
+            $progress.attr('hidden', true).removeClass('is-running is-done');
+            $cep.removeAttr('aria-busy');
+            $status.text(text || '');
+        }
+
+        function found(ticket, address) {
+            if (ticket !== token) {
+                return;
+            }
+            $progress.addClass('is-done');
+            var result = applyAddress($container, address);
+            finish(ticket, result.street
+                ? (S.filled || 'Address filled from the CEP. Check the number.')
+                : (S.cityOnly || 'City found. Fill in the street and the neighbourhood.'));
+            $(result.filled).addClass('ffc-cep-filled');
+            setTimeout(function () {
+                $(result.filled).removeClass('ffc-cep-filled');
+            }, CEP_HIGHLIGHT_MS);
+            var $number = fieldControl($container, 'endereco_numero');
+            if ($number.length) {
+                $number.trigger('focus');
+            }
+        }
+
+        function search(digits) {
+            var ticket = ++token;
+            var started = Date.now();
+            var notFound = S.notFound || 'CEP not found. Correct the CEP or fill in the address manually.';
+
+            lockAddress($address, true);
+            $cep.attr('aria-busy', 'true');
+            $status.text(S.searching || 'Looking up the address…');
+            $progress.removeAttr('hidden').removeClass('is-done');
+            // Restart the fill from zero for a second lookup.
+            $progress.removeClass('is-running');
+            void $progress[0].offsetWidth;
+            $progress.addClass('is-running');
+
+            function later(fn) {
+                setTimeout(fn, Math.max(0, CEP_MIN_MS - (Date.now() - started)));
+            }
+
+            $.ajax({
+                url: config.url,
+                method: 'POST',
+                dataType: 'json',
+                timeout: CEP_ABORT_MS,
+                data: { action: config.action, nonce: config.nonce, cep: digits }
+            }).done(function (response) {
+                var answer = response && response.success ? response.data : null;
+                if (answer && answer.status === 'found') {
+                    later(function () { found(ticket, answer.address); });
+                } else if (answer && answer.status === 'not_found') {
+                    // The one early release: there is nothing to wait for.
+                    finish(ticket, notFound);
+                } else {
+                    later(function () { finish(ticket, notFound); });
+                }
+            }).fail(function () {
+                later(function () { finish(ticket, notFound); });
+            });
+        }
+
+        $cep.on('input change', function () {
+            var value = String(this.value || '');
+            var digits = value.replace('-', '');
+            if (digits === looked) {
+                return;
+            }
+            looked = digits;
+            if (digits.length !== 8 || cepProblem(value)) {
+                // A changed CEP abandons the lookup in flight.
+                if (token) {
+                    finish(token, '');
+                    token++;
+                }
+                return;
+            }
+            search(digits);
+        });
+    }
+
     window.FFC.Fields = {
         masks: MASKS,
         initMasks: initMasks,
+        initCepLookup: initCepLookup,
         initDependentSelects: initDependentSelects,
         initDualPost: initDualPost,
         validateCpf: validateCpf,

@@ -543,6 +543,88 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 		</table>
 </div>
 
+<div class="card">
+	<h2 class="ffc-icon-map-pin"><?php esc_html_e( 'Address lookup by CEP', 'ffcertificate' ); ?></h2>
+	<table class="form-table" role="presentation">
+		<tbody>
+			<tr>
+				<th scope="row">
+					<label><?php esc_html_e( 'Fill the address from the CEP', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'    => 'ffc_settings[cep_lookup_enabled]',
+							'id'      => 'cep_lookup_enabled',
+							'checked' => (bool) $ffcertificate_get_option( 'cep_lookup_enabled', false ),
+							'label'   => __( 'Look the CEP up and fill street, neighbourhood, city and UF', 'ffcertificate' ),
+							'data'    => array( 'ffc-autosave-key' => 'cep_lookup_enabled' ),
+						)
+					);
+					?>
+					<p class="description">
+						<?php esc_html_e( 'On the reregistration form and the admin user screen, a CEP that passes the offline check is looked up and the address filled in. The search takes at least 3 seconds, on purpose, so the person sees what is about to change, and at most 5. Filled fields stay editable, number and complement are never touched, and a field the service returns empty keeps what was typed. If the CEP is not found or the services are down, nothing is blocked. Off by default: each CEP typed is sent to the provider.', 'ffcertificate' ); ?>
+					</p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row">
+					<?php esc_html_e( 'Primary provider', 'ffcertificate' ); ?>
+				</th>
+				<td>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_segmented(
+						array(
+							'name'    => 'ffc_settings[cep_lookup_primary]',
+							'id'      => 'cep_lookup_primary',
+							'value'   => (string) $ffcertificate_get_option( 'cep_lookup_primary', 'viacep' ),
+							'default' => 'viacep',
+							'legend'  => __( 'Primary provider', 'ffcertificate' ),
+							'options' => array(
+								'viacep'    => 'ViaCEP',
+								'brasilapi' => 'BrasilAPI',
+							),
+							'data'    => array( 'ffc-autosave-key' => 'cep_lookup_primary' ),
+						)
+					);
+					?>
+					<p class="description">
+						<?php esc_html_e( 'The other one is the fallback, asked only when the primary is unreachable. A CEP the primary says does not exist is not sent to the fallback.', 'ffcertificate' ); ?>
+					</p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row">
+					<label for="ffc-cep-lookup-test-cep"><?php esc_html_e( 'Test the lookup', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<div class="ffc-cep-lookup-test">
+						<input type="text" id="ffc-cep-lookup-test-cep" class="regular-text ffc-cep-lookup-test-input" inputmode="numeric" maxlength="9" placeholder="00000-000" autocomplete="off">
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Test', 'ffcertificate' ),
+								'category' => 'neutral',
+								'icon'     => 'search',
+								'id'       => 'ffc-cep-lookup-test-btn',
+							)
+						);
+						?>
+					</div>
+					<div id="ffc-cep-lookup-test-result" class="ffc-cep-lookup-test-result" aria-live="polite"></div>
+					<p class="description">
+						<?php esc_html_e( 'Asks both providers from the server, without the cache, to confirm the host reaches them.', 'ffcertificate' ); ?>
+					</p>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+	<p class="description ffc-icon-info">
+		<?php esc_html_e( 'No key is needed. The server must reach viacep.com.br and brasilapi.com.br over HTTPS. Each CEP looked up is cached for 30 days, and the form\'s lookups are limited per address. The visitor\'s browser never talks to these services.', 'ffcertificate' ); ?>
+	</p>
+</div>
+
 	<?php \FreeFormCertificate\Admin\AdminUI::render_save_button(); ?>
 
 </form>
