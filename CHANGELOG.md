@@ -95,6 +95,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: an environment with bookings can no longer be deleted** (#2229). Deleting it left its bookings pointing at nothing, so the user dashboard named the place "Unknown". The delete is refused with a notice, and the Environments list no longer offers it; the environment stays inactive.
 - **Reregistration: the Record PDF prints documents in their shape and fits one A4 page** (#2227). CPF, RF, RG and CEP are masked for print, the birth date follows the PDF date format, number, complement and CEP get their own cells, the three e-mails print, second-post rows print only when one is held, the schedule runs days across, and the notice is numbered "1-". Form masks now shape a loaded value too, and the RF field is checked with the plugin's RF rule.
 - **User dashboard: "View answers" takes the compact row size** (#2231). It drew at the full button size beside "Download Record"; it and the answers panel's Reveal now join the dashboard's compact row buttons.
+- **Reregistration: each e-mail takes a full row on the Record PDF, and the pool's default record is refreshed** (#2235). The @sme and @edu addresses no longer share a row, and a long address wraps instead of widening the table. The template seed version moves so an install using the pool's default record receives #2227's layout too.
 
 ### Security
 
