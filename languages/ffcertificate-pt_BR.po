@@ -29406,3 +29406,12 @@ msgstr "Salvar Cores"
 
 msgid "A closed date, global or on a calendar's Closed dates tab, is a holiday or an optional holiday. Both block bookings the same way; the public calendars label them apart, in the day cell, the legend and the event list. The colors of the two labels in the light theme are set under Holiday Colors on the same General tab, and the text on each turns white or black to stay readable."
 msgstr "Uma data fechada, global ou na aba Datas fechadas de um calendário, é um feriado ou um ponto facultativo. Os dois bloqueiam reservas da mesma forma; os calendários públicos os rotulam de modo diferente, na célula do dia, na legenda e na lista de eventos. As cores dos dois rótulos no tema claro são definidas em Cores dos Feriados, na mesma aba Geral, e o texto de cada uma fica branco ou preto para continuar legível."
+
+msgid "Holiday updated successfully."
+msgstr "Feriado atualizado com sucesso."
+
+msgid "The holiday was not changed: the date is invalid or another holiday already uses it."
+msgstr "O feriado não foi alterado: a data é inválida ou outro feriado já a usa."
+
+msgid "Each closed date in the two lists has an Edit button, which opens the row in place to change its date, type or description. A date another closed date of the same list already uses is refused."
+msgstr "Cada data fechada das duas listas tem um botão Editar, que abre a linha no próprio lugar para mudar a data, o tipo ou a descrição. Uma data que outra data fechada da mesma lista já usa é recusada."

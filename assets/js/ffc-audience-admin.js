@@ -514,8 +514,56 @@
         }
     };
 
+    /**
+     * Edit a holiday or closed date in place (#2212). Each list row is
+     * followed by a hidden edit row holding a real form, so saving needs no
+     * script: this only swaps the two rows, and puts the stored values back
+     * when the edit is cancelled. Delegated on document, so it holds on
+     * every screen that prints the rows, whatever else that screen inits.
+     */
+    function bindHolidayEdit() {
+        function rowsOf(key) {
+            return {
+                view: $('[data-ffc-holiday-view]').filter(function() { return $(this).attr('data-ffc-holiday-view') === key; }),
+                edit: $('[data-ffc-holiday-edit]').filter(function() { return $(this).attr('data-ffc-holiday-edit') === key; })
+            };
+        }
+
+        function close(key) {
+            var rows = rowsOf(key);
+            var form = rows.edit.find('form')[0];
+            if (form) {
+                form.reset();
+            }
+            rows.edit.prop('hidden', true);
+            rows.view.prop('hidden', false);
+            rows.view.find('[data-ffc-holiday-edit-open]').trigger('focus');
+        }
+
+        $(document).on('click', '[data-ffc-holiday-edit-open]', function(e) {
+            e.preventDefault();
+            var rows = rowsOf($(this).attr('data-ffc-holiday-edit-open'));
+            rows.view.prop('hidden', true);
+            rows.edit.prop('hidden', false);
+            rows.edit.find('input[type="date"]').first().trigger('focus');
+        });
+
+        $(document).on('click', '[data-ffc-holiday-cancel]', function(e) {
+            e.preventDefault();
+            close($(this).attr('data-ffc-holiday-cancel'));
+        });
+
+        $(document).on('keydown', '.ffc-holiday-edit-row', function(e) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                close($(this).attr('data-ffc-holiday-edit'));
+            }
+        });
+    }
+
     $(document).ready(function() {
         FFCAudienceAdmin.init();
+        bindHolidayEdit();
 
         // The holiday colours (#2202) take the picker the Email Model uses;
         // its Default button restores the colour the plugin ships with.

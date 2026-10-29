@@ -732,6 +732,73 @@ class AudienceEnvironmentRepositoryTest extends TestCase {
 	}
 
 	// ==================================================================
+	// update_holiday() (#2212)
+	// ==================================================================
+
+	/**
+	 * @param list<object> $holidays The calendar's holidays get_holidays() reads.
+	 */
+	private function calendar_holidays( array $holidays ): void {
+		$this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
+		$this->wpdb->shouldReceive('get_results')->andReturn($holidays);
+	}
+
+	public function test_update_holiday_writes_the_row_by_id_and_calendar(): void {
+		$this->calendar_holidays([
+			(object) ['id' => 7, 'schedule_id' => 10, 'holiday_date' => '2026-12-25', 'description' => 'Christmas'],
+		]);
+		$this->wpdb->shouldReceive('update')
+			->once()
+			->with(
+				'wp_ffc_audience_holidays',
+				['holiday_date' => '2026-12-24', 'description' => 'Eve', 'kind' => 'optional'],
+				['id' => 7, 'schedule_id' => 10],
+				['%s', '%s', '%s'],
+				['%d', '%d']
+			)
+			->andReturn(1);
+
+		$this->assertTrue(AudienceEnvironmentRepository::update_holiday(7, 10, '2026-12-24', 'Eve', 'optional'));
+	}
+
+	public function test_update_holiday_keeps_its_own_date(): void {
+		$this->calendar_holidays([
+			(object) ['id' => 7, 'schedule_id' => 10, 'holiday_date' => '2026-12-25', 'description' => 'Christmas'],
+		]);
+		$this->wpdb->shouldReceive('update')->once()->andReturn(0);
+
+		$this->assertTrue(AudienceEnvironmentRepository::update_holiday(7, 10, '2026-12-25', 'Christmas Day', 'holiday'), 'Saving without a change is not a failure.');
+	}
+
+	public function test_update_holiday_refuses_a_date_another_holiday_holds(): void {
+		$this->calendar_holidays([
+			(object) ['id' => 7, 'schedule_id' => 10, 'holiday_date' => '2026-12-25', 'description' => 'Christmas'],
+			(object) ['id' => 8, 'schedule_id' => 10, 'holiday_date' => '2026-12-31', 'description' => 'Eve'],
+		]);
+		$this->wpdb->shouldNotReceive('update');
+
+		$this->assertFalse(AudienceEnvironmentRepository::update_holiday(7, 10, '2026-12-31', 'Moved', 'holiday'));
+	}
+
+	public function test_update_holiday_refuses_a_row_of_another_calendar(): void {
+		$this->calendar_holidays([
+			(object) ['id' => 8, 'schedule_id' => 10, 'holiday_date' => '2026-12-31', 'description' => 'Eve'],
+		]);
+		$this->wpdb->shouldNotReceive('update');
+
+		$this->assertFalse(AudienceEnvironmentRepository::update_holiday(7, 10, '2026-12-24', 'Eve', 'holiday'));
+	}
+
+	public function test_update_holiday_refuses_an_invalid_date_or_id_without_reading(): void {
+		$this->wpdb->shouldNotReceive('get_results');
+		$this->wpdb->shouldNotReceive('update');
+
+		$this->assertFalse(AudienceEnvironmentRepository::update_holiday(7, 10, '24/12/2026', '', 'holiday'));
+		$this->assertFalse(AudienceEnvironmentRepository::update_holiday(0, 10, '2026-12-24', '', 'holiday'));
+		$this->assertFalse(AudienceEnvironmentRepository::update_holiday(7, 0, '2026-12-24', '', 'holiday'));
+	}
+
+	// ==================================================================
 	// remove_holiday()
 	// ==================================================================
 

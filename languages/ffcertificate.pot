@@ -29322,3 +29322,12 @@ msgstr ""
 
 msgid "A closed date, global or on a calendar's Closed dates tab, is a holiday or an optional holiday. Both block bookings the same way; the public calendars label them apart, in the day cell, the legend and the event list. The colors of the two labels in the light theme are set under Holiday Colors on the same General tab, and the text on each turns white or black to stay readable."
 msgstr ""
+
+msgid "Holiday updated successfully."
+msgstr ""
+
+msgid "The holiday was not changed: the date is invalid or another holiday already uses it."
+msgstr ""
+
+msgid "Each closed date in the two lists has an Edit button, which opens the row in place to change its date, type or description. A date another closed date of the same list already uses is refused."
+msgstr ""

@@ -900,4 +900,103 @@ class AudienceAdminSettingsTest extends TestCase {
 		$this->assertCount( 0, $written );
 		$this->assertCount( 0, $redirects );
 	}
+
+	// ==================================================================
+	// Editing a global holiday (#2212)
+	// ==================================================================
+
+	/**
+	 * @param array<string, string> $fields
+	 */
+	private function post_holiday_edit( array $fields ): void {
+		$_POST = array_merge(
+			array(
+				'ffc_action'             => 'edit_global_holiday',
+				'ffc_holiday_edit_nonce' => 'n',
+				'holiday_original_date'  => '2026-12-25',
+			),
+			$fields
+		);
+		$this->run_holiday_action();
+	}
+
+	public function test_editing_a_holiday_replaces_the_entry_named_by_its_original_date(): void {
+		$this->stored_holidays(
+			array(
+				array( 'date' => '2026-01-01', 'description' => 'New Year' ),
+				array( 'date' => '2026-12-25', 'description' => 'Christmas' ),
+			)
+		);
+		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.com/wp-admin/' . $path );
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+
+		$this->post_holiday_edit(
+			array(
+				'holiday_edit_date'        => '2026-12-24',
+				'holiday_edit_description' => 'Christmas Eve',
+				'holiday_edit_kind'        => 'optional',
+			)
+		);
+
+		$this->assertSame(
+			array(
+				array( 'date' => '2026-01-01', 'description' => 'New Year' ),
+				array( 'date' => '2026-12-24', 'description' => 'Christmas Eve', 'kind' => 'optional' ),
+			),
+			$written['ffc_global_holidays']
+		);
+		$this->assertCount( 1, $redirects );
+		$this->assertStringContainsString( 'message=holiday_updated', $redirects[0] );
+	}
+
+	public function test_editing_a_holiday_onto_another_entrys_date_changes_nothing(): void {
+		$this->stored_holidays(
+			array(
+				array( 'date' => '2026-01-01', 'description' => 'New Year' ),
+				array( 'date' => '2026-12-25', 'description' => 'Christmas' ),
+			)
+		);
+		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.com/wp-admin/' . $path );
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+
+		$this->post_holiday_edit( array( 'holiday_edit_date' => '2026-01-01' ) );
+
+		$this->assertCount( 0, $written );
+		$this->assertCount( 1, $redirects );
+		$this->assertStringContainsString( 'message=holiday_not_updated', $redirects[0] );
+	}
+
+	public function test_editing_a_holiday_that_is_not_stored_or_to_an_invalid_date_changes_nothing(): void {
+		$this->stored_holidays( array( array( 'date' => '2026-01-01', 'description' => 'New Year' ) ) );
+		$written = $this->record_writes();
+		$this->record_redirects();
+
+		$this->post_holiday_edit( array( 'holiday_edit_date' => '2026-12-24' ) );
+		$this->post_holiday_edit(
+			array(
+				'holiday_original_date' => '2026-01-01',
+				'holiday_edit_date'     => '24/12/2026',
+			)
+		);
+
+		$this->assertCount( 0, $written );
+	}
+
+	public function test_editing_a_holiday_without_a_nonce_or_the_capability_is_refused(): void {
+		$this->stored_holidays( array( array( 'date' => '2026-12-25', 'description' => 'Christmas' ) ) );
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+
+		Functions\when( 'wp_verify_nonce' )->justReturn( false );
+		$this->post_holiday_edit( array( 'holiday_edit_date' => '2026-12-24' ) );
+
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$this->post_holiday_edit( array( 'holiday_edit_date' => '2026-12-24' ) );
+
+		$this->assertCount( 0, $written );
+		$this->assertCount( 0, $redirects );
+	}
 }

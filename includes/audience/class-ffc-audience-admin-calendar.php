@@ -312,9 +312,9 @@ class AudienceAdminCalendar {
 				'icon'  => 'ffc-icon-lock',
 			);
 		}
-		// A holiday added or deleted lands back on its own tab.
+		// A holiday added, edited or deleted lands back on its own tab.
 		$on_holidays = 'add_holiday' === RequestInput::get_post_string( 'ffc_action' )
-			|| 'holiday_deleted' === RequestInput::get_get_string( 'message' );
+			|| in_array( RequestInput::get_get_string( 'message' ), array( 'holiday_deleted', 'holiday_updated', 'holiday_not_updated' ), true );
 		$active      = AudienceEditorTabs::active( array_column( $tabs, 'key' ), $on_holidays ? 'closed-dates' : 'general' );
 		?>
 		<h1><?php echo esc_html( $page_title ); ?></h1>
@@ -755,13 +755,13 @@ class AudienceAdminCalendar {
 						<th class="ffc-aud-w-180"><?php esc_html_e( 'Type', 'ffcertificate' ); ?></th>
 						<th><?php esc_html_e( 'Description', 'ffcertificate' ); ?></th>
 						<?php if ( $can_manage ) : ?>
-						<th class="ffc-aud-w-100"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
+						<th class="ffc-aud-w-180"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
 						<?php endif; ?>
 					</tr>
 				</thead>
 				<tbody>
 					<?php foreach ( $holidays as $holiday ) : ?>
-						<tr>
+						<tr data-ffc-holiday-view="<?php echo esc_attr( 'cal-' . $holiday->id ); ?>">
 							<td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $holiday->holiday_date ) ); ?></td>
 							<td><?php echo \FreeFormCertificate\Scheduling\ClosedDateKind::pill( (string) ( $holiday->kind ?? '' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pill() escapes its class and label. ?></td>
 							<td><?php echo esc_html( $holiday->description ? $holiday->description : '—' ); ?></td>
@@ -771,6 +771,15 @@ class AudienceAdminCalendar {
 								$delete_url = wp_nonce_url(
 									admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars&action=edit&id=' . $id . '&delete_holiday=' . $holiday->id ),
 									'delete_holiday_' . $holiday->id
+								);
+								\FreeFormCertificate\Admin\AdminUI::render_button(
+									array(
+										'label'    => __( 'Edit', 'ffcertificate' ),
+										'category' => 'neutral',
+										'icon'     => 'edit',
+										'type'     => 'button',
+										'attrs'    => array( 'data-ffc-holiday-edit-open' => 'cal-' . $holiday->id ),
+									)
 								);
 								// The confirm is ffc-core's delegated `[data-confirm]` (#1904),
 								// not an inline onclick the family refuses.
@@ -787,6 +796,25 @@ class AudienceAdminCalendar {
 							</td>
 							<?php endif; ?>
 						</tr>
+						<?php
+						if ( $can_manage ) {
+							$edit_row = array(
+								'key'          => 'cal-' . $holiday->id,
+								'colspan'      => 4,
+								'action'       => 'edit_holiday',
+								'nonce_action' => 'edit_holiday_' . $holiday->id,
+								'nonce_name'   => 'ffc_holiday_edit_nonce',
+								'hidden'       => array(
+									'holiday_id'  => (int) $holiday->id,
+									'schedule_id' => $id,
+								),
+								'date'         => (string) $holiday->holiday_date,
+								'kind'         => (string) ( $holiday->kind ?? '' ),
+								'description'  => (string) ( $holiday->description ?? '' ),
+							);
+							include FFC_PLUGIN_DIR . 'templates/admin/audience/holiday-edit-row.php';
+						}
+						?>
 					<?php endforeach; ?>
 				</tbody>
 			</table>
@@ -916,9 +944,12 @@ class AudienceAdminCalendar {
 				'deactivated'     => __( 'Calendar deactivated successfully.', 'ffcertificate' ),
 				'deleted'         => __( 'Calendar deleted successfully.', 'ffcertificate' ),
 				'holiday_deleted' => __( 'Holiday deleted successfully.', 'ffcertificate' ),
+				'holiday_updated' => __( 'Holiday updated successfully.', 'ffcertificate' ),
 			);
 			if ( isset( $messages[ $msg ] ) ) {
 				add_settings_error( 'ffc_audience', 'ffc_message', $messages[ $msg ], 'success' );
+			} elseif ( 'holiday_not_updated' === $msg ) {
+				add_settings_error( 'ffc_audience', 'ffc_message', __( 'The holiday was not changed: the date is invalid or another holiday already uses it.', 'ffcertificate' ), 'error' );
 			}
 		}
 
@@ -1015,6 +1046,26 @@ class AudienceAdminCalendar {
 				AudienceEnvironmentRepository::add_holiday( $schedule_id, $holiday_date, $description, $kind );
 				add_settings_error( 'ffc_audience', 'ffc_message', __( 'Holiday added successfully.', 'ffcertificate' ), 'success' );
 			}
+		}
+
+		// Handle edit holiday (#2212): the row's own form, one nonce per row.
+		if ( isset( $_POST['ffc_action'] ) && 'edit_holiday' === $_POST['ffc_action'] ) {
+			$holiday_id = RequestInput::get_post_int( 'holiday_id' );
+			if ( ! wp_verify_nonce( RequestInput::get_post_string( 'ffc_holiday_edit_nonce' ), 'edit_holiday_' . $holiday_id ) ) {
+				return;
+			}
+
+			$schedule_id = RequestInput::get_post_int( 'schedule_id' );
+			$updated     = AudienceEnvironmentRepository::update_holiday(
+				$holiday_id,
+				$schedule_id,
+				RequestInput::get_post_string( 'holiday_edit_date' ),
+				RequestInput::get_post_string( 'holiday_edit_description' ),
+				RequestInput::get_post_string( 'holiday_edit_kind' )
+			);
+
+			wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars&action=edit&id=' . $schedule_id . '&message=' . ( $updated ? 'holiday_updated' : 'holiday_not_updated' ) ) );
+			exit;
 		}
 
 		// Handle delete holiday.
