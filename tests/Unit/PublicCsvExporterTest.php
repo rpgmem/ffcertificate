@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\PublicCsvExporter;
+use FreeFormCertificate\Tests\Support\CallLog;
 use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
@@ -22,11 +23,13 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  * Uses Reflection + newInstanceWithoutConstructor() to avoid the real
  * SubmissionRepository (which needs a wpdb).
  *
- * The class shares the process; the three stream_form_csv() tests run in
- * their own. They intercept header(), an internal function Patchwork cannot
- * redefine globally, so they declare it inside the Frontend namespace, and a
- * namespaced function outlives the test and shadows the global one for every
- * later Frontend test (#2125).
+ * The class shares the process, the over-limit stream_form_csv() test
+ * included: it runs the real header(), whose "headers already sent" warning is
+ * the only error it swallows. The two success-body tests run in their own
+ * process: that body ends every output buffer, PHPUnit's own included, and
+ * then writes the CSV to php://output, which in the shared process is the
+ * runner's real stdout; they also intercept header() and its neighbours inside
+ * the Frontend namespace, which would outlive the test (#2125).
  *
  * @covers \FreeFormCertificate\Frontend\PublicCsvExporter
  * @covers \FreeFormCertificate\Frontend\Csv\PublicCsvRowFormatter
@@ -376,21 +379,38 @@ class PublicCsvExporterTest extends TestCase {
 	// ==================================================================
 
 	/**
-	 * Its own process: it declares header() and its neighbours inside the
-	 * Frontend namespace, which would outlive this test.
+	 * Runs a callable while the real header() refuses because PHPUnit has
+	 * already written to stdout. header() is an internal function Patchwork
+	 * cannot redefine, so only that one warning is swallowed; every other
+	 * error still reaches the handler PHPUnit installed.
 	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * @param callable $fn The code that calls header().
 	 */
+	private function run_with_header_refusals_ignored( callable $fn ): void {
+		$previous = null;
+		$previous = set_error_handler(
+			static function ( int $errno, string $errstr, string $errfile = '', int $errline = 0 ) use ( &$previous ): bool {
+				if ( E_WARNING === $errno && false !== strpos( $errstr, 'Cannot modify header information' ) ) {
+					return true;
+				}
+				return null !== $previous ? (bool) $previous( $errno, $errstr, $errfile, $errline ) : false;
+			}
+		);
+		try {
+			$fn();
+		} finally {
+			restore_error_handler();
+		}
+	}
+
 	public function test_stream_form_csv_renders_limit_page_when_over_threshold(): void {
-		// The exporter calls these unqualified inside the Frontend namespace,
-		// so intercept the namespaced resolutions (raw header() included, to
-		// avoid "headers already sent" from PHPUnit's own output).
-		Functions\when( 'FreeFormCertificate\Frontend\status_header' )->justReturn( null );
-		Functions\when( 'FreeFormCertificate\Frontend\nocache_headers' )->justReturn( null );
-		Functions\when( 'FreeFormCertificate\Frontend\header' )->justReturn( null );
-		Functions\when( 'FreeFormCertificate\Frontend\esc_html' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Frontend\__' )->returnArg();
+		$statuses = array();
+		Functions\when( 'status_header' )->alias(
+			static function ( $code ) use ( &$statuses ) {
+				$statuses[] = $code;
+			}
+		);
+		$nocache = CallLog::record( 'nocache_headers', null );
 		// get_sync_max_rows() reads SettingsReader::get_int → default; the
 		// mocked count far exceeds it, so the sync path is refused.
 		$repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
@@ -398,11 +418,17 @@ class PublicCsvExporterTest extends TestCase {
 		$this->set_repository( $repo );
 
 		ob_start();
-		$this->exporter->stream_form_csv( 1, 'publish' );
+		$this->run_with_header_refusals_ignored(
+			function () {
+				$this->exporter->stream_form_csv( 1, 'publish' );
+			}
+		);
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'Export too large', $html );
 		$this->assertStringContainsString( '9999999', $html );
+		$this->assertSame( array( 413 ), $statuses, 'the refusal is a 413' );
+		$this->assertSame( 1, $nocache->count(), 'the refusal page is not cached' );
 	}
 
 	// ==================================================================
@@ -451,8 +477,8 @@ class PublicCsvExporterTest extends TestCase {
 	}
 
 	/**
-	 * Its own process: it declares header() and its neighbours inside the
-	 * Frontend namespace, which would outlive this test.
+	 * Its own process: the body ends every output buffer and writes the CSV to
+	 * the process's stdout, and it declares header() inside the Frontend namespace.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
@@ -532,8 +558,8 @@ class PublicCsvExporterTest extends TestCase {
 	}
 
 	/**
-	 * Its own process: it declares header() and its neighbours inside the
-	 * Frontend namespace, which would outlive this test.
+	 * Its own process: the body ends every output buffer and writes the CSV to
+	 * the process's stdout, and it declares header() inside the Frontend namespace.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled

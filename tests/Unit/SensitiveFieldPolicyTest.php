@@ -41,8 +41,10 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  * covered directly by their own suites (EncryptionTest, AppointmentRepositoryTest,
  * SubmissionHandler tests), so suppressing attribution here loses no unique
  * coverage; it only stops this contract test from inflating those numbers.
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
+ *
+ * Runs in the shared process: storage is a `$wpdb` double (restored in
+ * tearDown) and only global functions are stubbed, which the code under test
+ * reaches through PHP's namespace fallback.
  */
 class SensitiveFieldPolicyTest extends TestCase {
 
@@ -51,9 +53,14 @@ class SensitiveFieldPolicyTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
+	/** @var array{0: bool, 1: mixed} Whether `$wpdb` was set, and its value. */
+	private array $wpdb_backup = array( false, null );
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->wpdb_backup = array( array_key_exists( 'wpdb', $GLOBALS ), $GLOBALS['wpdb'] ?? null );
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
@@ -78,6 +85,9 @@ class SensitiveFieldPolicyTest extends TestCase {
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'do_action' )->justReturn( null );
+		// The handler guards the async schedule on function_exists(), so the
+		// branch is chosen here rather than inherited from an earlier test.
+		Functions\when( 'wp_schedule_single_event' )->justReturn( true );
 		Functions\when( 'get_option' )->justReturn( 0 );
 		Functions\when( 'absint' )->alias( function ( $val ) {
 			return abs( intval( $val ) );
@@ -106,16 +116,14 @@ class SensitiveFieldPolicyTest extends TestCase {
 		Functions\when( 'wp_update_user' )->justReturn( 100 );
 		Functions\when( 'update_user_meta' )->justReturn( true );
 		Functions\when( 'wp_new_user_notification' )->justReturn( null );
-
-		Functions\when( 'FreeFormCertificate\Core\get_option' )->alias( function ( $k, $d = false ) {
-			return \get_option( $k, $d );
-		} );
-		Functions\when( 'FreeFormCertificate\Core\get_current_user_id' )->alias( function () {
-			return \get_current_user_id();
-		} );
 	}
 
 	protected function tearDown(): void {
+		if ( $this->wpdb_backup[0] ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup[1];
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -149,7 +157,7 @@ class SensitiveFieldPolicyTest extends TestCase {
 		$data = array(
 			'name'     => 'Carol',
 			'email'    => 'carol@test.com',
-			'cpf_rf'   => '51817842080',
+			'cpf_rf'   => Identifiers::CPF_A,
 			'ticket'   => 'ABC-123',
 			'extra1'   => 'payload',
 		);
@@ -194,7 +202,7 @@ class SensitiveFieldPolicyTest extends TestCase {
 			} )
 			->andReturn( 43 );
 
-		$submission = array( 'email' => 'x@y.z', 'cpf_rf' => '5181780' );
+		$submission = array( 'email' => 'x@y.z', 'cpf_rf' => Identifiers::RF_A );
 		$handler->process_submission(
 			1,
 			'Form',
@@ -234,7 +242,7 @@ class SensitiveFieldPolicyTest extends TestCase {
 			->andReturn( 44 );
 
 		$email = 'John@Example.com';
-		$cpf   = '51817842080';
+		$cpf   = Identifiers::CPF_A;
 		$submission = array( 'email' => $email, 'cpf_rf' => $cpf );
 		$handler->process_submission( 1, 'F', $submission, $email, array(), array() );
 
@@ -276,7 +284,7 @@ class SensitiveFieldPolicyTest extends TestCase {
 			'confirmation_token' => 'tok-123',
 			'validation_code'    => 'VAL5181780AB',
 			'email'              => 'alice@example.com',
-			'cpf_rf'             => '51817842080',
+			'cpf_rf'             => Identifiers::CPF_A,
 			'phone'              => '5511999990000',
 			'custom_data'        => array( 'notes' => 'vip' ),
 			'user_ip'            => '192.0.2.1',

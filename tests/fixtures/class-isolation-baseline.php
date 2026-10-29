@@ -17,13 +17,6 @@ return array(
 	'FormProcessorNonceRecoveryTest.php',
 	'FormProcessorRequiredPresenceOrderTest.php',
 	'FrontendTest.php',
-	'PreflightStatsServiceTest.php',
-	'PreflightTelemetryTest.php',
-	'SelfSchedulingCPTTest.php',
-	'SelfSchedulingCleanupHandlerTest.php',
-	'SelfSchedulingEditorTest.php',
-	'SensitiveFieldPolicyTest.php',
 	'SubmissionHandlerTest.php',
-	'UrlShortenerMetaBoxTest.php',
 	'VerificationResponseRendererTest.php',
 );

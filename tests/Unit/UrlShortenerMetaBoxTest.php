@@ -18,9 +18,11 @@ use FreeFormCertificate\UrlShortener\UrlShortenerRepository;
  * Tests for UrlShortenerMetaBox: meta box registration per post type,
  * on_save_post guards and auto-create, and ajax_regenerate flow.
  *
+ * The service and the repository it hands out are instance mocks injected
+ * through the constructor, so every test runs in the shared process except
+ * the autosave guard, which defines a constant.
+ *
  * @covers \FreeFormCertificate\UrlShortener\UrlShortenerMetaBox
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class UrlShortenerMetaBoxTest extends TestCase {
 
@@ -31,9 +33,13 @@ class UrlShortenerMetaBoxTest extends TestCase {
 	/** @var UrlShortenerService|Mockery\MockInterface */
 	private $service;
 
+	/** @var array<string, mixed> The `$_POST` an earlier test left, restored afterwards. */
+	private array $post_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->post_backup = $_POST ?? array();
 		// Shared scripts are enqueued through AssetRegistry, which registers
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).
@@ -52,7 +58,7 @@ class UrlShortenerMetaBoxTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $_POST['nonce'], $_POST['post_id'] );
+		$_POST = $this->post_backup;
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -238,14 +244,6 @@ class UrlShortenerMetaBoxTest extends TestCase {
 		$this->assertTrue( $error_sent );
 	}
 
-	/**
-	 * Runs in a separate process because AjaxTrait::check_ajax_permission()
-	 * calls Capabilities::current_user_can_manage(), and other tests in the suite
-	 * leave a Mockery alias for Utils loaded.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_ajax_regenerate_no_existing_creates_new(): void {
 		$_POST['nonce']   = 'valid';
 		$_POST['post_id'] = '15';
@@ -407,36 +405,35 @@ class UrlShortenerMetaBoxTest extends TestCase {
 	/**
 	 * Full render path with an existing record and a cached QR code.
 	 *
-	 * Overloads UrlShortenerRepository so the QR handler's cache lookup
-	 * (new UrlShortenerRepository()->findQrCacheByShortCode()) returns a
-	 * cached base64 string, short-circuiting the CPU-heavy generator.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The repository the service hands out answers both the meta box's
+	 * findByPostId() lookup and the QR handler's cache lookup, which the
+	 * handler reaches through the same service since #1233; the cache hit
+	 * short-circuits the CPU-heavy generator.
 	 */
 	public function test_render_with_record_outputs_qr_and_buttons(): void {
-		foreach ( array( '', 'FreeFormCertificate\UrlShortener\\' ) as $ns ) {
-			Functions\when( $ns . 'esc_html__' )->returnArg();
-			Functions\when( $ns . 'esc_html_e' )->returnArg();
-			Functions\when( $ns . 'esc_html' )->returnArg();
-			Functions\when( $ns . 'esc_attr' )->returnArg();
-			Functions\when( $ns . 'esc_attr_e' )->returnArg();
-			Functions\when( $ns . 'number_format_i18n' )->returnArg();
-			Functions\when( $ns . 'wp_nonce_field' )->justReturn( '' );
-		}
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias(
+			static function ( $text ) {
+				echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+			}
+		);
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_attr_e' )->alias(
+			static function ( $text ) {
+				echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+			}
+		);
+		Functions\when( 'number_format_i18n' )->returnArg();
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 
 		// The QR design switch (#1563) is off, so the preview is the cached PNG.
 		Functions\when( 'get_option' )->justReturn( array() );
 
 		$post = $this->make_post( 6, 'publish', 'post' );
 
-		// Overload the repository so both the meta-box's findByPostId lookup
-		// and the QR handler's cache lookup resolve to the same stubbed class
-		// (the QR cache hit short-circuits the CPU-heavy generator). Since #1233
-		// the handler reaches the repository through the service, as this class
-		// already did, instead of instantiating its own.
-		$overload = Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerRepository' );
-		$overload->shouldReceive( 'findByPostId' )->with( 6 )->andReturn(
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByPostId' )->with( 6 )->andReturn(
 			array(
 				'id'          => 60,
 				'short_code'  => 'code60',
@@ -446,7 +443,7 @@ class UrlShortenerMetaBoxTest extends TestCase {
 		// The cache stores an envelope that declares the size (#1233); raw base64
 		// would be read as an old-schema row, i.e. a miss, and the rendering
 		// would fall through to the real generator.
-		$overload->shouldReceive( 'findQrCacheByShortCode' )->andReturn(
+		$repo->shouldReceive( 'findQrCacheByShortCode' )->with( 'code60' )->andReturn(
 			(string) json_encode(
 				array(
 					'v'    => 1,
@@ -455,8 +452,9 @@ class UrlShortenerMetaBoxTest extends TestCase {
 				)
 			)
 		);
+		$repo->shouldNotReceive( 'setQrCacheForShortCode' );
 
-		$this->service->shouldReceive( 'get_repository' )->andReturn( $overload );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
 		$this->service->shouldReceive( 'get_short_url' )->with( 'code60' )->andReturn( 'https://example.com/go/code60' );
 
 		ob_start();
@@ -489,9 +487,15 @@ class UrlShortenerMetaBoxTest extends TestCase {
 	}
 
 	// ==================================================================
-	// on_save_post() — autosave guard (MUST be last: define() is permanent)
+	// on_save_post() — autosave guard
 	// ==================================================================
 
+	/**
+	 * Its own process: it defines DOING_AUTOSAVE, a constant no later test may inherit.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_on_save_post_skips_autosave(): void {
 		if ( ! defined( 'DOING_AUTOSAVE' ) ) {
 			define( 'DOING_AUTOSAVE', true );

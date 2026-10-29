@@ -15,8 +15,8 @@ use FreeFormCertificate\Core\AuthCodeService;
  * and globally unique code generation across multiple database tables.
  *
  * setUp() stubs `wp_rand`, so each test chooses the branch rather than
- * inheriting it, and the class runs in the shared process (#2091). The one
- * test that needs a fresh process carries its own annotation.
+ * inheriting it, and every test runs in the shared process (#2091). The
+ * `$wpdb` doubles the uniqueness tests install are undone in tearDown().
  *
  * @covers \FreeFormCertificate\Core\AuthCodeService
  */
@@ -24,9 +24,18 @@ class AuthCodeServiceTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
 
 		// Stub wp_rand to delegate to PHP's random_int
 		Functions\when( 'wp_rand' )->alias( function ( int $min, int $max ): int {
@@ -36,6 +45,11 @@ class AuthCodeServiceTest extends TestCase {
 
 	protected function tearDown(): void {
 		Monkey\tearDown();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		parent::tearDown();
 	}
 
@@ -92,14 +106,6 @@ class AuthCodeServiceTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/^[0-9]{8}$/', $result );
 	}
 
-	/**
-	 * Runs in a separate process so Brain/Monkey's wp_rand stub registered
-	 * in setUp() is guaranteed to be active even when earlier tests in the
-	 * full suite have corrupted Monkey's internal state.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_generate_random_string_empty_chars_throws_on_nonzero_length(): void {
 		// When chars is empty, strlen($chars) = 0, so the loop body attempts
 		// wp_rand(0, -1) which causes a ValueError from random_int.

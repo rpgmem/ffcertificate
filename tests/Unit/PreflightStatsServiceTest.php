@@ -19,19 +19,37 @@ use FreeFormCertificate\Admin\PreflightStatsService;
  *   - All three reasons counted (cookies / gps_denied / gps_prompt)
  *   - Unknown reasons silently dropped (don't crash on bad data)
  *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
+ * The rows come from the real ActivityLogQuery, over a `$wpdb` double that
+ * answers the activity-log SELECT with the rows a test stores and records
+ * every query it ran; any other query fails the test as unexpected.
+ *
  * @covers \FreeFormCertificate\Admin\PreflightStatsService
  */
 class PreflightStatsServiceTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var list<array<string, mixed>> Raw activity-log rows the SELECT answers. */
+	private array $rows = array();
+
+	/** @var list<string> Every SQL string the double's get_results() ran. */
+	private array $ran = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 		class_exists( '\\FreeFormCertificate\\Admin\\PreflightStatsService' );
 		Functions\when( '__' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
 
 		// Stubbed HERE, not inherited from whatever ran before: `get_form_stats()`
 		// now caches in a transient (#1234), and CLAUDE.md records that a
@@ -40,9 +58,53 @@ class PreflightStatsServiceTest extends TestCase {
 		// is "empty cache", which is the path these tests measure.
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'set_transient' )->justReturn( true );
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $this->had_wpdb ? $GLOBALS['wpdb'] : null;
+
+		$this->rows = array();
+		$this->ran  = array();
+		$rows       = &$this->rows;
+		$ran        = &$this->ran;
+
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( string $query, ...$args ): string {
+				if ( 1 === count( $args ) && is_array( $args[0] ) ) {
+					$args = $args[0];
+				}
+				$i = 0;
+				return (string) preg_replace_callback(
+					'/%[sdi]/',
+					static function ( array $m ) use ( &$i, $args ): string {
+						$value = $args[ $i++ ] ?? '';
+						if ( '%d' === $m[0] ) {
+							return (string) (int) $value;
+						}
+						return '%i' === $m[0] ? '`' . $value . '`' : "'" . $value . "'";
+					},
+					$query
+				);
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( string $sql ) use ( &$rows, &$ran ): array {
+				$ran[] = $sql;
+				$this->assertStringContainsString( 'FROM `wp_ffc_activity_log`', $sql, 'Only the activity log is read.' );
+				$this->assertStringContainsString( "action = 'preflight_blocked'", $sql, 'Only pre-flight rows are read.' );
+				return $rows;
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -55,8 +117,9 @@ class PreflightStatsServiceTest extends TestCase {
 	 * form editor's sidebar. If the transient does not short-circuit, the cache
 	 * exists in the code and not in the behaviour.
 	 *
-	 * `shouldNotReceive` is what pins this -- comparing the returned value would
-	 * not be enough, because the uncached read would return the same numbers.
+	 * The empty query record is what pins this -- comparing the returned value
+	 * would not be enough, because the uncached read would return the same
+	 * numbers.
 	 */
 	public function test_a_cache_hit_never_queries_the_activity_log(): void {
 		$cached = array(
@@ -67,10 +130,10 @@ class PreflightStatsServiceTest extends TestCase {
 		);
 		Functions\when( 'get_transient' )->justReturn( $cached );
 
-		$query = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLogQuery' );
-		$query->shouldNotReceive( 'get_activities' );
+		$this->stub_activity_log_rows( array( array( 'context' => '{"form_id":7,"reason":"cookies"}' ) ) );
 
 		$stats = PreflightStatsService::get_form_stats( 7 );
+		$this->assertSame( array(), $this->ran, 'A cache hit must not query the activity log.' );
 		$this->assertSame( 3, $stats['cookies'] );
 		$this->assertSame( 6, $stats['total'] );
 		// An entry cached before a reason was added (#2030) reads it as 0.
@@ -99,17 +162,19 @@ class PreflightStatsServiceTest extends TestCase {
 		PreflightStatsService::get_form_stats( 7, 7 );
 
 		$this->assertCount( 2, $seen );
-		$this->assertNotSame( $seen[0], $seen[1], 'Duas janelas diferentes compartilharam chave — a de 7 dias serviria a contagem de 30.' );
+		$this->assertNotSame( $seen[0], $seen[1], 'Two windows shared one key -- the 7-day read would serve the 30-day count.' );
 		$this->assertStringContainsString( '7', $seen[0] );
+		$this->assertCount( 2, $this->ran, 'Each uncached window reads the log once.' );
 	}
 
 	/**
-	 * Helper: alias-mock ActivityLog so we can seed the rows
-	 * get_form_stats() will pull.
+	 * Helper: store the raw activity-log rows the `$wpdb` double answers
+	 * the real ActivityLogQuery::get_activities() SELECT with.
+	 *
+	 * @param list<array<string, mixed>> $rows Rows as the table holds them.
 	 */
 	private function stub_activity_log_rows( array $rows ): void {
-		$mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLogQuery' );
-		$mock->shouldReceive( 'get_activities' )->andReturn( $rows );
+		$this->rows = $rows;
 	}
 
 	public function test_returns_zero_counts_when_no_rows(): void {
@@ -134,9 +199,10 @@ class PreflightStatsServiceTest extends TestCase {
 	}
 
 	public function test_returns_zero_counts_for_invalid_form_id(): void {
-		// No alias mock needed — short-circuit before query.
+		// Short-circuits before the query.
 		$stats = PreflightStatsService::get_form_stats( 0 );
 		$this->assertSame( 0, $stats['total'] );
+		$this->assertSame( array(), $this->ran );
 	}
 
 	public function test_counts_one_per_reason_for_matching_form(): void {
@@ -176,7 +242,9 @@ class PreflightStatsServiceTest extends TestCase {
 			array( 'context' => '{"form_id":42,"reason":"cookies"}' ),
 			array( 'context' => '{"form_id":42,"reason":"made_up"}' ),     // unknown reason
 			array( 'context' => 'not even json' ),                          // malformed
-			array( 'context' => array( 'form_id' => 42, 'reason' => 'gps_denied' ) ), // array shape
+			// The read path hands the service a decoded array, which is the
+			// array shape the service accepts beside a JSON string.
+			array( 'context' => '{"form_id":42,"reason":"gps_denied"}' ),
 			array( /* no context key */ ),
 		) );
 
