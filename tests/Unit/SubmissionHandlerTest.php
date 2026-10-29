@@ -19,8 +19,7 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  * Note: WP crypto constants are defined in bootstrap.php, so
  * Encryption::is_configured() returns true — the encryption path
  * is always active.
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
+ *
  * @covers \FreeFormCertificate\Submissions\SubmissionHandler
  * @covers \FreeFormCertificate\Submissions\SubmissionLifecycleService
  */
@@ -30,6 +29,15 @@ class SubmissionHandlerTest extends TestCase {
 
 	private SubmissionHandler $handler;
 	private $mockRepo;
+
+	/** @var list<array<int, mixed>> Every `$wpdb->prepare()` call, as its argument list. */
+	private array $prepared = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	/**
 	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
@@ -60,12 +68,22 @@ class SubmissionHandlerTest extends TestCase {
 		class_exists( '\\FreeFormCertificate\\Submissions\\SubmissionLifecycleService' );
 
 		// Mock global $wpdb
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$this->prepared    = array();
+		$prepared          = &$this->prepared;
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';
 		$wpdb->last_error = '';
-		// Allow auth-code uniqueness check & orphan-linking calls
-		$wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		// Allow auth-code uniqueness check & orphan-linking calls; every
+		// prepared statement is recorded so a test can read what was asked.
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( ...$args ) use ( &$prepared ) {
+				$prepared[] = $args;
+				return 'QUERY';
+			}
+		);
 		$wpdb->shouldReceive( 'get_var' )->andReturn( null );
 		$wpdb->shouldReceive( 'query' )->andReturn( 0 );
 		$wpdb->shouldReceive( 'get_results' )->andReturn( array() );
@@ -101,15 +119,10 @@ class SubmissionHandlerTest extends TestCase {
 		Functions\when( 'wp_update_user' )->justReturn( 100 );
 		Functions\when( 'update_user_meta' )->justReturn( true );
 		Functions\when( 'wp_new_user_notification' )->justReturn( null );
-
-		// Namespaced stubs: prevent "is not defined" errors when Sprint 27 tests run first.
-		// Core namespace (Debug, ActivityLog use get_option/get_current_user_id).
-		Functions\when( 'FreeFormCertificate\Core\get_option' )->alias( function ( $key, $default = false ) {
-			return \get_option( $key, $default );
-		} );
-		Functions\when( 'FreeFormCertificate\Core\get_current_user_id' )->alias( function () {
-			return \get_current_user_id();
-		} );
+		// process_submission() schedules only behind a function_exists()
+		// guard, so the branch is chosen here rather than inherited from
+		// whichever earlier test defined the function.
+		Functions\when( 'wp_schedule_single_event' )->justReturn( true );
 
 		$this->handler = new SubmissionHandler();
 
@@ -122,6 +135,11 @@ class SubmissionHandlerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -829,12 +847,12 @@ class SubmissionHandlerTest extends TestCase {
 	 * Both directions are asserted: a mutation swapping the two arguments
 	 * passes any test that only looks at one.
 	 *
-	 * `@runInSeparateProcess` so the `alias:` mock on `UserManager` cannot
-	 * reach the rest of this class, which drives the real one.
+	 * The resolver is the real `UserManager`: what it was handed is read off
+	 * the identity lookup it builds from its two hash arguments, where each
+	 * argument becomes a clause on the column it names and a null one adds
+	 * none.
 	 *
 	 * @dataProvider dual_argument_provider
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 * @param string $typed    The single `cpf_rf` field as the visitor types it.
 	 * @param int    $slot     Argument index expected to carry the hash.
 	 * @param string $column   The row column that must hold the same hash.
@@ -849,33 +867,36 @@ class SubmissionHandlerTest extends TestCase {
 			} )
 			->andReturn( 31 );
 
-		$seen = array();
-		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' )
-			->shouldReceive( 'get_or_create_user_dual' )
-			->andReturnUsing(
-				static function ( ...$args ) use ( &$seen ) {
-					$seen = $args;
-					return 7;
-				}
-			);
-
 		// The third argument is by reference, so it must be a variable.
 		$data = array( 'name' => 'X', 'cpf_rf' => $typed );
 		$this->handler->process_submission( 1, 'Form', $data, 'x@test.com', array(), array() );
 
-		$this->assertNotSame( array(), $seen, 'The resolver was never called, so nothing about its arguments was measured.' );
-
-		$other = 0 === $slot ? 1 : 0;
-
-		$this->assertSame(
-			$captured[ $column ],
-			$seen[ $slot ],
-			"The resolver was handed a different hash from the one written to {$column}, so a lookup for this person cannot find this row."
+		$lookups = array_values(
+			array_filter(
+				$this->prepared,
+				static fn( array $args ): bool => 0 === strpos( (string) $args[0], 'SELECT user_id FROM %i WHERE (' )
+			)
 		);
-		$this->assertNull(
-			$seen[ $other ],
-			"The other identifier argument is not null for '{$typed}', so the resolver searches a column this value was never written to."
-		);
+		$this->assertNotSame( array(), $lookups, 'The resolver never looked the identifier up, so nothing about its arguments was measured.' );
+
+		$columns     = array( 'cpf_hash', 'rf_hash' );
+		$slot_column = $columns[ $slot ];
+		$other       = $columns[ 0 === $slot ? 1 : 0 ];
+
+		foreach ( $lookups as $lookup ) {
+			$this->assertStringContainsString( "({$slot_column} = %s)", $lookup[0], "The resolver did not receive the hash in the argument naming {$slot_column}." );
+			$this->assertSame(
+				$captured[ $column ],
+				$lookup[2],
+				"The resolver was handed a different hash from the one written to {$column}, so a lookup for this person cannot find this row."
+			);
+			$this->assertStringNotContainsString(
+				"{$other} = %s",
+				$lookup[0],
+				"The other identifier argument is not null for '{$typed}', so the resolver searches a column this value was never written to."
+			);
+			$this->assertCount( 3, $lookup, 'One hash is bound, and nothing else.' );
+		}
 	}
 
 	/**

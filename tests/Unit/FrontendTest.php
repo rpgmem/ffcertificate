@@ -12,16 +12,38 @@ use FreeFormCertificate\Frontend\Frontend;
 
 /**
  * @covers \FreeFormCertificate\Frontend\Frontend
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class FrontendTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/**
+	 * The global $wpdb as it was before the test, restored in tearDown.
+	 *
+	 * @var mixed
+	 */
+	private $wpdb_backup;
+
+	/**
+	 * Whether a global $wpdb existed before the test.
+	 *
+	 * @var bool
+	 */
+	private bool $had_wpdb = false;
+
+	/**
+	 * The global $post as it was before the test, restored in tearDown.
+	 *
+	 * @var mixed
+	 */
+	private $post_backup;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$this->post_backup = $GLOBALS['post'] ?? null;
 		// Shared scripts are enqueued through AssetRegistry, which registers
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).
@@ -72,17 +94,21 @@ class FrontendTest extends TestCase {
 		} );
 
 		// PublicCsvDownload::register_hooks() instantiates PublicCsvExporter,
-		// whose SubmissionRepository constructor reads $wpdb->prefix.
-		global $wpdb;
-		if ( ! $wpdb ) {
-			$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
-			$wpdb->prefix = 'wp_';
-		}
+		// whose SubmissionRepository constructor reads $wpdb->prefix. No test
+		// here queries the database, so the double answers no method and any
+		// query fails the test.
+		$wpdb            = Mockery::mock( 'wpdb' );
+		$wpdb->prefix    = 'wp_';
+		$GLOBALS['wpdb'] = $wpdb;
 	}
 
 	protected function tearDown(): void {
-		global $wpdb;
-		$wpdb = null;
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
+		$GLOBALS['post'] = $this->post_backup;
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -349,12 +375,22 @@ class FrontendTest extends TestCase {
 
 		Functions\when( 'has_shortcode' )->justReturn( true );
 
-		// Alias Geofence so we don't have to wire up get_post_meta /
-		// settings / option reads — we're testing the regex+atts path,
-		// not the config builder.
-		$geofence_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\Geofence' );
-		$geofence_mock->shouldReceive( 'get_frontend_config' )
-			->andReturnUsing( static fn( $id ) => array( 'formId' => (int) $id, 'datetime' => array( 'enabled' => true ) ) );
+		// Form 42 carries a stored date/time restriction, so the real
+		// Geofence builds its config only when the regex+atts path found the
+		// id; a missed id would leave no entry, and the minimal pre-flight
+		// config a form without a restriction gets has datetime disabled.
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $post_id, $key = '', $single = false ) {
+				if ( 42 === (int) $post_id && '_ffc_geofence_config' === $key ) {
+					return array(
+						'datetime_enabled' => '1',
+						'date_start'       => '2026-01-01',
+						'date_end'         => '2026-12-31',
+					);
+				}
+				return '';
+			}
+		);
 
 		$localized = array();
 		Functions\when( 'wp_localize_script' )->alias( function ( $handle, $name, $data ) use ( &$localized ) {
@@ -378,6 +414,7 @@ class FrontendTest extends TestCase {
 			static fn( $k ) => is_int( $k ) || ( is_string( $k ) && ctype_digit( $k ) )
 		);
 		$this->assertContains( 42, array_map( 'intval', $form_keys ) );
+		$this->assertTrue( $localized['ffcGeofenceConfig'][42]['datetime']['enabled'], 'the stored restriction reached the config' );
 	}
 
 	public function test_localize_geofence_accepts_unquoted_id(): void {
@@ -394,6 +431,7 @@ class FrontendTest extends TestCase {
 			static fn( $k ) => is_int( $k ) || ( is_string( $k ) && ctype_digit( $k ) )
 		);
 		$this->assertContains( 42, array_map( 'intval', $form_keys ), 'unquoted id MUST localize too' );
+		$this->assertTrue( $localized['ffcGeofenceConfig'][42]['datetime']['enabled'], 'the stored restriction reached the config' );
 	}
 
 	public function test_localize_geofence_accepts_extra_attributes(): void {
@@ -407,6 +445,7 @@ class FrontendTest extends TestCase {
 			static fn( $k ) => is_int( $k ) || ( is_string( $k ) && ctype_digit( $k ) )
 		);
 		$this->assertContains( 42, array_map( 'intval', $form_keys ), 'extra attributes MUST NOT block localize' );
+		$this->assertTrue( $localized['ffcGeofenceConfig'][42]['datetime']['enabled'], 'the stored restriction reached the config' );
 	}
 
 	// ==================================================================
