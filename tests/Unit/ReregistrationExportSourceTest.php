@@ -6,6 +6,8 @@ namespace FreeFormCertificate\Tests\Unit;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
+use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 use FreeFormCertificate\Tests\Support\BatchedExportSourceContractTestCase;
 use FreeFormCertificate\Reregistration\ReregistrationExportSource;
 use FreeFormCertificate\Tests\Support\Identifiers;
@@ -18,11 +20,15 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  * into is tested in BatchedCsvExportTest. Migrated from the former synchronous
  * ReregistrationCsvExporter (issue #772).
  *
- * The count()/build_context()/fetch_page() delegation tests alias-mock the
- * static readers, so those run in their own process; the rest share it (#2091).
+ * Every collaborator is the real class -- the submission reader, the
+ * campaign repository, the custom-field and audience readers, Encryption
+ * (with the bootstrap's key constants), PiiExport and ActivityLog -- over a
+ * `$wpdb` double that answers each query by its table and bound values from
+ * the arrays a test sets, and records every prepared statement. A query the
+ * double does not know fails the test. A clear export is read off the
+ * activity log's buffer.
  *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationExportSource
- * @preserveGlobalState disabled
  */
 class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase {
 
@@ -30,9 +36,52 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 	/** @var ReregistrationExportSource */
 	private $source;
 
+	/** @var list<array<int, mixed>> Every prepare() call, as its flattened argument list. */
+	private array $prepared = array();
+
+	/** @var array<int, int> Submission counts by campaign id. */
+	private array $counts = array();
+
+	/** @var array<int, object> Campaigns by id. */
+	private array $campaigns = array();
+
+	/** @var array<int, list<string>> Linked audience ids by campaign id. */
+	private array $campaign_audiences = array();
+
+	/** @var array<int, object> Audiences by id. */
+	private array $audiences = array();
+
+	/** @var array<int, list<object>> Custom fields by audience id. */
+	private array $fields = array();
+
+	/** @var array<int, list<object>> Submission rows by campaign id, newest first. */
+	private array $submissions = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->prepared           = array();
+		$this->counts             = array();
+		$this->campaigns          = array();
+		$this->campaign_audiences = array();
+		$this->audiences          = array();
+		$this->fields             = array();
+		$this->submissions        = array();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $this->wpdbDouble();
+
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
 
 		// The PII export rule (#1863): the exporter holds the PII cap unless a
 		// test says otherwise, and a masked cell asks is_email().
@@ -62,9 +111,95 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
+		ActivityLogBuffer::reset();
 		Monkey\tearDown();
 		unset( $_POST['id'] );
 		parent::tearDown();
+	}
+
+	/**
+	 * A `$wpdb` double answering the reads this source reaches.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function wpdbDouble() {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->users  = 'wp_users';
+
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( ...$args ) {
+				$flat             = 2 === count( $args ) && is_array( $args[1] ) ? array_merge( array( $args[0] ), $args[1] ) : $args;
+				$this->prepared[] = $flat;
+				return 'Q' . ( count( $this->prepared ) - 1 ) . ':' . $flat[0];
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				$bound = $this->boundTo( (string) $sql );
+				if ( false !== strpos( (string) $sql, 'SELECT COUNT(*) FROM %i WHERE reregistration_id = %d' ) && 'wp_ffc_reregistration_submissions' === $bound[1] ) {
+					return (string) ( $this->counts[ (int) $bound[2] ] ?? 0 );
+				}
+				$this->fail( 'Unexpected get_var(): ' . $sql . ' with ' . var_export( $bound, true ) );
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				$bound = $this->boundTo( (string) $sql );
+				if ( false !== strpos( (string) $sql, 'SELECT * FROM %i WHERE id = %d' ) ) {
+					if ( 'wp_ffc_reregistrations' === $bound[1] ) {
+						return $this->campaigns[ (int) $bound[2] ] ?? null;
+					}
+					if ( 'wp_ffc_audiences' === $bound[1] ) {
+						return $this->audiences[ (int) $bound[2] ] ?? null;
+					}
+				}
+				$this->fail( 'Unexpected get_row(): ' . $sql . ' with ' . var_export( $bound, true ) );
+			}
+		);
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( $sql ) {
+				$bound = $this->boundTo( (string) $sql );
+				if ( false !== strpos( (string) $sql, 'SELECT audience_id FROM %i WHERE reregistration_id = %d' ) && 'wp_ffc_reregistration_audiences' === $bound[1] ) {
+					return $this->campaign_audiences[ (int) $bound[2] ] ?? array();
+				}
+				$this->fail( 'Unexpected get_col(): ' . $sql . ' with ' . var_export( $bound, true ) );
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$bound = $this->boundTo( (string) $sql );
+				$text  = (string) $sql;
+				if ( 'wp_ffc_custom_fields' === $bound[1] && false !== strpos( $text, 'WHERE audience_id = %d AND is_active = 1' ) ) {
+					return $this->fields[ (int) $bound[2] ] ?? array();
+				}
+				if ( false !== strpos( $text, 'WHERE s.reregistration_id = %d AND s.id < %d' ) && 'wp_ffc_reregistration_submissions' === $bound[1] && 'wp_users' === $bound[2] ) {
+					$cursor = (int) $bound[4];
+					$rows   = array_filter( $this->submissions[ (int) $bound[3] ] ?? array(), static fn ( object $row ): bool => (int) $row->id < $cursor );
+					return array_slice( array_values( $rows ), 0, (int) $bound[5] );
+				}
+				$this->fail( 'Unexpected get_results(): ' . $sql . ' with ' . var_export( $bound, true ) );
+			}
+		);
+
+		return $wpdb;
+	}
+
+	/**
+	 * The prepare() argument list behind a prepared query string.
+	 *
+	 * @return array<int, mixed>
+	 */
+	private function boundTo( string $sql ): array {
+		if ( preg_match( '/^Q(\d+):/', $sql, $match ) ) {
+			return $this->prepared[ (int) $match[1] ] ?? array();
+		}
+		return array( $sql );
 	}
 
 	/**
@@ -156,12 +291,9 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		$this->assertSame( 'North / HQ', $result[7] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_format_row_masks_the_email_and_sensitive_fields_without_the_pii_cap(): void {
-		$enc = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'looks_like_envelope' )->andReturn( false );
+		// The dynamic sensitive-key cache answers with an empty list, so the
+		// registry never reads the custom-fields table.
 		Functions\when( 'wp_cache_get' )->justReturn( array() );
 
 		$context = array(
@@ -169,55 +301,49 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 			'pii'    => false,
 		);
 		$row         = $this->sample_row();
-		$row['data'] = '{"fields":{"cpf":"51817842080","setor":"TI"}}';
+		$row['data'] = '{"fields":{"cpf":"' . Identifiers::CPF_A . '","setor":"TI"}}';
 
 		$result = $this->source->format_row( $row, $context );
 
 		$this->assertSame( 'j***@example.com', $result[2] );
-		$this->assertSame( '518.***.***-80', $result[6] );
+		$this->assertSame( substr( Identifiers::CPF_A, 0, 3 ) . '.***.***-' . substr( Identifiers::CPF_A, 9 ), $result[6] );
 		$this->assertSame( 'TI', $result[7] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_a_clear_export_is_recorded_and_a_masked_one_is_not(): void {
-		$calls = array();
-		Mockery::getConfiguration()->setConstantsMap(
-			array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_INFO' => 'info' ) )
+		ActivityLogBuffer::reset();
+		ActivityLogBuffer::stub_functions();
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $fallback = false ) => 'ffc_settings' === $key ? ActivityLogBuffer::ENABLED_SETTINGS : $fallback
 		);
-		Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' )
-			->shouldReceive( 'log' )
-			->andReturnUsing(
-				static function ( ...$args ) use ( &$calls ) {
-					$calls[] = $args;
-					return true;
-				}
-			);
 
 		$this->source->on_complete( 'job', array( 'processed' => 12, 'context' => array( 'pii' => false ) ) );
-		$this->assertSame( array(), $calls );
+		$this->assertSame( array(), ActivityLogBuffer::entries() );
 
 		$this->source->on_complete( 'job', array( 'processed' => 12, 'context' => array( 'pii' => true ) ) );
-		$this->assertSame( array( array( 'pii_exported', 'info', array( 'export' => 'reregistration', 'rows' => 12 ), 1, 0 ) ), $calls );
+		$entries = ActivityLogBuffer::entries();
+		$this->assertCount( 1, $entries );
+		$this->assertSame( 'pii_exported', $entries[0]['action'] );
+		$this->assertSame( 'info', $entries[0]['level'] );
+		$this->assertSame( 1, $entries[0]['user_id'] );
+		$this->assertSame( 0, $entries[0]['submission_id'] );
+		$this->assertSame(
+			array( 'export' => 'reregistration', 'rows' => 12 ),
+			ActivityLogBuffer::contexts()[0]['context']
+		);
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_format_row_decrypts_sensitive(): void {
 		// The reader asks the VALUE whether it is an envelope before attempting
-		// (#1509), so the double answers that too.
-		$enc = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'looks_like_envelope' )->with( 'CIPHER' )->andReturn( true );
-		$enc->shouldReceive( 'decrypt' )->with( 'CIPHER' )->andReturn( self::masked( Identifiers::CPF_A ) );
+		// (#1509); the real cipher wrote this one.
+		$cipher = (string) Encryption::encrypt( self::masked( Identifiers::CPF_A ) );
 
 		$context = array(
 			'fields' => array( $this->field( 'cpf', 'CPF', 'text', 1 ) ),
 			'pii'    => true,
 		);
 		$row         = $this->sample_row();
-		$row['data'] = '{"fields":{"cpf":"CIPHER"}}';
+		$row['data'] = (string) json_encode( array( 'fields' => array( 'cpf' => $cipher ) ) );
 
 		$result = $this->source->format_row( $row, $context );
 		$this->assertSame( self::masked( Identifiers::CPF_A ), $result[6] );
@@ -229,12 +355,10 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 	 *
 	 * Before the reader decided from the value, this row exported the CIPHERTEXT
 	 * into the CSV column where the CPF belongs -- no failure, no log line.
-	 * @runInSeparateProcess
 	 */
 	public function test_format_row_decrypts_even_when_the_field_is_no_longer_sensitive(): void {
-		$enc = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'looks_like_envelope' )->with( 'v2:ENVELOPE' )->andReturn( true );
-		$enc->shouldReceive( 'decrypt' )->with( 'v2:ENVELOPE' )->andReturn( self::masked( Identifiers::CPF_A ) );
+		$envelope = (string) Encryption::encrypt( self::masked( Identifiers::CPF_A ) );
+		$this->assertStringStartsWith( 'v2:', $envelope, 'The stored value is a current envelope.' );
 
 		// The field definition says NOT sensitive (last argument 0).
 		$context     = array(
@@ -242,7 +366,7 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 			'pii'    => true,
 		);
 		$row         = $this->sample_row();
-		$row['data'] = '{"fields":{"cpf":"v2:ENVELOPE"}}';
+		$row['data'] = (string) json_encode( array( 'fields' => array( 'cpf' => $envelope ) ) );
 
 		$result = $this->source->format_row( $row, $context );
 
@@ -274,54 +398,53 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		$this->assertSame( array( 'reregistration_id' => 5 ), $this->source->sanitize_filters() );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_count_delegates(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
-			->shouldReceive( 'count_by_reregistration' )->once()->with( 5 )->andReturn( 12 );
+		$this->counts = array(
+			5 => 12,
+			6 => 3,
+		);
 
 		$this->assertSame( 12, $this->source->count( array( 'reregistration_id' => 5 ) ) );
+		$this->assertSame(
+			array( array( 'SELECT COUNT(*) FROM %i WHERE reregistration_id = %d', 'wp_ffc_reregistration_submissions', 5 ) ),
+			$this->prepared,
+			'One count, of this campaign\'s submissions.'
+		);
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_build_context_resolves_fields_and_title(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationRepository' )
-			->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'id' => 5, 'title' => 'Campaign X' ) )
-			->shouldReceive( 'get_audience_ids' )->with( 5 )->andReturn( array( 1 ) );
-		Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\CustomFieldReader' )
-			->shouldReceive( 'get_by_audience_with_parents' )->with( 1, true )
-			->andReturn( array( $this->field( 'ramal', 'Ramal' ) ) );
+		$this->campaigns[5]          = (object) array( 'id' => 5, 'title' => 'Campaign X' );
+		$this->campaign_audiences[5] = array( '1' );
+		$this->audiences[1]          = (object) array( 'id' => '1', 'name' => 'Teachers', 'parent_id' => null );
+		$this->fields[1]             = array( $this->field( 'ramal', 'Ramal' ) );
 
 		$context = $this->source->build_context( array( 'reregistration_id' => 5 ) );
 		$this->assertSame( 'Campaign X', $context['title'] );
 		$this->assertCount( 1, $context['fields'] );
+		$this->assertSame( 'ramal', $context['fields'][0]->field_key );
+
+		$field_reads = array_values( array_filter( $this->prepared, static fn( array $call ): bool => 'wp_ffc_custom_fields' === ( $call[1] ?? null ) ) );
+		$this->assertCount( 1, $field_reads );
+		$this->assertStringContainsString( 'is_active = 1', $field_reads[0][0], 'Only active fields are asked for.' );
+		$this->assertSame( 1, $field_reads[0][2], 'The fields are read for the campaign\'s audience.' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_build_context_empty_for_missing_campaign(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationRepository' )
-			->shouldReceive( 'get_by_id' )->with( 99 )->andReturn( null );
-
 		$context = $this->source->build_context( array( 'reregistration_id' => 99 ) );
 		$this->assertSame( array(), $context['fields'] );
 		$this->assertSame( '', $context['title'] );
+		$this->assertCount( 1, $this->prepared, 'Nothing is read beyond the missing campaign.' );
+		$this->assertSame( array( 'SELECT * FROM %i WHERE id = %d', 'wp_ffc_reregistrations', 99 ), $this->prepared[0] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_fetch_page_casts_reader_objects_to_arrays(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
-			->shouldReceive( 'find_by_cursor_for_export' )->once()->with( 5, 10, 50 )
-			->andReturn( array( (object) array( 'id' => 5 ), (object) array( 'id' => 4 ) ) );
+		$this->submissions[5] = array( (object) array( 'id' => 12 ), (object) array( 'id' => 5 ), (object) array( 'id' => 4 ) );
+		$this->submissions[6] = array( (object) array( 'id' => 3 ) );
 
 		$page = $this->source->fetch_page( array( 'reregistration_id' => 5 ), array(), 10, 50 );
 		$this->assertSame( array( array( 'id' => 5 ), array( 'id' => 4 ) ), $page );
+		$this->assertCount( 1, $this->prepared );
+		$this->assertSame( array( 'wp_ffc_reregistration_submissions', 'wp_users', 5, 10, 50 ), array_slice( $this->prepared[0], 1 ) );
 	}
 
 	public function test_filename_is_dated(): void {
