@@ -875,6 +875,70 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertSame( array( array( 'delete', self::HOLIDAY_TABLE, array(), array( 'id' => 3 ) ) ), $this->writes );
 	}
 
+	/**
+	 * Post the edit form of holiday 3 on calendar 5 (#2212).
+	 *
+	 * @param array<string, string> $fields
+	 */
+	private function post_holiday_edit( array $fields ): void {
+		$_GET  = array( 'page' => 'ffc-scheduling-calendars' );
+		$_POST = array_merge(
+			array(
+				'ffc_action'               => 'edit_holiday',
+				'ffc_holiday_edit_nonce'   => 'n',
+				'holiday_id'               => '3',
+				'schedule_id'              => '5',
+				'holiday_edit_date'        => '2026-12-24',
+				'holiday_edit_description' => 'Eve',
+				'holiday_edit_kind'        => 'optional',
+			),
+			$fields
+		);
+	}
+
+	public function test_handle_actions_edits_a_holiday_and_lands_on_the_closed_dates_tab(): void {
+		$this->store( self::HOLIDAY_TABLE, array( 'id' => 3, 'schedule_id' => 5, 'holiday_date' => '2026-12-25', 'description' => 'Christmas' ) );
+		Functions\when( 'wp_verify_nonce' )->alias( static fn( $nonce, $action ) => 'edit_holiday_3' === $action ? 1 : false );
+		Functions\when( 'admin_url' )->returnArg();
+		$this->post_holiday_edit( array() );
+
+		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
+		$this->assertStringContainsString( 'message=holiday_updated', $this->redirect_of( $page ) );
+		$this->assertSame(
+			array(
+				array(
+					'update',
+					self::HOLIDAY_TABLE,
+					array( 'holiday_date' => '2026-12-24', 'description' => 'Eve', 'kind' => 'optional' ),
+					array( 'id' => 3, 'schedule_id' => 5 ),
+				),
+			),
+			$this->writes
+		);
+	}
+
+	public function test_handle_actions_does_not_edit_another_calendars_holiday(): void {
+		$this->store( self::HOLIDAY_TABLE, array( 'id' => 3, 'schedule_id' => 9, 'holiday_date' => '2026-12-25', 'description' => 'Christmas' ) );
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'admin_url' )->returnArg();
+		$this->post_holiday_edit( array() );
+
+		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
+		$this->assertStringContainsString( 'message=holiday_not_updated', $this->redirect_of( $page ) );
+		$this->assertSame( array(), $this->writes );
+	}
+
+	public function test_handle_actions_does_not_edit_a_holiday_without_its_nonce(): void {
+		$this->store( self::HOLIDAY_TABLE, array( 'id' => 3, 'schedule_id' => 5, 'holiday_date' => '2026-12-25', 'description' => 'Christmas' ) );
+		Functions\when( 'wp_verify_nonce' )->alias( static fn( $nonce, $action ) => 'edit_holiday_4' === $action ? 1 : false );
+		$this->post_holiday_edit( array() );
+
+		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
+		$page->handle_actions();
+
+		$this->assertSame( array(), $this->writes );
+	}
+
 	// ==================================================================
 	// #1761 — Environments as the page's second view
 	// ==================================================================
@@ -1033,9 +1097,11 @@ class AudienceAdminCalendarTest extends TestCase {
 		// The calendar form: fields locked and no save without manage.
 		$this->assertSame( ! $can_manage, str_contains( $output, 'Read-only — you can view this page' ) );
 		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '<fieldset disabled class="ffc-readonly-lock">' ) );
-		// The closed-date type control is a fieldset of its own (#2202), drawn
-		// only for the manage tier; it is not the lock.
-		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '</fieldset>' ) - substr_count( $output, '<fieldset id="holiday_kind"' ) );
+		// The closed-date type controls are fieldsets of their own (#2202): the
+		// add form's and each row's edit form (#2212), drawn only for the
+		// manage tier; they are not the lock.
+		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '</fieldset>' ) - substr_count( $output, '<fieldset id="holiday_' ) );
+		$this->assertSame( $can_manage, str_contains( $output, 'data-ffc-holiday-edit="cal-3"' ), 'Only the manage tier gets the edit row.' );
 		$this->assertSame( $can_manage, str_contains( $output, 'value="Update Calendar" form="ffc-schedule-form">Update Calendar</button>' ) );
 		if ( ! $can_manage ) {
 			$open  = (int) strpos( $output, '<fieldset disabled' );

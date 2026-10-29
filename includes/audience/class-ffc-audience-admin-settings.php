@@ -317,11 +317,14 @@ class AudienceAdminSettings {
 			$messages = array(
 				'holiday_added'   => __( 'Holiday added successfully.', 'ffcertificate' ),
 				'holiday_deleted' => __( 'Holiday deleted successfully.', 'ffcertificate' ),
+				'holiday_updated' => __( 'Holiday updated successfully.', 'ffcertificate' ),
 				'colors_saved'    => __( 'Calendar colors saved.', 'ffcertificate' ),
 			);
 			$message  = RequestInput::get_get_string( 'message' );
 			if ( isset( $messages[ $message ] ) ) {
 				add_settings_error( 'ffc_audience', 'ffc_message', $messages[ $message ], 'success' );
+			} elseif ( 'holiday_not_updated' === $message ) {
+				add_settings_error( 'ffc_audience', 'ffc_message', __( 'The holiday was not changed: the date is invalid or another holiday already uses it.', 'ffcertificate' ), 'error' );
 			}
 		}
 
@@ -387,6 +390,30 @@ class AudienceAdminSettings {
 			exit;
 		}
 
+		// Edit global holiday (POST, #2212). Named by its original date, which
+		// is unique; the nonce is bound to it like the delete link's.
+		if ( isset( $_POST['ffc_action'] ) && 'edit_global_holiday' === $_POST['ffc_action'] ) {
+			$original = RequestInput::get_post_string( 'holiday_original_date' );
+			if ( 1 !== preg_match( '/^\d{4}-\d{2}-\d{2}$/', $original ) ||
+				! wp_verify_nonce( RequestInput::get_post_string( 'ffc_holiday_edit_nonce' ), 'edit_global_holiday_' . $original ) ) {
+				return;
+			}
+
+			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+				return;
+			}
+
+			$updated = self::update_global_holiday(
+				$original,
+				RequestInput::get_post_string( 'holiday_edit_date' ),
+				RequestInput::get_post_string( 'holiday_edit_description' ),
+				RequestInput::get_post_string( 'holiday_edit_kind' )
+			);
+
+			wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=general&message=' . ( $updated ? 'holiday_updated' : 'holiday_not_updated' ) ) );
+			exit;
+		}
+
 		// Delete global holiday (GET).
 		if ( isset( $_GET['ffc_action'] ) && 'delete_global_holiday' === $_GET['ffc_action'] ) {
 			// The holiday is named by its date, which is unique: the screen
@@ -418,6 +445,48 @@ class AudienceAdminSettings {
 			wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=general&message=holiday_deleted' ) );
 			exit;
 		}
+	}
+
+	/**
+	 * Replace the global holiday stored under `$original` (#2212).
+	 *
+	 * Refuses an invalid date, a holiday that is not stored, and a new date
+	 * another entry already holds: the date is what names an entry.
+	 *
+	 * @param string $original    The stored date (Y-m-d) of the entry to change.
+	 * @param string $date        The new date (Y-m-d).
+	 * @param string $description The new description.
+	 * @param string $kind        A `ClosedDateKind` value; unknown reads as a holiday.
+	 * @return bool True when the entry was found and written.
+	 */
+	private static function update_global_holiday( string $original, string $date, string $description, string $kind ): bool {
+		if ( 1 !== preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+			return false;
+		}
+
+		$holidays = get_option( 'ffc_global_holidays', array() );
+		$holidays = is_array( $holidays ) ? $holidays : array();
+		$index    = null;
+		foreach ( $holidays as $i => $h ) {
+			$stored = is_array( $h ) ? ( $h['date'] ?? null ) : null;
+			if ( $original === $stored ) {
+				$index = $i;
+			} elseif ( $date === $stored ) {
+				return false;
+			}
+		}
+		if ( null === $index ) {
+			return false;
+		}
+
+		$holidays[ $index ] = array(
+			'date'        => $date,
+			'description' => $description,
+			'kind'        => \FreeFormCertificate\Scheduling\ClosedDateKind::normalize( $kind ),
+		);
+		update_option( 'ffc_global_holidays', array_values( $holidays ) );
+
+		return true;
 	}
 
 	/**

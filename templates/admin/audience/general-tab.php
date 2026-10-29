@@ -119,8 +119,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 						</tr>
 					</thead>
 					<tbody>
-						<?php foreach ( $holidays as $holiday ) : ?>
-							<tr>
+						<?php foreach ( $holidays as $holiday_index => $holiday ) : ?>
+							<tr data-ffc-holiday-view="<?php echo esc_attr( 'global-' . $holiday_index ); ?>">
 								<td>
 									<?php
 									// Holiday dates are wall-clock DATE strings (Category B) stored
@@ -144,6 +144,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 										'delete_global_holiday_' . $holiday['date'],
 										'ffc_global_holiday_nonce'
 									);
+									\FreeFormCertificate\Admin\AdminUI::render_button(
+										array(
+											'label'    => __( 'Edit', 'ffcertificate' ),
+											'category' => 'neutral',
+											'icon'     => 'edit',
+											'type'     => 'button',
+											'attrs'    => array( 'data-ffc-holiday-edit-open' => 'global-' . $holiday_index ),
+										)
+									);
 									?>
 									<a href="<?php echo esc_url( $delete_url ); ?>"
 										class="ffc-btn ffc-btn-danger ffc-icon-delete"
@@ -152,6 +161,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 									</a>
 								</td>
 							</tr>
+							<?php
+							$edit_row = array(
+								'key'          => 'global-' . $holiday_index,
+								'colspan'      => 4,
+								'action'       => 'edit_global_holiday',
+								'nonce_action' => 'edit_global_holiday_' . $holiday['date'],
+								'nonce_name'   => 'ffc_holiday_edit_nonce',
+								'hidden'       => array( 'holiday_original_date' => (string) $holiday['date'] ),
+								'date'         => (string) $holiday['date'],
+								'kind'         => (string) ( $holiday['kind'] ?? '' ),
+								'description'  => (string) ( $holiday['description'] ?? '' ),
+							);
+							include FFC_PLUGIN_DIR . 'templates/admin/audience/holiday-edit-row.php';
+							?>
 						<?php endforeach; ?>
 					</tbody>
 				</table>

@@ -459,10 +459,6 @@
     width: 150px;
 }
 
-.ffc-aud-w-100 {
-    width: 100px;
-}
-
 .ffc-aud-check {
     color: var(--ffc-success-text);
     font-weight: 600;
@@ -584,4 +580,34 @@
     padding: 0;
     border: 1px solid var(--ffc-gray-300);
     cursor: pointer;
+}
+
+/* ==========================================================================
+   Holiday edit row (#2212): the edit form that replaces a holiday's row in
+   the global holidays and closed-dates lists.
+   ========================================================================== */
+.ffc-holiday-edit-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--ffc-spacing-md);
+}
+
+.ffc-holiday-edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-2xs);
+}
+
+.ffc-holiday-edit-description {
+    flex: 1 1 220px;
+}
+
+.ffc-holiday-edit-description input {
+    width: 100%;
+}
+
+.ffc-holiday-edit-actions {
+    display: flex;
+    gap: var(--ffc-spacing-xs);
 }

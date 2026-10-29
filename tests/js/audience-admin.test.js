@@ -986,3 +986,67 @@ describe('audience-admin — keep-at-least-one follows members-only', () => {
 		expect(window.$('#audience_require_membership').prop('checked')).toBe(false);
 	});
 });
+
+// ----------------------------------------------------------------------
+// bindHolidayEdit — a holiday row edited in place (#2212)
+// ----------------------------------------------------------------------
+
+describe('audience-admin — holiday edit row', () => {
+	function rows() {
+		document.body.innerHTML = `
+			<table><tbody>
+				<tr data-ffc-holiday-view="global-0">
+					<td>25/12/2026</td>
+					<td><button type="button" data-ffc-holiday-edit-open="global-0">Edit</button></td>
+				</tr>
+				<tr class="ffc-holiday-edit-row" data-ffc-holiday-edit="global-0" hidden>
+					<td colspan="4"><form>
+						<input type="date" name="holiday_edit_date" value="2026-12-25">
+						<input type="text" name="holiday_edit_description" value="Christmas">
+						<button type="button" data-ffc-holiday-cancel="global-0">Cancel</button>
+					</form></td>
+				</tr>
+				<tr data-ffc-holiday-view="global-1"><td>01/01/2027</td></tr>
+			</tbody></table>
+		`;
+	}
+	const $ = (sel) => window.$(sel);
+
+	it('Edit swaps the row for its edit row and focuses the date', async () => {
+		rows();
+		await reload();
+
+		$('[data-ffc-holiday-edit-open="global-0"]').trigger('click');
+
+		expect($('[data-ffc-holiday-view="global-0"]').prop('hidden')).toBe(true);
+		expect($('[data-ffc-holiday-edit="global-0"]').prop('hidden')).toBe(false);
+		expect($('[data-ffc-holiday-view="global-1"]').prop('hidden')).toBe(false);
+		expect(document.activeElement).toBe($('input[name="holiday_edit_date"]')[0]);
+	});
+
+	it('Cancel puts the stored values back and shows the row again', async () => {
+		rows();
+		await reload();
+
+		$('[data-ffc-holiday-edit-open="global-0"]').trigger('click');
+		$('input[name="holiday_edit_description"]').val('Changed');
+		$('[data-ffc-holiday-cancel="global-0"]').trigger('click');
+
+		expect($('input[name="holiday_edit_description"]').val()).toBe('Christmas');
+		expect($('[data-ffc-holiday-edit="global-0"]').prop('hidden')).toBe(true);
+		expect($('[data-ffc-holiday-view="global-0"]').prop('hidden')).toBe(false);
+		expect(document.activeElement).toBe($('[data-ffc-holiday-edit-open="global-0"]')[0]);
+	});
+
+	it('Escape inside the edit row cancels it', async () => {
+		rows();
+		await reload();
+
+		$('[data-ffc-holiday-edit-open="global-0"]').trigger('click');
+		$('input[name="holiday_edit_date"]').val('2026-12-24');
+		$('input[name="holiday_edit_date"]').trigger(window.$.Event('keydown', { key: 'Escape' }));
+
+		expect($('input[name="holiday_edit_date"]').val()).toBe('2026-12-25');
+		expect($('[data-ffc-holiday-edit="global-0"]').prop('hidden')).toBe(true);
+	});
+});
