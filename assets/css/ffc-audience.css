@@ -374,9 +374,9 @@
 .ffc-shortcode .ffc-day-badge {
     display: inline-block;
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
-    border-radius: 10px;
+    /* The audience tag's shape, like the admin's closed-date pill (#2210). */
+    border-radius: var(--ffc-radius-xs);
     font-size: 10px;
-    font-weight: 600;
     margin-top: 3px;
     max-width: 100%;
     white-space: nowrap;
