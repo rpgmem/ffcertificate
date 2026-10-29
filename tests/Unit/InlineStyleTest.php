@@ -275,7 +275,7 @@ final class InlineStyleTest extends TestCase {
 		'includes/reregistration/class-ffc-reregistration-custom-fields-page.php' => array(
 			'style=: style="--ffc-color:<?php echo esc_attr( $audience->color ); ?>' => array( 1, self::OPERATOR_COLOUR ),
 		),
-		'includes/scheduling/class-ffc-closed-date-kind.php' => array(
+		'includes/scheduling/class-ffc-calendar-appearance.php' => array(
 			'wp_add_inline_style: wp_add_inline_style( $handle' => array( 1, self::GENERATED ),
 		),
 		'includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php' => array(
