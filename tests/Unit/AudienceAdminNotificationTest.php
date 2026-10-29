@@ -5,7 +5,6 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceNotificationHandler;
@@ -13,15 +12,23 @@ use FreeFormCertificate\Audience\AudienceNotificationHandler;
 /**
  * Tests for the opt-in audience admin notifications (item 4).
  *
- * Exercises the private admin-notification helpers via Reflection, with
- * SchedulingMailer alias-mocked to capture the outbound admin emails.
+ * Exercises the private admin-notification helpers via Reflection. Every
+ * test runs in the shared process: the real SchedulingMailer, the e-mail
+ * chrome and EmailService run down to a stubbed `wp_mail()`, which records
+ * what was sent.
  *
  * @covers \FreeFormCertificate\Audience\AudienceNotificationHandler
- * @preserveGlobalState disabled
  */
 class AudienceAdminNotificationTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * Every `wp_mail()` call: to, subject, body.
+	 *
+	 * @var list<array{to: string, subj: string, body: string}>
+	 */
+	private array $sent = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -31,7 +38,35 @@ class AudienceAdminNotificationTest extends TestCase {
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'is_email' )->alias( fn( $e ) => (bool) filter_var( $e, FILTER_VALIDATE_EMAIL ) );
-		Functions\when( 'get_option' )->justReturn( 'admin@site.com' );
+		// The site admin is the fallback recipient; every other option reads
+		// its default, so e-mails are enabled and debug logging is off.
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'admin_email' === $key ? 'admin@site.com' : $default
+		);
+
+		// What the e-mail chrome reaches on its way to wp_mail().
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'wp_strip_all_tags' )->alias( 'strip_tags' );
+		Functions\when( 'home_url' )->alias( static fn( $path = '' ) => 'https://example.com' . $path );
+		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts = null ) => gmdate( (string) $format, (int) $ts ) );
+
+		$this->sent = array();
+		$sent       = &$this->sent;
+		Functions\when( 'wp_mail' )->alias(
+			static function ( $to, $subj, $body ) use ( &$sent ) {
+				$sent[] = array(
+					'to'   => (string) $to,
+					'subj' => (string) $subj,
+					'body' => (string) $body,
+				);
+				return true;
+			}
+		);
 	}
 
 	protected function tearDown(): void {
@@ -96,87 +131,49 @@ class AudienceAdminNotificationTest extends TestCase {
 	// maybe_notify_admin_of_booking()
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_booking_admin_notification_sends_when_enabled(): void {
-		$sent = array();
-		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' )
-			->shouldReceive( 'send' )
-			->andReturnUsing(
-				function ( $to, $subj, $body ) use ( &$sent ) {
-					$sent[] = compact( 'to', 'subj', 'body' );
-					return true;
-				}
-			);
-
 		$schedule = (object) array(
 			'notify_admin_on_booking'   => 1,
 			'admin_notification_emails' => 'ops@x.com',
 		);
 		$this->invoke( 'maybe_notify_admin_of_booking', array( $schedule, $this->booking_data() ) );
 
-		$this->assertCount( 1, $sent );
-		$this->assertSame( 'ops@x.com', $sent[0]['to'] );
-		$this->assertStringContainsString( 'Room A', $sent[0]['subj'] );
-		$this->assertStringContainsString( 'Group A', $sent[0]['body'] );
+		$this->assertCount( 1, $this->sent );
+		$this->assertSame( 'ops@x.com', $this->sent[0]['to'] );
+		$this->assertStringContainsString( 'Room A', $this->sent[0]['subj'] );
+		$this->assertStringContainsString( 'Group A', $this->sent[0]['body'] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_booking_admin_notification_skips_when_disabled(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' )
-			->shouldNotReceive( 'send' );
-
 		$schedule = (object) array(
 			'notify_admin_on_booking'   => 0,
 			'admin_notification_emails' => 'ops@x.com',
 		);
 		$this->invoke( 'maybe_notify_admin_of_booking', array( $schedule, $this->booking_data() ) );
 
-		$this->assertTrue( true );
+		$this->assertSame( array(), $this->sent, 'Nothing is sent while the schedule has not opted in.' );
 	}
 
 	// ==================================================================
 	// maybe_notify_admin_of_cancellation()
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_cancellation_admin_notification_sends_with_fallback_recipient(): void {
-		$sent = array();
-		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' )
-			->shouldReceive( 'send' )
-			->andReturnUsing(
-				function ( $to, $subj, $body ) use ( &$sent ) {
-					$sent[] = compact( 'to', 'subj', 'body' );
-					return true;
-				}
-			);
-
 		$schedule = (object) array(
 			'notify_admin_on_cancellation' => 1,
 			'admin_notification_emails'    => '',
 		);
 		$this->invoke( 'maybe_notify_admin_of_cancellation', array( $schedule, $this->booking_data() ) );
 
-		$this->assertCount( 1, $sent );
-		$this->assertSame( 'admin@site.com', $sent[0]['to'] );
-		$this->assertStringContainsString( 'Conflict', $sent[0]['body'] );
+		$this->assertCount( 1, $this->sent );
+		$this->assertSame( 'admin@site.com', $this->sent[0]['to'] );
+		$this->assertStringContainsString( 'Conflict', $this->sent[0]['body'] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_cancellation_admin_notification_skips_when_disabled(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' )
-			->shouldNotReceive( 'send' );
-
 		$schedule = (object) array( 'notify_admin_on_cancellation' => 0 );
 		$this->invoke( 'maybe_notify_admin_of_cancellation', array( $schedule, $this->booking_data() ) );
 
-		$this->assertTrue( true );
+		$this->assertSame( array(), $this->sent, 'Nothing is sent while the schedule has not opted in.' );
 	}
 }

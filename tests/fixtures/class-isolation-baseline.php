@@ -13,10 +13,4 @@
  */
 
 return array(
-	'FormProcessorGeofenceBeforeRateLimitTest.php',
-	'FormProcessorNonceRecoveryTest.php',
-	'FormProcessorRequiredPresenceOrderTest.php',
-	'FrontendTest.php',
-	'SubmissionHandlerTest.php',
-	'VerificationResponseRendererTest.php',
 );

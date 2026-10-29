@@ -8,6 +8,9 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Captcha\CaptchaProvider;
+use FreeFormCertificate\Core\IpAddress;
+use FreeFormCertificate\Core\SecurityService;
 use FreeFormCertificate\Frontend\Submission\SubmissionContext;
 use FreeFormCertificate\Frontend\Submission\SubmissionRejected;
 use FreeFormCertificate\Frontend\Submission\IpRateLimitGuard;
@@ -21,37 +24,251 @@ use FreeFormCertificate\Frontend\Submission\GeofenceGuard;
 use FreeFormCertificate\Frontend\Submission\RateLimitGuard;
 use FreeFormCertificate\Frontend\Submission\AccessRestrictionGuard;
 use FreeFormCertificate\Frontend\Submission\ScheduleExceptionGuard;
+use FreeFormCertificate\Security\GpsReading;
+use FreeFormCertificate\Security\RateLimitChecker;
 
 /**
  * #563 Sprint 1 — unit tests for the extracted submission entry guards.
  *
  * Each guard is exercised in isolation against a SubmissionContext: this is
  * the testability win the pipeline split delivers (the legacy monolith could
- * only be driven end-to-end). Static collaborators are alias-mocked, so the
- * tests that declare an alias run in their own process; the rest share it
- * (#2091).
- *
- * @preserveGlobalState disabled
+ * only be driven end-to-end). The collaborators run for real — RateLimiter
+ * and its checker, limiters, counters and repository; SecurityService with
+ * the math captcha, its signer and its ledger; DataSanitizer; Geofence and
+ * GpsReading; AccessRestrictionChecker; Debug and ActivityLog, both off —
+ * over an in-memory transient store, the options the test sets, the post
+ * meta it answers, and a `$wpdb` double that answers by SQL text, records
+ * every write, and fails the test on a query it does not know (#2091).
  */
 class SubmissionGuardsTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	private const IP = '203.0.113.7';
+
+	/** @var array<string, mixed> Overrides merged over the rate-limit defaults. */
+	private array $settings = array();
+
+	/** @var array<string, mixed> The transient store. */
+	private array $transients = array();
+
+	/** @var list<string> Every transient key read. */
+	private array $transient_reads = array();
+
+	/** @var array<string, mixed> Post meta by key, answered for any post. */
+	private array $post_meta = array();
+
+	/** @var list<array{0: int, 1: string, 2: mixed}> Every update_post_meta() call. */
+	private array $meta_writes = array();
+
+	/** @var list<string> Every read query the double ran. */
+	private array $reads = array();
+
+	/** @var list<array{0: string, 1: array<string, mixed>}> Every insert: table and row. */
+	private array $inserts = array();
+
+	/** @var list<string> Every query() the double ran. */
+	private array $queries = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> `$_SERVER` before this test. */
+	private array $server_backup = array();
+
+	/** @var array<string, mixed> `$_POST` before this test. */
+	private array $post_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		// Memoised per request by the real classes.
+		$cache = new \ReflectionProperty( RateLimitChecker::class, 'settings_cache' );
+		$cache->setAccessible( true );
+		$cache->setValue( null, null );
+		CaptchaProvider::reset();
+
+		$this->settings        = array(
+			// Off, so a denial writes no log row and the double sees only the
+			// counters the tests assert on.
+			'logging' => array(
+				'enabled'     => false,
+				'log_allowed' => false,
+			),
+			'email'   => array( 'enabled' => false ),
+		);
+		$this->transients      = array();
+		$this->transient_reads = array();
+		$this->post_meta       = array();
+		$this->meta_writes     = array();
+		$this->reads           = array();
+		$this->inserts         = array();
+		$this->queries         = array();
+
 		Functions\when( '__' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_email' )->returnArg();
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'wp_kses' )->returnArg();
 		Functions\when( 'is_email' )->alias( static fn( $v ) => false !== filter_var( (string) $v, FILTER_VALIDATE_EMAIL ) ? $v : false );
 		Functions\when( 'absint' )->alias( 'intval' );
+		Functions\when( 'wp_rand' )->alias( static fn( $min = 0, $max = 0 ) => random_int( (int) $min, (int) $max ) );
+		Functions\when( 'wp_salt' )->justReturn( 'submission-guards-test-salt' );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts = null ) => gmdate( $format, null === $ts ? time() : $ts ) );
+		Functions\when( 'current_time' )->justReturn( '2027-01-15 08:00:00' );
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( (array) $defaults, (array) $args ) );
+		Functions\when( 'get_option' )->alias(
+			function ( $key, $default = false ) {
+				if ( 'ffc_rate_limit_settings' === $key ) {
+					return array_replace_recursive( (array) $default, $this->settings );
+				}
+				if ( 'ffc_settings' === $key ) {
+					// Debug, the activity log and the captcha provider all
+					// read their defaults: off, off, math.
+					return array();
+				}
+				return $default;
+			}
+		);
+		Functions\when( 'get_transient' )->alias(
+			function ( $key ) {
+				$this->transient_reads[] = $key;
+				return $this->transients[ $key ] ?? false;
+			}
+		);
+		Functions\when( 'set_transient' )->alias(
+			function ( $key, $value ) {
+				$this->transients[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'get_post_meta' )->alias( fn( $id, $key ) => $this->post_meta[ $key ] ?? '' );
+		Functions\when( 'update_post_meta' )->alias(
+			function ( $id, $key, $value ) {
+				$this->meta_writes[] = array( (int) $id, (string) $key, $value );
+				return true;
+			}
+		);
+
+		$this->post_backup   = $_POST ?? array();
+		$this->server_backup = $_SERVER ?? array();
+		$_SERVER['REMOTE_ADDR'] = self::IP;
+		// The headers ClientIpResolver reads ahead of REMOTE_ADDR.
+		unset( $_SERVER['HTTP_CLIENT_IP'], $_SERVER['HTTP_X_FORWARDED_FOR'], $_SERVER['HTTP_X_FORWARDED'], $_SERVER['HTTP_X_CLUSTER_CLIENT_IP'], $_SERVER['HTTP_FORWARDED_FOR'], $_SERVER['HTTP_FORWARDED'] );
+
+		$this->had_wpdb = array_key_exists( 'wpdb', $GLOBALS );
+		if ( $this->had_wpdb ) {
+			$this->wpdb_backup = $GLOBALS['wpdb'];
+		}
+		$GLOBALS['wpdb'] = $this->wpdb_double();
 	}
 
 	protected function tearDown(): void {
-		$_POST = array();
+		$_POST   = $this->post_backup;
+		$_SERVER = $this->server_backup;
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * A `$wpdb` double: `prepare()` binds its arguments into the SQL, the
+	 * rate-limit counter reads find no row, the ticket claim succeeds, and
+	 * anything else fails the test.
+	 *
+	 * @return \Mockery\MockInterface
+	 */
+	private function wpdb_double() {
+		$wpdb                = Mockery::mock( 'wpdb' );
+		$wpdb->prefix        = 'wp_';
+		$wpdb->options       = 'wp_options';
+		$wpdb->rows_affected = 0;
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$flat = 1 === count( $args ) && is_array( $args[0] ) ? $args[0] : $args;
+				return (string) preg_replace_callback(
+					'/%[ids]/',
+					static function () use ( &$flat ) {
+						return (string) array_shift( $flat );
+					},
+					$sql
+				);
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $q ) {
+				$this->reads[] = $q;
+				if ( 0 === strpos( $q, 'SELECT count FROM wp_ffc_rate_limits' ) ) {
+					return null;
+				}
+				$this->fail( 'Unexpected get_var(): ' . $q );
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $q ) {
+				$this->reads[] = $q;
+				if ( 0 === strpos( $q, 'SELECT id,count FROM wp_ffc_rate_limits' ) ) {
+					return null;
+				}
+				$this->fail( 'Unexpected get_row(): ' . $q );
+			}
+		);
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $row ) {
+				$this->inserts[] = array( $table, $row );
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $q ) use ( $wpdb ) {
+				$this->queries[] = $q;
+				if ( 0 === strpos( $q, 'INSERT IGNORE INTO wp_options' ) ) {
+					// The first claim of a ticket wins.
+					$wpdb->rows_affected = 1;
+					return 1;
+				}
+				$this->fail( 'Unexpected query(): ' . $q );
+			}
+		);
+		return $wpdb;
+	}
+
+	/**
+	 * The counter rows written to the rate-limit table, as `type/window`.
+	 *
+	 * @return list<string>
+	 */
+	private function counter_rows(): array {
+		$rows = array();
+		foreach ( $this->inserts as list( $table, $row ) ) {
+			if ( 'wp_ffc_rate_limits' === $table ) {
+				$rows[] = $row['type'] . '/' . $row['window_type'];
+			}
+		}
+		return $rows;
+	}
+
+	/**
+	 * The transient that counts this test's address per hour.
+	 *
+	 * @param int|null $form_id The form the counter belongs to.
+	 * @return string
+	 */
+	private static function ip_hour_key( ?int $form_id ): string {
+		return 'ffc_rate_ip_' . md5( IpAddress::fingerprint( self::IP ) . $form_id ) . '_hour';
 	}
 
 	private function ctx(): SubmissionContext {
@@ -70,15 +287,13 @@ class SubmissionGuardsTest extends TestCase {
 
 	// ===================== IpRateLimitGuard =====================
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_ip_guard_throws_when_over_limit(): void {
-		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
-		$rl->shouldReceive( 'check_ip_limit' )->andReturn(
-			array( 'allowed' => false, 'message' => 'slow down', 'wait_seconds' => 30 )
+		// The address already reached its hourly limit, under the operator's message.
+		$this->settings['ip']                      = array(
+			'max_per_hour' => 5,
+			'message'      => 'slow down',
 		);
-		Functions\when( 'sanitize_text_field' )->returnArg();
+		$this->transients[ self::ip_hour_key( null ) ] = 5;
 
 		try {
 			( new IpRateLimitGuard() )->apply( $this->ctx() );
@@ -86,31 +301,28 @@ class SubmissionGuardsTest extends TestCase {
 		} catch ( SubmissionRejected $e ) {
 			$payload = $e->get_payload();
 			$this->assertTrue( $payload['rate_limit'] );
-			$this->assertSame( 30, $payload['wait_seconds'] );
+			$this->assertSame( 'slow down', $payload['message'] );
+			$this->assertSame( 3600, $payload['wait_seconds'] );
 		}
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_ip_guard_passes_when_allowed(): void {
-		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
-		$rl->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) );
 		$ctx = $this->ctx();
 		( new IpRateLimitGuard() )->apply( $ctx );
 		$this->assertFalse( $ctx->has_exception );
+		$this->assertContains( self::ip_hour_key( null ), $this->transient_reads, 'The limiter was consulted.' );
+		$this->assertCount( 1, $this->reads, 'The daily counter was read from the table.' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_ip_guard_skipped_on_exception_path(): void {
-		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
-		$rl->shouldNotReceive( 'check_ip_limit' );
-		$ctx                = $this->ctx();
-		$ctx->has_exception = true;
+		// A counter that would block, so only the skip lets the guard pass.
+		$this->transients[ self::ip_hour_key( null ) ] = 99;
+		$ctx                                            = $this->ctx();
+		$ctx->has_exception                             = true;
 		( new IpRateLimitGuard() )->apply( $ctx );
 		$this->assertTrue( $ctx->has_exception );
+		$this->assertSame( array(), $this->transient_reads, 'The limiter is not consulted on the exception path.' );
+		$this->assertSame( array(), $this->reads );
 	}
 
 	// ===================== NonceGuard =====================
@@ -142,20 +354,7 @@ class SubmissionGuardsTest extends TestCase {
 
 	// ===================== SecurityFieldsGuard =====================
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_security_guard_throws_with_new_captcha_on_failure(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )
-			->shouldReceive( 'log_form' )->andReturnNull()->byDefault();
-		$svc = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' )
-			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array {
-				return $p + array( 'refresh_captcha' => true, 'new_label' => '1+1', 'new_hash' => 'fresh-token' );
-			} );
-		$svc->shouldReceive( 'validate_security_fields' )->andReturn( 'Wrong answer.' );
-		$svc->shouldReceive( 'generate_simple_captcha' )->andReturn(
-			array( 'label' => '2 + 2', 'hash' => 'h' )
-		);
 		$_POST = array();
 
 		try {
@@ -163,28 +362,26 @@ class SubmissionGuardsTest extends TestCase {
 			$this->fail( 'expected SubmissionRejected' );
 		} catch ( SubmissionRejected $e ) {
 			$payload = $e->get_payload();
-			// The guard's job is to reject carrying a usable challenge. The
-			// challenge itself comes from SecurityService, alias-mocked here —
-			// its real construction is covered by CaptchaProviderTest.
+			// The guard rejects carrying a usable challenge, issued by the
+			// configured provider (math, by default).
+			$this->assertSame( 'Error: Please answer the security question.', $payload['message'] );
 			$this->assertTrue( $payload['refresh_captcha'] );
+			$this->assertSame( 'math', $payload['provider'] );
+			$this->assertNotEmpty( $payload['new_label'] );
 			$this->assertNotEmpty( $payload['new_hash'] );
 		}
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_security_guard_passes_when_valid(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )
-			->shouldReceive( 'log_form' )->andReturnNull()->byDefault();
-		$svc = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' )
-			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array {
-				return $p + array( 'refresh_captcha' => true, 'new_label' => '1+1', 'new_hash' => 'fresh-token' );
-			} );
-		$svc->shouldReceive( 'validate_security_fields' )->andReturn( true );
-		$_POST = array();
-		( new SecurityFieldsGuard() )->apply( $this->ctx() );
-		$this->assertTrue( true );
+		$challenge = SecurityService::generate_simple_captcha();
+		$_POST     = array(
+			'ffc_captcha_ans'  => (string) $challenge['answer'],
+			'ffc_captcha_hash' => $challenge['hash'],
+		);
+
+		$this->assertNull( ( new SecurityFieldsGuard() )->apply( $this->ctx() ) );
+		$spent = array_filter( array_keys( $this->transients ), static fn( $k ) => 0 === strpos( $k, 'ffc_captcha_used_' ) );
+		$this->assertCount( 1, $spent, 'A valid answer spends its challenge.' );
 	}
 
 	// ===================== FormConfigResolver =====================
@@ -229,8 +426,8 @@ class SubmissionGuardsTest extends TestCase {
 	// ===================== RequiredPresenceGuard =====================
 
 	public function test_presence_check_collects_both_lgpd_and_email_errors(): void {
-		$_POST           = array(); // no consent, no email value.
-		$ctx             = $this->ctx();
+		$_POST              = array(); // no consent, no email value.
+		$ctx                = $this->ctx();
 		$ctx->fields_config = array( array( 'name' => 'email', 'type' => 'email' ) );
 		try {
 			( new RequiredPresenceGuard() )->apply( $ctx );
@@ -253,15 +450,7 @@ class SubmissionGuardsTest extends TestCase {
 
 	// ===================== FieldSanitizer =====================
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_field_sanitizer_rejects_bad_cpf_length(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault()
-			->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing( static fn( $v ) => (string) preg_replace( '/\D/', '', (string) $v ) )->byDefault()
-			->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) )->byDefault()
-			->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' )->byDefault();
 		$_POST              = array( 'cpf_rf' => '123' );
 		$ctx                = $this->ctx();
 		$ctx->fields_config = array( array( 'name' => 'cpf_rf', 'type' => 'text' ) );
@@ -273,15 +462,7 @@ class SubmissionGuardsTest extends TestCase {
 		}
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_field_sanitizer_says_invalid_when_an_address_was_typed(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault()
-			->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing( static fn( $v ) => (string) preg_replace( '/\D/', '', (string) $v ) )->byDefault()
-			->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) )->byDefault()
-			->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' )->byDefault();
 		Functions\when( 'sanitize_email' )->justReturn( '' );
 		$_POST              = array( 'email' => 'not-an-email' );
 		$ctx                = $this->ctx();
@@ -296,12 +477,8 @@ class SubmissionGuardsTest extends TestCase {
 
 	/**
 	 * #1734 — an invalid address was reported as a missing one.
-	 * @runInSeparateProcess
 	 */
 	public function test_field_sanitizer_says_required_only_when_nothing_was_typed(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault()
-			->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) )->byDefault();
 		$_POST              = array( 'email' => '   ' );
 		$ctx                = $this->ctx();
 		$ctx->fields_config = array( array( 'name' => 'email', 'type' => 'email' ) );
@@ -313,13 +490,7 @@ class SubmissionGuardsTest extends TestCase {
 		}
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_field_sanitizer_refuses_an_address_is_email_rejects(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault()
-			->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) )->byDefault();
 		$_POST              = array( 'email' => 'user@' );
 		$ctx                = $this->ctx();
 		$ctx->fields_config = array( array( 'name' => 'email', 'type' => 'email' ) );
@@ -331,15 +502,7 @@ class SubmissionGuardsTest extends TestCase {
 		}
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_field_sanitizer_populates_context_on_happy_path(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault()
-			->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing( static fn( $v ) => (string) preg_replace( '/\D/', '', (string) $v ) )->byDefault()
-			->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) )->byDefault()
-			->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' )->byDefault();
 		$_POST              = array( 'email' => 'USER@EX.CO', 'ffc_ticket' => 'abc' );
 		$ctx                = $this->ctx();
 		$ctx->fields_config = array( array( 'name' => 'email', 'type' => 'email' ) );
@@ -349,18 +512,12 @@ class SubmissionGuardsTest extends TestCase {
 		$this->assertSame( 'ABC', $ctx->val_ticket );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_field_sanitizer_takes_a_hidden_field_from_the_form_never_the_request(): void {
 		// #1574: a hidden field has no visible control, so a different value
 		// in the request can only come from an edited page.
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault()
-			->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) )->byDefault();
 		$_POST              = array(
-			'email'  => 'u@ex.co',
-			'turma'  => 'tampered',
+			'email' => 'u@ex.co',
+			'turma' => 'tampered',
 		);
 		$ctx                = $this->ctx();
 		$ctx->fields_config = array(
@@ -375,126 +532,127 @@ class SubmissionGuardsTest extends TestCase {
 
 	// ===================== DeviceSignalsResolver =====================
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_device_resolver_null_when_globally_disabled(): void {
-		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
-		$rl->shouldReceive( 'get_settings' )->andReturn( array( 'device' => array( 'enabled' => false ) ) );
-		Functions\when( 'get_post_meta' )->justReturn( '0' );
-		$ctx = $this->ctx();
+		// The form asks for the device limit; the global switch is off.
+		$this->settings['device']                     = array( 'enabled' => false );
+		$this->post_meta['_ffc_device_limit_enabled'] = '1';
+		$_POST['ffc_device_signals']                  = (string) json_encode( array( 'cookie' => str_repeat( 'a', 64 ) ) );
+		$ctx                                          = $this->ctx();
 		( new DeviceSignalsResolver() )->apply( $ctx );
 		$this->assertNull( $ctx->device_signals );
 		$this->assertFalse( $ctx->skip_device );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_device_resolver_sets_skip_on_manager_bypass(): void {
-		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
-		$rl->shouldReceive( 'get_settings' )->andReturn( array( 'device' => array( 'enabled' => true ) ) );
-		$rl->shouldReceive( 'should_bypass_for_manager' )->andReturn( true );
-		$rl->shouldReceive( 'log_attempt' )->andReturnNull();
-		Functions\when( 'get_post_meta' )->justReturn( '1' );
+		$this->settings['device']                     = array( 'enabled' => true );
+		$this->post_meta['_ffc_device_limit_enabled'] = '1';
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'manage_options' === $cap );
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		$ctx = $this->ctx();
 		( new DeviceSignalsResolver() )->apply( $ctx );
 		$this->assertTrue( $ctx->skip_device );
+		$this->assertNull( $ctx->device_signals );
 	}
 
 	// ===================== GeofenceGuard =====================
 
 	/**
-	 * @runInSeparateProcess
+	 * A GPS-only form around one area, and a reading the browser posts.
+	 *
+	 * @param string $lat Posted latitude.
+	 * @param string $lng Posted longitude.
 	 */
-	public function test_geofence_guard_throws_when_blocked(): void {
-		$gf = Mockery::mock( 'alias:\FreeFormCertificate\Security\Geofence' );
-		Mockery::mock( 'alias:\FreeFormCertificate\Security\GpsReading' )->shouldReceive( 'from_request' )->andReturn( array( 'reading' => null, 'status' => '' ) )->byDefault();
-		$gf->shouldReceive( 'get_form_config' )->andReturn( array( 'geo_enabled' => false ) );
-		$gf->shouldReceive( 'check_submission' )->andReturn(
-			array( 'allowed' => false, 'message' => 'outside', 'reason' => 'geo_outside_radius' )
+	private function gps_form_with_reading( string $lat, string $lng ): void {
+		$this->post_meta['_ffc_geofence_config'] = array(
+			'geo_enabled'     => '1',
+			'geo_gps_enabled' => '1',
+			'geo_areas'       => '-23.5505, -46.6333, 100',
+			'msg_geo_blocked' => 'outside',
 		);
+		$_POST = array(
+			'ffc_geo_lat'      => $lat,
+			'ffc_geo_lng'      => $lng,
+			'ffc_geo_accuracy' => '10',
+			'ffc_geo_age'      => '0',
+		);
+	}
+
+	public function test_geofence_guard_throws_when_blocked(): void {
+		$this->gps_form_with_reading( '0', '0' );
 		try {
 			( new GeofenceGuard() )->apply( $this->ctx() );
 			$this->fail( 'expected SubmissionRejected' );
 		} catch ( SubmissionRejected $e ) {
 			$payload = $e->get_payload();
 			$this->assertTrue( $payload['geofence_blocked'] );
-			$this->assertSame( 'geo_outside_radius', $payload['reason'] );
+			$this->assertSame( GpsReading::REASON_OUTSIDE, $payload['reason'] );
+			$this->assertSame( 'outside', $payload['message'] );
 		}
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_geofence_guard_passes_when_allowed(): void {
-		$gf = Mockery::mock( 'alias:\FreeFormCertificate\Security\Geofence' );
-		Mockery::mock( 'alias:\FreeFormCertificate\Security\GpsReading' )->shouldReceive( 'from_request' )->andReturn( array( 'reading' => null, 'status' => '' ) )->byDefault();
-		$gf->shouldReceive( 'get_form_config' )->andReturn( array() );
-		$gf->shouldReceive( 'check_submission' )->andReturn( array( 'allowed' => true ) );
-		( new GeofenceGuard() )->apply( $this->ctx() );
-		$this->assertTrue( true );
+		$this->gps_form_with_reading( '-23.5505', '-46.6333' );
+		$this->assertNull( ( new GeofenceGuard() )->apply( $this->ctx() ) );
 	}
 
 	// ===================== RateLimitGuard =====================
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_rate_limit_guard_throws_when_blocked(): void {
-		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
-		$rl->shouldReceive( 'check_all' )->andReturn(
-			array( 'allowed' => false, 'message' => 'limited', 'wait_seconds' => 12 )
+		$this->settings['ip']                       = array(
+			'max_per_hour' => 5,
+			'message'      => 'limited',
 		);
-		$rl->shouldNotReceive( 'record_attempt' );
-		$ctx              = $this->ctx();
-		$ctx->user_email  = 'a@b.co';
+		$this->transients[ self::ip_hour_key( 0 ) ] = 5;
+		$before                                     = $this->transients;
+		$ctx                                        = $this->ctx();
+		$ctx->user_email                            = 'a@b.co';
 		try {
 			( new RateLimitGuard() )->apply( $ctx );
 			$this->fail( 'expected SubmissionRejected' );
 		} catch ( SubmissionRejected $e ) {
 			$this->assertTrue( $e->get_payload()['rate_limit'] );
+			$this->assertSame( 'limited', $e->get_payload()['message'] );
 		}
+		$this->assertSame( array(), $this->inserts, 'A denied submission records no attempt.' );
+		$this->assertSame( $before, $this->transients, 'Nor does it move a counter.' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_rate_limit_guard_records_when_allowed(): void {
-		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
-		$rl->shouldReceive( 'check_all' )->andReturn( array( 'allowed' => true ) );
-		$rl->shouldReceive( 'record_attempt' )->atLeast()->once();
 		$ctx             = $this->ctx();
 		$ctx->user_email = 'a@b.co';
 		( new RateLimitGuard() )->apply( $ctx );
-		$this->assertTrue( true );
+		$this->assertSame( array( 'ip/day', 'email/day', 'email/month' ), $this->counter_rows() );
+		$this->assertSame( 1, $this->transients[ self::ip_hour_key( 0 ) ] ?? null, 'The hourly IP counter moved.' );
 	}
 
 	// ===================== AccessRestrictionGuard =====================
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_access_restriction_guard_throws_when_denied(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Frontend\AccessRestrictionChecker' )
-			->shouldReceive( 'check' )->andReturn( array( 'allowed' => false, 'message' => 'nope' ) );
+		$ctx              = $this->ctx();
+		$ctx->form_config = array( 'restrictions' => array( 'password' => '1' ), 'validation_code' => 'secret' );
 		try {
-			( new AccessRestrictionGuard() )->apply( $this->ctx() );
+			( new AccessRestrictionGuard() )->apply( $ctx );
 			$this->fail( 'expected SubmissionRejected' );
 		} catch ( SubmissionRejected $e ) {
-			$this->assertSame( 'nope', $e->get_payload()['message'] );
+			$this->assertSame( 'Password is required.', $e->get_payload()['message'] );
 		}
+		$this->assertSame( array(), $ctx->restriction_result );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_access_restriction_guard_stores_result_when_allowed(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Frontend\AccessRestrictionChecker' )
-			->shouldReceive( 'check' )->andReturn( array( 'allowed' => true, 'is_ticket' => true ) );
-		$ctx = $this->ctx();
+		$ctx              = $this->ctx();
+		$ctx->form_id     = 7;
+		$ctx->val_ticket  = 'ABC';
+		$ctx->form_config = array(
+			'restrictions'         => array( 'ticket' => '1' ),
+			'generated_codes_list' => "ABC\nXYZ",
+		);
 		( new AccessRestrictionGuard() )->apply( $ctx );
 		$this->assertTrue( $ctx->restriction_result['is_ticket'] );
+		$this->assertCount( 1, $this->queries, 'The ticket was claimed once.' );
+		$this->assertCount( 1, $this->meta_writes );
+		$this->assertSame( array( 7, '_ffc_form_config' ), array_slice( $this->meta_writes[0], 0, 2 ) );
+		$this->assertSame( 'XYZ', $this->meta_writes[0][2]['generated_codes_list'], 'The claimed ticket leaves the list.' );
 	}
 }

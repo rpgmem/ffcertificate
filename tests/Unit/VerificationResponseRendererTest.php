@@ -12,9 +12,12 @@ use FreeFormCertificate\Frontend\VerificationResponseRenderer;
 use FreeFormCertificate\Tests\Support\ButtonMarkup;
 
 /**
+ * ActivityLogQuery and CalendarRepository are the real classes: the `$wpdb`
+ * double below answers the activity-log DESCRIBE and SELECT and the calendar
+ * row by their SQL text and bound ids, from the arrays a test sets, and
+ * fails any other query.
+ *
  * @covers \FreeFormCertificate\Frontend\VerificationResponseRenderer
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class VerificationResponseRendererTest extends TestCase {
 
@@ -22,9 +25,34 @@ class VerificationResponseRendererTest extends TestCase {
 
 	private VerificationResponseRenderer $renderer;
 
+	/** @var list<array<int, mixed>> Every prepare() call, as its argument list. */
+	private array $prepared = array();
+
+	/** @var array<int, list<array<string, mixed>>> Activity-log rows stored per submission id. */
+	private array $log_rows = array();
+
+	/** @var array<int, array<string, mixed>> Calendar rows stored per id. */
+	private array $calendars = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$this->install_wpdb();
+
+		// ActivityLog memoises the log table's columns in a static.
+		\FreeFormCertificate\Core\ActivityLog::clear_column_cache();
+
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -55,8 +83,66 @@ class VerificationResponseRendererTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		\FreeFormCertificate\Core\ActivityLog::clear_column_cache();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * A `$wpdb` double answering the three queries the real collaborators
+	 * run: the activity log's DESCRIBE, its per-submission SELECT, and a
+	 * calendar by id. Anything else fails the test.
+	 *
+	 * @return void
+	 */
+	private function install_wpdb(): void {
+		$this->prepared  = array();
+		$this->log_rows  = array();
+		$this->calendars = array();
+
+		$prepared  = &$this->prepared;
+		$log_rows  = &$this->log_rows;
+		$calendars = &$this->calendars;
+
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( ...$args ) use ( &$prepared ) {
+				$prepared[] = $args;
+				return 'Q' . ( count( $prepared ) - 1 );
+			}
+		);
+		$args_of = static function ( string $token ) use ( &$prepared ): array {
+			return $prepared[ (int) substr( $token, 1 ) ];
+		};
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( $token ) use ( $args_of ) {
+				$args = $args_of( $token );
+				$this->assertSame( array( 'DESCRIBE %i', 'wp_ffc_activity_log' ), $args, 'Unexpected get_col query.' );
+				return array( 'id', 'action', 'context', 'context_encrypted', 'submission_id', 'created_at' );
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $token ) use ( $args_of, &$log_rows ) {
+				$args = $args_of( $token );
+				$this->assertSame( 'SELECT * FROM %i WHERE submission_id = %d ORDER BY created_at DESC LIMIT %d', $args[0], 'Unexpected get_results query.' );
+				$this->assertSame( 'wp_ffc_activity_log', $args[1] );
+				return $log_rows[ (int) $args[2] ] ?? array();
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $token ) use ( $args_of, &$calendars ) {
+				$args = $args_of( $token );
+				$this->assertSame( array( 'SELECT * FROM %i WHERE id = %d', 'wp_ffc_self_scheduling_calendars' ), array_slice( $args, 0, 2 ), 'Unexpected get_row query.' );
+				return $calendars[ (int) $args[2] ] ?? null;
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
 	}
 
 	// ==================================================================
@@ -414,6 +500,7 @@ class VerificationResponseRendererTest extends TestCase {
 			$this->invoke_block_builder( $submission ),
 			'submissions without override columns must short-circuit before the audit query'
 		);
+		$this->assertSame( array(), $this->prepared, 'No query reached the database.' );
 	}
 
 	public function test_block_returns_null_when_audit_row_missing(): void {
@@ -426,12 +513,18 @@ class VerificationResponseRendererTest extends TestCase {
 			'schedule_end_override'   => '17:30',
 		);
 
-		$query_class = Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLogQuery' );
-		$query_class->shouldReceive( 'get_submission_logs' )
-			->with( 555, Mockery::any() )
-			->andReturn( array() );
+		// Another submission's audit row must not be picked up.
+		$this->log_rows[556] = array(
+			array(
+				'action'  => 'schedule_override_created',
+				'context' => '{}',
+			),
+		);
 
 		$this->assertNull( $this->invoke_block_builder( $submission ) );
+		$selects = array_values( array_filter( $this->prepared, static fn( $args ) => 0 === strpos( $args[0], 'SELECT' ) ) );
+		$this->assertCount( 1, $selects );
+		$this->assertSame( 555, $selects[0][2], 'The audit query asked for this submission.' );
 	}
 
 	public function test_block_assembles_full_payload_from_audit_context(): void {
@@ -455,8 +548,7 @@ class VerificationResponseRendererTest extends TestCase {
 			),
 		);
 
-		$query_class = Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLogQuery' );
-		$query_class->shouldReceive( 'get_submission_logs' )->andReturn( array( $context_row ) );
+		$this->log_rows[555] = array( $context_row );
 
 		Functions\when( '_n' )->alias( static fn( $s, $p, $c ) => 1 === (int) $c ? $s : $p );
 
@@ -495,8 +587,7 @@ class VerificationResponseRendererTest extends TestCase {
 			),
 		);
 
-		$query_class = Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLogQuery' );
-		$query_class->shouldReceive( 'get_submission_logs' )->andReturn( array( $context_row ) );
+		$this->log_rows[555] = array( $context_row );
 
 		$block = $this->invoke_block_builder( $submission );
 
@@ -520,10 +611,7 @@ class VerificationResponseRendererTest extends TestCase {
 
 		$calendar_data = array( 'title' => 'Full Calendar', 'id' => 5 );
 
-		$calendarRepoMock = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
-		$calendarRepoMock->shouldReceive( 'findById' )
-			->with( 5 )
-			->andReturn( $calendar_data );
+		$this->calendars[5] = $calendar_data;
 
 		$pdf_generator = Mockery::mock( 'FreeFormCertificate\Generators\PdfGenerator' );
 		$pdf_generator->shouldReceive( 'generate_appointment_pdf_data' )

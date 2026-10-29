@@ -318,7 +318,11 @@ class FormProcessorTest extends TestCase {
 
 		// A ticket outside the list is looked up as a possible reprint first
 		// (#1574); no submission carries it here, so it is rejected.
+		// Its own double, so the test does not depend on one an earlier test left.
 		global $wpdb;
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
 		$wpdb->shouldReceive( 'get_row' )->andReturn( null );
 		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
 

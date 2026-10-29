@@ -16,10 +16,10 @@ use FreeFormCertificate\UrlShortener\UrlShortenerRepository;
  * Tests for UrlShortenerQrRestController: the /ffc/v1/short-urls/{code}/qr
  * endpoint (permission gate, 404, png/svg base64 payloads, route registration).
  *
- * Capabilities and UrlShortenerQrHandler are the real classes: the payload
- * is a QR code the real generator drew (#2121). Only the generation-failure
- * test overloads the handler, in a process of its own, because the real
- * generator does not fail on a valid URL.
+ * Capabilities, UrlShortenerQrHandler and QRCodeGenerator are the real
+ * classes: the payload is a QR code the real generator drew (#2121), and the
+ * generation-failure test makes the real generator fail by refusing it a
+ * temporary file.
  *
  * @covers \FreeFormCertificate\UrlShortener\UrlShortenerQrRestController
  */
@@ -137,24 +137,26 @@ class UrlShortenerQrRestControllerTest extends TestCase {
 		$this->assertStringContainsString( '<svg', (string) base64_decode( $result['data_base64'] ) );
 	}
 
-	/**
-	 * The real generator draws any valid URL, so only an overload can make
-	 * it fail; the overload needs its own process.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_get_qr_returns_500_on_generation_failure(): void {
 		$this->repo->shouldReceive( 'findByShortCode' )->with( 'abc123' )->andReturn(
 			array( 'id' => 1, 'short_code' => 'abc123', 'status' => 'active' )
 		);
 		$this->service->shouldReceive( 'get_short_url' )->with( 'abc123' )->andReturn( 'https://example.com/go/abc123' );
 
-		$qr = Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerQrHandler' );
-		$qr->shouldReceive( 'generate_qr_base64' )->andReturn( '' );
+		// No temporary file can be created: the real generator gives up and
+		// returns an empty image. The default size is not the cached one, so
+		// no cache row is read or written.
+		$tempnam_calls = 0;
+		Functions\when( 'wp_tempnam' )->alias(
+			static function () use ( &$tempnam_calls ) {
+				++$tempnam_calls;
+				return false;
+			}
+		);
 
 		$result = $this->controller->get_qr( $this->request( array( 'code' => 'abc123', 'format' => 'png' ) ) );
 
+		$this->assertSame( 1, $tempnam_calls, 'the real generator was reached' );
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 500, $result->get_error_data()['status'] );
 	}

@@ -26,9 +26,27 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
+	/**
+	 * The audience ids each member read asked for, in order.
+	 *
+	 * @var list<list<int>>
+	 */
+	private array $member_reads = array();
+
+	/** @var mixed The `$wpdb` global before the test. */
+	private $previous_wpdb;
+
+	/** Whether `$wpdb` was set before the test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->member_reads  = array();
+		$this->had_wpdb      = array_key_exists('wpdb', $GLOBALS);
+		$this->previous_wpdb = $GLOBALS['wpdb'] ?? null;
+		// AudienceReader::get_all() orders through it; the default order passes.
+		Functions\when('sanitize_sql_orderby')->returnArg();
 		// Several methods this class reaches are deprecated (#2089) and emit
 		// the notice; stub it so each test chooses the branch rather than
 		// inheriting it from an earlier class.
@@ -70,6 +88,11 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ($this->had_wpdb) {
+			$GLOBALS['wpdb'] = $this->previous_wpdb;
+		} else {
+			unset($GLOBALS['wpdb']);
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -1177,9 +1200,6 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
 	// ==================================================================
 	// get_all_by_user()
-	// Note: These tests must run BEFORE create_for_audience_members tests
-	// because those tests create a Mockery alias for ReregistrationRepository
-	// which persists for the rest of the process.
 	// ==================================================================
 
 	public function test_get_all_by_user_returns_array_of_results(): void {
@@ -1208,9 +1228,52 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
 	// ==================================================================
 	// create_for_audience_members()
-	// Note: These tests use Mockery alias mocks for ReregistrationRepository,
-	// which permanently replace the class for this process. Keep these last.
+	// The real ReregistrationRepository and AudienceReader resolve the
+	// members: the double answers that an audience has no children, answers
+	// its members, and records the audiences asked for.
 	// ==================================================================
+
+	/**
+	 * Teach the `$wpdb` double the audience tables the real AudienceReader
+	 * reads: `get_results()` answers that a parent has no children, `get_col()`
+	 * the members of the audiences in an `IN ()` list. Each audience asked
+	 * for is recorded in `$this->member_reads`.
+	 *
+	 * @param array<int, list<mixed>> $members Stored member ids by audience, as the driver hands them over.
+	 */
+	private function install_audiences(array $members): void {
+		$last = array('', array());
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(
+			function ($sql, ...$args) use (&$last) {
+				if (1 === count($args) && is_array($args[0])) {
+					$args = $args[0];
+				}
+				$last = array((string) $sql, array_values($args));
+				return (string) $sql;
+			}
+		);
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(
+			function ($query) use (&$last) {
+				[$sql, $args] = $last;
+				$this->assertSame('SELECT * FROM %i WHERE parent_id = %d ORDER BY name ASC ', $sql, 'Unexpected get_results() query.');
+				$this->assertSame('wp_ffc_audiences', $args[0]);
+				return array();
+			}
+		);
+		$this->wpdb->shouldReceive('get_col')->andReturnUsing(
+			function ($query) use (&$last, $members) {
+				[$sql, $args] = $last;
+				$this->assertStringStartsWith('SELECT DISTINCT user_id FROM %i WHERE audience_id IN (', $sql, 'Unexpected get_col() query.');
+				$this->assertSame('wp_ffc_audience_members', array_shift($args));
+				$this->member_reads[] = $args;
+				$out = array();
+				foreach ($args as $audience_id) {
+					$out = array_merge($out, $members[$audience_id] ?? array());
+				}
+				return $out;
+			}
+		);
+	}
 
 	/**
 	 * A single INSERT covers the whole page, and the count comes from the database.
@@ -1218,16 +1281,9 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	 * This is #1234's central assertion: it used to be two statements PER USER
 	 * (an existence SELECT and an INSERT); now it is `ceil( N / 500 )` INSERTs.
 	 * With three users, exactly one.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_create_for_audience_members_seeds_every_user_in_one_statement(): void {
-		$repoMock = Mockery::mock('alias:FreeFormCertificate\Reregistration\ReregistrationRepository');
-		$repoMock->shouldReceive('get_user_ids_for_audiences')
-			->once()
-			->with(array(100, 200))
-			->andReturn(array(10, 20, 30));
+		$this->install_audiences(array(100 => array('10', '20'), 200 => array('20', '30')));
 
 		$captured = '';
 		$this->wpdb->shouldReceive('query')->once()->andReturnUsing(
@@ -1242,6 +1298,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$this->wpdb->shouldNotReceive('get_row');
 
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100, 200));
+		$this->assertSame(array(array(100), array(200)), $this->member_reads, 'Each audience\'s members are read once; 20 belongs to both.');
 
 		$this->assertSame(3, $count, 'The count is the INSERT\'s affected_rows, not a PHP accumulator.');
 		$this->assertStringContainsString('INSERT IGNORE INTO', $captured);
@@ -1259,16 +1316,9 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	 * `affected_rows` returned is already the count of rows CREATED. No
 	 * existence SELECT is emitted -- it was that one which cost half of the
 	 * twenty thousand queries.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_create_for_audience_members_lets_the_unique_key_skip_existing_rows(): void {
-		$repoMock = Mockery::mock('alias:FreeFormCertificate\Reregistration\ReregistrationRepository');
-		$repoMock->shouldReceive('get_user_ids_for_audiences')
-			->once()
-			->with(array(100))
-			->andReturn(array(10, 20));
+		$this->install_audiences(array(100 => array('10', '20')));
 
 		$captured = '';
 		$this->wpdb->shouldReceive('query')->once()->andReturnUsing(
@@ -1280,6 +1330,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$this->wpdb->shouldNotReceive('get_row');
 
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
+		$this->assertSame(array(array(100)), $this->member_reads, 'The members of the audience asked for are read.');
 
 		$this->assertSame(1, $count);
 		$this->assertStringContainsString(
@@ -1296,18 +1347,11 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	 * `array_chunk`, ten thousand members become one INSERT of thirty thousand
 	 * placeholders, which hits `max_allowed_packet` and fails on the real
 	 * client without failing here.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_create_for_audience_members_splits_large_audiences_into_pages(): void {
 		$user_ids = range(1, 1201);
 
-		$repoMock = Mockery::mock('alias:FreeFormCertificate\Reregistration\ReregistrationRepository');
-		$repoMock->shouldReceive('get_user_ids_for_audiences')
-			->once()
-			->with(array(100))
-			->andReturn($user_ids);
+		$this->install_audiences(array(100 => array_map('strval', $user_ids)));
 
 		$sizes = array();
 		$this->wpdb->shouldReceive('query')->times(3)->andReturnUsing(
@@ -1319,6 +1363,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		);
 
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
+		$this->assertSame(array(array(100)), $this->member_reads, 'The members of the audience asked for are read.');
 
 		$this->assertSame(array(500, 500, 201), $sizes);
 		$this->assertSame(1201, $count, 'The count sums the pages.');
@@ -1331,21 +1376,15 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
 	/**
 	 * With no users, no query at all.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_create_for_audience_members_returns_zero_for_no_users(): void {
-		$repoMock = Mockery::mock('alias:FreeFormCertificate\Reregistration\ReregistrationRepository');
-		$repoMock->shouldReceive('get_user_ids_for_audiences')
-			->once()
-			->with(array(100))
-			->andReturn(array());
+		$this->install_audiences(array(100 => array()));
 
 		$this->wpdb->shouldNotReceive('query');
 		$this->wpdb->shouldNotReceive('insert');
 
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
+		$this->assertSame(array(array(100)), $this->member_reads, 'The members of the audience asked for are read.');
 
 		$this->assertSame(0, $count);
 	}
@@ -1356,17 +1395,12 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	 * `get_members()` returns whatever the driver handed over -- a string, and
 	 * occasionally `0` or empty. Without the normalisation, a `0` would enter as
 	 * `user_id = 0`: a pending submission belonging to nobody, which the UNIQUE
-	 * accepts once per campaign and which nobody ever fills in.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * accepts once per campaign and which nobody ever fills in. With the real
+	 * readers the stored strings are cast by `get_members()` and the repeat is
+	 * dropped by `get_user_ids_for_audiences()`; the writer drops the rest.
 	 */
 	public function test_create_for_audience_members_drops_non_positive_and_duplicate_ids(): void {
-		$repoMock = Mockery::mock('alias:FreeFormCertificate\Reregistration\ReregistrationRepository');
-		$repoMock->shouldReceive('get_user_ids_for_audiences')
-			->once()
-			->with(array(100))
-			->andReturn(array('10', 0, '10', '', 20, -3));
+		$this->install_audiences(array(100 => array('10', '0', '10', '', '20', '-3')));
 
 		$captured = '';
 		$this->wpdb->shouldReceive('query')->once()->andReturnUsing(
@@ -1377,6 +1411,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		);
 
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
+		$this->assertSame(array(array(100)), $this->member_reads, 'The members of the audience asked for are read.');
 
 		$this->assertSame(2, $count);
 		$this->assertSame(
@@ -1395,20 +1430,14 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	 * there for PHPStan (level 8 does not narrow `int|bool` from a comparison),
 	 * not for the runtime. What this test proves is the behaviour: the next page
 	 * runs and only it counts.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_create_for_audience_members_survives_a_failed_page(): void {
-		$repoMock = Mockery::mock('alias:FreeFormCertificate\Reregistration\ReregistrationRepository');
-		$repoMock->shouldReceive('get_user_ids_for_audiences')
-			->once()
-			->with(array(100))
-			->andReturn(range(1, 600));
+		$this->install_audiences(array(100 => range(1, 600)));
 
 		$this->wpdb->shouldReceive('query')->twice()->andReturn(false, 100);
 
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
+		$this->assertSame(array(array(100)), $this->member_reads, 'The members of the audience asked for are read.');
 
 		$this->assertSame(100, $count);
 	}

@@ -43,9 +43,17 @@ class PdfGeneratorTest extends TestCase {
 		'get_appointment_receipt_template',
 	);
 
+	/**
+	 * The global $wpdb before the test, restored in tearDown().
+	 *
+	 * @var array{0: bool, 1: mixed}
+	 */
+	private $wpdb_backup = array( false, null );
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->wpdb_backup = array( array_key_exists( 'wpdb', $GLOBALS ), $GLOBALS['wpdb'] ?? null );
 		// Several methods this class reaches are deprecated (#2089) and emit
 		// the notice; stub it so each test chooses the branch rather than
 		// inheriting it from an earlier class.
@@ -91,6 +99,11 @@ class PdfGeneratorTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->wpdb_backup[0] ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup[1];
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -744,17 +757,32 @@ class PdfGeneratorTest extends TestCase {
 	// generate_magic_link_qr() — static delegator to PdfHtmlRenderer
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_generate_magic_link_qr_returns_empty_when_no_token(): void {
-		// Overload the repo the renderer news up so findMagicTokenById → null.
-		$repo = \Mockery::mock( 'overload:FreeFormCertificate\Repositories\SubmissionRepository' );
-		$repo->shouldReceive( 'findMagicTokenById' )->andReturn( null );
+		// The real SubmissionRepository reads the token through $wpdb; the
+		// row has none, so get_var() answers null.
+		$queries = array();
+		$wpdb    = \Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				return array( $sql, $args );
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $prepared ) use ( &$queries ) {
+				$queries[] = $prepared;
+				return null;
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
 
 		$result = PdfGenerator::generate_magic_link_qr( 42 );
 
 		$this->assertSame( '', $result );
+		$this->assertSame(
+			array( array( 'SELECT magic_token FROM %i WHERE id = %d', array( 'wp_ffc_submissions', 42 ) ) ),
+			$queries,
+			'the token was looked up for submission 42 only'
+		);
 	}
 }

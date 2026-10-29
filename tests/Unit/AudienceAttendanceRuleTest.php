@@ -12,19 +12,45 @@ use PHPUnit\Framework\TestCase;
 /**
  * The attendance rule of a booking (#1947).
  *
- * `has_attended()` reads two repositories through alias mocks, so the tests
- * that reach it run in their own process; the rest share it (#2091).
+ * Every test runs in the shared process: `has_attended()` runs the real
+ * AudienceBookingReader and AudienceAttendanceReader over a `$wpdb` double.
  *
  * @covers \FreeFormCertificate\Audience\AudienceAttendanceRule
- * @preserveGlobalState disabled
  */
 class AudienceAttendanceRuleTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/**
+	 * Every prepared statement, in order: [ sql, args ].
+	 *
+	 * @var list<array{0: string, 1: array<int, mixed>}>
+	 */
+	private array $prepared = array();
+
+	/**
+	 * Each attendance read: [ booking id, user id ].
+	 *
+	 * @var list<array{0: int, 1: int}>
+	 */
+	private array $attendance_reads = array();
+
+	/** @var mixed The `$wpdb` global before the test. */
+	private $previous_wpdb;
+
+	/** Whether `$wpdb` was set before the test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->prepared         = array();
+		$this->attendance_reads = array();
+		$this->had_wpdb         = array_key_exists( 'wpdb', $GLOBALS );
+		$this->previous_wpdb    = $GLOBALS['wpdb'] ?? null;
+		// The booking reader goes through the object cache; a miss reaches the double.
+		\Brain\Monkey\Functions\when( 'wp_cache_get' )->justReturn( false );
+		\Brain\Monkey\Functions\when( 'wp_cache_set' )->justReturn( true );
 		// Several methods this class reaches are deprecated (#2089) and emit
 		// the notice; stub it so each test chooses the branch rather than
 		// inheriting it from an earlier class.
@@ -32,6 +58,11 @@ class AudienceAttendanceRuleTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->previous_wpdb;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -115,38 +146,83 @@ class AudienceAttendanceRuleTest extends TestCase {
 	}
 
 	/**
-	 * @runInSeparateProcess
+	 * Install a `$wpdb` double for the real AudienceBookingReader and
+	 * AudienceAttendanceReader: `get_row()` answers the booking by id,
+	 * `get_col()` answers the attendance days by booking and person, and
+	 * every attendance read is recorded. Any other statement fails.
+	 *
+	 * @param array<int, \stdClass>       $bookings Stored bookings by id.
+	 * @param array<string, list<string>> $days     Days present by "booking:user".
 	 */
+	private function install_wpdb( array $bookings, array $days ): void {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				$this->prepared[] = array( (string) preg_replace( '/\s+/', ' ', (string) $sql ), $args );
+				return (string) ( count( $this->prepared ) - 1 );
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $query ) use ( $bookings ) {
+				[ $sql, $args ] = $this->prepared[ (int) $query ];
+				$this->assertStringStartsWith( 'SELECT b.*, e.name as environment_name', $sql, 'Unexpected get_row() query.' );
+				$this->assertSame( array( 'wp_ffc_audience_bookings', 'wp_ffc_audience_environments' ), array_slice( $args, 0, 2 ) );
+				return isset( $bookings[ $args[2] ] ) ? clone $bookings[ $args[2] ] : null;
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $query ) {
+				[ $sql ] = $this->prepared[ (int) $query ];
+				$this->assertStringStartsWith( 'SELECT a.* FROM %i a INNER JOIN %i ba', $sql, 'Unexpected get_results() query.' );
+				return array();
+			}
+		);
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( $query ) use ( $days ) {
+				[ $sql, $args ] = $this->prepared[ (int) $query ];
+				if ( 'SELECT user_id FROM %i WHERE booking_id = %d' === $sql ) {
+					return array();
+				}
+				$this->assertSame( 'SELECT attendance_date FROM %i WHERE booking_id = %d AND user_id = %d ORDER BY attendance_date ASC', $sql, 'Unexpected get_col() query.' );
+				$this->assertSame( 'wp_ffc_audience_attendance', $args[0] );
+				$this->attendance_reads[] = array( $args[1], $args[2] );
+				return $days[ $args[1] . ':' . $args[2] ] ?? array();
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
+	}
+
 	public function test_has_attended_reads_the_booking_and_the_days_present(): void {
-		$bookings = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
-		$bookings->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
-			$this->booking(
-				array(
-					'end_date'               => '2027-03-02',
-					'attendance_mode'        => 'total',
-					'attendance_min_percent' => '100',
-				)
+		$this->install_wpdb(
+			array(
+				5 => $this->booking(
+					array(
+						'end_date'               => '2027-03-02',
+						'attendance_mode'        => 'total',
+						'attendance_min_percent' => '100',
+					)
+				),
+			),
+			array(
+				'5:42' => array( '2027-03-01', '2027-03-02' ),
+				'5:43' => array( '2027-03-01' ),
 			)
 		);
-		$attendance = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceAttendanceReader' );
-		$attendance->shouldReceive( 'days_present' )->with( 5, 42 )->andReturn( array( '2027-03-01', '2027-03-02' ) );
-		$attendance->shouldReceive( 'days_present' )->with( 5, 43 )->andReturn( array( '2027-03-01' ) );
 
 		$this->assertTrue( AudienceAttendanceRule::has_attended( 5, 42 ) );
 		$this->assertFalse( AudienceAttendanceRule::has_attended( 5, 43 ) );
+		$this->assertSame( array( array( 5, 42 ), array( 5, 43 ) ), $this->attendance_reads, 'The days are read for that booking and that person.' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_nobody_attended_a_cancelled_or_unknown_booking(): void {
-		$bookings = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
-		$bookings->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $this->booking( array( 'status' => 'cancelled' ) ) );
-		$bookings->shouldReceive( 'get_by_id' )->with( 6 )->andReturn( null );
-		$attendance = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceAttendanceReader' );
-		$attendance->shouldNotReceive( 'days_present' );
+		$this->install_wpdb(
+			array( 5 => $this->booking( array( 'status' => 'cancelled' ) ) ),
+			array( '5:42' => array( '2027-03-01' ) )
+		);
 
 		$this->assertFalse( AudienceAttendanceRule::has_attended( 5, 42 ) );
 		$this->assertFalse( AudienceAttendanceRule::has_attended( 6, 42 ) );
+		$this->assertSame( array(), $this->attendance_reads, 'No attendance is read for a cancelled or unknown booking.' );
 	}
 }
