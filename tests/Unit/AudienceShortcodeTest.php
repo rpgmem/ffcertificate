@@ -401,8 +401,7 @@ class AudienceShortcodeTest extends TestCase {
 
 		$result = AudienceShortcode::render(array());
 
-		$this->assertStringContainsString('data-ffc-notice="audience-no-access"', $result);
-		$this->assertStringContainsString('class="ffc-notice ffc-notice-info"', $result);
+		$this->assertStringContainsString('<div class="ffc-notice ffc-notice-info ffc-calendar-notice" role="note" data-ffc-notice="audience-no-access">', $result);
 		$this->assertStringContainsString('You do not have access to any calendars.', $result);
 		$this->assertSame(
 			array( array( self::PERMISSIONS, 42 ) ),
@@ -598,6 +597,9 @@ class AudienceShortcodeTest extends TestCase {
 		$result = AudienceShortcode::render(array());
 
 		$this->assertStringContainsString('data-ffc-notice="admin-bypass"', $result);
+		// The event list sits below, so the notice takes the calendar's
+		// width, not the wrapper's (#2200).
+		$this->assertStringContainsString('<div class="ffc-notice ffc-notice-info ffc-calendar-notice" role="note" data-ffc-notice="admin-bypass">', $result);
 		$this->assertStringContainsString('ffc-icon-unlock', $result);
 		$this->assertStringContainsString('ffc-badge-private', $result);
 		$this->assertStringContainsString('ffc-schedule-select', $result, 'Two schedules must render the calendar selector.');
@@ -644,6 +646,23 @@ class AudienceShortcodeTest extends TestCase {
 
 		$this->assertSame('reservation', $localized['strings']['booking']);
 		$this->assertSame('reservations', $localized['strings']['bookings']);
+	}
+
+	public function test_bypass_notice_follows_the_wrapper_when_the_event_list_is_beside(): void {
+		$localized = array();
+		$this->stubLoggedInCalendarEnvironment($localized);
+		$this->user_can = true;
+		$this->bypass   = true;
+
+		$this->schedule( 5, 'Meeting Rooms', 'private', array(
+			'show_event_list' => '1', 'event_list_position' => 'side',
+			'audience_badge_format' => '', 'booking_label_singular' => '', 'booking_label_plural' => '',
+		) );
+
+		$result = AudienceShortcode::render(array('schedule_id' => 5));
+
+		$this->assertStringContainsString('<div class="ffc-notice ffc-notice-info ffc-calendar-notice ffc-calendar-notice-wide" role="note" data-ffc-notice="admin-bypass">', $result);
+		$this->assertStringContainsString('ffc-event-list-side', $result);
 	}
 
 	public function test_render_logged_in_bypass_without_private_schedule_prints_no_notice(): void {
