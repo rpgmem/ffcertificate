@@ -120,6 +120,135 @@ describe('ffc-audience-calendar — updateEnvironmentSelect', () => {
 	});
 });
 
+describe('ffc-audience-calendar — environment picker (#2201)', () => {
+	function setup(selected = 0) {
+		window.$('#ffc-environment-select').attr('aria-label', 'Filter by Room');
+		api.state.config = {
+			schedules: [{ id: 1, environments: [
+				{ id: 10, name: 'Hall', color: '#0a7d55' },
+				{ id: 20, name: 'Lab', color: 'red; background: url(x)' },
+			] }],
+		};
+		api.state.selectedSchedule = 0;
+		api.state.selectedEnvironment = selected;
+		api.updateEnvironmentSelect();
+		return {
+			$select: window.$('#ffc-environment-select'),
+			$button: window.$('.ffc-env-picker-button'),
+			$list: window.$('.ffc-env-picker-list'),
+		};
+	}
+
+	function key($el, name) {
+		$el.trigger(window.$.Event('keydown', { key: name }));
+	}
+
+	it('mirrors the select with a colour dot per environment and none on "All"', () => {
+		const { $select, $list } = setup();
+		const $options = $list.children('[role="option"]');
+		expect($options).toHaveLength(3);
+		expect($options.eq(0).find('.ffc-color-dot')).toHaveLength(0);
+		expect($options.eq(0).find('.ffc-env-picker-nodot')).toHaveLength(1);
+		expect($options.eq(1).find('.ffc-color-dot').attr('style')).toBe('--ffc-color: #0a7d55;');
+		// The select stays as the value, hidden from assistive technology.
+		expect($select.attr('aria-hidden')).toBe('true');
+		expect($select.attr('tabindex')).toBe('-1');
+		expect($list.attr('aria-label')).toBe('Filter by Room');
+	});
+
+	it('drops a colour that is not a hex value instead of writing it into the style', () => {
+		const { $list } = setup();
+		const $dot = $list.children().eq(2).find('.ffc-color-dot');
+		expect($dot).toHaveLength(1);
+		expect($dot.attr('style')).toBeUndefined();
+	});
+
+	it('shows the current environment, with its dot, on the closed button', () => {
+		const { $button } = setup(10);
+		expect($button.find('.ffc-env-picker-name').text()).toBe('Hall');
+		expect($button.find('.ffc-color-dot').attr('style')).toBe('--ffc-color: #0a7d55;');
+		expect($button.attr('aria-label')).toBe('Filter by Room: Hall');
+		expect($button.attr('aria-expanded')).toBe('false');
+	});
+
+	it('opens on click, chooses on click, and drives the select change', () => {
+		const { $select, $button, $list } = setup();
+		const onChange = vi.fn();
+		$select.on('change', onChange);
+
+		$button.trigger('click');
+		expect($list.prop('hidden')).toBe(false);
+		expect($button.attr('aria-expanded')).toBe('true');
+		expect($list.attr('aria-activedescendant')).toBe($list.children().eq(0).attr('id'));
+
+		$list.children().eq(2).trigger('click');
+		expect($select.val()).toBe('20');
+		expect(onChange).toHaveBeenCalledTimes(1);
+		expect($list.prop('hidden')).toBe(true);
+		expect(window.$('.ffc-env-picker-button .ffc-env-picker-name').text()).toBe('Lab');
+		expect(window.$('.ffc-env-picker-list [aria-selected="true"]').attr('data-value')).toBe('20');
+	});
+
+	it('moves with the arrow keys, Home and End, and chooses with Enter', () => {
+		const { $select, $button, $list } = setup();
+		key($button, 'ArrowDown');
+		expect($list.prop('hidden')).toBe(false);
+		key($list, 'ArrowDown');
+		expect($list.children('.is-active').attr('data-value')).toBe('10');
+		key($list, 'End');
+		expect($list.children('.is-active').attr('data-value')).toBe('20');
+		key($list, 'ArrowDown');
+		expect($list.children('.is-active').attr('data-value')).toBe('20');
+		key($list, 'Home');
+		key($list, 'ArrowUp');
+		expect($list.children('.is-active').attr('data-value')).toBe('0');
+		key($list, 'ArrowDown');
+		key($list, 'Enter');
+		expect($select.val()).toBe('10');
+		expect($list.prop('hidden')).toBe(true);
+	});
+
+	it('closes without choosing on Escape, Tab and a click outside', () => {
+		const { $select, $button, $list } = setup();
+		const onChange = vi.fn();
+		$select.on('change', onChange);
+
+		$button.trigger('click');
+		key($list, 'ArrowDown');
+		key($list, 'Escape');
+		expect($list.prop('hidden')).toBe(true);
+
+		$button.trigger('click');
+		key($list, 'Tab');
+		expect($list.prop('hidden')).toBe(true);
+
+		$button.trigger('click');
+		window.$(document.body).trigger('click');
+		expect($list.prop('hidden')).toBe(true);
+		$button.trigger('click');
+		$button.trigger('click');
+		expect($list.prop('hidden')).toBe(true);
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
+	it('does not fire change when the chosen value is the current one', () => {
+		const { $select, $button, $list } = setup(10);
+		const onChange = vi.fn();
+		$select.on('change', onChange);
+		$button.trigger('click');
+		key($list, 'Enter');
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
+	it('rebuilds once, keeping one picker, when the select is refilled', () => {
+		setup();
+		api.state.selectedSchedule = 1;
+		api.updateEnvironmentSelect();
+		expect(window.$('.ffc-env-picker')).toHaveLength(1);
+		expect(window.$('.ffc-env-picker-list').children()).toHaveLength(3);
+	});
+});
+
 describe('ffc-audience-calendar — populateAudienceSelect', () => {
 	const tree = () => ({
 		audiences: [

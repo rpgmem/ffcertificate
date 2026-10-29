@@ -37,6 +37,16 @@
     }
 
     /**
+     * A colour dot. The colour is an operator's choice, so it stays inline as
+     * the dot's custom property; anything not a hex colour is dropped and the
+     * dot takes the text colour.
+     */
+    function colorDot(color) {
+        var safe = /^#[0-9a-f]{3,8}$/i.test(color || '') ? color : '';
+        return '<span class="ffc-color-dot" aria-hidden="true"' + (safe ? ' style="--ffc-color: ' + safe + ';"' : '') + '></span>';
+    }
+
+    /**
      * The environments the calendar currently describes: the one picked in
      * the filter, else those of the picked calendar, else every calendar's.
      * Each carries its calendar, so its rules can be read (#1859).
@@ -180,6 +190,178 @@
         if (state.selectedEnvironment > 0) {
             $select.val(state.selectedEnvironment);
         }
+
+        syncEnvironmentPicker();
+    }
+
+    /**
+     * The environment filter as a list that shows each environment's colour
+     * (#2201). A native option cannot draw a swatch, so the select stays as
+     * the value the rest of the calendar reads and listens to, hidden from
+     * sight and from assistive technology, and this listbox drives it: a
+     * choice sets the select and fires its `change`.
+     */
+    function syncEnvironmentPicker() {
+        var $select = $('#ffc-environment-select');
+        if (!$select.length) {
+            return;
+        }
+
+        var $picker = $('#ffc-environment-picker');
+        if (!$picker.length) {
+            $picker = $(
+                '<div class="ffc-env-picker" id="ffc-environment-picker">' +
+                    '<button type="button" class="ffc-env-picker-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="ffc-environment-picker-list"></button>' +
+                    '<ul class="ffc-env-picker-list" id="ffc-environment-picker-list" role="listbox" tabindex="-1" hidden></ul>' +
+                '</div>'
+            );
+            $picker.find('.ffc-env-picker-list').attr('aria-label', $select.attr('aria-label') || '');
+            $select.addClass('ffc-env-picker-native').attr({ 'aria-hidden': 'true', tabindex: '-1' }).after($picker);
+            bindEnvironmentPicker($picker, $select);
+        }
+
+        var current = String($select.val() || '');
+        var $list = $picker.find('.ffc-env-picker-list').empty();
+        var chosen = null;
+
+        $select.find('option').each(function(index) {
+            var value = String($(this).val() || '');
+            var name = $(this).text();
+            // "All …" is not an environment, so it carries no dot (#2201).
+            var dot = value && value !== '0' ? colorDot($(this).attr('data-color')) : '<span class="ffc-env-picker-nodot" aria-hidden="true"></span>';
+            var selected = value === current;
+            $list.append(
+                '<li role="option" class="ffc-env-picker-option" id="ffc-environment-option-' + index + '"' +
+                ' data-value="' + escapeHtml(value) + '" aria-selected="' + (selected ? 'true' : 'false') + '">' +
+                dot + '<span class="ffc-env-picker-name">' + escapeHtml(name) + '</span></li>'
+            );
+            if (selected) {
+                chosen = { dot: dot, name: name };
+            }
+        });
+
+        if (!chosen) {
+            var $first = $list.children().first();
+            chosen = { dot: $first.children().first().prop('outerHTML') || '', name: $first.text() };
+        }
+
+        var label = $select.attr('aria-label') || '';
+        $picker.find('.ffc-env-picker-button')
+            .attr('aria-label', label ? label + ': ' + chosen.name : chosen.name)
+            .html(chosen.dot + '<span class="ffc-env-picker-name">' + escapeHtml(chosen.name) + '</span><span class="ffc-env-picker-caret ffc-icon-chevron-down" aria-hidden="true"></span>');
+    }
+
+    /**
+     * Open, move through and choose from the environment list: the keys a
+     * select answers to (arrows, Home, End, Enter, Space, Escape), and a
+     * click outside closes it.
+     */
+    function bindEnvironmentPicker($picker, $select) {
+        var $button = $picker.find('.ffc-env-picker-button');
+        var $list = $picker.find('.ffc-env-picker-list');
+
+        function options() {
+            return $list.children('.ffc-env-picker-option');
+        }
+
+        function activate($option) {
+            if (!$option.length) {
+                return;
+            }
+            options().removeClass('is-active');
+            $option.addClass('is-active');
+            $list.attr('aria-activedescendant', $option.attr('id'));
+            if ($option[0].scrollIntoView) {
+                $option[0].scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        function open() {
+            $list.prop('hidden', false);
+            $button.attr('aria-expanded', 'true');
+            var $selected = options().filter('[aria-selected="true"]');
+            activate($selected.length ? $selected : options().first());
+            $list.trigger('focus');
+            $(document).on('click.ffcEnvPicker', function(e) {
+                if (!$.contains($picker[0], e.target)) {
+                    close(false);
+                }
+            });
+        }
+
+        function close(refocus) {
+            $list.prop('hidden', true).removeAttr('aria-activedescendant');
+            $button.attr('aria-expanded', 'false');
+            $(document).off('click.ffcEnvPicker');
+            if (refocus) {
+                $button.trigger('focus');
+            }
+        }
+
+        function choose($option) {
+            var value = String($option.attr('data-value') || '');
+            close(true);
+            if (value !== String($select.val() || '')) {
+                $select.val(value).trigger('change');
+            }
+            syncEnvironmentPicker();
+        }
+
+        $button.on('click', function() {
+            if ($list.prop('hidden')) {
+                open();
+            } else {
+                close(true);
+            }
+        });
+
+        $button.on('keydown', function(e) {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                open();
+            }
+        });
+
+        $list.on('click', '.ffc-env-picker-option', function() {
+            choose($(this));
+        });
+
+        $list.on('keydown', function(e) {
+            var $all = options();
+            var index = $all.index($all.filter('.is-active'));
+            switch (e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    activate($all.eq(Math.min(index + 1, $all.length - 1)));
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    activate($all.eq(Math.max(index - 1, 0)));
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    activate($all.first());
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    activate($all.last());
+                    break;
+                case 'Enter':
+                case ' ':
+                    e.preventDefault();
+                    if (index >= 0) {
+                        choose($all.eq(index));
+                    }
+                    break;
+                case 'Escape':
+                    e.preventDefault();
+                    close(true);
+                    break;
+                case 'Tab':
+                    close(false);
+                    break;
+            }
+        });
     }
 
     /**
@@ -201,13 +383,9 @@
         function appendNodes(nodes, depth, parentId) {
             nodes.forEach(function(node) {
                 var id = parseInt(node.id, 10);
-                // The colour is an operator's choice, so it stays inline as
-                // the dot's custom property; anything not a hex colour is
-                // dropped and the dot takes the text colour.
-                var color = /^#[0-9a-f]{3,8}$/i.test(node.color || '') ? node.color : '';
                 var html = '<label class="ffc-audience-picker-option" data-depth="' + Math.min(depth, 3) + '">' +
                     '<input type="checkbox" name="audience_ids[]" value="' + id + '"' + (parentId ? ' data-parent="' + parentId + '"' : '') + '>' +
-                    '<span class="ffc-color-dot" aria-hidden="true"' + (color ? ' style="--ffc-color: ' + color + ';"' : '') + '></span>' +
+                    colorDot(node.color) +
                     '<span class="ffc-audience-picker-name">' + escapeHtml(node.name) + '</span>';
                 if (typeof node.members === 'number') {
                     html += '<span class="ffc-audience-picker-count">' + escapeHtml(people(node.members)) + '</span>';
