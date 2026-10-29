@@ -29171,6 +29171,7 @@ msgid "The location row grades how precise the reading is against a reference ar
 msgstr ""
 
 msgid "Holidays, global closures and the weekdays the space is closed are left out instead of refusing the booking."
+msgstr ""
 
 msgid "(optional: read only when the date comes from a column of the file)"
 msgstr ""
@@ -29433,6 +29434,15 @@ msgid "Work Hours"
 msgstr ""
 
 msgid "A field shows once even when several of the campaign's audiences, or an audience and its parent, carry it; the most specific audience's version of the field wins. The form opens filled in: first with this campaign's own saved draft, then with the answers the member gave most recently in another campaign (in progress, submitted or approved, never a rejected one), then with the profile. Everything stays editable, and what is typed is saved to this campaign only. A workload answered with one of the former codes (JBD.30, JEIF.40, JB.20) is carried over as its current option; JB.30 has no equivalent and is left for the member to choose."
+msgstr ""
+
+msgid "Has bookings, kept"
+msgstr ""
+
+msgid "An environment is deactivated before it can be deleted, and one that any booking names, past or cancelled included, cannot be deleted at all: it stays inactive, so it takes no new bookings and its bookings keep their place."
+msgstr ""
+
+msgid "Not deleted: bookings use it. It stays inactive, so it takes no new bookings, and its bookings keep their place."
 msgstr ""
 
 msgid "Workload:"
