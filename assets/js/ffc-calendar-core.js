@@ -262,9 +262,11 @@
 
                     // Check disabled days (weekdays)
                     var weekday = cellDate.getDay();
+                    var isClosed = false;
                     if (this.options.disabledDays.indexOf(weekday) !== -1) {
                         classes.push('ffc-closed');
                         classes.push('ffc-disabled');
+                        isClosed = true;
                     }
 
                     // Custom mode (#941): only dates in the allowlist are bookable.
@@ -272,6 +274,7 @@
                         this.options.enabledDates.indexOf(dateStr) === -1) {
                         classes.push('ffc-closed');
                         classes.push('ffc-disabled');
+                        isClosed = true;
                     }
 
                     // Check holidays
@@ -301,7 +304,7 @@
                     // Custom content from callback
                     html += '<div class="ffc-day-content">';
                     if (typeof this.options.getDayContent === 'function' && !isOtherMonth) {
-                        html += this.options.getDayContent(dateStr, cellDate, isHoliday);
+                        html += this.options.getDayContent(dateStr, cellDate, isHoliday, isClosed);
                     } else if (isHoliday) {
                         html += '<span class="ffc-day-badge ffc-badge-holiday">' +
                             this.options.strings.holiday +

@@ -653,3 +653,39 @@ describe('ffc-calendar-frontend.js — the bypass override warning (#1859)', () 
 		expect(window.FFC.overrideConfirm.mock.calls[0][0].reasons[0].code).toBe('daily_limit');
 	});
 });
+
+describe('ffc-calendar-frontend.js — a closed day names itself (#2218)', () => {
+	let options;
+	beforeEach(() => {
+		reset();
+		installGlobals();
+		options = null;
+		window.FFCCalendarCore = function (_$container, opts) {
+			options = opts;
+			this.options = opts;
+			this.refresh = () => {};
+		};
+		window.FFC.request.mockReturnValue(new Promise(() => {}));
+		document.body.innerHTML =
+			'<div id="ffc-calendar-container-7"></div>' +
+			'<script type="application/json" id="ffc-calendar-config-7">{"calendarId":7,"workingDays":[1,2,3,4,5]}</script>';
+		loadScript('assets/js/ffc-calendar-frontend.js');
+	});
+
+	it('draws the closed cell name, escaped', () => {
+		window.ffcCalendar.strings.closedCell = 'Encerrado <b>';
+		window.ffcCalendarFrontend.initCalendarCore();
+		const html = options.getDayContent('2026-06-14', new Date(2026, 5, 14), false, true);
+		const $badge = window.$('<div>').html(html).find('.ffc-day-badge.ffc-badge-closed');
+		expect($badge.text()).toBe('Encerrado <b>');
+		expect($badge.find('b').length).toBe(0);
+	});
+
+	it('draws nothing when the switch is off, and a holiday stays a holiday', () => {
+		window.ffcCalendar.strings.closedCell = 'Fechado';
+		window.ffcCalendar.strings.showClosedLabel = false;
+		window.ffcCalendarFrontend.initCalendarCore();
+		expect(options.getDayContent('2026-06-14', new Date(2026, 5, 14), false, true)).toBe('');
+		expect(options.getDayContent('2026-06-15', new Date(2026, 5, 15), true, false)).toContain('ffc-badge-holiday');
+	});
+});

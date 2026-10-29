@@ -252,6 +252,20 @@ describe('FFCCalendarCore renderDays', () => {
 		expect(window.$('#cal .ffc-day[data-date="2026-06-15"] .custom-content').length).toBe(1);
 	});
 
+	it('tells getDayContent which days are closed (#2218)', () => {
+		const seen = {};
+		const inst = build({
+			disabledDays: [0, 6],
+			getDayContent: (dateStr, date, isHoliday, isClosed) => {
+				seen[dateStr] = isClosed;
+				return '';
+			},
+		});
+		inst.goToDate('2026-06-15');
+		expect(seen['2026-06-14']).toBe(true); // Sunday
+		expect(seen['2026-06-15']).toBe(false); // Monday
+	});
+
 	it('re-applies the ffc-selected class to the selected date on re-render', () => {
 		const inst = build();
 		inst.goToDate('2026-06-15');
