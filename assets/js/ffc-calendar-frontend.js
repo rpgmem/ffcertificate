@@ -843,7 +843,7 @@
 
                 return classes;
             },
-            getDayContent: function(dateStr, date, isHoliday) {
+            getDayContent: function(dateStr, date, isHoliday, isClosed) {
                 if (isHoliday) {
                     // The cell shows the short name and says the full one to a
                     // screen reader and on hover (#2202).
@@ -852,6 +852,16 @@
                     return '<span class="ffc-day-badge ffc-badge-holiday' + (optional ? ' ffc-badge-optional-holiday' : '') + '"' +
                         ' role="img" aria-label="' + escapeAttr(names.label) + '" title="' + escapeAttr(names.label) + '">' +
                         escapeAttr(names.short) + '</span>';
+                }
+
+                // A closed day carries the cell name set with the other
+                // calendar states, unless the switch hides it (#2218).
+                if (isClosed) {
+                    if (ffcCalendar.strings.showClosedLabel === false) {
+                        return '';
+                    }
+                    return '<span class="ffc-day-badge ffc-badge-closed">' +
+                        escapeAttr(ffcCalendar.strings.closedCell || ffcCalendar.strings.closed || 'Closed') + '</span>';
                 }
 
                 var count = bookingCounts[dateStr] ? bookingCounts[dateStr] : 0;

@@ -12,6 +12,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Scheduling: optional holidays and configurable holiday colours** (#2202). A global holiday or a calendar's closed date can be marked an optional holiday; it closes the day like a holiday and is labelled apart in the day cell, the legend and the event list. Settings → Scheduling sets each kind's light-theme colour, with the text colour chosen for contrast.
 - **Scheduling: holidays and closed dates are edited in place** (#2212). Each row of the global holidays and of a calendar's closed dates gets an Edit button that opens it as a form for its date, type and description; a date another entry of the same list already uses is refused.
 - **Scheduling: every calendar state's colour and name is configurable** (#2215). Holiday Colors becomes Calendar Colors and Labels: available, booked, holiday, optional holiday and closed each take a light-theme colour and a legend name, the three closed states a day-cell name, and a switch hides the closed day's name. Both calendars read it; a contrast note flags a hard-to-read available colour.
+- **Scheduling: a personal calendar's closed days show their name too** (#2218). A non-working weekday, or a date outside a custom schedule, carries the closed cell name from Calendar Colors and Labels, and the switch hides it, as on the audience calendars.
 
 ### Changed
 
