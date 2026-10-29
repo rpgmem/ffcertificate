@@ -29522,3 +29522,12 @@ msgstr "Horário de Trabalho"
 
 msgid "A field shows once even when several of the campaign's audiences, or an audience and its parent, carry it; the most specific audience's version of the field wins. The form opens filled in: first with this campaign's own saved draft, then with the answers the member gave most recently in another campaign (in progress, submitted or approved, never a rejected one), then with the profile. Everything stays editable, and what is typed is saved to this campaign only. A workload answered with one of the former codes (JBD.30, JEIF.40, JB.20) is carried over as its current option; JB.30 has no equivalent and is left for the member to choose."
 msgstr "Um campo aparece uma única vez mesmo quando vários públicos da campanha, ou um público e o seu pai, o possuem; vale a versão do campo do público mais específico. O formulário abre preenchido: primeiro com o rascunho salvo desta campanha, depois com as respostas que o membro deu mais recentemente em outra campanha (em andamento, enviada ou aprovada, nunca uma rejeitada) e depois com o perfil. Tudo continua editável, e o que for digitado é salvo apenas nesta campanha. Uma carga horária respondida com um dos códigos antigos (JBD.30, JEIF.40, JB.20) é trazida como a opção atual correspondente; JB.30 não tem equivalente e fica para o membro escolher."
+
+msgid "Has bookings, kept"
+msgstr "Tem agendamentos, mantido"
+
+msgid "An environment is deactivated before it can be deleted, and one that any booking names, past or cancelled included, cannot be deleted at all: it stays inactive, so it takes no new bookings and its bookings keep their place."
+msgstr "Um ambiente é desativado antes de poder ser excluído, e um ambiente citado por qualquer agendamento, passado ou cancelado inclusive, não pode ser excluído: ele continua inativo, sem receber novos agendamentos, e os agendamentos mantêm o local."
+
+msgid "Not deleted: bookings use it. It stays inactive, so it takes no new bookings, and its bookings keep their place."
+msgstr "Não excluído: há agendamentos que o usam. Continua inativo, sem receber novos agendamentos, e os agendamentos mantêm o local."

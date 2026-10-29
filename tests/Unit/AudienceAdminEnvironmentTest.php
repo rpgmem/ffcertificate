@@ -59,6 +59,9 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	/** @var array<string, mixed> The `$_GET` an earlier test left, restored afterwards. */
 	private array $get_backup = array();
 
+	/** @var array<int, int> Bookings per environment id. */
+	private array $bookings = array();
+
 	/** @var array<string, mixed> The `$_POST` an earlier test left, restored afterwards. */
 	private array $post_backup = array();
 
@@ -74,6 +77,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$_GET['page'] = 'ffc-scheduling-environments';
 
 		$this->environments = array();
+		$this->bookings     = array();
 		$this->schedules    = array();
 		$this->reads        = array();
 		$this->writes       = array();
@@ -165,6 +169,17 @@ class AudienceAdminEnvironmentTest extends TestCase {
 					return $rows[0] ?? null;
 				}
 				$this->fail( 'Unexpected get_row(): ' . $q['sql'] );
+			}
+		);
+		// The booking count the delete guard asks (#2229): bookings per
+		// environment id, none unless a test stores some.
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $q ) {
+				$this->reads[] = array( $q['sql'], $q['args'] );
+				if ( 'SELECT COUNT(*) FROM %i WHERE environment_id = %d' === $q['sql'] && 'wp_ffc_audience_bookings' === $q['args'][0] ) {
+					return (string) ( $this->bookings[ (int) $q['args'][1] ] ?? 0 );
+				}
+				$this->fail( 'Unexpected get_var(): ' . $q['sql'] );
 			}
 		);
 		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
@@ -359,6 +374,24 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	// ==================================================================
 	// render_list() — with environments + calendars (data-prep / usort)
 	// ==================================================================
+
+	public function test_render_list_offers_delete_only_on_an_inactive_environment_without_bookings(): void {
+		$this->environment( array( 'id' => 1, 'name' => 'Empty', 'status' => 'inactive' ) );
+		$this->environment( array( 'id' => 2, 'name' => 'Booked', 'status' => 'inactive' ) );
+		$this->bookings[2] = 1;
+		$this->schedule( array( 'id' => 1, 'name' => 'Cal One' ) );
+		$this->grant( array( 'ffc_view_audiences', 'ffc_manage_audiences', 'ffc_delete_audiences' ) );
+		Functions\when( 'wp_nonce_url' )->alias( static fn( $url ) => $url );
+		Functions\when( 'admin_url' )->returnArg();
+
+		ob_start();
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'action=delete&id=1', $output );
+		$this->assertStringNotContainsString( 'action=delete&id=2', $output );
+		$this->assertStringContainsString( 'Has bookings, kept', $output );
+	}
 
 	public function test_render_list_sorts_by_calendar_then_name(): void {
 		// Stored Zeta first, so only the screen's own sort can put Alpha first.
@@ -903,6 +936,40 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		$this->assertStringContainsString( 'message=deleted', $this->redirect_of( $page ) );
 		$this->assertSame( array( array( 'delete', self::ENV_TABLE, array(), array( 'id' => 9 ) ) ), $this->writes );
+	}
+
+	public function test_handle_actions_keeps_an_environment_that_has_bookings(): void {
+		$_GET = array(
+			'action'   => 'delete',
+			'id'       => '9',
+			'page'     => 'ffc-scheduling-environments',
+			'_wpnonce' => 'n',
+		);
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'admin_url' )->returnArg();
+		$this->environment( array( 'id' => 9, 'schedule_id' => 2, 'status' => 'inactive' ) );
+		$this->bookings[9] = 3;
+
+		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
+		$this->assertStringContainsString( 'message=has_bookings&calendar_id=2', $this->redirect_of( $page ) );
+		$this->assertSame( array(), $this->writes, 'A booking keeps its environment.' );
+	}
+
+	public function test_the_refusal_explains_itself(): void {
+		$_GET = array(
+			'page'    => 'ffc-scheduling-environments',
+			'message' => 'has_bookings',
+		);
+		$errors = array();
+		Functions\when( 'add_settings_error' )->alias( function ( $setting, $code, $message, $type ) use ( &$errors ) {
+			$errors[] = array( $message, $type );
+		});
+
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
+
+		$this->assertCount( 1, $errors );
+		$this->assertSame( 'error', $errors[0][1] );
+		$this->assertStringContainsString( 'Not deleted: bookings use it', $errors[0][0] );
 	}
 
 	public function test_handle_actions_delete_skips_active_environment(): void {

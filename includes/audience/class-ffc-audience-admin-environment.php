@@ -349,6 +349,9 @@ class AudienceAdminEnvironment {
 										');">
 										<?php esc_html_e( 'Deactivate', 'ffcertificate' ); ?>
 									</a>
+								<?php elseif ( ! $is_active && $can_delete && self::has_bookings( (int) $env->id ) ) : ?>
+									<?php echo $can_manage ? '|' : ''; ?>
+									<span class="description"><?php esc_html_e( 'Has bookings, kept', 'ffcertificate' ); ?></span>
 								<?php elseif ( ! $is_active && $can_delete ) : ?>
 									<?php echo $can_manage ? '|' : ''; ?>
 									<a href="<?php echo esc_url( $delete_url ); ?>" class="ffc-delete-link" onclick="return confirm('
@@ -368,6 +371,16 @@ class AudienceAdminEnvironment {
 		</table>
 
 		<?php
+	}
+
+	/**
+	 * Whether any booking, of any status or date, names this environment.
+	 *
+	 * @param int $environment_id Environment ID.
+	 * @return bool
+	 */
+	private static function has_bookings( int $environment_id ): bool {
+		return AudienceBookingReader::count( array( 'environment_id' => $environment_id ) ) > 0;
 	}
 
 	/**
@@ -662,6 +675,8 @@ class AudienceAdminEnvironment {
 			);
 			if ( isset( $messages[ $msg ] ) ) {
 				add_settings_error( 'ffc_audience', 'ffc_message', $messages[ $msg ], 'success' );
+			} elseif ( 'has_bookings' === $msg ) {
+				add_settings_error( 'ffc_audience', 'ffc_message', __( 'Not deleted: bookings use it. It stays inactive, so it takes no new bookings, and its bookings keep their place.', 'ffcertificate' ), 'error' );
 			}
 		}
 
@@ -748,6 +763,14 @@ class AudienceAdminEnvironment {
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'delete_environment_' . $id ) ) {
 				$env = AudienceEnvironmentRepository::get_by_id( $id );
+				// An environment that holds bookings stays: deleting it would
+				// leave every booking, past ones included, pointing at nothing,
+				// and the user dashboard would name the place "Unknown" (#2229).
+				// Inactive already keeps it off every calendar.
+				if ( $env && 'active' !== $env->status && self::has_bookings( $id ) ) {
+					wp_safe_redirect( self::view_url( $this->menu_slug, '&message=has_bookings&calendar_id=' . (int) ( $env->schedule_id ?? 0 ) ) );
+					exit;
+				}
 				if ( $env && 'active' !== $env->status ) {
 					AudienceEnvironmentRepository::delete( $id );
 					wp_safe_redirect( self::view_url( $this->menu_slug, '&message=deleted&calendar_id=' . (int) ( $env->schedule_id ?? 0 ) ) );
