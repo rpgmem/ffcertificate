@@ -114,6 +114,8 @@ class AudienceAdminCalendarTest extends TestCase {
 		Functions\when( 'get_posts' )->justReturn( array() );
 
 		Functions\when( '__' )->returnArg();
+		// The calendar names partial reads the default state names (#2223).
+		Functions\when( '_x' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
@@ -723,7 +725,12 @@ class AudienceAdminCalendarTest extends TestCase {
 			'schedule_notify_booking'   => '1',
 			'schedule_is_isolated'      => '1',
 			'schedule_status'           => 'active',
+			'schedule_names'            => array(
+				'legend'            => array( 'closed' => 'Sem expediente' ),
+				'show_closed_label' => 'hide',
+			),
 		);
+		Functions\when( 'wp_json_encode' )->alias( static fn( $value ) => json_encode( $value ) );
 
 		// The double answers every insert with id 60.
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
@@ -744,6 +751,8 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertSame( 'parent_name', $row['audience_badge_format'] );
 		$this->assertSame( 'evt', $row['booking_label_singular'] );
 		$this->assertArrayHasKey( 'booking_label_plural', $row );
+		// The calendar's own names are stored as JSON (#2223).
+		$this->assertSame( '{"legend":{"closed":"Sem expediente"},"cell":[],"show_closed_label":"hide"}', $row['appearance_names'] );
 	}
 
 	public function test_handle_actions_updates_calendar(): void {
@@ -771,7 +780,7 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertSame( 'side', $row['event_list_position'] );
 		$this->assertSame( 'name', $row['audience_badge_format'] );
 		$this->assertArrayHasKey( 'booking_label_singular', $row );
-		$this->assertNull( $row['booking_label_singular'] );
+		$this->assertNull( $row['booking_label_singular'] );		$this->assertNull( $row['appearance_names'], 'No names posted, no override stored.' );
 	}
 
 	public function test_handle_actions_save_aborts_on_bad_nonce(): void {
@@ -1100,12 +1109,16 @@ class AudienceAdminCalendarTest extends TestCase {
 		// The closed-date type controls are fieldsets of their own (#2202): the
 		// add form's and each row's edit form (#2212), drawn only for the
 		// manage tier; they are not the lock.
-		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '</fieldset>' ) - substr_count( $output, '<fieldset id="holiday_' ) );
+		// The calendar names' closed-label choice is a segmented fieldset inside
+		// the form (#2223); it is not the lock either.
+		$this->assertSame( 1, substr_count( $output, '<fieldset id="schedule_names_show_closed_label"' ) );
+		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '</fieldset>' ) - substr_count( $output, '<fieldset id="holiday_' ) - 1 );
 		$this->assertSame( $can_manage, str_contains( $output, 'data-ffc-holiday-edit="cal-3"' ), 'Only the manage tier gets the edit row.' );
 		$this->assertSame( $can_manage, str_contains( $output, 'value="Update Calendar" form="ffc-schedule-form">Update Calendar</button>' ) );
 		if ( ! $can_manage ) {
 			$open  = (int) strpos( $output, '<fieldset disabled' );
-			$close = (int) strpos( $output, '</fieldset>' );
+			// The lock's own close is the last one: the names fieldset nests inside it.
+			$close = (int) strrpos( $output, '</fieldset>' );
 			foreach ( array( 'name="schedule_name"', 'name="schedule_visibility"', 'name="schedule_notify_booking"', 'name="schedule_admin_emails"', 'name="schedule_status"' ) as $field ) {
 				$at = (int) strpos( $output, $field );
 				$this->assertTrue( $at > $open && $at < $close, $field . ' sits inside the lock' );
@@ -1133,7 +1146,8 @@ class AudienceAdminCalendarTest extends TestCase {
 		if ( ! $can_manage ) {
 			// The lock spans the three panels of the calendar form.
 			$open  = (int) strpos( $output, '<fieldset disabled' );
-			$close = (int) strpos( $output, '</fieldset>' );
+			// The lock's own close is the last one: the names fieldset nests inside it.
+			$close = (int) strrpos( $output, '</fieldset>' );
 			foreach ( array( 'general', 'notifications', 'event-list' ) as $panel ) {
 				$at = (int) strpos( $output, 'id="ffc-tabpanel-' . $panel . '"' );
 				$this->assertTrue( $at > $open && $at < $close, $panel . ' sits inside the lock' );

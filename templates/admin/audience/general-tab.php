@@ -202,6 +202,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<p class="description">
 				<?php esc_html_e( 'How each state looks and is named on the personal and the audience calendars. Colors apply to the light theme; the dark theme keeps its own, and the text on each color turns white or black to stay readable. An empty name uses the default shown in the field.', 'ffcertificate' ); ?>
 			</p>
+			<p class="description">
+				<?php esc_html_e( 'These are the general names. When a calendar needs its own, set them on the calendar: the Names tab of a personal calendar, or the Calendar names field of an audience calendar. A calendar\'s name, and its choice to show or hide the closed day\'s name, win over these; an empty field there keeps the general one.', 'ffcertificate' ); ?>
+			</p>
 			<form method="post">
 				<?php wp_nonce_field( 'ffc_calendar_appearance', 'ffc_calendar_appearance_nonce' ); ?>
 				<input type="hidden" name="ffc_action" value="save_calendar_appearance">

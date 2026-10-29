@@ -201,6 +201,95 @@ final class CalendarAppearanceTest extends TestCase {
 		$this->assertSame( 'bookings', $strings['bookings'], 'An empty plural keeps the default (#2221).' );
 	}
 
+	public function test_a_calendar_name_wins_over_the_general_one_which_wins_over_the_default(): void {
+		CalendarAppearance::save( array(), array( 'closed' => 'Sem expediente' ), array( 'closed' => 'Fechado' ), true );
+		$override = CalendarAppearance::clean_override(
+			array(
+				'legend' => array( 'booked' => 'Lotado' ),
+				'cell'   => array( 'closed' => 'Sem atendimento' ),
+			)
+		);
+
+		$this->assertSame( 'Lotado', CalendarAppearance::legend( 'booked', $override ) );
+		$this->assertSame( 'Sem expediente', CalendarAppearance::legend( 'closed', $override ), 'An unset calendar name keeps the general one.' );
+		$this->assertSame( 'Available', CalendarAppearance::legend( 'available', $override ), 'And the general one keeps the default.' );
+		$this->assertSame( 'Sem atendimento', CalendarAppearance::cell( 'closed', $override ) );
+
+		$strings = CalendarAppearance::strings( $override );
+		$this->assertSame( 'Lotado', $strings['booked'] );
+		$this->assertSame( 'Sem atendimento', $strings['closedCell'] );
+		$this->assertSame( 'Lotado', CalendarAppearance::strings( CalendarAppearance::clean_override( array( 'legend' => array( 'booked' => 'Lotado' ) ) ) )['booked'] );
+		$this->assertSame(
+			'Feriado',
+			CalendarAppearance::strings( CalendarAppearance::clean_override( array( 'legend' => array( 'holiday' => 'Feriado' ) ) ) )['closedDateKinds']['holiday']['label'],
+			'The closed-date kinds read the override too.'
+		);
+	}
+
+	public function test_a_calendar_choice_on_the_closed_name_wins_and_inherit_follows_the_general_switch(): void {
+		CalendarAppearance::save( array(), array(), array(), false );
+
+		$this->assertFalse( CalendarAppearance::show_closed_label( CalendarAppearance::clean_override( array( 'show_closed_label' => 'inherit' ) ) ) );
+		$this->assertTrue( CalendarAppearance::show_closed_label( CalendarAppearance::clean_override( array( 'show_closed_label' => 'show' ) ) ) );
+
+		CalendarAppearance::save( array(), array(), array(), true );
+		$this->assertFalse( CalendarAppearance::show_closed_label( CalendarAppearance::clean_override( array( 'show_closed_label' => 'hide' ) ) ) );
+		$this->assertTrue( CalendarAppearance::show_closed_label( CalendarAppearance::clean_override( array( 'show_closed_label' => 'bogus' ) ) ), 'An unknown choice inherits.' );
+	}
+
+	public function test_a_stored_override_reads_safely_from_json_an_array_or_garbage(): void {
+		$json = '{"legend":{"closed":"  <b>Encerrado</b> ","nope":"x"},"cell":{"available":"Livre","booked":"x"},"show_closed_label":"hide"}';
+		$this->assertSame(
+			array(
+				'legend'            => array( 'closed' => 'Encerrado' ),
+				'cell'              => array( 'available' => 'Livre' ),
+				'show_closed_label' => 'hide',
+			),
+			CalendarAppearance::clean_override( $json ),
+			'Unknown states drop, names are plain text.'
+		);
+
+		$empty = array(
+			'legend'            => array(),
+			'cell'              => array(),
+			'show_closed_label' => 'inherit',
+		);
+		foreach ( array( null, '', 'not json', 42, array( 'legend' => 'x' ) ) as $garbage ) {
+			$this->assertSame( $empty, CalendarAppearance::clean_override( $garbage ) );
+		}
+		$this->assertTrue( CalendarAppearance::override_is_empty( CalendarAppearance::clean_override( array( 'cell' => array( 'closed' => '   ' ) ) ) ) );
+	}
+
+	public function test_an_untouched_override_is_stored_as_nothing(): void {
+		Functions\when( 'wp_json_encode' )->alias( static fn( $value ) => json_encode( $value ) );
+
+		$this->assertNull( CalendarAppearance::encode_override( array( 'legend' => array( 'closed' => '' ), 'show_closed_label' => 'inherit' ) ) );
+		$this->assertSame(
+			'{"legend":[],"cell":{"closed":"Fechado"},"show_closed_label":"inherit"}',
+			CalendarAppearance::encode_override( array( 'cell' => array( 'closed' => 'Fechado' ) ) )
+		);
+	}
+
+	public function test_several_calendars_merge_first_name_wins(): void {
+		$merged = CalendarAppearance::merge_overrides(
+			array(
+				CalendarAppearance::clean_override( array( 'cell' => array( 'closed' => 'A' ) ) ),
+				CalendarAppearance::clean_override(
+					array(
+						'legend'            => array( 'booked' => 'B' ),
+						'cell'              => array( 'closed' => 'C' ),
+						'show_closed_label' => 'hide',
+					)
+				),
+				CalendarAppearance::clean_override( array( 'show_closed_label' => 'show' ) ),
+			)
+		);
+
+		$this->assertSame( 'A', $merged['cell']['closed'] );
+		$this->assertSame( 'B', $merged['legend']['booked'] );
+		$this->assertSame( 'hide', $merged['show_closed_label'], 'The first explicit choice wins.' );
+	}
+
 	public function test_the_available_contrast_is_measured_on_white(): void {
 		$this->assertGreaterThan( 4.5, CalendarAppearance::available_contrast( '#00801e' ) );
 		$this->assertLessThan( 4.5, CalendarAppearance::available_contrast( '#ffd54f' ) );

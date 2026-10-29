@@ -716,6 +716,8 @@
 
         // Kept for the booking submit, which reads `canBypass` (#1859).
         self.config = config;
+        // This calendar's own names win over the general ones (#2223).
+        var strings = $.extend({}, ffcCalendar.strings, config.labels || {});
 
         var calendarId = config.calendarId;
         var workingDays = config.workingDays || [];
@@ -768,8 +770,8 @@
 
         // A closed date's names, full and short, by kind (#2202).
         function kindNames(kind) {
-            var fallback = ffcCalendar.strings.holiday || 'Holiday';
-            return ((ffcCalendar.strings.closedDateKinds || {})[kind]) || { label: fallback, short: fallback };
+            var fallback = strings.holiday || 'Holiday';
+            return ((strings.closedDateKinds || {})[kind]) || { label: fallback, short: fallback };
         }
 
         function escapeAttr(text) {
@@ -825,13 +827,13 @@
             maxDate: maxDate,
             disabledDays: disabledDays,
             enabledDates: enabledDates,
-            strings: ffcCalendar.strings,
+            strings: strings,
             legendItems: [
-                { 'class': 'ffc-available', label: ffcCalendar.strings.available || 'Available' },
-                { 'class': 'ffc-booked', label: ffcCalendar.strings.booked || 'Booked' },
-                { 'class': 'ffc-holiday', label: ffcCalendar.strings.holiday || 'Holiday' },
+                { 'class': 'ffc-available', label: strings.available || 'Available' },
+                { 'class': 'ffc-booked', label: strings.booked || 'Booked' },
+                { 'class': 'ffc-holiday', label: strings.holiday || 'Holiday' },
                 { 'class': 'ffc-optional-holiday', label: kindNames('optional').label },
-                { 'class': 'ffc-closed', label: ffcCalendar.strings.closed || 'Closed' }
+                { 'class': 'ffc-closed', label: strings.closed || 'Closed' }
             ],
             getDayClasses: function(dateStr, date) {
                 return isAvailable(dateStr, date) ? ['ffc-available'] : [];
@@ -850,22 +852,22 @@
                 // A closed day carries the cell name set with the other
                 // calendar states, unless the switch hides it (#2218).
                 if (isClosed) {
-                    if (ffcCalendar.strings.showClosedLabel === false) {
+                    if (strings.showClosedLabel === false) {
                         return '';
                     }
                     return '<span class="ffc-day-badge ffc-badge-closed">' +
-                        escapeAttr(ffcCalendar.strings.closedCell || ffcCalendar.strings.closed || 'Closed') + '</span>';
+                        escapeAttr(strings.closedCell || strings.closed || 'Closed') + '</span>';
                 }
 
                 var count = bookingCounts[dateStr] ? bookingCounts[dateStr] : 0;
                 if (count > 0) {
-                    var singularLabel = ffcCalendar.strings.booking || 'booking';
-                    var pluralLabel = ffcCalendar.strings.bookings || 'bookings';
+                    var singularLabel = strings.booking || 'booking';
+                    var pluralLabel = strings.bookings || 'bookings';
                     var label = count === 1 ? singularLabel : pluralLabel;
                     return '<span class="ffc-day-badge ffc-badge-bookings">' + count + ' ' + escapeAttr(label) + '</span>';
                 }
-                if (ffcCalendar.strings.availableCell && isAvailable(dateStr, date)) {
-                    return '<span class="ffc-day-badge ffc-badge-available">' + escapeAttr(ffcCalendar.strings.availableCell) + '</span>';
+                if (strings.availableCell && isAvailable(dateStr, date)) {
+                    return '<span class="ffc-day-badge ffc-badge-available">' + escapeAttr(strings.availableCell) + '</span>';
                 }
                 return '';
             },

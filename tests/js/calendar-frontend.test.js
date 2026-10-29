@@ -689,6 +689,7 @@ describe('ffc-calendar-frontend.js — a closed day names itself (#2218)', () =>
 		expect(options.getDayContent(dateStr, monday, false, false)).toBe('');
 
 		window.ffcCalendar.strings.availableCell = 'Livre <i>';
+		window.ffcCalendarFrontend.initCalendarCore();
 		const $badge = window.$('<div>').html(options.getDayContent(dateStr, monday, false, false)).find('.ffc-badge-available');
 		expect($badge.text()).toBe('Livre <i>');
 		expect($badge.find('i').length).toBe(0);
@@ -704,5 +705,21 @@ describe('ffc-calendar-frontend.js — a closed day names itself (#2218)', () =>
 		window.ffcCalendarFrontend.initCalendarCore();
 		expect(options.getDayContent('2026-06-14', new Date(2026, 5, 14), false, true)).toBe('');
 		expect(options.getDayContent('2026-06-15', new Date(2026, 5, 15), true, false)).toContain('ffc-badge-holiday');
+	});
+
+	it("takes this calendar's own names over the general ones (#2223)", () => {
+		window.ffcCalendar.strings.closedCell = 'Fechado';
+		window.ffcCalendar.strings.booked = 'Ocupado';
+		document.getElementById('ffc-calendar-config-7').textContent = JSON.stringify({
+			calendarId: 7,
+			workingDays: [1, 2, 3, 4, 5],
+			labels: { closedCell: 'Sem atendimento', showClosedLabel: true, bookings: 'sessões' },
+		});
+		window.ffcCalendarFrontend.initCalendarCore();
+
+		expect(options.getDayContent('2026-06-14', new Date(2026, 5, 14), false, true)).toContain('Sem atendimento');
+		expect(options.legendItems[1].label).toBe('Ocupado');
+		expect(options.strings.bookings).toBe('sessões');
+		expect(window.ffcCalendar.strings.closedCell).toBe('Fechado');
 	});
 });

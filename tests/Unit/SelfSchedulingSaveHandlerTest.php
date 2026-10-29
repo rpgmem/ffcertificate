@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use FreeFormCertificate\Tests\Support\CallLog;
 use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -78,7 +79,8 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
 			$_POST['ffc_self_scheduling_config'],
 			$_POST['ffc_self_scheduling_working_hours'],
 			$_POST['ffc_self_scheduling_custom_slots'],
-			$_POST['ffc_self_scheduling_email_config']
+			$_POST['ffc_self_scheduling_email_config'],
+			$_POST['ffc_calendar_names']
 		);
 		$this->saved_meta = array();
 		if ( $this->had_wpdb ) {
@@ -97,6 +99,50 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
 		$ref = new \ReflectionMethod( SelfSchedulingSaveHandler::class, $method );
 		$ref->setAccessible( true );
 		return $ref->invokeArgs( $this->handler, $args );
+	}
+
+	// ==================================================================
+	// save_names() (#2223)
+	// ==================================================================
+
+	public function test_names_store_only_what_the_calendar_sets(): void {
+		$deleted = CallLog::record( 'delete_post_meta', true );
+		$_POST['ffc_calendar_names'] = array(
+			'legend'            => array( 'closed' => 'Sem expediente', 'available' => '', 'bogus' => 'x' ),
+			'cell'              => array( 'booking_plural' => 'sessões' ),
+			'show_closed_label' => 'hide',
+		);
+		$this->invoke( 'save_names', array( 100 ) );
+
+		$this->assertSame(
+			array(
+				'legend'            => array( 'closed' => 'Sem expediente' ),
+				'cell'              => array( 'booking_plural' => 'sessões' ),
+				'show_closed_label' => 'hide',
+			),
+			$this->saved_meta['_ffc_self_scheduling_names']
+		);
+		$this->assertSame( 0, $deleted->count() );
+	}
+
+	public function test_names_left_empty_remove_the_override(): void {
+		$deleted = CallLog::record( 'delete_post_meta', true );
+		$_POST['ffc_calendar_names'] = array(
+			'legend'            => array( 'closed' => '   ' ),
+			'show_closed_label' => 'inherit',
+		);
+		$this->invoke( 'save_names', array( 100 ) );
+
+		$this->assertArrayNotHasKey( '_ffc_self_scheduling_names', $this->saved_meta );
+		$this->assertSame( 1, $deleted->count() );
+	}
+
+	public function test_a_submit_without_the_names_block_leaves_them_alone(): void {
+		$deleted = CallLog::record( 'delete_post_meta', true );
+		$this->invoke( 'save_names', array( 100 ) );
+
+		$this->assertSame( array(), $this->saved_meta );
+		$this->assertSame( 0, $deleted->count() );
 	}
 
 	// ==================================================================

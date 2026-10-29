@@ -62,8 +62,28 @@ class SelfSchedulingSaveHandler {
 		$this->save_working_hours( $post_id );
 		$this->save_custom_slots( $post_id );
 		$this->save_email_config( $post_id );
+		$this->save_names( $post_id );
 
 		\FreeFormCertificate\Submissions\FormCache::purge_page_cache( $post_id, 'ffc_self_scheduling' );
+	}
+
+	/**
+	 * Save the calendar's own names (#2223). An untouched block stores
+	 * nothing, so the calendar keeps following the general names.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return void
+	 */
+	private function save_names( int $post_id ): void {
+		if ( ! RequestInput::has_post( 'ffc_calendar_names' ) ) {
+			return;
+		}
+		$names = \FreeFormCertificate\Scheduling\CalendarAppearance::clean_override( RequestInput::get_post_raw_array( 'ffc_calendar_names' ) );
+		if ( \FreeFormCertificate\Scheduling\CalendarAppearance::override_is_empty( $names ) ) {
+			delete_post_meta( $post_id, \FreeFormCertificate\Scheduling\CalendarAppearance::NAMES_META );
+			return;
+		}
+		update_post_meta( $post_id, \FreeFormCertificate\Scheduling\CalendarAppearance::NAMES_META, $names );
 	}
 
 	/**

@@ -780,6 +780,13 @@ class SelfSchedulingShortcode {
 			// The booking form asks for the override warning first (#1859);
 			// the server decides again on the submission.
 			'canBypass'     => is_user_logged_in() && \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null ),
+			// The state names with this calendar's own applied (#2223); the
+			// shared `ffcCalendar.strings` carries only the general ones.
+			'labels'        => \FreeFormCertificate\Scheduling\CalendarAppearance::strings(
+				\FreeFormCertificate\Scheduling\CalendarAppearance::clean_override(
+					isset( $calendar['post_id'] ) ? get_post_meta( (int) $calendar['post_id'], \FreeFormCertificate\Scheduling\CalendarAppearance::NAMES_META, true ) : null
+				)
+			),
 		);
 		?>
 		<script type="application/json" id="ffc-calendar-config-<?php echo (int) $calendar['id']; ?>"><?php echo wp_json_encode( $calendar_config ); ?></script>

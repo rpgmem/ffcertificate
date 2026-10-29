@@ -436,14 +436,18 @@ class SelfSchedulingCPTTest extends TestCase {
 			'_ffc_self_scheduling_config'        => array( 'slot_duration' => 30 ),
 			'_ffc_self_scheduling_working_hours' => array( 'mon' => '9-5' ),
 			'_ffc_self_scheduling_email_config'  => array( 'enabled' => 1 ),
+			'_ffc_self_scheduling_names'         => array( 'cell' => array( 'closed' => 'Fechado\\' ) ),
 		);
 		Functions\when( 'get_post_meta' )->alias( function ( $id, $key ) use ( $meta ) {
 			return $meta[ $key ] ?? '';
 		} );
+		Functions\when( 'wp_slash' )->alias( static fn( $value ) => is_array( $value ) ? array_map( static fn( $v ) => is_array( $v ) ? array_map( 'addslashes', $v ) : addslashes( $v ), $value ) : addslashes( $value ) );
 
 		$updated = array();
-		Functions\when( 'update_post_meta' )->alias( function ( $id, $key, $val ) use ( &$updated ) {
-			$updated[] = $key;
+		$values  = array();
+		Functions\when( 'update_post_meta' )->alias( function ( $id, $key, $val ) use ( &$updated, &$values ) {
+			$updated[]      = $key;
+			$values[ $key ] = $val;
 			return true;
 		} );
 
@@ -463,10 +467,11 @@ class SelfSchedulingCPTTest extends TestCase {
 		}
 
 		$this->assertSame(
-			array( '_ffc_self_scheduling_config', '_ffc_self_scheduling_working_hours', '_ffc_self_scheduling_email_config' ),
+			array( '_ffc_self_scheduling_config', '_ffc_self_scheduling_working_hours', '_ffc_self_scheduling_email_config', '_ffc_self_scheduling_names' ),
 			$updated,
-			'The copy must carry the original calendar\'s metadata.'
+			'The copy must carry the original calendar\'s metadata, its own names included (#2223).'
 		);
+		$this->assertSame( 'Fechado\\\\', $values['_ffc_self_scheduling_names']['cell']['closed'], 'The names are slashed once, for the unslash update_post_meta() applies.' );
 	}
 
 	public function test_handle_calendar_duplication_copies_custom_blocks(): void {

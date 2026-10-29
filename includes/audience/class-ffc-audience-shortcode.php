@@ -333,6 +333,7 @@ class AudienceShortcode {
 			<!-- Legend -->
 			<div class="ffc-calendar-legend">
 				<?php
+				$ffc_names_override = self::names_override( $schedules );
 				foreach ( array(
 					'available' => 'ffc-available',
 					'booked'    => 'ffc-booked',
@@ -341,7 +342,7 @@ class AudienceShortcode {
 					'closed'    => 'ffc-closed',
 				) as $ffc_state => $ffc_dot ) :
 					?>
-					<span class="ffc-legend-item"><span class="ffc-legend-dot <?php echo esc_attr( $ffc_dot ); ?>"></span> <?php echo esc_html( \FreeFormCertificate\Scheduling\CalendarAppearance::legend( $ffc_state ) ); ?></span>
+					<span class="ffc-legend-item"><span class="ffc-legend-dot <?php echo esc_attr( $ffc_dot ); ?>"></span> <?php echo esc_html( \FreeFormCertificate\Scheduling\CalendarAppearance::legend( $ffc_state, $ffc_names_override ) ); ?></span>
 				<?php endforeach; ?>
 			</div>
 		</div>
@@ -681,6 +682,22 @@ class AudienceShortcode {
 	}
 
 	/**
+	 * The calendars' own names as one (#2223): the first schedule naming a
+	 * state wins, in the order the page lists them, as the booking label does.
+	 *
+	 * @param array<int, object> $schedules Array of schedule objects.
+	 * @phpstan-param list<ScheduleRow> $schedules
+	 * @return array{legend: array<string, string>, cell: array<string, string>, show_closed_label: string}
+	 */
+	private static function names_override( array $schedules ): array {
+		$overrides = array();
+		foreach ( $schedules as $s ) {
+			$overrides[] = \FreeFormCertificate\Scheduling\CalendarAppearance::clean_override( $s->appearance_names ?? '' );
+		}
+		return \FreeFormCertificate\Scheduling\CalendarAppearance::merge_overrides( $overrides );
+	}
+
+	/**
 	 * Get audience badge format from schedules (first one with a value)
 	 *
 	 * @since 4.9.0
@@ -1002,8 +1019,8 @@ class AudienceShortcode {
 				'firstDayOfWeek'         => (int) get_option( 'start_of_week', 0 ),
 				'multipleAudiencesColor' => get_option( 'ffc_aud_multiple_audiences_color', '' ),
 				'strings'                => array_merge(
-					// The state names (#2215): the administrator's, else the translated default.
-					\FreeFormCertificate\Scheduling\CalendarAppearance::strings(),
+					// The state names (#2215): the calendar's own (#2223), else the general ones, else the translated default.
+					\FreeFormCertificate\Scheduling\CalendarAppearance::strings( self::names_override( $schedules ) ),
 					array(
 						'loading'                => __( 'Loading...', 'ffcertificate' ),
 						'error'                  => __( 'An error occurred. Please try again.', 'ffcertificate' ),

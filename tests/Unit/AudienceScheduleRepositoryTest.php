@@ -442,7 +442,7 @@ class AudienceScheduleRepositoryTest extends TestCase {
 	public function test_create_passes_correct_format_array(): void {
 		$this->wpdb->shouldReceive('insert')->once()->andReturnUsing(function($table, $data, $format) {
 			\PHPUnit\Framework\TestCase::assertSame(
-				array('%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%d'),
+				array('%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%d'),
 				$format
 			);
 			\PHPUnit\Framework\TestCase::assertCount(count($data), $format, 'One format per column written.');
