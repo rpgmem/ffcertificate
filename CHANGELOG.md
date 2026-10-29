@@ -47,6 +47,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Tests: 123 more tests leave their own process** (#2189). Eighteen files that isolated single tests to declare an alias or overload mock now run the real collaborators over `$wpdb` doubles; two isolations stay with their reason written (an undeclared `WP_User_Query`, a replaced normalisation strategy). Six classes also leave the class-level register, which drops to 13; one of their tests keeps its own process to reach an encryption-off state.
 - **Tests: 88 more tests leave their own process** (#2192). Nineteen files now run the real collaborators over `$wpdb` doubles in the shared process, and seven classes leave the class-level register, which drops to 6. The isolations that stay give their reason: a `define()`, an encryption-off state, a replaced registry, a `header()` call or a third-party class.
 - **Tests: the class-level isolation register is empty** (#2194). The last six classes and 87 more method-level tests run the real collaborators over `$wpdb` doubles in the shared process. Eight tests keep their own process, each with its reason: a key constant `Encryption` reads, or a core function that must stay undefined. The guard now blocks at zero, and the full suite passes in reverse order again.
+- **Tests: the tests that keep their own process are frozen per file** (#2179). The isolation guard now counts the method-level annotation file by file against a baseline that only shrinks, and fails when an isolated test gives no reason in its docblock.
 
 ### Deprecated
 
