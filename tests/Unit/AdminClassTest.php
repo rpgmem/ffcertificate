@@ -102,7 +102,8 @@ class AdminClassTest extends TestCase {
 			$_GET['submission'], $_GET['_wpnonce'], $_GET['ffc_migration'], $_GET['post_type'],
 			$_GET['status'], $_GET['filter_form_id'], $_GET['move_to_form_id'],
 			$_GET['msg'], $_GET['moved'], $_GET['conflicts'], $_GET['to_form'],
-			$_GET['conflict_id'], $_GET['migrated'], $_GET['migration_name'], $_GET['error_msg']
+			$_GET['conflict_id'], $_GET['migrated'], $_GET['migration_name'], $_GET['error_msg'],
+			$_GET['orderby'], $_GET['order'], $_GET['paged']
 		);
 		unset( $_POST['ffc_action'] );
 		if ( $this->had_wpdb ) {
@@ -309,6 +310,9 @@ class AdminClassTest extends TestCase {
 	public function test_display_submissions_page_dispatches_to_list_render(): void {
 		list( $admin ) = $this->makeAdmin();
 		// No action -> default 'list' -> render_list_page news up SubmissionsList.
+		// The query reads the sort and the page from the request, so the test
+		// chooses them rather than inheriting another test's (#2217, seed 83011022).
+		unset( $_GET['orderby'], $_GET['order'], $_GET['paged'], $_REQUEST['paged'], $_REQUEST['s'] );
 		$this->use_list_wpdb();
 
 		ob_start();

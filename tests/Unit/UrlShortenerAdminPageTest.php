@@ -64,7 +64,7 @@ class UrlShortenerAdminPageTest extends TestCase {
 
 	protected function tearDown(): void {
 		unset( $_POST['nonce'], $_POST['target_url'], $_POST['title'], $_POST['id'] );
-		unset( $_GET['page'], $_GET['ffc_action'], $_GET['_wpnonce'], $_GET['id'] );
+		unset( $_GET['page'], $_GET['ffc_action'], $_GET['_wpnonce'], $_GET['id'], $_GET['paged'], $_GET['orderby'], $_GET['order'], $_GET['status'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
