@@ -3614,10 +3614,11 @@ body.wp-admin .ffc-btn-icon::before {
 /* A closed date's kind in the admin lists (#2202). */
 .ffc-closed-date-pill {
     display: inline-block;
-    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
-    border-radius: var(--ffc-radius-full);
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+    /* The audience tag's shape (`.ffc-audience-tag`), so every label in the
+       calendars reads as one family (#2210). */
+    border-radius: var(--ffc-radius-xs);
     font-size: var(--ffc-font-size-xs);
-    font-weight: 600;
     white-space: nowrap;
 }
 
