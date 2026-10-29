@@ -427,6 +427,36 @@ class CustomFieldValidatorTest extends TestCase {
 	}
 
 	// ==================================================================
+	// validate_format — RF format (#2227)
+	// ==================================================================
+
+	public function test_validate_rf_accepts_seven_digits_masked_or_bare(): void {
+		// The check-digit setting is read; RF_A satisfies it either way.
+		Functions\when( 'get_option' )->justReturn( array( 'validate_rf_check_digit' => 1 ) );
+		$field = $this->make_field( array( 'validation_rules' => array( 'format' => 'rf' ) ) );
+
+		$this->assertTrue( CustomFieldValidator::validate( $field, Identifiers::RF_A ) );
+		$this->assertTrue( CustomFieldValidator::validate( $field, substr( Identifiers::RF_A, 0, 3 ) . '.' . substr( Identifiers::RF_A, 3, 3 ) . '-' . substr( Identifiers::RF_A, 6 ) ) );
+	}
+
+	public function test_validate_rf_follows_the_check_digit_setting(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'validate_rf_check_digit' => 1 ) );
+		$field = $this->make_field( array( 'validation_rules' => array( 'format' => 'rf' ) ) );
+
+		$result = CustomFieldValidator::validate( $field, Identifiers::RF_BAD_CHECK_DIGIT );
+		$this->assertInstanceOf( \WP_Error::class, $result, 'A wrong check digit is refused when Settings require it.' );
+		$this->assertSame( 'field_invalid_rf', $result->get_error_code() );
+	}
+
+	public function test_validate_rf_refuses_another_length(): void {
+		$field = $this->make_field( array( 'validation_rules' => array( 'format' => 'rf' ) ) );
+
+		$result = CustomFieldValidator::validate( $field, '123456' );
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'field_invalid_rf', $result->get_error_code() );
+	}
+
+	// ==================================================================
 	// validate_format — email format
 	// ==================================================================
 

@@ -29560,3 +29560,11 @@ msgstr "Os campos de contato trazem dois e-mails institucionais, um @sme e um @e
 
 msgid "View answers on a reregistration they sent, which opens their answers under the row even after the campaign closed. CPF, RF, RG, phones, e-mails and the birth date arrive masked behind a Reveal button; viewing as a user, the reveal is recorded in the activity log."
 msgstr "Ver respostas em um recadastramento enviado, que abre as respostas abaixo da linha mesmo depois de encerrada a campanha. CPF, RF, RG, telefones, e-mails e a data de nascimento chegam mascarados atrás de um botão Revelar; ao visualizar como usuário, a revelação é registrada no log de atividades."
+
+msgid "Invalid RF."
+msgstr "RF inválido."
+
+#. translators: %s: field label
+#, php-format
+msgid "%s must be a valid RF."
+msgstr "%s deve ser um RF válido."

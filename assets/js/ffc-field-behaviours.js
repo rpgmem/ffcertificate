@@ -98,6 +98,9 @@
         }
     };
 
+    /** The masks whose shape a stored value can always take. */
+    var SHAPE_ON_LOAD = ['cpf', 'rf', 'cpf_rf', 'cin', 'cep'];
+
     /**
      * Masks every `[data-mask]` input inside the container. An unknown mask
      * name is left alone rather than guessed at.
@@ -108,10 +111,11 @@
             if (!format) {
                 return;
             }
-            // A value that arrived from the server or an import is stored
+            // A document that arrived from the server or an import is stored
             // bare as often as masked, so it is shaped on load too, not only
-            // as the participant types.
-            if (this.value) {
+            // as the participant types (#2227). A phone is left as stored:
+            // an international number would lose its country code.
+            if (this.value && SHAPE_ON_LOAD.indexOf($(this).attr('data-mask')) !== -1) {
                 this.value = format(this.value);
             }
             $(this).on('input', function () {
@@ -259,8 +263,8 @@
      * An empty value is fine here; requiredness is the caller's question.
      *
      * @param {string} value
-     * @param {string} format   cpf | email | phone | custom_regex
-     * @param {Object} strings  invalidCpf, invalidEmail, invalidPhone, invalidFormat
+     * @param {string} format   cpf | rf | email | phone | custom_regex
+     * @param {Object} strings  invalidCpf, invalidRf, invalidEmail, invalidPhone, invalidFormat
      * @param {Object} [regex]  {pattern, message} for custom_regex
      * @return {string}
      */
@@ -273,6 +277,9 @@
         }
         if (format === 'cpf') {
             return validateCpf(val) ? '' : (S.invalidCpf || 'Invalid CPF.');
+        }
+        if (format === 'rf') {
+            return validateRf(val) ? '' : (S.invalidRf || 'Invalid RF.');
         }
         if (format === 'email') {
             return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) ? '' : (S.invalidEmail || 'Invalid email.');

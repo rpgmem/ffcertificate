@@ -193,6 +193,7 @@ class DashboardAssetManager {
 					'fixErrors'         => __( 'Please fix the errors below.', 'ffcertificate' ),
 					'required'          => __( 'This field is required.', 'ffcertificate' ),
 					'invalidCpf'        => __( 'Invalid CPF.', 'ffcertificate' ),
+					'invalidRf'         => __( 'Invalid RF.', 'ffcertificate' ),
 					'invalidEmail'      => __( 'Invalid email.', 'ffcertificate' ),
 					'invalidPhone'      => __( 'Invalid phone number.', 'ffcertificate' ),
 					'invalidFormat'     => __( 'Invalid format.', 'ffcertificate' ),

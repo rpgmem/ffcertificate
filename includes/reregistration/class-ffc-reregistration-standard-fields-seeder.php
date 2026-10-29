@@ -49,6 +49,8 @@ class ReregistrationStandardFieldsSeeder {
 		add_action( 'admin_init', array( __CLASS__, 'maybe_update_schedule_fields' ) );
 		// Same hook and reason again: the new field's label is translated.
 		add_action( 'admin_init', array( __CLASS__, 'maybe_add_edu_email_field' ) );
+		// Same hook, so the seeded rows match the definition from one request on.
+		add_action( 'admin_init', array( __CLASS__, 'maybe_validate_rf_fields' ) );
 	}
 
 	/**
@@ -189,6 +191,33 @@ class ReregistrationStandardFieldsSeeder {
 	}
 
 	/**
+	 * Option flagging that the seeded RF fields validate as an RF.
+	 */
+	public const RF_VALIDATION_OPTION = 'ffc_rf_field_validated';
+
+	/**
+	 * Give the seeded `rf` fields the RF format check (#2227).
+	 *
+	 * The field carried only an input mask, so a value of any length reached
+	 * the record. A row an operator gave rules of its own keeps them; only one
+	 * with none takes the format. Runs once; the flag is written even when
+	 * nothing matched.
+	 *
+	 * @return void
+	 */
+	public static function maybe_validate_rf_fields(): void {
+		if ( get_option( self::RF_VALIDATION_OPTION ) ) {
+			return;
+		}
+
+		foreach ( CustomFieldReader::standard_field_ids_without_rules( 'rf' ) as $id ) {
+			CustomFieldWriter::update( $id, array( 'validation_rules' => array( 'format' => 'rf' ) ) );
+		}
+
+		update_option( self::RF_VALIDATION_OPTION, '1', false );
+	}
+
+	/**
 	 * Hook handler for `ffc_audience_created`.
 	 *
 	 * @since 5.0.0
@@ -324,7 +353,7 @@ class ReregistrationStandardFieldsSeeder {
 				'mask'         => 'rf',
 				'required'     => 1,
 				'options'      => null,
-				'validation'   => null,
+				'validation'   => array( 'format' => 'rf' ),
 			),
 			array(
 				'field_key'    => 'vinculo',

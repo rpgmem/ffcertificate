@@ -290,6 +290,8 @@ $ffcertificate_options = array(
 	// Flag of the one-shot step adding the @edu e-mail field to audiences
 	// seeded before it, written the same way.
 	'ffc_edu_email_field_added',
+	// Flag of the one-shot step giving the seeded RF fields their format check.
+	'ffc_rf_field_validated',
 	'ffc_recruitment_public_cache_version',
 	// The admin's chosen record (ficha) template, written only when the
 	// Reregistration tab is saved -- which is why the fresh-install gate never

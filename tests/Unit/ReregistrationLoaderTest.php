@@ -150,6 +150,12 @@ class ReregistrationLoaderTest extends TestCase {
 					'priority' => 10,
 					'args'     => 1,
 				),
+				array(
+					'hook'     => 'admin_init',
+					'callback' => ReregistrationStandardFieldsSeeder::class . '::maybe_validate_rf_fields',
+					'priority' => 10,
+					'args'     => 1,
+				),
 			),
 			$seeder,
 			'The standard-fields seeder registers once.'

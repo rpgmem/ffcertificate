@@ -29476,3 +29476,11 @@ msgstr ""
 
 msgid "View answers on a reregistration they sent, which opens their answers under the row even after the campaign closed. CPF, RF, RG, phones, e-mails and the birth date arrive masked behind a Reveal button; viewing as a user, the reveal is recorded in the activity log."
 msgstr ""
+
+msgid "Invalid RF."
+msgstr ""
+
+#. translators: %s: field label
+#, php-format
+msgid "%s must be a valid RF."
+msgstr ""
