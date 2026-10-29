@@ -103,6 +103,7 @@ class AdminUserCustomFields {
 					'dualPostShowValue' => __( 'I hold', 'ffcertificate' ),
 					'select'            => __( 'Select', 'ffcertificate' ),
 					'invalidCpf'        => __( 'Invalid CPF.', 'ffcertificate' ),
+					'invalidRf'         => __( 'Invalid RF.', 'ffcertificate' ),
 					'invalidEmail'      => __( 'Invalid email.', 'ffcertificate' ),
 					'invalidPhone'      => __( 'Invalid phone number.', 'ffcertificate' ),
 					'invalidFormat'     => __( 'Invalid format.', 'ffcertificate' ),

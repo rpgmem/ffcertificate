@@ -36,6 +36,12 @@ class UserReregistrationsRestControllerTest extends TestCase {
 	/** @var list<array<int, mixed>> The bound arguments of every submissions query. */
 	private array $queried = array();
 
+	/** @var array<string, object|null> What `get_row()` answers, by table. */
+	private array $rows = array();
+
+	/** @var list<object> The campaign's field rows. */
+	private array $fields = array();
+
 	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
 	private $wpdb_backup;
 
@@ -47,6 +53,8 @@ class UserReregistrationsRestControllerTest extends TestCase {
 		Monkey\setUp();
 
 		$this->registered_routes = [];
+		$this->rows              = array();
+		$this->fields            = array();
 		$this->submissions       = array();
 		$this->updates           = array();
 		$this->queried           = array();
@@ -96,7 +104,14 @@ class UserReregistrationsRestControllerTest extends TestCase {
 				'args' => $args,
 			);
 		});
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing( function( $q ) {
+			return $this->rows[ (string) $q['args'][0] ] ?? null;
+		});
+		$wpdb->shouldReceive( 'get_col' )->andReturn( array( '5' ) );
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing( function( $q ) {
+			if ( false !== strpos( $q['sql'], 'is_active = 1' ) ) {
+				return $this->fields;
+			}
 			if ( false === strpos( $q['sql'], 'WHERE s.user_id = %d' ) ) {
 				$this->fail( 'Unexpected get_results(): ' . $q['sql'] );
 			}
@@ -160,11 +175,12 @@ class UserReregistrationsRestControllerTest extends TestCase {
 	// Route registration
 	// ------------------------------------------------------------------
 
-	public function test_register_routes_creates_one_endpoint(): void {
+	public function test_register_routes_creates_the_list_and_answers_endpoints(): void {
 		$ctrl = new UserReregistrationsRestController( 'ffc/v1' );
 		$ctrl->register_routes();
 
-		$this->assertCount( 1, $this->registered_routes );
+		$this->assertCount( 2, $this->registered_routes );
+		$this->assertSame( '/user/reregistrations/(?P<id>\\d+)/answers', $this->registered_routes[1]['route'] );
 	}
 
 	public function test_reregistrations_route_registered(): void {
@@ -365,5 +381,109 @@ class UserReregistrationsRestControllerTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'reregistrations_error', $result->get_error_code() );
+	}
+
+	// ------------------------------------------------------------------
+	// GET /user/reregistrations/{id}/answers
+	// ------------------------------------------------------------------
+
+	/**
+	 * Answer a campaign with one masked and one plain field, and a submitted
+	 * submission owned by user 7.
+	 */
+	private function given_answers( array $overrides = array() ): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'user_can' )->justReturn( false );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
+
+		$this->rows['wp_ffc_reregistration_submissions'] = (object) array_merge(
+			array(
+				'id'                => 3,
+				'reregistration_id' => 10,
+				'user_id'           => 7,
+				'status'            => 'approved',
+				'submitted_at'      => 1761000000,
+				'data'              => json_encode( array( 'fields' => array( 'rf' => '5181780', 'vinculo' => '2' ) ) ),
+			),
+			$overrides
+		);
+		$this->rows['wp_ffc_reregistrations']            = (object) array(
+			'id'    => 10,
+			'title' => 'Annual',
+		);
+		$this->rows['wp_ffc_audiences']                  = (object) array(
+			'id'        => 5,
+			'name'      => 'Staff',
+			'parent_id' => null,
+		);
+		$this->fields = array(
+			(object) array( 'id' => 1, 'audience_id' => 5, 'field_key' => 'rf', 'field_label' => 'RF', 'field_type' => 'text', 'field_mask' => 'rf', 'is_sensitive' => 0 ),
+			(object) array( 'id' => 2, 'audience_id' => 5, 'field_key' => 'vinculo', 'field_label' => 'Bond', 'field_type' => 'text', 'field_mask' => 'number', 'is_sensitive' => 0 ),
+		);
+	}
+
+	public function test_answers_arrive_masked_for_the_owner_who_may_reveal_them(): void {
+		$this->given_answers();
+		$ctrl = new UserReregistrationsRestController( 'ffc/v1' );
+
+		$result = $ctrl->get_submission_answers( $this->make_request( array( 'id' => 3 ) ) );
+
+		$this->assertSame( array( 'rf' => '518.***-0', 'vinculo' => '2' ), array_column( $result['rows'], 'value', 'key' ) );
+		$this->assertTrue( $result['masked'] );
+		$this->assertTrue( $result['can_reveal'] );
+	}
+
+	public function test_the_owner_reveals_their_answers(): void {
+		$this->given_answers();
+		$ctrl = new UserReregistrationsRestController( 'ffc/v1' );
+
+		$result = $ctrl->get_submission_answers( $this->make_request( array( 'id' => 3, 'reveal' => true ) ) );
+
+		$this->assertSame( '518.178-0', array_column( $result['rows'], 'value', 'key' )['rf'] );
+		$this->assertFalse( $result['masked'] );
+		$this->assertFalse( $result['can_reveal'], 'Nothing is left to reveal.' );
+	}
+
+	public function test_another_persons_submission_answers_not_found(): void {
+		$this->given_answers( array( 'user_id' => 8 ) );
+		$ctrl = new UserReregistrationsRestController( 'ffc/v1' );
+
+		$result = $ctrl->get_submission_answers( $this->make_request( array( 'id' => 3, 'reveal' => true ) ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_submission_not_found', $result->get_error_code() );
+	}
+
+	public function test_a_submission_never_sent_has_no_answers(): void {
+		$this->given_answers( array( 'submitted_at' => null ) );
+		$ctrl = new UserReregistrationsRestController( 'ffc/v1' );
+
+		$result = $ctrl->get_submission_answers( $this->make_request( array( 'id' => 3 ) ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_submission_not_found', $result->get_error_code() );
+	}
+
+	public function test_a_logged_out_request_is_refused(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		$ctrl = new UserReregistrationsRestController( 'ffc/v1' );
+
+		$result = $ctrl->get_submission_answers( $this->make_request( array( 'id' => 3 ) ) );
+
+		$this->assertSame( 'not_logged_in', $result->get_error_code() );
+	}
+
+	public function test_the_list_offers_answers_only_for_a_sent_submission(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		$this->submissions = array(
+			$this->make_submission( array( 'id' => 1, 'submitted_at' => 1761000000 ) ),
+			$this->make_submission( array( 'id' => 2 ) ),
+		);
+		$ctrl = new UserReregistrationsRestController( 'ffc/v1' );
+
+		$result = $ctrl->get_user_reregistrations( $this->make_request() );
+
+		$this->assertSame( array( true, false ), array_column( $result['reregistrations'], 'can_view_answers' ) );
 	}
 }

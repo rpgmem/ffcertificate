@@ -28,32 +28,35 @@
         <!-- 1. DADOS PESSOAIS -->
         <div style="margin-bottom: 6px">
             <div style="font-size: 9pt;font-weight: bold;color: #000;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 2px;border-bottom: 1px solid #e8e8e8;margin-bottom: 3px">1. Dados Pessoais</div>
-            <table style="width: 100%;border-collapse: collapse;font-size: 8pt" role="presentation">
+            <table style="width: 100%;border-collapse: collapse;font-size: 8pt;table-layout: fixed" role="presentation">
+                <colgroup>
+                    <col style="width: 92px"><col style="width: 160px"><col style="width: 82px"><col style="width: 140px"><col style="width: 68px"><col>
+                </colgroup>
                 <tr>
-                    <td style="padding: 2px 0;font-weight: bold;color: #666;width: 110px">Nome:</td>
+                    <td style="padding: 2px 0;font-weight: bold;color: #666">Nome:</td>
                     <td style="padding: 2px 0;color: #222" colspan="5">{{display_name}}</td>
                 </tr>
                 <tr>
                     <td style="padding: 2px 0;font-weight: bold;color: #666">Sexo:</td>
-                    <td style="padding: 2px 0;color: #222;width: 120px">{{sexo}}</td>
-                    <td style="padding: 2px 0;font-weight: bold;color: #666;width: 90px">Estado Civil:</td>
-                    <td style="padding: 2px 0;color: #222;width: 120px">{{estado_civil}}</td>
-                    <td style="padding: 2px 0;font-weight: bold;color: #666;width: 25px">RF:</td>
-                    <td style="padding: 2px 0;color: #222">{{rf}}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 2px 0;font-weight: bold;color: #666">Vínculo:</td>
-                    <td style="padding: 2px 0;color: #222">{{vinculo}}</td>
+                    <td style="padding: 2px 0;color: #222">{{sexo}}</td>
+                    <td style="padding: 2px 0;font-weight: bold;color: #666">Estado Civil:</td>
+                    <td style="padding: 2px 0;color: #222">{{estado_civil}}</td>
                     <td style="padding: 2px 0;font-weight: bold;color: #666">Data Nasc.:</td>
                     <td style="padding: 2px 0;color: #222">{{data_nascimento}}</td>
-                    <td style="padding: 2px 0;font-weight: bold;color: #666">CPF:</td>
+                </tr>
+                <tr>
+                    <td style="padding: 2px 0;font-weight: bold;color: #666">RF:</td>
+                    <td style="padding: 2px 0;color: #222">{{rf}}</td>
+                    <td style="padding: 2px 0;font-weight: bold;color: #666">Vínculo:</td>
+                    <td style="padding: 2px 0;color: #222">{{vinculo}}</td>
+                    <td style="padding: 2px 0;font-weight: bold;color: #666">CIN/CPF:</td>
                     <td style="padding: 2px 0;color: #222">{{cpf}}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 2px 0;font-weight: bold;color: #666">CIN:</td>
-                    <td style="padding: 2px 0;color: #222" colspan="3">{{rg}}</td>
-                    <td style="padding: 2px 0;font-weight: bold;color: #666">Un. Lot.:</td>
-                    <td style="padding: 2px 0;color: #222">{{unidade_lotacao}}</td>
+                    <td style="padding: 2px 0;font-weight: bold;color: #666">RG:</td>
+                    <td style="padding: 2px 0;color: #222">{{rg}}</td>
+                    <td style="padding: 2px 0;font-weight: bold;color: #666">Un. Lotação:</td>
+                    <td style="padding: 2px 0;color: #222" colspan="3">{{unidade_lotacao}}</td>
                 </tr>
                 <tr>
                     <td style="padding: 2px 0;font-weight: bold;color: #666">Un. Exercício:</td>
@@ -67,15 +70,21 @@
                     <td style="padding: 2px 0;font-weight: bold;color: #666">Endereço:</td>
                     <td style="padding: 2px 0;color: #222" colspan="3">{{endereco}}</td>
                     <td style="padding: 2px 0;font-weight: bold;color: #666">Nº:</td>
-                    <td style="padding: 2px 0;color: #222">{{endereco_numero}} {{endereco_complemento}}</td>
+                    <td style="padding: 2px 0;color: #222">{{endereco_numero}}</td>
                 </tr>
                 <tr>
+                    <td style="padding: 2px 0;font-weight: bold;color: #666">Complemento:</td>
+                    <td style="padding: 2px 0;color: #222">{{endereco_complemento}}</td>
                     <td style="padding: 2px 0;font-weight: bold;color: #666">Bairro:</td>
-                    <td style="padding: 2px 0;color: #222">{{bairro}}</td>
+                    <td style="padding: 2px 0;color: #222" colspan="3">{{bairro}}</td>
+                </tr>
+                <tr>
                     <td style="padding: 2px 0;font-weight: bold;color: #666">Cidade:</td>
                     <td style="padding: 2px 0;color: #222">{{cidade}}</td>
                     <td style="padding: 2px 0;font-weight: bold;color: #666">UF:</td>
-                    <td style="padding: 2px 0;color: #222">{{uf}} &nbsp; CEP: {{cep}}</td>
+                    <td style="padding: 2px 0;color: #222">{{uf}}</td>
+                    <td style="padding: 2px 0;font-weight: bold;color: #666">CEP:</td>
+                    <td style="padding: 2px 0;color: #222">{{cep}}</td>
                 </tr>
             </table>
         </div>
@@ -83,11 +92,14 @@
         <!-- 2. CONTATOS -->
         <div style="margin-bottom: 6px">
             <div style="font-size: 9pt;font-weight: bold;color: #000;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 2px;border-bottom: 1px solid #e8e8e8;margin-bottom: 3px">2. Contatos</div>
-            <table style="width: 100%;border-collapse: collapse;font-size: 8pt" role="presentation">
+            <table style="width: 100%;border-collapse: collapse;font-size: 8pt;table-layout: fixed" role="presentation">
+                <colgroup>
+                    <col style="width: 122px"><col style="width: 230px"><col style="width: 122px"><col>
+                </colgroup>
                 <tr>
-                    <td style="padding: 2px 0;font-weight: bold;color: #666;width: 110px">Tel. Residencial:</td>
-                    <td style="padding: 2px 0;color: #222;width: 170px">{{phone}}</td>
-                    <td style="padding: 2px 0;font-weight: bold;color: #666;width: 90px">Tel. Celular:</td>
+                    <td style="padding: 2px 0;font-weight: bold;color: #666">Tel. Residencial:</td>
+                    <td style="padding: 2px 0;color: #222">{{phone}}</td>
+                    <td style="padding: 2px 0;font-weight: bold;color: #666">Tel. Celular:</td>
                     <td style="padding: 2px 0;color: #222">{{celular}}</td>
                 </tr>
                 <tr>
@@ -97,8 +109,10 @@
                     <td style="padding: 2px 0;color: #222">{{tel_emergencia}}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 2px 0;font-weight: bold;color: #666">E-mail Inst.:</td>
-                    <td style="padding: 2px 0;color: #222" colspan="3">{{email_institucional}}</td>
+                    <td style="padding: 2px 0;font-weight: bold;color: #666">E-mail Inst. (@sme):</td>
+                    <td style="padding: 2px 0;color: #222">{{email_institucional}}</td>
+                    <td style="padding: 2px 0;font-weight: bold;color: #666">E-mail Inst. (@edu):</td>
+                    <td style="padding: 2px 0;color: #222">{{email_institucional_edu}}</td>
                 </tr>
                 <tr>
                     <td style="padding: 2px 0;font-weight: bold;color: #666">E-mail Particular:</td>
@@ -112,25 +126,17 @@
             <div style="font-size: 9pt;font-weight: bold;color: #000;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 2px;border-bottom: 1px solid #e8e8e8;margin-bottom: 3px">3. Jornada / Horário de Trabalho</div>
             <table style="width: 100%;border-collapse: collapse;font-size: 8pt" role="presentation">
                 <tr>
-                    <td style="padding: 2px 0;font-weight: bold;color: #666;width: 110px">Jornada:</td>
-                    <td style="padding: 2px 0;color: #222" colspan="3">{{jornada}}</td>
+                    <td style="padding: 2px 0;font-weight: bold;color: #666;width: 92px">Jornada:</td>
+                    <td style="padding: 2px 0;color: #222">{{jornada}}</td>
                 </tr>
             </table>
             {{horario_trabalho}}
         </div>
 
-        <!-- 4. ACÚMULO DE CARGOS -->
+        <!-- 4. ACÚMULO DE CARGOS (details only when a second post is held) -->
         <div style="margin-bottom: 6px">
             <div style="font-size: 9pt;font-weight: bold;color: #000;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 2px;border-bottom: 1px solid #e8e8e8;margin-bottom: 3px">4. Acúmulo de Cargos: {{acumulo_cargos}}</div>
-            <table style="width: 100%;border-collapse: collapse;font-size: 8pt" role="presentation">
-                <tr>
-                    <td style="padding: 2px 0;font-weight: bold;color: #666;width: 110px">Jornada:</td>
-                    <td style="padding: 2px 0;color: #222;width: 170px">{{jornada_acumulo}}</td>
-                    <td style="padding: 2px 0;font-weight: bold;color: #666;width: 110px">Cargo/Função:</td>
-                    <td style="padding: 2px 0;color: #222">{{cargo_funcao_acumulo}}</td>
-                </tr>
-            </table>
-            {{horario_trabalho_acumulo}}
+            {{acumulo_details}}
         </div>
 
         <!-- 5. SINDICATO -->
@@ -138,7 +144,7 @@
             <div style="font-size: 9pt;font-weight: bold;color: #000;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 2px;border-bottom: 1px solid #e8e8e8;margin-bottom: 3px">5. Sindicato ao qual sou filiado e que desejo participar de eventos (apenas um)</div>
             <table style="width: 100%;border-collapse: collapse;font-size: 8pt" role="presentation">
                 <tr>
-                    <td style="padding: 2px 0;font-weight: bold;color: #666;width: 110px">Sindicato:</td>
+                    <td style="padding: 2px 0;font-weight: bold;color: #666;width: 92px">Sindicato:</td>
                     <td style="padding: 2px 0;color: #222">{{sindicato}}</td>
                 </tr>
             </table>

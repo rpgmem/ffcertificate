@@ -47,6 +47,10 @@ class ReregistrationStandardFieldsSeeder {
 		add_action( 'admin_init', array( __CLASS__, 'maybe_relabel_union' ) );
 		// Same hook and reason as the union relabel (#2225).
 		add_action( 'admin_init', array( __CLASS__, 'maybe_update_schedule_fields' ) );
+		// Same hook and reason again: the new field's label is translated.
+		add_action( 'admin_init', array( __CLASS__, 'maybe_add_edu_email_field' ) );
+		// Same hook, so the seeded rows match the definition from one request on.
+		add_action( 'admin_init', array( __CLASS__, 'maybe_validate_rf_fields' ) );
 	}
 
 	/**
@@ -124,6 +128,93 @@ class ReregistrationStandardFieldsSeeder {
 		}
 
 		update_option( self::SCHEDULE_FIELDS_OPTION, '1', false );
+	}
+
+	/**
+	 * Option flagging that the @edu e-mail field has been added.
+	 */
+	public const EDU_EMAIL_FIELD_OPTION = 'ffc_edu_email_field_added';
+
+	/**
+	 * Add the `email_institucional_edu` field to every audience that already
+	 * carries the standard fields.
+	 *
+	 * `seed_for_audience()` runs when an audience is created, so a field added
+	 * to the definition after that reaches no existing audience on its own.
+	 * The new row takes the `sort_order` of the audience's @sme field and,
+	 * having the higher id, lands right after it. An audience that already
+	 * has the key is left alone. Runs once; the flag is written even when
+	 * nothing matched.
+	 *
+	 * @return void
+	 */
+	public static function maybe_add_edu_email_field(): void {
+		if ( get_option( self::EDU_EMAIL_FIELD_OPTION ) ) {
+			return;
+		}
+
+		$definition = null;
+		foreach ( self::get_standard_fields_definition() as $def ) {
+			if ( 'email_institucional_edu' === $def['field_key'] ) {
+				$definition = $def;
+				break;
+			}
+		}
+
+		if ( null !== $definition ) {
+			foreach ( CustomFieldReader::standard_field_positions( 'email_institucional' ) as $audience_id => $sort_order ) {
+				if ( isset( CustomFieldReader::existing_field_keys_for_audience( $audience_id )['email_institucional_edu'] ) ) {
+					continue;
+				}
+				CustomFieldWriter::insert_row(
+					array(
+						'audience_id'       => $audience_id,
+						'field_key'         => $definition['field_key'],
+						'field_label'       => $definition['field_label'],
+						'field_type'        => $definition['field_type'],
+						'field_group'       => $definition['field_group'],
+						'field_source'      => 'standard',
+						'field_profile_key' => null,
+						'field_mask'        => $definition['mask'],
+						'is_sensitive'      => 0,
+						'field_options'     => null,
+						'validation_rules'  => (string) wp_json_encode( $definition['validation'] ),
+						'sort_order'        => $sort_order,
+						'is_required'       => 0,
+						'is_active'         => 1,
+					)
+				);
+			}
+		}
+
+		update_option( self::EDU_EMAIL_FIELD_OPTION, '1', false );
+	}
+
+	/**
+	 * Option flagging that the seeded RF fields validate as an RF.
+	 */
+	public const RF_VALIDATION_OPTION = 'ffc_rf_field_validated';
+
+	/**
+	 * Give the seeded `rf` fields the RF format check (#2227).
+	 *
+	 * The field carried only an input mask, so a value of any length reached
+	 * the record. A row an operator gave rules of its own keeps them; only one
+	 * with none takes the format. Runs once; the flag is written even when
+	 * nothing matched.
+	 *
+	 * @return void
+	 */
+	public static function maybe_validate_rf_fields(): void {
+		if ( get_option( self::RF_VALIDATION_OPTION ) ) {
+			return;
+		}
+
+		foreach ( CustomFieldReader::standard_field_ids_without_rules( 'rf' ) as $id ) {
+			CustomFieldWriter::update( $id, array( 'validation_rules' => array( 'format' => 'rf' ) ) );
+		}
+
+		update_option( self::RF_VALIDATION_OPTION, '1', false );
 	}
 
 	/**
@@ -262,7 +353,7 @@ class ReregistrationStandardFieldsSeeder {
 				'mask'         => 'rf',
 				'required'     => 1,
 				'options'      => null,
-				'validation'   => null,
+				'validation'   => array( 'format' => 'rf' ),
 			),
 			array(
 				'field_key'    => 'vinculo',
@@ -498,6 +589,18 @@ class ReregistrationStandardFieldsSeeder {
 				'is_sensitive' => 0,
 				'mask'         => 'email',
 				'required'     => 1,
+				'options'      => null,
+				'validation'   => array( 'format' => 'email' ),
+			),
+			array(
+				'field_key'    => 'email_institucional_edu',
+				'field_label'  => __( 'Institutional Email (@edu)', 'ffcertificate' ),
+				'field_type'   => 'text',
+				'field_group'  => self::GROUP_CONTACT,
+				'profile_key'  => null,
+				'is_sensitive' => 0,
+				'mask'         => 'email',
+				'required'     => 0,
 				'options'      => null,
 				'validation'   => array( 'format' => 'email' ),
 			),

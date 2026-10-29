@@ -397,6 +397,30 @@ class DocumentFormatterTest extends TestCase {
 	}
 
 	// ==================================================================
+	// format_cin / format_cep
+	// ==================================================================
+
+	public function test_format_cin_masks_nine_characters(): void {
+		$this->assertSame('27.904.705-8', DocumentFormatter::format_cin('279047058'));
+		$this->assertSame('27.904.705-8', DocumentFormatter::format_cin('27.904.705-8'));
+	}
+
+	public function test_format_cin_keeps_an_x_check_digit(): void {
+		$this->assertSame('27.904.705-X', DocumentFormatter::format_cin('27904705x'));
+	}
+
+	public function test_format_cin_returns_other_shapes_as_typed(): void {
+		$this->assertSame('12.345', DocumentFormatter::format_cin('12.345'));
+		$this->assertSame('X27904705', DocumentFormatter::format_cin('X27904705'), 'An X belongs only in the last place.');
+	}
+
+	public function test_format_cep_masks_eight_digits(): void {
+		$this->assertSame('08615-070', DocumentFormatter::format_cep('08615070'));
+		$this->assertSame('08615-070', DocumentFormatter::format_cep('08615-070'));
+		$this->assertSame('0861', DocumentFormatter::format_cep('0861'));
+	}
+
+	// ==================================================================
 	// format_auth_code
 	// ==================================================================
 

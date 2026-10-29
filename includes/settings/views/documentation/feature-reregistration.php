@@ -65,6 +65,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h4><?php esc_html_e( 'The member form', 'ffcertificate' ); ?></h4>
 		<p><?php esc_html_e( 'There is no separate reregistration shortcode. Active campaigns appear as a banner on the member\'s personal dashboard (the user_dashboard_personal shortcode); the form loads and submits there over AJAX. Members are targeted by audience membership, not by matching a CPF/RF. On submit, the plugin generates an authentication code and a Record magic link, syncs mapped fields to the user profile, and sends the confirmation email.', 'ffcertificate' ); ?></p>
 		<p class="description"><?php esc_html_e( 'Once a submission is approved, its banner offers the Record download until the window in Settings → Reregistration ("Hide the approved banner after (days)", default 30) has passed since the later of the campaign\'s end and the approval, even after the daily run has expired the campaign; 0 never hides it. The dashboard\'s Reregistration tab keeps listing it either way.', 'ffcertificate' ); ?></p>
+		<p class="description"><?php esc_html_e( 'The contact fields carry two institutional e-mails, one @sme and one @edu, and a personal one. The @edu field reaches the audiences created before it on the first admin request after the update, placed right after the @sme one and not required.', 'ffcertificate' ); ?></p>
 	</div>
 
 	<div class="ffc-doc-example">
