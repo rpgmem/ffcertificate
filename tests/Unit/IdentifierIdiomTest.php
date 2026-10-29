@@ -86,6 +86,7 @@ class IdentifierIdiomTest extends TestCase {
 	private const DIGIT_STRIP_ALLOWED = array(
 		'includes/core/class-ffc-data-sanitizer.php' => 'Declares the canonical form. Every other site asks it.',
 		'includes/generators/class-ffc-qr-payload.php' => 'Builds a dialable `tel:` / `SMSTO:` / `wa.me` number for a QR code (#1563); never stored, hashed or looked up.',
+		'includes/core/class-ffc-document-formatter.php' => 'Shapes a CEP for print (#2227); a postal code is not an identifier and is never stored, hashed or looked up.',
 	);
 
 	/**

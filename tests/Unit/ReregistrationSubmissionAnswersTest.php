@@ -121,7 +121,7 @@ class ReregistrationSubmissionAnswersTest extends TestCase {
 
 	private function values(): array {
 		return array(
-			'rf'               => '8026335',
+			'rf'               => '5181780',
 			'vinculo'          => '2',
 			'data_nascimento'  => '1985-10-12',
 			'cep'              => '08615070',
@@ -150,12 +150,12 @@ class ReregistrationSubmissionAnswersTest extends TestCase {
 
 		$this->assertTrue( $masked['has_masked'] );
 		$rows = $this->by_key( $masked );
-		$this->assertSame( '802.***-5', $rows['rf'] );
+		$this->assertSame( '518.***-0', $rows['rf'] );
 		$this->assertSame( '12/10/****', $rows['data_nascimento'], 'A birth date is personal by its key.' );
 		$this->assertSame( '2', $rows['vinculo'], 'A value that is not personal is drawn as given.' );
 
 		$clear = $this->by_key( ReregistrationSubmissionAnswers::build( $this->submission( $this->values() ), true ) );
-		$this->assertSame( '802.633-5', $clear['rf'], 'Revealed, a document takes its usual shape.' );
+		$this->assertSame( '518.178-0', $clear['rf'], 'Revealed, a document takes its usual shape.' );
 		$this->assertSame( '12/10/1985', $clear['data_nascimento'] );
 	}
 

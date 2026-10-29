@@ -1104,14 +1104,14 @@ class RecordGeneratorTest extends TestCase {
 
 	public function provideDisplayMasks(): array {
 		return array(
-			'cpf bare'          => array('cpf', '52998224725', '529.982.247-25'),
-			'cpf already masked' => array('cpf', '529.982.247-25', '529.982.247-25'),
-			'rf'                => array('rf', '8026335', '802.633-5'),
+			'cpf bare'          => array('cpf', '51817842080', '518.178.420-80'),
+			'cpf already masked' => array('cpf', '518.178.420-80', '518.178.420-80'),
+			'rf'                => array('rf', '5181780', '518.178-0'),
 			'rg'                => array('cin', '279047058', '27.904.705-8'),
 			'rg with an X'      => array('cin', '27904705x', '27.904.705-X'),
 			'cep'               => array('cep', '08615070', '08615-070'),
 			'unknown length'    => array('cpf', '123', '123'),
-			'no mask'           => array('', '52998224725', '52998224725'),
+			'no mask'           => array('', '51817842080', '51817842080'),
 		);
 	}
 

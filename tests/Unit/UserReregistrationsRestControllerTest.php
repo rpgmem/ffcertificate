@@ -404,7 +404,7 @@ class UserReregistrationsRestControllerTest extends TestCase {
 				'user_id'           => 7,
 				'status'            => 'approved',
 				'submitted_at'      => 1761000000,
-				'data'              => json_encode( array( 'fields' => array( 'rf' => '8026335', 'vinculo' => '2' ) ) ),
+				'data'              => json_encode( array( 'fields' => array( 'rf' => '5181780', 'vinculo' => '2' ) ) ),
 			),
 			$overrides
 		);
@@ -429,7 +429,7 @@ class UserReregistrationsRestControllerTest extends TestCase {
 
 		$result = $ctrl->get_submission_answers( $this->make_request( array( 'id' => 3 ) ) );
 
-		$this->assertSame( array( 'rf' => '802.***-5', 'vinculo' => '2' ), array_column( $result['rows'], 'value', 'key' ) );
+		$this->assertSame( array( 'rf' => '518.***-0', 'vinculo' => '2' ), array_column( $result['rows'], 'value', 'key' ) );
 		$this->assertTrue( $result['masked'] );
 		$this->assertTrue( $result['can_reveal'] );
 	}
@@ -440,7 +440,7 @@ class UserReregistrationsRestControllerTest extends TestCase {
 
 		$result = $ctrl->get_submission_answers( $this->make_request( array( 'id' => 3, 'reveal' => true ) ) );
 
-		$this->assertSame( '802.633-5', array_column( $result['rows'], 'value', 'key' )['rf'] );
+		$this->assertSame( '518.178-0', array_column( $result['rows'], 'value', 'key' )['rf'] );
 		$this->assertFalse( $result['masked'] );
 		$this->assertFalse( $result['can_reveal'], 'Nothing is left to reveal.' );
 	}
