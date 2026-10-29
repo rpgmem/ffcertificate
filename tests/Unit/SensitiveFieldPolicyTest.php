@@ -85,6 +85,9 @@ class SensitiveFieldPolicyTest extends TestCase {
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'do_action' )->justReturn( null );
+		// The handler guards the async schedule on function_exists(), so the
+		// branch is chosen here rather than inherited from an earlier test.
+		Functions\when( 'wp_schedule_single_event' )->justReturn( true );
 		Functions\when( 'get_option' )->justReturn( 0 );
 		Functions\when( 'absint' )->alias( function ( $val ) {
 			return abs( intval( $val ) );
