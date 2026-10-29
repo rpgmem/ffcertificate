@@ -313,7 +313,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 												'name'    => 'ffc_short_url_active_' . $item['id'],
 												'id'      => 'ffc-short-url-active-' . $item['id'],
 												'checked' => 'active' === $item['status'],
-												'label'   => __( 'Active', 'ffcertificate' ),
 												'aria_label' => sprintf(
 												/* translators: %s: short URL */
 													__( 'Active: %s', 'ffcertificate' ),
