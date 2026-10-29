@@ -452,6 +452,9 @@ class EncryptionTest extends TestCase {
 	/**
 	 * A decoupled hash salt is what `hash()` uses, and the health check reads it.
 	 *
+	 * Own process: it defines FFC_HASH_SALT, which the class reads with no
+	 * other seam and every other test here needs absent.
+	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
@@ -512,6 +515,9 @@ class EncryptionTest extends TestCase {
 	/**
 	 * A long enough FFC_ENCRYPTION_KEY is the active key, and the report says so.
 	 *
+	 * Own process: it defines FFC_ENCRYPTION_KEY, which the class reads with
+	 * no other seam and every other test here needs absent.
+	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
@@ -527,6 +533,9 @@ class EncryptionTest extends TestCase {
 	/**
 	 * A key shorter than 32 characters is ignored by the cipher, so the report
 	 * must not name it as the source.
+	 *
+	 * Own process: it defines FFC_ENCRYPTION_KEY, which the class reads with
+	 * no other seam and every other test here needs absent.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled

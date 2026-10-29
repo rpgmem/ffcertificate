@@ -31,6 +31,19 @@ class UserDashboardActivatorTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
+	/** @var mixed The `$wpdb` global before the test, restored in tearDown. */
+	private $previous_wpdb;
+
+	/** @var bool Whether `$wpdb` was set before the test. */
+	private $had_wpdb;
+
+	/**
+	 * Roles `add_role()` was asked to create, by slug.
+	 *
+	 * @var array<int, string>
+	 */
+	private $added_roles = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -43,6 +56,9 @@ class UserDashboardActivatorTest extends TestCase {
 
 		// ABSPATH and the upgrade.php each table method requires come from
 		// the bootstrap (tests/Support/UpgradeStub.php, #1803).
+
+		$this->had_wpdb      = array_key_exists( 'wpdb', $GLOBALS );
+		$this->previous_wpdb = $this->had_wpdb ? $GLOBALS['wpdb'] : null;
 
 		global $wpdb;
 		$wpdb                   = Mockery::mock( 'wpdb' )->makePartial();
@@ -86,9 +102,24 @@ class UserDashboardActivatorTest extends TestCase {
 		Functions\when( 'update_post_meta' )->justReturn( true );
 		Functions\when( 'wp_insert_post' )->justReturn( 42 );
 		Functions\when( 'get_role' )->justReturn( null );
+
+		// The real RoleRegistrar::register_role() creates `ffc_end_user` when
+		// get_role() finds none; record what it asks for.
+		$this->added_roles = array();
+		Functions\when( 'add_role' )->alias(
+			function ( $slug ) {
+				$this->added_roles[] = (string) $slug;
+				return null;
+			}
+		);
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->previous_wpdb;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -246,20 +277,7 @@ class UserDashboardActivatorTest extends TestCase {
 		UserDashboardActivator::maybe_migrate();
 	}
 
-	/** Alias-mock the role deps so the register_user_role() block runs. */
-	private function stub_role_deps(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\UserDashboard\UserManager' );
-		Mockery::mock( 'alias:\FreeFormCertificate\UserDashboard\RoleRegistrar' )
-			->shouldReceive( 'register_role' )
-			->andReturnNull();
-	}
-
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_full_activation_registers_role_grants_caps_and_creates_tables(): void {
-		$this->stub_role_deps();
-
 		// An administrator role that records each granted cap.
 		$granted     = array();
 		$admin_role  = Mockery::mock();
@@ -297,7 +315,12 @@ class UserDashboardActivatorTest extends TestCase {
 
 		UserDashboardActivator::create_tables();
 
-		$this->assertNotEmpty( $granted, 'admin caps should be granted from ADMIN_CAPABILITIES' );
+		$this->assertSame( array( 'ffc_end_user' ), $this->added_roles, 'The real RoleRegistrar::register_role() creates the end-user role.' );
+		$this->assertSame(
+			\FreeFormCertificate\UserDashboard\CapabilityManager::ADMIN_CAPABILITIES,
+			$granted,
+			'admin caps should be granted from ADMIN_CAPABILITIES'
+		);
 		$this->assertCount( 2, $ddl, 'dbDelta should run for the two tables' );
 		$this->assertStringContainsString( 'ffc_user_profiles', $ddl[0] );
 		$this->assertStringContainsString( 'ffc_custom_fields', $ddl[1] );
@@ -306,11 +329,7 @@ class UserDashboardActivatorTest extends TestCase {
 		$this->assertSame( 'dashboard', $inserted['post_name'] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_tables_and_page_skipped_when_already_present(): void {
-		$this->stub_role_deps();
 
 		// Tables exist (default get_var) → dbDelta must not run.
 		$delta_called = false;
@@ -348,11 +367,7 @@ class UserDashboardActivatorTest extends TestCase {
 		$this->assertFalse( $insert_called, 'no page insert when the page already exists' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_admin_caps_skipped_when_no_administrator_role(): void {
-		$this->stub_role_deps();
 		Functions\when( 'get_role' )->justReturn( null ); // no admin role → cap loop skipped.
 		Functions\when( 'get_page_by_path' )->justReturn( null );
 
@@ -373,11 +388,7 @@ class UserDashboardActivatorTest extends TestCase {
 		);
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 */
 	public function test_dashboard_page_insert_error_skips_meta(): void {
-		$this->stub_role_deps();
 		Functions\when( 'get_page_by_path' )->justReturn( null );
 		Functions\when( 'wp_insert_post' )->justReturn( new \WP_Error( 'x', 'boom' ) );
 		Functions\when( 'is_wp_error' )->justReturn( true );
