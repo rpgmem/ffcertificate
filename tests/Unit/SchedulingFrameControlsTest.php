@@ -141,7 +141,18 @@ class SchedulingFrameControlsTest extends TestCase {
 				$this->fail( 'Unexpected get_results(): ' . var_export( $bound, true ) );
 			}
 		);
-		foreach ( array( 'get_var', 'get_col', 'insert', 'update', 'delete', 'replace', 'query' ) as $method ) {
+		// The environments list asks whether an inactive row has bookings
+		// before it offers Delete (#2229); none here.
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				$bound = $this->boundTo( (string) $sql );
+				if ( 'SELECT COUNT(*) FROM %i WHERE environment_id = %d' === $bound[0] ) {
+					return '0';
+				}
+				$this->fail( 'Unexpected get_var(): ' . var_export( $bound, true ) );
+			}
+		);
+		foreach ( array( 'get_col', 'insert', 'update', 'delete', 'replace', 'query' ) as $method ) {
 			$wpdb->shouldReceive( $method )->andReturnUsing(
 				function ( ...$args ) use ( $method ) {
 					$this->fail( 'Unexpected ' . $method . '(): ' . var_export( $args, true ) );
