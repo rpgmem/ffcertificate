@@ -201,7 +201,7 @@ describe('ffc-audience-calendar — environment picker (#2201)', () => {
 		expect($list.children('.is-active').attr('data-value')).toBe('20');
 		key($list, 'Home');
 		key($list, 'ArrowUp');
-		expect($list.children('.is-active').attr('data-value')).toBe('0');
+		expect($list.children('.is-active').attr('data-value')).toBe('');
 		key($list, 'ArrowDown');
 		key($list, 'Enter');
 		expect($select.val()).toBe('10');

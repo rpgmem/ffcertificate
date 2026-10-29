@@ -191,7 +191,7 @@
             $select.val(state.selectedEnvironment);
         }
 
-        syncEnvironmentPicker();
+        syncEnvironmentPicker(envLabelPlural, environments);
     }
 
     /**
@@ -200,8 +200,12 @@
      * the value the rest of the calendar reads and listens to, hidden from
      * sight and from assistive technology, and this listbox drives it: a
      * choice sets the select and fires its `change`.
+     *
+     * The list is built from the same configuration the select was filled
+     * from, never read back out of the select: markup assembled from text the
+     * DOM holds is how a value would be reinterpreted as HTML.
      */
-    function syncEnvironmentPicker() {
+    function syncEnvironmentPicker(allLabelText, environments) {
         var $select = $('#ffc-environment-select');
         if (!$select.length) {
             return;
@@ -220,30 +224,28 @@
             bindEnvironmentPicker($picker, $select);
         }
 
-        var current = String($select.val() || '');
-        var $list = $picker.find('.ffc-env-picker-list').empty();
-        var chosen = null;
-
-        $select.find('option').each(function(index) {
-            var value = String($(this).val() || '');
-            var name = $(this).text();
-            // "All …" is not an environment, so it carries no dot (#2201).
-            var dot = value && value !== '0' ? colorDot($(this).attr('data-color')) : '<span class="ffc-env-picker-nodot" aria-hidden="true"></span>';
-            var selected = value === current;
-            $list.append(
-                '<li role="option" class="ffc-env-picker-option" id="ffc-environment-option-' + index + '"' +
-                ' data-value="' + escapeHtml(value) + '" aria-selected="' + (selected ? 'true' : 'false') + '">' +
-                dot + '<span class="ffc-env-picker-name">' + escapeHtml(name) + '</span></li>'
-            );
-            if (selected) {
-                chosen = { dot: dot, name: name };
-            }
+        var current = state.selectedEnvironment > 0 ? String(parseInt(state.selectedEnvironment, 10)) : '';
+        var noDot = '<span class="ffc-env-picker-nodot" aria-hidden="true"></span>';
+        // "All …" is not an environment, so it carries no dot (#2201).
+        var items = [{ value: '', name: allLabelText, dot: noDot }];
+        (environments || []).forEach(function(env) {
+            items.push({ value: String(parseInt(env.id, 10)), name: env.name, dot: colorDot(env.color || '#3788d8') });
         });
 
-        if (!chosen) {
-            var $first = $list.children().first();
-            chosen = { dot: $first.children().first().prop('outerHTML') || '', name: $first.text() };
-        }
+        var $list = $picker.find('.ffc-env-picker-list').empty();
+        var chosen = items[0];
+
+        items.forEach(function(item, index) {
+            var selected = item.value === current;
+            $list.append(
+                '<li role="option" class="ffc-env-picker-option" id="ffc-environment-option-' + index + '"' +
+                ' data-value="' + escapeHtml(item.value) + '" aria-selected="' + (selected ? 'true' : 'false') + '">' +
+                item.dot + '<span class="ffc-env-picker-name">' + escapeHtml(item.name) + '</span></li>'
+            );
+            if (selected) {
+                chosen = item;
+            }
+        });
 
         var label = $select.attr('aria-label') || '';
         $picker.find('.ffc-env-picker-button')
@@ -304,7 +306,15 @@
             if (value !== String($select.val() || '')) {
                 $select.val(value).trigger('change');
             }
-            syncEnvironmentPicker();
+            // The select's change handler moves the state; reflect it.
+            var current = String($select.val() || '');
+            options().each(function() {
+                $(this).attr('aria-selected', String($(this).attr('data-value')) === current ? 'true' : 'false');
+            });
+            var $chosen = options().filter('[aria-selected="true"]');
+            $button.find('.ffc-env-picker-name').text($chosen.find('.ffc-env-picker-name').text());
+            $button.attr('aria-label', ($list.attr('aria-label') ? $list.attr('aria-label') + ': ' : '') + $chosen.find('.ffc-env-picker-name').text());
+            $button.children().first().replaceWith($chosen.children().first().clone());
         }
 
         $button.on('click', function() {
