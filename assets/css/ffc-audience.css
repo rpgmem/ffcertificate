@@ -100,6 +100,125 @@
     min-width: 150px;
 }
 
+/* Environment filter (#2201): a listbox that shows each environment's colour
+   drives the select, which stays as the value the calendar reads. The select
+   is hidden from sight only; the script hides it from assistive technology. */
+.ffc-shortcode .ffc-calendar-filters select.ffc-env-picker-native {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.ffc-shortcode .ffc-env-picker {
+    position: relative;
+}
+
+.ffc-shortcode .ffc-env-picker-button {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+    width: 100%;
+    min-width: 200px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+    border: 1px solid var(--ffc-gray-300);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+    font-family: inherit;
+    font-size: var(--ffc-font-size-base);
+    text-align: left;
+    cursor: pointer;
+}
+
+.ffc-shortcode .ffc-env-picker-button:focus-visible,
+.ffc-shortcode .ffc-env-picker-list:focus-visible {
+    outline: 2px solid var(--ffc-border-focus);
+    outline-offset: 2px;
+}
+
+.ffc-shortcode .ffc-env-picker-name {
+    flex: 1;
+    min-width: 0;
+}
+
+.ffc-shortcode .ffc-env-picker-caret::before {
+    width: 16px;
+    height: 16px;
+}
+
+.ffc-shortcode .ffc-env-picker-nodot {
+    display: inline-block;
+    width: 12px;
+    flex-shrink: 0;
+}
+
+.ffc-shortcode .ffc-env-picker .ffc-color-dot {
+    flex-shrink: 0;
+}
+
+.ffc-shortcode .ffc-env-picker-list {
+    position: absolute;
+    top: calc(100% + var(--ffc-spacing-2xs));
+    right: 0;
+    z-index: var(--ffc-z-dropdown);
+    min-width: 100%;
+    max-height: 280px;
+    margin: 0;
+    padding: var(--ffc-spacing-2xs);
+    overflow-y: auto;
+    box-sizing: border-box;
+    list-style: none;
+    border: 1px solid var(--ffc-gray-300);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+    box-shadow: var(--ffc-shadow-md);
+}
+
+.ffc-shortcode .ffc-env-picker-list[hidden] {
+    display: none;
+}
+
+.ffc-shortcode .ffc-env-picker-option {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+    margin: 0;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+    border-radius: var(--ffc-radius-sm);
+    font-size: var(--ffc-font-size-base);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.ffc-shortcode .ffc-env-picker-option:hover,
+.ffc-shortcode .ffc-env-picker-option.is-active {
+    background: var(--ffc-gray-100);
+    color: var(--ffc-text);
+}
+
+.ffc-shortcode .ffc-env-picker-option[aria-selected="true"] {
+    background: var(--ffc-primary-light);
+    color: var(--ffc-text);
+    font-weight: 600;
+}
+
+@media (forced-colors: active) {
+    .ffc-shortcode .ffc-env-picker-option.is-active {
+        outline: 2px solid Highlight;
+    }
+
+    .ffc-shortcode .ffc-env-picker .ffc-color-dot {
+        forced-color-adjust: none;
+    }
+}
+
 .ffc-shortcode .ffc-calendar-title {
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     font-size: var(--ffc-font-size-base);
@@ -998,6 +1117,10 @@
     }
 
     .ffc-shortcode .ffc-calendar-filters select {
+        min-width: 100%;
+    }
+
+    .ffc-shortcode .ffc-env-picker-button {
         min-width: 100%;
     }
 
