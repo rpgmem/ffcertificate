@@ -116,6 +116,7 @@ final class Icons {
 		'send'           => '<path d="M21 3L3 10.5l7 2.5 2.5 7z"/><path d="M21 3L10 13"/>',
 		'layout'         => '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/>',
 		'qr'             => '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20.5 14v.01M14 20.5h.01M17.5 20.5H21v-3.5"/>',
+		'user-call'      => '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1.3-3.6 3.8-5.5 6.5-5.5s5.2 1.9 6.5 5.5M17 6.5a3.5 3.5 0 0 1 0 5M19.5 4a7 7 0 0 1 0 10"/>',
 		'user-check'     => '<circle cx="10" cy="8" r="4"/><path d="M3 21c1.4-3.8 4-5.8 7-5.8 1.6 0 3 .5 4.2 1.5M15.5 18.5l2 2 4-4.5"/>',
 		// A schedule exception: a time opened for one participant (#1881),
 		// chosen by the maintainer from three options.
@@ -307,6 +308,7 @@ final class Icons {
 		'unlock'         => 'unlock',
 		'upload'         => 'upload',
 		'user'           => 'user',
+		'user-call'      => 'user-call',
 		'user-check'     => 'user-check',
 		'user-clock'     => 'user-clock',
 		'user-minus'     => 'user-minus',

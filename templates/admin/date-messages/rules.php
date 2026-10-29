@@ -103,7 +103,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 									'name'       => 'ffc_dm_rule_active_' . $ffc_dm_rule->id,
 									'id'         => 'ffc-dm-rule-active-' . $ffc_dm_rule->id,
 									'checked'    => $ffc_dm_rule->is_active,
-									'label'      => __( 'Active', 'ffcertificate' ),
 									'aria_label' => sprintf(
 										/* translators: %s: rule name */
 										__( 'Active: %s', 'ffcertificate' ),
