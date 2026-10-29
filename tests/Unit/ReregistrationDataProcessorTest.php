@@ -298,7 +298,7 @@ class ReregistrationDataProcessorTest extends TestCase {
 				'parent' => 'DRE - Gabinete',
 				'child'  => 'Assessoria',
 			) ),
-			'jornada'            => 'JB.30',
+			'jornada'            => 'JB - 20h/a',
 			'phone'              => '',
 			'celular'            => '(11) 99999-9999',
 			'contato_emergencia' => 'Maria Silva',

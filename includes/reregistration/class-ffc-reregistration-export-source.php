@@ -348,21 +348,7 @@ class ReregistrationExportSource implements BatchedExportSourceInterface {
 	 * @return list<CustomFieldRow>
 	 */
 	private function get_custom_fields_for_reregistration( object $rereg ): array {
-		$audience_ids = ReregistrationRepository::get_audience_ids( (int) $rereg->id );
-		$all_fields   = array();
-		$seen         = array();
-
-		foreach ( $audience_ids as $aud_id ) {
-			$fields = CustomFieldReader::get_by_audience_with_parents( (int) $aud_id, true );
-			foreach ( $fields as $field ) {
-				if ( ! isset( $seen[ (int) $field->id ] ) ) {
-					$seen[ (int) $field->id ] = true;
-					$all_fields[]             = $field;
-				}
-			}
-		}
-
-		return $all_fields;
+		return CustomFieldReader::get_for_audiences( ReregistrationRepository::get_audience_ids( (int) $rereg->id ) );
 	}
 
 	/**

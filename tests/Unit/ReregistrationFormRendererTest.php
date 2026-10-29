@@ -52,6 +52,14 @@ class ReregistrationFormRendererTest extends TestCase {
 	 */
 	private ?array $profile_row = null;
 
+	/**
+	 * The `data` of the user's other submissions, latest first, as the
+	 * latest-answers lookup reads them (#2225).
+	 *
+	 * @var list<string>
+	 */
+	private array $other_answers = array();
+
 	/** @var list<string> Every query the double answered, in order. */
 	private array $queries = array();
 
@@ -108,6 +116,7 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->audience_ids  = array();
 		$this->import_source = null;
 		$this->profile_row   = null;
+		$this->other_answers = array();
 		$this->queries       = array();
 		$GLOBALS['wpdb']     = $this->database();
 	}
@@ -147,6 +156,9 @@ class ReregistrationFormRendererTest extends TestCase {
 				$this->queries[] = (string) $sql;
 				if ( preg_match( '/^SELECT audience_id FROM wp_ffc_reregistration_audiences WHERE reregistration_id = \d+$/', (string) $sql ) ) {
 					return $this->audience_ids;
+				}
+				if ( str_starts_with( (string) $sql, 'SELECT data FROM wp_ffc_reregistration_submissions' ) && str_contains( (string) $sql, 'status != rejected' ) ) {
+					return $this->other_answers;
 				}
 				$this->fail( 'Unexpected get_col: ' . $sql );
 			}
@@ -351,6 +363,82 @@ class ReregistrationFormRendererTest extends TestCase {
 
 		$this->assertStringContainsString( 'Maria Silva', $html );
 		$this->assertStringContainsString( '11999999999', $html );
+	}
+
+	/**
+	 * A second campaign opens with the answers of the latest other one; the
+	 * first row without answers is skipped, and this campaign's own draft
+	 * still wins where it has a value (#2225).
+	 */
+	public function test_render_prefills_from_the_latest_other_campaign(): void {
+		$this->useFields( array(
+			$this->makeField( array( 'id' => 1, 'field_key' => 'display_name', 'field_label' => 'Name', 'field_type' => 'text', 'field_group' => 'personal' ) ),
+			$this->makeField( array( 'id' => 2, 'field_key' => 'phone', 'field_label' => 'Home Phone', 'field_type' => 'text', 'field_group' => 'contact' ) ),
+		) );
+		$this->other_answers = array(
+			json_encode( array( 'fields' => array( 'display_name' => '', 'phone' => '' ) ) ),
+			json_encode( array( 'fields' => array( 'display_name' => 'From campaign A', 'phone' => '1133334444' ) ) ),
+		);
+
+		$rereg      = (object) array( 'id' => 2, 'title' => 'Campaign B', 'end_date' => '2025-06-30 23:59:59' );
+		$submission = (object) array( 'data' => json_encode( array( 'fields' => array( 'phone' => '1199998888' ) ) ) );
+
+		$html = ReregistrationFormRenderer::render( $rereg, $submission, 10 );
+
+		$this->assertStringContainsString( 'From campaign A', $html );
+		$this->assertStringContainsString( '1199998888', $html, 'The draft of this campaign wins.' );
+		$this->assertStringNotContainsString( '1133334444', $html );
+		$lookup = array_values( array_filter( $this->queries, fn( $q ) => str_starts_with( $q, 'SELECT data FROM' ) ) );
+		$this->assertCount( 1, $lookup );
+		$this->assertStringContainsString( 'user_id = 10', $lookup[0] );
+		$this->assertStringContainsString( 'reregistration_id != 2', $lookup[0] );
+	}
+
+	/**
+	 * A legacy jornada answer is selected as its current option, and JB.30,
+	 * which has none, leaves the select on the empty choice (#2225).
+	 *
+	 * @dataProvider legacy_jornadas
+	 */
+	public function test_render_maps_a_legacy_jornada_when_prefilling( string $legacy, string $expected ): void {
+		Functions\when( 'selected' )->alias(
+			static function ( $selected, $current = true, $display = true ) {
+				$out = (string) $selected === (string) $current ? " selected='selected'" : '';
+				if ( $display ) {
+					echo $out; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+				}
+				return $out;
+			}
+		);
+		$this->useFields( array(
+			$this->makeField( array(
+				'id'            => 1,
+				'field_key'     => 'jornada',
+				'field_label'   => 'Workload or Category',
+				'field_type'    => 'select',
+				'field_group'   => 'schedule',
+				'field_options' => json_encode( array( 'choices' => ReregistrationFieldOptions::get_work_schedule_options() ) ),
+			) ),
+		) );
+		$this->other_answers = array( json_encode( array( 'fields' => array( 'jornada' => $legacy ) ) ) );
+
+		$html = ReregistrationFormRenderer::render( (object) array( 'id' => 2, 'title' => 'B', 'end_date' => '2025-06-30 23:59:59' ), (object) array( 'data' => null ), 10 );
+
+		preg_match_all( "/<option value=\"([^\"]*)\"[^>]*selected='selected'/", $html, $m );
+		$this->assertSame( '' === $expected ? array() : array( $expected ), $m[1] );
+	}
+
+	/**
+	 * @return array<string, array{string, string}>
+	 */
+	public static function legacy_jornadas(): array {
+		return array(
+			'JBD.30'  => array( 'JBD.30', 'JBD - 30h/a' ),
+			'JEIF.40' => array( 'JEIF.40', 'JBE - 40h' ),
+			'JB.20'   => array( 'JB.20', 'JB - 20h/a' ),
+			'JB.30'   => array( 'JB.30', '' ),
+			'current' => array( 'JEIF - 30h/a', 'JEIF - 30h/a' ),
+		);
 	}
 
 	/**

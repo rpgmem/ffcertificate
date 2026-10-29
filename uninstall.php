@@ -284,6 +284,9 @@ $ffcertificate_options = array(
 	// Flag of the one-shot "Estado" → "Union" relabel of the seeded `sindicato`
 	// fields, written on the first admin request after the update.
 	'ffc_union_label_relabelled',
+	// Flag of the one-shot relabel and jornada-options update of the seeded
+	// schedule fields (#2225), written the same way.
+	'ffc_schedule_fields_updated',
 	'ffc_recruitment_public_cache_version',
 	// The admin's chosen record (ficha) template, written only when the
 	// Reregistration tab is saved -- which is why the fresh-install gate never

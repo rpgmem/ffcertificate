@@ -72,7 +72,7 @@ class ReregistrationFormRenderer {
 
 		// Collect fields from all audiences linked to this reregistration.
 		$audience_ids = ReregistrationRepository::get_audience_ids( (int) $rereg->id );
-		$fields       = self::collect_fields_for_audiences( $audience_ids );
+		$fields       = CustomFieldReader::get_for_audiences( $audience_ids );
 
 		// Pre-populate values: saved draft first, else profile/user_meta.
 		$saved_data   = $submission->data ? json_decode( $submission->data, true ) : array();
@@ -94,7 +94,15 @@ class ReregistrationFormRenderer {
 		// encrypted.
 		$saved_values = RecordGenerator::decrypt_field_values( $fields, $saved_values );
 
-		$values = self::build_field_values( $fields, $saved_values, $user_id, $user );
+		// What the user answered most recently in another campaign (#2225): a
+		// second campaign opens with the first one's answers, editable, and
+		// what is typed here is saved to this campaign only.
+		$previous_values = RecordGenerator::decrypt_field_values(
+			$fields,
+			ReregistrationSubmissionReader::get_latest_answers_for_user( $user_id, (int) $rereg->id )
+		);
+
+		$values = self::build_field_values( $fields, $saved_values, $user_id, $user, $previous_values );
 
 		$end_ts   = strtotime( $rereg->end_date );
 		$end_date = \FreeFormCertificate\Core\DateFormatter::format_date( false === $end_ts ? null : $end_ts );
@@ -117,30 +125,6 @@ class ReregistrationFormRenderer {
 		include FFC_PLUGIN_DIR . 'templates/reregistration/form.php';
 		$output = ob_get_clean();
 		return $output ? $output : '';
-	}
-
-	/**
-	 * Collect active fields across a list of audiences, deduplicating by ID.
-	 *
-	 * @param array<int> $audience_ids Audience IDs.
-	 * @return list<CustomFieldRow>
-	 */
-	private static function collect_fields_for_audiences( array $audience_ids ): array {
-		$all  = array();
-		$seen = array();
-
-		foreach ( $audience_ids as $aud_id ) {
-			$fields = CustomFieldReader::get_by_audience_with_parents( (int) $aud_id, true );
-			foreach ( $fields as $field ) {
-				$id = (int) $field->id;
-				if ( ! isset( $seen[ $id ] ) ) {
-					$seen[ $id ] = true;
-					$all[]       = $field;
-				}
-			}
-		}
-
-		return $all;
 	}
 
 	/**
@@ -168,17 +152,20 @@ class ReregistrationFormRenderer {
 	 *
 	 * Resolution order:
 	 *  1. Draft data from current submission (already field_key-indexed)
-	 *  2. Extended user profile (sensitive keys decrypted)
-	 *  3. Field default from field_options.default
+	 *  2. The answers of the user's latest other campaign (#2225), a legacy
+	 *     jornada value mapped to the current option
+	 *  3. Extended user profile (sensitive keys decrypted)
+	 *  4. Field default from field_options.default
 	 *
 	 * @param array<object>        $fields       Field definitions.
 	 * @phpstan-param list<CustomFieldRow> $fields
 	 * @param array<string, mixed> $saved_values Previously saved values.
 	 * @param int                  $user_id      User ID.
 	 * @param \WP_User|false       $user         WP user object (or false).
+	 * @param array<string, mixed> $previous     The latest other campaign's answers, decrypted.
 	 * @return array<string, mixed> field_key => value
 	 */
-	private static function build_field_values( array $fields, array $saved_values, int $user_id, $user ): array {
+	private static function build_field_values( array $fields, array $saved_values, int $user_id, $user, array $previous = array() ): array {
 		// Compute profile-key / sensitive-key lookup tables.
 		$profile_keys   = array();
 		$sensitive_keys = array();
@@ -206,7 +193,19 @@ class ReregistrationFormRenderer {
 				continue;
 			}
 
-			// 2. Profile sync value.
+			// 2. The latest other campaign's answer. An empty one falls
+			// through, so a field that campaign skipped still finds the profile.
+			if ( isset( $previous[ $key ] ) && '' !== $previous[ $key ] && array() !== $previous[ $key ] ) {
+				$value = in_array( $key, array( 'jornada', 'jornada_acumulo' ), true )
+					? ReregistrationFieldOptions::current_work_schedule( $previous[ $key ] )
+					: $previous[ $key ];
+				if ( '' !== $value ) {
+					$values[ $key ] = $value;
+					continue;
+				}
+			}
+
+			// 3. Profile sync value.
 			if ( ! empty( $field->field_profile_key ) ) {
 				$pkey = (string) $field->field_profile_key;
 				if ( isset( $profile[ $pkey ] ) && '' !== $profile[ $pkey ] ) {
@@ -215,13 +214,13 @@ class ReregistrationFormRenderer {
 				}
 			}
 
-			// 3. Fallback to user email for institutional_email field shape.
+			// 4. Fallback to user email for institutional_email field shape.
 			if ( $user && 'email_institucional' === $key && ! empty( $user->user_email ) ) {
 				$values[ $key ] = $user->user_email;
 				continue;
 			}
 
-			// 4. Default from field_options.
+			// 5. Default from field_options.
 			$options = self::decode_options( $field );
 			if ( isset( $options['default'] ) ) {
 				$values[ $key ] = $options['default'];

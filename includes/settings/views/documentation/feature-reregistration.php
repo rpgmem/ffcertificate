@@ -83,6 +83,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Fields & Record', 'ffcertificate' ); ?></h4>
 		<p><?php esc_html_e( 'A campaign shows the union of the custom fields of its linked audiences (standard identity/contact fields plus any custom ones). Each submission can be exported as a Record PDF. The standard birth-date field reads and writes the single encrypted birth date on the user profile, which Date Messages uses.', 'ffcertificate' ); ?> <a href="#feature-audiences"><?php esc_html_e( 'See Audience Custom Fields', 'ffcertificate' ); ?></a> <?php esc_html_e( 'and', 'ffcertificate' ); ?> <a href="#feature-record"><?php esc_html_e( 'Record PDF', 'ffcertificate' ); ?></a>.</p>
+		<p><?php esc_html_e( 'A field shows once even when several of the campaign\'s audiences, or an audience and its parent, carry it; the most specific audience\'s version of the field wins. The form opens filled in: first with this campaign\'s own saved draft, then with the answers the member gave most recently in another campaign (in progress, submitted or approved, never a rejected one), then with the profile. Everything stays editable, and what is typed is saved to this campaign only. A workload answered with one of the former codes (JBD.30, JEIF.40, JB.20) is carried over as its current option; JB.30 has no equivalent and is left for the member to choose.', 'ffcertificate' ); ?></p>
 	</div>
 
 	<div class="ffc-doc-example">

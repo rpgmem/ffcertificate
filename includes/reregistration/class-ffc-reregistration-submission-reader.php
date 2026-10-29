@@ -318,6 +318,54 @@ class ReregistrationSubmissionReader {
 	}
 
 	/**
+	 * The answers the user gave most recently in another campaign, for the
+	 * form to open with (#2225): the latest-updated submission in any status
+	 * but rejected that carries at least one answer. A rejected one is left
+	 * out because its answers were refused, and a row without answers (an
+	 * invitation never opened) says nothing to prefill.
+	 *
+	 * @param int $user_id                   User ID.
+	 * @param int $exclude_reregistration_id The campaign being answered.
+	 * @return array<string, mixed> field_key => value as stored (sensitive ones still encrypted).
+	 */
+	public static function get_latest_answers_for_user( int $user_id, int $exclude_reregistration_id ): array {
+		if ( $user_id <= 0 ) {
+			return array();
+		}
+
+		$wpdb = self::db();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the plugin's own ffc_* table, which WordPress has no API for; read once per form render.
+		$rows = $wpdb->get_col(
+			$wpdb->prepare(
+				'SELECT data FROM %i
+                 WHERE user_id = %d
+                   AND reregistration_id != %d
+                   AND status != %s
+                   AND data IS NOT NULL
+                 ORDER BY updated_at DESC, id DESC
+                 LIMIT 10',
+				self::get_table_name(),
+				$user_id,
+				$exclude_reregistration_id,
+				'rejected'
+			)
+		);
+
+		foreach ( $rows as $raw ) {
+			$data   = is_string( $raw ) ? json_decode( $raw, true ) : null;
+			$fields = is_array( $data ) && is_array( $data['fields'] ?? null ) ? $data['fields'] : array();
+			foreach ( $fields as $value ) {
+				if ( '' !== $value && null !== $value && array() !== $value ) {
+					return $fields;
+				}
+			}
+		}
+
+		return array();
+	}
+
+	/**
 	 * Get submissions for a reregistration with optional filters.
 	 *
 	 * @param int                  $reregistration_id Reregistration ID.

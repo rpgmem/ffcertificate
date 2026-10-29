@@ -6762,7 +6762,7 @@ msgstr "Telefone de Emergência"
 
 #: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:162
 msgid "Employment Bond"
-msgstr "Contrato de Trabalho"
+msgstr "Vínculo"
 
 #: includes/settings/views/documentation/feature-record.php:70
 msgid "Employment relationship"
@@ -29513,3 +29513,12 @@ msgstr "Os nomes próprios deste calendário. Um campo vazio usa o nome geral, e
 
 msgid "Those are the general names. A calendar that needs its own sets them on the calendar: the Names tab of a personal calendar, and the Calendar names field on an audience calendar's settings tab. Each field there shows the general name it replaces; an empty field keeps it. The calendar's name wins over the general one, which wins over the default, and the same goes for showing or hiding the closed day's name (General, Show or Hide). Colors stay general. A page that shows several audience calendars takes, per name, the first calendar that sets one."
 msgstr "Esses são os nomes gerais. Um calendário que precise dos seus próprios os define no próprio calendário: na aba Nomes de um calendário pessoal e no campo Nomes do calendário da aba de configurações de um calendário de público. Cada campo lá exibe o nome geral que substitui; um campo vazio o mantém. O nome do calendário prevalece sobre o geral, que prevalece sobre o padrão, e o mesmo vale para exibir ou ocultar o nome do dia fechado (Geral, Mostrar ou Ocultar). As cores continuam gerais. Uma página que mostra vários calendários de público usa, para cada nome, o primeiro calendário que o define."
+
+msgid "Workload or Category"
+msgstr "Carga Horária de Trabalho ou Categoria"
+
+msgid "Work Hours"
+msgstr "Horário de Trabalho"
+
+msgid "A field shows once even when several of the campaign's audiences, or an audience and its parent, carry it; the most specific audience's version of the field wins. The form opens filled in: first with this campaign's own saved draft, then with the answers the member gave most recently in another campaign (in progress, submitted or approved, never a rejected one), then with the profile. Everything stays editable, and what is typed is saved to this campaign only. A workload answered with one of the former codes (JBD.30, JEIF.40, JB.20) is carried over as its current option; JB.30 has no equivalent and is left for the member to choose."
+msgstr "Um campo aparece uma única vez mesmo quando vários públicos da campanha, ou um público e o seu pai, o possuem; vale a versão do campo do público mais específico. O formulário abre preenchido: primeiro com o rascunho salvo desta campanha, depois com as respostas que o membro deu mais recentemente em outra campanha (em andamento, enviada ou aprovada, nunca uma rejeitada) e depois com o perfil. Tudo continua editável, e o que for digitado é salvo apenas nesta campanha. Uma carga horária respondida com um dos códigos antigos (JBD.30, JEIF.40, JB.20) é trazida como a opção atual correspondente; JB.30 não tem equivalente e fica para o membro escolher."

@@ -45,6 +45,8 @@ class ReregistrationStandardFieldsSeeder {
 		// new label is a translated string, and translations are loaded by
 		// then. Default priority -- nothing else depends on the order.
 		add_action( 'admin_init', array( __CLASS__, 'maybe_relabel_union' ) );
+		// Same hook and reason as the union relabel (#2225).
+		add_action( 'admin_init', array( __CLASS__, 'maybe_update_schedule_fields' ) );
 	}
 
 	/**
@@ -74,6 +76,54 @@ class ReregistrationStandardFieldsSeeder {
 		}
 
 		update_option( self::UNION_RELABEL_OPTION, '1', false );
+	}
+
+	/**
+	 * Option flagging that the schedule-fields update has run.
+	 */
+	public const SCHEDULE_FIELDS_OPTION = 'ffc_schedule_fields_updated';
+
+	/**
+	 * The labels and the jornada options #2225 changed, applied to the rows
+	 * seeded before it: `vinculo`, `jornada` and `horario_trabalho` are
+	 * relabelled, and `jornada` / `jornada_acumulo` take the current options.
+	 * A row is touched only while it still carries what was shipped -- the
+	 * English source or its former pt_BR translation for a label, the former
+	 * list for the options -- so a field an operator edited stays as it is.
+	 * Runs once; the flag is written even when nothing matched.
+	 *
+	 * @return void
+	 */
+	public static function maybe_update_schedule_fields(): void {
+		if ( get_option( self::SCHEDULE_FIELDS_OPTION ) ) {
+			return;
+		}
+
+		$relabel = array(
+			'vinculo'          => array( __( 'Employment Bond', 'ffcertificate' ), array( 'Contrato de Trabalho' ) ),
+			'jornada'          => array( __( 'Workload or Category', 'ffcertificate' ), array( 'Work Schedule', 'Horário de Trabalho' ) ),
+			'horario_trabalho' => array( __( 'Work Hours', 'ffcertificate' ), array( 'Working Hours', 'Horários de Funcionamento' ) ),
+		);
+		foreach ( $relabel as $field_key => $labels ) {
+			$old = array_values( array_diff( $labels[1], array( $labels[0] ) ) );
+			foreach ( CustomFieldReader::standard_field_ids_with_label( $field_key, $old ) as $id ) {
+				CustomFieldWriter::update( $id, array( 'field_label' => $labels[0] ) );
+			}
+		}
+
+		$current = ReregistrationFieldOptions::get_work_schedule_options();
+		foreach ( array( 'jornada', 'jornada_acumulo' ) as $field_key ) {
+			foreach ( CustomFieldReader::standard_field_options( $field_key ) as $id => $raw ) {
+				$options = json_decode( $raw, true );
+				if ( ! is_array( $options ) || ( $options['choices'] ?? null ) !== ReregistrationFieldOptions::LEGACY_WORK_SCHEDULE_OPTIONS ) {
+					continue;
+				}
+				$options['choices'] = $current;
+				CustomFieldWriter::update( $id, array( 'field_options' => $options ) );
+			}
+		}
+
+		update_option( self::SCHEDULE_FIELDS_OPTION, '1', false );
 	}
 
 	/**
@@ -467,7 +517,7 @@ class ReregistrationStandardFieldsSeeder {
 			// ───── Schedule ─────.
 			array(
 				'field_key'    => 'jornada',
-				'field_label'  => __( 'Work Schedule', 'ffcertificate' ),
+				'field_label'  => __( 'Workload or Category', 'ffcertificate' ),
 				'field_type'   => 'select',
 				'field_group'  => self::GROUP_SCHEDULE,
 				'profile_key'  => 'jornada',
@@ -479,7 +529,7 @@ class ReregistrationStandardFieldsSeeder {
 			),
 			array(
 				'field_key'    => 'horario_trabalho',
-				'field_label'  => __( 'Working Hours', 'ffcertificate' ),
+				'field_label'  => __( 'Work Hours', 'ffcertificate' ),
 				'field_type'   => 'working_hours',
 				'field_group'  => self::GROUP_SCHEDULE,
 				'profile_key'  => null,
