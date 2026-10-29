@@ -437,6 +437,11 @@ class Loader {
 		\FreeFormCertificate\Submissions\FormCache::register_hooks();
 		\FreeFormCertificate\Submissions\FormCache::sync_warming_schedule();
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::init();
+		// The address lookup by CEP (#2234): the form's AJAX action and the
+		// Settings test. Registered whatever the toggle says, so the test
+		// works before the lookup is turned on; the form action refuses
+		// while it is off.
+		\FreeFormCertificate\Integrations\CepLookupEndpoint::init();
 
 		// #739 §3.2 read-only viewer gate: forms/calendars list-read primitives
 		// map to the view caps, so this forces the per-post write meta-caps back

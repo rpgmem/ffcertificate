@@ -162,6 +162,15 @@ class SettingsSaveHandler {
 		// omits is silently reset on the next Save, however recently the
 		// autosave wrote it.
 		$clean['validate_rf_check_digit'] = ! empty( $new['validate_rf_check_digit'] );
+
+		// Address lookup by CEP (#2234). The toggle is rebuilt from presence
+		// like the RF one; the provider is kept to its two values.
+		$clean['cep_lookup_enabled'] = ! empty( $new['cep_lookup_enabled'] );
+		if ( isset( $new['cep_lookup_primary'] ) ) {
+			$clean['cep_lookup_primary'] = in_array( $new['cep_lookup_primary'], array( 'viacep', 'brasilapi' ), true )
+				? $new['cep_lookup_primary']
+				: 'viacep';
+		}
 		if ( isset( $new['cleanup_days'] ) ) {
 			$clean['cleanup_days'] = max( 1, absint( $new['cleanup_days'] ) );
 		}

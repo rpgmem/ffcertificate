@@ -29518,3 +29518,91 @@ msgstr ""
 
 msgid "The CEP is checked without any outside lookup: it needs eight digits, cannot repeat one digit eight times, and must fall in the Correios range of the UF chosen in the same form. A CEP from another state is refused with a message naming the UF, since either field may be the typo. A CEP that passes can still not exist; only a lookup can tell."
 msgstr ""
+
+#. includes/integrations/class-ffc-cep-lookup-endpoint.php
+msgid "Address filled from the CEP. Check the number."
+msgstr ""
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "Address lookup by CEP"
+msgstr ""
+
+#. includes/settings/tabs/class-ffc-tab-general.php
+msgid "Address returned"
+msgstr ""
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "Asks both providers from the server, without the cache, to confirm the host reaches them."
+msgstr ""
+
+#. includes/settings/tabs/class-ffc-tab-general.php
+msgid "CEP not found"
+msgstr ""
+
+#. includes/integrations/class-ffc-cep-lookup-endpoint.php
+msgid "CEP not found. Correct the CEP or fill in the address manually."
+msgstr ""
+
+#. includes/integrations/class-ffc-cep-lookup-endpoint.php
+msgid "City found. Fill in the street and the neighbourhood."
+msgstr ""
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "Fill the address from the CEP"
+msgstr ""
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "Look the CEP up and fill street, neighbourhood, city and UF"
+msgstr ""
+
+#. includes/integrations/class-ffc-cep-lookup-endpoint.php
+msgid "Looking up the address…"
+msgstr ""
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "No key is needed. The server must reach viacep.com.br and brasilapi.com.br over HTTPS. Each CEP looked up is cached for 30 days, and the form's lookups are limited per address. The visitor's browser never talks to these services."
+msgstr ""
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "On the reregistration form and the admin user screen, a CEP that passes the offline check is looked up and the address filled in. The search takes at least 3 seconds, on purpose, so the person sees what is about to change, and at most 5. Filled fields stay editable, number and complement are never touched, and a field the service returns empty keeps what was typed. If the CEP is not found or the services are down, nothing is blocked. Off by default: each CEP typed is sent to the provider."
+msgstr ""
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "Primary provider"
+msgstr ""
+
+#. includes/settings/tabs/class-ffc-tab-general.php
+msgid "Provider"
+msgstr ""
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "Test the lookup"
+msgstr ""
+
+#. includes/settings/tabs/class-ffc-tab-general.php
+msgid "Testing…"
+msgstr ""
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "The other one is the fallback, asked only when the primary is unreachable. A CEP the primary says does not exist is not sent to the fallback."
+msgstr ""
+
+#. includes/settings/tabs/class-ffc-tab-general.php
+msgid "The test could not run."
+msgstr ""
+
+#. includes/integrations/class-ffc-cep-lookup-endpoint.php
+msgid "Type a valid CEP to test."
+msgstr ""
+
+#. includes/settings/tabs/class-ffc-tab-general.php
+msgid "Unreachable"
+msgstr ""
+
+#. includes/settings/views/documentation/config-general.php
+msgid "Off by default. When on, the reregistration form and the admin user screen look a typed CEP up with ViaCEP or BrasilAPI (the primary provider is chosen here; the other is asked only when the primary is unreachable) and fill street, neighbourhood, city and UF. The request goes from the server, each answer is cached for 30 days and each address is limited to 30 lookups every 10 minutes. The Test button asks both providers without the cache."
+msgstr ""
+
+#. includes/settings/views/documentation/feature-reregistration.php
+msgid "The CEP comes right before the address, and audiences created before this order are reordered once on the first admin request after the update; the Record PDF keeps its layout. When the address lookup is on (Settings → General), a CEP that passes the check is looked up: the address fields wait read-only for at least 3 seconds and at most 5, then street, neighbourhood, city and UF are filled with what the service returned. An empty answer never erases what was typed, and number and complement are never touched. A CEP the service does not know is reported at once and the address is typed by hand; the submit is never blocked."
+msgstr ""

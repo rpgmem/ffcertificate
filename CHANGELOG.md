@@ -17,6 +17,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Scheduling: a calendar can name its own states** (#2223). A personal calendar's Names tab and an audience calendar's Calendar names field override the general legend and day-cell names and the show-closed-name switch; an empty field keeps the general name. Colours stay general.
 - **Reregistration: the participant reads their answers on the dashboard, and the form has an @edu e-mail** (#2227). View answers opens a sent submission's answers under its row, even after the campaign closed, with personal data masked behind Reveal (audited when viewing as a user). A new standard field, Institutional Email (@edu), reaches existing audiences after the @sme one.
 - **Reregistration: an impossible CEP is refused without any lookup** (#2233). The CEP must have eight digits, cannot repeat one digit, and must fall in the Correios range of the UF chosen in the form; the browser and the server read the same range table. Existing audiences' CEP fields take the rule once.
+- **Reregistration: the address is filled from the CEP** (#2234). Off by default; Settings → General turns it on, picks ViaCEP or BrasilAPI as primary and tests both. The server asks, caches 30 days and limits each address; the form waits 3 to 5 seconds and never blocks. The CEP moves before the address in every audience.
 
 ### Changed
 

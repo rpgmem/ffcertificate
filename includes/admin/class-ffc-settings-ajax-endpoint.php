@@ -142,6 +142,9 @@ class SettingsAjaxEndpoint {
 			// read from an HR specification, and a blocked registration is
 			// worse than a stored typo the audit finds later.
 			'validate_rf_check_digit',
+			// General tab — the address lookup by CEP (#2234). Default OFF:
+			// each CEP typed goes to a third party.
+			'cep_lookup_enabled',
 			// Certificates tab — check the visitor's browser (#2030).
 			'browser_check',
 		);
@@ -362,6 +365,8 @@ class SettingsAjaxEndpoint {
 				),
 			),
 			'code_editor_theme'           => array( 'string', array() ),
+			// General tab — the lookup's primary provider (#2234).
+			'cep_lookup_primary'          => array( 'enum', array( 'options' => array( 'viacep', 'brasilapi' ) ) ),
 			// General tab.
 			'dark_mode'                   => array( 'string', array() ),
 			'cleanup_days'                => array(

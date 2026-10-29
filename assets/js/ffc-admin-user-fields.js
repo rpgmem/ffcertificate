@@ -36,6 +36,7 @@
         }
 
         window.FFC.Fields.initMasks($container);
+        window.FFC.Fields.initCepLookup($container);
         window.FFC.Fields.initDependentSelects($container, S);
         window.FFC.Fields.initDualPost($container, S.dualPostShowValue);
 

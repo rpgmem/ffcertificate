@@ -162,6 +162,12 @@ class ReregistrationLoaderTest extends TestCase {
 					'priority' => 10,
 					'args'     => 1,
 				),
+				array(
+					'hook'     => 'admin_init',
+					'callback' => ReregistrationStandardFieldsSeeder::class . '::maybe_move_cep_before_address',
+					'priority' => 10,
+					'args'     => 1,
+				),
 			),
 			$seeder,
 			'The standard-fields seeder registers once.'

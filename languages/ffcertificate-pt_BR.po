@@ -29601,3 +29601,91 @@ msgstr "CEP inválido: todos os dígitos são iguais."
 
 msgid "The CEP is checked without any outside lookup: it needs eight digits, cannot repeat one digit eight times, and must fall in the Correios range of the UF chosen in the same form. A CEP from another state is refused with a message naming the UF, since either field may be the typo. A CEP that passes can still not exist; only a lookup can tell."
 msgstr "O CEP é conferido sem consulta externa: precisa ter oito dígitos, não pode repetir o mesmo dígito oito vezes e deve estar na faixa dos Correios da UF escolhida no mesmo formulário. Um CEP de outro estado é recusado com uma mensagem que cita a UF, já que o erro pode estar em qualquer um dos dois campos. Um CEP aceito ainda pode não existir; só uma consulta confirma."
+
+#. includes/integrations/class-ffc-cep-lookup-endpoint.php
+msgid "Address filled from the CEP. Check the number."
+msgstr "Endereço preenchido pelo CEP. Confira o número."
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "Address lookup by CEP"
+msgstr "Busca de endereço pelo CEP"
+
+#. includes/settings/tabs/class-ffc-tab-general.php
+msgid "Address returned"
+msgstr "Endereço retornado"
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "Asks both providers from the server, without the cache, to confirm the host reaches them."
+msgstr "Consulta os dois provedores pelo servidor, sem cache, para confirmar que a hospedagem os alcança."
+
+#. includes/settings/tabs/class-ffc-tab-general.php
+msgid "CEP not found"
+msgstr "CEP não encontrado"
+
+#. includes/integrations/class-ffc-cep-lookup-endpoint.php
+msgid "CEP not found. Correct the CEP or fill in the address manually."
+msgstr "CEP não encontrado. Corrija o CEP ou preencha o endereço manualmente."
+
+#. includes/integrations/class-ffc-cep-lookup-endpoint.php
+msgid "City found. Fill in the street and the neighbourhood."
+msgstr "Cidade encontrada. Preencha o logradouro e o bairro."
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "Fill the address from the CEP"
+msgstr "Preencher o endereço pelo CEP"
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "Look the CEP up and fill street, neighbourhood, city and UF"
+msgstr "Consultar o CEP e preencher logradouro, bairro, cidade e UF"
+
+#. includes/integrations/class-ffc-cep-lookup-endpoint.php
+msgid "Looking up the address…"
+msgstr "Buscando o endereço…"
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "No key is needed. The server must reach viacep.com.br and brasilapi.com.br over HTTPS. Each CEP looked up is cached for 30 days, and the form's lookups are limited per address. The visitor's browser never talks to these services."
+msgstr "Nenhuma chave é necessária. O servidor precisa alcançar viacep.com.br e brasilapi.com.br por HTTPS. Cada CEP consultado fica em cache por 30 dias, e as consultas do formulário são limitadas por endereço. O navegador do visitante nunca fala com esses serviços."
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "On the reregistration form and the admin user screen, a CEP that passes the offline check is looked up and the address filled in. The search takes at least 3 seconds, on purpose, so the person sees what is about to change, and at most 5. Filled fields stay editable, number and complement are never touched, and a field the service returns empty keeps what was typed. If the CEP is not found or the services are down, nothing is blocked. Off by default: each CEP typed is sent to the provider."
+msgstr "No formulário de recadastramento e na tela de usuário do admin, um CEP que passa na verificação offline é consultado e o endereço é preenchido. A busca leva no mínimo 3 segundos, de propósito, para a pessoa ver o que vai mudar, e no máximo 5. Os campos preenchidos continuam editáveis, número e complemento nunca são alterados, e um campo que o serviço devolve vazio mantém o que foi digitado. Se o CEP não for encontrado ou os serviços estiverem fora do ar, nada é bloqueado. Desligado por padrão: cada CEP digitado é enviado ao provedor."
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "Primary provider"
+msgstr "Provedor principal"
+
+#. includes/settings/tabs/class-ffc-tab-general.php
+msgid "Provider"
+msgstr "Provedor"
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "Test the lookup"
+msgstr "Testar a consulta"
+
+#. includes/settings/tabs/class-ffc-tab-general.php
+msgid "Testing…"
+msgstr "Testando…"
+
+#. includes/settings/views/ffc-tab-general.php
+msgid "The other one is the fallback, asked only when the primary is unreachable. A CEP the primary says does not exist is not sent to the fallback."
+msgstr "O outro é o reserva, consultado só quando o principal está inacessível. Um CEP que o principal diz não existir não é enviado ao reserva."
+
+#. includes/settings/tabs/class-ffc-tab-general.php
+msgid "The test could not run."
+msgstr "Não foi possível executar o teste."
+
+#. includes/integrations/class-ffc-cep-lookup-endpoint.php
+msgid "Type a valid CEP to test."
+msgstr "Digite um CEP válido para testar."
+
+#. includes/settings/tabs/class-ffc-tab-general.php
+msgid "Unreachable"
+msgstr "Inacessível"
+
+#. includes/settings/views/documentation/config-general.php
+msgid "Off by default. When on, the reregistration form and the admin user screen look a typed CEP up with ViaCEP or BrasilAPI (the primary provider is chosen here; the other is asked only when the primary is unreachable) and fill street, neighbourhood, city and UF. The request goes from the server, each answer is cached for 30 days and each address is limited to 30 lookups every 10 minutes. The Test button asks both providers without the cache."
+msgstr "Desligado por padrão. Quando ligado, o formulário de recadastramento e a tela de usuário do admin consultam o CEP digitado no ViaCEP ou na BrasilAPI (o provedor principal é escolhido aqui; o outro só é consultado quando o principal está inacessível) e preenchem logradouro, bairro, cidade e UF. A consulta sai do servidor, cada resposta fica em cache por 30 dias e cada endereço é limitado a 30 consultas a cada 10 minutos. O botão Testar consulta os dois provedores sem o cache."
+
+#. includes/settings/views/documentation/feature-reregistration.php
+msgid "The CEP comes right before the address, and audiences created before this order are reordered once on the first admin request after the update; the Record PDF keeps its layout. When the address lookup is on (Settings → General), a CEP that passes the check is looked up: the address fields wait read-only for at least 3 seconds and at most 5, then street, neighbourhood, city and UF are filled with what the service returned. An empty answer never erases what was typed, and number and complement are never touched. A CEP the service does not know is reported at once and the address is typed by hand; the submit is never blocked."
+msgstr "O CEP vem logo antes do endereço, e os públicos criados antes dessa ordem são reordenados uma vez na primeira requisição do admin após a atualização; o PDF da Ficha mantém o layout. Com a busca de endereço ligada (Configurações → Geral), um CEP que passa na verificação é consultado: os campos de endereço aguardam somente leitura por no mínimo 3 segundos e no máximo 5, e então logradouro, bairro, cidade e UF são preenchidos com o que o serviço devolveu. Uma resposta vazia nunca apaga o que foi digitado, e número e complemento nunca são alterados. Um CEP que o serviço não conhece é avisado na hora e o endereço é digitado à mão; o envio nunca é bloqueado."

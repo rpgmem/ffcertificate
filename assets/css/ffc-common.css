@@ -3498,6 +3498,85 @@ body.wp-admin .ffc-btn-icon::before {
     color: var(--ffc-warning-text);
 }
 
+/* The address lookup by CEP (#2234). The bar fills over five seconds, the
+   longest the lookup waits, so at three -- the shortest it shows -- it is
+   past half; an answer completes it. */
+.ffc-cep-progress {
+    display: block;
+    overflow: hidden;
+    height: 4px;
+    margin-top: var(--ffc-spacing-2xs);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-gray-200);
+}
+
+.ffc-cep-progress[hidden] {
+    display: none;
+}
+
+.ffc-cep-progress-bar {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--ffc-primary);
+}
+
+.ffc-cep-progress.is-running .ffc-cep-progress-bar {
+    animation: ffc-cep-fill 5s linear forwards;
+}
+
+.ffc-cep-progress.is-done .ffc-cep-progress-bar {
+    width: 100%;
+    animation: none;
+}
+
+@keyframes ffc-cep-fill {
+    from {
+        width: 0;
+    }
+
+    to {
+        width: 100%;
+    }
+}
+
+.ffc-cep-status {
+    display: block;
+    margin-top: var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-secondary);
+}
+
+.ffc-cep-status:empty {
+    display: none;
+}
+
+/* A select cannot be read-only, so it ignores the pointer while it waits. */
+select.ffc-cep-locked {
+    pointer-events: none;
+}
+
+.ffc-cep-locked {
+    cursor: progress;
+}
+
+.ffc-cep-filled {
+    background-color: var(--ffc-info-bg);
+    outline: 2px solid var(--ffc-info-border);
+    transition: background-color 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-cep-progress.is-running .ffc-cep-progress-bar {
+        width: 60%;
+        animation: none;
+    }
+
+    .ffc-cep-filled {
+        transition: none;
+    }
+}
+
 /* The row under a field: the hint on the left, the counter on the right. */
 .ffc-field-foot {
     display: flex;
