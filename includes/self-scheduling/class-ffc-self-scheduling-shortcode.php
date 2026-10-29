@@ -327,9 +327,10 @@ class SelfSchedulingShortcode {
 				$badges . esc_html__( 'You are viewing this calendar as an administrator (bypass active).', 'ffcertificate' ),
 				'',
 				array(
-					'role' => 'note',
-					'html' => true,
-					'hook' => 'admin-bypass',
+					'role'    => 'note',
+					'html'    => true,
+					'hook'    => 'admin-bypass',
+					'classes' => array( 'ffc-calendar-notice' ),
 				)
 			);
 			echo $notice_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
@@ -353,8 +354,9 @@ class SelfSchedulingShortcode {
 			$message,
 			'',
 			array(
-				'role' => 'note',
-				'hook' => 'calendar-error',
+				'role'    => 'note',
+				'hook'    => 'calendar-error',
+				'classes' => array( 'ffc-calendar-notice' ),
 			)
 		);
 	}

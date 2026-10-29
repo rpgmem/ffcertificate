@@ -7,8 +7,10 @@
  * Uses shared CSS variables from ffc-common.css
  */
 
-/* Calendar Container */
+/* Calendar Container. Border-box, so a notice above it (#2200) matches its
+   width with the same number. */
 .ffc-shortcode.ffc-audience-calendar {
+    box-sizing: border-box;
     font-family: var(--ffc-font-family);
     max-width: 600px;
     margin: 0 auto;
@@ -1150,7 +1152,6 @@
 
     .ffc-shortcode.ffc-event-list-side .ffc-event-list-panel {
         width: 100%;
-        max-height: 300px;
     }
 }
 
@@ -1193,7 +1194,7 @@
 .ffc-shortcode.ffc-calendar-wrapper.ffc-has-event-list.ffc-event-list-side {
     display: flex;
     gap: var(--ffc-spacing-2xl);
-    align-items: flex-start;
+    align-items: stretch;
 }
 
 .ffc-shortcode.ffc-calendar-wrapper.ffc-event-list-side .ffc-audience-calendar {
@@ -1205,6 +1206,23 @@
     max-width: 600px;
 }
 
+/* A notice printed above the calendar or in its place (the admin bypass, a
+   calendar that cannot be shown, no access) takes the calendar's width
+   rather than the content's (#2200); the wide variant follows the wrapper
+   when the event list sits beside the calendar. The login and business-hours
+   notices sit in `.ffc-visibility-restricted` with an optional title, so the
+   wrapper takes the same width. */
+.ffc-notice.ffc-calendar-notice,
+.ffc-visibility-restricted {
+    box-sizing: border-box;
+    max-width: 600px;
+    margin: 0 auto var(--ffc-spacing-xl);
+}
+
+.ffc-notice.ffc-calendar-notice.ffc-calendar-notice-wide {
+    max-width: 1120px;
+}
+
 /* Event List Panel */
 .ffc-shortcode .ffc-event-list-panel {
     background: var(--ffc-bg-card);
@@ -1213,11 +1231,32 @@
     overflow: hidden;
 }
 
+/* Beside the calendar the panel takes the calendar's height (#2200): the row
+   stretches it, and the list's zero basis keeps it from adding height of its
+   own, so the calendar is the only thing that sizes the row. The heading
+   stays put and only the list scrolls. */
 .ffc-shortcode.ffc-event-list-side .ffc-event-list-panel {
     width: 500px;
     flex-shrink: 0;
-    max-height: 700px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.ffc-shortcode.ffc-event-list-side .ffc-event-list-content {
+    flex: 1 1 0;
+    min-height: 0;
     overflow-y: auto;
+}
+
+/* Stacked below the calendar on phones, the panel no longer takes the
+   calendar's height, so the list gets a height of its own. Declared after
+   the rule above because it has the same specificity. */
+@media screen and (max-width: 768px) {
+    .ffc-shortcode.ffc-event-list-side .ffc-event-list-content {
+        flex: none;
+        max-height: 260px;
+    }
 }
 
 .ffc-shortcode.ffc-event-list-below .ffc-event-list-panel {
