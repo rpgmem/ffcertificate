@@ -29341,9 +29341,6 @@ msgstr ""
 msgid "Day badge and legend dot."
 msgstr ""
 
-msgid "Day border, day number and legend dot."
-msgstr ""
-
 msgid "Day cell name"
 msgstr ""
 
@@ -29394,5 +29391,8 @@ msgstr ""
 msgid "The bookings badge and legend dot. A calendar's own booking label wins over these names."
 msgstr ""
 
-msgid "The Booked row also names the bookings badge, in the singular and the plural (\"1 booking\", \"2 bookings\"). An audience calendar's own booking label, on its settings tab, wins over these names."
+msgid "Day border, day number and legend dot. A day cell name, when set, shows on available days with no bookings."
+msgstr ""
+
+msgid "The Booked row also names the bookings badge, in the singular and the plural (\"1 booking\", \"2 bookings\"). An audience calendar's own booking label, on its settings tab, wins over these names. The Available row has no day cell name by default; one set there shows on available days that have no bookings yet."
 msgstr ""

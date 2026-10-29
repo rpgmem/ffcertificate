@@ -182,6 +182,14 @@ final class CalendarAppearanceTest extends TestCase {
 		$this->assertSame( array( 'label', 'short' ), array_keys( $strings['closedDateKinds']['optional'] ) );
 	}
 
+	public function test_an_available_day_carries_no_text_until_named(): void {
+		$this->assertSame( '', CalendarAppearance::cell( 'available' ) );
+		$this->assertSame( '', CalendarAppearance::strings()['availableCell'] );
+
+		CalendarAppearance::save( array(), array(), array( 'available' => 'Livre' ), true );
+		$this->assertSame( 'Livre', CalendarAppearance::strings()['availableCell'] );
+	}
+
 	public function test_the_booking_badge_takes_its_two_names_from_the_card(): void {
 		$this->assertSame( 'booking', CalendarAppearance::cell( CalendarAppearance::BOOKING_SINGULAR ) );
 		$this->assertSame( 'bookings', CalendarAppearance::cell( CalendarAppearance::BOOKING_PLURAL ) );

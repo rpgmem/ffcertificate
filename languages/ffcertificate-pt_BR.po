@@ -29425,9 +29425,6 @@ msgstr "Cores e rótulos do calendário salvos."
 msgid "Day badge and legend dot."
 msgstr "Selo do dia e ponto da legenda."
 
-msgid "Day border, day number and legend dot."
-msgstr "Borda e número do dia, e ponto da legenda."
-
 msgid "Day cell name"
 msgstr "Nome no dia"
 
@@ -29478,5 +29475,8 @@ msgstr "Singular"
 msgid "The bookings badge and legend dot. A calendar's own booking label wins over these names."
 msgstr "O selo de reservas e o ponto da legenda. O rótulo de reserva do próprio calendário prevalece sobre estes nomes."
 
-msgid "The Booked row also names the bookings badge, in the singular and the plural (\"1 booking\", \"2 bookings\"). An audience calendar's own booking label, on its settings tab, wins over these names."
-msgstr "A linha Reservado também dá nome ao selo de reservas, no singular e no plural (\"1 reserva\", \"2 reservas\"). O rótulo de reserva do próprio calendário de público, na aba de configurações dele, prevalece sobre estes nomes."
+msgid "Day border, day number and legend dot. A day cell name, when set, shows on available days with no bookings."
+msgstr "Borda e número do dia, e ponto da legenda. Um nome no dia, se definido, aparece nos dias disponíveis sem reservas."
+
+msgid "The Booked row also names the bookings badge, in the singular and the plural (\"1 booking\", \"2 bookings\"). An audience calendar's own booking label, on its settings tab, wins over these names. The Available row has no day cell name by default; one set there shows on available days that have no bookings yet."
+msgstr "A linha Reservado também dá nome ao selo de reservas, no singular e no plural (\"1 reserva\", \"2 reservas\"). O rótulo de reserva do próprio calendário de público, na aba de configurações dele, prevalece sobre estes nomes. A linha Disponível não tem nome no dia por padrão; um nome definido ali aparece nos dias disponíveis que ainda não têm reservas."

@@ -400,6 +400,13 @@
     color: var(--ffc-text-on-optional-holiday);
 }
 
+/* An available day's name (#2221), when one is set: outlined in the
+   available colour, so it reads as an invitation rather than a state. */
+.ffc-shortcode .ffc-badge-available {
+    border: 1px solid var(--ffc-cal-available);
+    color: var(--ffc-cal-available);
+}
+
 .ffc-shortcode .ffc-badge-closed {
     background: var(--ffc-cal-closed);
     color: var(--ffc-text-on-cal-closed);

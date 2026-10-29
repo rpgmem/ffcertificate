@@ -681,6 +681,23 @@ describe('ffc-calendar-frontend.js — a closed day names itself (#2218)', () =>
 		expect($badge.find('b').length).toBe(0);
 	});
 
+	it('names an available day only when a name is set, and never over its bookings (#2221)', () => {
+		const monday = new Date();
+		monday.setDate(monday.getDate() + ((8 - monday.getDay()) % 7 || 7));
+		const dateStr = monday.toISOString().slice(0, 10);
+		window.ffcCalendarFrontend.initCalendarCore();
+		expect(options.getDayContent(dateStr, monday, false, false)).toBe('');
+
+		window.ffcCalendar.strings.availableCell = 'Livre <i>';
+		const $badge = window.$('<div>').html(options.getDayContent(dateStr, monday, false, false)).find('.ffc-badge-available');
+		expect($badge.text()).toBe('Livre <i>');
+		expect($badge.find('i').length).toBe(0);
+
+		const sunday = new Date(monday);
+		sunday.setDate(monday.getDate() - 1);
+		expect(options.getDayContent(sunday.toISOString().slice(0, 10), sunday, false, false)).toBe('');
+	});
+
 	it('draws nothing when the switch is off, and a holiday stays a holiday', () => {
 		window.ffcCalendar.strings.closedCell = 'Fechado';
 		window.ffcCalendar.strings.showClosedLabel = false;

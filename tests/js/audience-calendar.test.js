@@ -330,6 +330,24 @@ describe('ffc-audience-calendar — renderCalendar grid', () => {
 		expect(window.$('.ffc-badge-closed').length).toBeGreaterThanOrEqual(1);
 	});
 
+	it('names an available day only when a name is set (#2221)', async () => {
+		api.state.config = { schedules: [] };
+		api.state.currentDate = new Date();
+		window.FFC.rest.mockResolvedValue({ bookings: [], holidays: [], closed_weekdays: [] });
+		api.renderCalendar();
+		await flush();
+		expect(window.$('.ffc-badge-available').length).toBe(0);
+
+		window.ffcAudience.strings.availableCell = 'Livre';
+		api.renderCalendar();
+		await flush();
+		const $available = window.$('.ffc-day.ffc-available');
+		expect($available.length).toBeGreaterThan(0);
+		expect($available.find('.ffc-badge-available').first().text()).toBe('Livre');
+		expect(window.$('.ffc-day:not(.ffc-available) .ffc-badge-available').length).toBe(0);
+		delete window.ffcAudience.strings.availableCell;
+	});
+
 	it('names a closed cell with its cell name, or leaves it blank when switched off (#2215)', async () => {
 		api.state.config = { schedules: [] };
 		api.state.currentDate = new Date(2026, 5, 1);

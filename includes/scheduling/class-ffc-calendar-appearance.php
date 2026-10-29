@@ -81,10 +81,10 @@ final class CalendarAppearance {
 	public const BOOKING_PLURAL = 'booking_plural';
 
 	/**
-	 * Every name a day cell can carry: the closed states' and the booking
-	 * badge's two forms.
+	 * Every name a day cell can carry: an available day's (none by default),
+	 * the closed states' and the booking badge's two forms.
 	 */
-	public const CELL_NAMES = array( ClosedDateKind::HOLIDAY, ClosedDateKind::OPTIONAL, self::CLOSED, self::BOOKING_SINGULAR, self::BOOKING_PLURAL );
+	public const CELL_NAMES = array( self::AVAILABLE, ClosedDateKind::HOLIDAY, ClosedDateKind::OPTIONAL, self::CLOSED, self::BOOKING_SINGULAR, self::BOOKING_PLURAL );
 
 	/**
 	 * Every state, in the order the legend and the card list them.
@@ -125,6 +125,9 @@ final class CalendarAppearance {
 	 */
 	public static function default_cell( string $state ): string {
 		switch ( $state ) {
+			case self::AVAILABLE:
+				// An available day carries no text unless the card names it (#2221).
+				return '';
 			case ClosedDateKind::OPTIONAL:
 				return _x( 'Optional', 'optional holiday, in a calendar day cell', 'ffcertificate' );
 			case self::BOOKING_SINGULAR:
@@ -271,7 +274,7 @@ final class CalendarAppearance {
 	/**
 	 * The labels the calendar scripts need.
 	 *
-	 * @return array{available: string, booked: string, holiday: string, closed: string, closedCell: string, booking: string, bookings: string, showClosedLabel: bool, closedDateKinds: array<string, array{label: string, short: string}>}
+	 * @return array{available: string, booked: string, holiday: string, closed: string, closedCell: string, availableCell: string, booking: string, bookings: string, showClosedLabel: bool, closedDateKinds: array<string, array{label: string, short: string}>}
 	 */
 	public static function strings(): array {
 		return array(
@@ -280,6 +283,7 @@ final class CalendarAppearance {
 			'holiday'         => self::legend( ClosedDateKind::HOLIDAY ),
 			'closed'          => self::legend( self::CLOSED ),
 			'closedCell'      => self::cell( self::CLOSED ),
+			'availableCell'   => self::cell( self::AVAILABLE ),
 			'booking'         => self::cell( self::BOOKING_SINGULAR ),
 			'bookings'        => self::cell( self::BOOKING_PLURAL ),
 			'showClosedLabel' => self::show_closed_label(),

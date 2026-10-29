@@ -190,7 +190,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		$ffc_appearance      = \FreeFormCertificate\Scheduling\CalendarAppearance::stored();
 		$ffc_available_ratio = \FreeFormCertificate\Scheduling\CalendarAppearance::available_contrast( $ffc_appearance['colors']['available'] );
 		$ffc_state_hints     = array(
-			'available' => __( 'Day border, day number and legend dot.', 'ffcertificate' ),
+			'available' => __( 'Day border, day number and legend dot. A day cell name, when set, shows on available days with no bookings.', 'ffcertificate' ),
 			'booked'    => __( 'The bookings badge and legend dot. A calendar\'s own booking label wins over these names.', 'ffcertificate' ),
 			'holiday'   => __( 'Day badge and legend dot.', 'ffcertificate' ),
 			'optional'  => __( 'Day badge and legend dot.', 'ffcertificate' ),
@@ -255,7 +255,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 													placeholder="<?php echo esc_attr( \FreeFormCertificate\Scheduling\CalendarAppearance::default_cell( $ffc_form ) ); ?>">
 										<?php endforeach; ?>
 									<?php else : ?>
-										<span class="description"><?php esc_html_e( 'No text', 'ffcertificate' ); ?></span>
+										<?php // An available day carries no text unless named here (#2221). ?>
+										<input type="text" name="calendar_cell[<?php echo esc_attr( $ffc_state ); ?>]" maxlength="40"
+												aria-label="<?php echo esc_attr( sprintf( /* translators: %s: calendar state, such as Holiday */ __( 'Day cell name: %s', 'ffcertificate' ), \FreeFormCertificate\Scheduling\CalendarAppearance::default_legend( $ffc_state ) ) ); ?>"
+												value="<?php echo esc_attr( $ffc_appearance['cell'][ $ffc_state ] ); ?>"
+												placeholder="<?php esc_attr_e( 'No text', 'ffcertificate' ); ?>">
 									<?php endif; ?>
 								</td>
 								<td>
@@ -263,6 +267,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 										<?php
 										if ( 'available' === $ffc_state ) {
 											echo '15';
+											if ( '' !== \FreeFormCertificate\Scheduling\CalendarAppearance::cell( 'available' ) ) {
+												echo ' · ' . esc_html( \FreeFormCertificate\Scheduling\CalendarAppearance::cell( 'available' ) );
+											}
 										} elseif ( 'booked' === $ffc_state ) {
 											echo esc_html( '2 ' . \FreeFormCertificate\Scheduling\CalendarAppearance::cell( \FreeFormCertificate\Scheduling\CalendarAppearance::BOOKING_PLURAL ) );
 										} else {

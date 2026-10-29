@@ -556,6 +556,10 @@
                     } else if (bookingCount > 0) {
                         var bLabel = bookingCount === 1 ? getBookingLabel('singular') : getBookingLabel('plural');
                         html += '<span class="ffc-day-badge ffc-badge-bookings">' + bookingCount + ' ' + escapeHtml(bLabel) + '</span>';
+                    } else if (classes.indexOf('ffc-available') !== -1 && ffcAudience.strings.availableCell) {
+                        // An available day carries the name set in Calendar
+                        // Colors and Labels, when one is set (#2221).
+                        html += '<span class="ffc-day-badge ffc-badge-available">' + escapeHtml(ffcAudience.strings.availableCell) + '</span>';
                     }
 
                     html += '</div></div>';
