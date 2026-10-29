@@ -44,6 +44,11 @@ class FrontendTest extends TestCase {
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
 		$this->post_backup = $GLOBALS['post'] ?? null;
+		// The device-signals branch reads RateLimitChecker's static settings
+		// cache; a test that ran earlier may have left it with the device
+		// limit on, which enqueues a bundle whose version constant only the
+		// plugin's main file defines (random-order seed 13256766).
+		$this->reset_rate_limit_cache();
 		// Shared scripts are enqueued through AssetRegistry, which registers
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).
@@ -109,8 +114,19 @@ class FrontendTest extends TestCase {
 			unset( $GLOBALS['wpdb'] );
 		}
 		$GLOBALS['post'] = $this->post_backup;
+		$this->reset_rate_limit_cache();
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * Empty RateLimitChecker's private static settings cache, so the next
+	 * read goes through this test's get_option stub.
+	 */
+	private function reset_rate_limit_cache(): void {
+		$ref = new \ReflectionProperty( \FreeFormCertificate\Security\RateLimitChecker::class, 'settings_cache' );
+		$ref->setAccessible( true );
+		$ref->setValue( null, null );
 	}
 
 	private function makeSubmissionHandlerMock(): object {
