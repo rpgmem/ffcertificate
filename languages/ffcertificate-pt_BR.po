@@ -29480,3 +29480,36 @@ msgstr "Borda e número do dia, e ponto da legenda. Um nome no dia, se definido,
 
 msgid "The Booked row also names the bookings badge, in the singular and the plural (\"1 booking\", \"2 bookings\"). An audience calendar's own booking label, on its settings tab, wins over these names. The Available row has no day cell name by default; one set there shows on available days that have no bookings yet."
 msgstr "A linha Reservado também dá nome ao selo de reservas, no singular e no plural (\"1 reserva\", \"2 reservas\"). O rótulo de reserva do próprio calendário de público, na aba de configurações dele, prevalece sobre estes nomes. A linha Disponível não tem nome no dia por padrão; um nome definido ali aparece nos dias disponíveis que ainda não têm reservas."
+
+msgid "Calendar names"
+msgstr "Nomes do calendário"
+
+msgid "Names"
+msgstr "Nomes"
+
+msgid "Follows the general switch, which hides the name."
+msgstr "Segue a chave geral, que oculta o nome."
+
+msgid "Follows the general switch, which shows the name."
+msgstr "Segue a chave geral, que exibe o nome."
+
+msgid "Set in the Booking Badge Label field"
+msgstr "Definido no campo Etiqueta de Reserva"
+
+msgid "This calendar leaves closed days without text."
+msgstr "Este calendário deixa os dias fechados sem texto."
+
+msgid "This calendar shows the name on closed days."
+msgstr "Este calendário exibe o nome nos dias fechados."
+
+msgid "These are the general names. When a calendar needs its own, set them on the calendar: the Names tab of a personal calendar, or the Calendar names field of an audience calendar. A calendar's name, and its choice to show or hide the closed day's name, win over these; an empty field there keeps the general one."
+msgstr "Estes são os nomes gerais. Quando um calendário precisar dos seus próprios, defina-os no calendário: na aba Nomes de um calendário pessoal ou no campo Nomes do calendário de um calendário de público. O nome do calendário, e a escolha de exibir ou ocultar o nome do dia fechado, prevalecem sobre estes; um campo vazio lá mantém o geral."
+
+msgid "This calendar's own names for its states (legend and day cell, the bookings badge in the singular and the plural included) and its choice to show or hide the closed day's name. An empty field keeps the general name from Calendar Colors and Labels, on the General tab of the Scheduling settings; colors stay general. The calendar's name wins over the general one, which wins over the default."
+msgstr "Os nomes próprios deste calendário para seus estados (legenda e célula do dia, incluindo o selo de reservas no singular e no plural) e a escolha de exibir ou ocultar o nome do dia fechado. Um campo vazio mantém o nome geral de Cores e Rótulos do Calendário, na aba Geral das configurações de Agendamento; as cores continuam gerais. O nome do calendário prevalece sobre o geral, que prevalece sobre o padrão."
+
+msgid "This calendar's own names. An empty field uses the general name, shown in it, set in Calendar Colors and Labels on the General tab of the Scheduling settings. Colors are general only."
+msgstr "Os nomes próprios deste calendário. Um campo vazio usa o nome geral, exibido nele, definido em Cores e Rótulos do Calendário na aba Geral das configurações de Agendamento. As cores são apenas gerais."
+
+msgid "Those are the general names. A calendar that needs its own sets them on the calendar: the Names tab of a personal calendar, and the Calendar names field on an audience calendar's settings tab. Each field there shows the general name it replaces; an empty field keeps it. The calendar's name wins over the general one, which wins over the default, and the same goes for showing or hiding the closed day's name (General, Show or Hide). Colors stay general. A page that shows several audience calendars takes, per name, the first calendar that sets one."
+msgstr "Esses são os nomes gerais. Um calendário que precise dos seus próprios os define no próprio calendário: na aba Nomes de um calendário pessoal e no campo Nomes do calendário da aba de configurações de um calendário de público. Cada campo lá exibe o nome geral que substitui; um campo vazio o mantém. O nome do calendário prevalece sobre o geral, que prevalece sobre o padrão, e o mesmo vale para exibir ou ocultar o nome do dia fechado (Geral, Mostrar ou Ocultar). As cores continuam gerais. Uma página que mostra vários calendários de público usa, para cada nome, o primeiro calendário que o define."

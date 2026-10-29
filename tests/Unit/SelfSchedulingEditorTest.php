@@ -35,6 +35,8 @@ class SelfSchedulingEditorTest extends TestCase {
 		Functions\when( 'wp_register_script' )->justReturn( false );
 
 		Functions\when( '__' )->returnArg();
+		// The calendar names partial reads the default state names (#2223).
+		Functions\when( '_x' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
@@ -280,14 +282,14 @@ class SelfSchedulingEditorTest extends TestCase {
 		$this->assertStringContainsString( '<div class="ffc-vtabs" data-ffc-vtabs>', $output );
 		preg_match_all( '/<span class="ffc-vtabs__icon ([^"]+)"/', $output, $m );
 		// Each icon twice: in the nav and in the panel title.
-		$this->assertCount( 16, $m[1] );
+		$this->assertCount( 18, $m[1] );
 		foreach ( $m[1] as $class ) {
 			$this->assertMatchesRegularExpression( '/^ffc-icon-[a-z-]+$/', $class, 'A tab icon the registry does not know falls back to a dashicon' );
 		}
 		$this->assertStringNotContainsString( 'dashicons', $output );
 		// The first tab starts active; the others are reachable by the arrow keys.
 		$this->assertSame( 1, substr_count( $output, 'aria-selected="true"' ) );
-		$this->assertSame( 7, substr_count( $output, 'aria-selected="false"' ) );
+		$this->assertSame( 8, substr_count( $output, 'aria-selected="false"' ) );
 	}
 
 	public function test_the_occupancy_tab_exists_only_for_a_saved_custom_calendar(): void {

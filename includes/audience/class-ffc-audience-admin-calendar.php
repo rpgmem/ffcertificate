@@ -602,6 +602,12 @@ class AudienceAdminCalendar {
 					</td>
 				</tr>
 				<tr>
+					<th scope="row"><?php esc_html_e( 'Calendar names', 'ffcertificate' ); ?></th>
+					<td>
+						<?php $this->render_calendar_names( $schedule->appearance_names ?? null ); ?>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row">
 						<label for="schedule_audience_badge_format"><?php esc_html_e( 'Audience Badge Format', 'ffcertificate' ); ?></label>
 					</th>
@@ -990,6 +996,7 @@ class AudienceAdminCalendar {
 				'post_event_form_id'           => AudiencePostEventForm::is_form( RequestInput::get_post_int( 'schedule_post_event_form' ) ) ? RequestInput::get_post_int( 'schedule_post_event_form' ) : null,
 				'post_event_window_days'       => AudiencePostEventForm::normalize_window( RequestInput::get_post_int( 'schedule_post_event_window_days', AudiencePostEventForm::DEFAULT_WINDOW_DAYS ) ),
 				'post_event_attendees_only'    => isset( $_POST['schedule_post_event_attendees_only'] ) ? 1 : 0,
+				'appearance_names'             => \FreeFormCertificate\Scheduling\CalendarAppearance::encode_override( RequestInput::get_post_raw_array( 'schedule_names' ) ),
 				'status'                       => RequestInput::get_post_string( 'schedule_status', 'active' ),
 			);
 
@@ -1239,5 +1246,20 @@ class AudienceAdminCalendar {
 			</tbody>
 		</table>
 		<?php
+	}
+
+	/**
+	 * The calendar's own names (#2223), drawn by the partial the personal
+	 * calendar editor shares. The audience calendar keeps its own booking
+	 * label fields, so the partial leaves the booking names out.
+	 *
+	 * @param string|null $stored The schedule's `appearance_names` JSON.
+	 * @return void
+	 */
+	private function render_calendar_names( ?string $stored ): void {
+		$ffc_names_base    = 'schedule_names';
+		$ffc_names         = \FreeFormCertificate\Scheduling\CalendarAppearance::clean_override( $stored ?? '' );
+		$ffc_names_booking = false;
+		include FFC_PLUGIN_DIR . 'templates/admin/scheduling/calendar-names.php';
 	}
 }

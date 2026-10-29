@@ -315,6 +315,13 @@ class SelfSchedulingEditor {
 				'masters' => array( 'admin_bypass' ),
 			),
 			array(
+				'key'     => 'names',
+				'icon'    => 'ffc-icon-tag',
+				'label'   => __( 'Names', 'ffcertificate' ),
+				'title'   => __( 'Calendar names', 'ffcertificate' ),
+				'masters' => array(),
+			),
+			array(
 				'key'     => 'emails',
 				'icon'    => 'ffc-icon-email',
 				'label'   => __( 'Emails', 'ffcertificate' ),
@@ -386,6 +393,9 @@ class SelfSchedulingEditor {
 						break;
 					case 'bypass':
 						$this->render_tab_bypass( $config );
+						break;
+					case 'names':
+						$this->render_tab_names( $post );
 						break;
 					case 'emails':
 						$this->render_tab_emails( $post );
@@ -1045,6 +1055,21 @@ class SelfSchedulingEditor {
 			</tr>
 		</table>
 		<?php
+	}
+
+	/**
+	 * Render the Names tab (#2223): this calendar's own state names and
+	 * closed-label choice, each inheriting the general one when empty.
+	 *
+	 * @param object $post Post object.
+	 * @phpstan-param \WP_Post $post
+	 * @return void
+	 */
+	private function render_tab_names( object $post ): void {
+		$ffc_names_base    = 'ffc_calendar_names';
+		$ffc_names         = \FreeFormCertificate\Scheduling\CalendarAppearance::clean_override( get_post_meta( (int) $post->ID, \FreeFormCertificate\Scheduling\CalendarAppearance::NAMES_META, true ) );
+		$ffc_names_booking = true;
+		include FFC_PLUGIN_DIR . 'templates/admin/scheduling/calendar-names.php';
 	}
 
 	/**

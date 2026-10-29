@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '6';
+	public const SCHEMA_REVISION = '7';
 
 	/**
 	 * Option holding the revision last applied.
@@ -145,6 +145,7 @@ class AudienceActivator {
             post_event_form_id bigint(20) unsigned DEFAULT NULL,
             post_event_window_days smallint(5) unsigned DEFAULT NULL,
             post_event_attendees_only tinyint(1) DEFAULT 0,
+            appearance_names longtext DEFAULT NULL,
             PRIMARY KEY (id),
             KEY idx_status (status),
             KEY idx_created_by (created_by)
@@ -915,6 +916,7 @@ class AudienceActivator {
 		$healed = self::migrate_booking_attendance_columns() && $healed;
 		$healed = self::migrate_post_event_form_columns() && $healed;
 		$healed = self::migrate_holiday_kind_column() && $healed;
+		$healed = self::migrate_schedule_appearance_names_column() && $healed;
 
 		// The attendance tables of #1947 and the invitations of #1948 reach
 		// upgraded installs here: the version-gated chain below never creates
@@ -995,6 +997,27 @@ class AudienceActivator {
 		self::add_column_if_missing( $table_name, 'attendance_min_percent', 'tinyint(3) unsigned DEFAULT NULL', 'attendance_mode' );
 
 		return self::has_columns( $table_name, array( 'attendance_mode', 'attendance_min_percent' ) );
+	}
+
+	/**
+	 * Add a calendar's own names to schedules (#2223): the JSON override of
+	 * the state names and the Show "Closed" switch, read through
+	 * CalendarAppearance::clean_override(). NULL reads as no override, so an
+	 * existing calendar keeps the general names.
+	 *
+	 * @return bool Whether the table now has the column, or does not exist yet.
+	 */
+	private static function migrate_schedule_appearance_names_column(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_schedules';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing( $table_name, 'appearance_names', 'longtext DEFAULT NULL', 'post_event_attendees_only' );
+
+		return self::has_columns( $table_name, array( 'appearance_names' ) );
 	}
 
 	/**

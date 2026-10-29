@@ -46,6 +46,28 @@ final class CalendarAppearance {
 	public const CLOSED = 'closed';
 
 	/**
+	 * Post meta holding a personal calendar's own names (#2223). An audience
+	 * calendar keeps them in its `appearance_names` column.
+	 */
+	public const NAMES_META = '_ffc_self_scheduling_names';
+
+	/**
+	 * A calendar's closed-label choice (#2223): follow the general switch,
+	 * or show or hide the name on that calendar only.
+	 */
+	public const SHOW_INHERIT = 'inherit';
+
+	/**
+	 * See {@see self::SHOW_INHERIT}.
+	 */
+	public const SHOW = 'show';
+
+	/**
+	 * See {@see self::SHOW_INHERIT}.
+	 */
+	public const HIDE = 'hide';
+
+	/**
 	 * Option holding the colours, the names and the switch.
 	 */
 	public const OPTION = 'ffc_calendar_appearance';
@@ -178,34 +200,152 @@ final class CalendarAppearance {
 	}
 
 	/**
-	 * A state's legend name: the administrator's, else the default.
+	 * A state's legend name: the calendar's, else the administrator's, else
+	 * the default.
 	 *
-	 * @param string $state State.
+	 * @param string               $state    State.
+	 * @param array<string, mixed> $override A calendar's own names (#2223), from {@see self::clean_override()}.
 	 * @return string
 	 */
-	public static function legend( string $state ): string {
+	public static function legend( string $state, array $override = array() ): string {
+		$own = $override['legend'][ $state ] ?? '';
+		if ( is_string( $own ) && '' !== $own ) {
+			return $own;
+		}
 		$custom = self::stored()['legend'][ $state ] ?? '';
 		return '' !== $custom ? $custom : self::default_legend( $state );
 	}
 
 	/**
-	 * A state's day-cell name: the administrator's, else the default.
+	 * A state's day-cell name: the calendar's, else the administrator's,
+	 * else the default.
 	 *
-	 * @param string $state State.
+	 * @param string               $state    State.
+	 * @param array<string, mixed> $override A calendar's own names (#2223), from {@see self::clean_override()}.
 	 * @return string
 	 */
-	public static function cell( string $state ): string {
+	public static function cell( string $state, array $override = array() ): string {
+		$own = $override['cell'][ $state ] ?? '';
+		if ( is_string( $own ) && '' !== $own ) {
+			return $own;
+		}
 		$custom = self::stored()['cell'][ $state ] ?? '';
 		return '' !== $custom ? $custom : self::default_cell( $state );
 	}
 
 	/**
-	 * Whether a closed day's cell carries its name.
+	 * Whether a closed day's cell carries its name: the calendar's choice
+	 * when it made one, else the general switch.
 	 *
+	 * @param array<string, mixed> $override A calendar's own names (#2223).
 	 * @return bool
 	 */
-	public static function show_closed_label(): bool {
+	public static function show_closed_label( array $override = array() ): bool {
+		$own = $override['show_closed_label'] ?? self::SHOW_INHERIT;
+		if ( self::SHOW === $own ) {
+			return true;
+		}
+		if ( self::HIDE === $own ) {
+			return false;
+		}
 		return self::stored()['show_closed_label'];
+	}
+
+	/**
+	 * A calendar's own names (#2223), read safely from what was stored: a
+	 * decoded array or its JSON. Only non-empty names of known states are
+	 * kept, so an empty field always inherits.
+	 *
+	 * @param mixed $raw Stored value.
+	 * @return array{legend: array<string, string>, cell: array<string, string>, show_closed_label: string}
+	 */
+	public static function clean_override( $raw ): array {
+		if ( is_string( $raw ) && '' !== $raw ) {
+			$raw = json_decode( $raw, true );
+		}
+		$raw = is_array( $raw ) ? $raw : array();
+
+		$out = array(
+			'legend'            => array(),
+			'cell'              => array(),
+			'show_closed_label' => self::SHOW_INHERIT,
+		);
+		foreach ( self::states() as $state ) {
+			$value = isset( $raw['legend'][ $state ] ) ? self::clean_name( $raw['legend'][ $state ] ) : '';
+			if ( '' !== $value ) {
+				$out['legend'][ $state ] = $value;
+			}
+		}
+		foreach ( self::CELL_NAMES as $state ) {
+			$value = isset( $raw['cell'][ $state ] ) ? self::clean_name( $raw['cell'][ $state ] ) : '';
+			if ( '' !== $value ) {
+				$out['cell'][ $state ] = $value;
+			}
+		}
+		$show = $raw['show_closed_label'] ?? self::SHOW_INHERIT;
+		if ( in_array( $show, array( self::SHOW, self::HIDE ), true ) ) {
+			$out['show_closed_label'] = $show;
+		}
+		return $out;
+	}
+
+	/**
+	 * Whether a calendar's names change anything, so an untouched block is
+	 * stored as nothing.
+	 *
+	 * @param array<string, mixed> $override From {@see self::clean_override()}.
+	 * @return bool
+	 */
+	public static function override_is_empty( array $override ): bool {
+		return empty( $override['legend'] ) && empty( $override['cell'] )
+			&& self::SHOW_INHERIT === ( $override['show_closed_label'] ?? self::SHOW_INHERIT );
+	}
+
+	/**
+	 * A calendar's names as a column value: JSON, or NULL when they change
+	 * nothing, so an untouched calendar stores no override.
+	 *
+	 * @param mixed $raw Posted names, a stored array or a JSON string.
+	 * @return string|null
+	 */
+	public static function encode_override( $raw ): ?string {
+		$override = self::clean_override( $raw );
+		if ( self::override_is_empty( $override ) ) {
+			return null;
+		}
+		$json = wp_json_encode( $override );
+		return is_string( $json ) ? $json : null;
+	}
+
+	/**
+	 * Several calendars' names as one, for a page that shows them together:
+	 * the first non-empty name wins per state, and the first explicit
+	 * closed-label choice — the rule the audience booking label already
+	 * follows.
+	 *
+	 * @param array<int, array<string, mixed>> $overrides From {@see self::clean_override()}, in display order.
+	 * @return array{legend: array<string, string>, cell: array<string, string>, show_closed_label: string}
+	 */
+	public static function merge_overrides( array $overrides ): array {
+		$out = array(
+			'legend'            => array(),
+			'cell'              => array(),
+			'show_closed_label' => self::SHOW_INHERIT,
+		);
+		foreach ( $overrides as $override ) {
+			foreach ( array( 'legend', 'cell' ) as $part ) {
+				foreach ( (array) ( $override[ $part ] ?? array() ) as $state => $name ) {
+					if ( ! isset( $out[ $part ][ $state ] ) && is_string( $name ) && '' !== $name ) {
+						$out[ $part ][ $state ] = $name;
+					}
+				}
+			}
+			$show = $override['show_closed_label'] ?? self::SHOW_INHERIT;
+			if ( self::SHOW_INHERIT === $out['show_closed_label'] && in_array( $show, array( self::SHOW, self::HIDE ), true ) ) {
+				$out['show_closed_label'] = $show;
+			}
+		}
+		return $out;
 	}
 
 	/**
@@ -272,22 +412,30 @@ final class CalendarAppearance {
 	}
 
 	/**
-	 * The labels the calendar scripts need.
+	 * The labels the calendar scripts need, a calendar's own names applied.
 	 *
+	 * @param array<string, mixed> $override A calendar's own names (#2223), from {@see self::clean_override()}.
 	 * @return array{available: string, booked: string, holiday: string, closed: string, closedCell: string, availableCell: string, booking: string, bookings: string, showClosedLabel: bool, closedDateKinds: array<string, array{label: string, short: string}>}
 	 */
-	public static function strings(): array {
+	public static function strings( array $override = array() ): array {
+		$kinds = array();
+		foreach ( ClosedDateKind::all() as $kind ) {
+			$kinds[ $kind ] = array(
+				'label' => self::legend( $kind, $override ),
+				'short' => self::cell( $kind, $override ),
+			);
+		}
 		return array(
-			'available'       => self::legend( self::AVAILABLE ),
-			'booked'          => self::legend( self::BOOKED ),
-			'holiday'         => self::legend( ClosedDateKind::HOLIDAY ),
-			'closed'          => self::legend( self::CLOSED ),
-			'closedCell'      => self::cell( self::CLOSED ),
-			'availableCell'   => self::cell( self::AVAILABLE ),
-			'booking'         => self::cell( self::BOOKING_SINGULAR ),
-			'bookings'        => self::cell( self::BOOKING_PLURAL ),
-			'showClosedLabel' => self::show_closed_label(),
-			'closedDateKinds' => ClosedDateKind::strings(),
+			'available'       => self::legend( self::AVAILABLE, $override ),
+			'booked'          => self::legend( self::BOOKED, $override ),
+			'holiday'         => self::legend( ClosedDateKind::HOLIDAY, $override ),
+			'closed'          => self::legend( self::CLOSED, $override ),
+			'closedCell'      => self::cell( self::CLOSED, $override ),
+			'availableCell'   => self::cell( self::AVAILABLE, $override ),
+			'booking'         => self::cell( self::BOOKING_SINGULAR, $override ),
+			'bookings'        => self::cell( self::BOOKING_PLURAL, $override ),
+			'showClosedLabel' => self::show_closed_label( $override ),
+			'closedDateKinds' => $kinds,
 		);
 	}
 

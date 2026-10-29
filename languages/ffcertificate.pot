@@ -29396,3 +29396,36 @@ msgstr ""
 
 msgid "The Booked row also names the bookings badge, in the singular and the plural (\"1 booking\", \"2 bookings\"). An audience calendar's own booking label, on its settings tab, wins over these names. The Available row has no day cell name by default; one set there shows on available days that have no bookings yet."
 msgstr ""
+
+msgid "Calendar names"
+msgstr ""
+
+msgid "Names"
+msgstr ""
+
+msgid "Follows the general switch, which hides the name."
+msgstr ""
+
+msgid "Follows the general switch, which shows the name."
+msgstr ""
+
+msgid "Set in the Booking Badge Label field"
+msgstr ""
+
+msgid "This calendar leaves closed days without text."
+msgstr ""
+
+msgid "This calendar shows the name on closed days."
+msgstr ""
+
+msgid "These are the general names. When a calendar needs its own, set them on the calendar: the Names tab of a personal calendar, or the Calendar names field of an audience calendar. A calendar's name, and its choice to show or hide the closed day's name, win over these; an empty field there keeps the general one."
+msgstr ""
+
+msgid "This calendar's own names for its states (legend and day cell, the bookings badge in the singular and the plural included) and its choice to show or hide the closed day's name. An empty field keeps the general name from Calendar Colors and Labels, on the General tab of the Scheduling settings; colors stay general. The calendar's name wins over the general one, which wins over the default."
+msgstr ""
+
+msgid "This calendar's own names. An empty field uses the general name, shown in it, set in Calendar Colors and Labels on the General tab of the Scheduling settings. Colors are general only."
+msgstr ""
+
+msgid "Those are the general names. A calendar that needs its own sets them on the calendar: the Names tab of a personal calendar, and the Calendar names field on an audience calendar's settings tab. Each field there shows the general name it replaces; an empty field keeps it. The calendar's name wins over the general one, which wins over the default, and the same goes for showing or hiding the closed day's name (General, Show or Hide). Colors stay general. A page that shows several audience calendars takes, per name, the first calendar that sets one."
+msgstr ""

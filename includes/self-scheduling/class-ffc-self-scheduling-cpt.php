@@ -243,6 +243,7 @@ class SelfSchedulingCPT {
 		$config        = get_post_meta( $post_id, '_ffc_self_scheduling_config', true );
 		$working_hours = get_post_meta( $post_id, '_ffc_self_scheduling_working_hours', true );
 		$email_config  = get_post_meta( $post_id, '_ffc_self_scheduling_email_config', true );
+		$names         = get_post_meta( $post_id, \FreeFormCertificate\Scheduling\CalendarAppearance::NAMES_META, true );
 
 		$metadata_copied = array();
 
@@ -259,6 +260,13 @@ class SelfSchedulingCPT {
 		if ( $email_config ) {
 			update_post_meta( $new_post_id, '_ffc_self_scheduling_email_config', $email_config );
 			$metadata_copied[] = 'email_config';
+		}
+
+		// The calendar's own names travel with it (#2223); `wp_slash()`
+		// offsets the unslash `update_post_meta()` applies.
+		if ( is_array( $names ) && ! empty( $names ) ) {
+			update_post_meta( $new_post_id, \FreeFormCertificate\Scheduling\CalendarAppearance::NAMES_META, wp_slash( $names ) );
+			$metadata_copied[] = 'names';
 		}
 
 		// Custom blocks (#1770). A block is a definition only (date, window,
