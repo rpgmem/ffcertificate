@@ -68,14 +68,15 @@ final class RadiusAndLayerTokensTest extends TestCase {
 	 *
 	 * 40 remained of 186 when this was written, #1881 took one more (the
 	 * loading spinner that left ffc-pdf-core.css) and #2089 another (the
-	 * unemitted spinner section of that sheet). The frequent ones were
+	 * unemitted spinner section of that sheet), and #2210 a third (the
+	 * calendar day badge, now the `xs` step). The frequent ones were
 	 * `10px` (10), `5px` (6), `2px` (5) and `11px` (5) — near-misses that a step would have to be invented for, and
 	 * inventing a step per value is how a scale becomes a dictionary.
 	 */
 	private const RADIUS_BUDGET = array(
 		'ffc-admin-settings.css'         => 2,
 		'ffc-admin.css'                  => 2,
-		'ffc-audience.css'               => 2,
+		'ffc-audience.css'               => 1,
 		'ffc-certificates-dashboard.css' => 2,
 		'ffc-code-editor-dark.css'       => 2,
 		'ffc-common.css'                 => 2,
