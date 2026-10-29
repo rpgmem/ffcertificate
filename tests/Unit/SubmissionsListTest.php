@@ -52,6 +52,9 @@ class SubmissionsListTest extends TestCase {
 		$this->wpdb_backup    = $GLOBALS['wpdb'] ?? null;
 		$this->get_backup     = $_GET ?? array();
 		$this->request_backup = $_REQUEST ?? array();
+		// Start from an empty request, whatever an earlier test left behind.
+		$_GET     = array();
+		$_REQUEST = array();
 
 		class_exists( '\FreeFormCertificate\Admin\SubmissionsList' );
 

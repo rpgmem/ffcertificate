@@ -80,6 +80,10 @@ class IdentityRepairTest extends TestCase {
 
 		class_exists( '\FreeFormCertificate\Maintenance\IdentityRepair' );
 
+		// The repair guards the group flush on function_exists(), so the branch
+		// is chosen here rather than inherited from an earlier test.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
+
 		$this->rows     = array();
 		$this->updates  = array();
 		$this->control  = array();
