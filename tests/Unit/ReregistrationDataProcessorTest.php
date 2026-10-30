@@ -959,6 +959,9 @@ class ReregistrationDataProcessorTest extends TestCase {
 		Functions\when( 'get_user_meta' )->justReturn( array() );
 		Functions\when( 'sanitize_key' )->alias( static fn ( $key ) => strtolower( (string) $key ) );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		Functions\when( 'wp_rand' )->alias( static fn ( $min = 0, $max = 0 ) => random_int( (int) $min, (int) $max ) );
 
 		$this->meta_writes = array();

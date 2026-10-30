@@ -423,12 +423,24 @@ abstract class AbstractRepository {
 	/**
 	 * Clear cache.
 	 *
+	 * Without a key, only this repository's group is emptied: `wp_cache_flush()`
+	 * empties the whole object cache, every other plugin's entries and, on a
+	 * multisite with a persistent cache, every site's (#2241). It stays only as
+	 * the fallback for a backend that cannot flush one group.
+	 *
+	 * `wp_cache_supports()` is called without a `function_exists()` guard on
+	 * purpose: WordPress defines it since 6.1, below the plugin's floor, and a
+	 * guard would make the branch a test takes depend on whether an earlier
+	 * test in the process stubbed the function.
+	 *
 	 * @param string|null $key Key.
 	 * @return void
 	 */
 	protected function clear_cache( ?string $key = null ): void {
 		if ( $key ) {
 			wp_cache_delete( $key, $this->cache_group );
+		} elseif ( wp_cache_supports( 'flush_group' ) ) {
+			wp_cache_flush_group( $this->cache_group );
 		} else {
 			wp_cache_flush();
 		}

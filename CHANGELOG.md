@@ -121,6 +121,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Reregistration: bulk Approve acts only on submissions awaiting review** (#2242). A "select all" no longer approves members who never answered; the notice says how many of the selection were skipped. The authentication code is issued on approval, deleted on Reject, and kept but hidden on Return to draft, so re-approval restores the same code.
 - **Reregistration: late joiners and child audiences get their row, invitation and reminders** (#2242). The daily run creates the submission of anyone who joined a campaign's audience (or a child audience) after activation, and saving an active campaign seeds an added audience. An invitation sent before the start names the opening date; reminders wait for the opening.
 - **Reregistration: hidden second-post fields no longer block the submit** (#2242). The workload, role and work hours of a second post are required and stored only while one is declared; a value typed before switching to "I do not hold" is dropped.
+- **A repository write no longer flushes the whole object cache** (#2241). An insert, a bulk status change or delete, a profile save or a QR-code cache write emptied every plugin's cache and, on a multisite with a persistent cache, every site's; it now flushes only the repository's group, with the full flush kept for a cache that cannot flush one.
 
 ### Security
 

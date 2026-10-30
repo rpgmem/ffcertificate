@@ -39,6 +39,9 @@ class AppointmentRepositoryCentralizationTest extends TestCase {
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		Functions\when( 'wp_cache_flush_group' )->justReturn( true );
 
 		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( fn ( $sql ) => $sql )->byDefault();

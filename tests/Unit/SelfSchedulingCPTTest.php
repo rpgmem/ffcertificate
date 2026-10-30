@@ -104,6 +104,9 @@ class SelfSchedulingCPTTest extends TestCase {
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		// Debug areas off and emails enabled: the settings of an install nobody
 		// configured. Stubbed explicitly so Debug::is_enabled() does not depend
 		// on whether an earlier test defined get_option().

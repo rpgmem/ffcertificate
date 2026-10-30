@@ -154,6 +154,9 @@ class SettingsActionHandlerTest extends TestCase {
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		Functions\when( 'get_post' )->justReturn( null );
 		Functions\when( 'get_post_meta' )->alias(
 			function ( $post_id, $key = '', $single = false ) {
