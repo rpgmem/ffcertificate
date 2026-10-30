@@ -535,6 +535,52 @@ class AudienceAjaxControllerTest extends TestCase {
 		);
 	}
 
+	// ── cancel_bookings (bulk, #2243) ──────────────────────────────────
+
+	public function test_bulk_cancel_needs_a_selection(): void {
+		$_POST = array( 'nonce' => 'n', 'reason' => 'x' );
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_cancel_bookings() );
+		$this->assertFalse( $this->responses[0]['ok'] );
+		$this->assertStringContainsString( 'Select the bookings', $this->responses[0]['data']['message'] );
+		$this->assertSame( array(), $this->writes );
+	}
+
+	public function test_bulk_cancel_needs_a_reason(): void {
+		$_POST = array( 'nonce' => 'n', 'booking_ids' => array( '9' ), 'reason' => '   ' );
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_cancel_bookings() );
+		$this->assertFalse( $this->responses[0]['ok'] );
+		$this->assertStringContainsString( 'reason', $this->responses[0]['data']['message'] );
+		$this->assertSame( array(), $this->writes );
+	}
+
+	public function test_bulk_cancel_cancels_the_active_ones_and_skips_the_rest(): void {
+		Functions\when( '_n' )->alias( static fn( $s, $p, $n ) => 1 === $n ? $s : $p );
+		$_POST          = array( 'nonce' => 'n', 'booking_ids' => array( '9', '10', '9' ), 'reason' => 'Building closed' );
+		$this->bookings = array(
+			9  => $this->booking(),
+			10 => $this->booking( array( 'status' => 'cancelled' ) ),
+		);
+		$actions = CallLog::record( 'do_action' );
+
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_cancel_bookings() );
+
+		$this->assertTrue( $this->responses[0]['ok'] );
+		$this->assertSame( array( 9 ), $this->responses[0]['data']['cancelled'] );
+		$this->assertStringContainsString( '1 of 2 bookings cancelled', $this->responses[0]['data']['message'] );
+		$this->assertSame( 1, $actions->count(), 'Only the booking that changed queues e-mails.' );
+		$this->assertSame( array( 9, 10 ), array_column( array_column( $this->writes, 'where' ), 'id' ), 'Each id once.' );
+	}
+
+	public function test_bulk_cancel_needs_the_manage_capability(): void {
+		$this->caps = array();
+		$_POST      = array( 'nonce' => 'n', 'booking_ids' => array( '9' ), 'reason' => 'x' );
+
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_cancel_bookings() );
+
+		$this->assertFalse( $this->responses[0]['ok'] );
+		$this->assertSame( array(), $this->writes );
+	}
+
 	// ── get_booking ────────────────────────────────────────────────────
 
 	public function test_get_booking_rejects_invalid_id(): void {

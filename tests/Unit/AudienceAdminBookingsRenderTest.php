@@ -36,6 +36,12 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 	/** @var list<object> Environment rows the per-schedule query answers. */
 	private array $environments = array();
 
+	/** @var list<object> Rows the audience and attendance reads answer. */
+	private array $audience_rows = array();
+
+	/** @var int|null What the count answers, when it is not the rows held. */
+	private ?int $total = null;
+
 	/** @var list<string> Capabilities the current user holds. */
 	private array $held_caps = array();
 
@@ -65,7 +71,7 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 		Functions\when( 'sanitize_key' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/' );
-		Functions\when( 'add_query_arg' )->alias( static fn( array $args, string $url ): string => $url . '?' . http_build_query( $args ) );
+		Functions\when( 'add_query_arg' )->alias( static fn( ...$a ): string => is_array( $a[0] ) ? $a[1] . '?' . http_build_query( $a[0] ) : $a[2] . '&' . $a[0] . '=' . $a[1] );
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_trim_words' )->returnArg();
@@ -78,6 +84,10 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults = array() ) => array_merge( $defaults, (array) $args ) );
 		Functions\when( 'sanitize_sql_orderby' )->returnArg();
 		Functions\when( 'current_user_can' )->alias( fn( string $cap ): bool => in_array( $cap, $this->held_caps, true ) );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'paginate_links' )->alias( static fn( array $args ): string => 'PAGES ' . $args['current'] . '/' . $args['total'] );
 
 		$this->had_wpdb = array_key_exists( 'wpdb', $GLOBALS );
 		if ( $this->had_wpdb ) {
@@ -87,7 +97,7 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $_GET['schedule_id'], $_GET['environment_id'], $_GET['status'], $_GET['date_from'], $_GET['date_to'] );
+		unset( $_GET['schedule_id'], $_GET['environment_id'], $_GET['status'], $_GET['date_from'], $_GET['date_to'], $_GET['audience_id'], $_GET['s'], $_GET['paged'] );
 		if ( $this->had_wpdb ) {
 			$GLOBALS['wpdb'] = $this->wpdb_backup;
 		} else {
@@ -132,6 +142,12 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 				if ( str_contains( $sql, 'FROM `wp_ffc_audience_bookings` b' ) ) {
 					return $this->bookings;
 				}
+				// The audience names of the listed bookings, the audience
+				// filter's choices, the present counts and each booking's
+				// audiences for its reach (#2243): none in these fixtures.
+				if ( str_contains( $sql, 'INNER JOIN `wp_ffc_audience_booking_audiences` ba' ) || str_contains( $sql, 'FROM `wp_ffc_audiences`' ) || str_contains( $sql, 'FROM `wp_ffc_audience_attendance`' ) ) {
+					return $this->audience_rows;
+				}
 				if ( str_contains( $sql, 'FROM `wp_ffc_audience_schedules`' ) ) {
 					return array( (object) array( 'id' => 5, 'name' => 'My Calendar' ) );
 				}
@@ -139,6 +155,26 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 					return $this->environments;
 				}
 				$this->fail( 'Unexpected get_results: ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( string $text ): string => addcslashes( $text, '_%\\' ) );
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( string $sql ) {
+				$this->ran[] = $sql;
+				if ( str_contains( $sql, 'SELECT COUNT(*)' ) && str_contains( $sql, 'FROM `wp_ffc_audience_bookings` b' ) ) {
+					return (string) ( $this->total ?? count( $this->bookings ) );
+				}
+				$this->fail( 'Unexpected get_var: ' . $sql );
+			}
+		);
+		// Each booking's own users, for its reach.
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( string $sql ): array {
+				$this->ran[] = $sql;
+				if ( str_contains( $sql, 'FROM `wp_ffc_audience_booking_users`' ) ) {
+					return array( '7', '8' );
+				}
+				$this->fail( 'Unexpected get_col: ' . $sql );
 			}
 		);
 		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
@@ -156,6 +192,7 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 	private function active_booking(): object {
 		return (object) array(
 			'id'               => 101,
+			'schedule_id'      => 5,
 			'created_by'       => 2,
 			'booking_date'     => '2026-05-20',
 			'start_time'       => '09:00:00',
@@ -233,10 +270,14 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 		// bookings query was narrowed to that schedule.
 		$this->assertStringContainsString( 'value="33"', $output );
 		$booking_queries = array_values( array_filter( $this->ran, static fn( string $sql ): bool => str_contains( $sql, 'FROM `wp_ffc_audience_bookings` b' ) ) );
-		$this->assertCount( 1, $booking_queries );
+		$this->assertCount( 2, $booking_queries, 'One count, one page.' );
 		$this->assertStringContainsString( 'e.schedule_id = 5', $booking_queries[0] );
-		// Total line.
-		$this->assertStringContainsString( 'Total:', $output );
+		$this->assertStringContainsString( 'e.schedule_id = 5', $booking_queries[1] );
+		// The count above and below the list.
+		$this->assertSame( 2, substr_count( $output, '2 bookings' ) );
+		// The calendar column, and present / reached (2 own users, nobody checked in).
+		$this->assertStringContainsString( '<td>My Calendar</td>', $output );
+		$this->assertStringContainsString( '<td>0 / 2</td>', $output );
 	}
 
 	public function test_render_hides_export_button_without_capability(): void {
@@ -335,9 +376,11 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 				'manage-column column-id',
 				'manage-column column-date',
 				'manage-column column-time',
+				'manage-column column-calendar',
 				'manage-column column-environment',
 				'manage-column column-description',
-				'manage-column column-type',
+				'manage-column column-audiences',
+				'manage-column column-present',
 				'manage-column column-status',
 				'manage-column column-created_by',
 				'manage-column column-actions',
@@ -364,5 +407,69 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 		// booking modal does, never echo the raw word.
 		$this->assertMatchesRegularExpression( '#<td>\s*Custom Users\s*</td>#', $output );
 		$this->assertDoesNotMatchRegularExpression( '#<td>\s*individual\s*</td>#', $output );
+	}
+
+	public function test_the_audience_filter_the_search_and_the_page_reach_both_queries(): void {
+		// The count and the page read the same filters (#2243), so the
+		// count above the list is the count of what it pages through.
+		$_GET['audience_id'] = '12';
+		$_GET['s']           = 'sync';
+		$_GET['paged']       = '3';
+		$this->store( array( $this->active_booking() ), false );
+		$this->total = 120;
+		$this->grant_all( true );
+		Functions\when( 'get_users' )->justReturn( array() );
+
+		$page = new AudienceAdminBookings( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = ob_get_clean();
+
+		$queries = array_values( array_filter( $this->ran, static fn( string $sql ): bool => str_contains( $sql, 'FROM `wp_ffc_audience_bookings` b' ) ) );
+		$this->assertCount( 2, $queries );
+		foreach ( $queries as $sql ) {
+			$this->assertStringContainsString( 'ba.audience_id = 12', $sql );
+			$this->assertStringContainsString( "b.description LIKE '%sync%'", $sql );
+		}
+		$this->assertStringContainsString( 'LIMIT 50 OFFSET 100', $queries[1], 'Page 3 of 50 per page.' );
+		$this->assertStringContainsString( 'PAGES 3/3', $output );
+		$this->assertStringContainsString( 'data-audience_id="12"', $output, 'The export takes the same filters.' );
+		$this->assertStringContainsString( 'data-s="sync"', $output );
+	}
+
+	public function test_a_number_searches_the_booking_id_too(): void {
+		$_GET['s'] = '101';
+		$this->store( array( $this->active_booking() ), false );
+		$this->grant_all( false );
+		Functions\when( 'get_users' )->justReturn( array() );
+
+		ob_start();
+		( new AudienceAdminBookings( 'ffc-scheduling' ) )->render_page();
+		ob_end_clean();
+
+		$queries = array_values( array_filter( $this->ran, static fn( string $sql ): bool => str_contains( $sql, 'FROM `wp_ffc_audience_bookings` b' ) ) );
+		$this->assertStringContainsString( "(b.id = 101 OR b.description LIKE '%101%')", $queries[0] );
+	}
+
+	public function test_bulk_cancel_ticks_only_active_bookings_and_only_for_the_manage_tier(): void {
+		$this->store( array( $this->active_booking(), $this->cancelled_booking() ), false );
+		$this->held_caps = array( 'ffc_manage_audiences' );
+		Functions\when( 'get_users' )->justReturn( array() );
+
+		ob_start();
+		( new AudienceAdminBookings( 'ffc-scheduling' ) )->render_page();
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'id="ffc-bookings-bulk-cancel"', $output );
+		$this->assertStringContainsString( 'id="ffc-bookings-select-all"', $output );
+		$this->assertSame( 1, substr_count( $output, 'class="ffc-bookings-select"' ), 'A cancelled booking has nothing to tick.' );
+		$this->assertStringContainsString( 'value="101"', $output );
+
+		$this->held_caps = array( 'ffc_view_audiences' );
+		ob_start();
+		( new AudienceAdminBookings( 'ffc-scheduling' ) )->render_page();
+		$view_only = ob_get_clean();
+		$this->assertStringNotContainsString( 'ffc-bookings-bulk-cancel', $view_only );
+		$this->assertStringNotContainsString( 'ffc-bookings-select', $view_only );
 	}
 }

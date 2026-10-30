@@ -139,6 +139,8 @@ class AudienceBookingExportSource implements BatchedExportSourceInterface {
 		$status         = RequestInput::get_post_string( 'status' );
 		$date_from      = RequestInput::get_post_string( 'date_from' );
 		$date_to        = RequestInput::get_post_string( 'date_to' );
+		$audience_id    = RequestInput::get_post_int( 'audience_id' );
+		$search         = RequestInput::get_post_string( 's' );
 
 		if ( $schedule_id > 0 ) {
 			$filters['schedule_id'] = $schedule_id;
@@ -155,6 +157,14 @@ class AudienceBookingExportSource implements BatchedExportSourceInterface {
 		if ( '' !== $date_to ) {
 			$filters['end_date'] = $date_to;
 		}
+		// The list's audience filter and search ride along too (#2243), so the
+		// file holds the rows the screen shows.
+		if ( $audience_id > 0 ) {
+			$filters['audience_id'] = $audience_id;
+		}
+		if ( '' !== $search ) {
+			$filters['search'] = $search;
+		}
 
 		return $filters;
 	}
@@ -166,7 +176,7 @@ class AudienceBookingExportSource implements BatchedExportSourceInterface {
 	 * @return int
 	 */
 	public function count( array $filters ): int {
-		return AudienceBookingReader::count_for_export( $filters );
+		return AudienceBookingReader::count_filtered( $filters );
 	}
 
 	/**

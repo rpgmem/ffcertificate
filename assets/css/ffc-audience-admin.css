@@ -68,6 +68,17 @@
     width: 200px;
 }
 
+/* The bookings list (#2243): a narrow number, and a calendar column
+   narrower than the calendars screen's, which holds nothing else. */
+.ffc-page-scheduling-bookings .column-id {
+    width: 50px;
+}
+
+.ffc-page-scheduling-bookings .column-calendar,
+.ffc-page-scheduling-bookings .column-present {
+    width: 120px;
+}
+
 /* Holds the shortcode and its copy button (#1814). */
 [class*="ffc-page-scheduling-"] .column-shortcode {
     width: 300px;
@@ -497,11 +508,6 @@
 .ffc-color-input-value {
     vertical-align: middle;
     margin-left: var(--ffc-spacing-sm);
-}
-
-/* Bookings list: total-count note under the table. */
-.ffc-audience-total-note {
-    margin-top: var(--ffc-spacing-xl);
 }
 
 /* ==========================================================================

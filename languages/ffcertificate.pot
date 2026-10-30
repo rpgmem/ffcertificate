@@ -17906,10 +17906,6 @@ msgstr ""
 msgid "Total:"
 msgstr ""
 
-#. %d: number of bookings
-#: includes/audience/class-ffc-audience-admin-bookings.php:251
-msgid "Total: %d bookings"
-msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:48
 msgid "Track activities for audit trail"
@@ -22752,8 +22748,6 @@ msgstr ""
 msgid "Audience Calendars has two views, switched by the links under its heading: Calendars and Environments (named with the label you give environments). The environment count in a calendar's row opens that calendar's environments."
 msgstr ""
 
-msgid "Audience Bookings lists every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates."
-msgstr ""
 
 msgid "The Scheduling → Settings → Import & Export tab imports and exports audiences (name, color, parent) and members (email, name, audience) as CSV, optionally creating WordPress users for imported members."
 msgstr ""
@@ -30014,3 +30008,46 @@ msgstr ""
 
 msgid "These e-mails leave in the background: saving or cancelling a booking only queues them, and WP-Cron sends them in batches of 50, each person once. With Total Mail Queue active they join its queue, attributed to Audience Calendars. On a site whose WP-Cron runs only on visits, set the server cron line from Settings → Scheduled Tasks so they do not wait for traffic."
 msgstr ""
+
+msgid "Audience Bookings lists the bookings 50 to a page, newest first, with their calendar, who each is for and how many people checked in out of how many it reaches. Filter by calendar, space, audience, status and dates, or search the description or the booking number; the CSV export (ffc_export_audiences) takes the same filters. Holders of ffc_manage_audiences can tick active bookings and cancel them together with one reason; each cancelled booking e-mails its participants as a single cancellation does. Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates."
+msgstr ""
+
+msgid "%d bookings will be cancelled and their participants e-mailed."
+msgstr ""
+
+msgid "Cancel selected"
+msgstr ""
+
+msgid "Description or number"
+msgstr ""
+
+msgid "For"
+msgstr ""
+
+msgid "Present / reached"
+msgstr ""
+
+msgid "Search bookings"
+msgstr ""
+
+msgid "Select all active bookings"
+msgstr ""
+
+msgid "Select booking %d"
+msgstr ""
+
+msgid "Select the bookings to cancel."
+msgstr ""
+
+msgid "Write the reason for the cancellation."
+msgstr ""
+
+msgid "%1$d of %2$d booking cancelled."
+msgid_plural "%1$d of %2$d bookings cancelled."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s booking"
+msgid_plural "%s bookings"
+msgstr[0] ""
+msgstr[1] ""

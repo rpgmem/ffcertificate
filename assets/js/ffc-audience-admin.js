@@ -81,6 +81,66 @@
             // Bookings CSV export button (own method so it registers even on
             // pages where initCalendarPermissions early-returns).
             this.initBookingsExport();
+
+            // Bulk cancel on the bookings list (#2243), its own method for
+            // the same reason.
+            this.initBulkCancel();
+        },
+
+        /**
+         * Cancel the ticked bookings together (#2243). The warning is the
+         * shared override dialog with a reason field: it names how many are
+         * cancelled and enables its button once a reason is written.
+         */
+        initBulkCancel: function() {
+            var cfg = typeof ffcAudienceAdmin !== 'undefined' ? ffcAudienceAdmin : {};
+            var strings = cfg.strings || {};
+
+            function selected() {
+                return $('.ffc-bookings-select:checked').map(function() { return this.value; }).get();
+            }
+
+            function refresh() {
+                var count = selected().length;
+                $('#ffc-bookings-bulk-cancel').prop('disabled', count === 0).attr('aria-disabled', count === 0 ? 'true' : 'false');
+            }
+
+            $(document).on('change', '#ffc-bookings-select-all', function() {
+                $('.ffc-bookings-select').prop('checked', this.checked);
+                refresh();
+            });
+            $(document).on('change', '.ffc-bookings-select', refresh);
+
+            $(document).on('click', '#ffc-bookings-bulk-cancel', function(e) {
+                e.preventDefault();
+                var ids = selected();
+                if (!ids.length) {
+                    return;
+                }
+                var $btn = $(this);
+
+                FFC.overrideConfirm({
+                    reasons: [String(strings.bulkCancelSentence || '%d bookings will be cancelled and their participants e-mailed.').replace('%d', ids.length)],
+                    strings: cfg.cancelConfirm || {},
+                    agreeCategory: 'danger',
+                    reasonField: { label: strings.cancelReasonLabel || 'Cancel Reason', min: 1 }
+                }).then(function(reason) {
+                    if (!reason) {
+                        return;
+                    }
+                    $btn.prop('disabled', true).addClass('ffc-btn-loading');
+                    FFC.request('ffc_audience_cancel_bookings', { booking_ids: ids, reason: reason }, { nonce: cfg.adminNonce || '' })
+                        .then(function(data) {
+                            alert((data && data.message) || strings.bookingCancelled || '');
+                            window.location.reload();
+                        })
+                        .catch(function(err) {
+                            $btn.removeClass('ffc-btn-loading');
+                            refresh();
+                            alert((err && err.fromServer) ? err.message : (strings.error || 'An error occurred.'));
+                        });
+                });
+            });
         },
 
         /**
@@ -509,7 +569,9 @@
                         environment_id: $btn.data('environment_id') || '',
                         status:         $btn.data('status') || '',
                         date_from:      $btn.data('date_from') || '',
-                        date_to:        $btn.data('date_to') || ''
+                        date_to:        $btn.data('date_to') || '',
+                        audience_id:    $btn.data('audience_id') || '',
+                        s:              $btn.attr('data-s') || ''
                     }
                 });
             });
