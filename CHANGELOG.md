@@ -21,6 +21,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificates: a grade already sent can be corrected** (#2241). The submission edit screen lists a graded quiz attempt's grades for whoever may grade; a change needs a reason, both grades go to the activity log, and the participant is e-mailed only when the result flips between passed and not passed. Saving a first grade now asks for confirmation.
 - **Certificates: a typo in an issued certificate can be corrected** (#2241). A manager corrects one answer from the submission edit screen (never CPF/RF or e-mail), with a required reason; the old and new values go to the activity log, masked when personal, and the answer is marked as corrected.
 - **Reregistration: Reject and Return to draft carry a reason, and the member can retract** (#2242). Both open a dialog that requires a reason of 10+ characters; the member reads it on the dashboard banner and gets a new e-mail ("not approved" or "returned for revision"), and rejected members are reminded again. A member can retract an unreviewed submission while the window is open.
+- **Reregistration: a custom field keeps what was answered** (#2242). Once anybody answered it, its key, type, sensitivity and profile binding are locked and it cannot be deleted (server and editor); label, help text and options stay editable. A deactivated field's answers keep appearing in review, the Record and the CSV export.
 
 ### Changed
 

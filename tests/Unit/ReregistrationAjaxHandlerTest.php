@@ -209,7 +209,7 @@ class ReregistrationAjaxHandlerTest extends TestCase {
 						array_filter( $this->audiences, static fn ( $a ) => (int) $a->parent_id === (int) $m[1] )
 					);
 				}
-				if ( preg_match( '/FROM wp_ffc_custom_fields WHERE audience_id = (\d+) AND is_active = 1 /', $sql, $m ) ) {
+				if ( preg_match( '/FROM wp_ffc_custom_fields WHERE audience_id = (\d+) (?:AND is_active = 1 )?/', $sql, $m ) ) {
 					return $this->fields[ (int) $m[1] ] ?? array();
 				}
 				if ( preg_match( '/FROM wp_ffc_reregistration_submissions WHERE reregistration_id = (\d+) AND \( invited_at IS NULL \) ORDER BY id ASC$/', $sql, $m ) ) {

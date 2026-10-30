@@ -175,7 +175,7 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 			function ( $sql ) {
 				$bound = $this->boundTo( (string) $sql );
 				$text  = (string) $sql;
-				if ( 'wp_ffc_custom_fields' === $bound[1] && false !== strpos( $text, 'WHERE audience_id = %d AND is_active = 1' ) ) {
+				if ( 'wp_ffc_custom_fields' === $bound[1] && false !== strpos( $text, 'WHERE audience_id = %d' ) ) {
 					return $this->fields[ (int) $bound[2] ] ?? array();
 				}
 				if ( false !== strpos( $text, 'WHERE s.reregistration_id = %d AND s.id < %d' ) && 'wp_ffc_reregistration_submissions' === $bound[1] && 'wp_users' === $bound[2] ) {
@@ -425,7 +425,7 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 
 		$field_reads = array_values( array_filter( $this->prepared, static fn( array $call ): bool => 'wp_ffc_custom_fields' === ( $call[1] ?? null ) ) );
 		$this->assertCount( 1, $field_reads );
-		$this->assertStringContainsString( 'is_active = 1', $field_reads[0][0], 'Only active fields are asked for.' );
+		$this->assertStringNotContainsString( 'is_active = 1', $field_reads[0][0], 'Inactive fields are read too: their answers stay in the export (#2242).' );
 		$this->assertSame( 1, $field_reads[0][2], 'The fields are read for the campaign\'s audience.' );
 	}
 

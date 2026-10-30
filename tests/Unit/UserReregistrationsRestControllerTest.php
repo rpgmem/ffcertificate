@@ -117,7 +117,7 @@ class UserReregistrationsRestControllerTest extends TestCase {
 		});
 		$wpdb->shouldReceive( 'get_col' )->andReturn( array( '5' ) );
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing( function( $q ) {
-			if ( false !== strpos( $q['sql'], 'is_active = 1' ) ) {
+			if ( false !== strpos( $q['sql'], 'FROM %i WHERE audience_id = %d' ) ) {
 				return $this->fields;
 			}
 			if ( false === strpos( $q['sql'], 'WHERE s.user_id = %d' ) ) {

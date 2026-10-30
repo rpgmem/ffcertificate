@@ -268,3 +268,9 @@
     gap: var(--ffc-spacing-xs);
     margin-bottom: var(--ffc-spacing-xs);
 }
+
+/* An answered field's lock note (#2242): key, type, sensitivity and
+   profile binding are locked. The lock icon comes from the registry. */
+.ffc-field-answer-lock {
+    margin: var(--ffc-spacing-2xs) 0 0;
+}

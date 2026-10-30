@@ -72,6 +72,12 @@ class CustomFieldRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() {
 			return func_get_args()[0];
 		})->byDefault();
+
+		// Nobody answered any field unless a test says so (#2242): the lock
+		// reads the submissions and the profile meta.
+		$this->wpdb->shouldReceive('esc_like')->andReturnUsing(static fn($text) => $text)->byDefault();
+		$this->wpdb->shouldReceive('get_var')->andReturn(null)->byDefault();
+		Functions\when('get_users')->justReturn(array());
 	}
 
 	protected function tearDown(): void {
@@ -662,8 +668,9 @@ class CustomFieldRepositoryTest extends TestCase {
 	}
 
 	public function test_update_still_allows_setting_is_sensitive(): void {
-		// Promotion, not demotion: nothing is read and nothing is dropped.
-		$this->wpdb->shouldNotReceive('get_row');
+		// Promotion, not demotion: nothing is dropped. The stored row is read
+		// for the answer lock (#2242), and nobody answered this field.
+		$this->wpdb->shouldReceive('get_row')->andReturn($this->make_field(array('id' => 5, 'is_sensitive' => 0)));
 		$this->wpdb->shouldReceive('update')
 			->once()
 			->with(
@@ -765,6 +772,7 @@ class CustomFieldRepositoryTest extends TestCase {
 	}
 
 	public function test_update_falls_back_to_text_for_invalid_field_type(): void {
+		$this->wpdb->shouldReceive('get_row')->andReturn($this->make_field(array('id' => 5)));
 		$captured_data = null;
 		$this->wpdb->shouldReceive('update')->once()
 			->andReturnUsing(function($table, $data) use (&$captured_data) {
@@ -1523,5 +1531,100 @@ class CustomFieldRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( null );
 
 		$this->assertSame( array(), CustomFieldReader::standard_field_ids_with_label( 'cpf', array( 'CPF' ) ) );
+	}
+
+	// ==================================================================
+	// Answer lock (#2242)
+	// ==================================================================
+
+	/**
+	 * A field somebody answered: the submissions read finds its key.
+	 */
+	private function answered_field( int $id ): object {
+		$field = $this->make_field(array('id' => $id, 'field_key' => 'answered_' . $id, 'field_type' => 'text', 'is_sensitive' => 0, 'field_profile_key' => null));
+		$this->wpdb->shouldReceive('get_row')->andReturn($field);
+		$this->wpdb->shouldReceive('get_var')->andReturn('1');
+		return $field;
+	}
+
+	public function test_an_answered_field_keeps_key_type_sensitivity_and_binding(): void {
+		$this->answered_field(71);
+		$captured = null;
+		$this->wpdb->shouldReceive('update')->once()->andReturnUsing(static function ($table, $data) use (&$captured) {
+			$captured = $data;
+			return 1;
+		});
+
+		$this->assertTrue(CustomFieldWriter::update(71, array(
+			'field_label'       => 'Renamed',
+			'field_key'         => 'other_key',
+			'field_type'        => 'number',
+			'is_sensitive'      => 1,
+			'field_profile_key' => 'phone',
+		)));
+
+		$this->assertSame(array('field_label' => 'Renamed'), $captured, 'Only the label is written.');
+	}
+
+	public function test_an_answered_field_accepts_its_own_values_back(): void {
+		// The editor posts the locked controls unchanged: nothing is refused.
+		$this->answered_field(72);
+		$captured = null;
+		$this->wpdb->shouldReceive('update')->once()->andReturnUsing(static function ($table, $data) use (&$captured) {
+			$captured = $data;
+			return 1;
+		});
+
+		CustomFieldWriter::update(72, array('field_key' => 'answered_72', 'field_type' => 'text', 'is_sensitive' => 0, 'field_profile_key' => ''));
+
+		$this->assertSame(array('field_key' => 'answered_72', 'field_type' => 'text', 'is_sensitive' => 0, 'field_profile_key' => ''), $captured);
+	}
+
+	public function test_an_unanswered_field_can_change_its_key(): void {
+		$this->wpdb->shouldReceive('get_row')->andReturn($this->make_field(array('id' => 73, 'field_key' => 'old_key')));
+		$captured = null;
+		$this->wpdb->shouldReceive('update')->once()->andReturnUsing(static function ($table, $data) use (&$captured) {
+			$captured = $data;
+			return 1;
+		});
+
+		CustomFieldWriter::update(73, array('field_key' => 'new_key'));
+
+		$this->assertSame('new_key', $captured['field_key']);
+	}
+
+	public function test_a_profile_answer_also_locks_the_field(): void {
+		$this->wpdb->shouldReceive('get_row')->andReturn($this->make_field(array('id' => 74, 'field_key' => 'k74', 'field_type' => 'text')));
+		$this->wpdb->shouldReceive('get_var')->andReturn(null);
+		$args = null;
+		Functions\when('get_users')->alias(static function ($query) use (&$args) {
+			$args = $query;
+			return array(9);
+		});
+		$this->wpdb->shouldNotReceive('update');
+
+		$this->assertTrue(CustomFieldWriter::update(74, array('field_type' => 'number')), 'Nothing left to write is a success.');
+		$this->assertSame('"field_74";', $args['meta_value']);
+		$this->assertSame('LIKE', $args['meta_compare']);
+	}
+
+	public function test_an_answered_field_cannot_be_deleted(): void {
+		$this->answered_field(75);
+		$this->wpdb->shouldNotReceive('delete');
+
+		$this->assertFalse(CustomFieldWriter::delete(75));
+	}
+
+	public function test_the_submissions_read_looks_for_the_key_as_a_json_key(): void {
+		$sql = null;
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(static function ($query, ...$args) use (&$sql) {
+			$sql = array($query, $args);
+			return 'Q';
+		});
+		$this->wpdb->shouldReceive('get_var')->with('Q')->andReturn(null);
+
+		$this->assertFalse(\FreeFormCertificate\Reregistration\CustomFieldReader::has_answers((object) array('id' => 76, 'field_key' => 'ramal')));
+		$this->assertSame('SELECT 1 FROM %i WHERE data LIKE %s LIMIT 1', $sql[0]);
+		$this->assertSame(array('wp_ffc_reregistration_submissions', '%"ramal":%'), $sql[1]);
 	}
 }

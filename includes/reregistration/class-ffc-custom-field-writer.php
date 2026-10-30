@@ -195,6 +195,86 @@ class CustomFieldWriter {
 	}
 
 	/**
+	 * The properties a field keeps once anybody answered it (#2242).
+	 *
+	 * Answers are stored by key, read by type, encrypted by sensitivity and
+	 * copied to the profile by binding; changing any of them loses what was
+	 * answered. Label, help text, options, group, order, required and active
+	 * stay editable.
+	 *
+	 * @var list<string>
+	 */
+	public const ANSWER_LOCKED_PROPERTIES = array( 'field_key', 'field_type', 'is_sensitive', 'field_profile_key' );
+
+	/**
+	 * Drop changes to locked properties of an answered field from a payload.
+	 *
+	 * Like {@see self::keep_sensitive_once_set()}, the refused keys are
+	 * dropped and the rest of the save applies; the editor draws these
+	 * controls locked, so only a stale or crafted request reaches here. The
+	 * refusal is logged.
+	 *
+	 * @param int                  $field_id Field ID.
+	 * @param array<string, mixed> $data     Update payload.
+	 * @return array<string, mixed> The payload, without locked changes.
+	 */
+	private static function keep_locked_once_answered( int $field_id, array $data ): array {
+		$asked = array_intersect_key( $data, array_flip( self::ANSWER_LOCKED_PROPERTIES ) );
+		if ( empty( $asked ) ) {
+			return $data;
+		}
+
+		$current = CustomFieldReader::get_by_id( $field_id );
+		if ( ! $current ) {
+			return $data;
+		}
+
+		$changed = array();
+		foreach ( $asked as $key => $value ) {
+			if ( self::locked_value( $key, $value ) !== self::locked_value( $key, $current->$key ?? null ) ) {
+				$changed[] = $key;
+			}
+		}
+
+		if ( empty( $changed ) || ! CustomFieldReader::has_answers( $current ) ) {
+			return $data;
+		}
+
+		foreach ( $changed as $key ) {
+			unset( $data[ $key ] );
+		}
+
+		if ( class_exists( '\\FreeFormCertificate\\Core\\ActivityLog' ) ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'custom_field_locked_change_refused',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
+				array(
+					'field_id'   => $field_id,
+					'field_key'  => (string) ( $current->field_key ?? '' ),
+					'properties' => $changed,
+				)
+			);
+		}
+
+		return $data;
+	}
+
+	/**
+	 * A locked property's value, normalised for comparison.
+	 *
+	 * @param string $key   Property.
+	 * @param mixed  $value Value as posted or stored.
+	 * @return string
+	 */
+	private static function locked_value( string $key, $value ): string {
+		if ( 'is_sensitive' === $key ) {
+			return empty( $value ) ? '0' : '1';
+		}
+		$value = is_scalar( $value ) ? (string) $value : '';
+		return 'field_type' === $key ? sanitize_text_field( $value ) : sanitize_key( $value );
+	}
+
+	/**
 	 * Update a custom field.
 	 *
 	 * `is_sensitive` IS A ONE-WAY DOOR, and the demotion is dropped here (#1509).
@@ -243,6 +323,7 @@ class CustomFieldWriter {
 		}
 
 		$data = self::keep_sensitive_once_set( $field_id, $data );
+		$data = self::keep_locked_once_answered( $field_id, $data );
 
 		if ( empty( $data ) ) {
 			// The demotion was the only thing asked for, so there is nothing
@@ -330,6 +411,7 @@ class CustomFieldWriter {
 	 *
 	 * Standard fields (field_source='standard') cannot be deleted — only
 	 * deactivated. This is enforced to preserve the field seeding invariant.
+	 * Nor can a field anybody answered (#2242).
 	 *
 	 * Note: This only removes the field definition. User data in wp_usermeta
 	 * remains as orphaned keys in the JSON — this is by design so data can
@@ -341,6 +423,12 @@ class CustomFieldWriter {
 	public static function delete( int $field_id ): bool {
 		$field = CustomFieldReader::get_by_id( $field_id );
 		if ( $field && isset( $field->field_source ) && 'standard' === $field->field_source ) {
+			return false;
+		}
+
+		// An answered field is deactivated, never deleted (#2242): its
+		// answers stay readable in review, the Record and the export.
+		if ( $field && CustomFieldReader::has_answers( $field ) ) {
 			return false;
 		}
 

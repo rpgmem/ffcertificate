@@ -68,6 +68,9 @@ class AudienceAjaxControllerTest extends TestCase {
 	/** @var array<int, array<string, mixed>> Custom-field rows by id. */
 	private array $fields = array();
 
+	/** @var list<string> Field keys a reregistration submission answered (#2242). */
+	private array $answered_keys = array();
+
 	/** @var array<string, bool> Tables whose writes the double answers with false. */
 	private array $failing_tables = array();
 
@@ -112,6 +115,8 @@ class AudienceAjaxControllerTest extends TestCase {
 		// Debug::is_enabled() guards on function_exists( 'get_option' ): chosen
 		// here, with every debug area off, rather than inherited.
 		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		// No profile holds a custom-field answer unless a test says so (#2242).
+		Functions\when( 'get_users' )->justReturn( array() );
 
 		// The audience manager holds the granular cap, never manage_options,
 		// so a handler that regressed to a different cap is refused (#739).
@@ -142,6 +147,7 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->environments      = array();
 		$this->audiences         = array();
 		$this->fields            = array();
+		$this->answered_keys     = array();
 		$this->failing_tables    = array();
 		$this->writes            = array();
 		$this->unexpected        = array();
@@ -202,8 +208,17 @@ class AudienceAjaxControllerTest extends TestCase {
 				return array();
 			}
 		);
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $text ) => $text );
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			function ( $q ) {
+				if ( 'SELECT 1 FROM %i WHERE data LIKE %s LIMIT 1' === $q['sql'] ) {
+					foreach ( $this->answered_keys as $key ) {
+						if ( '%"' . $key . '":%' === $q['args'][1] ) {
+							return '1';
+						}
+					}
+					return null;
+				}
 				if ( 'wp_ffc_custom_fields' === $q['args'][0] && false !== strpos( $q['sql'], 'SELECT COUNT(*) FROM %i WHERE audience_id = %d AND field_key = %s' ) ) {
 					return (string) count( $this->fields_where( array( 'audience_id' => $q['args'][1], 'field_key' => $q['args'][2] ) ) );
 				}
@@ -968,6 +983,19 @@ class AudienceAjaxControllerTest extends TestCase {
 			),
 			$this->writes
 		);
+	}
+
+	public function test_delete_custom_field_refuses_an_answered_field(): void {
+		$this->caps          = array( 'ffc_delete_custom_fields' );
+		$_POST               = array( 'nonce' => 'n', 'field_id' => '3' );
+		$this->fields        = array( 3 => array( 'id' => 3, 'audience_id' => 4, 'field_key' => 'shoe_answered', 'field_source' => 'custom' ) );
+		$this->answered_keys = array( 'shoe_answered' );
+
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_delete_custom_field() );
+
+		$this->assertFalse( $this->responses[0]['ok'] );
+		$this->assertStringContainsString( 'already has answers', $this->responses[0]['data']['message'] );
+		$this->assertSame( array(), $this->writes, 'An answered field is deactivated, never deleted (#2242).' );
 	}
 
 	// ── replicate_field_options ────────────────────────────────────────

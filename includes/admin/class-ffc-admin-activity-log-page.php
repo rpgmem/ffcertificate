@@ -299,6 +299,7 @@ class AdminActivityLogPage {
 			'activity_log_ip_revealed'                     => __( 'Activity Log Address Revealed', 'ffcertificate' ),
 			'rate_limit_ip_revealed'                       => __( 'Rate Limit Address Revealed', 'ffcertificate' ),
 			'custom_field_sensitive_demotion_refused'      => __( 'Sensitive Field Demotion Refused', 'ffcertificate' ),
+			'custom_field_locked_change_refused'           => __( 'Answered Field Change Refused', 'ffcertificate' ),
 
 			// Recruitment.
 			'recruitment_notice_status_changed'            => __( 'Recruitment Notice Status Changed', 'ffcertificate' ),

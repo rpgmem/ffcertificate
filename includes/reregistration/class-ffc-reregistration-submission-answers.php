@@ -50,7 +50,7 @@ class ReregistrationSubmissionAnswers {
 			return null;
 		}
 
-		$fields = RecordGenerator::get_custom_fields_for_reregistration( $rereg );
+		$fields = RecordGenerator::get_custom_fields_for_reregistration( $rereg, true );
 		$data   = ! empty( $submission->data ) ? json_decode( (string) $submission->data, true ) : array();
 		$raw    = is_array( $data ) && is_array( $data['fields'] ?? null ) ? $data['fields'] : array();
 		$values = RecordGenerator::decrypt_field_values( $fields, $raw );

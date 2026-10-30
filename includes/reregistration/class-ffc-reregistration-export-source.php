@@ -348,7 +348,9 @@ class ReregistrationExportSource implements BatchedExportSourceInterface {
 	 * @return list<CustomFieldRow>
 	 */
 	private function get_custom_fields_for_reregistration( object $rereg ): array {
-		return CustomFieldReader::get_for_audiences( ReregistrationRepository::get_audience_ids( (int) $rereg->id ) );
+		// Answers of a field deactivated after people answered it stay in the
+		// export (#2242); the Record and review read the same list.
+		return RecordGenerator::get_custom_fields_for_reregistration( $rereg, true );
 	}
 
 	/**

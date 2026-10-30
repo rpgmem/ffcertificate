@@ -178,7 +178,7 @@ class RecordGeneratorTest extends TestCase {
 		});
 		$this->wpdb->shouldReceive('get_results')->andReturnUsing(function ($handle) {
 			[$sql, $args] = $this->statement((string) $handle);
-			if ('SELECT * FROM %i WHERE audience_id = %d AND is_active = 1 ORDER BY sort_order ASC, id ASC' === $sql && 'wp_ffc_custom_fields' === $args[0]) {
+			if (in_array($sql, array('SELECT * FROM %i WHERE audience_id = %d AND is_active = 1 ORDER BY sort_order ASC, id ASC', 'SELECT * FROM %i WHERE audience_id = %d ORDER BY sort_order ASC, id ASC'), true) && 'wp_ffc_custom_fields' === $args[0]) {
 				// Fresh objects per read: the reader annotates each row it returns.
 				return array_map(static function ($row) {
 					return clone $row;
@@ -799,6 +799,30 @@ class RecordGeneratorTest extends TestCase {
 
 		$this->assertCount(1, $fields);
 		$this->assertSame(10, (int) $fields[0]->id);
+	}
+
+	public function test_reading_answers_keeps_an_inactive_field_somebody_answered(): void {
+		// #2242: a field deactivated after people answered it still shows those
+		// answers; an inactive field nobody answered stays out, and the form's
+		// own list (without the flag) is unchanged.
+		$this->campaign_audiences[6] = [1];
+		$this->audiences[1]          = (object) ['id' => 1, 'name' => 'Aud', 'parent_id' => 0];
+		$this->fields_by_audience[1] = [
+			(object) ['id' => 61, 'field_key' => 'live', 'field_type' => 'text', 'is_active' => '1'],
+			(object) ['id' => 62, 'field_key' => 'retired_answered', 'field_type' => 'text', 'is_active' => '0'],
+			(object) ['id' => 63, 'field_key' => 'retired_empty', 'field_type' => 'text', 'is_active' => '0'],
+		];
+		$this->wpdb->shouldReceive('esc_like')->andReturnUsing(static fn($text) => $text);
+		$this->wpdb->shouldReceive('get_var')->andReturnUsing(function ($handle) {
+			[$sql, $args] = $this->statement((string) $handle);
+			$this->assertSame('SELECT 1 FROM %i WHERE data LIKE %s LIMIT 1', $sql);
+			return '%"retired_answered":%' === $args[1] ? '1' : null;
+		});
+		Functions\when('get_users')->justReturn([]);
+
+		$keys = array_map(static fn($f) => $f->field_key, RecordGenerator::get_custom_fields_for_reregistration((object) ['id' => 6], true));
+
+		$this->assertSame(['live', 'retired_answered'], $keys);
 	}
 
 	// ==================================================================
