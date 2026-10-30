@@ -1466,6 +1466,60 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->assertFalse( $this->holds( 10, 5 ) );
 	}
 
+	public function test_leaving_clears_the_members_cached_audiences(): void {
+		// Through AudienceWriter::remove_member(), so the calendars a member may
+		// book update at once (#2243). A second when() replaces setUp()'s stub.
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$cleared = array();
+		Functions\when( 'wp_cache_delete' )->alias(
+			static function ( $key ) use ( &$cleared ): bool {
+				$cleared[] = $key;
+				return true;
+			}
+		);
+
+		$this->audience( 10, 'My Group', null, true );
+		$this->member( 10, 5 );
+
+		( new UserAudienceRestController( 'ffc/v1' ) )
+			->leave_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
+
+		$this->assertContains( 'user_aud_5_0', $cleared );
+		$this->assertContains( 'user_aud_5_1', $cleared );
+	}
+
+	public function test_leaving_a_group_the_user_is_not_in_deletes_nothing(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$this->audience( 10, 'My Group', null, true );
+
+		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
+			->leave_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
+
+		$this->assertSame( 'not_member', $result->get_error_code() );
+		$this->assertSame( array(), $this->deletes );
+	}
+
+	public function test_leaving_all_clears_the_members_cached_audiences(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$cleared = array();
+		Functions\when( 'wp_cache_delete' )->alias(
+			static function ( $key ) use ( &$cleared ): bool {
+				$cleared[] = $key;
+				return true;
+			}
+		);
+		$this->audience( 10, 'My Group', null, true );
+		$this->member( 10, 5 );
+
+		( new UserAudienceRestController( 'ffc/v1' ) )->leave_all_audience_groups( $this->make_request() );
+
+		$this->assertContains( 'user_aud_5_0', $cleared );
+		$this->assertContains( 'user_aud_5_1', $cleared );
+	}
+
 	// ------------------------------------------------------------------
 	// leave_all_audience_groups()
 	// ------------------------------------------------------------------

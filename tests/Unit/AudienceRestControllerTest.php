@@ -772,13 +772,34 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertFalse( $ctrl->check_cancel_permission( $request ) );
 	}
 
-	public function test_check_cancel_permission_returns_true_when_bypass(): void {
+	public function test_check_cancel_permission_returns_true_when_bypass_on_the_calendar(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 99 );
 		$this->caps = array( 'ffc_bypass_audiences' );
+		$this->environment( 10, 20 );
+		$this->booking( 1, 10, '2026-04-01', '09:00', '10:00', array( 'created_by' => 5 ) );
 
 		$ctrl    = new AudienceRestController();
 		$request = $this->make_request( array( 'id' => 1 ) );
 		$this->assertTrue( $ctrl->check_cancel_permission( $request ) );
+	}
+
+	public function test_check_cancel_permission_ignores_the_bypass_where_the_calendar_turns_it_off(): void {
+		// As creating does (#2243): with the switch off, a bypass holder needs
+		// the cancel-others permission like anyone else.
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 99 );
+		$this->caps                         = array( 'ffc_bypass_audiences' );
+		$this->schedules[20]->admin_bypass = '0';
+		$this->environment( 10, 20 );
+		$this->booking( 1, 10, '2026-04-01', '09:00', '10:00', array( 'created_by' => 5 ) );
+
+		$ctrl    = new AudienceRestController();
+		$request = $this->make_request( array( 'id' => 1 ) );
+		$this->assertFalse( $ctrl->check_cancel_permission( $request ) );
+
+		$this->permit( 20, 99, array( 'can_cancel_others' => 1 ) );
+		$this->assertTrue( $ctrl->check_cancel_permission( $request ), 'The permission row still lets them.' );
 	}
 
 	public function test_check_cancel_permission_returns_true_when_creator(): void {
@@ -851,6 +872,28 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( 1, $data['bookings'][0]['id'] );
 		$this->assertSame( 'Room A', $data['bookings'][0]['environment_name'] );
 		$this->assertSame( 1, $this->ranWith( 'SELECT b.*, e.name as environment_name' ), 'The bookings are read once.' );
+	}
+
+	public function test_get_bookings_offers_cancel_through_the_bypass_only_where_the_calendar_allows_it(): void {
+		// The list's Cancel follows the same rule as the cancel route (#2243).
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 99 );
+		$this->caps = array( 'ffc_bypass_audiences' );
+		$this->environment( 10, 20 );
+		$this->booking( 1, 10, '2026-04-01', '09:00', '10:00', array( 'created_by' => 5 ) );
+		$request = $this->make_request(
+			array(
+				'start_date'     => '2026-04-01',
+				'end_date'       => '2026-04-30',
+				'schedule_id'    => null,
+				'environment_id' => null,
+			)
+		);
+
+		$this->assertTrue( ( new AudienceRestController() )->get_bookings( $request )->get_data()['bookings'][0]['can_cancel'] );
+
+		$this->schedules[20]->admin_bypass = '0';
+		$this->assertFalse( ( new AudienceRestController() )->get_bookings( $request )->get_data()['bookings'][0]['can_cancel'] );
 	}
 
 	public function test_get_bookings_filters_out_bookings_from_unreadable_schedules(): void {
