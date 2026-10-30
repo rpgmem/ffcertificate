@@ -125,7 +125,6 @@ class Activator {
 			array(
 				'captcha_provider'           => \FreeFormCertificate\Core\Captcha\CaptchaSettings::fresh_install_provider(),
 				'captcha_altcha_hide_footer' => 1,
-				'cache_expiration'           => 900,
 			)
 		);
 	}

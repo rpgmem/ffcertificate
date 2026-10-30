@@ -609,6 +609,10 @@ A few `includes/` modules are small, single-purpose service buckets whose names 
 - **`integrations/` (`\Integrations`)** — adapters to *external* systems (`EmailHandler` → SMTP, `IpGeolocation` → geolocation API). A class with no outbound/external dependency is not an integration.
 - **`scheduling/` (`\Scheduling`)** — cross-cutting scheduling-domain services shared by the self-scheduling and audience features (`DateBlockingService`, `WorkingHoursService`, `IcsGenerator`, `SchedulingMailer`). Distinct from the `self-scheduling/` and `audience/` feature modules and from the "Scheduling" admin menu: feature UI/handlers go in those modules; only shared scheduling logic lives here.
 
+### Form settings come from post meta — no plugin cache in front (#2241)
+
+A form's settings (`_ffc_form_config`, `_ffc_form_fields`, the background) are read with `get_post_meta()`, through `FormRepository::getConfig()` / `getFields()` where a repository is in hand. **Do not put a plugin cache in front of them.** WordPress already caches post meta for the request and, with a persistent object cache, across requests, so a second copy saves no query and adds an invalidation duty: `FormCache` existed for that and lost. When #2241 measured it, two readers used it (the REST controllers and bulk issue), every main path read the meta directly, its Enable setting gated nothing, and three call sites had to clear it by hand after writing the meta. It went through a deprecation cycle in 6.43.0 with its warming job and its three settings. What stays in `FormCache` is the page-cache purge (`purge_page_cache()`, `purge_external_caches()`, `purge_all_pages()`), which is a different job: telling third-party page caches that the page embedding a form changed. The class keeps its name because a rename would ride every call site for nothing; the name is the known lie, recorded here.
+
 ### Email architecture (one pipeline — #662)
 
 Every plugin-composed email flows through **one shared pipeline**; never hand-roll a chrome, a transport, or an inline body. When adding or touching an email:

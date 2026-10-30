@@ -17,10 +17,9 @@
  *     subsequent load, so a leaked hash can only trigger this within
  *     the narrow `now() < start_datetime` window before the action
  *     naturally fires by time.
- *   - Cache propagation: after writing the new datetime, both the
- *     plugin's own FormCache and any third-party page-cache plugin
- *     (W3TC, LiteSpeed, Super Cache, WP Rocket, custom via the
- *     ffc_form_cache_purged hook) are notified.
+ *   - Cache propagation: after writing the new datetime, every
+ *     third-party page-cache plugin (W3TC, LiteSpeed, Super Cache,
+ *     WP Rocket, custom via the ffc_form_cache_purged hook) is notified.
  *
  * @package FreeFormCertificate\Frontend
  * @since 6.5.6
@@ -259,7 +258,7 @@ class EarlyOpenAction {
 		update_post_meta( $form_id, self::META_OPENED_AT, time() );
 		update_post_meta( $form_id, self::META_OPENED_FROM, $original_time_start );
 
-		// Invalidate the plugin's own object cache + page-cache plugins.
+		// Invalidate the page-cache plugins.
 		// The `ffc_form` CPT is registered with `'public' => false`, so
 		// the per-post `flush_post()` in purge_external_caches() doesn't
 		// help the visible surface — what visitors see is the page that
@@ -267,7 +266,6 @@ class EarlyOpenAction {
 		// can't associate with the form id. Use the aggressive site-wide
 		// purge for this one-shot, deliberate state change so the page
 		// hosting the shortcode actually picks up the new time_start.
-		\FreeFormCertificate\Submissions\FormCache::clear_form_cache( $form_id );
 		\FreeFormCertificate\Submissions\FormCache::purge_external_caches( $form_id, 'early_open' );
 		\FreeFormCertificate\Submissions\FormCache::purge_all_pages( $form_id, 'early_open' );
 

@@ -78,12 +78,12 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 					<?php if ( wp_using_ext_object_cache() ) : ?>
 						<span class="ffc-text-success ffc-icon-checkmark"><?php esc_html_e( 'Active', 'ffcertificate' ); ?></span>
 						<p class="description">
-							<?php esc_html_e( 'Rate limiter counters persist between requests. Form cache is shared across all processes.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Rate limiter counters persist between requests.', 'ffcertificate' ); ?>
 						</p>
 					<?php else : ?>
 						<span class="ffc-text-warning ffc-icon-warning"><?php esc_html_e( 'Not detected', 'ffcertificate' ); ?></span>
 						<p class="description">
-							<?php esc_html_e( 'Without Redis/Memcached, rate limiter hourly counters reset on each request and form cache is not shared. Install an object cache plugin (e.g. LiteSpeed Cache with Redis) for full rate limiting functionality.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Without Redis/Memcached, rate limiter hourly counters reset on each request. Install an object cache plugin (e.g. LiteSpeed Cache with Redis) for full rate limiting functionality.', 'ffcertificate' ); ?>
 						</p>
 					<?php endif; ?>
 				</td>
@@ -94,6 +94,29 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 					<span class="ffc-text-success ffc-icon-checkmark"><?php esc_html_e( 'Compatible', 'ffcertificate' ); ?></span>
 					<p class="description">
 						<?php esc_html_e( 'All AJAX endpoints use admin-ajax.php which is excluded from page cache by default.', 'ffcertificate' ); ?>
+					</p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Purge page caches', 'ffcertificate' ); ?></th>
+				<td>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Purge page caches', 'ffcertificate' ),
+							'category' => 'caution',
+							'icon'     => 'sync',
+							'href'     => wp_nonce_url( admin_url( 'admin.php?page=ffc-settings&tab=cache&action=clear_cache' ), 'ffc_clear_cache' ),
+							'class'    => 'ffc-cache-clear-btn',
+							'attrs'    => array(
+								'data-ffc-action'  => 'ffc_cache_clear',
+								'data-ffc-confirm' => __( 'Purge the page caches of every published form?', 'ffcertificate' ),
+							),
+						)
+					);
+					?>
+					<p class="description">
+						<?php esc_html_e( 'Asks the page-cache plugins above, and any integration listening on the ffc_form_cache_purged hook, to drop their copies of the pages that show a form. Saving a form already does this for that form.', 'ffcertificate' ); ?>
 					</p>
 				</td>
 			</tr>
@@ -166,164 +189,6 @@ if ( $ffcertificate_cf_behind ) :
 <form method="post">
 	<?php wp_nonce_field( 'ffc_settings_action', 'ffc_settings_nonce' ); ?>
 	<input type="hidden" name="_ffc_tab" value="cache">
-
-<!-- Form Cache Card -->
-<div class="card">
-	<h2 class="ffc-icon-file"><?php esc_html_e( 'Form Cache', 'ffcertificate' ); ?></h2>
-	<p class="description">
-		<?php esc_html_e( 'The cache stores form settings to improve performance.', 'ffcertificate' ); ?>
-		<?php if ( wp_using_ext_object_cache() ) : ?>
-			<span class="ffc-text-success ffc-icon-success"><?php esc_html_e( 'External cache active (Redis/Memcached)', 'ffcertificate' ); ?></span>
-		<?php else : ?>
-			<span class="ffc-text-warning ffc-icon-warning"><?php esc_html_e( 'Using default WordPress cache (database)', 'ffcertificate' ); ?></span>
-		<?php endif; ?>
-	</p>
-
-		<table class="form-table" role="presentation">
-			<tbody>
-				<tr>
-					<th scope="row">
-						<label for="cache_enabled"><?php esc_html_e( 'Enable Cache', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'    => 'ffc_settings[cache_enabled]',
-								'id'      => 'cache_enabled',
-								'checked' => (int) $ffcertificate_get_option( 'cache_enabled' ) === 1,
-								'label'   => __( 'Enable form caching', 'ffcertificate' ),
-								'data'    => array(
-									'ffc-autosave-key'   => 'cache_enabled',
-									'ffc-section-master' => 'cache-enabled',
-								),
-							)
-						);
-						?>
-						<p class="description"><?php esc_html_e( 'Recommended for sites with many forms or high traffic.', 'ffcertificate' ); ?></p>
-					</td>
-				</tr>
-
-				<tr data-ffc-section="cache-enabled">
-					<th scope="row">
-						<?php esc_html_e( 'Expiration Time', 'ffcertificate' ); ?>
-					</th>
-					<td>
-						<?php
-						// An ordered scale of the four values the select offered
-						// (#1758). A new install starts at 15 minutes (Activator);
-						// one that never saved this tab keeps reading 1 hour.
-						\FreeFormCertificate\Admin\AdminUI::render_steps(
-							array(
-								'name'    => 'ffc_settings[cache_expiration]',
-								'id'      => 'cache_expiration',
-								'value'   => (string) $ffcertificate_get_option( 'cache_expiration' ),
-								'default' => '3600',
-								'legend'  => __( 'Expiration Time', 'ffcertificate' ),
-								'options' => array(
-									'900'   => __( '15 min', 'ffcertificate' ),
-									'1800'  => __( '30 min', 'ffcertificate' ),
-									'3600'  => __( '1 h', 'ffcertificate' ),
-									'86400' => __( '24 h', 'ffcertificate' ),
-								),
-								'data'    => array( 'ffc-autosave-key' => 'cache_expiration' ),
-							)
-						);
-						?>
-						<p class="description"><?php esc_html_e( 'Time the data remains in cache before being updated.', 'ffcertificate' ); ?></p>
-					</td>
-				</tr>
-
-				<tr data-ffc-section="cache-enabled">
-					<th scope="row">
-						<label for="cache_auto_warm"><?php esc_html_e( 'Automatic Warming', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'    => 'ffc_settings[cache_auto_warm]',
-								'id'      => 'cache_auto_warm',
-								'checked' => (int) $ffcertificate_get_option( 'cache_auto_warm' ) === 1,
-								'label'   => __( 'Pre-load cache daily', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-key' => 'cache_auto_warm' ),
-							)
-						);
-						?>
-						<p class="description"><?php esc_html_e( 'Runs a daily cron job to keep the cache always updated.', 'ffcertificate' ); ?></p>
-					</td>
-				</tr>
-
-				<?php if ( class_exists( '\FreeFormCertificate\Submissions\FormCache' ) ) : ?>
-				<tr data-ffc-section="cache-enabled">
-					<th scope="row"><?php esc_html_e( 'Statistics', 'ffcertificate' ); ?></th>
-					<td>
-						<?php
-						$ffcertificate_stats       = \FreeFormCertificate\Submissions\FormCache::get_stats();
-						$ffcertificate_total_forms = wp_count_posts( 'ffc_form' )->publish;
-						?>
-						<div class="ffc-stats-box">
-							<table>
-								<tr class="alternate">
-									<td><strong><?php esc_html_e( 'Backend:', 'ffcertificate' ); ?></strong></td>
-									<td class="ffc-stat-value"><?php echo esc_html( $ffcertificate_stats['backend'] ); ?></td>
-								</tr>
-								<tr>
-									<td><strong><?php esc_html_e( 'Group:', 'ffcertificate' ); ?></strong></td>
-									<td class="ffc-stat-value"><?php echo esc_html( $ffcertificate_stats['group'] ); ?></td>
-								</tr>
-								<tr class="alternate">
-									<td><strong><?php esc_html_e( 'Expiration:', 'ffcertificate' ); ?></strong></td>
-									<td class="ffc-stat-value"><?php echo esc_html( $ffcertificate_stats['expiration'] ); ?></td>
-								</tr>
-								<tr>
-									<td><strong><?php esc_html_e( 'Published Forms:', 'ffcertificate' ); ?></strong></td>
-									<td class="ffc-stat-value ffc-stat-info"><?php echo esc_html( $ffcertificate_total_forms ); ?></td>
-								</tr>
-							</table>
-							<?php if ( ! wp_using_ext_object_cache() ) : ?>
-								<p class="ffc-text-warning ffc-mt-2xl">
-									<span class="ffc-icon-bulb"></span><?php esc_html_e( 'Tip: Install Redis or Memcached for better performance.', 'ffcertificate' ); ?>
-								</p>
-							<?php endif; ?>
-						</div>
-					</td>
-				</tr>
-
-				<tr data-ffc-section="cache-enabled">
-					<th scope="row"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
-					<td>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_button(
-							array(
-								'label'    => __( 'Warm Cache Now', 'ffcertificate' ),
-								'category' => 'caution',
-								'icon'     => 'zap',
-								'href'     => wp_nonce_url( admin_url( 'admin.php?page=ffc-settings&tab=cache&action=warm_cache' ), 'ffc_warm_cache' ),
-								'class'    => 'ffc-cache-warm-btn',
-								'attrs'    => array( 'data-ffc-action' => 'ffc_cache_warm' ),
-							)
-						);
-						\FreeFormCertificate\Admin\AdminUI::render_button(
-							array(
-								'label'    => __( 'Clear Cache', 'ffcertificate' ),
-								'category' => 'danger',
-								'icon'     => 'delete',
-								'href'     => wp_nonce_url( admin_url( 'admin.php?page=ffc-settings&tab=cache&action=clear_cache' ), 'ffc_clear_cache' ),
-								'class'    => 'ffc-cache-clear-btn',
-								'attrs'    => array(
-									'data-ffc-action'  => 'ffc_cache_clear',
-									'data-ffc-confirm' => __( 'Clear all cache?', 'ffcertificate' ),
-								),
-							)
-						);
-						?>
-					</td>
-				</tr>
-				<?php endif; ?>
-			</tbody>
-		</table>
-</div>
 
 <!-- QR Code Cache Card -->
 <div class="card">

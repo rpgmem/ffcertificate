@@ -1,7 +1,8 @@
 /**
- * FFC Cache Actions — inline AJAX for the Settings → Cache buttons.
+ * FFC Cache Actions — inline AJAX for the Settings → Cache
+ * "Purge page caches" button.
  *
- * The two buttons keep their nonced href as a no-JS fallback (the
+ * The button keeps its nonced href as a no-JS fallback (the
  * legacy admin_init handler in Settings::handle_cache_actions still
  * runs); this module just intercepts the click, calls FFC.request,
  * and pops a toast via FFC.Admin.notify — no reload, no
@@ -52,18 +53,15 @@
             });
     }
 
-    $(document).on('click', '.ffc-cache-warm-btn, .ffc-cache-clear-btn', function (e) {
+    $(document).on('click', '.ffc-cache-clear-btn', function (e) {
         var $btn   = $(this);
         var action = $btn.data('ffc-action');
         if (!action) { return; }
 
-        // Honour the legacy confirm() prompt for the destructive action.
-        if ($btn.hasClass('ffc-cache-clear-btn')) {
-            var confirmMsg = $btn.data('ffc-confirm') || strings.confirmClear || 'Clear all cache?';
-            if (!window.confirm(confirmMsg)) {
-                e.preventDefault();
-                return;
-            }
+        var confirmMsg = $btn.data('ffc-confirm') || strings.confirmClear || 'Purge page caches?';
+        if (!window.confirm(confirmMsg)) {
+            e.preventDefault();
+            return;
         }
 
         e.preventDefault();

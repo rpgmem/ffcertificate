@@ -324,9 +324,10 @@ class SettingsTest extends TestCase {
 		$this->assertArrayHasKey( 'qr_cache_enabled', $defaults );
 		$this->assertArrayHasKey( 'qr_default_size', $defaults );
 		$this->assertArrayHasKey( 'date_format', $defaults );
-		$this->assertArrayHasKey( 'cache_enabled', $defaults );
-		$this->assertArrayHasKey( 'cache_expiration', $defaults );
-		$this->assertArrayHasKey( 'cache_auto_warm', $defaults );
+		// The form-settings cache and its three settings are retired (#2241).
+		$this->assertArrayNotHasKey( 'cache_enabled', $defaults );
+		$this->assertArrayNotHasKey( 'cache_expiration', $defaults );
+		$this->assertArrayNotHasKey( 'cache_auto_warm', $defaults );
 		$this->assertSame( 365, $defaults['cleanup_days'] );
 		$this->assertSame( 'wp', $defaults['smtp_mode'] );
 		// Default changed from 'F j, Y' to 'd/m/Y' in #244 — Brazilian-
@@ -489,30 +490,16 @@ class SettingsTest extends TestCase {
 	// handle_cache_actions()
 	// ==================================================================
 
-	public function test_handle_cache_actions_warm_cache(): void {
+	public function test_handle_cache_actions_ignores_the_retired_warm_action(): void {
 		$_GET['action'] = 'warm_cache';
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\expect( 'check_admin_referer' )->never();
+		$redirects = CallLog::record( 'wp_safe_redirect' );
 
-		// Five published forms, each already cached: warming counts all five.
-		$queries = array();
-		Functions\when( 'get_posts' )->alias(
-			static function ( $args ) use ( &$queries ) {
-				$queries[] = $args;
-				return array( 11, 12, 13, 14, 15 );
-			}
-		);
-		Functions\when( 'wp_cache_get' )->alias(
-			static fn( $key ) => 0 === strpos( (string) $key, 'complete_' ) ? array( 'config' => array() ) : false
-		);
+		$this->settings->handle_cache_actions();
 
-		$url = $this->redirect_of( fn() => $this->settings->handle_cache_actions() );
-
-		$this->assertCount( 1, $queries );
-		$this->assertSame( 'ffc_form', $queries[0]['post_type'] );
-		$this->assertStringContainsString( 'msg=cache_warmed', $url );
-		$this->assertStringContainsString( 'count=5', $url );
+		$this->assertSame( 0, $redirects->count() );
 	}
 
 	public function test_handle_cache_actions_clear_cache(): void {
@@ -521,7 +508,6 @@ class SettingsTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 
-		Functions\when( 'wp_cache_supports' )->justReturn( true );
 		$flush = CallLog::record( 'wp_cache_flush_group', true );
 		Functions\when( 'get_posts' )->justReturn( array( 7, 8 ) );
 		// Each published form's page cache is purged for the manual clear.
@@ -530,12 +516,12 @@ class SettingsTest extends TestCase {
 
 		$url = $this->redirect_of( fn() => $this->settings->handle_cache_actions() );
 
-		$this->assertSame( 1, $flush->count(), 'The plugin\'s cache group is flushed once.' );
+		$this->assertSame( 0, $flush->count(), 'The retired form-settings cache is not flushed.' );
 		$this->assertStringContainsString( 'msg=cache_cleared', $url );
 	}
 
 	public function test_handle_cache_actions_skips_without_permission(): void {
-		$_GET['action'] = 'warm_cache';
+		$_GET['action'] = 'clear_cache';
 
 		Functions\when( 'current_user_can' )->justReturn( false );
 
@@ -1176,16 +1162,6 @@ class SettingsTest extends TestCase {
 
 		$this->assertStringContainsString( 'notice-success', $html );
 		unset( $_GET['msg'], $_GET['cleared'] );
-	}
-
-	public function test_display_settings_page_shows_cache_warmed_notice(): void {
-		$_GET['msg']   = 'cache_warmed';
-		$_GET['count'] = '5';
-
-		$html = $this->render_with_tab();
-
-		$this->assertStringContainsString( 'notice-success', $html );
-		unset( $_GET['msg'], $_GET['count'] );
 	}
 
 	public function test_display_settings_page_shows_cache_cleared_notice(): void {

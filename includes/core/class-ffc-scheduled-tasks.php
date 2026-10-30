@@ -115,10 +115,6 @@ final class ScheduledTasks {
 			'recurrence' => 'daily',
 			'module'     => 'certificates',
 		),
-		'ffcertificate_warm_cache_hook'               => array(
-			'recurrence' => 'daily',
-			'module'     => null,
-		),
 		'ffc_process_submission_async'                => array(
 			'recurrence' => self::SINGLE,
 			'module'     => null,
@@ -193,8 +189,6 @@ final class ScheduledTasks {
 				return __( 'Cloudflare IP range refresh', 'ffcertificate' );
 			case 'ffcertificate_bulk_issue_purge':
 				return __( 'Bulk issue: expire unfinished imports', 'ffcertificate' );
-			case 'ffcertificate_warm_cache_hook':
-				return __( 'Form cache warming (when "Pre-load cache daily" is on)', 'ffcertificate' );
 			case 'ffc_process_submission_async':
 				return __( 'Submission processing (one per submission)', 'ffcertificate' );
 			case 'ffc_reregistration_reminder_batch':

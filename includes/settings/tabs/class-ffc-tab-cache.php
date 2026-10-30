@@ -49,7 +49,7 @@ class TabCache extends SettingsTab {
 		}
 		$this->enqueue_autosave_infra();
 
-		// Inline AJAX for the Warm / Clear cache buttons. Depends on
+		// Inline AJAX for the "Purge page caches" button. Depends on
 		// ffc-core (FFC.request) + ffc-admin-js (showNotification).
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_script(
@@ -63,19 +63,18 @@ class TabCache extends SettingsTab {
 			'ffc-cache-actions',
 			'ffcCacheActions',
 			array(
-				// Each action has its own nonce — the endpoint guard
-				// calls `check_ajax_referer( $action, 'nonce' )` and the
-				// global FFC.config.nonce (ffc_admin_pdf_nonce) doesn't
-				// verify against either action.
+				// The action has its own nonce — the endpoint guard calls
+				// `check_ajax_referer( $action, 'nonce' )` and the global
+				// FFC.config.nonce (ffc_admin_pdf_nonce) doesn't verify
+				// against it.
 				'nonces'  => array(
-					\FreeFormCertificate\Admin\CacheActionsAjaxEndpoint::ACTION_WARM  => wp_create_nonce( \FreeFormCertificate\Admin\CacheActionsAjaxEndpoint::ACTION_WARM ),
 					\FreeFormCertificate\Admin\CacheActionsAjaxEndpoint::ACTION_CLEAR => wp_create_nonce( \FreeFormCertificate\Admin\CacheActionsAjaxEndpoint::ACTION_CLEAR ),
 				),
 				'strings' => array(
 					'working'      => __( 'Working…', 'ffcertificate' ),
 					'success'      => __( 'Done.', 'ffcertificate' ),
 					'error'        => __( 'Action failed.', 'ffcertificate' ),
-					'confirmClear' => __( 'Clear all cache?', 'ffcertificate' ),
+					'confirmClear' => __( 'Purge the page caches of every published form?', 'ffcertificate' ),
 				),
 			)
 		);

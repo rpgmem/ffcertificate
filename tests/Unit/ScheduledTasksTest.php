@@ -128,7 +128,6 @@ class ScheduledTasksTest extends TestCase {
 			'ffc_date_messages_batch'           => 'DateMessagesCron::unschedule()',
 			'ffc_date_messages_digest'          => 'DateMessagesCron::unschedule()',
 			'ffc_date_messages_announce'        => 'DateMessagesCron::unschedule()',
-			'ffcertificate_warm_cache_hook'     => 'FormCache::unschedule_cache_warming()',
 		);
 
 		foreach ( array_keys( ScheduledTasks::all() ) as $hook ) {
@@ -161,10 +160,14 @@ class ScheduledTasksTest extends TestCase {
 			\FreeFormCertificate\DateMessages\Runner::BATCH_HOOK,
 			\FreeFormCertificate\DateMessages\Digest::HOOK,
 			\FreeFormCertificate\DateMessages\Runner::ANNOUNCE_HOOK,
-			\FreeFormCertificate\Submissions\FormCache::WARM_HOOK,
 		) as $constant ) {
 			$this->assertArrayHasKey( $constant, $all );
 		}
+	}
+
+	public function test_the_retired_warming_is_no_longer_listed(): void {
+		// The event is still cleared everywhere (#2241); it is not a task.
+		$this->assertArrayNotHasKey( \FreeFormCertificate\Submissions\FormCache::WARM_HOOK, ScheduledTasks::all() );
 	}
 
 	public function test_the_date_messages_cron_unschedules_every_single_event_whatever_its_arguments(): void {

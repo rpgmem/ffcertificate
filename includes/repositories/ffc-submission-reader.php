@@ -351,8 +351,13 @@ class SubmissionReader extends AbstractRepository {
 	 * @param string $email Email address.
 	 * @param int    $limit Limit.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2241).
+	 * @removal    6.45.0
 	 */
 	public function findByEmail( string $email, int $limit = 10 ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				'SELECT * FROM %i WHERE email_hash = %s ORDER BY id DESC LIMIT %d',
@@ -376,8 +381,13 @@ class SubmissionReader extends AbstractRepository {
 	 * @param string $cpf Cpf.
 	 * @param int    $limit Limit.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2241).
+	 * @removal    6.45.0
 	 */
 	public function findByCpfRf( string $cpf, int $limit = 10 ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$clean_cpf   = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
 		$id_hash     = $this->hash( 'cpf', $clean_cpf );
 		$hash_column = 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $clean_cpf ) ? 'rf_hash' : 'cpf_hash';
@@ -408,8 +418,13 @@ class SubmissionReader extends AbstractRepository {
 	 * @param int $limit Limit.
 	 * @param int $offset Offset.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2241).
+	 * @removal    6.45.0
 	 */
 	public function findByFormId( int $form_id, int $limit = 100, int $offset = 0 ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				'SELECT * FROM %i WHERE form_id = %d ORDER BY id DESC LIMIT %d OFFSET %d',
@@ -434,8 +449,13 @@ class SubmissionReader extends AbstractRepository {
 	 * @param int|array<int, int>|null $form_ids Single form ID, array of IDs, or null for all forms.
 	 * @param string|null              $status Status filter (publish, trash, null = all).
 	 * @return array<int, array<string, mixed>> Array of submissions
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2241).
+	 * @removal    6.45.0
 	 */
 	public function getForExport( $form_ids = null, ?string $status = 'publish' ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		// Handle multiple form IDs with custom query.
 		if ( is_array( $form_ids ) && ! empty( $form_ids ) ) {
 			$form_ids_int          = array_map( 'absint', $form_ids );

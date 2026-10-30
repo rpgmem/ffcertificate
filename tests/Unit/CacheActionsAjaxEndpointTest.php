@@ -10,11 +10,13 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\CacheActionsAjaxEndpoint;
 
 /**
- * Tests for the cache-actions AJAX endpoints (Warm + Clear) introduced in 6.5.5.
+ * Tests for the cache-actions AJAX endpoint introduced in 6.5.5. The "Warm"
+ * action left with the form-settings cache in 6.43.0 (#2241); "Clear" now
+ * purges the page caches of every published form and nothing else.
  *
  * Capabilities and FormCache are the real classes: the capability check reads
- * `current_user_can()`, warming reads the published forms through
- * `get_posts()` and clearing flushes the object cache (#2127).
+ * `current_user_can()` and the purge reads the published forms through
+ * `get_posts()` (#2127).
  *
  * @covers \FreeFormCertificate\Admin\CacheActionsAjaxEndpoint
  */
@@ -24,6 +26,13 @@ class CacheActionsAjaxEndpointTest extends TestCase {
 
 	/** How many times the object cache was flushed. */
 	private int $flushes = 0;
+
+	/**
+	 * Arguments of each `ffc_form_cache_purged` action.
+	 *
+	 * @var list<array<int, mixed>>
+	 */
+	private array $purged = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -37,19 +46,28 @@ class CacheActionsAjaxEndpointTest extends TestCase {
 		Functions\when( 'check_ajax_referer' )->justReturn( true );
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( 'current_user_can' )->justReturn( true );
-		// A warm form reads as already cached, so warming counts it.
-		Functions\when( 'wp_cache_get' )->justReturn( array( 'cached' ) );
 		$this->flushes = 0;
-		// The plugin's own group is flushed, never the whole cache (#2241).
-		Functions\when( 'wp_cache_supports' )->justReturn( true );
+		$this->purged  = array();
+		// The retired form-settings cache is never flushed again (#2241).
 		Functions\when( 'wp_cache_flush_group' )->alias(
-			function ( $group ): bool {
-				$this->assertSame( 'ffc_forms', $group );
+			function (): bool {
 				++$this->flushes;
 				return true;
 			}
 		);
-		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'wp_cache_flush' )->alias(
+			function (): bool {
+				++$this->flushes;
+				return true;
+			}
+		);
+		Functions\when( 'do_action' )->alias(
+			function ( string $hook, ...$args ): void {
+				if ( 'ffc_form_cache_purged' === $hook ) {
+					$this->purged[] = $args;
+				}
+			}
+		);
 
 		// wp_send_json_* throw so we can assert which branch fired.
 		Functions\when( 'wp_send_json_error' )->alias( function ( $data = null ) {
@@ -85,14 +103,6 @@ class CacheActionsAjaxEndpointTest extends TestCase {
 	// Capability gate
 	// ==================================================================
 
-	public function test_warm_rejects_when_user_lacks_capability(): void {
-		Functions\when( 'current_user_can' )->justReturn( false );
-
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'do not have permission' );
-		CacheActionsAjaxEndpoint::handle_warm();
-	}
-
 	public function test_clear_rejects_when_user_lacks_capability(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
 
@@ -102,48 +112,32 @@ class CacheActionsAjaxEndpointTest extends TestCase {
 		} catch ( \RuntimeException $e ) {
 			$this->assertStringContainsString( 'do not have permission', $e->getMessage() );
 		}
-		$this->assertSame( 0, $this->flushes, 'Nothing is flushed without the capability.' );
+		$this->assertSame( array(), $this->purged, 'Nothing is purged without the capability.' );
 	}
 
 	// ==================================================================
 	// Happy path
 	// ==================================================================
 
-	public function test_warm_returns_count_from_form_cache(): void {
-		$this->published_forms( array( 1, 2, 3, 4, 5, 6, 7 ) );
-
-		try {
-			CacheActionsAjaxEndpoint::handle_warm();
-			$this->fail( 'Expected wp_send_json_success to short-circuit via exception' );
-		} catch ( \RuntimeException $e ) {
-			$this->assertStringStartsWith( 'json_success', $e->getMessage() );
-			$this->assertStringContainsString( '"count":7', $e->getMessage() );
-			$this->assertStringContainsString( 'Cache warmed for 7 forms', $e->getMessage() );
-		}
-	}
-
-	public function test_warm_singular_message_when_only_one_form(): void {
-		$this->published_forms( array( 1 ) );
-
-		try {
-			CacheActionsAjaxEndpoint::handle_warm();
-			$this->fail( 'Expected wp_send_json_success to short-circuit via exception' );
-		} catch ( \RuntimeException $e ) {
-			$this->assertStringContainsString( '"count":1', $e->getMessage() );
-			$this->assertStringContainsString( 'Cache warmed for 1 form.', $e->getMessage() );
-		}
-	}
-
-	public function test_clear_invokes_form_cache_clear_all(): void {
-		$this->published_forms( array() );
+	public function test_clear_purges_the_page_caches_of_every_published_form(): void {
+		$this->published_forms( array( 3, 7 ) );
 
 		try {
 			CacheActionsAjaxEndpoint::handle_clear();
 			$this->fail( 'Expected wp_send_json_success to short-circuit via exception' );
 		} catch ( \RuntimeException $e ) {
 			$this->assertStringStartsWith( 'json_success', $e->getMessage() );
-			$this->assertStringContainsString( 'Cache cleared.', $e->getMessage() );
+			$this->assertStringContainsString( 'Page caches purged.', $e->getMessage() );
 		}
-		$this->assertSame( 1, $this->flushes );
+		$this->assertSame(
+			array( array( 3, 'manual_clear_all' ), array( 7, 'manual_clear_all' ) ),
+			$this->purged
+		);
+		$this->assertSame( 0, $this->flushes, 'The object cache is not touched.' );
+	}
+
+	public function test_the_warm_action_is_gone(): void {
+		$this->assertFalse( defined( CacheActionsAjaxEndpoint::class . '::ACTION_WARM' ) );
+		$this->assertFalse( method_exists( CacheActionsAjaxEndpoint::class, 'handle_warm' ) );
 	}
 }

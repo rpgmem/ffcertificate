@@ -878,7 +878,7 @@ class SettingsActionHandlerTest extends TestCase {
 		// Ask for a real action, so the capability check is the only thing that
 		// can stop it; check_admin_referer() is the first statement inside that
 		// branch, so it never running is what proves the denial.
-		$_GET['action'] = 'warm_cache';
+		$_GET['action'] = 'clear_cache';
 		$this->grant();
 		Functions\expect( 'check_admin_referer' )->never();
 
@@ -892,31 +892,17 @@ class SettingsActionHandlerTest extends TestCase {
 		$this->handler->handle_cache_actions();
 	}
 
-	public function test_cache_actions_warm_cache_redirects(): void {
-		$_GET['action'] = 'warm_cache';
-		Functions\when( 'check_admin_referer' )->justReturn( true );
-		$posts = CallLog::record( 'get_posts', array() );
-
-		$url = $this->redirect_of( 'handle_cache_actions' );
-
-		// The real FormCache looked the published forms up once, and warmed none.
-		$this->assertSame( 1, $posts->count() );
-		$this->assertStringContainsString( 'msg=cache_warmed', $url );
-		$this->assertStringContainsString( 'count=0', $url );
-	}
-
 	public function test_cache_actions_clear_cache_redirects(): void {
 		$_GET['action'] = 'clear_cache';
 		Functions\when( 'check_admin_referer' )->justReturn( true );
-		Functions\when( 'wp_cache_supports' )->justReturn( true );
 		$flush = CallLog::record( 'wp_cache_flush_group', true );
 		$posts = CallLog::record( 'get_posts', array() );
 
 		$url = $this->redirect_of( 'handle_cache_actions' );
 
-		// The plugin's cache group is flushed once, and the published forms are looked
-		// up once to purge their external caches.
-		$this->assertSame( 1, $flush->count() );
+		// The retired form-settings cache is not flushed (#2241); the published
+		// forms are looked up once to purge their page caches.
+		$this->assertSame( 0, $flush->count() );
 		$this->assertSame( 1, $posts->count() );
 		$this->assertStringContainsString( 'msg=cache_cleared', $url );
 	}

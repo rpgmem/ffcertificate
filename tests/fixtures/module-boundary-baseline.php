@@ -93,7 +93,6 @@ return array(
 	'Recruitment>Shortcodes',
 	'Recruitment>UserDashboard',
 	'Repositories>Core',
-	'Repositories>Submissions',
 	'Reregistration>Audience',
 	'Reregistration>Core',
 	'Reregistration>Generators',

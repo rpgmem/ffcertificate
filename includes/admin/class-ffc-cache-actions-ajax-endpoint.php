@@ -1,6 +1,6 @@
 <?php
 /**
- * Cache action AJAX endpoints — Clear / Warm without page reload.
+ * Cache action AJAX endpoint — purge the page caches without a page reload.
  *
  * Mirrors the legacy admin_init handler in `Settings::handle_cache_actions()`
  * (which keeps working as the no-JS fallback) but returns JSON so the
@@ -26,23 +26,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * AJAX endpoint for the "Warm cache now" / "Clear cache" buttons.
+ * AJAX endpoint for the "Purge page caches" button. The "Warm cache now"
+ * action left with the form-settings cache (#2241).
  */
 class CacheActionsAjaxEndpoint {
 
-	public const ACTION_WARM  = 'ffc_cache_warm';
 	public const ACTION_CLEAR = 'ffc_cache_clear';
 
 	/**
 	 * Register hooks.
 	 */
 	public static function init(): void {
-		add_action( 'wp_ajax_' . self::ACTION_WARM, array( self::class, 'handle_warm' ) );
 		add_action( 'wp_ajax_' . self::ACTION_CLEAR, array( self::class, 'handle_clear' ) );
 	}
 
 	/**
-	 * Capability gate shared by both endpoints — same shape as the
+	 * Capability gate — same shape as the
 	 * legacy admin_init handler so privilege boundaries don't shift.
 	 *
 	 * @param string $action AJAX action name (used by check_ajax_referer).
@@ -58,37 +57,17 @@ class CacheActionsAjaxEndpoint {
 	}
 
 	/**
-	 * Warm the form cache for every published form, return the count.
-	 */
-	public static function handle_warm(): void {
-		self::guard( self::ACTION_WARM );
-
-		$count = \FreeFormCertificate\Submissions\FormCache::warm_all_forms();
-
-		wp_send_json_success(
-			array(
-				'count'   => $count,
-				/* translators: %d: number of forms whose cache was warmed. */
-				'message' => sprintf( _n( 'Cache warmed for %d form.', 'Cache warmed for %d forms.', $count, 'ffcertificate' ), $count ),
-			)
-		);
-	}
-
-	/**
-	 * Drop the entire form cache.
+	 * Purge the page caches of every published form, so visitors see the
+	 * current form rather than a cached copy.
 	 */
 	public static function handle_clear(): void {
 		self::guard( self::ACTION_CLEAR );
 
-		\FreeFormCertificate\Submissions\FormCache::clear_all_cache();
-		// Also sweep page-cache invalidation on every form so visitors
-		// see the change immediately, not just the plugin's own object
-		// cache — admins clicking "Clear all cache" expect that scope.
 		\FreeFormCertificate\Submissions\FormCache::purge_external_caches_for_all_forms( 'manual_clear_all' );
 
 		wp_send_json_success(
 			array(
-				'message' => __( 'Cache cleared.', 'ffcertificate' ),
+				'message' => __( 'Page caches purged.', 'ffcertificate' ),
 			)
 		);
 	}

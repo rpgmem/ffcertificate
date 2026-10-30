@@ -423,7 +423,6 @@ class ActivatorTest extends TestCase {
 				'ffc_settings' => array(
 					'captcha_provider'           => 'altcha',
 					'captcha_altcha_hide_footer' => 1,
-					'cache_expiration'           => 900,
 				),
 			),
 			$added

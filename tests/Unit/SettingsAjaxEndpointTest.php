@@ -438,8 +438,6 @@ class SettingsAjaxEndpointTest extends TestCase {
 		$list = SettingsAjaxEndpoint::allowlist();
 		foreach (
 			array(
-				'cache_enabled',
-				'cache_auto_warm',
 				'qr_cache_enabled',
 				'disable_all_emails',
 				'enable_activity_log',
@@ -560,7 +558,6 @@ class SettingsAjaxEndpointTest extends TestCase {
 	public function test_allowlist_covers_flat_typed_non_boolean_keys(): void {
 		$list = SettingsAjaxEndpoint::allowlist();
 		$expected = array(
-			'cache_expiration'            => array( 'int', 'ffc_settings' ),
 			'activity_log_retention_days' => array( 'int', 'ffc_settings' ),
 			'public_csv_sync_max_rows'    => array( 'int', 'ffc_settings' ),
 			'public_csv_default_limit'    => array( 'int', 'ffc_settings' ),

@@ -12,10 +12,11 @@ use FreeFormCertificate\Repositories\FormRepository;
 
 /**
  * Tests for FormRepository: table/cache configuration, findPublished,
- * getConfig/getFields/getBackground with FormCache delegation and fallback,
- * and inherited CRUD operations from AbstractRepository.
+ * getConfig/getFields/getBackground read straight from post meta, and
+ * inherited CRUD operations from AbstractRepository.
  *
- * FormCache is the real class, over post meta the test holds (#2121).
+ * Post meta is held by the test (#2121); the retired FormCache layer is never
+ * consulted (#2241).
  *
  * @covers \FreeFormCertificate\Repositories\FormRepository
  */
@@ -60,8 +61,7 @@ class FormRepositoryTest extends TestCase {
 			return abs(intval($val));
 		});
 
-		// The real FormCache reads post meta (the object cache always
-		// misses above) and its expiry from the settings.
+		// The getters read post meta the test holds.
 		$this->meta = array();
 		Functions\when('get_post_meta')->alias(function ($id, $key = '', $single = false) {
 			return $this->meta[ (int) $id ][ $key ] ?? '';
@@ -206,10 +206,10 @@ class FormRepositoryTest extends TestCase {
 	}
 
 	// ==================================================================
-	// getConfig — delegates to FormCache (alias mock created in setUp)
+	// getConfig — post meta
 	// ==================================================================
 
-	public function test_get_config_delegates_to_form_cache(): void {
+	public function test_get_config_reads_post_meta(): void {
 		$config = ['field1' => 'value1', 'field2' => 'value2'];
 		$this->meta[42]['_ffc_form_config'] = $config;
 
@@ -218,18 +218,39 @@ class FormRepositoryTest extends TestCase {
 		$this->assertSame($config, $result);
 	}
 
-	public function test_get_config_returns_empty_array_for_unknown_form(): void {
-		// No stored config: FormCache answers false.
+	public function test_get_config_returns_false_for_unknown_form(): void {
+		// No stored config: false, the answer the retired FormCache gave.
 		$result = $this->repo->getConfig(999);
 
 		$this->assertFalse($result);
 	}
 
+	public function test_get_config_returns_false_for_a_value_that_is_not_an_array(): void {
+		$this->meta[42]['_ffc_form_config'] = 'corrupt';
+
+		$this->assertFalse($this->repo->getConfig(42));
+	}
+
+	public function test_get_config_and_fields_never_consult_the_retired_form_cache(): void {
+		$this->meta[42]['_ffc_form_config'] = ['a' => 1];
+		$this->meta[42]['_ffc_form_fields'] = [['name' => 'x']];
+		$groups = [];
+		Functions\when('wp_cache_get')->alias(function ($key, $group = '') use (&$groups) {
+			$groups[] = $group;
+			return false;
+		});
+
+		$this->repo->getConfig(42);
+		$this->repo->getFields(42);
+
+		$this->assertNotContains('ffc_forms', $groups);
+	}
+
 	// ==================================================================
-	// getFields — delegates to FormCache
+	// getFields — post meta
 	// ==================================================================
 
-	public function test_get_fields_delegates_to_form_cache(): void {
+	public function test_get_fields_reads_post_meta(): void {
 		$fields = [
 			['name' => 'first_name', 'type' => 'text'],
 			['name' => 'email', 'type' => 'email'],
@@ -242,17 +263,17 @@ class FormRepositoryTest extends TestCase {
 		$this->assertSame($fields, $result);
 	}
 
-	public function test_get_fields_returns_empty_array_for_unknown_form(): void {
+	public function test_get_fields_returns_false_for_unknown_form(): void {
 		$result = $this->repo->getFields(999);
 
 		$this->assertFalse($result);
 	}
 
 	// ==================================================================
-	// getBackground — delegates to FormCache
+	// getBackground — the form's background
 	// ==================================================================
 
-	public function test_get_background_delegates_to_form_cache(): void {
+	public function test_get_background_reads_the_form_background(): void {
 		$this->meta[42]['_ffc_form_config'] = ['bg_image' => 'https://example.com/bg.jpg'];
 
 		$result = $this->repo->getBackground(42);

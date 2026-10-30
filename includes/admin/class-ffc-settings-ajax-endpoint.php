@@ -65,8 +65,6 @@ class SettingsAjaxEndpoint {
 	public static function allowlist(): array {
 		$bool_settings = array(
 			// Cache tab (ffc_settings).
-			'cache_enabled',
-			'cache_auto_warm',
 			'qr_cache_enabled',
 			// SMTP tab. Note: `disable_all_emails` is intentionally NOT here —
 			// the kill-switch carries the dangerzone sub-cap (#739 §4.4) and is
@@ -312,14 +310,6 @@ class SettingsAjaxEndpoint {
 		// [ type, extra ] — extra may carry min/max (for int) or
 		// as=url/multiline_text (for string).
 		$flat_typed = array(
-			// Cache tab.
-			'cache_expiration'            => array(
-				'int',
-				array(
-					'min' => 60,
-					'max' => 604800,
-				),
-			),
 			// Advanced tab.
 			'activity_log_retention_days' => array(
 				'int',

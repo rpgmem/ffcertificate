@@ -148,7 +148,7 @@ class AdminLoaderTest extends TestCase {
 			// The record autosave endpoint lives in Core (#1757).
 			'RecordAutosave'                        => array( 'action', 'wp_ajax_' . RecordAutosave::AJAX_ACTION, RecordAutosave::class . '::handle' ),
 			'LocationsAjaxEndpoint'                 => array( 'action', 'wp_ajax_' . Admin\LocationsAjaxEndpoint::ACTION_SAVE, Admin\LocationsAjaxEndpoint::class . '::handle_save' ),
-			'CacheActionsAjaxEndpoint'              => array( 'action', 'wp_ajax_' . Admin\CacheActionsAjaxEndpoint::ACTION_WARM, Admin\CacheActionsAjaxEndpoint::class . '::handle_warm' ),
+			'CacheActionsAjaxEndpoint'              => array( 'action', 'wp_ajax_' . Admin\CacheActionsAjaxEndpoint::ACTION_CLEAR, Admin\CacheActionsAjaxEndpoint::class . '::handle_clear' ),
 			'FormFeaturesAjaxEndpoint'              => array( 'action', 'wp_ajax_' . Admin\FormFeaturesAjaxEndpoint::AJAX_ACTION, Admin\FormFeaturesAjaxEndpoint::class . '::handle' ),
 			'MigrationActionsAjaxEndpoint'          => array( 'action', 'wp_ajax_' . Admin\MigrationActionsAjaxEndpoint::AJAX_ACTION, Admin\MigrationActionsAjaxEndpoint::class . '::handle' ),
 			'ActivityLogAjaxEndpoint'               => array( 'action', 'wp_ajax_' . Admin\ActivityLogAjaxEndpoint::AJAX_ACTION, Admin\ActivityLogAjaxEndpoint::class . '::handle' ),
