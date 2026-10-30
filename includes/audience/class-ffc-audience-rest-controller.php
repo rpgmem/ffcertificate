@@ -30,6 +30,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class AudienceRestController {
 
+	use \FreeFormCertificate\API\ReadRateLimitGuardTrait;
+
 	/**
 	 * Namespace for REST routes
 	 */
@@ -396,6 +398,21 @@ class AudienceRestController {
 		$end_date       = (string) $request->get_param( 'end_date' );
 		$schedule_id    = $request->get_param( 'schedule_id' );
 		$environment_id = $request->get_param( 'environment_id' );
+
+		// The month read is the one a script would loop over to copy the
+		// calendar, so it takes the read rate limit, for logged-in callers
+		// too, counted by account (#2243). The span cap below bounds one
+		// request; this bounds how many.
+		$blocked = $this->guard_read( 'audience_bookings', true );
+		if ( null !== $blocked ) {
+			$data = $blocked->get_error_data();
+			$wait = is_array( $data ) && is_array( $data['headers'] ?? null ) ? (int) ( $data['headers']['Retry-After'] ?? 60 ) : 60;
+			return new \WP_REST_Response(
+				self::refusal( 429, $blocked->get_error_message(), 'rate_limit_exceeded' )->get_data(),
+				429,
+				array( 'Retry-After' => (string) max( 1, $wait ) )
+			);
+		}
 
 		// The read is public, so its span is bounded (#2243): the month view
 		// asks for at most six weeks, and anything wider is refused rather

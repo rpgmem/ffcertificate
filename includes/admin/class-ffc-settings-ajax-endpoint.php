@@ -292,8 +292,7 @@ class SettingsAjaxEndpoint {
 		);
 
 		// Per-endpoint enable toggles under `read.endpoints.<ep>.enabled`.
-		// Keep the endpoint list aligned with TabRateLimit::$defaults['read']['endpoints'].
-		foreach ( array( 'calendar_slots', 'calendar_list', 'calendar_detail' ) as $ffc_ep ) {
+		foreach ( array_keys( \FreeFormCertificate\Security\RateLimitChecker::READ_ENDPOINT_DEFAULTS ) as $ffc_ep ) {
 			$rate_limit_paths[ 'read_endpoint_' . $ffc_ep . '_enabled' ] = array( 'read', 'endpoints', $ffc_ep, 'enabled' );
 		}
 
@@ -539,7 +538,7 @@ class SettingsAjaxEndpoint {
 		);
 
 		// Per-endpoint numeric thresholds under read.endpoints.<ep>.{max_per_minute,max_per_hour}.
-		foreach ( array( 'calendar_slots', 'calendar_list', 'calendar_detail' ) as $ffc_ep ) {
+		foreach ( array_keys( \FreeFormCertificate\Security\RateLimitChecker::READ_ENDPOINT_DEFAULTS ) as $ffc_ep ) {
 			$rate_limit_typed[ 'read_endpoint_' . $ffc_ep . '_max_per_minute' ] = array(
 				array( 'read', 'endpoints', $ffc_ep, 'max_per_minute' ),
 				'int',
