@@ -348,6 +348,12 @@ class ReregistrationImportStagingService {
 				// promotion cannot succeed for this row.
 				$status = 'failed';
 				$error  = 'rereg_import_no_identifier';
+			} elseif ( 0 !== $user_id && CapabilityManager::is_staff_account( $user_id ) ) {
+				// A staff account is never rewritten by an import (#2242): the
+				// row would overwrite its name and identifiers, and a takeover
+				// needs nothing more. Staff edit their own profile in wp-admin.
+				$status = 'failed';
+				$error  = 'rereg_import_staff_account';
 			}
 
 			if ( 'ready' === $status && 0 !== $user_id ) {
@@ -530,7 +536,12 @@ class ReregistrationImportStagingService {
 
 			$outcome = self::promote_row( $row, $rereg, (int) $job->audience_id );
 			if ( isset( $outcome['skipped'] ) ) {
-				self::mark_row_skipped( (int) $row->id, $outcome['user_id'], $outcome['submission_id'], $outcome['skipped'] );
+				self::mark_row_unwritten( (int) $row->id, $outcome['user_id'], $outcome['submission_id'], 'skipped', $outcome['skipped'] );
+				++$processed_now;
+				continue;
+			}
+			if ( isset( $outcome['refused'] ) ) {
+				self::mark_row_unwritten( (int) $row->id, $outcome['user_id'], 0, 'failed', $outcome['refused'] );
 				++$processed_now;
 				continue;
 			}
@@ -578,7 +589,7 @@ class ReregistrationImportStagingService {
 	 * @param object $rereg       Campaign.
 	 * @phpstan-param ReregistrationRow $rereg
 	 * @param int    $audience_id Audience the file is for.
-	 * @return array{ok: true, user_id: int, submission_id: int}|array{ok: true, user_id: int, submission_id: int, skipped: string}|array{ok: false, error: string}
+	 * @return array{ok: true, user_id: int, submission_id: int}|array{ok: true, user_id: int, submission_id: int, skipped: string}|array{ok: true, user_id: int, refused: string}|array{ok: false, error: string}
 	 */
 	private static function promote_row( object $row, object $rereg, int $audience_id ): array {
 		$cpf_hash = SensitiveFieldRegistry::hash_identifier( 'cpf', (string) $row->cpf_normalized );
@@ -612,6 +623,18 @@ class ReregistrationImportStagingService {
 		}
 
 		$user_id = (int) $user_id;
+
+		// Checked again here, not only at validation (#2242): the account a
+		// row resolves to can gain a staff role between the two, and nothing
+		// below -- the audience, the submission, the profile sync -- may touch
+		// a staff account.
+		if ( CapabilityManager::is_staff_account( $user_id ) ) {
+			return array(
+				'ok'      => true,
+				'user_id' => $user_id,
+				'refused' => 'rereg_import_staff_account',
+			);
+		}
 
 		// Idempotent by construction: `add_member()` reads membership first and
 		// returns false when the person is already in, which is the common case
@@ -707,16 +730,19 @@ class ReregistrationImportStagingService {
 	}
 
 	/**
-	 * Mark a staged row done without writing it: the submission left the
-	 * importable statuses after validation (#2242).
+	 * Mark a staged row done without writing it (#2242).
+	 *
+	 * `skipped` when the member's submission left the importable statuses
+	 * after validation; `failed` when the row resolves to a staff account.
 	 *
 	 * @param int    $id            Staging row id.
 	 * @param int    $user_id       Resolved user.
-	 * @param int    $submission_id Submission it would have written.
+	 * @param int    $submission_id Submission it would have written, or 0.
+	 * @param string $status        `skipped` or `failed`.
 	 * @param string $error         Reason code, in the shape validation records.
 	 * @return void
 	 */
-	private static function mark_row_skipped( int $id, int $user_id, int $submission_id, string $error ): void {
+	private static function mark_row_unwritten( int $id, int $user_id, int $submission_id, string $status, string $error ): void {
 		global $wpdb;
 
 		$wpdb->update(
@@ -724,7 +750,7 @@ class ReregistrationImportStagingService {
 			array(
 				'user_id'       => $user_id,
 				'submission_id' => $submission_id,
-				'row_status'    => 'skipped',
+				'row_status'    => $status,
 				'error'         => $error,
 				'processed'     => 1,
 			),

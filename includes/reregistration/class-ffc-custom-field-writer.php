@@ -53,6 +53,23 @@ class CustomFieldWriter {
 	}
 
 	/**
+	 * Whether a field may be bound to this profile key (#2242). No key is
+	 * always allowed; a key is allowed when the profile map says it is
+	 * bindable, which refuses `user_email` and every other `wp_users` key.
+	 * Checked here as well as in the editor's AJAX, so no other caller can
+	 * write such a binding either.
+	 *
+	 * @param mixed $key Profile key, or null for no binding.
+	 * @return bool
+	 */
+	private static function profile_key_allowed( $key ): bool {
+		if ( null === $key || '' === $key ) {
+			return true;
+		}
+		return is_scalar( $key ) && \FreeFormCertificate\UserDashboard\UserProfileFieldMap::is_bindable( sanitize_key( (string) $key ) );
+	}
+
+	/**
 	 * Create a custom field.
 	 *
 	 * @param array<string, mixed> $data Field data.
@@ -79,6 +96,10 @@ class CustomFieldWriter {
 			'is_active'         => 1,
 		);
 		$data     = wp_parse_args( $data, $defaults );
+
+		if ( ! self::profile_key_allowed( $data['field_profile_key'] ) ) {
+			return false;
+		}
 
 		// Validate field type.
 		if ( ! in_array( $data['field_type'], CustomFieldReader::FIELD_TYPES, true ) ) {
@@ -214,6 +235,10 @@ class CustomFieldWriter {
 		unset( $data['id'], $data['created_at'] );
 
 		if ( empty( $data ) ) {
+			return false;
+		}
+
+		if ( array_key_exists( 'field_profile_key', $data ) && ! self::profile_key_allowed( $data['field_profile_key'] ) ) {
 			return false;
 		}
 
