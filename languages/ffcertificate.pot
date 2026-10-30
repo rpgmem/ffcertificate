@@ -30187,3 +30187,15 @@ msgstr ""
 
 msgid "This booking has started: only its description can change."
 msgstr ""
+
+msgid "Change the date, hours, space or description. Who the booking is for stays as booked; the participants receive one e-mail with the change."
+msgstr ""
+
+msgid "Edit Booking"
+msgstr ""
+
+msgid "Edit, beside Cancel in the day's list, opens the booking dialog on the booking: its date, hours, space and description can change, and who it is for stays as booked. The booking keeps its attendance, its post-event form and its invitations, and its participants receive one \"Activity changed\" e-mail with what it was, whose calendar file updates the event they already have. A move passes the same checks as a new booking, and someone who may override confirms with a reason. Once its first day has come, only the description changes. Who may cancel a booking may edit it."
+msgstr ""
+
+msgid "Save changes"
+msgstr ""

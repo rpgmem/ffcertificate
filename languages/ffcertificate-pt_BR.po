@@ -30270,3 +30270,15 @@ msgstr "O arquivo de calendário anexo atualiza o evento que já está na sua ag
 
 msgid "This booking has started: only its description can change."
 msgstr "Esta reserva já começou: só a descrição pode ser alterada."
+
+msgid "Change the date, hours, space or description. Who the booking is for stays as booked; the participants receive one e-mail with the change."
+msgstr "Altere a data, o horário, o espaço ou a descrição. Para quem a reserva é continua como reservado; os participantes recebem um único e-mail com a alteração."
+
+msgid "Edit Booking"
+msgstr "Editar reserva"
+
+msgid "Edit, beside Cancel in the day's list, opens the booking dialog on the booking: its date, hours, space and description can change, and who it is for stays as booked. The booking keeps its attendance, its post-event form and its invitations, and its participants receive one \"Activity changed\" e-mail with what it was, whose calendar file updates the event they already have. A move passes the same checks as a new booking, and someone who may override confirms with a reason. Once its first day has come, only the description changes. Who may cancel a booking may edit it."
+msgstr "Editar, ao lado de Cancelar na lista do dia, abre o diálogo de reserva na própria reserva: a data, o horário, o espaço e a descrição podem mudar, e para quem ela é continua como reservado. A reserva mantém a presença, o formulário pós-evento e os convites, e os participantes recebem um único e-mail de \"Atividade alterada\" com como ela era, cujo arquivo de calendário atualiza o evento que já têm. Uma mudança passa pelas mesmas verificações de uma reserva nova, e quem pode sobrepor confirma com um motivo. Depois que o primeiro dia chega, só a descrição muda. Quem pode cancelar uma reserva pode editá-la."
+
+msgid "Save changes"
+msgstr "Salvar alterações"

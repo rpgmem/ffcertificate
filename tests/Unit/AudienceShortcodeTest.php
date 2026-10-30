@@ -67,6 +67,8 @@ class AudienceShortcodeTest extends TestCase {
 		Functions\when( 'wp_register_script' )->justReturn( false );
 		Functions\when( 'wp_enqueue_style' )->justReturn( null );
 		Functions\when( 'wp_enqueue_script' )->justReturn( null );
+		// The calendar's "today", which marks a booking as started (#2243).
+		Functions\when( 'current_time' )->justReturn( '2026-03-01' );
 
 		Functions\when('__')->returnArg();
 		Functions\when('_x')->returnArg();
@@ -630,6 +632,7 @@ class AudienceShortcodeTest extends TestCase {
 
 		$config = $this->configOf($result);
 		$this->assertTrue($config['canBook']);
+		$this->assertSame( '2026-03-01', $config['today'], 'A booking on or before today has started (#2243).' );
 		$this->assertSame('parent_name', $config['audienceBadgeFormat']);
 		$this->assertSame('below', $config['eventListPosition']);
 		$this->assertSame(30, $config['schedules'][0]['futureDaysLimit']);
