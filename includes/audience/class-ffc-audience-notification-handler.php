@@ -31,36 +31,184 @@ if ( ! defined( 'ABSPATH' ) ) {
 class AudienceNotificationHandler {
 
 	/**
+	 * The single event that sends one batch of a booking's e-mails (#2243).
+	 */
+	public const BATCH_HOOK = 'ffc_audience_notification_batch';
+
+	/**
+	 * Participants e-mailed per batch. One `wp_mail()` each, which Total Mail
+	 * Queue, when active, only queues; the batch exists so a request never
+	 * builds thousands of messages and their `.ics` files at once.
+	 */
+	public const BATCH_SIZE = 50;
+
+	/**
 	 * Initialize notification hooks
+	 *
+	 * A booking created, cancelled or overridden only schedules its e-mails
+	 * (#2243): sending one per member inside the request timed out on shared
+	 * hosting when the booking was for a large audience. The batches run on
+	 * WP-Cron, so this registration must not sit behind `is_admin()`.
 	 *
 	 * @return void
 	 */
 	public static function init(): void {
-		add_action( 'ffcertificate_audience_booking_created', array( __CLASS__, 'send_booking_created_notification' ) );
-		add_action( 'ffcertificate_audience_booking_cancelled', array( __CLASS__, 'send_booking_cancelled_notification' ), 10, 2 );
-		add_action( 'ffcertificate_audience_booking_overridden', array( __CLASS__, 'send_booking_overridden_notification' ), 10, 4 );
+		add_action( 'ffcertificate_audience_booking_created', array( __CLASS__, 'queue_booking_created' ) );
+		add_action( 'ffcertificate_audience_booking_cancelled', array( __CLASS__, 'queue_booking_cancelled' ), 10, 2 );
+		add_action( 'ffcertificate_audience_booking_overridden', array( __CLASS__, 'queue_booking_overridden' ), 10, 4 );
+		add_action( self::BATCH_HOOK, array( __CLASS__, 'run_batch' ) );
 	}
 
 	/**
-	 * Send notification when booking is created
+	 * Queue the e-mails of a booking just created.
 	 *
 	 * @param int $booking_id Booking ID.
 	 * @return void
 	 */
-	public static function send_booking_created_notification( int $booking_id ): void {
-		$booking = AudienceBookingReader::get_by_id( $booking_id );
-		if ( ! $booking ) {
+	public static function queue_booking_created( int $booking_id ): void {
+		self::schedule_batch(
+			array(
+				'kind'       => 'created',
+				'booking_id' => $booking_id,
+			)
+		);
+	}
+
+	/**
+	 * Queue the e-mails of a booking just cancelled.
+	 *
+	 * @param int    $booking_id Booking ID.
+	 * @param string $reason     Cancellation reason.
+	 * @return void
+	 */
+	public static function queue_booking_cancelled( int $booking_id, string $reason ): void {
+		self::schedule_batch(
+			array(
+				'kind'       => 'cancelled',
+				'booking_id' => $booking_id,
+				'reason'     => $reason,
+			)
+		);
+	}
+
+	/**
+	 * Queue the e-mails of a booking that gave way to an override. The
+	 * operator is carried in the job, since the batch runs with nobody
+	 * signed in and a booking that lost only some days is not itself
+	 * cancelled by anyone.
+	 *
+	 * @param int      $booking_id     The booking that gave way.
+	 * @param int      $new_booking_id The booking that took the slot.
+	 * @param string   $reason         The operator's reason.
+	 * @param string[] $lost_days      The days it lost; empty when cancelled whole.
+	 * @return void
+	 */
+	public static function queue_booking_overridden( int $booking_id, int $new_booking_id, string $reason, array $lost_days = array() ): void {
+		self::schedule_batch(
+			array(
+				'kind'           => 'overridden',
+				'booking_id'     => $booking_id,
+				'new_booking_id' => $new_booking_id,
+				'reason'         => $reason,
+				'lost_days'      => array_values( array_map( 'strval', $lost_days ) ),
+				'actor'          => get_current_user_id(),
+			)
+		);
+	}
+
+	/**
+	 * Send one batch of a queued job and schedule the next when people remain.
+	 *
+	 * The cursor is the last participant id the batch reached, sent or not,
+	 * so a failing address or a user deleted meanwhile never holds the job:
+	 * it advances and the job ends when no id lies beyond it.
+	 *
+	 * @param array<string, mixed> $job The job {@see self::schedule_batch()} queued.
+	 * @return void
+	 */
+	public static function run_batch( array $job ): void {
+		$booking_id = (int) ( $job['booking_id'] ?? 0 );
+		$after      = (int) ( $job['after'] ?? 0 );
+		$reason     = (string) ( $job['reason'] ?? '' );
+		$lost_days  = isset( $job['lost_days'] ) && is_array( $job['lost_days'] ) ? array_values( array_map( 'strval', $job['lost_days'] ) ) : array();
+		$actor      = (int) ( $job['actor'] ?? 0 );
+
+		switch ( $job['kind'] ?? '' ) {
+			case 'created':
+				$next = self::send_booking_created_notification( $booking_id, $after );
+				break;
+			case 'cancelled':
+				$next = self::send_booking_cancelled_notification( $booking_id, $reason, array(), array(), $after );
+				break;
+			case 'overridden':
+				$next = self::send_booking_overridden_notification( $booking_id, (int) ( $job['new_booking_id'] ?? 0 ), $reason, $lost_days, $after, $actor );
+				break;
+			default:
+				$next = null;
+		}
+
+		if ( null !== $next ) {
+			$job['after'] = $next;
+			self::schedule_batch( $job );
+		}
+	}
+
+	/**
+	 * Schedule a batch to run on the next WP-Cron tick.
+	 *
+	 * @param array<string, mixed> $job Job: `kind`, `booking_id`, and per kind `reason`, `new_booking_id`, `lost_days`, `actor`, `after`.
+	 * @return void
+	 */
+	private static function schedule_batch( array $job ): void {
+		$job['after'] = (int) ( $job['after'] ?? 0 );
+		$args         = array( $job );
+		if ( false !== wp_next_scheduled( self::BATCH_HOOK, $args ) ) {
 			return;
+		}
+		wp_schedule_single_event( time(), self::BATCH_HOOK, $args );
+	}
+
+	/**
+	 * The ids of one batch: the first {@see self::BATCH_SIZE} past the
+	 * cursor, and the cursor that follows them, or NULL when none remain.
+	 *
+	 * @param int[] $user_ids Every recipient.
+	 * @param int   $after    The last id an earlier batch reached.
+	 * @return array{0: list<int>, 1: int|null}
+	 */
+	private static function slice_batch( array $user_ids, int $after ): array {
+		$ids = array_values( array_unique( array_map( 'intval', $user_ids ) ) );
+		sort( $ids );
+		$pending = array_values( array_filter( $ids, static fn( int $id ): bool => $id > $after ) );
+		$batch   = array_slice( $pending, 0, self::BATCH_SIZE );
+		$next    = count( $pending ) > self::BATCH_SIZE ? (int) end( $batch ) : null;
+		return array( $batch, $next );
+	}
+
+	/**
+	 * Send one batch of the e-mails of a booking just created.
+	 *
+	 * The administrators' notice goes with the first batch only. A booking
+	 * cancelled before its batch ran is not announced.
+	 *
+	 * @param int $booking_id Booking ID.
+	 * @param int $after      The last participant id an earlier batch reached.
+	 * @return int|null The cursor of the next batch, or NULL when done.
+	 */
+	public static function send_booking_created_notification( int $booking_id, int $after = 0 ): ?int {
+		$booking = AudienceBookingReader::get_by_id( $booking_id );
+		if ( ! $booking || 'active' !== ( $booking->status ?? 'active' ) ) {
+			return null;
 		}
 
 		$environment = AudienceEnvironmentRepository::get_by_id( (int) $booking->environment_id );
 		if ( ! $environment ) {
-			return;
+			return null;
 		}
 
 		$schedule = AudienceScheduleRepository::get_by_id( (int) $environment->schedule_id );
 		if ( ! $schedule ) {
-			return;
+			return null;
 		}
 
 		// Get booking creator info.
@@ -100,17 +248,18 @@ class AudienceNotificationHandler {
 
 		// Admin notification — opt-in (default off), independent of the
 		// per-schedule user toggle and of whether any users are affected.
-		self::maybe_notify_admin_of_booking( $schedule, $booking_data );
+		if ( 0 === $after ) {
+			self::maybe_notify_admin_of_booking( $schedule, $booking_data );
+		}
 
 		// User notifications — gated on the per-schedule user toggle.
 		if ( ! $schedule->notify_on_booking ) {
-			return;
+			return null;
 		}
 
-		// Get all affected users.
-		$affected_users = AudienceBookingReader::get_all_affected_users( $booking_id );
+		list( $affected_users, $next ) = self::slice_batch( AudienceBookingReader::get_all_affected_users( $booking_id ), $after );
 		if ( empty( $affected_users ) ) {
-			return;
+			return null;
 		}
 
 		// Generate ICS if enabled.
@@ -136,38 +285,45 @@ class AudienceNotificationHandler {
 				$ics_content
 			);
 		}
+
+		return $next;
 	}
 
 	/**
-	 * Send notification when booking is cancelled
+	 * Send one batch of the e-mails of a cancelled booking.
+	 *
+	 * The administrators' notice goes with the first batch only.
 	 *
 	 * @param int        $booking_id       Booking ID.
 	 * @param string     $reason           Cancellation reason.
 	 * @param array<int> $exclude_user_ids Users told some other way, skipped here.
 	 * @param string[]   $lost_days        Only these days were cancelled (#2243); empty for the whole booking.
-	 * @return void
+	 * @param int        $after            The last participant id an earlier batch reached.
+	 * @param int        $actor            Who took the days, when only some were cancelled.
+	 * @return int|null The cursor of the next batch, or NULL when done.
 	 */
-	public static function send_booking_cancelled_notification( int $booking_id, string $reason, array $exclude_user_ids = array(), array $lost_days = array() ): void {
-		$context = self::cancelled_booking_context( $booking_id, $reason, $lost_days );
+	public static function send_booking_cancelled_notification( int $booking_id, string $reason, array $exclude_user_ids = array(), array $lost_days = array(), int $after = 0, int $actor = 0 ): ?int {
+		$context = self::cancelled_booking_context( $booking_id, $reason, $lost_days, $actor );
 		if ( null === $context ) {
-			return;
+			return null;
 		}
 		$schedule     = $context['schedule'];
 		$booking_data = $context['data'];
 
 		// Admin notification — opt-in (default off), independent of the
 		// per-schedule user toggle and of whether any users are affected.
-		self::maybe_notify_admin_of_cancellation( $schedule, $booking_data );
+		if ( 0 === $after ) {
+			self::maybe_notify_admin_of_cancellation( $schedule, $booking_data );
+		}
 
 		// User notifications — gated on the per-schedule user toggle.
 		if ( ! $schedule->notify_on_cancellation ) {
-			return;
+			return null;
 		}
 
-		// Get all affected users (from booking_users table).
-		$affected_users = AudienceBookingReader::get_booking_users( (int) $booking_id );
+		list( $affected_users, $next ) = self::slice_batch( AudienceBookingReader::get_booking_users( (int) $booking_id ), $after );
 		if ( empty( $affected_users ) ) {
-			return;
+			return null;
 		}
 
 		// Generate ICS cancellation if enabled. A booking that lost only some
@@ -200,6 +356,8 @@ class AudienceNotificationHandler {
 				$ics_content
 			);
 		}
+
+		return $next;
 	}
 
 	/**
@@ -220,16 +378,18 @@ class AudienceNotificationHandler {
 	 * @param int      $new_booking_id The booking that took the slot (carried for other listeners; the e-mail does not name it).
 	 * @param string   $reason         The operator's reason.
 	 * @param string[] $lost_days      The days it lost (Y-m-d); empty when it was cancelled whole.
-	 * @return void
+	 * @param int      $after          The last participant id an earlier batch reached; the owner is told with the first batch.
+	 * @param int      $actor          Who took the days, when only some were cancelled.
+	 * @return int|null The cursor of the next batch, or NULL when done.
 	 */
-	public static function send_booking_overridden_notification( int $booking_id, int $new_booking_id, string $reason, array $lost_days = array() ): void {
-		$context = self::cancelled_booking_context( $booking_id, $reason, $lost_days );
+	public static function send_booking_overridden_notification( int $booking_id, int $new_booking_id, string $reason, array $lost_days = array(), int $after = 0, int $actor = 0 ): ?int {
+		$context = self::cancelled_booking_context( $booking_id, $reason, $lost_days, $actor );
 		if ( null === $context ) {
-			return;
+			return null;
 		}
 
 		$owner_id = (int) $context['booking']->created_by;
-		$owner    = $owner_id > 0 ? get_user_by( 'id', $owner_id ) : false;
+		$owner    = 0 === $after && $owner_id > 0 ? get_user_by( 'id', $owner_id ) : false;
 
 		if ( $owner && $owner->user_email ) {
 			$booking_data = $context['data'];
@@ -243,7 +403,7 @@ class AudienceNotificationHandler {
 			);
 		}
 
-		self::send_booking_cancelled_notification( $booking_id, $reason, $owner_id > 0 ? array( $owner_id ) : array(), $lost_days );
+		return self::send_booking_cancelled_notification( $booking_id, $reason, $owner_id > 0 ? array( $owner_id ) : array(), $lost_days, $after, $actor );
 	}
 
 	/**
@@ -257,9 +417,10 @@ class AudienceNotificationHandler {
 	 * @param int      $booking_id Booking ID.
 	 * @param string   $reason     Cancellation reason.
 	 * @param string[] $lost_days  The days cancelled (Y-m-d); empty for the whole booking.
+	 * @param int      $actor      Who took the days, when only some were cancelled; the signed-in user when 0.
 	 * @return array{booking: BookingRow, schedule: ScheduleRow, data: array<string, mixed>}|null
 	 */
-	private static function cancelled_booking_context( int $booking_id, string $reason, array $lost_days = array() ): ?array {
+	private static function cancelled_booking_context( int $booking_id, string $reason, array $lost_days = array(), int $actor = 0 ): ?array {
 		$booking = AudienceBookingReader::get_by_id( $booking_id );
 		if ( ! $booking ) {
 			return null;
@@ -276,7 +437,7 @@ class AudienceNotificationHandler {
 		}
 
 		// Get cancelled by info.
-		$cancelled_by_id   = empty( $lost_days ) ? (int) $booking->cancelled_by : get_current_user_id();
+		$cancelled_by_id   = empty( $lost_days ) ? (int) $booking->cancelled_by : ( $actor > 0 ? $actor : get_current_user_id() );
 		$cancelled_by      = $cancelled_by_id > 0 ? get_user_by( 'id', $cancelled_by_id ) : false;
 		$cancelled_by_name = $cancelled_by ? $cancelled_by->display_name : __( 'Unknown', 'ffcertificate' );
 

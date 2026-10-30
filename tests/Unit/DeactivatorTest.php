@@ -94,6 +94,7 @@ class DeactivatorTest extends TestCase {
 		// A pending reminder batch was cleared nowhere until #1538.
 		$this->assertContains( 'ffc_reregistration_reminder_batch', $cleared );
 		$this->assertContains( 'ffc_reregistration_invitation_batch', $cleared );
+		$this->assertContains( 'ffc_audience_notification_batch', $cleared );
 		// The date-messages daily send and its pending batches (#1538).
 		$this->assertContains( 'ffc_date_messages_daily', $cleared );
 		$this->assertContains( 'ffc_date_messages_batch', $cleared );
@@ -104,7 +105,7 @@ class DeactivatorTest extends TestCase {
 		// The bulk-issue purge of unfinished imports (#1945).
 		$this->assertContains( 'ffcertificate_bulk_issue_purge', $cleared );
 		$this->assertContains( 'ffcertificate_audience_post_event_invites', $cleared );
-		$this->assertCount( 13, $cleared );
+		$this->assertCount( 14, $cleared );
 	}
 
 	public function test_deactivate_flushes_rewrite_rules(): void {

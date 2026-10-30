@@ -30091,3 +30091,9 @@ msgstr "por endpoint, por minuto/hora; reservas do calendário de público-alvo 
 
 msgid "Public calendar API reads (slots, list, detail) — protects the booking endpoints from scraping. Logged-in users and allowlisted IPs bypass. The audience calendar's bookings read is counted for logged-in users too, per account, so one person cannot sweep the calendar while colleagues behind the same address are not capped. Active by default; saving the tab is not needed."
 msgstr "Leituras da API de calendário público (slots, listagem, detalhes) — protegem os endpoints de agendamento contra *scraping*. Usuários autenticados e IPs em lista de permissões estão isentos dessa restrição. A leitura das reservas do calendário de público-alvo é contada também para usuários autenticados, por conta, para que uma pessoa não varra o calendário sem que colegas atrás do mesmo endereço sejam limitados. Ativo por padrão; não é preciso salvar a aba."
+
+msgid "Audience booking e-mails (one per batch)"
+msgstr "E-mails das reservas de público-alvo (um por lote)"
+
+msgid "These e-mails leave in the background: saving or cancelling a booking only queues them, and WP-Cron sends them in batches of 50, each person once. With Total Mail Queue active they join its queue, attributed to Audience Calendars. On a site whose WP-Cron runs only on visits, set the server cron line from Settings → Scheduled Tasks so they do not wait for traffic."
+msgstr "Esses e-mails saem em segundo plano: salvar ou cancelar uma reserva apenas os enfileira, e o WP-Cron os envia em lotes de 50, uma vez para cada pessoa. Com o Total Mail Queue ativo, eles entram na fila dele, atribuídos aos Calendários de Público-alvo. Num site cujo WP-Cron só roda com visitas, configure a linha de cron do servidor em Configurações → Tarefas Agendadas para que não dependam de tráfego."
