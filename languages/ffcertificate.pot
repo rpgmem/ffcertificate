@@ -26404,9 +26404,6 @@ msgstr ""
 msgid "holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen (\"Login as User\"). The other user's personal data appears masked, as it does to its owner, and each Reveal there writes an activity-log entry."
 msgstr ""
 
-#: includes/settings/views/documentation/scheduling-audiences.php:74
-msgid "reveal the account email of the people on the Members and User access tabs and the sensitive custom fields on another user's profile, with an audited Reveal; a members export carries the email in clear only with it. Existing holders of ffc_manage_audiences received it on update."
-msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:204
 #, php-format
@@ -29977,4 +29974,16 @@ msgid "Close the day and cancel the bookings"
 msgstr ""
 
 msgid "A date that is already closed, on the same calendar or in the global list, is refused with a message. Closing a date that already holds audience bookings asks first: the screen lists those bookings, and \"Close the day and cancel the bookings\" saves the date and cancels each one with the reason \"Closed day:\" followed by the description, e-mailing its participants as any cancellation does. A calendar's closed date takes that calendar's bookings; a global holiday takes the bookings of every audience calendar. Personal-calendar appointments on that date are not cancelled."
+msgstr ""
+
+msgid "The custom users listed in a booking's details on Audience Bookings follow the same rule, with the same Reveal. The user search that adds members, custom users and calendar access shows each address masked, and only holders of ffc_view_audiences_pii can search by email address; everyone else searches by name or username."
+msgstr ""
+
+msgid "A scan is exchanged for a link that stays valid for two rotations of the code (2 minutes when the code changes every minute, 20 minutes when it changes every 10), long enough to log in. Without a geolocation area a check-in proves that the person saw the code, not that they were in the room: a photo of the screen sent to someone elsewhere works while the code is live. For a physical room, choose the room's area when opening the check-in."
+msgstr ""
+
+msgid "Importing needs ffc_import_audiences, which the Audience Calendars Operator role holds. An Operator can therefore add members to any audience and, with the option on, create WordPress accounts for addresses that have none; give the role only to people trusted with that."
+msgstr ""
+
+msgid "reveal the account email of the people on the Members and User access tabs and in a booking's details, and the sensitive custom fields on another user's profile, with an audited Reveal; a members export carries the email in clear only with it. Existing holders of ffc_manage_audiences received it on update."
 msgstr ""

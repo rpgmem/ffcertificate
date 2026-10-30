@@ -88,6 +88,12 @@ class AudienceCheckin {
 			return self::error( self::ERROR_CLOSED );
 		}
 
+		// The receipt lives two of the window's rotations, so its lifetime
+		// follows the rotation the organiser chose (#2243).
+		if ( ! AudienceCheckinReceipt::is_fresh( $claim['issued_at'], $window['rotation_seconds'], $now ) ) {
+			return self::error( self::ERROR_EXPIRED_RECEIPT );
+		}
+
 		$booking = AudienceBookingReader::get_by_id( $claim['booking_id'] );
 		if ( null === $booking || 'active' !== ( $booking->status ?? '' ) || ! in_array( $claim['date'], AudienceAttendanceRule::counted_days( $booking ), true ) ) {
 			return self::error( self::ERROR_UNAVAILABLE );

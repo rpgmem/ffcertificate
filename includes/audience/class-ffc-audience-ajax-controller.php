@@ -129,16 +129,18 @@ final class AudienceAjaxController {
 				}
 			}
 
-			// Format users.
+			// Format users. The email is masked, with the audited Reveal
+			// button for whoever may reveal it (#2243).
 			$users = array();
 			if ( ! empty( $booking->users ) ) {
 				foreach ( $booking->users as $u ) {
 					$user_data = get_userdata( (int) $u );
 					if ( $user_data ) {
 						$users[] = array(
-							'id'    => $user_data->ID,
-							'name'  => $user_data->display_name,
-							'email' => $user_data->user_email,
+							'id'         => $user_data->ID,
+							'name'       => $user_data->display_name,
+							'email'      => AudienceAccountEmail::for_response( (int) $user_data->ID, (string) $user_data->user_email ),
+							'email_html' => AudienceAccountEmail::render( (int) $user_data->ID, (string) $user_data->user_email ),
 						);
 					}
 				}
@@ -187,10 +189,17 @@ final class AudienceAjaxController {
 				wp_send_json_success( array() );
 			}
 
+			// Searching by address would confirm which account holds it, so
+			// only whoever may reveal emails searches that column (#2243).
+			$columns = array( 'user_login', 'display_name' );
+			if ( \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal_any( AudienceAccountEmail::PII_CAP ) ) {
+				$columns[] = 'user_email';
+			}
+
 			$users = get_users(
 				array(
 					'search'         => '*' . $query . '*',
-					'search_columns' => array( 'user_login', 'user_email', 'display_name' ),
+					'search_columns' => $columns,
 					'number'         => 20,
 					'orderby'        => 'display_name',
 				)
@@ -201,7 +210,7 @@ final class AudienceAjaxController {
 				$results[] = array(
 					'id'    => $user->ID,
 					'name'  => $user->display_name,
-					'email' => $user->user_email,
+					'email' => AudienceAccountEmail::for_response( (int) $user->ID, (string) $user->user_email ),
 				);
 			}
 

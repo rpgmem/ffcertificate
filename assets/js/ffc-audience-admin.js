@@ -253,8 +253,10 @@
                         }
 
                         if (b.users && b.users.length > 0) {
-                            var userList = b.users.map(function(u) { return u.name + ' (' + u.email + ')'; }).join(', ');
-                            html += '<tr><th>' + esc(strings.users || 'Users') + '</th><td>' + esc(userList) + '</td></tr>';
+                            // email_html is escaped server-side: the masked address plus,
+                            // for whoever may reveal it, the audited Reveal button.
+                            var userList = b.users.map(function(u) { return '<div>' + esc(u.name) + ' ' + (u.email_html || esc(u.email)) + '</div>'; }).join('');
+                            html += '<tr><th>' + esc(strings.users || 'Users') + '</th><td>' + userList + '</td></tr>';
                         }
 
                         if (b.status === 'cancelled' && b.cancel_reason) {
