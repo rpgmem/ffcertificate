@@ -85,6 +85,7 @@ class AudienceBookingReader {
 		$defaults = array(
 			'environment_id' => null,
 			'schedule_id'    => null,
+			'schedule_ids'   => null,
 			'booking_date'   => null,
 			'start_date'     => null,
 			'end_date'       => null,
@@ -109,6 +110,24 @@ class AudienceBookingReader {
 		if ( $args['schedule_id'] ) {
 			$where[]  = 'e.schedule_id = %d';
 			$values[] = $args['schedule_id'];
+		}
+
+		// A list of calendars the caller may read (#2243): filtered here, so
+		// a month read never fetches the rows of a calendar it then drops.
+		// An empty list matches nothing.
+		if ( is_array( $args['schedule_ids'] ) ) {
+			$schedule_ids = array();
+			foreach ( $args['schedule_ids'] as $schedule_id ) {
+				if ( is_numeric( $schedule_id ) ) {
+					$schedule_ids[ (int) $schedule_id ] = (int) $schedule_id;
+				}
+			}
+			$schedule_ids = array_values( $schedule_ids );
+			if ( empty( $schedule_ids ) ) {
+				return array();
+			}
+			$where[] = 'e.schedule_id IN (' . implode( ', ', array_fill( 0, count( $schedule_ids ), '%d' ) ) . ')';
+			$values  = array_merge( $values, $schedule_ids );
 		}
 
 		if ( $args['booking_date'] ) {
@@ -504,6 +523,58 @@ class AudienceBookingReader {
 			)
 		);
 		return is_array( $results ) ? $results : array();
+	}
+
+	/**
+	 * The audiences of several bookings, read in one query (#2243).
+	 *
+	 * The month read used to run one query per booking.
+	 *
+	 * @param array<int> $booking_ids Booking IDs.
+	 * @return array<int, list<\stdClass>> Audiences keyed by booking ID; a booking with none is absent.
+	 */
+	public static function get_audiences_for_bookings( array $booking_ids ): array {
+		$booking_ids = array_values( array_unique( array_map( 'intval', $booking_ids ) ) );
+		if ( empty( $booking_ids ) ) {
+			return array();
+		}
+
+		$wpdb         = self::db();
+		$placeholders = implode( ', ', array_fill( 0, count( $booking_ids ), '%d' ) );
+
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT a.*, ba.booking_id AS ffc_booking_id FROM %i a
+                INNER JOIN %i ba ON a.id = ba.audience_id
+                WHERE ba.booking_id IN ({$placeholders})
+                ORDER BY a.name ASC",
+				...array_merge( array( AudienceReader::get_table_name(), self::get_booking_audiences_table_name() ), $booking_ids )
+			)
+		);
+
+		$by_booking = array();
+		foreach ( is_array( $results ) ? $results : array() as $row ) {
+			$booking_id = (int) ( $row->ffc_booking_id ?? 0 );
+			unset( $row->ffc_booking_id );
+			$by_booking[ $booking_id ][] = $row;
+		}
+
+		return $by_booking;
+	}
+
+	/**
+	 * Whether a booking exists and is cancelled.
+	 *
+	 * Read after a cancel that changed no row, to tell a request that lost
+	 * the race to another one from a write the database refused (#2243).
+	 *
+	 * @param int $id Booking ID.
+	 * @return bool
+	 */
+	public static function is_cancelled( int $id ): bool {
+		$booking = self::get_by_id( $id );
+
+		return null !== $booking && 'cancelled' === ( $booking->status ?? '' );
 	}
 
 	/**

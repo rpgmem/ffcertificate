@@ -482,20 +482,24 @@ class AudienceShortcode {
 						<section class="ffc-booking-section" aria-labelledby="ffc-booking-who-title">
 							<h4 class="ffc-booking-section-title" id="ffc-booking-who-title"><?php esc_html_e( 'For whom', 'ffcertificate' ); ?></h4>
 							<?php
-							\FreeFormCertificate\Admin\AdminUI::render_segmented(
-								array(
-									'name'    => 'booking_type',
-									'id'      => 'booking-type',
-									'legend'  => __( 'Booking Type', 'ffcertificate' ),
-									'options' => array(
-										'audience'   => __( 'Audience Groups', 'ffcertificate' ),
-										'individual' => __( 'Individual Users', 'ffcertificate' ),
-									),
-									'value'   => 'audience',
-									'size'    => 'lg',
-									'fluid'   => true,
-								)
-							);
+							// Only someone who may book for named people sees the choice
+							// (#2243); without it the booking is for audiences.
+							if ( AudienceBookingRules::can_book_individuals() ) :
+								\FreeFormCertificate\Admin\AdminUI::render_segmented(
+									array(
+										'name'    => 'booking_type',
+										'id'      => 'booking-type',
+										'legend'  => __( 'Booking Type', 'ffcertificate' ),
+										'options' => array(
+											'audience'   => __( 'Audience Groups', 'ffcertificate' ),
+											'individual' => __( 'Individual Users', 'ffcertificate' ),
+										),
+										'value'   => 'audience',
+										'size'    => 'lg',
+										'fluid'   => true,
+									)
+								);
+							endif;
 							?>
 
 							<div class="ffc-booking-field" id="audience-select-group">

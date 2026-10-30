@@ -77,7 +77,11 @@ final class AudienceAjaxController {
 				wp_send_json_error( array( 'message' => __( 'Booking is already cancelled.', 'ffcertificate' ) ) );
 			}
 
+			// A request that lost the race to another one changes nothing (#2243).
 			$result = AudienceBookingWriter::cancel( $booking_id, $reason );
+			if ( ! $result && AudienceBookingReader::is_cancelled( $booking_id ) ) {
+				wp_send_json_error( array( 'message' => __( 'Booking is already cancelled.', 'ffcertificate' ) ) );
+			}
 			if ( ! $result ) {
 				wp_send_json_error( array( 'message' => __( 'Failed to cancel booking.', 'ffcertificate' ) ) );
 			}

@@ -250,6 +250,29 @@ class AudienceAjaxControllerTest extends TestCase {
 		);
 		$wpdb->shouldReceive( 'query' )->andReturnUsing(
 			function ( $q ) {
+				if ( is_array( $q ) && false !== strpos( $q['sql'], "SET status = 'cancelled'" ) ) {
+					// AudienceBookingWriter::cancel(): only an active row changes (#2243).
+					list( $table, $by, $at, $reason, $id ) = $q['args'];
+					$this->writes[] = array(
+						'op'    => 'update',
+						'table' => $table,
+						'data'  => array(
+							'status'              => 'cancelled',
+							'cancelled_by'        => $by,
+							'cancelled_at'        => $at,
+							'cancellation_reason' => $reason,
+						),
+						'where' => array( 'id' => $id ),
+					);
+					if ( isset( $this->failing_tables[ $table ] ) ) {
+						return false;
+					}
+					if ( 'active' !== ( $this->bookings[ $id ]['status'] ?? null ) ) {
+						return 0;
+					}
+					$this->bookings[ $id ]['status'] = 'cancelled';
+					return 1;
+				}
 				$this->unexpected[] = 'query: ' . ( is_array( $q ) ? $q['sql'] : $q );
 				return false;
 			}

@@ -6971,9 +6971,6 @@ msgstr ""
 msgid "Already booked on: %s"
 msgstr ""
 
-#: includes/settings/views/documentation/scheduling-audiences.php
-msgid "A booking can cover a range of days: set an end date in the booking form and the booking takes every day from its date to that one. The hours on each day are either the same every day, or run from the start time on the first day to the end time on the last, with the whole opening window in between. Every day is checked against the rules and for conflicts; a clash on any day refuses the whole booking, and the form lists the days already taken. A holiday or a weekday the space is closed inside the range refuses the booking unless \"Skip blocked days\" is ticked, and then those days are left out without a warning and recorded as skipped. A range covers at most 31 days, and an all-day booking covers one day."
-msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:464
 msgid "End date"
@@ -9454,9 +9451,6 @@ msgstr ""
 msgid "An all-day booking covers one day."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-rest-controller.php
-msgid "A booking can cover at most %d days."
-msgstr ""
 
 #: includes/audience/class-ffc-audience-rest-controller.php
 msgid "Invalid time mode."
@@ -29892,4 +29886,55 @@ msgid "The second post's fields (its workload, role and work hours) are asked, r
 msgstr ""
 
 msgid "On a phone the work-hours table keeps its columns and scrolls sideways; a shadow at the edge shows there is more."
+msgstr ""
+
+msgid "A booking can cover a range of days: set an end date in the booking form and the booking takes every day from its date to that one. The hours on each day are either the same every day, or run from the start time on the first day to the end time on the last, with the whole opening window in between. Every day is checked against the rules and for conflicts; a clash on any day refuses the whole booking, and the form lists the days already taken. A holiday or a weekday the space is closed inside the range refuses the booking unless \"Skip blocked days\" is ticked, and then those days are left out without a warning and recorded as skipped. A range covers at most 30 consecutive days, and a longer one is refused with a message naming the limit; an all-day booking covers one day."
+msgstr ""
+
+msgid "A booking can cover at most %d consecutive days."
+msgstr ""
+
+msgid "A booking is cancelled once. A second request for the same booking, from another tab or another person, answers that it is already cancelled and sends no e-mail. A booking and its participants are saved together: if one of them cannot be written, nothing is saved and the person sees an error."
+msgstr ""
+
+msgid "A booking names only audiences the caller belongs to, unless the caller holds manage_options or ffc_bypass_audiences; an individual booking needs ffc_manage_audiences."
+msgstr ""
+
+msgid "A booking reaches its audiences' members: the e-mail, the dashboard, the check-in and the post-event form. So the server checks who it names. A member books only for the audiences they belong to, or for one of those audiences' parents, which is what the dialog offers. Booking for individual users takes ffc_manage_audiences, and only those who hold it see the choice. A WordPress administrator or a holder of ffc_bypass_audiences may book any audience. Every audience and user named must exist."
+msgstr ""
+
+msgid "A calendar read can cover at most %d days."
+msgstr ""
+
+msgid "An audience cannot be placed under itself or one of its own groups."
+msgstr ""
+
+msgid "Audiences can be nested at most %d levels deep."
+msgstr ""
+
+msgid "Invalid date range."
+msgstr ""
+
+msgid "One of the selected audiences does not exist."
+msgstr ""
+
+msgid "One of the selected users does not exist."
+msgstr ""
+
+msgid "Row %1$d: %2$s"
+msgstr ""
+
+msgid "The parent audience does not exist."
+msgstr ""
+
+msgid "The start and end dates must be valid and at most 62 days apart."
+msgstr ""
+
+msgid "The tree has at most three levels: a top-level audience, its groups and their sub-groups. An audience cannot be placed under itself or one of its own groups, and moving an audience moves its groups with it, so a move that would push one of them to a fourth level is refused with the reason. The same rule holds for the CSV import, where such a row is skipped with the reason."
+msgstr ""
+
+msgid "You can only book for audiences you belong to."
+msgstr ""
+
+msgid "You do not have permission to book for individual users."
 msgstr ""

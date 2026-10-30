@@ -394,6 +394,15 @@ class AudienceCsvImporter {
 					continue;
 				}
 
+				// A row that would pass three levels says so (#2243).
+				$parent_refusal = AudienceReader::parent_refusal( 0, (int) $parent_id );
+				if ( null !== $parent_refusal ) {
+					/* translators: 1: row number, 2: why the row was refused */
+					$result['errors'][] = sprintf( __( 'Row %1$d: %2$s', 'ffcertificate' ), $audience_data['row'], $parent_refusal );
+					++$result['skipped'];
+					continue;
+				}
+
 				$new_id = AudienceWriter::create(
 					array(
 						'name'      => $audience_data['name'],

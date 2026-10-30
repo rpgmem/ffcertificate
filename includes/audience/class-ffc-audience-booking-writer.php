@@ -185,23 +185,26 @@ class AudienceBookingWriter {
 
 		$booking_id = (int) $wpdb->insert_id;
 
+		// The participants are written in the same transaction (#2243): a
+		// booking whose links failed held the slot with nobody on it, and
+		// nothing reported it. `$data` is caller-supplied, so the ids are only
+		// known to be mixed; a non-numeric entry is dropped, never cast to 0.
+		$audience_ids = isset( $data['audience_ids'] ) && is_array( $data['audience_ids'] ) ? self::numeric_ids( $data['audience_ids'] ) : array();
+		$user_ids     = isset( $data['user_ids'] ) && is_array( $data['user_ids'] ) ? self::numeric_ids( $data['user_ids'] ) : array();
+		foreach ( $audience_ids as $audience_id ) {
+			if ( ! self::add_booking_audience( $booking_id, $audience_id ) ) {
+				$wpdb->query( 'ROLLBACK' );
+				return false;
+			}
+		}
+		foreach ( $user_ids as $user_id ) {
+			if ( ! self::add_booking_user( $booking_id, $user_id ) ) {
+				$wpdb->query( 'ROLLBACK' );
+				return false;
+			}
+		}
+
 		$wpdb->query( 'COMMIT' );
-
-		// Add audience associations if provided. `$data` is caller-supplied,
-		// so the ids are only known to be mixed; a non-numeric entry used to
-		// cast to 0 and write a row pointing at no audience.
-		if ( isset( $data['audience_ids'] ) && is_array( $data['audience_ids'] ) ) {
-			foreach ( self::numeric_ids( $data['audience_ids'] ) as $audience_id ) {
-				self::add_booking_audience( $booking_id, $audience_id );
-			}
-		}
-
-		// Add user associations if provided.
-		if ( isset( $data['user_ids'] ) && is_array( $data['user_ids'] ) ) {
-			foreach ( self::numeric_ids( $data['user_ids'] ) as $user_id ) {
-				self::add_booking_user( $booking_id, $user_id );
-			}
-		}
 
 		return $booking_id;
 	}
@@ -411,26 +414,32 @@ class AudienceBookingWriter {
 	 *
 	 * @param int    $id Booking ID.
 	 * @param string $reason Cancellation reason (required).
-	 * @return bool
+	 * @return bool True when this call cancelled it; false when the reason is
+	 *              empty, the write failed or the booking was not active.
 	 */
 	public static function cancel( int $id, string $reason ): bool {
 		if ( empty( $reason ) ) {
 			return false;
 		}
 
-		$result = self::update(
-			$id,
-			array(
-				'status'              => 'cancelled',
-				'cancelled_by'        => get_current_user_id(),
-				'cancelled_at'        => current_time( 'mysql' ),
-				'cancellation_reason' => $reason,
-			)
+		// Only an active booking is cancelled (#2243): two requests racing
+		// on one booking used to both pass, both overwrite who cancelled it
+		// and both send the e-mails. The second now changes no row.
+		$wpdb = self::db();
+		$sql  = $wpdb->prepare(
+			"UPDATE %i SET status = 'cancelled', cancelled_by = %d, cancelled_at = %s, cancellation_reason = %s WHERE id = %d AND status = 'active'",
+			self::get_table_name(),
+			get_current_user_id(),
+			current_time( 'mysql' ),
+			$reason,
+			$id
 		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The argument is the string $wpdb->prepare() returned above; the sniff cannot follow a prepared string across an assignment.
+		$changed = null === $sql ? false : $wpdb->query( $sql );
 
 		static::cache_delete( "id_{$id}" );
 
-		return $result;
+		return 1 === $changed;
 	}
 
 	/**

@@ -51,6 +51,12 @@ class AudienceRestControllerTest extends TestCase {
 	/** @var array<int, object> Booking rows by id. */
 	private array $bookings = array();
 
+	/** @var array<int, object> Audience rows by id. */
+	private array $audiences = array();
+
+	/** @var array<int, list<int>> The audiences each user belongs to, by user id. */
+	private array $members = array();
+
 	/** @var array<int, array{date: string, description?: string}> The `ffc_global_holidays` option. */
 	private array $global_holidays = array();
 
@@ -74,6 +80,9 @@ class AudienceRestControllerTest extends TestCase {
 
 	/** @var bool Whether the database refuses the write to the bookings table. */
 	private bool $refuse_booking_update = false;
+
+	/** @var bool Whether another request cancels the booking just before this one's write. */
+	private bool $cancelled_by_another_request = false;
 
 	/** @var list<string> Queries the double did not recognise. */
 	private array $unexpected = array();
@@ -131,6 +140,7 @@ class AudienceRestControllerTest extends TestCase {
 		);
 
 		Functions\when( 'current_time' )->justReturn( '2026-03-01' );
+		Functions\when( 'get_userdata' )->alias( static fn( $id ) => (int) $id > 0 ? (object) array( 'ID' => (int) $id ) : false );
 
 		// A booking's dates are rendered for the response (date_label): the
 		// formatter reads the site settings and wp_date(), which these tests stub here.
@@ -142,6 +152,9 @@ class AudienceRestControllerTest extends TestCase {
 		$this->holidays        = array();
 		$this->bookings        = array();
 		$this->global_holidays = array();
+		// Audience 1 exists and user 5, the usual booker, belongs to it.
+		$this->audiences       = array( 1 => (object) array( 'id' => 1, 'name' => 'Teachers', 'color' => '#3788d8', 'parent_id' => null, 'status' => 'active' ) );
+		$this->members         = array( 5 => array( 1 ) );
 		$this->next_booking_id = 1;
 		$this->prepared        = array();
 		$this->ran             = array();
@@ -208,6 +221,31 @@ class AudienceRestControllerTest extends TestCase {
 				if ( in_array( $sql, array( 'START TRANSACTION', 'COMMIT', 'ROLLBACK' ), true ) ) {
 					$this->writes[] = array( 'query', '', $sql );
 					return true;
+				}
+				if ( false !== strpos( (string) $sql, "SET status = 'cancelled'" ) ) {
+					// AudienceBookingWriter::cancel(): only an active row changes.
+					list( , $table, $by, $at, $reason, $id ) = $this->bound( (string) $sql );
+					$data           = array(
+						'status'              => 'cancelled',
+						'cancelled_by'        => $by,
+						'cancelled_at'        => $at,
+						'cancellation_reason' => $reason,
+					);
+					$this->writes[] = array( 'update', $table, array( 'where' => array( 'id' => $id ), 'data' => $data ) );
+					if ( $this->refuse_booking_update ) {
+						return false;
+					}
+					$booking = $this->bookings[ (int) $id ] ?? null;
+					if ( null !== $booking && $this->cancelled_by_another_request ) {
+						$booking->status = 'cancelled';
+					}
+					if ( null === $booking || 'active' !== $booking->status ) {
+						return 0;
+					}
+					foreach ( $data as $key => $value ) {
+						$booking->{$key} = $value;
+					}
+					return 1;
 				}
 				return $this->unknown( 'query', (string) $sql );
 			}
@@ -295,10 +333,16 @@ class AudienceRestControllerTest extends TestCase {
 	 */
 	private function conditions( array $bound ): array {
 		$sql = (string) $bound[0];
-		preg_match_all( '/(COALESCE\(b\.end_date, b\.booking_date\)|[a-z_.]+) (=|>=|<=) %[sd]/', $sql, $found, PREG_SET_ORDER );
+		preg_match_all( '/(COALESCE\(b\.end_date, b\.booking_date\)|[a-z_.]+) (=|>=|<=|IN) (%[sd]|\((?:%d(?:, )?)+\))/', $sql, $found, PREG_SET_ORDER );
 		$index = 1 + substr_count( $sql, '%i' );
 		$out   = array();
 		foreach ( $found as $condition ) {
+			if ( 'IN' === $condition[2] ) {
+				$count  = substr_count( $condition[3], '%d' );
+				$out[]  = array( $condition[1], 'IN', array_slice( $bound, $index, $count ) );
+				$index += $count;
+				continue;
+			}
 			$out[] = array( $condition[1], $condition[2], $bound[ $index++ ] ?? null );
 		}
 		return $out;
@@ -316,6 +360,12 @@ class AudienceRestControllerTest extends TestCase {
 			} else {
 				$column = substr( (string) strrchr( '.' . $field, '.' ), 1 );
 				$actual = (string) ( $row->{$column} ?? '' );
+			}
+			if ( 'IN' === $op ) {
+				if ( ! in_array( (int) $actual, array_map( 'intval', (array) $value ), true ) ) {
+					return false;
+				}
+				continue;
 			}
 			$ok = '=' === $op ? $actual === (string) $value : ( '>=' === $op ? $actual >= (string) $value : $actual <= (string) $value );
 			if ( ! $ok ) {
@@ -366,6 +416,7 @@ class AudienceRestControllerTest extends TestCase {
 			$by_table = array(
 				'wp_ffc_audience_schedules'    => $this->schedules,
 				'wp_ffc_audience_environments' => $this->environments,
+				'wp_ffc_audiences'             => $this->audiences,
 			);
 			if ( isset( $by_table[ $bound[1] ] ) ) {
 				$row = $by_table[ $bound[1] ][ (int) $bound[2] ] ?? null;
@@ -430,6 +481,20 @@ class AudienceRestControllerTest extends TestCase {
 				}
 			}
 			return $rows;
+		}
+		if ( false !== strpos( $sql, 'WHERE m.user_id = %d' ) ) {
+			// AudienceReader::get_user_audiences(): the user's own audiences.
+			$rows = array();
+			foreach ( $this->members[ (int) $bound[3] ] ?? array() as $audience_id ) {
+				if ( isset( $this->audiences[ $audience_id ] ) ) {
+					$rows[] = clone $this->audiences[ $audience_id ];
+				}
+			}
+			return $rows;
+		}
+		if ( false !== strpos( $sql, 'WHERE ba.booking_id IN (' ) ) {
+			// AudienceBookingReader::get_audiences_for_bookings(): none stored.
+			return array();
 		}
 		if ( false !== strpos( $sql, 'WHERE ba.booking_id = %d' ) ) {
 			// No booking here names an audience row of its own.
@@ -1615,8 +1680,9 @@ class AudienceRestControllerTest extends TestCase {
 				'START TRANSACTION',
 				'update wp_ffc_audience_bookings #99',
 				'insert wp_ffc_audience_bookings',
-				'COMMIT',
+				// The participants are written before the commit (#2243).
 				'insert wp_ffc_audience_booking_audiences',
+				'COMMIT',
 			),
 			$order
 		);
@@ -1743,5 +1809,121 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( 400, $result->get_status() );
 		$this->assertStringContainsString( 'on or after the start date', $result->get_data()['message'] );
 		$this->assertSame( array(), $this->writes, 'Nothing is written.' );
+	}
+
+	// ------------------------------------------------------------------
+	// Authorization and integrity (#2243)
+	// ------------------------------------------------------------------
+
+	public function test_a_member_cannot_book_for_an_audience_they_do_not_belong_to(): void {
+		$this->given_an_open_space();
+		$this->audiences[2] = (object) array( 'id' => 2, 'name' => 'Other', 'color' => '#000000', 'parent_id' => null, 'status' => 'active' );
+
+		$result = ( new AudienceRestController() )->create_booking( $this->booking_request( array( 'audience_ids' => array( 2 ) ) ) );
+
+		$this->assertSame( 403, $result->get_status() );
+		$this->assertStringContainsString( 'audiences you belong to', $result->get_data()['message'] );
+		$this->assertSame( array(), $this->written( 'insert', 'wp_ffc_audience_bookings' ) );
+	}
+
+	public function test_an_audience_that_does_not_exist_is_refused(): void {
+		$this->given_an_open_space();
+
+		$result = ( new AudienceRestController() )->create_booking( $this->booking_request( array( 'audience_ids' => array( 77 ) ) ) );
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertStringContainsString( 'does not exist', $result->get_data()['message'] );
+	}
+
+	public function test_an_individual_booking_needs_the_right_to_manage_audiences(): void {
+		$this->given_an_open_space();
+		$request = $this->booking_request( array( 'booking_type' => 'individual', 'audience_ids' => array(), 'user_ids' => array( 8 ) ) );
+
+		$result = ( new AudienceRestController() )->create_booking( $request );
+
+		$this->assertSame( 403, $result->get_status() );
+		$this->assertStringContainsString( 'individual users', $result->get_data()['message'] );
+
+		$this->caps = array( 'ffc_manage_audiences' );
+		$result     = ( new AudienceRestController() )->create_booking( $request );
+
+		$this->assertSame( 201, $result->get_status() );
+	}
+
+	public function test_a_bypass_holder_may_book_any_existing_audience(): void {
+		$this->given_an_open_space();
+		$this->caps         = array( 'ffc_bypass_audiences' );
+		$this->audiences[2] = (object) array( 'id' => 2, 'name' => 'Other', 'color' => '#000000', 'parent_id' => null, 'status' => 'active' );
+
+		$result = ( new AudienceRestController() )->create_booking( $this->booking_request( array( 'audience_ids' => array( 2 ) ) ) );
+
+		$this->assertSame( 201, $result->get_status() );
+	}
+
+	public function test_a_range_longer_than_thirty_days_is_refused_with_the_limit(): void {
+		$this->given_an_open_space();
+
+		$result = ( new AudienceRestController() )->create_booking( $this->booking_request( array( 'end_date' => '2026-05-01' ) ) );
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertStringContainsString( 'at most 30 consecutive days', $result->get_data()['message'] );
+	}
+
+	public function test_an_absurd_end_date_is_refused_without_walking_the_days(): void {
+		$this->given_an_open_space();
+
+		$result = ( new AudienceRestController() )->create_booking( $this->booking_request( array( 'end_date' => '9999-12-31' ) ) );
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertSame( array(), $this->preparedWith( 'FOR UPDATE' ) );
+	}
+
+	public function test_a_second_cancel_is_refused_and_fires_nothing(): void {
+		$this->environment( 10, 20 );
+		$this->booking( 1, 10, '2026-04-01', '09:00', '10:00' );
+		$this->cancelled_by_another_request = true;
+		$actions                            = CallLog::record( 'do_action' );
+
+		$result = ( new AudienceRestController() )->cancel_booking( $this->make_request( array( 'id' => 1, 'reason' => 'Cannot attend anymore' ) ) );
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertStringContainsString( 'already cancelled', $result->get_data()['message'] );
+		$this->assertSame( 0, $actions->count() );
+	}
+
+	public function test_the_month_read_refuses_a_span_above_sixty_two_days(): void {
+		$result = ( new AudienceRestController() )->get_bookings(
+			$this->make_request( array( 'start_date' => '2026-01-01', 'end_date' => '2026-03-04' ) )
+		);
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertSame( 0, $this->ranWith( 'SELECT b.*' ) );
+	}
+
+	public function test_the_month_read_refuses_an_invalid_date(): void {
+		$result = ( new AudienceRestController() )->get_bookings(
+			$this->make_request( array( 'start_date' => '2026-02-30', 'end_date' => '2026-03-04' ) )
+		);
+
+		$this->assertSame( 400, $result->get_status() );
+	}
+
+	public function test_the_month_read_loads_every_booking_audience_in_one_query(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		$this->environment( 10, 20 );
+		$this->booking( 1, 10, '2026-04-01', '09:00', '10:00' );
+		$this->booking( 2, 10, '2026-04-02', '09:00', '10:00' );
+		$this->booking( 3, 10, '2026-04-03', '09:00', '10:00' );
+
+		$result = ( new AudienceRestController() )->get_bookings(
+			$this->make_request( array( 'start_date' => '2026-04-01', 'end_date' => '2026-04-30' ) )
+		);
+
+		$this->assertCount( 3, $result->get_data()['bookings'] );
+		$this->assertSame( 1, $this->ranWith( 'ba.booking_id IN (' ) );
+		$this->assertSame( 0, $this->ranWith( 'WHERE ba.booking_id = %d' ) );
+		// The readable calendars are filtered in the query.
+		$this->assertCount( 1, $this->preparedWith( 'e.schedule_id IN (' ) );
 	}
 }
