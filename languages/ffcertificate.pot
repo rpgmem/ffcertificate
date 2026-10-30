@@ -29803,3 +29803,15 @@ msgid "%d selected submission was skipped because its status does not allow it."
 msgid_plural "%d selected submissions were skipped because their status does not allow it."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Already answered: the key, type, sensitivity and profile binding are locked, and the field cannot be deleted. Label, help text and options stay editable; deactivate it to stop asking."
+msgstr ""
+
+msgid "Answered Field Change Refused"
+msgstr ""
+
+msgid "Once anybody has answered a custom field, in a reregistration or on their profile, its key, type, sensitivity and profile binding are locked and it cannot be deleted, because the answers are stored and read by them. The label, help text and options stay editable. To stop asking it, deactivate it: the answers already given keep appearing in review, the Record and the CSV export."
+msgstr ""
+
+msgid "This field already has answers and cannot be deleted. Deactivate it instead; its answers stay in review, the Record and the export."
+msgstr ""

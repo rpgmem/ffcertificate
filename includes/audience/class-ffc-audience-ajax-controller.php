@@ -678,6 +678,16 @@ final class AudienceAjaxController {
 				);
 			}
 
+			// Answers are stored by key: an answered field is deactivated, so
+			// they stay readable in review, the Record and the export (#2242).
+			if ( \FreeFormCertificate\Reregistration\CustomFieldReader::has_answers( $field ) ) {
+				wp_send_json_error(
+					array(
+						'message' => __( 'This field already has answers and cannot be deleted. Deactivate it instead; its answers stay in review, the Record and the export.', 'ffcertificate' ),
+					)
+				);
+			}
+
 			$result = \FreeFormCertificate\Reregistration\CustomFieldWriter::delete( $field_id );
 			if ( ! $result ) {
 				wp_send_json_error( array( 'message' => __( 'Failed to delete field.', 'ffcertificate' ) ) );

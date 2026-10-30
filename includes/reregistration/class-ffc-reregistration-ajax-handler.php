@@ -163,7 +163,7 @@ final class ReregistrationAjaxHandler {
 		$sub_data   = $submission->data ? json_decode( $submission->data, true ) : array();
 		$raw_values = is_array( $sub_data['fields'] ?? null ) ? $sub_data['fields'] : array();
 
-		$all_fields       = RecordGenerator::get_custom_fields_for_reregistration( $rereg );
+		$all_fields       = RecordGenerator::get_custom_fields_for_reregistration( $rereg, true );
 		$decrypted_values = RecordGenerator::decrypt_field_values( $all_fields, $raw_values );
 
 		$html = $this->details_renderer->build_submission_details_html( $submission, $all_fields, $decrypted_values );

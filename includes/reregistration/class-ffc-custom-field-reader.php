@@ -861,4 +861,65 @@ class CustomFieldReader {
 		}
 		return $out;
 	}
+	/**
+	 * Whether anybody answered this field yet (#2242).
+	 *
+	 * Once they have, the field's key, type, sensitivity and profile binding
+	 * are locked and it cannot be deleted: answers are stored by key, read by
+	 * type, encrypted by sensitivity and copied by binding, so changing any of
+	 * them silently loses what was answered. Two stores hold answers:
+	 *
+	 *  - a reregistration submission's `data`, keyed by `field_key`
+	 *    (`{"fields":{"<key>":…}}`);
+	 *  - the user's profile meta, keyed by `field_<id>` in a serialised array.
+	 *
+	 * A yes is memoised for the request, keyed by id and key; a no is not,
+	 * because the first answer can arrive at any moment and a stale no would
+	 * leave the field unlocked.
+	 *
+	 * @param object $field Field row.
+	 * @phpstan-param CustomFieldRow $field
+	 * @return bool
+	 */
+	public static function has_answers( object $field ): bool {
+		static $memo = array();
+
+		$id  = (int) $field->id;
+		$key = (string) $field->field_key;
+		$tag = $id . '|' . $key;
+		if ( isset( $memo[ $tag ] ) ) {
+			return $memo[ $tag ];
+		}
+
+		$wpdb     = self::db();
+		$answered = false;
+		if ( '' !== $key ) {
+			$answered = null !== $wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT 1 FROM %i WHERE data LIKE %s LIMIT 1',
+					ReregistrationSubmissionReader::get_table_name(),
+					'%' . $wpdb->esc_like( '"' . $key . '":' ) . '%'
+				)
+			);
+		}
+
+		if ( ! $answered && $id > 0 ) {
+			$users    = get_users(
+				array(
+					'meta_key'     => self::USER_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_query_meta_key -- Run only when the editor renders a field or a locked property changes; one row is enough.
+					'meta_value'   => '"field_' . $id . '";', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_query_meta_value -- As above.
+					'meta_compare' => 'LIKE',
+					'number'       => 1,
+					'fields'       => 'ID',
+					'count_total'  => false,
+				)
+			);
+			$answered = ! empty( $users );
+		}
+
+		if ( $answered ) {
+			$memo[ $tag ] = true;
+		}
+		return $answered;
+	}
 }

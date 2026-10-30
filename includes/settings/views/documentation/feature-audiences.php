@@ -21,6 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Audience custom fields', 'ffcertificate' ); ?></h4>
 		<p><?php esc_html_e( 'Define custom data fields per audience group. These fields are shown during reregistration and on the WordPress user profile.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'Once anybody has answered a custom field, in a reregistration or on their profile, its key, type, sensitivity and profile binding are locked and it cannot be deleted, because the answers are stored and read by them. The label, help text and options stay editable. To stop asking it, deactivate it: the answers already given keep appearing in review, the Record and the CSV export.', 'ffcertificate' ); ?></p>
 	</div>
 
 	<div class="ffc-doc-example">

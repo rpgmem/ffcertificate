@@ -52,7 +52,7 @@ class RecordGenerator {
 		$raw_values = is_array( $sub_data['fields'] ?? null ) ? $sub_data['fields'] : array();
 
 		// Get field definitions for all audiences linked to this reregistration.
-		$all_fields = self::get_custom_fields_for_reregistration( $rereg );
+		$all_fields = self::get_custom_fields_for_reregistration( $rereg, true );
 
 		// Decrypt sensitive values and split by field_source.
 		$decrypted_values = self::decrypt_field_values( $all_fields, $raw_values );
@@ -688,11 +688,27 @@ class RecordGenerator {
 	/**
 	 * Get custom fields for all audiences linked to a reregistration.
 	 *
-	 * @param object $rereg Reregistration object.
+	 * The form asks only active fields. What READS answers — review, the
+	 * Record, the export — passes `$with_answered_inactive` so a field
+	 * deactivated after people answered it keeps showing those answers
+	 * (#2242); an inactive field nobody answered stays out.
+	 *
+	 * @param object $rereg                  Reregistration object.
 	 * @phpstan-param ReregistrationRow $rereg
+	 * @param bool   $with_answered_inactive Include inactive fields that have answers.
 	 * @return list<CustomFieldRow>
 	 */
-	public static function get_custom_fields_for_reregistration( object $rereg ): array {
-		return CustomFieldReader::get_for_audiences( ReregistrationRepository::get_audience_ids( (int) $rereg->id ) );
+	public static function get_custom_fields_for_reregistration( object $rereg, bool $with_answered_inactive = false ): array {
+		$audience_ids = ReregistrationRepository::get_audience_ids( (int) $rereg->id );
+		if ( ! $with_answered_inactive ) {
+			return CustomFieldReader::get_for_audiences( $audience_ids );
+		}
+
+		return array_values(
+			array_filter(
+				CustomFieldReader::get_for_audiences( $audience_ids, false ),
+				static fn ( object $field ): bool => '0' !== (string) ( $field->is_active ?? '1' ) || CustomFieldReader::has_answers( $field )
+			)
+		);
 	}
 }

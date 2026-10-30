@@ -49,6 +49,9 @@ class AudienceAdminAudienceTest extends TestCase {
 	/** @var list<int> Member user ids whose WordPress account is gone. */
 	private array $deleted_users = array();
 
+	/** @var string|null What the lock check's submissions read answers (#2242). */
+	private ?string $answered = null;
+
 	/** @var list<array<int, mixed>> Every prepare() call, as its argument list. */
 	private array $prepared = array();
 
@@ -128,7 +131,7 @@ class AudienceAdminAudienceTest extends TestCase {
 		);
 		// A member count keeps the members whose account still exists (#1795).
 		Functions\when( 'get_users' )->alias(
-			fn( $args ) => array_values( array_diff( array_map( 'intval', (array) $args['include'] ), $this->deleted_users ) )
+			fn( $args ) => array_values( array_diff( array_map( 'intval', (array) ( $args['include'] ?? array() ) ), $this->deleted_users ) )
 		);
 		// add_member() grants the audience capabilities to an account it finds.
 		Functions\when( 'get_userdata' )->justReturn( false );
@@ -184,8 +187,13 @@ class AudienceAdminAudienceTest extends TestCase {
 			}
 		);
 		foreach ( array( 'get_row', 'get_results', 'get_col', 'get_var' ) as $method ) {
-			$wpdb->shouldReceive( $method )->andReturnUsing( fn( $sql ) => $this->answer( $method, (string) $sql ) );
+			$wpdb->shouldReceive( $method )->andReturnUsing(
+				// Nobody answered a custom field here (#2242): the editor's lock
+				// check finds no submission carrying its key.
+				fn( $sql ) => 'get_var' === $method && false !== strpos( (string) $sql, 'SELECT 1 FROM %i WHERE data LIKE %s' ) ? $this->answered : $this->answer( $method, (string) $sql )
+			);
 		}
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $text ) => $text );
 		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
 			function ( $table, $data ) use ( $wpdb ) {
 				$this->writes[]  = array( 'insert', $table, $data );
@@ -610,6 +618,39 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertStringContainsString( 'A', $output );
 		// Custom field is deletable.
 		$this->assertStringContainsString( 'ffc-field-delete', $output );
+	}
+
+	public function test_an_answered_custom_field_is_drawn_locked_and_not_deletable(): void {
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
+		$this->answered = '1';
+
+		$field = (object) array(
+			'id'                => 31,
+			'field_label'       => 'Answered',
+			'field_type'        => 'text',
+			'field_key'         => 'answered_text',
+			'field_group'       => '',
+			'field_profile_key' => '',
+			'field_mask'        => '',
+			'field_source'      => 'custom',
+			'is_sensitive'      => 0,
+			'is_required'       => 0,
+			'is_active'         => 1,
+			'field_options'     => null,
+			'validation_rules'  => null,
+		);
+
+		ob_start();
+		\FreeFormCertificate\Audience\AudienceAdminAudienceRenderer::render_custom_field_row( $field, array( 'text' ), array() );
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'ffc-field-answer-lock', $output, 'The lock is explained (#2242).' );
+		$this->assertMatchesRegularExpression( '/<select class="ffc-field-type" disabled>/', $output );
+		$this->assertMatchesRegularExpression( '/class="ffc-field-key"[^>]*disabled/', $output );
+		$this->assertMatchesRegularExpression( '/class="ffc-field-profile-key"[^>]*disabled/', $output );
+		$this->assertStringNotContainsString( 'ffc-field-delete', $output, 'An answered field is deactivated, never deleted.' );
+		$this->assertDoesNotMatchRegularExpression( '/<input type="text" class="ffc-field-label[^"]*"[^>]*disabled/', $output, 'The label stays editable.' );
 	}
 
 	public function test_render_custom_field_row_standard_locked_field(): void {

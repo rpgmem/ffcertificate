@@ -190,8 +190,11 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 			}
 		);
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
-			fn( $sql ) => (string) count( $this->select( (string) $sql, 'COUNT(*)' ) )
+			// Nobody answered the custom field here (#2242): the editor's lock
+			// check finds no submission carrying its key.
+			fn( $sql ) => false !== strpos( (string) $sql, 'SELECT 1 FROM %i WHERE data LIKE %s' ) ? null : (string) count( $this->select( (string) $sql, 'COUNT(*)' ) )
 		);
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $text ) => $text );
 		foreach ( array( 'insert', 'update', 'delete', 'replace', 'query' ) as $method ) {
 			$wpdb->shouldReceive( $method )->andReturnUsing(
 				function ( ...$args ) use ( $method ) {
