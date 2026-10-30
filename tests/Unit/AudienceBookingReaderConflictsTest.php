@@ -219,8 +219,8 @@ class AudienceBookingReaderConflictsTest extends TestCase {
 			array( 'wp_ffc_audience_bookings', 'wp_ffc_audience_booking_audiences', 'wp_ffc_audience_members', 'wp_ffc_audience_booking_users', '2026-05-04' ),
 			array_slice( $query, 1, 5 )
 		);
-		$this->assertSame( array( '2026-05-04', '2026-05-04', '%"2026-05-04"%' ), array_slice( $query, 5, 3 ), 'The day binds as a range, skipping the days a range left out.' );
-		$this->assertSame( array( 20, 21, 20, 21 ), array_slice( $query, 8 ), 'The user list fills both IN() clauses; the hours are compared in PHP, per day.' );
+		$this->assertSame( array( '2026-05-04', '2026-05-04', '2025-05-05', '%"2026-05-04"%' ), array_slice( $query, 5, 4 ), 'The day binds as a range starting at most a year before (#2243), skipping the days a range left out.' );
+		$this->assertSame( array( 20, 21, 20, 21 ), array_slice( $query, 9 ), 'The user list fills both IN() clauses; the hours are compared in PHP, per day.' );
 	}
 
 	public function test_get_user_conflicts_scoped_to_a_schedule_excludes_the_edited_booking(): void {
@@ -253,7 +253,7 @@ class AudienceBookingReaderConflictsTest extends TestCase {
 		$this->assertStringContainsString( 'INNER JOIN %i env ON b.environment_id = env.id', $query[0] );
 		$this->assertStringContainsString( 'ba.audience_id IN (%d,%d)', $query[0] );
 		$this->assertSame(
-			array( 'wp_ffc_audience_bookings', 'wp_ffc_audience_booking_audiences', 'wp_ffc_audiences', 'wp_ffc_audience_environments', '2026-05-04', '2026-05-04', '%"2026-05-04"%', 4, 5, 3 ),
+			array( 'wp_ffc_audience_bookings', 'wp_ffc_audience_booking_audiences', 'wp_ffc_audiences', 'wp_ffc_audience_environments', '2026-05-04', '2026-05-04', '2025-05-05', '%"2026-05-04"%', 4, 5, 3 ),
 			array_slice( $query, 1 )
 		);
 		$this->assertSame( 1, $this->ranWith( 'a.name AS audience_name' ), 'The same-day query runs once.' );
