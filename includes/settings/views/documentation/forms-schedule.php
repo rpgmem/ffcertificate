@@ -35,6 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr><td><?php esc_html_e( 'Multi-day', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Off: the form is open only on the start date, between the two times. On: it spans start → end date.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><?php esc_html_e( 'Time mode (daily / span)', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Daily: the same open/close time applies each day. Span: one continuous window from start date+time to end date+time.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><?php esc_html_e( 'Blocked behavior', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Before / during / after the window you can independently show a message, show the title + description + message, or hide the form. The "during" setting applies only in daily mode, outside that day\'s hours.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><?php esc_html_e( 'Blocked messages', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Three messages, one per moment: before the form opens, after it closes, and outside the daily hours (daily mode only). A message left empty shows that moment\'s default. Forms saved with the single message from earlier versions show it in all three until edited.', 'ffcertificate' ); ?></td></tr>
 		</tbody>
 	</table>
 

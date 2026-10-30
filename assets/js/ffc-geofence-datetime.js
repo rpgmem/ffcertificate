@@ -16,6 +16,16 @@
     Object.assign(FFCGeofence, {
 
         /**
+         * The message for one moment (#2241): before the form opens, after it
+         * closes, or outside the daily hours. A config without the per-moment
+         * messages (the content shortcode) uses its single message.
+         */
+        phaseMessage: function(config, phase, stringKey, fallback) {
+            const messages = config.messages || {};
+            return messages[phase] || config.message || this.getString(stringKey, fallback);
+        },
+
+        /**
          * Validate date/time restrictions
          *
          * @param {object} config DateTime configuration
@@ -51,7 +61,7 @@
                     return {
                         valid: false,
                         phase: 'before',
-                        message: config.message || this.getString('formNotYetAvailable', 'This form is not yet available.')
+                        message: this.phaseMessage(config, 'before', 'formNotYetAvailable', 'This form is not yet available.')
                     };
                 }
 
@@ -59,7 +69,7 @@
                     return {
                         valid: false,
                         phase: 'after',
-                        message: config.message || this.getString('formNoLongerAvailable', 'This form is no longer available.')
+                        message: this.phaseMessage(config, 'after', 'formNoLongerAvailable', 'This form is no longer available.')
                     };
                 }
 
@@ -73,7 +83,7 @@
                 return {
                     valid: false,
                     phase: 'before',
-                    message: config.message || this.getString('formNotYetAvailable', 'This form is not yet available.')
+                    message: this.phaseMessage(config, 'before', 'formNotYetAvailable', 'This form is not yet available.')
                 };
             }
 
@@ -81,7 +91,7 @@
                 return {
                     valid: false,
                     phase: 'after',
-                    message: config.message || this.getString('formNoLongerAvailable', 'This form is no longer available.')
+                    message: this.phaseMessage(config, 'after', 'formNoLongerAvailable', 'This form is no longer available.')
                 };
             }
 
@@ -94,7 +104,7 @@
                     return {
                         valid: false,
                         phase: 'during',
-                        message: config.message || this.getString('formOnlyDuringHours', 'This form is only available during specific hours.')
+                        message: this.phaseMessage(config, 'during', 'formOnlyDuringHours', 'This form is only available during specific hours.')
                     };
                 }
             }

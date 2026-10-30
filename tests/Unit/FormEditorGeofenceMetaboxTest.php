@@ -113,6 +113,28 @@ class FormEditorGeofenceMetaboxTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc_geofence[datetime_enabled]', $html );
 	}
 
+	public function test_render_has_one_message_per_moment(): void {
+		$html = $this->render(
+			array(
+				'msg_before_open'   => 'Opens on 1 June.',
+				'msg_after_close'   => 'Registration has closed.',
+				'msg_outside_hours' => '',
+			)
+		);
+
+		$this->assertStringContainsString( 'name="ffc_geofence[msg_before_open]"', $html );
+		$this->assertStringContainsString( '>Opens on 1 June.</textarea>', $html );
+		$this->assertStringContainsString( '>Registration has closed.</textarea>', $html );
+		$this->assertMatchesRegularExpression( '/name="ffc_geofence\[msg_outside_hours\]"[^>]*placeholder="This form is only available during specific hours."[^>]*><\/textarea>/', $html, 'An empty message shows its default as the placeholder.' );
+		$this->assertStringNotContainsString( 'ffc_geofence[msg_datetime]', $html );
+	}
+
+	public function test_a_form_with_the_single_message_shows_it_in_every_field(): void {
+		$html = $this->render( array( 'msg_datetime' => 'Not available now.' ) );
+
+		$this->assertSame( 3, substr_count( $html, '>Not available now.</textarea>' ) );
+	}
+
 	public function test_render_emits_end_min_when_multi_day_on(): void {
 		$html = $this->render(
 			array(

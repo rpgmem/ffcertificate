@@ -10849,10 +10849,6 @@ msgstr ""
 msgid "Message shown to users after being redirected (appears on the dashboard page)."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:272
-msgid "Message shown when form is accessed outside allowed date/time."
-msgstr ""
-
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:555
 msgid "Message shown when location detection fails (GPS denied, etc)."
 msgstr ""
@@ -16865,11 +16861,6 @@ msgstr ""
 msgid "the dashboard resolves data from the current user and shows nothing to anonymous visitors."
 msgstr ""
 
-#. %d: minimum character count
-#: includes/admin/class-ffc-form-editor-save-validator.php:202
-msgid "The date/time \"Blocked Message\" must be at least %d characters so visitors understand why the form is unavailable."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-migrations.php:641
 msgid "The delete button unlocks for 5 minutes after a successful preview."
 msgstr ""
@@ -17540,10 +17531,6 @@ msgstr ""
 
 #: includes/security/class-ffc-geofence.php:278 includes/security/class-ffc-geofence.php:313 includes/frontend/class-ffc-frontend.php:697
 msgid "This form is no longer available."
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:97
-msgid "This form is not available at this time."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:371 includes/security/class-ffc-geofence.php:404
@@ -29752,3 +29739,32 @@ msgid "This form has %s issued certificate; layout changes apply to it the next 
 msgid_plural "This form has %s issued certificates; layout changes apply to them the next time they are generated or verified."
 msgstr[0] ""
 msgstr[1] ""
+
+#. translators: %d: minimum character count
+#, php-format
+msgid "A date/time message must be at least %d characters so visitors understand why the form is unavailable, or left empty for the default."
+msgstr ""
+
+msgid "Blocked messages"
+msgstr ""
+
+msgid "Message after it closes"
+msgstr ""
+
+msgid "Message before it opens"
+msgstr ""
+
+msgid "Message outside the daily hours"
+msgstr ""
+
+msgid "Shown after the end date and time. Leave empty for the default shown in the field."
+msgstr ""
+
+msgid "Shown before the start date and time. Leave empty for the default shown in the field."
+msgstr ""
+
+msgid "Shown within the date range but outside the daily time slot, when the time applies to each day. Leave empty for the default shown in the field."
+msgstr ""
+
+msgid "Three messages, one per moment: before the form opens, after it closes, and outside the daily hours (daily mode only). A message left empty shows that moment's default. Forms saved with the single message from earlier versions show it in all three until edited."
+msgstr ""
