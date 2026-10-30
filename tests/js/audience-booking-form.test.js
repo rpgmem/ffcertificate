@@ -31,6 +31,10 @@ beforeAll(() => {
 			audienceSameDayWarning: 'This audience already has a booking today:',
 			membersOverlapping: 'member(s) overlap.',
 			bookingCreated: 'Booking created.',
+			saveChanges: 'Save changes',
+			bookingChanged: 'Booking changed.',
+			editMoveNote: 'Change the date, hours, space or description.',
+			editStartedNote: 'This booking has started.',
 			timeout: 'Timed out.',
 		},
 	};
@@ -790,5 +794,90 @@ describe('ffc-audience-booking-form — a weekly series (#2243)', () => {
 		api.submitBooking();
 
 		expect(restSpy).not.toHaveBeenCalled();
+	});
+});
+
+// Editing a booking (#2243): the dialog opens on the booking, keeps who it is
+// for, saves in one step, and locks the slot of a booking that has started.
+describe('ffc-audience-booking-form — editing a booking (#2243)', () => {
+	const booking = {
+		id: '42',
+		environment_id: '10',
+		booking_date: '2026-06-10',
+		end_date: null,
+		time_mode: null,
+		start_time: '09:00:00',
+		end_time: '10:00:00',
+		is_all_day: 0,
+		description: 'The weekly planning meeting',
+	};
+
+	beforeEach(() => {
+		api.state.config.today = '2026-06-01';
+	});
+
+	it('opens on the booking, without who it is for, with one save step', () => {
+		api.openEditModal(booking);
+
+		expect(window.$('#ffc-booking-modal-title').text()).toBe('Edit Booking');
+		expect(window.$('#ffc-booking-who').prop('hidden')).toBe(true);
+		expect(window.$('input[name="booking_span"][value="weekly"]').closest('label').prop('hidden')).toBe(true);
+		expect(window.$('#booking-move-date-group').prop('hidden')).toBe(false);
+		expect(window.$('#booking-move-date').val()).toBe('2026-06-10');
+		expect(window.$('#booking-start-time').val()).toBe('09:00');
+		expect(window.$('#booking-description').val()).toBe('The weekly planning meeting');
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('create');
+		expect(window.$('#ffc-booking-submit').text()).toBe('Save changes');
+	});
+
+	it('PUTs the moved slot to the booking, without its participants', async () => {
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true, message: 'Booking changed.' });
+		api.openEditModal(booking);
+		window.$('#booking-move-date').val('2026-06-17');
+		api.moveToDate();
+		window.$('#booking-start-time').val('14:00');
+		window.$('#booking-end-time').val('15:00');
+
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+
+		const [url, opts] = restSpy.mock.calls[0];
+		expect(url).toMatch(/bookings\/42$/);
+		expect(opts.method).toBe('PUT');
+		expect(opts.data.booking_date).toBe('2026-06-17');
+		expect(opts.data.start_time).toBe('14:00');
+		expect(opts.data).not.toHaveProperty('audience_ids');
+		expect(opts.data).not.toHaveProperty('booking_type');
+		expect(alertSpy).toHaveBeenCalledWith('Booking changed.');
+	});
+
+	it('locks the slot of a started booking and sends its text only', async () => {
+		vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true });
+		api.state.config.today = '2026-06-10';
+		api.openEditModal(booking);
+
+		expect(window.$('#booking-start-time').prop('disabled')).toBe(true);
+		expect(window.$('#booking-environment-id').prop('disabled')).toBe(true);
+		expect(window.$('#booking-edit-note').text()).toBe('This booking has started.');
+
+		window.$('#booking-description').val('The weekly planning meeting, online');
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+
+		expect(restSpy.mock.calls[0][1].data).toEqual({ booking_date: '', description: 'The weekly planning meeting, online' });
+	});
+
+	it('a new booking after an edit is a new booking again', () => {
+		api.state.config.today = '2026-06-10';
+		api.openEditModal(booking);
+		api.openBookingModal('2026-06-20', 10);
+
+		expect(window.$('#ffc-booking-modal-title').text()).toBe('New Booking');
+		expect(window.$('#ffc-booking-who').prop('hidden')).toBe(false);
+		expect(window.$('#booking-move-date-group').prop('hidden')).toBe(true);
+		expect(window.$('#booking-start-time').prop('disabled')).toBe(false);
+		expect(window.$('#ffc-booking-submit').text()).toBe('Check Conflicts');
 	});
 });

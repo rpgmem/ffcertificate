@@ -212,6 +212,8 @@ class AudienceShortcode {
 			'audienceBadgeFormat' => self::get_audience_badge_format( $schedules ),
 			'canBook'             => self::can_user_book( $user_id, $schedules ),
 			'audiences'           => self::get_user_audiences( $user_id ),
+			// Site-time "today": a booking on or before it has started, and only its text changes (#2243).
+			'today'               => AudienceBookingRules::today(),
 		);
 
 		return $bypass_notice . self::render_calendar_html( $schedules, $config, $atts, true );
@@ -367,7 +369,7 @@ class AudienceShortcode {
 			<div class="ffc-modal-content ffc-booking-dialog">
 				<div class="ffc-modal-header ffc-booking-header">
 					<div class="ffc-booking-heading">
-						<h3 id="ffc-booking-modal-title"><?php esc_html_e( 'New Booking', 'ffcertificate' ); ?></h3>
+						<h3 id="ffc-booking-modal-title" data-ffc-new-title="<?php esc_attr_e( 'New Booking', 'ffcertificate' ); ?>" data-ffc-edit-title="<?php esc_attr_e( 'Edit Booking', 'ffcertificate' ); ?>"><?php esc_html_e( 'New Booking', 'ffcertificate' ); ?></h3>
 						<p class="ffc-booking-date-display ffc-icon-calendar"></p>
 					</div>
 					<?php
@@ -388,6 +390,12 @@ class AudienceShortcode {
 
 						<section class="ffc-booking-section" aria-labelledby="ffc-booking-when-title">
 							<h4 class="ffc-booking-section-title" id="ffc-booking-when-title"><?php esc_html_e( 'When', 'ffcertificate' ); ?></h4>
+							<?php // Editing a booking moves it to another date too (#2243); a new one takes the day clicked. ?>
+							<p class="ffc-booking-choice-hint" id="booking-edit-note" hidden></p>
+							<div class="ffc-form-group" id="booking-move-date-group" hidden>
+								<label for="booking-move-date"><?php esc_html_e( 'Date', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
+								<input type="date" id="booking-move-date">
+							</div>
 							<?php
 							// One day or several: the end date and the range options
 							// belong to the second, so they show only with it (#2008).
@@ -492,7 +500,7 @@ class AudienceShortcode {
 							</div>
 						</section>
 
-						<section class="ffc-booking-section" aria-labelledby="ffc-booking-who-title">
+						<section class="ffc-booking-section" id="ffc-booking-who" aria-labelledby="ffc-booking-who-title">
 							<h4 class="ffc-booking-section-title" id="ffc-booking-who-title"><?php esc_html_e( 'For whom', 'ffcertificate' ); ?></h4>
 							<?php
 							// Only someone who may book for named people sees the choice
@@ -1133,6 +1141,12 @@ class AudienceShortcode {
 						'repeatUntilInvalid'     => __( 'Repeat until must be at least a week after the first date.', 'ffcertificate' ),
 						/* translators: %d: the most weeks a series may repeat. */
 						'repeatUntilTooLong'     => __( 'A weekly series can repeat for at most %d weeks.', 'ffcertificate' ),
+						// Editing a booking (#2243).
+						'edit'                   => __( 'Edit', 'ffcertificate' ),
+						'saveChanges'            => __( 'Save changes', 'ffcertificate' ),
+						'bookingChanged'         => __( 'Booking changed. Its participants will be told.', 'ffcertificate' ),
+						'editMoveNote'           => __( 'Change the date, hours, space or description. Who the booking is for stays as booked; the participants receive one e-mail with the change.', 'ffcertificate' ),
+						'editStartedNote'        => __( 'This booking has started: only its description can change.', 'ffcertificate' ),
 					)
 				),
 			)

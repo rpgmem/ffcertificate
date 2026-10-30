@@ -30,6 +30,9 @@
             day: 'numeric'
         });
 
+        // A new booking: leave any edit mode an earlier opening set (#2243).
+        setEditMode(null);
+
         // Reset form
         $('#ffc-booking-form')[0].reset();
         FFC.clearFieldMessage($('#ffc-booking-form').find('input, select, textarea'));
@@ -117,6 +120,83 @@
         $modal.show();
         $modal.find('.ffc-modal-close').focus();
         trapFocus($modal);
+    }
+
+    /**
+     * Switch the dialog between a new booking and editing one (#2243).
+     *
+     * Editing keeps who the booking is for, so the "For whom" section and
+     * the weekly option leave; the date becomes a field of its own, since a
+     * move may change it; the one button saves. A booking that has started
+     * keeps its date, hours and space: those fields are locked and only the
+     * description changes.
+     *
+     * @param {Object|null} editing `{id, started}`, or null for a new booking.
+     */
+    function setEditMode(editing) {
+        var S = ffcAudience.strings || {};
+        var started = !!(editing && editing.started);
+        state.editing = editing;
+
+        var $title = $('#ffc-booking-modal-title');
+        $title.text(editing ? $title.attr('data-ffc-edit-title') : $title.attr('data-ffc-new-title'));
+        $('#ffc-booking-who').prop('hidden', !!editing);
+        $('input[name="booking_span"][value="weekly"]').closest('label').prop('hidden', !!editing);
+        $('#booking-move-date-group').prop('hidden', !editing);
+        $('#booking-edit-note')
+            .text(editing ? (started ? (S.editStartedNote || '') : (S.editMoveNote || '')) : '')
+            .prop('hidden', !editing);
+        $('#booking-move-date, input[name="booking_span"], #booking-end-date, #booking-all-day, #booking-start-time, #booking-end-time, input[name="time_mode"], #booking-skip-blocked, #booking-environment-id')
+            .prop('disabled', started);
+    }
+
+    /**
+     * Open the dialog on a booking, to edit or move it (#2243).
+     *
+     * The dialog opens the way a new booking's does, on the booking's date
+     * and space, and is then filled with what the booking holds.
+     *
+     * @param {Object} booking A booking of the month read.
+     */
+    function openEditModal(booking) {
+        openBookingModal(booking.booking_date, booking.environment_id);
+
+        var today = (state.config && state.config.today) || '';
+        setEditMode({ id: parseInt(booking.id, 10), started: today !== '' && booking.booking_date <= today });
+
+        var range = booking.end_date && booking.end_date !== booking.booking_date;
+        $('#booking-move-date').val(booking.booking_date);
+        $('input[name="booking_span"][value="' + (range ? 'range' : 'single') + '"]').prop('checked', true);
+        setRangeOptions(range);
+        if (range) {
+            $('#booking-end-date').val(booking.end_date);
+            $('input[name="time_mode"][value="' + (booking.time_mode === 'span' ? 'span' : 'daily') + '"]').prop('checked', true);
+        }
+        setAllDay(!!parseInt(booking.is_all_day, 10));
+        $('#booking-start-time').val(String(booking.start_time || '').slice(0, 5));
+        $('#booking-end-time').val(String(booking.end_time || '').slice(0, 5));
+        $('#booking-description').val(booking.description || '');
+        $('#desc-char-count').text(String((booking.description || '').length));
+        updateTimeModeHints();
+        setSubmitStep('create');
+        // Re-apply the lock: the span and all-day setters above enable fields.
+        setEditMode(state.editing);
+    }
+
+    /**
+     * A move to another date (#2243): the date the dialog books is the
+     * date field's.
+     */
+    function moveToDate() {
+        var date = $('#booking-move-date').val();
+        if (!date) {
+            return;
+        }
+        $('#booking-date').val(date);
+        $('#booking-end-date').attr('min', date);
+        $('.ffc-booking-date-display').text(formatBookingDate(date));
+        updateTimeModeHints();
+        updateEnvironmentStatus();
     }
 
     /**
@@ -447,13 +527,17 @@
     function setSubmitStep(step) {
         var S = ffcAudience.strings || {};
         var create = step === 'create';
+        // An edit saves in one step: the server runs the checks (#2243).
+        var saving = create && !!state.editing;
         $('#ffc-booking-submit')
             .attr('data-step', create ? 'create' : 'check')
-            .toggleClass('ffc-btn-primary ffc-icon-search', !create)
-            .toggleClass('ffc-btn-create ffc-icon-plus', create)
+            .toggleClass('ffc-btn-primary', !create || saving)
+            .toggleClass('ffc-icon-search', !create)
+            .toggleClass('ffc-btn-create ffc-icon-plus', create && !saving)
+            .toggleClass('ffc-icon-checkmark', saving)
             .removeClass('ffc-btn-loading')
             .prop('disabled', false)
-            .text(create ? (S.createBooking || 'Create Booking') : (S.checkConflicts || 'Check Conflicts'));
+            .text(saving ? (S.saveChanges || 'Save changes') : (create ? (S.createBooking || 'Create Booking') : (S.checkConflicts || 'Check Conflicts')));
     }
 
     /**
@@ -470,7 +554,9 @@
      */
     function submitBooking() {
         var create = $('#ffc-booking-submit').attr('data-step') === 'create';
-        if (isWeekly()) {
+        if (state.editing) {
+            createBooking();
+        } else if (isWeekly()) {
             if (create) {
                 createSeries();
             } else {
@@ -897,7 +983,24 @@
             return;
         }
 
+        var editing = state.editing;
         var data = getBookingFormData();
+        if (editing) {
+            // Who it is for stays as booked; a started booking sends only its text.
+            data = editing.started
+                ? { booking_date: '', description: data.description }
+                : {
+                    environment_id: data.environment_id,
+                    booking_date: data.booking_date,
+                    start_time: data.start_time,
+                    end_time: data.end_time,
+                    is_all_day: data.is_all_day,
+                    end_date: data.end_date,
+                    time_mode: data.time_mode,
+                    skip_blocked: data.skip_blocked,
+                    description: data.description
+                };
+        }
         if (confirmed === true) {
             data.confirm_override = true;
             if (reason) {
@@ -912,14 +1015,14 @@
 
         setSubmitBusy(true);
 
-        FFC.rest(ffcAudience.restUrl + 'bookings', {
-            method: 'POST',
+        FFC.rest(ffcAudience.restUrl + 'bookings' + (editing ? '/' + editing.id : ''), {
+            method: editing ? 'PUT' : 'POST',
             data: data,
             nonce: ffcAudience.nonce
         })
             .then(function(response) {
                 if (response && response.success) {
-                    alert(ffcAudience.strings.bookingCreated);
+                    alert(editing ? (response.message || ffcAudience.strings.bookingChanged) : ffcAudience.strings.bookingCreated);
                     api.closeModals();
                     api.renderCalendar();
                 } else {
@@ -1028,7 +1131,10 @@
 
         var $audiences = $('#booking-audience-search');
         var $users = $('#booking-user-search');
-        if (type === 'audience') {
+        if (state.editing) {
+            // An edit keeps who the booking is for (#2243).
+            FFC.clearFieldMessage($audiences.add($users));
+        } else if (type === 'audience') {
             // The message goes under the list, where the choice is made; on
             // a phone the summary carries it, and opening the picker shows it.
             if (selectedAudienceIds().length === 0) {
@@ -1117,5 +1223,7 @@
     api.setSubmitStep      = setSubmitStep;
     api.submitBooking      = submitBooking;
     api.invalidateCheck    = invalidateCheck;
+    api.openEditModal      = openEditModal;
+    api.moveToDate         = moveToDate;
 
 })(jQuery);

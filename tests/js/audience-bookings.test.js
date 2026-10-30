@@ -201,3 +201,20 @@ describe('ffc-audience-bookings — cancelBooking', () => {
 		expect(alertSpy).toHaveBeenCalledWith('Error');
 	});
 });
+
+// Edit sits beside Cancel for whoever may cancel the booking (#2243).
+describe('ffc-audience-bookings — Edit', () => {
+	it('shows Edit only on a booking the person may cancel, and opens the dialog on it', () => {
+		api.state.bookings[DATE][0].can_cancel = true;
+		api.state.bookings[DATE][1].can_cancel = false;
+		api.openEditModal = vi.fn();
+
+		api.loadDayBookings(DATE);
+		const $edits = window.$('#ffc-day-bookings .ffc-edit-booking');
+		expect($edits.length).toBe(1);
+		expect($edits.attr('data-id')).toBe('1');
+
+		$edits.trigger('click');
+		expect(api.openEditModal).toHaveBeenCalledWith(api.state.bookings[DATE][0]);
+	});
+});

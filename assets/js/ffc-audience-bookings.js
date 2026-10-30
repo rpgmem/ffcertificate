@@ -113,6 +113,16 @@
 
             if (booking.status === 'active' && state.config.canBook) {
                 html += '<div class="ffc-booking-actions">';
+                // Who may cancel may edit or move (#2243).
+                if (booking.can_cancel) {
+                    html += FFC.buttonHtml({
+                        label: ffcAudience.strings.edit || 'Edit',
+                        category: 'neutral',
+                        icon: 'edit',
+                        className: 'ffc-edit-booking',
+                        attrs: { 'data-id': booking.id }
+                    });
+                }
                 html += FFC.buttonHtml({
                     label: ffcAudience.strings.cancel,
                     category: 'danger',
@@ -136,6 +146,16 @@
         // Bind cancel handlers
         $container.find('.ffc-cancel-booking').on('click', function() {
             cancelBooking($(this), date);
+        });
+
+        // Edit opens the booking dialog on the booking (#2243).
+        $container.find('.ffc-edit-booking').on('click', function() {
+            var id = parseInt($(this).attr('data-id'), 10);
+            var booking = bookings.filter(function(b) { return parseInt(b.id, 10) === id; })[0];
+            if (booking) {
+                $('#ffc-day-modal').hide();
+                api.openEditModal(booking);
+            }
         });
     }
 

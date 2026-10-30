@@ -201,6 +201,11 @@
                 api.setRangeOptions(api.isRange());
             });
 
+            // Editing a booking moves it to the date its field names (#2243).
+            $('#booking-move-date').on('change', function() {
+                api.moveToDate();
+            });
+
             // The reasons under the space follow the space and the times (#1859).
             $('#booking-environment-id, #booking-start-time, #booking-end-time, #booking-all-day').on('change', function() {
                 if (typeof api.updateEnvironmentStatus === 'function') {

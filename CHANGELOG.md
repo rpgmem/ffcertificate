@@ -27,6 +27,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: a weekly booking for up to 52 weeks in one dialog** (#2243). Weekly repeats a day until a chosen date; the check lists, per date, the rules or room clashes that leave it out, and the rest are booked as ordinary bookings tied by `series_id`. Participants get one e-mail listing every date, with one calendar event per date.
 - **Audience Calendars: cancel a date of a weekly series alone or with every later date** (#2243). The participant's cancel and the bookings list ask which; the participants get one cancellation e-mail listing the dates, with a calendar file that removes each. The cancel hook gains a third `context` argument.
 - **Audience Calendars: a booking can be edited or moved without losing its attendance** (#2243). `PUT /audience/bookings/{id}` keeps the booking's id, moves it within its calendar through the checks a new booking passes, and sends one "Activity changed" e-mail with what it was. A started booking changes its text only.
+- **Audience Calendars: Edit in the day's list** (#2243). Who may cancel a booking may open it in the booking dialog, move it to another date, hours or space, or change its text; who it is for stays as booked.
 
 ### Changed
 
