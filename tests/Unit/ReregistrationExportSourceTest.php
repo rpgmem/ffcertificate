@@ -118,7 +118,7 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		}
 		ActivityLogBuffer::reset();
 		Monkey\tearDown();
-		unset( $_POST['id'] );
+		unset( $_POST['id'], $_POST['sub_status'], $_POST['s'], $_POST['audience'] );
 		parent::tearDown();
 	}
 
@@ -142,8 +142,8 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			function ( $sql ) {
 				$bound = $this->boundTo( (string) $sql );
-				if ( false !== strpos( (string) $sql, 'SELECT COUNT(*) FROM %i WHERE reregistration_id = %d' ) && 'wp_ffc_reregistration_submissions' === $bound[1] ) {
-					return (string) ( $this->counts[ (int) $bound[2] ] ?? 0 );
+				if ( false !== strpos( (string) $sql, 'SELECT COUNT(*) FROM %i s LEFT JOIN %i u' ) && 'wp_ffc_reregistration_submissions' === $bound[1] ) {
+					return (string) ( $this->counts[ (int) $bound[3] ] ?? 0 );
 				}
 				$this->fail( 'Unexpected get_var(): ' . $sql . ' with ' . var_export( $bound, true ) );
 			}
@@ -175,8 +175,12 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 			function ( $sql ) {
 				$bound = $this->boundTo( (string) $sql );
 				$text  = (string) $sql;
-				if ( 'wp_ffc_custom_fields' === $bound[1] && false !== strpos( $text, 'WHERE audience_id = %d AND is_active = 1' ) ) {
+				if ( 'wp_ffc_custom_fields' === $bound[1] && false !== strpos( $text, 'WHERE audience_id = %d' ) ) {
 					return $this->fields[ (int) $bound[2] ] ?? array();
+				}
+				if ( false !== strpos( $text, 'WHERE s.reregistration_id = %d AND s.status IN (%s) AND s.id < %d' ) ) {
+					// A filtered page (#2242): the filter itself is asserted on the prepared arguments.
+					return array();
 				}
 				if ( false !== strpos( $text, 'WHERE s.reregistration_id = %d AND s.id < %d' ) && 'wp_ffc_reregistration_submissions' === $bound[1] && 'wp_users' === $bound[2] ) {
 					$cursor = (int) $bound[4];
@@ -395,7 +399,40 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 
 	public function test_sanitize_filters_reads_id(): void {
 		$_POST['id'] = '5';
-		$this->assertSame( array( 'reregistration_id' => 5 ), $this->source->sanitize_filters() );
+		$this->assertSame(
+			array(
+				'reregistration_id' => 5,
+				'status'            => null,
+				'search'            => null,
+				'audience_id'       => 0,
+			),
+			$this->source->sanitize_filters()
+		);
+	}
+
+	public function test_sanitize_filters_carries_the_screen_filters(): void {
+		$_POST['id']         = '5';
+		$_POST['sub_status'] = 'not_finished';
+		$_POST['s']          = ' maria ';
+		$_POST['audience']   = '3';
+
+		$this->assertSame(
+			array(
+				'reregistration_id' => 5,
+				'status'            => 'not_finished',
+				'search'            => 'maria',
+				'audience_id'       => 3,
+			),
+			$this->source->sanitize_filters(),
+			'The export reads the filters the list was drawn with (#2242).'
+		);
+	}
+
+	public function test_sanitize_filters_drops_an_unknown_status(): void {
+		$_POST['id']         = '5';
+		$_POST['sub_status'] = 'DROP TABLE';
+
+		$this->assertNull( $this->source->sanitize_filters()['status'] );
 	}
 
 	public function test_count_delegates(): void {
@@ -405,11 +442,23 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		);
 
 		$this->assertSame( 12, $this->source->count( array( 'reregistration_id' => 5 ) ) );
-		$this->assertSame(
-			array( array( 'SELECT COUNT(*) FROM %i WHERE reregistration_id = %d', 'wp_ffc_reregistration_submissions', 5 ) ),
-			$this->prepared,
-			'One count, of this campaign\'s submissions.'
+		$this->assertCount( 1, $this->prepared, 'One count, of this campaign\'s submissions.' );
+		$this->assertSame( array( 'wp_ffc_reregistration_submissions', 'wp_users', 5 ), array_slice( $this->prepared[0], 1 ) );
+	}
+
+	public function test_count_and_pages_apply_the_status_filter(): void {
+		$this->counts = array( 5 => 2 );
+		$filters      = array(
+			'reregistration_id' => 5,
+			'status'            => 'approved',
 		);
+
+		$this->source->count( $filters );
+		$this->source->fetch_page( $filters, array(), PHP_INT_MAX, 100 );
+
+		$this->assertSame( array( 'wp_ffc_reregistration_submissions', 'wp_users', 5, 'approved' ), array_slice( $this->prepared[0], 1 ), 'The total is of the filtered rows.' );
+		$this->assertStringContainsString( 's.status IN (%s)', (string) $this->prepared[1][0] );
+		$this->assertSame( array( 'wp_ffc_reregistration_submissions', 'wp_users', 5, 'approved', PHP_INT_MAX, 100 ), array_slice( $this->prepared[1], 1 ), 'The page holds only the filtered rows (#2242).' );
 	}
 
 	public function test_build_context_resolves_fields_and_title(): void {
@@ -425,7 +474,7 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 
 		$field_reads = array_values( array_filter( $this->prepared, static fn( array $call ): bool => 'wp_ffc_custom_fields' === ( $call[1] ?? null ) ) );
 		$this->assertCount( 1, $field_reads );
-		$this->assertStringContainsString( 'is_active = 1', $field_reads[0][0], 'Only active fields are asked for.' );
+		$this->assertStringNotContainsString( 'is_active = 1', $field_reads[0][0], 'Inactive fields are read too: their answers stay in the export (#2242).' );
 		$this->assertSame( 1, $field_reads[0][2], 'The fields are read for the campaign\'s audience.' );
 	}
 

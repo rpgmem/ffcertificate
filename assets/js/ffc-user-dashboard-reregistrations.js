@@ -64,6 +64,40 @@
         return html;
     }
 
+    /**
+     * Downloads one approved submission's Record (#2242). The data comes
+     * from the logged-in REST route, never from a public link, and the PDF
+     * is built here. Serves the table's button and the banner's.
+     */
+    function downloadRecord($btn) {
+        var s = ffcDashboard.strings;
+        var id = parseInt($btn.data('submission-id'), 10);
+        var url = ffcDashboard.restUrl + 'user/reregistrations/' + id + '/record';
+        if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
+
+        $btn.addClass('ffc-btn-loading').prop('disabled', true);
+
+        return FFC.rest(url, { nonce: ffcDashboard.nonce })
+            .then(function (response) {
+                var pdf = response && response.pdf_data;
+                if (!pdf || typeof window.ffcGeneratePDF !== 'function') {
+                    throw new Error('record');
+                }
+                window.ffcGeneratePDF(pdf, pdf.filename || 'record.pdf');
+            })
+            .catch(function () {
+                $btn.after(FFC.notice('danger', 'error', s.error, '', { role: 'alert' }));
+            })
+            .then(function () {
+                $btn.removeClass('ffc-btn-loading').prop('disabled', false);
+            });
+    }
+
+    $(document).on('click', '.ffc-rereg-download-record', function (e) {
+        e.preventDefault();
+        downloadRecord($(this));
+    });
+
     FFCDashboard.panels.reregistrations = {
         state: null,
 
@@ -225,14 +259,13 @@
                         attrs: { 'data-submission-id': item.submission_id, 'aria-expanded': 'false' }
                     }) + ' ';
                 }
-                if (item.can_download && item.magic_link) {
+                if (item.can_download) {
                     html += window.FFC.buttonHtml({
                         label: s.downloadRecord || 'Download Record',
                         category: 'neutral',
                         icon: 'download',
-                        href: item.magic_link,
-                        className: 'ffc-btn-pdf',
-                        attrs: { target: '_blank', rel: 'noopener' }
+                        className: 'ffc-btn-pdf ffc-rereg-download-record',
+                        attrs: { 'data-submission-id': item.submission_id }
                     });
                 }
                 html += '</td>';

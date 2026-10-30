@@ -66,7 +66,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 							'label'    => __( 'Reject', 'ffcertificate' ),
 							'category' => 'caution',
 							'icon'     => 'cross',
-							'href'     => $reject_url,
+							'class'    => 'ffc-review-decision-btn',
+							'attrs'    => array(
+								'data-decision'      => 'reject',
+								'data-submission-id' => (string) $sub->id,
+							),
 						)
 					);
 					?>
@@ -84,10 +88,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 							'label'    => __( 'Return to Draft', 'ffcertificate' ),
 							'category' => 'caution',
 							'icon'     => 'restore',
-							'href'     => $draft_url,
-							'class'    => 'ffc-return-draft-btn',
+							'class'    => 'ffc-review-decision-btn',
 							'attrs'    => array(
-								'title' => __( 'Return to user for revision', 'ffcertificate' ),
+								'data-decision'      => 'return_to_draft',
+								'data-submission-id' => (string) $sub->id,
+								'title'              => __( 'Return to user for revision', 'ffcertificate' ),
 							),
 						)
 					);

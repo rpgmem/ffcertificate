@@ -95,7 +95,6 @@ return array(
 	'Repositories>Core',
 	'Reregistration>Audience',
 	'Reregistration>Core',
-	'Reregistration>Generators',
 	'Reregistration>Scheduling',
 	'Reregistration>UserDashboard',
 	'Root>API',

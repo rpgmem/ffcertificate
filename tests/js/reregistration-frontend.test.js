@@ -1155,3 +1155,67 @@ describe('rereg import previous', () => {
 		expect(window.$('.ffc-rereg-import-btn').length).toBe(0);
 	});
 });
+
+// ----------------------------------------------------------------------
+// retract — the member takes back an unreviewed submission (#2242)
+// ----------------------------------------------------------------------
+
+describe('rereg retract', () => {
+	function mountBanner() {
+		document.body.innerHTML = `
+			<div class="ffc-notice ffc-notice-info" data-ffc-notice="rereg-banner">
+				<button type="button" class="ffc-btn ffc-rereg-retract" data-reregistration-id="7">Retract submission</button>
+			</div>
+		`;
+	}
+
+	it('asks first and sends nothing when the member declines', async () => {
+		mountBanner();
+		vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const postSpy = vi.spyOn(window.$, 'post');
+
+		window.$('.ffc-rereg-retract').trigger('click');
+		await flush();
+
+		expect(window.confirm).toHaveBeenCalled();
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
+	it('posts the campaign and reloads on success', async () => {
+		mountBanner();
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: {} } }));
+		const original = window.location;
+		const stub = { reload: vi.fn(), href: '/', pathname: '/', hostname: '' };
+		Object.defineProperty(window, 'location', { configurable: true, writable: true, value: stub });
+
+		try {
+			window.$('.ffc-rereg-retract').trigger('click');
+			await flush();
+
+			const payload = postSpy.mock.calls[0][1];
+			expect(payload.action).toBe('ffc_retract_reregistration');
+			expect(payload.reregistration_id).toBe(7);
+			expect(payload.nonce).toBe('r-nonce');
+			expect(stub.reload).toHaveBeenCalled();
+		} finally {
+			Object.defineProperty(window, 'location', { configurable: true, writable: true, value: original });
+		}
+	});
+
+	it('shows the server refusal under the banner and re-enables the button', async () => {
+		mountBanner();
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Already reviewed.' } } }));
+
+		window.$('.ffc-rereg-retract').trigger('click');
+		await flush();
+		window.$('.ffc-rereg-retract').trigger('click');
+		await flush();
+
+		const $errors = window.$('.ffc-rereg-retract-error');
+		expect($errors.length).toBe(1);
+		expect($errors.text()).toContain('Already reviewed.');
+		expect(window.$('.ffc-rereg-retract').prop('disabled')).toBe(false);
+	});
+});

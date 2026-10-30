@@ -53,6 +53,14 @@ class ReregistrationFrontendTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The campaign window is read on the site's clock (#2242); pin it
+		// inside the fixtures' campaigns.
+		Functions\when( 'current_time' )->alias(
+			static function ( $type ) {
+				return 'Y-m-d' === $type ? '2026-06-15' : ( 'mysql' === $type ? '2026-06-15 12:00:00' : 0 );
+			}
+		);
+
 
 		// Translation stubs
 		Functions\when('__')->returnArg();
@@ -115,8 +123,10 @@ class ReregistrationFrontendTest extends TestCase {
 	// init()
 	// ==================================================================
 
-	public function test_init_registers_the_four_ajax_actions(): void {
+	public function test_init_registers_the_ajax_actions(): void {
 		ReregistrationFrontend::init();
+
+		$this->assertArrayHasKey('wp_ajax_ffc_retract_reregistration', $this->registered_actions, 'Retract (#2242).');
 
 		$this->assertArrayHasKey('wp_ajax_ffc_get_reregistration_form', $this->registered_actions);
 		$this->assertArrayHasKey('wp_ajax_ffc_submit_reregistration', $this->registered_actions);
@@ -346,7 +356,7 @@ class ReregistrationFrontendTest extends TestCase {
 
 		$_POST['reregistration_id'] = 5;
 
-		$rereg      = (object) array('id' => 5, 'status' => 'active', 'title' => 'Campaign');
+		$rereg      = (object) array('id' => 5, 'status' => 'active', 'title' => 'Campaign', 'start_date' => '2026-01-01 00:00:00', 'end_date' => '2026-06-30 23:59:00');
 		$audience   = (object) array('id' => 3, 'parent_id' => null, 'name' => 'Audience');
 		$created    = (object) array('id' => 42, 'reregistration_id' => '5', 'user_id' => '7', 'status' => 'pending');
 		$lookups    = 0;
@@ -406,6 +416,8 @@ class ReregistrationFrontendTest extends TestCase {
 			}
 		);
 		$wpdb->insert_id = 42;
+		// The draft write tests the row's status in the same statement (#2242).
+		$wpdb->shouldReceive('query')->once()->andReturn(1);
 
 		$ex = null;
 		try {
@@ -582,7 +594,86 @@ class ReregistrationFrontendTest extends TestCase {
 		}
 
 		$this->assertNotNull($ex);
-		$this->assertStringContainsString('Cannot save draft', $ex->payload['message']);
+		$this->assertStringContainsString('already been completed', $ex->payload['message'], 'An approved submission is refused before any write, and the message says why.');
+	}
+
+	// ==================================================================
+	// ajax_retract() (#2242)
+	// ==================================================================
+
+	private function retract(): FrontendJsonErrorException|FrontendJsonSuccessException {
+		try {
+			ReregistrationFrontend::ajax_retract();
+		} catch (FrontendJsonErrorException|FrontendJsonSuccessException $e) {
+			return $e;
+		}
+		$this->fail('ajax_retract() must answer.');
+	}
+
+	private function campaign(string $status = 'active'): object {
+		return (object) array('id' => 1, 'status' => $status, 'title' => 'Test', 'start_date' => '2026-01-01', 'end_date' => '2026-06-30');
+	}
+
+	public function test_ajax_retract_takes_back_an_unreviewed_submission(): void {
+		Functions\when('get_current_user_id')->justReturn(1);
+		// The activity log is off on an install nobody configured.
+		Functions\when('get_option')->alias(static fn ($key, $default = false) => $default);
+		$_POST['reregistration_id'] = 1;
+
+		global $wpdb;
+		$wpdb->shouldReceive('get_row')->andReturn($this->campaign(), (object) array('id' => 10, 'status' => 'submitted', 'user_id' => 1));
+		$writes = array();
+		$wpdb->shouldReceive('query')->andReturnUsing(static function ($sql) use (&$writes) {
+			$writes[] = $sql;
+			return 1;
+		});
+
+		$answer = $this->retract();
+
+		$this->assertInstanceOf(FrontendJsonSuccessException::class, $answer);
+		$this->assertCount(1, $writes, 'One conditional write.');
+		$this->assertStringContainsString('status IN (%s)', $writes[0], 'Only a submission awaiting review moves.');
+	}
+
+	/**
+	 * @dataProvider provider_retract_refusals
+	 */
+	public function test_ajax_retract_refuses(string $campaign_status, string $submission_status, string $now): void {
+		Functions\when('get_current_user_id')->justReturn(1);
+		Functions\when('current_time')->justReturn($now);
+		$_POST['reregistration_id'] = 1;
+
+		global $wpdb;
+		$wpdb->shouldReceive('get_row')->andReturn($this->campaign($campaign_status), (object) array('id' => 10, 'status' => $submission_status, 'user_id' => 1));
+		$wpdb->shouldReceive('query')->never();
+
+		$answer = $this->retract();
+
+		$this->assertInstanceOf(FrontendJsonErrorException::class, $answer);
+		$this->assertStringContainsString('can no longer be retracted', $answer->payload['message']);
+	}
+
+	/**
+	 * @return array<string, array{string, string, string}>
+	 */
+	public static function provider_retract_refusals(): array {
+		return array(
+			'already reviewed'     => array('active', 'approved', '2026-06-15 12:00:00'),
+			'rejected'             => array('active', 'rejected', '2026-06-15 12:00:00'),
+			'still a draft'        => array('active', 'in_progress', '2026-06-15 12:00:00'),
+			'window closed'        => array('active', 'submitted', '2026-07-01 00:00:01'),
+			'campaign not active'  => array('closed', 'submitted', '2026-06-15 12:00:00'),
+		);
+	}
+
+	public function test_ajax_retract_errors_when_no_reregistration_id(): void {
+		Functions\when('get_current_user_id')->justReturn(1);
+		$_POST['reregistration_id'] = 0;
+
+		$answer = $this->retract();
+
+		$this->assertInstanceOf(FrontendJsonErrorException::class, $answer);
+		$this->assertSame('Invalid request.', $answer->payload['message']);
 	}
 
 	// ==================================================================
@@ -624,7 +715,37 @@ class ReregistrationFrontendTest extends TestCase {
 		$this->assertSame(5, $result[0]['id']);
 		$this->assertSame('pending', $result[0]['submission_status']);
 		$this->assertTrue($result[0]['can_submit']);
-		$this->assertSame('', $result[0]['magic_link']);
+		$this->assertFalse($result[0]['can_download'], 'Only an approved record downloads (#2242).');
+		$this->assertArrayNotHasKey('magic_link', $result[0], 'The Record is never offered through a public link.');
+	}
+
+	/**
+	 * @dataProvider provider_review_reason
+	 */
+	public function test_the_banner_row_carries_the_reason_and_the_retract_flag(string $status, ?string $notes, string $reason, bool $can_retract): void {
+		global $wpdb;
+		$rereg = (object) array('id' => 5, 'title' => 'Campaign 2026', 'audience_name' => 'Teachers', 'start_date' => '2026-01-01', 'end_date' => '2026-06-30', 'auto_approve' => 0);
+		$wpdb->shouldReceive('get_results')->andReturn(array($rereg));
+		$audience = (object) array('id' => 5, 'name' => 'Teachers', 'parent_id' => 0);
+		$wpdb->shouldReceive('get_row')->andReturnValues(array($audience, (object) array('id' => 20, 'status' => $status, 'user_id' => 1, 'notes' => $notes)));
+
+		$result = ReregistrationFrontend::get_user_reregistrations(1);
+
+		$this->assertSame($reason, $result[0]['review_reason']);
+		$this->assertSame($can_retract, $result[0]['can_retract']);
+	}
+
+	/**
+	 * @return array<string, array{string, ?string, string, bool}>
+	 */
+	public static function provider_review_reason(): array {
+		return array(
+			'rejected shows the reason'         => array('rejected', ' Attach the document. ', 'Attach the document.', false),
+			'returned draft shows the reason'   => array('in_progress', 'Fix the RF.', 'Fix the RF.', false),
+			'approved hides its notes'          => array('approved', 'Auto-approved', '', false),
+			'submitted may be retracted'        => array('submitted', null, '', true),
+			'a draft without notes shows none'  => array('in_progress', null, '', false),
+		);
 	}
 
 	// ==================================================================
@@ -678,7 +799,7 @@ class ReregistrationFrontendTest extends TestCase {
 		$end = gmdate('Y-m-d 17:00:00', time() - (3 * 86400));
 		$wpdb->shouldReceive('get_results')->andReturn(array($this->expiredCampaign(7, $end)));
 		$wpdb->shouldReceive('get_row')->andReturn(
-			(object) array('id' => 70, 'status' => 'approved', 'user_id' => 1, 'magic_token' => 'tok', 'reviewed_at' => (string) (time() - (5 * 86400)))
+			(object) array('id' => 70, 'status' => 'approved', 'user_id' => 1, 'magic_token' => 'tok', 'auth_code' => 'ABCD1234EFGH', 'reviewed_at' => (string) (time() - (5 * 86400)))
 		);
 
 		$result = ReregistrationFrontend::get_recently_expired_approved(1);
@@ -687,7 +808,8 @@ class ReregistrationFrontendTest extends TestCase {
 		$this->assertSame(7, $result[0]['id']);
 		$this->assertSame('approved', $result[0]['submission_status']);
 		$this->assertFalse($result[0]['can_submit'], 'An expired campaign is never offered as submittable.');
-		$this->assertSame('https://example.test/valid/#token=tok', $result[0]['magic_link']);
+		$this->assertTrue($result[0]['can_download'], 'An approved record stays downloadable after the campaign ends.');
+		$this->assertArrayNotHasKey('magic_link', $result[0]);
 
 		$query = implode(' ', array_map(static fn($args) => (string) $args[0], $prepared->getArrayCopy()));
 		$this->assertStringContainsString("s.status = 'approved'", $query);
@@ -792,6 +914,33 @@ class ReregistrationFrontendTest extends TestCase {
 		$expected_status = '' === $status ? 'no_submission' : $status;
 		$this->assertSame($expected_status, $result[0]['submission_status']);
 		$this->assertSame($can_submit, $result[0]['can_submit'], "can_submit wrong for {$expected_status}");
+	}
+
+	/**
+	 * The button follows the window as well as the status (#2242): a pending
+	 * member of a campaign the site clock has passed is not offered a form
+	 * the server would refuse.
+	 */
+	public function test_can_submit_is_false_outside_the_window(): void {
+		global $wpdb;
+
+		Functions\when('current_time')->justReturn('2026-07-01 00:00:01');
+		$rereg = (object) array(
+			'id'            => 5,
+			'title'         => 'Campaign 2026',
+			'audience_name' => 'Teachers',
+			'start_date'    => '2026-01-01',
+			'end_date'      => '2026-06-30',
+			'auto_approve'  => 0,
+		);
+		$wpdb->shouldReceive('get_results')->andReturn(array($rereg));
+		$audience = (object) array('id' => 5, 'name' => 'Teachers', 'parent_id' => 0);
+		$wpdb->shouldReceive('get_row')->andReturnValues(array($audience, (object) array('id' => 20, 'status' => 'pending', 'user_id' => 1, 'magic_token' => '')));
+
+		$result = ReregistrationFrontend::get_user_reregistrations(1);
+
+		$this->assertSame('pending', $result[0]['submission_status']);
+		$this->assertFalse($result[0]['can_submit']);
 	}
 
 	/**

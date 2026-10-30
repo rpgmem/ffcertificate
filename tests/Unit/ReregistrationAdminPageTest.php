@@ -102,6 +102,9 @@ class ReregistrationAdminPageTest extends TestCase {
 			echo '<input type="hidden" data-nonce="' . $action . '">';
 		} );
 		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
+		Functions\when( 'add_query_arg' )->alias( static fn ( ...$args ) => (string) end( $args ) );
+		Functions\when( 'paginate_links' )->justReturn( '' );
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_parse_args' )->alias( static fn ( $args, $defaults ) => array_merge( $defaults, $args ) );
 		Functions\when( 'sanitize_sql_orderby' )->returnArg();
@@ -200,6 +203,10 @@ class ReregistrationAdminPageTest extends TestCase {
 		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
 			function ( $sql ) {
 				$bound = $this->boundTo( (string) $sql );
+				if ( false !== strpos( (string) $sql, 'SELECT audience_id FROM %i WHERE reregistration_id = %d' ) ) {
+					// The submissions filter names the campaign's audiences (#2242): none here.
+					return array();
+				}
 				if ( false !== strpos( (string) $sql, 'SELECT DISTINCT user_id FROM %i WHERE audience_id IN' ) && 'wp_ffc_audience_members' === $bound[1] ) {
 					$users = array();
 					foreach ( array_slice( $bound, 2 ) as $audience_id ) {
@@ -208,6 +215,15 @@ class ReregistrationAdminPageTest extends TestCase {
 					return array_map( 'strval', $users );
 				}
 				$this->fail( 'Unexpected get_col(): ' . $sql . ' with ' . var_export( $bound, true ) );
+			}
+		);
+		// count_filtered() (#2242): no submission exists.
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				if ( false !== strpos( (string) $sql, 'SELECT COUNT(*) FROM %i s LEFT JOIN %i u' ) ) {
+					return '0';
+				}
+				$this->fail( 'Unexpected get_var(): ' . $sql );
 			}
 		);
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
@@ -483,7 +499,7 @@ class ReregistrationAdminPageTest extends TestCase {
 
 		$html = $this->renderPage();
 
-		$query = $this->preparedWith( 'LEFT JOIN %i u' );
+		$query = $this->preparedWith( 'SELECT s.*' );
 		$this->assertCount( 1, $query, 'The submissions are drawn.' );
 		$this->assertSame( 12, $query[0][3], 'They are read for the campaign in the request.' );
 		$this->assertStringContainsString( 'name="bulk_action"', $html, 'The edit tier gets the bulk actions.' );
@@ -573,23 +589,21 @@ class ReregistrationAdminPageTest extends TestCase {
 		);
 		( new ReregistrationAdmin() )->handle_actions();
 
-		$_POST = array();
-		foreach ( array( 'reject', 'return_to_draft' ) as $action ) {
-			$_GET = array(
-				'page'     => 'ffc-reregistration',
-				'action'   => $action,
-				'sub_id'   => '3',
-				'id'       => '4',
-				'_wpnonce' => 'bad',
-			);
-			( new ReregistrationAdmin() )->handle_actions();
-		}
+		// Reject and Return to Draft post the review modal (#2242).
+		$_GET  = array( 'page' => 'ffc-reregistration' );
+		$_POST = array(
+			'ffc_action'        => 'review_decision',
+			'reregistration_id' => '4',
+			'ffc_review_nonce'  => 'bad',
+			'decision'          => 'reject',
+		);
+		( new ReregistrationAdmin() )->handle_actions();
 
 		$this->assertSame( array( array( 'Reminder emails sent.', 'success' ) ), $notices );
 		$this->assertSame(
-			array( 'approve_submission_3', 'bulk_submissions_4', 'reject_submission_3', 'return_to_draft_submission_3' ),
+			array( 'approve_submission_3', 'bulk_submissions_4', 'review_decision_4' ),
 			$nonces,
-			'Approve, bulk, reject and return-to-draft each reach their handler.'
+			'Approve, bulk and the review decision each reach their handler.'
 		);
 		$this->assertSame( array(), $this->writes );
 		$this->assertSame( array(), $this->redirects );
@@ -610,6 +624,73 @@ class ReregistrationAdminPageTest extends TestCase {
 
 		$this->assertSame( array(), $notices );
 		$this->assertSame( array(), $this->writes, 'No handler acts on a request that names no action.' );
+	}
+
+	public function test_the_reminder_notice_counts_what_was_skipped_and_what_failed(): void {
+		$this->grant( array( 'ffc_manage_reregistration' ) );
+		$_GET    = array(
+			'page'    => 'ffc-reregistration',
+			'message' => 'reminders_sent',
+			'count'   => '3',
+			'skipped' => '2',
+			'failed'  => '1',
+		);
+		$notices = array();
+		Functions\when( 'add_settings_error' )->alias(
+			static function ( $setting, $code, $message, $type ) use ( &$notices ) {
+				$notices[] = array( $message, $type );
+			}
+		);
+
+		( new ReregistrationAdmin() )->handle_actions();
+
+		$this->assertSame(
+			array(
+				array(
+					'3 reminders sent. 2 selected submissions were skipped because they are not awaiting an answer. 1 reminder could not be sent (the member has no account or e-mail, or the mailer refused it).',
+					'success',
+				),
+			),
+			$notices
+		);
+	}
+
+	public function test_a_reminder_with_nothing_skipped_says_only_what_was_sent(): void {
+		$this->assertSame( '1 reminder sent.', ReregistrationAdmin::reminders_message( 1, 0, 0 ) );
+	}
+
+	/**
+	 * @dataProvider blockedReasons
+	 */
+	public function test_a_blocked_reminder_names_its_reason( string $reason, string $expected ): void {
+		$this->grant( array( 'ffc_manage_reregistration' ) );
+		$_GET    = array(
+			'page'    => 'ffc-reregistration',
+			'message' => 'reminders_blocked',
+			'reason'  => $reason,
+		);
+		$notices = array();
+		Functions\when( 'add_settings_error' )->alias(
+			static function ( $setting, $code, $message, $type ) use ( &$notices ) {
+				$notices[] = array( $message, $type );
+			}
+		);
+
+		( new ReregistrationAdmin() )->handle_actions();
+
+		$this->assertSame( array( array( $expected, 'error' ) ), $notices );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public static function blockedReasons(): array {
+		return array(
+			'e-mails off'   => array( 'emails_disabled', 'No reminder was sent: every plugin e-mail is disabled in the settings.' ),
+			'no text'       => array( 'no_text', 'No reminder was sent: the reminder e-mail text is empty.' ),
+			'campaign off'  => array( 'reminders_off', 'No reminder was sent: reminders are turned off for this campaign.' ),
+			'forged reason' => array( 'forged', 'No reminder was sent: reminders are turned off for this campaign.' ),
+		);
 	}
 
 	/**

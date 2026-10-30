@@ -65,10 +65,16 @@ final class ReregistrationAjaxHandler {
 	 * Record button on the submissions list, so the list never offers a
 	 * button the endpoint then refuses (#1815).
 	 *
+	 * The Record prints the whole submission unmasked, so it follows the
+	 * personal-data policy rather than the manage cap (#2242): the screen's
+	 * surface cap, then a tier that may reveal — the module's `_pii` cap or
+	 * `manage_options`. Every download is audited by the endpoint.
+	 *
 	 * @return bool
 	 */
 	public static function can_generate_record(): bool {
-		return current_user_can( self::CAPABILITY );
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_reregistration' )
+			&& \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal_any( self::PII_CAPABILITY );
 	}
 
 	/**
@@ -80,7 +86,7 @@ final class ReregistrationAjaxHandler {
 		check_ajax_referer( 'ffc_generate_ficha', 'nonce' );
 
 		if ( ! self::can_generate_record() ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ), 403 );
 		}
 
 		$submission_id = isset( $_POST['submission_id'] ) ? absint( $_POST['submission_id'] ) : 0;
@@ -88,10 +94,23 @@ final class ReregistrationAjaxHandler {
 			wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffcertificate' ) ) );
 		}
 
-		$record_data = RecordGenerator::generate_record_data( $submission_id );
-		if ( ! $record_data ) {
+		$submission  = ReregistrationSubmissionReader::get_by_id( $submission_id );
+		$record_data = $submission ? RecordGenerator::generate_record_data( $submission_id ) : null;
+		if ( ! $submission || ! $record_data ) {
 			wp_send_json_error( array( 'message' => __( 'Could not generate record.', 'ffcertificate' ) ) );
 		}
+
+		\FreeFormCertificate\Core\ActivityLog::log(
+			'reregistration_record_downloaded',
+			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+			array(
+				'reregistration_id' => (int) $submission->reregistration_id,
+				'subject_user_id'   => (int) $submission->user_id,
+				'via'               => 'admin',
+			),
+			get_current_user_id(),
+			$submission_id
+		);
 
 		wp_send_json_success( array( 'pdf_data' => $record_data ) );
 	}
@@ -144,7 +163,7 @@ final class ReregistrationAjaxHandler {
 		$sub_data   = $submission->data ? json_decode( $submission->data, true ) : array();
 		$raw_values = is_array( $sub_data['fields'] ?? null ) ? $sub_data['fields'] : array();
 
-		$all_fields       = RecordGenerator::get_custom_fields_for_reregistration( $rereg );
+		$all_fields       = RecordGenerator::get_custom_fields_for_reregistration( $rereg, true );
 		$decrypted_values = RecordGenerator::decrypt_field_values( $all_fields, $raw_values );
 
 		$html = $this->details_renderer->build_submission_details_html( $submission, $all_fields, $decrypted_values );

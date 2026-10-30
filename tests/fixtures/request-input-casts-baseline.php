@@ -51,8 +51,6 @@ return array(
 	'reregistration/class-ffc-reregistration-frontend.php::POST[reregistration_id]#2',
 	'reregistration/class-ffc-reregistration-frontend.php::POST[reregistration_id]#3',
 	'reregistration/class-ffc-reregistration-submission-actions.php::GET[sub_id]#1',
-	'reregistration/class-ffc-reregistration-submission-actions.php::GET[sub_id]#2',
-	'reregistration/class-ffc-reregistration-submission-actions.php::GET[sub_id]#3',
 	'reregistration/class-ffc-reregistration-submission-actions.php::POST[reregistration_id]#1',
 	'shortcodes/class-ffc-dashboard-view-mode.php::GET[ffc_view_as_user]#1',
 	'url-shortener/class-ffc-url-shortener-admin-page.php::GET[id]#1',

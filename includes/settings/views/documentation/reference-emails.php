@@ -74,7 +74,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tbody>
 				<tr><td><strong><?php esc_html_e( 'Certificates', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Certificate delivered to the user', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Personal Calendars', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Booking confirmation, approval, cancellation, reminder, waitlist-promotion, added-to-waitlist, and the "calendar deleted → appointment cancelled" notice', 'ffcertificate' ); ?></td></tr>
-				<tr><td><strong><?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Campaign invitation, reminder and confirmation', 'ffcertificate' ); ?></td></tr>
+				<tr><td><strong><?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Campaign invitation, reminder, confirmation, not approved and returned for revision', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Audience Calendars', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'New scheduled activity and activity-cancelled notices, the "booking cancelled by an administrator" notice sent to the owner of a booking an override replaced, and the post-event form invitation sent to each participant once a booking ends', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Recruitment', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Recruitment call (convocation)', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Date messages', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Birthday message — the default text a new rule starts from', 'ffcertificate' ); ?></td></tr>

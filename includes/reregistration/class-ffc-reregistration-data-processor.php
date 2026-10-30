@@ -262,59 +262,46 @@ class ReregistrationDataProcessor {
 	 * @param bool                 $notify     Whether to send the confirmation
 	 *                                         email. `false` only on the bulk
 	 *                                         import path — see below.
-	 * @return void
+	 * @param array<int, string>   $statuses   Statuses the row may be in for the
+	 *                                         write to happen.
+	 * @return bool Whether the submission was written. False when the row had
+	 *              already left `$statuses` — a double submit, a stale tab, a
+	 *              member who submitted while an import ran — and then nothing
+	 *              else happens: no profile sync, no e-mail, no log.
 	 */
-	public static function process_submission( object $submission, object $rereg, array $data, int $user_id, bool $notify = true ): void {
+	public static function process_submission( object $submission, object $rereg, array $data, int $user_id, bool $notify = true, array $statuses = ReregistrationSubmissionReader::OPEN_STATUSES ): bool {
 		$new_status = ! empty( $rereg->auto_approve ) ? 'approved' : 'submitted';
 
 		$fields = self::get_fields_for_reregistration( $rereg );
 		$values = is_array( $data['fields'] ?? null ) ? $data['fields'] : array();
 
-		// Build the persistence payload with sensitive fields encrypted.
-		$persisted_fields = array();
-		foreach ( $fields as $field ) {
-			// Display-only blocks (e.g. acknowledgment) are never persisted.
-			if ( in_array( (string) $field->field_type, CustomFieldReader::DISPLAY_ONLY_TYPES, true ) ) {
-				continue;
-			}
-
-			$key = (string) $field->field_key;
-			$val = $values[ $key ] ?? '';
-
-			if ( ! empty( $field->is_sensitive ) && is_string( $val ) && '' !== $val && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
-				$encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $val );
-				if ( null !== $encrypted ) {
-					$persisted_fields[ $key ] = $encrypted;
-					continue;
-				}
-			}
-
-			$persisted_fields[ $key ] = $val;
-		}
-
-		$persisted_data = array( 'fields' => $persisted_fields );
-
-		// Auth code + magic token for the approval link.
-		$auth_code   = \FreeFormCertificate\Core\AuthCodeService::generate_globally_unique_auth_code();
-		$magic_token = bin2hex( random_bytes( 32 ) );
+		$persisted_data = array( 'fields' => self::persistable_fields( $fields, $values ) );
 
 		$update_data = array(
 			'data'         => $persisted_data,
 			'status'       => $new_status,
 			// `submitted_at` is unix UTC int since 6.6.0 (#249 sub-escopo b).
 			'submitted_at' => time(),
-			'auth_code'    => $auth_code,
-			'magic_token'  => $magic_token,
+			'magic_token'  => bin2hex( random_bytes( 32 ) ),
 		);
 
 		if ( 'approved' === $new_status ) {
+			// The code exists only for an approved record (#2242), so a plain
+			// submit issues none — approval does. A row that already holds one
+			// (approved, returned to draft, submitted again) keeps it.
+			$update_data['auth_code'] = ! empty( $submission->auth_code )
+				? (string) $submission->auth_code
+				: \FreeFormCertificate\Core\AuthCodeService::generate_globally_unique_auth_code();
+
 			// `reviewed_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
 			$update_data['reviewed_at'] = time();
 			$update_data['reviewed_by'] = 0;
 			$update_data['notes']       = __( 'Auto-approved', 'ffcertificate' );
 		}
 
-		ReregistrationSubmissionWriter::update( (int) $submission->id, $update_data );
+		if ( ! ReregistrationSubmissionWriter::update_if_status( (int) $submission->id, $update_data, $statuses ) ) {
+			return false;
+		}
 
 		// Sync profile-mapped fields back to the user profile. We pass the.
 		// *plain* (pre-encryption) values to update_extended_profile which.
@@ -355,6 +342,101 @@ class ReregistrationDataProcessor {
 				(int) $submission->id
 			);
 		}
+
+		return true;
+	}
+
+	/**
+	 * Save a draft: the collected values, encrypted like a submission's.
+	 *
+	 * The draft used to be written straight from the form, so CPF, RF, RG and
+	 * birth date sat in clear until the member submitted — and forever when the
+	 * campaign closed first. The draft and the submission now persist through
+	 * the same {@see self::persistable_fields()}, so only the status tells them
+	 * apart (#2242).
+	 *
+	 * @param object               $submission Submission record.
+	 * @phpstan-param ReregistrationSubmissionRow $submission
+	 * @param object               $rereg      Reregistration.
+	 * @phpstan-param ReregistrationRow $rereg
+	 * @param array<string, mixed> $data       Collected data (from collect_form_data).
+	 * @return bool Whether the draft was written; false when the row is no longer open.
+	 */
+	public static function save_draft( object $submission, object $rereg, array $data ): bool {
+		$values = is_array( $data['fields'] ?? null ) ? $data['fields'] : array();
+
+		return ReregistrationSubmissionWriter::update_if_status(
+			(int) $submission->id,
+			array(
+				'data'   => array( 'fields' => self::persistable_fields( self::get_fields_for_reregistration( $rereg ), $values ) ),
+				'status' => 'in_progress',
+			),
+			ReregistrationSubmissionReader::OPEN_STATUSES
+		);
+	}
+
+	/**
+	 * The values as stored: display-only blocks dropped, sensitive values
+	 * encrypted.
+	 *
+	 * The sanitizer hands every value over as a string — a dependent select
+	 * and the working hours as their JSON — so a value that arrives as an
+	 * array came from somewhere else; it is encoded first, so a sensitive one
+	 * is never stored in clear either way.
+	 *
+	 * @param array<object>        $fields Field definitions.
+	 * @phpstan-param list<CustomFieldRow> $fields
+	 * @param array<string, mixed> $values field_key => plain value.
+	 * @return array<string, mixed> field_key => stored value.
+	 */
+	public static function persistable_fields( array $fields, array $values ): array {
+		$persisted = array();
+
+		foreach ( $fields as $field ) {
+			// Display-only blocks (e.g. acknowledgment) are never persisted.
+			if ( in_array( (string) $field->field_type, CustomFieldReader::DISPLAY_ONLY_TYPES, true ) ) {
+				continue;
+			}
+
+			$key = (string) $field->field_key;
+			$val = $values[ $key ] ?? '';
+
+			if ( ! empty( $field->is_sensitive ) ) {
+				$val = self::encrypt_value( $val );
+			}
+
+			$persisted[ $key ] = $val;
+		}
+
+		return $persisted;
+	}
+
+	/**
+	 * A sensitive value as stored.
+	 *
+	 * Empty stays empty, and a value already in an encryption envelope is not
+	 * wrapped a second time — the draft migration runs this over rows that are
+	 * partly encrypted already.
+	 *
+	 * @param mixed $value Plain value.
+	 * @return mixed The envelope, or the value when there is nothing to encrypt.
+	 */
+	public static function encrypt_value( $value ) {
+		if ( is_array( $value ) ) {
+			$value = (string) wp_json_encode( $value );
+		}
+
+		if ( ! is_string( $value ) || '' === $value || ! class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
+			return $value;
+		}
+
+		if ( \FreeFormCertificate\Core\Encryption::looks_like_envelope( $value ) ) {
+			return $value;
+		}
+
+		$encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $value );
+
+		return null !== $encrypted ? $encrypted : $value;
 	}
 
 	/**
@@ -419,15 +501,7 @@ class ReregistrationDataProcessor {
 			$key   = 'field_' . (int) $field->id;
 			$value = $values[ (string) $field->field_key ] ?? '';
 
-			if ( ! empty( $field->is_sensitive ) && is_string( $value ) && '' !== $value && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
-				$encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $value );
-				if ( null !== $encrypted ) {
-					$snapshot[ $key ] = $encrypted;
-					continue;
-				}
-			}
-
-			$snapshot[ $key ] = $value;
+			$snapshot[ $key ] = ! empty( $field->is_sensitive ) ? self::encrypt_value( $value ) : $value;
 		}
 
 		CustomFieldWriter::save_user_data( $user_id, $snapshot );

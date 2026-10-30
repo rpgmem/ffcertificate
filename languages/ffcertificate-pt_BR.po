@@ -938,9 +938,6 @@ msgstr "Um campo personalizado dependent_select (por exemplo, divisao_setor) exp
 msgid "A disabled module keeps every row it already stored; only its screens and runtime stop. Public URLs that a disabled module used to answer (a short link, a public recruitment queue) stop responding until you turn it back on."
 msgstr "Um módulo desativado mantém todas as linhas que já armazenou; apenas suas telas e sua execução são interrompidas. URLs públicas que um módulo desativado utilizava para responder (como um link curto ou uma fila pública de recrutamento) deixam de responder até que você o reative."
 
-#: includes/settings/views/documentation/feature-reregistration.php:57
-msgid "a draft was saved but not submitted."
-msgstr "um rascunho foi salvo, mas não enviado."
 
 #: includes/settings/views/documentation/email-texts-hub.php:24
 msgid "A feature-grouped selector lists every editable email; pick one and only that email's editor opens (its rich editor is created on demand, so the page stays light even though many emails exist). Each editor has its own {{token}} help and a \"Restore Default Text\" button. One \"Save email texts\" button persists them all — you do not save per email."
@@ -1623,9 +1620,6 @@ msgstr "Administradores ignoram restrições de geolocalização"
 msgid "Admins can enable \"bypass\" for date/time and geolocation to test (Settings → Geolocation)"
 msgstr "Administradores podem ativar o \"bypass\" para data/hora e geolocalização para fins de teste (Configurações → Geolocalização)."
 
-#: includes/settings/views/documentation/feature-reregistration.php:31
-msgid "Admins review and approve or reject each submission (unless auto-approve is on)."
-msgstr "Os administradores analisam e aprovam ou rejeitam cada envio (a menos que a aprovação automática esteja ativada)."
 
 #: includes/settings/views/ffc-tab-advanced.php:834
 msgid "Adopt decoupled secrets"
@@ -3408,9 +3402,6 @@ msgstr "Chamados por classificação #%d"
 msgid "Campaign"
 msgstr "Campanha"
 
-#: includes/settings/views/documentation/reference-emails.php:69
-msgid "Campaign invitation, reminder and confirmation"
-msgstr "Convite, lembrete e confirmação de campanha"
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:461
 msgid "Campaign lifecycle emails — text edited globally in the hub above; each still on/off per campaign."
@@ -4085,9 +4076,6 @@ msgstr "Limpar cache do WordPress"
 msgid "Cleared plaintext context on %d activity log rows."
 msgstr "Contexto de texto simples e linhas de registro de atividades foram limpas."
 
-#: includes/settings/views/documentation/feature-record.php:26
-msgid "Click \"Download Record\" on the reregistration banner after submitting"
-msgstr "Após o envio, clique em \"Baixar Ficha\" no banner de recadastramento."
 
 #. %s: number of pending records
 #: includes/settings/views/ffc-tab-migrations.php:258
@@ -4095,13 +4083,7 @@ msgstr "Após o envio, clique em \"Baixar Ficha\" no banner de recadastramento."
 msgid "Click once to process all records automatically. %s records remaining."
 msgstr "Clique uma vez para processar todos os registros automaticamente. %s registros restantes."
 
-#: includes/settings/views/documentation/feature-record.php:25
-msgid "Click the \"Record\" button next to any submission in the Reregistration > Submissions list"
-msgstr "Clique no botão \"Ficha\" ao lado de qualquer inscrição na lista de Recadastramento > Inscrições"
 
-#: templates/emails/reregistration-confirmation.php:38
-msgid "Click the button above to verify and download your reregistration record (PDF). You can also review your submission details in your dashboard at any time."
-msgstr "Clique no botão acima para verificar e baixar o seu comprovante de recadastramento (PDF). Você também pode consultar os detalhes do seu envio no painel a qualquer momento."
 
 #: templates/emails/certificate-user.php:31
 msgid "Click the button below to download it."
@@ -4343,9 +4325,6 @@ msgstr "Configure como os calendários privados são exibidos para visitantes qu
 msgid "Configure recruitment"
 msgstr "Configurar recrutamento"
 
-#: includes/settings/views/documentation/feature-reregistration.php:28
-msgid "Configure the emails (invitation, reminder, confirmation) and whether submissions auto-approve."
-msgstr "Configure os e-mails (convite, lembrete, confirmação) e se as submissões são aprovadas automaticamente."
 
 #: templates/admin/settings/email-model-box.php:72
 msgid "Configure the single chrome (header, body, footer and outer container) that wraps every plugin email. The message content is injected into the body automatically."
@@ -6189,9 +6168,6 @@ msgstr "Baixar exemplo de CSV"
 msgid "Download Record"
 msgstr "Baixar Ficha"
 
-#: includes/frontend/class-ffc-verification-response-renderer.php:443
-msgid "Download Record (PDF)"
-msgstr "Baixar Ficha (PDF)"
 
 #: includes/frontend/class-ffc-public-csv-download.php:159
 msgid "Download form submissions (CSV)"
@@ -8480,9 +8456,6 @@ msgstr "Arquivo de visualização das configurações gerais não encontrado."
 msgid "Generate a new short code? The old one will stop working."
 msgstr "Gerar um novo código curto? O antigo deixará de funcionar."
 
-#: includes/settings/views/documentation/feature-record.php:20
-msgid "Generate a PDF record (record) for reregistration submissions. Available for submitted and approved submissions."
-msgstr "Gere um registro em PDF (ficha) para solicitações de recadastramento. Disponível para solicitações enviadas e aprovadas."
 
 #: includes/settings/views/ffc-tab-advanced.php:848 includes/settings/views/ffc-tab-advanced.php:904
 msgid "Generate another"
@@ -14317,9 +14290,6 @@ msgstr "Retenção"
 msgid "Retention (days)"
 msgstr "Retenção (dias)"
 
-#: includes/reregistration/class-ffc-reregistration-admin.php:218
-msgid "Return this submission to draft? The user will be able to edit and resubmit."
-msgstr "Deseja enviar essa submissão para rascunho? O usuário poderá editar e reenviar."
 
 #: templates/admin/reregistration/submission-row.php:47 templates/admin/reregistration/submissions.php:82
 msgid "Return to Draft"
@@ -14392,9 +14362,6 @@ msgstr "Notas de Revisão"
 msgid "Reviewed"
 msgstr "Revisado"
 
-#: includes/settings/views/documentation/feature-reregistration.php:59
-msgid "reviewed (rejections can carry notes)."
-msgstr "analisado (rejeições podem incluir observações)."
 
 #: includes/reregistration/class-ffc-reregistration-export-source.php:183
 msgid "Reviewed At"
@@ -14888,9 +14855,6 @@ msgstr "Formulários de Pesquisa"
 msgid "Search logs..."
 msgstr "Registros de pesquisa..."
 
-#: templates/admin/reregistration/submissions.php:58
-msgid "Search name or email..."
-msgstr "Pesquisar nome ou e-mail..."
 
 #: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:113
 msgid "Search notices"
@@ -15180,9 +15144,6 @@ msgstr "A razão preliminar selecionada não existe mais."
 msgid "Selected submissions approved."
 msgstr "As propostas selecionadas foram aprovadas."
 
-#: includes/reregistration/class-ffc-reregistration-admin.php:310
-msgid "Selected submissions returned to draft."
-msgstr "As submissões selecionadas retornaram aos rascunhos."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:160
 msgid "Selected time is outside working hours."
@@ -15326,9 +15287,6 @@ msgstr "Os campos sensíveis são ocultados por padrão. Clique em \"Revelar\" p
 msgid "Sensitive identifiers such as e-mail addresses and CPF/RF numbers are stored encrypted at rest. Where consent is required, the date and time you gave it are recorded. One-way hashes of some identifiers are kept so records can be located without exposing the original values."
 msgstr "Identificadores sensíveis, como endereços de e-mail e números de CPF, são armazenados de forma criptografada em repouso. Nos casos em que o consentimento é exigido, registram-se a data e a hora em que ele foi concedido. São mantidos *hashes* unidirecionais de alguns identificadores para permitir a localização de registros sem expor os valores originais."
 
-#: includes/settings/views/documentation/feature-reregistration.php:41
-msgid "sent after a member submits; carries the Record magic link."
-msgstr "enviado após o envio pelo membro; contém o link de acesso direto (magic link) do formulário."
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:437
 msgid "Sent automatically when a full slot queues or frees up — text edited globally in the hub above."
@@ -15338,9 +15296,6 @@ msgstr "Enviado automaticamente quando um horário lotado entra na fila ou é li
 msgid "sent automatically when the deadline is within N days (default 7)."
 msgstr "enviado automaticamente quando o prazo estiver a N dias (padrão: 7)."
 
-#: includes/settings/views/documentation/feature-reregistration.php:40
-msgid "sent automatically when the deadline is within N days (default 7). Each member receives it ONCE per campaign, not once a day: the send is stamped on the submission, and the daily sweep skips whoever already has that stamp."
-msgstr "enviado automaticamente quando o prazo está a N dias do fim (padrão: 7). Cada membro o recebe UMA VEZ por campanha, não uma vez por dia: o envio é registrado na submissão, e a varredura diária ignora quem já tem esse registro."
 
 #: includes/core/class-ffc-email-template-options.php:93
 msgid "Sent by {{site_title}}"
@@ -15411,9 +15366,6 @@ msgstr "Defina uma data de início na caixa de metadados Geolocalização & Data
 msgid "Set an end date in the Geolocation & Date/Time metabox to enable this action."
 msgstr "Defina uma data de término na caixa de metadados Geolocalização & Data/Hora para ativar esta ação."
 
-#: includes/settings/views/documentation/feature-reregistration.php:27
-msgid "Set the start and end dates."
-msgstr "Defina as datas de início e término."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:34 includes/settings/views/documentation/config-general.php:25 includes/settings/views/documentation/forms-schedule.php:27 includes/settings/views/documentation/feature-url-shortener.php:59 includes/settings/views/documentation/config-geolocation.php:30
 msgid "Setting"
@@ -16914,7 +16866,7 @@ msgstr "A seção \"Restrições e Tickets\" do editor de formulários controla 
 
 #: includes/settings/views/documentation/forms-email.php:27
 msgid "the form follows the shared certificate text edited once in Settings → Email texts. The per-form subject/body fields stay hidden behind a short note linking there — change the wording in one place and every Global form updates."
-msgstr "O formulário segue o texto do certificado compartilhado, editado uma única vez em Configurações → Textos de e-mail. Os campos de assunto e corpo específicos de cada formulário permanecem ocultos atrás de um breve aviso com link para essa configuração — basta alterar o texto em um só lugar para que todos os formulários globais sejam atualizados."
+msgstr "O formulário segue o texto do certificado compartilhado, editado uma única vez em Configurações → Textos dos e-mails. Os campos de assunto e corpo específicos de cada formulário permanecem ocultos atrás de um breve aviso com link para essa configuração — basta alterar o texto em um só lugar para que todos os formulários globais sejam atualizados."
 
 #: includes/frontend/class-ffc-public-csv-download.php:663
 msgid "The form has not started yet — wait until it opens before postponing the close."
@@ -18813,9 +18765,6 @@ msgstr "Ver Todos os Agendamentos"
 msgid "View All Calendars"
 msgstr "Ver Todos os Calendários"
 
-#: templates/emails/reregistration-confirmation.php:36
-msgid "View and Download Record"
-msgstr "Veja e Baixe a Ficha."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:219
 msgid "View appointments"
@@ -22765,8 +22714,6 @@ msgstr "Uma tentativa abaixo da nota de aprovação é mantida como submissão \
 msgid "Validation page:"
 msgstr "Página de validação:"
 
-msgid "The public /valid page also finds a record by its authentication code or its magic link"
-msgstr "A página pública /valid também localiza uma ficha pelo código de autenticação ou pelo link mágico"
 
 msgid "Account email"
 msgstr "E-mail da conta"
@@ -22908,8 +22855,6 @@ msgstr "A aba Agendamento → Configurações → Importar e Exportar importa e 
 msgid "A campaign shows the union of the custom fields of its linked audiences (standard identity/contact fields plus any custom ones). Each submission can be exported as a Record PDF. The standard birth-date field reads and writes the single encrypted birth date on the user profile, which Date Messages uses."
 msgstr "Uma campanha exibe a união dos campos personalizados dos públicos-alvo vinculados (os campos padrão de identidade/contato e os personalizados). Cada envio pode ser exportado como PDF da Ficha. O campo padrão de data de nascimento lê e grava a data de nascimento única e criptografada do perfil do usuário, usada pelas Mensagens por Data."
 
-msgid "create/edit campaigns, approve/reject, generate Records. Editing the field definitions needs ffc_manage_custom_fields."
-msgstr "criar/editar campanhas, aprovar/rejeitar, gerar Fichas. Editar as definições dos campos exige ffc_manage_custom_fields."
 
 msgid "Candidates are imported from CSV (headers: name, cpf, rf, email, adjutancy, rank, score, pcd, plus optional phone, time_points, hab_emebs) into either the preliminary or the definitive list. Call-ups are recorded per candidate; calling out of rank order requires a reason. Outcomes move a candidate through called → accepted / not_shown / hired / withdrew. Importing a candidate also links or creates their WordPress account (matched by CPF, RF or e-mail), which is what lets them follow their own call-ups."
 msgstr "Os candidatos são importados de CSV (cabeçalhos: name, cpf, rf, email, adjutancy, rank, score, pcd, além dos opcionais phone, time_points, hab_emebs) para a lista preliminar ou para a definitiva. As convocações são registradas por candidato; convocar fora da ordem de classificação exige um motivo. Os resultados levam o candidato por called → accepted / not_shown / hired / withdrew. Importar um candidato também vincula ou cria a sua conta do WordPress (localizada por CPF, RF ou e-mail), o que permite que ele acompanhe as próprias convocações."
@@ -24137,8 +24082,6 @@ msgstr "O QR Code pode ser personalizado com diversos atributos:"
 msgid "The QR code embedded in the PDF points at the same magic link."
 msgstr "O QR Code incorporado ao PDF aponta para o mesmo link mágico."
 
-msgid "There is no separate reregistration shortcode. Active campaigns appear as a banner on the member's personal dashboard (the user_dashboard_personal shortcode); the form loads and submits there over AJAX. Members are targeted by audience membership, not by matching a CPF/RF. On submit, the plugin generates an authentication code and a Record magic link, syncs mapped fields to the user profile, and sends the confirmation email."
-msgstr "Não existe um shortcode separado para o recadastramento. Campanhas ativas aparecem como um banner no painel pessoal do membro (o shortcode `user_dashboard_personal`); o formulário é carregado e enviado nesse local via AJAX. A segmentação dos membros baseia-se na participação em públicos-alvo, e não na correspondência de CPF/RF. Ao realizar o envio, o plugin gera um código de autenticação e um link mágico da Ficha, sincroniza os campos mapeados com o perfil do usuário e envia o e-mail de confirmação."
 
 msgid "This plugin allows you to create certificate issuance forms, generate PDFs automatically, and verify authenticity with QR codes."
 msgstr "Este plugin permite criar formulários de emissão de certificados, gerar PDFs automaticamente e verificar a autenticidade com QR Codes."
@@ -25517,13 +25460,7 @@ msgstr "Nenhum convite foi enviado ainda. Eles saem na próxima execução diár
 msgid "Send invitation email (daily run after activation)"
 msgstr "Enviar e-mail de convite (execução diária após a ativação)"
 
-#: includes/settings/views/documentation/feature-reregistration.php
-msgid "sent by the daily run to every member who has not received one yet, starting with the first run after the campaign is activated. Members who join later get theirs on the following run. The Send invitations button sends them right away."
-msgstr "enviado pela execução diária a cada membro que ainda não recebeu, a partir da primeira execução após a ativação da campanha. Membros que entram depois recebem o seu na execução seguinte. O botão Enviar convites envia na hora."
 
-#: includes/settings/views/documentation/feature-reregistration.php
-msgid "Activate the campaign — a submission is created for every audience member at once. Invitation emails are not sent at that moment: they go out with the next daily run, in batches, so a campaign activated by mistake can still be deactivated before anybody is mailed. The screen says when that run is."
-msgstr "Ative a campanha — uma submissão é criada na hora para cada membro do público. Os e-mails de convite não são enviados nesse momento: eles saem na próxima execução diária, em lotes, de modo que uma campanha ativada por engano ainda pode ser desativada antes de alguém receber. A tela informa quando será essa execução."
 
 #: templates/admin/reregistration/form.php
 msgid "Sends the invitation now, without waiting for the daily run, to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished."
@@ -25844,9 +25781,6 @@ msgstr "Dados Pessoais do Recadastramento Revelados"
 msgid "Reregistration Details Viewed"
 msgstr "Detalhes do Recadastramento Visualizados"
 
-#: includes/settings/views/documentation/feature-reregistration.php:152
-msgid "reveal a submitter's email on the submissions list and open View Details, which shows the decrypted CPF, RF and RG. Without it the email stays masked and View Details is not offered, even to someone who can manage campaigns. Existing managers received it automatically on update."
-msgstr "revelar o e-mail de quem enviou na lista de submissões e abrir Ver Detalhes, que mostra CPF, RF e RG descriptografados. Sem ela, o e-mail permanece mascarado e Ver Detalhes não é oferecido, nem mesmo a quem gerencia campanhas. Quem já gerenciava recebeu a capacidade automaticamente na atualização."
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:895
 msgid "FFC Reregistration - Administrator"
@@ -28216,7 +28150,7 @@ msgstr "Ainda não"
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "Once an hour the plugin e-mails each eligible participant of a booking whose form has opened the personal link, once. The e-mail is \"Audience post-event form invitation\" under Settings → Email texts. It needs a published page that embeds the form, since the link points there; without one nothing is sent. The Attendance screen lists who was invited and when, who answered and whose certificate was issued, and while the form is open it resends to one person or to everyone who has not answered; this needs ffc_checkin_audiences."
-msgstr "Uma vez por hora o plugin envia por e-mail a cada participante elegível de um agendamento cujo formulário abriu o link pessoal, uma única vez. O e-mail é \"Convite para o formulário pós-evento de público\" em Configurações → Textos de e-mail. É preciso uma página publicada que contenha o formulário, pois o link aponta para ela; sem ela nada é enviado. A tela de Presença mostra quem foi convidado e quando, quem respondeu e de quem o certificado foi emitido, e enquanto o formulário estiver aberto reenvia a uma pessoa ou a todos que ainda não responderam; isso exige ffc_checkin_audiences."
+msgstr "Uma vez por hora o plugin envia por e-mail a cada participante elegível de um agendamento cujo formulário abriu o link pessoal, uma única vez. O e-mail é \"Convite para o formulário pós-evento de público\" em Configurações → Textos dos e-mails. É preciso uma página publicada que contenha o formulário, pois o link aponta para ela; sem ela nada é enviado. A tela de Presença mostra quem foi convidado e quando, quem respondeu e de quem o certificado foi emitido, e enquanto o formulário estiver aberto reenvia a uma pessoa ou a todos que ainda não responderam; isso exige ffc_checkin_audiences."
 
 #: templates/emails/audience-post-event-invite.php
 msgid "Open the form"
@@ -29726,3 +29660,297 @@ msgstr "Exibida dentro do período, mas fora do horário diário, quando o horá
 
 msgid "Three messages, one per moment: before the form opens, after it closes, and outside the daily hours (daily mode only). A message left empty shows that moment's default. Forms saved with the single message from earlier versions show it in all three until edited."
 msgstr "Três mensagens, uma por momento: antes da abertura do formulário, após o encerramento e fora do horário diário (apenas no modo diário). Uma mensagem deixada vazia exibe a padrão daquele momento. Formulários salvos com a mensagem única de versões anteriores a exibem nas três até serem editados."
+
+msgid "A member can save a draft or submit only while the submission is pending, in progress or rejected. Once it is submitted, a second click or a form left open in another tab is refused, so the submission stays in the review queue and the confirmation e-mail goes out once."
+msgstr "Um membro só pode salvar rascunho ou enviar enquanto o recadastramento está pendente, em andamento ou rejeitado. Depois de enviado, um segundo clique ou um formulário deixado aberto em outra aba é recusado, de modo que o recadastramento continua na fila de análise e o e-mail de confirmação sai uma única vez."
+
+msgid "Encrypt the answers to sensitive fields (such as CPF, RF and birth date) that reregistration drafts stored in clear before drafts were saved encrypted. This covers drafts the daily run later expired and submissions returned to draft and saved again. Completion here means every stored submission was EXAMINED: one with nothing to encrypt is read, left as it is, and counted as done."
+msgstr "Criptografa as respostas a campos sensíveis (como CPF, RF e data de nascimento) que rascunhos de recadastramento guardaram em texto aberto antes de os rascunhos passarem a ser salvos criptografados. Inclui rascunhos que a rotina diária depois expirou e recadastramentos devolvidos para rascunho e salvos de novo. Aqui, concluir significa que cada recadastramento armazenado foi EXAMINADO: um sem nada a criptografar é lido, deixado como está e contado como feito."
+
+msgid "Encrypted the sensitive values of %1$d of %2$d reregistration submissions examined."
+msgstr "Valores sensíveis criptografados em %1$d de %2$d recadastramentos examinados."
+
+msgid "Encryption keys are not configured, so the values cannot be encrypted."
+msgstr "As chaves de criptografia não estão configuradas, então os valores não podem ser criptografados."
+
+msgid "Reregistration: Encrypt Draft Answers"
+msgstr "Recadastramento: Criptografar Respostas de Rascunhos"
+
+msgid "Set the start and end dates. The end must be after the start. The form accepts drafts and submissions only between the two, on the site's clock (Settings → General in WordPress), from the start without waiting for anything and until the end without waiting for the daily run to expire the campaign."
+msgstr "Defina as datas de início e de término. O término deve ser posterior ao início. O formulário aceita rascunhos e envios apenas entre as duas, no relógio do site (Configurações → Geral no WordPress), a partir do início sem esperar nada e até o término sem esperar a rotina diária expirar a campanha."
+
+msgid "The \"Reregistration: Encrypt Draft Answers\" card encrypts the sensitive answers that reregistration drafts stored in clear before drafts were saved encrypted."
+msgstr "O cartão \"Recadastramento: Criptografar Respostas de Rascunhos\" criptografa as respostas sensíveis que rascunhos de recadastramento guardaram em texto aberto antes de os rascunhos passarem a ser salvos criptografados."
+
+msgid "The end date must be after the start date. Nothing was saved."
+msgstr "A data de término deve ser posterior à data de início. Nada foi salvo."
+
+msgid "The reregistration table is not available — nothing to migrate."
+msgstr "A tabela de recadastramento não está disponível — nada a migrar."
+
+msgid "This reregistration has closed."
+msgstr "Este recadastramento está encerrado."
+
+msgid "This reregistration has not opened yet."
+msgstr "Este recadastramento ainda não foi aberto."
+
+msgid "This reregistration was already submitted and is awaiting review."
+msgstr "Este recadastramento já foi enviado e aguarda análise."
+
+msgid "a draft was saved but not submitted. Sensitive answers are stored encrypted in a draft, as in a submission."
+msgstr "um rascunho foi salvo, mas não enviado. As respostas sensíveis ficam criptografadas no rascunho, como no envio."
+
+msgid "Once your reregistration is approved, sign in to your dashboard to download your record (PDF). You can review your submission there at any time."
+msgstr "Assim que seu recadastramento for aprovado, entre no seu painel para baixar sua ficha (PDF). Você pode revisar seu envio lá a qualquer momento."
+
+msgid "Reregistration Record Downloaded"
+msgstr "Ficha de recadastramento baixada"
+
+msgid "Reregistration Record Verified"
+msgstr "Ficha de recadastramento verificada"
+
+msgid "Sign in to download"
+msgstr "Entrar para baixar"
+
+msgid "The record itself is available to its owner, signed in, from the dashboard."
+msgstr "A ficha em si fica disponível ao titular, conectado, no painel."
+
+#. translators: %d: number of submissions approved.
+msgid "%d submission approved."
+msgid_plural "%d submissions approved."
+msgstr[0] "%d envio aprovado."
+msgstr[1] "%d envios aprovados."
+
+#. translators: %d: number of selected submissions that were not awaiting review.
+msgid "%d selected submission was skipped because it was not awaiting review."
+msgid_plural "%d selected submissions were skipped because they were not awaiting review."
+msgstr[0] "%d envio selecionado foi ignorado porque não estava aguardando análise."
+msgstr[1] "%d envios selecionados foram ignorados porque não estavam aguardando análise."
+
+msgid "Generate a PDF record for an approved reregistration submission. Only its owner, signed in, and staff with the module's personal-data capability can download it."
+msgstr "Gere a ficha em PDF de um recadastramento aprovado. Só o titular, conectado, e a equipe com a capacidade de dados pessoais do módulo podem baixá-la."
+
+msgid "Click the \"Record\" button next to a submission in the Reregistration > Submissions list. It needs ffc_view_reregistration_pii (or administrator), and every download writes an activity-log entry"
+msgstr "Clique no botão \"Ficha\" ao lado de um envio na lista Recadastramento > Envios. Exige ffc_view_reregistration_pii (ou administrador), e cada download grava uma entrada no log de atividades"
+
+msgid "Click \"Download Record\" on the reregistration banner or in the Reregistration tab once the submission is approved. An administrator in \"view as user\" downloads it audited"
+msgstr "Clique em \"Baixar ficha\" no aviso de recadastramento ou na aba Recadastramento depois que o envio for aprovado. Um administrador em \"ver como usuário\" baixa com registro no log"
+
+msgid "The public /valid page confirms an approved record by its authentication code or its magic link, showing the campaign, the name and the masked CPF and e-mail, and never the PDF. A submission that is not approved does not verify. Every check writes an activity-log entry"
+msgstr "A página pública /valid confirma uma ficha aprovada pelo código de autenticação ou pelo link mágico, mostrando a campanha, o nome e o CPF e o e-mail mascarados, nunca o PDF. Um envio não aprovado não é validado. Cada consulta grava uma entrada no log de atividades"
+
+msgid "Admins review and approve or reject each submission (unless auto-approve is on). Bulk Approve acts only on submissions awaiting review and says how many of the selection it skipped."
+msgstr "Os administradores analisam e aprovam ou recusam cada envio (a menos que a aprovação automática esteja ativa). Aprovar em massa atua só nos envios aguardando análise e informa quantos da seleção foram ignorados."
+
+msgid "sent after a member submits; its button leads to the dashboard, where the Record downloads once the submission is approved."
+msgstr "enviado depois que o membro envia; o botão leva ao painel, onde a ficha é baixada depois que o envio for aprovado."
+
+msgid "create/edit campaigns, approve/reject. Editing the field definitions needs ffc_manage_custom_fields."
+msgstr "criar/editar campanhas, aprovar/recusar. Editar as definições de campos exige ffc_manage_custom_fields."
+
+msgid "reveal a submitter's email on the submissions list, open View Details, which shows the decrypted CPF, RF and RG, and download the Record. Without it the email stays masked and neither View Details nor the Record is offered, even to someone who can manage campaigns. Existing managers received it automatically on update."
+msgstr "revelar o e-mail de quem enviou na lista de envios, abrir Ver detalhes, que mostra CPF, RF e RG decifrados, e baixar a ficha. Sem ela o e-mail fica mascarado e nem Ver detalhes nem a ficha são oferecidos, mesmo a quem gerencia campanhas. Os gestores existentes a receberam automaticamente na atualização."
+
+msgid "There is no separate reregistration shortcode. Active campaigns appear as a banner on the member's personal dashboard (the user_dashboard_personal shortcode); the form loads and submits there over AJAX. Members are targeted by audience membership, not by matching a CPF/RF. On submit, the plugin syncs mapped fields to the user profile and sends the confirmation email. The authentication code is issued on approval: Reject deletes it, Return to draft keeps it stored but hidden, and approving again brings back the same code, so a printed Record still matches."
+msgstr "Não existe um shortcode separado para o recadastramento. Campanhas ativas aparecem como um banner no painel pessoal do membro (o shortcode `user_dashboard_personal`); o formulário é carregado e enviado nesse local via AJAX. A segmentação dos membros baseia-se na participação em públicos-alvo, e não na correspondência de CPF/RF. No envio, o plugin sincroniza os campos mapeados com o perfil do usuário e envia o e-mail de confirmação. O código de autenticação é emitido na aprovação: Recusar o apaga, Devolver para rascunho o mantém guardado mas oculto, e aprovar de novo traz de volta o mesmo código, para que uma ficha impressa continue valendo."
+
+msgid "A row that matches a staff account fails the file."
+msgstr "Uma linha que corresponde a uma conta da equipe reprova o arquivo."
+
+msgid "An import never changes the account of a WordPress administrator or of anyone who can see personal data (FFC Administrator and every module's Manager and Administrator tiers). Staff update their own profile in wp-admin. The check runs again while the rows are written, so an account that became staff in between is left untouched and its row is reported as failed."
+msgstr "Uma importação nunca altera a conta de um administrador do WordPress nem de quem pode ver dados pessoais (FFC Administrator e os níveis Gerente e Administrador de cada módulo). A equipe atualiza o próprio perfil no wp-admin. A verificação é repetida enquanto as linhas são gravadas, então uma conta que passou a ser da equipe nesse intervalo fica intacta e a sua linha é relatada como reprovada."
+
+msgid "A field cannot be mapped to the account e-mail, or to anything else WordPress keeps in its users table, nor to the plugin's own preferences: the editor refuses such a mapping, so a form can never change how someone signs in."
+msgstr "Um campo não pode ser vinculado ao e-mail da conta, a nada mais que o WordPress guarda na sua tabela de usuários nem às preferências do próprio plugin: o editor recusa esse vínculo, de modo que um formulário nunca muda a forma como alguém entra."
+
+msgid "Field \"%1$s\" cannot write to the profile key \"%2$s\": the account e-mail and the plugin's own settings are not filled from forms."
+msgstr "O campo \"%1$s\" não pode gravar na chave de perfil \"%2$s\": o e-mail da conta e as configurações do próprio plugin não são preenchidos por formulários."
+
+msgid "Matches a staff account (an administrator, or someone who can see personal data). An import never changes a staff account; they update their own profile in wp-admin."
+msgstr "Corresponde a uma conta da equipe (um administrador ou alguém que pode ver dados pessoais). Uma importação nunca altera uma conta da equipe; a pessoa atualiza o próprio perfil no wp-admin."
+
+msgid "sent by the daily run to every member who has not received one yet, starting with the first run after the campaign is activated. The same run creates the submission of anyone who joined one of the campaign's audiences, or one of their child audiences, since the activation, so late joiners get their invitation, their reminders and their place in the totals. An invitation can go out before the start date; it then names the day the form opens. The Send invitations button sends them right away."
+msgstr "enviado pela execução diária a todo membro que ainda não recebeu um, a partir da primeira execução depois que a campanha é ativada. A mesma execução cria o envio de quem entrou em um dos públicos da campanha, ou em um dos públicos filhos, depois da ativação, então quem chega depois recebe o convite, os lembretes e entra nos totais. Um convite pode sair antes da data de início; nesse caso ele informa o dia em que o formulário abre. O botão Enviar convites os envia na hora."
+
+msgid "sent automatically when the deadline is within N days (default 7) and the campaign has already opened. Each member receives it ONCE per campaign, not once a day: the send is stamped on the submission, and the daily sweep skips whoever already has that stamp."
+msgstr "enviado automaticamente quando o prazo está a N dias do fim (padrão: 7) e a campanha já abriu. Cada membro o recebe UMA VEZ por campanha, não uma vez por dia: o envio é registrado na submissão, e a varredura diária ignora quem já tem esse registro."
+
+msgid "Activate the campaign — a submission is created for every member of its audiences and of their child audiences at once. Saving an active campaign creates the submissions of an audience added to it. Invitation emails are not sent at that moment: they go out with the next daily run, in batches, so a campaign activated by mistake can still be deactivated before anybody is mailed. The screen says when that run is."
+msgstr "Ative a campanha — um envio é criado na hora para cada membro dos públicos dela e dos públicos filhos. Salvar uma campanha ativa cria os envios de um público adicionado a ela. Os e-mails de convite não saem nesse momento: vão com a próxima execução diária, em lotes, então uma campanha ativada por engano ainda pode ser desativada antes que alguém receba e-mail. A tela informa quando é essa execução."
+
+msgid "A new reregistration campaign for your group opens on %s."
+msgstr "Uma nova campanha de recadastramento do seu grupo abre em %s."
+
+msgid "A submission returned to draft or retracted is in_progress again; a returned one shows the reviewer's reason on the banner."
+msgstr "Uma submissão devolvida para rascunho ou retirada volta a ficar em in_progress; a devolvida mostra o motivo do revisor no aviso."
+
+msgid "Campaign invitation, reminder, confirmation, not approved and returned for revision"
+msgstr "Convite, lembrete e confirmação da campanha, não aprovação e devolução para revisão"
+
+msgid "Configure the emails (invitation, reminder, confirmation) and whether submissions auto-approve. The not-approved and returned-for-revision e-mails are always sent and are edited in Settings → Email texts."
+msgstr "Configure os e-mails (convite, lembrete, confirmação) e se as submissões são aprovadas automaticamente. Os e-mails de não aprovação e de devolução para revisão são sempre enviados e são editados em Configurações → Textos dos e-mails."
+
+msgid "Could not retract the submission."
+msgstr "Não foi possível retirar a submissão."
+
+msgid "It reaches members who have not submitted and members whose submission was rejected; a rejection or a return to draft clears the stamp, so they are reminded again."
+msgstr "Ele alcança os membros que não enviaram e os membros cuja submissão foi rejeitada; uma rejeição ou uma devolução para rascunho limpa a marca, então eles são lembrados de novo."
+
+msgid "Nothing was changed: give the member a reason of at least %d characters."
+msgstr "Nada foi alterado: informe ao membro um motivo de pelo menos %d caracteres."
+
+msgid "Reason sent to the member"
+msgstr "Motivo enviado ao membro"
+
+msgid "Reject and Return to Draft, for one submission or a selection, open a dialog that asks for the reason, at least 10 characters; nothing changes without one. The member reads the reason on the dashboard banner and receives it by e-mail. Reject is for a submission awaiting review; Return to Draft also reopens an approved or rejected one, keeping its answers."
+msgstr "Rejeitar e Devolver ao Rascunho, para uma submissão ou uma seleção, abrem uma janela que pede o motivo, com pelo menos 10 caracteres; nada muda sem ele. O membro lê o motivo no aviso do painel e o recebe por e-mail. Rejeitar vale para uma submissão aguardando revisão; Devolver ao Rascunho também reabre uma aprovada ou rejeitada, mantendo as respostas."
+
+msgid "Reject submission"
+msgstr "Rejeitar submissão"
+
+msgid "Reregistration Submission Rejected"
+msgstr "Submissão de Recadastramento Rejeitada"
+
+msgid "Reregistration Submission Retracted"
+msgstr "Submissão de Recadastramento Retirada"
+
+msgid "Reregistration Submission Returned to Draft"
+msgstr "Submissão de Recadastramento Devolvida para Rascunho"
+
+msgid "Reregistration not approved"
+msgstr "Recadastramento não aprovado"
+
+msgid "Reregistration not approved: {{reregistration_title}}"
+msgstr "Recadastramento não aprovado: {{reregistration_title}}"
+
+msgid "Reregistration returned for revision"
+msgstr "Recadastramento devolvido para revisão"
+
+msgid "Reregistration returned for revision: {{reregistration_title}}"
+msgstr "Recadastramento devolvido para revisão: {{reregistration_title}}"
+
+msgid "Retract submission"
+msgstr "Retirar submissão"
+
+msgid "Retract your submission? It goes back to draft and leaves the review queue. Your answers are kept, and you must submit again before the deadline for it to be reviewed."
+msgstr "Retirar sua submissão? Ela volta para rascunho e sai da fila de revisão. Suas respostas são mantidas, e você precisa enviá-la de novo antes do prazo para que seja revisada."
+
+msgid "Return to draft"
+msgstr "Devolver para rascunho"
+
+msgid "Reviewer's note:"
+msgstr "Observação do revisor:"
+
+msgid "Selected: %d. The member is told the reason and can correct and resubmit until the deadline. The verification code is deleted."
+msgstr "Selecionadas: %d. O membro recebe o motivo e pode corrigir e reenviar até o prazo. O código de verificação é apagado."
+
+msgid "Selected: %d. The submission goes back to the member as a draft with its answers, and the member is told the reason."
+msgstr "Selecionadas: %d. A submissão volta ao membro como rascunho com as respostas, e o membro recebe o motivo."
+
+msgid "Submission retracted. It is a draft again: edit it and submit it before the deadline."
+msgstr "Submissão retirada. Ela é um rascunho de novo: edite e envie antes do prazo."
+
+msgid "The member reads it on the dashboard and receives it by e-mail. At least %d characters."
+msgstr "O membro o lê no painel e o recebe por e-mail. Pelo menos %d caracteres."
+
+msgid "This submission can no longer be retracted: it was already reviewed or the campaign is closed."
+msgstr "Esta submissão não pode mais ser retirada: ela já foi revisada ou a campanha está fechada."
+
+msgid "Until it is reviewed, the member can retract a submission from the dashboard banner while the campaign is open. After a warning it goes back to draft with its answers and leaves the review queue; it has to be submitted again to be reviewed."
+msgstr "Enquanto não for revisada, o membro pode retirar uma submissão pelo aviso do painel, com a campanha aberta. Depois de um aviso, ela volta para rascunho com as respostas e sai da fila de revisão; precisa ser enviada de novo para ser revisada."
+
+msgid "Your reregistration was returned to you for revision. Your answers were kept: review them and submit again before the deadline."
+msgstr "Seu recadastramento foi devolvido a você para revisão. Suas respostas foram mantidas: revise-as e envie de novo antes do prazo."
+
+msgid "Your reregistration was reviewed and was not approved. You can correct it and submit it again until the deadline."
+msgstr "Seu recadastramento foi revisado e não foi aprovado. Você pode corrigi-lo e enviá-lo de novo até o prazo."
+
+msgid "reviewed. A rejection always carries the reviewer's reason, which the member sees and can act on until the deadline."
+msgstr "revisada. Uma rejeição sempre traz o motivo do revisor, que o membro vê e pode atender até o prazo."
+
+msgid "%d submission rejected."
+msgid_plural "%d submissions rejected."
+msgstr[0] "%d submissão rejeitada."
+msgstr[1] "%d submissões rejeitadas."
+
+msgid "%d submission returned to draft."
+msgid_plural "%d submissions returned to draft."
+msgstr[0] "%d submissão devolvida ao rascunho."
+msgstr[1] "%d submissões devolvidas ao rascunho."
+
+msgid "%d selected submission was skipped because its status does not allow it."
+msgid_plural "%d selected submissions were skipped because their status does not allow it."
+msgstr[0] "%d submissão selecionada foi ignorada porque o status dela não permite."
+msgstr[1] "%d submissões selecionadas foram ignoradas porque o status delas não permite."
+
+msgid "Already answered: the key, type, sensitivity and profile binding are locked, and the field cannot be deleted. Label, help text and options stay editable; deactivate it to stop asking."
+msgstr "Já respondido: a chave, o tipo, a sensibilidade e o vínculo com o perfil estão travados, e o campo não pode ser excluído. Rótulo, texto de ajuda e opções continuam editáveis; desative-o para deixar de perguntar."
+
+msgid "Answered Field Change Refused"
+msgstr "Alteração em Campo Respondido Recusada"
+
+msgid "Once anybody has answered a custom field, in a reregistration or on their profile, its key, type, sensitivity and profile binding are locked and it cannot be deleted, because the answers are stored and read by them. The label, help text and options stay editable. To stop asking it, deactivate it: the answers already given keep appearing in review, the Record and the CSV export."
+msgstr "Depois que alguém responde a um campo personalizado, em um recadastramento ou no perfil, a chave, o tipo, a sensibilidade e o vínculo com o perfil ficam travados e ele não pode ser excluído, porque as respostas são gravadas e lidas por eles. Rótulo, texto de ajuda e opções continuam editáveis. Para deixar de perguntar, desative-o: as respostas já dadas continuam aparecendo na análise, na Ficha e na exportação CSV."
+
+msgid "This field already has answers and cannot be deleted. Deactivate it instead; its answers stay in review, the Record and the export."
+msgstr "Este campo já tem respostas e não pode ser excluído. Desative-o; as respostas continuam na análise, na Ficha e na exportação."
+
+msgid "Name, email, CPF or RF"
+msgstr "Nome, e-mail, CPF ou RF"
+
+msgid "No reminder was sent: every plugin e-mail is disabled in the settings."
+msgstr "Nenhum lembrete foi enviado: todos os e-mails do plugin estão desativados nas configurações."
+
+msgid "No reminder was sent: reminders are turned off for this campaign."
+msgstr "Nenhum lembrete foi enviado: os lembretes estão desativados nesta campanha."
+
+msgid "No reminder was sent: the reminder e-mail text is empty."
+msgstr "Nenhum lembrete foi enviado: o texto do e-mail de lembrete está vazio."
+
+msgid "Not finished (pending or in progress)"
+msgstr "Não concluídos (pendentes ou em andamento)"
+
+#. translators: %d: number of reminder e-mails sent.
+msgid "%d reminder sent."
+msgid_plural "%d reminders sent."
+msgstr[0] "%d lembrete enviado."
+msgstr[1] "%d lembretes enviados."
+
+#. translators: %d: number of selected submissions that were not awaiting an answer.
+msgid "%d selected submission was skipped because it is not awaiting an answer."
+msgid_plural "%d selected submissions were skipped because they are not awaiting an answer."
+msgstr[0] "%d envio selecionado foi ignorado porque não aguarda resposta."
+msgstr[1] "%d envios selecionados foram ignorados porque não aguardam resposta."
+
+#. translators: %d: number of reminders the mailer did not send.
+msgid "%d reminder could not be sent (the member has no account or e-mail, or the mailer refused it)."
+msgid_plural "%d reminders could not be sent (the member has no account or e-mail, or the mailer refused it)."
+msgstr[0] "%d lembrete não pôde ser enviado (o membro não tem conta ou e-mail, ou o envio foi recusado)."
+msgstr[1] "%d lembretes não puderam ser enviados (o membro não tem conta ou e-mail, ou o envio foi recusado)."
+
+#. translators: %s: number of submissions listed.
+msgid "%s submission"
+msgid_plural "%s submissions"
+msgstr[0] "%s envio"
+msgstr[1] "%s envios"
+
+msgid "Only members who still have to answer (pending, in progress or rejected) are reminded. The notice counts the selected members who were skipped and the reminders that could not be sent, and says why nothing went out when reminders are off or every plugin e-mail is disabled."
+msgstr "Só recebe lembrete quem ainda precisa responder (pendente, em andamento ou rejeitado). O aviso conta os membros selecionados que foram ignorados e os lembretes que não puderam ser enviados, e diz por que nada saiu quando os lembretes estão desativados ou todos os e-mails do plugin estão desligados."
+
+msgid "Reviewing a large campaign"
+msgstr "Analisando uma campanha grande"
+
+msgid "The submissions list shows 50 per page. \"Reveal this page\" reveals the e-mails of the page on screen, never of the whole campaign."
+msgstr "A lista de envios mostra 50 por página. \"Revelar esta página\" revela os e-mails da página na tela, nunca os da campanha inteira."
+
+msgid "The search box takes a name, an e-mail, a CPF or an RF. A CPF or RF is matched through its hash, so the member is found although the value is stored encrypted."
+msgstr "A busca aceita nome, e-mail, CPF ou RF. O CPF ou RF é comparado pelo hash, então o membro é encontrado mesmo com o valor gravado criptografado."
+
+msgid "Filter by status, by \"not finished\" (pending or in progress: the members still to chase) or, when the campaign reaches several audiences, by audience, child audiences included."
+msgstr "Filtre por status, por \"não concluídos\" (pendentes ou em andamento: os membros que ainda precisam ser cobrados) ou, quando a campanha alcança vários públicos, por público, incluindo os públicos filhos."
+
+msgid "Each status card links to the list filtered by that status; the Total card clears every filter."
+msgstr "Cada cartão de status leva à lista filtrada por aquele status; o cartão Total limpa todos os filtros."
+
+msgid "Export CSV exports what the list shows: the same filters, every page."
+msgstr "Exportar CSV exporta o que a lista mostra: os mesmos filtros, todas as páginas."

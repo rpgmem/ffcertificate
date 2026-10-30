@@ -10,7 +10,7 @@
     $(function () {
         initSelectAll();
         initBulkConfirm();
-        initReturnToDraftConfirm();
+        initReviewDecisionModal();
         initRecordDownload();
         initSubmissionDetailsModal();
         initCsvExport();
@@ -57,7 +57,8 @@
     /**
      * Batched CSV export (#772). The "Export CSV" button drives the unified
      * ffc_export_* dispatcher via the shared window.FFCBatchedExport driver,
-     * carrying the campaign id. Export order is id-DESC (a stable keyset).
+     * carrying the campaign id and the applied filters. Export order is
+     * id-DESC (a stable keyset).
      */
     function initCsvExport() {
         $(document).on('click', '#ffc-rereg-export-btn', function () {
@@ -84,7 +85,14 @@
                     downloading: s.exportDone,
                     error: s.exportError
                 },
-                startData: { id: $btn.data('id') || '' }
+                // The filters the list was drawn with (#2242), so the file
+                // holds the same rows.
+                startData: {
+                    id: $btn.data('id') || '',
+                    sub_status: $btn.attr('data-sub-status') || '',
+                    s: $btn.attr('data-search') || '',
+                    audience: $btn.attr('data-audience') || ''
+                }
             });
         });
     }
@@ -122,26 +130,69 @@
             }
 
             if (action === 'return_to_draft') {
-                var msg2 = (window.ffcReregistrationAdmin && window.ffcReregistrationAdmin.strings)
-                    ? window.ffcReregistrationAdmin.strings.confirmReturnToDraft
-                    : 'Return selected submissions to draft? Users will be able to edit and resubmit.';
-                if (!confirm(msg2)) {
-                    e.preventDefault();
-                }
+                // Asks for the reason in the review modal instead (#2242).
+                e.preventDefault();
+                var ids = $('input[name="submission_ids[]"]:checked').map(function () {
+                    return $(this).val();
+                }).get();
+                openReviewDecision('return_to_draft', ids);
             }
         });
     }
 
     /**
-     * Confirm before returning a single submission to draft
+     * Reject and Return to Draft (#2242): one modal asks for the reason the
+     * member reads on the dashboard and in the e-mail. Submitting it is the
+     * confirmation; the server refuses a reason that is too short.
      */
-    function initReturnToDraftConfirm() {
-        $(document).on('click', '.ffc-return-draft-btn', function (e) {
-            var S = (window.ffcReregistrationAdmin && window.ffcReregistrationAdmin.strings) || {};
-            var msg = S.confirmReturnToDraft
-                || 'Return this submission to draft? The user will be able to edit and resubmit.';
-            if (!confirm(msg)) {
-                e.preventDefault();
+    function openReviewDecision(decision, ids) {
+        var $modal = $('#ffc-review-decision-modal');
+        if (!$modal.length || !ids.length) return;
+
+        var S = (window.ffcReregistrationAdmin && window.ffcReregistrationAdmin.strings) || {};
+        var isReject = decision === 'reject';
+        var $form = $modal.find('form');
+        var $ids = $form.find('.ffc-review-decision-ids').empty();
+
+        ids.forEach(function (id) {
+            $('<input>', { type: 'hidden', name: 'submission_ids[]', value: id }).appendTo($ids);
+        });
+        $form.find('input[name="decision"]').val(decision);
+        $form.find('textarea[name="review_reason"]').val('');
+        $modal.find('#ffc-review-decision-title').text(isReject ? (S.reviewRejectTitle || 'Reject submission') : (S.reviewReturnTitle || 'Return to draft'));
+        $modal.find('.ffc-review-decision-intro').text(
+            (isReject ? (S.reviewRejectIntro || '') : (S.reviewReturnIntro || '')).replace('%d', String(ids.length))
+        );
+        $form.find('.ffc-review-decision-confirm').each(function () {
+            $(this).toggle($(this).data('decision') === decision);
+        });
+
+        $modal.show();
+        $('body').addClass('ffc-rereg-modal-open');
+        $form.find('textarea[name="review_reason"]').trigger('focus');
+    }
+
+    function initReviewDecisionModal() {
+        var $modal = $('#ffc-review-decision-modal');
+        if (!$modal.length) return;
+
+        function closeModal() {
+            $modal.hide();
+            $('body').removeClass('ffc-rereg-modal-open');
+        }
+
+        $(document).on('click', '.ffc-review-decision-btn', function (e) {
+            e.preventDefault();
+            openReviewDecision($(this).data('decision'), [String($(this).data('submission-id'))]);
+        });
+
+        $modal.on('click', '.ffc-rereg-modal-close, .ffc-rereg-modal-backdrop', function (e) {
+            e.preventDefault();
+            closeModal();
+        });
+        $(document).on('keydown.ffcReviewDecision', function (e) {
+            if (e.key === 'Escape' && $modal.css('display') !== 'none') {
+                closeModal();
             }
         });
     }

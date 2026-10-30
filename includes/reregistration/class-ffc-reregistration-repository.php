@@ -114,6 +114,21 @@ class ReregistrationRepository {
 	}
 
 	/**
+	 * IDs of the active campaigns, oldest first.
+	 *
+	 * Read uncached: the daily run that uses it must see a campaign activated
+	 * since the last request.
+	 *
+	 * @return list<int>
+	 */
+	public static function get_active_ids(): array {
+		$wpdb = self::db();
+		$ids  = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM %i WHERE status = 'active' ORDER BY id ASC", self::get_table_name() ) );
+
+		return array_map( 'intval', $ids );
+	}
+
+	/**
 	 * Set audience IDs for a reregistration (replaces all existing).
 	 *
 	 * @param int        $reregistration_id Reregistration ID.
@@ -741,6 +756,20 @@ class ReregistrationRepository {
 				array( '%d' )
 			);
 
+			// The status changed under the object cache's feet: without this a
+			// persistent cache kept answering `active` for the campaign (#2242).
+			static::cache_delete( 'id_' . (int) $row->id );
+
+			// The submissions it expires are cached too, in the submissions'
+			// group; their ids are read before the write so each is dropped.
+			$expired_ids = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT id FROM %i WHERE reregistration_id = %d AND status IN ('pending', 'in_progress')",
+					$subs_table,
+					(int) $row->id
+				)
+			);
+
 			// Expire pending/in_progress submissions.
 			$update_sql = $wpdb->prepare(
 				"UPDATE %i SET status = 'expired', updated_at = %s
@@ -751,6 +780,10 @@ class ReregistrationRepository {
 			);
 			if ( is_string( $update_sql ) ) {
 				$wpdb->query( $update_sql );
+			}
+
+			foreach ( (array) $expired_ids as $submission_id ) {
+				wp_cache_delete( 'id_' . (int) $submission_id, 'ffc_rereg_submissions' );
 			}
 		}
 	}

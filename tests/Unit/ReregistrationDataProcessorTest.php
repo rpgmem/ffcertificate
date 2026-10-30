@@ -48,6 +48,28 @@ class ReregistrationDataProcessorTest extends TestCase {
 	private int $submission_reads = 0;
 
 	/**
+	 * The last `prepare()` call, as `[ template, values ]`.
+	 *
+	 * @var array{0: string, 1: list<mixed>}
+	 */
+	private array $last_prepare = array( '', array() );
+
+	/**
+	 * The statuses each conditional write allowed, in order.
+	 *
+	 * @var list<list<mixed>>
+	 */
+	private array $written_statuses = array();
+
+	/**
+	 * The status the row had already moved to, or null: then the conditional
+	 * write matches no row and the re-read answers with it (#2242).
+	 *
+	 * @var string|null
+	 */
+	private ?string $moved_to = null;
+
+	/**
 	 * Every `update_user_meta()`, as `[ user_id, key, value ]`.
 	 *
 	 * @var list<array{0: int, 1: string, 2: mixed}>
@@ -900,15 +922,20 @@ class ReregistrationDataProcessorTest extends TestCase {
 	private function persistence_database( array $fields, array $audience_ids ): void {
 		$this->db_updates          = array();
 		$this->db_inserts          = array();
+		$this->written_statuses    = array();
+		$this->moved_to            = null;
 		$this->submission_reads    = 0;
 
 		$wpdb         = Mockery::mock( 'wpdb' );
 		$wpdb->prefix = 'wp_';
 
 		// Interpolates, so every read can dispatch on the query's full text.
+		// The last template and values are kept: the submission write is one
+		// conditional UPDATE (#2242), read back from them below.
 		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
-			static function ( $sql, ...$args ) {
-				$values = ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args;
+			function ( $sql, ...$args ) {
+				$values             = ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args;
+				$this->last_prepare = array( (string) $sql, array_values( $values ) );
 				foreach ( $values as $v ) {
 					$sql = (string) preg_replace( '/%[ids]/', (string) $v, (string) $sql, 1 );
 				}
@@ -980,6 +1007,9 @@ class ReregistrationDataProcessorTest extends TestCase {
 				) {
 					return null;
 				}
+				if ( null !== $this->moved_to && 'SELECT status FROM wp_ffc_reregistration_submissions WHERE id = 99' === $sql ) {
+					return $this->moved_to;
+				}
 				$this->fail( 'Unexpected get_var: ' . $sql );
 			}
 		);
@@ -987,6 +1017,30 @@ class ReregistrationDataProcessorTest extends TestCase {
 		$wpdb->shouldReceive( 'update' )->andReturnUsing(
 			function ( $table, $data, $where ) {
 				$this->db_updates[] = array( $table, $data, $where );
+				return 1;
+			}
+		);
+
+		// The conditional write, decoded from its prepare() call into the same
+		// [ table, data, where ] shape `update()` records, plus the statuses.
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function () {
+				list( $template, $values ) = $this->last_prepare;
+				if ( 1 !== preg_match( '/^UPDATE %i SET (.+) WHERE id = %d AND status IN \(/', $template, $m ) ) {
+					$this->fail( 'Unexpected query: ' . $template );
+				}
+				$table = array_shift( $values );
+				$data  = array();
+				foreach ( explode( ', ', $m[1] ) as $assignment ) {
+					$column          = array_shift( $values );
+					$data[ $column ] = str_ends_with( $assignment, 'NULL' ) ? null : array_shift( $values );
+				}
+				$id                       = array_shift( $values );
+				$this->written_statuses[] = $values;
+				if ( null !== $this->moved_to ) {
+					return 0;
+				}
+				$this->db_updates[] = array( $table, $data, array( 'id' => $id ) );
 				return 1;
 			}
 		);
@@ -1072,7 +1126,7 @@ class ReregistrationDataProcessorTest extends TestCase {
 		$this->assertNotSame( Identifiers::CPF_A, $stored['fields']['cpf'], 'The sensitive field is not stored in clear.' );
 		$this->assertSame( Identifiers::CPF_A, \FreeFormCertificate\Core\Encryption::decrypt( $stored['fields']['cpf'] ) );
 		$this->assertSame( 'Jo', $stored['fields']['nickname'] );
-		$this->assertMatchesRegularExpression( '/^[A-Z0-9]{12}$/', $written['auth_code'] );
+		$this->assertArrayNotHasKey( 'auth_code', $written, 'A plain submit issues no code: approval does (#2242).' );
 		$this->assertArrayNotHasKey( 'reviewed_at', $written );
 
 		// The profile sync carried the plain CPF and treated it as sensitive:
@@ -1112,6 +1166,21 @@ class ReregistrationDataProcessorTest extends TestCase {
 		$this->assertArrayHasKey( 'reviewed_at', $written );
 		$this->assertSame( 0, $written['reviewed_by'] );
 		$this->assertArrayHasKey( 'notes', $written );
+		$this->assertMatchesRegularExpression( '/^[A-Z0-9]{12}$/', $written['auth_code'], 'Auto-approval is an approval: it issues the code (#2242).' );
+	}
+
+	public function test_auto_approve_keeps_the_code_a_returned_record_already_holds(): void {
+		// Approved, returned to draft, submitted again: the printed record's
+		// code comes back instead of a new one (#2242).
+		$this->stub_persistence_functions();
+		$this->persistence_database( array(), array() );
+
+		$submission = (object) array( 'id' => 5, 'auth_code' => 'KEEPTHISCODE' );
+		$rereg      = (object) array( 'id' => 1, 'auto_approve' => 1 );
+
+		ReregistrationDataProcessor::process_submission( $submission, $rereg, array( 'fields' => array() ), 3 );
+
+		$this->assertSame( 'KEEPTHISCODE', $this->the_submission_write()[1]['auth_code'] );
 	}
 
 	/**
@@ -1139,6 +1208,100 @@ class ReregistrationDataProcessorTest extends TestCase {
 		$this->assertSame( 0, $this->submission_reads, 'The confirmation is never attempted.' );
 		$this->assertSame( array(), $this->mailed );
 	}
+
+	/**
+	 * A double submit, or a stale tab (#2242): the row already left the open
+	 * statuses, so the write changes nothing — and nothing else runs either:
+	 * no profile sync, no snapshot, no second confirmation.
+	 */
+	public function test_process_submission_does_nothing_on_a_row_that_moved_on(): void {
+		$this->stub_persistence_functions();
+		$this->persistence_database(
+			array( $this->make_field( array( 'id' => 1, 'field_key' => 'cpf', 'field_type' => 'text', 'is_sensitive' => 1, 'field_profile_key' => 'cpf' ) ) ),
+			array( '1' )
+		);
+		$this->moved_to = 'submitted';
+
+		$written = ReregistrationDataProcessor::process_submission(
+			(object) array( 'id' => 99 ),
+			(object) array( 'id' => 1, 'auto_approve' => 0 ),
+			array( 'fields' => array( 'cpf' => Identifiers::CPF_A ) ),
+			7
+		);
+
+		$this->assertFalse( $written );
+		$this->assertSame( array(), $this->db_updates, 'Nothing is written.' );
+		$this->assertSame( array(), $this->meta_writes, 'No profile sync and no snapshot.' );
+		$this->assertSame( array(), $this->mailed, 'No second confirmation.' );
+	}
+
+	public function test_process_submission_writes_only_from_an_open_status(): void {
+		$this->stub_persistence_functions();
+		$this->persistence_database( array(), array() );
+
+		$this->assertTrue( ReregistrationDataProcessor::process_submission( (object) array( 'id' => 99 ), (object) array( 'id' => 1, 'auto_approve' => 0 ), array( 'fields' => array() ), 7, false ) );
+
+		$this->assertSame( array( array( 'pending', 'in_progress', 'rejected' ) ), $this->written_statuses, 'A submitted or approved row is never written over by a submit.' );
+	}
+
+	/**
+	 * The draft used to be written straight from the form, so sensitive
+	 * values sat in clear until the final submit (#2242). Now the draft and
+	 * the submission persist through the same encryption.
+	 */
+	public function test_save_draft_encrypts_the_sensitive_values(): void {
+		$this->stub_persistence_functions();
+		$this->persistence_database(
+			array(
+				$this->make_field( array( 'id' => 1, 'field_key' => 'cpf', 'field_type' => 'text', 'is_sensitive' => 1 ) ),
+				$this->make_field( array( 'id' => 2, 'field_key' => 'nickname', 'field_type' => 'text', 'is_sensitive' => 0 ) ),
+				$this->make_field( array( 'id' => 3, 'field_key' => 'note', 'field_type' => 'acknowledgment' ) ),
+			),
+			array( '1' )
+		);
+
+		$saved = ReregistrationDataProcessor::save_draft(
+			(object) array( 'id' => 99 ),
+			(object) array( 'id' => 1 ),
+			array( 'fields' => array( 'cpf' => Identifiers::CPF_A, 'nickname' => 'Jo' ) )
+		);
+
+		$this->assertTrue( $saved );
+		list( $id, $written ) = $this->the_submission_write();
+		$this->assertSame( 99, $id );
+		$this->assertSame( 'in_progress', $written['status'] );
+		$stored = json_decode( (string) $written['data'], true );
+		$this->assertNotSame( Identifiers::CPF_A, $stored['fields']['cpf'], 'The sensitive value is never stored in clear, not even in a draft.' );
+		$this->assertSame( Identifiers::CPF_A, \FreeFormCertificate\Core\Encryption::decrypt( $stored['fields']['cpf'] ) );
+		$this->assertSame( 'Jo', $stored['fields']['nickname'] );
+		$this->assertArrayNotHasKey( 'note', $stored['fields'], 'Display-only blocks are not stored.' );
+		$this->assertSame( array( array( 'pending', 'in_progress', 'rejected' ) ), $this->written_statuses, 'A submitted row cannot be pulled back into a draft.' );
+		$this->assertSame( array(), $this->meta_writes, 'A draft does not touch the profile.' );
+	}
+
+	public function test_save_draft_refuses_a_row_that_was_already_submitted(): void {
+		$this->stub_persistence_functions();
+		$this->persistence_database( array(), array() );
+		$this->moved_to = 'submitted';
+
+		$this->assertFalse( ReregistrationDataProcessor::save_draft( (object) array( 'id' => 99 ), (object) array( 'id' => 1 ), array( 'fields' => array() ) ) );
+		$this->assertSame( array(), $this->db_updates );
+	}
+
+	public function test_encrypt_value_wraps_once_and_leaves_empty_alone(): void {
+		$this->stub_persistence_functions();
+
+		$envelope = ReregistrationDataProcessor::encrypt_value( Identifiers::CPF_A );
+		$this->assertNotSame( Identifiers::CPF_A, $envelope );
+		$this->assertSame( $envelope, ReregistrationDataProcessor::encrypt_value( $envelope ), 'An envelope is not wrapped a second time.' );
+		$this->assertSame( '', ReregistrationDataProcessor::encrypt_value( '' ) );
+		$this->assertSame( null, ReregistrationDataProcessor::encrypt_value( null ) );
+
+		$array = ReregistrationDataProcessor::encrypt_value( array( 'parent' => 'A', 'child' => 'B' ) );
+		$this->assertIsString( $array, 'An array is encoded before it is encrypted, so it is never stored in clear.' );
+		$this->assertSame( '{"parent":"A","child":"B"}', \FreeFormCertificate\Core\Encryption::decrypt( $array ) );
+	}
+
 	// ==================================================================
 	// sanitize_values() — the sanitizer, reachable without $_POST
 	// ==================================================================

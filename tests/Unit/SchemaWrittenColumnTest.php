@@ -93,6 +93,8 @@ class SchemaWrittenColumnTest extends TestCase {
 			'As above: the hash column is chosen at runtime per area.',
 		'includes/migrations/strategies/class-ffc-identity-normalization-migration-strategy.php' =>
 			'As above: the column is picked per identifier being canonicalised.',
+		'includes/reregistration/class-ffc-reregistration-submission-writer.php' =>
+			'update() writes what columns() returns -- the map is filtered through the fixed $field_formats allowlist in that helper, shared with the conditional update_if_status() (#2242), so the keys are in another method.',
 	);
 
 	/**

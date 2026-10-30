@@ -1188,9 +1188,24 @@ class ReregistrationRepositoryTest extends TestCase {
 			->andReturn(1);
 
 		// Each campaign's submissions get expired
+		$this->wpdb->shouldReceive('get_col')->twice()->andReturn(array('10', '11'), array());
 		$this->wpdb->shouldReceive('query')->twice()->andReturn(1);
 
+		$dropped = array();
+		Functions\when('wp_cache_delete')->alias(function ($key, $group) use (&$dropped) {
+			$dropped[] = $group . ':' . $key;
+			return true;
+		});
+
 		ReregistrationRepository::expire_overdue();
+
+		// The status moved under the object cache, so every changed row's
+		// entry goes: both campaigns and the two submissions the first one
+		// expired (#2242). A persistent cache otherwise kept reading `active`.
+		$this->assertSame(
+			array('ffc_reregistrations:id_1', 'ffc_rereg_submissions:id_10', 'ffc_rereg_submissions:id_11', 'ffc_reregistrations:id_2'),
+			$dropped
+		);
 	}
 
 	public function test_expire_overdue_does_nothing_when_no_overdue(): void {
@@ -1244,6 +1259,7 @@ class ReregistrationRepositoryTest extends TestCase {
 			}
 			return $args[0];
 		});
+		$this->wpdb->shouldReceive('get_col')->once()->andReturn(array());
 		$this->wpdb->shouldReceive('query')->once()->andReturn(1);
 
 		ReregistrationRepository::expire_overdue();

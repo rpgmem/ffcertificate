@@ -405,7 +405,7 @@ class ReregistrationActivator {
 				// UTC), sibling of `invited_at`. NULL = never reminded.
 				//
 				// Without it the reminder was resent EVERY DAY: the campaign
-				// query uses `DATEDIFF(end_date, CURDATE()) <= reminder_days`,
+				// query uses `DATEDIFF(end_date, <site date>) <= reminder_days`,
 				// which is a WINDOW and not a day, and the cron is daily -- so
 				// with `reminder_days = 7` every pending participant received
 				// seven emails, one a day (#1232).

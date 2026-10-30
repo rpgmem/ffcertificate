@@ -61,7 +61,8 @@ class MigrationRegistryTest extends TestCase {
 		$all = $registry->get_all_migrations();
 
 		$this->assertIsArray( $all );
-		// Seventeen since the refused-address cleanup joined (#2109), sixteen
+		// Eighteen since the reregistration draft encryption joined (#2242),
+		// seventeen once the refused-address cleanup did (#2109), sixteen
 		// once the rate-limit log address encryption did (#2109).
 		// Fourteen once the activity-log IP encryption joined (#1574),
 		// thirteen once the name-parts backfill did (#1552), twelve once the
@@ -72,7 +73,7 @@ class MigrationRegistryTest extends TestCase {
 		// and as a live number here on purpose -- every key below is named too,
 		// so a card arriving without a test failing is what this guards against;
 		// bump the number and name the new key together.
-		$this->assertCount( 17, $all );
+		$this->assertCount( 18, $all );
 		$this->assertArrayHasKey( 'split_cpf_rf', $all );
 		$this->assertArrayHasKey( 'email_hash_rehash', $all );
 		$this->assertArrayHasKey( 'key_rotation', $all );
@@ -100,6 +101,8 @@ class MigrationRegistryTest extends TestCase {
 		$this->assertArrayHasKey( 'birth_date_backfill', $all );
 		// The split of full names stored whole in `first_name` (#1552).
 		$this->assertArrayHasKey( 'name_parts_backfill', $all );
+		// The encryption of sensitive answers drafts stored in clear (#2242).
+		$this->assertArrayHasKey( 'rereg_draft_encryption', $all );
 		$this->assertArrayHasKey( 'activity_log_clear_plaintext', $all );
 		// The encryption of client IPs older rows still hold in clear (#1574).
 		$this->assertArrayHasKey( 'activity_log_encrypt_ip', $all );

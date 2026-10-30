@@ -27,6 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Reregistration Frontend.
  *
  * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
+ * @phpstan-import-type ReregistrationRow from ReregistrationRepository
  */
 class ReregistrationFrontend {
 
@@ -51,9 +52,7 @@ class ReregistrationFrontend {
 	 */
 	public const SUBMITTABLE_STATUSES = array(
 		self::STATUS_NO_SUBMISSION,
-		'pending',
-		'in_progress',
-		'rejected',
+		...ReregistrationSubmissionReader::OPEN_STATUSES,
 	);
 
 	/**
@@ -66,6 +65,7 @@ class ReregistrationFrontend {
 		add_action( 'wp_ajax_ffc_submit_reregistration', array( __CLASS__, 'ajax_submit' ) );
 		add_action( 'wp_ajax_ffc_save_reregistration_draft', array( __CLASS__, 'ajax_save_draft' ) );
 		add_action( 'wp_ajax_ffc_import_previous_reregistration', array( __CLASS__, 'ajax_import_previous' ) );
+		add_action( 'wp_ajax_ffc_retract_reregistration', array( __CLASS__, 'ajax_retract' ) );
 	}
 
 	/**
@@ -79,15 +79,12 @@ class ReregistrationFrontend {
 	 *
 	 * Three populations reach it, not the two the constant's docblock names:
 	 *
-	 *  - a user added to an audience **after** the campaign went active, since
-	 *    seeding is a one-shot on that transition;
+	 *  - a user added to an audience **after** the campaign went active, until
+	 *    the next daily run seeds them (#2242);
 	 *  - a submission an administrator deleted;
-	 *  - a member of a **child** audience of one attached to the campaign —
-	 *    `get_active_for_audience()` walks UP to parents, so the campaign is
-	 *    visible to them, while seeding reads `get_members()` without
-	 *    `include_children`, so they are never seeded. That asymmetry is
-	 *    systematic in any hierarchy and is tracked apart; creating on demand
-	 *    covers it without touching the seeding side.
+	 *  - a member of a **child** audience added after the activation — the
+	 *    seeding includes child audiences, but only from the moment it runs.
+	 *    Creating on demand covers the gap until the daily run does.
 	 *
 	 * Entitlement is not re-derived: it asks the **same query that decided the
 	 * user could see the campaign at all** (`get_active_for_user`), so no new
@@ -145,6 +142,46 @@ class ReregistrationFrontend {
 	}
 
 	/**
+	 * Why the member may not open, save or submit the form now, or null.
+	 *
+	 * One gate for the three handlers (#2242): the submission must be in
+	 * {@see ReregistrationSubmissionReader::OPEN_STATUSES}, and the site's
+	 * clock inside the campaign window. Before, the handlers refused only
+	 * `approved` and `expired`, so a `submitted` row could be pulled back into
+	 * a draft, and the window held only after the daily run expired the
+	 * campaign.
+	 *
+	 * @param object $rereg      Campaign.
+	 * @phpstan-param ReregistrationRow $rereg
+	 * @param object $submission Submission row.
+	 * @phpstan-param ReregistrationSubmissionRow $submission
+	 * @return string|null
+	 */
+	private static function refusal( object $rereg, object $submission ): ?string {
+		if ( ! in_array( (string) $submission->status, ReregistrationSubmissionReader::OPEN_STATUSES, true ) ) {
+			return in_array( (string) $submission->status, array( 'approved', 'expired' ), true )
+				? __( 'This reregistration has already been completed or expired.', 'ffcertificate' )
+				: self::already_submitted_message();
+		}
+
+		$state = ReregistrationWindow::state( (string) $rereg->start_date, (string) $rereg->end_date );
+		if ( ReregistrationWindow::OPEN !== $state ) {
+			return ReregistrationWindow::closed_message( $state );
+		}
+
+		return null;
+	}
+
+	/**
+	 * The message for a submission that already went in.
+	 *
+	 * @return string
+	 */
+	private static function already_submitted_message(): string {
+		return __( 'This reregistration was already submitted and is awaiting review.', 'ffcertificate' );
+	}
+
+	/**
 	 * AJAX: Get reregistration form HTML.
 	 *
 	 * @return void
@@ -169,8 +206,9 @@ class ReregistrationFrontend {
 			wp_send_json_error( array( 'message' => __( 'You are not part of this reregistration.', 'ffcertificate' ) ) );
 		}
 
-		if ( in_array( $submission->status, array( 'approved', 'expired' ), true ) ) {
-			wp_send_json_error( array( 'message' => __( 'This reregistration has already been completed or expired.', 'ffcertificate' ) ) );
+		$refusal = self::refusal( $rereg, $submission );
+		if ( null !== $refusal ) {
+			wp_send_json_error( array( 'message' => $refusal ) );
 		}
 
 		$html = ReregistrationFormRenderer::render( $rereg, $submission, $user_id );
@@ -292,8 +330,9 @@ class ReregistrationFrontend {
 			wp_send_json_error( array( 'message' => __( 'You are not part of this reregistration.', 'ffcertificate' ) ) );
 		}
 
-		if ( in_array( $submission->status, array( 'approved', 'expired' ), true ) ) {
-			wp_send_json_error( array( 'message' => __( 'This reregistration has already been completed or expired.', 'ffcertificate' ) ) );
+		$refusal = self::refusal( $rereg, $submission );
+		if ( null !== $refusal ) {
+			wp_send_json_error( array( 'message' => $refusal ) );
 		}
 
 		// Collect and validate fields.
@@ -309,8 +348,12 @@ class ReregistrationFrontend {
 			);
 		}
 
-		// Process submission.
-		ReregistrationDataProcessor::process_submission( $submission, $rereg, $data, $user_id );
+		// The write tests the status in the same statement, so the second of
+		// two concurrent submits finds the row already submitted and stops
+		// here: one state change, one confirmation e-mail.
+		if ( ! ReregistrationDataProcessor::process_submission( $submission, $rereg, $data, $user_id ) ) {
+			wp_send_json_error( array( 'message' => self::already_submitted_message() ) );
+		}
 
 		wp_send_json_success( array( 'message' => __( 'Reregistration submitted successfully!', 'ffcertificate' ) ) );
 	}
@@ -341,21 +384,80 @@ class ReregistrationFrontend {
 		}
 
 		$submission = self::submission_for( $reregistration_id, $user_id );
-		if ( ! $submission || in_array( $submission->status, array( 'approved', 'expired' ), true ) ) {
+		if ( ! $submission ) {
 			wp_send_json_error( array( 'message' => __( 'Cannot save draft.', 'ffcertificate' ) ) );
+		}
+
+		$refusal = self::refusal( $rereg, $submission );
+		if ( null !== $refusal ) {
+			wp_send_json_error( array( 'message' => $refusal ) );
 		}
 
 		$data = ReregistrationDataProcessor::collect_form_data( $rereg );
 
-		ReregistrationSubmissionWriter::update(
-			(int) $submission->id,
-			array(
-				'data'   => $data,
-				'status' => 'in_progress',
-			)
-		);
+		if ( ! ReregistrationDataProcessor::save_draft( $submission, $rereg, $data ) ) {
+			wp_send_json_error( array( 'message' => self::already_submitted_message() ) );
+		}
 
 		wp_send_json_success( array( 'message' => __( 'Draft saved.', 'ffcertificate' ) ) );
+	}
+
+	/**
+	 * Whether the member may take back a submission (#2242).
+	 *
+	 * Only one nobody reviewed yet (`submitted`), and only while the campaign
+	 * window is open, so the member can still submit it again. The caller
+	 * answers for the campaign being active.
+	 *
+	 * @param object      $rereg      Campaign.
+	 * @phpstan-param ReregistrationRow $rereg
+	 * @param object|null $submission Submission row, or null.
+	 * @phpstan-param ReregistrationSubmissionRow|null $submission
+	 * @return bool
+	 */
+	public static function can_retract( object $rereg, ?object $submission ): bool {
+		return $submission
+			&& 'submitted' === (string) $submission->status
+			&& ReregistrationWindow::is_open( (string) $rereg->start_date, (string) $rereg->end_date );
+	}
+
+	/**
+	 * AJAX: the member takes back a submission awaiting review (#2242).
+	 *
+	 * The row goes back to draft with its answers and leaves the review queue.
+	 * The dashboard asks for confirmation before calling this.
+	 *
+	 * @return void
+	 */
+	public static function ajax_retract(): void {
+		check_ajax_referer( 'ffc_reregistration_frontend', 'nonce' );
+
+		$reregistration_id = \FreeFormCertificate\Core\RequestInput::get_post_int( 'reregistration_id' );
+		$user_id           = get_current_user_id();
+
+		if ( $reregistration_id <= 0 || ! $user_id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid request.', 'ffcertificate' ) ) );
+		}
+
+		$rereg      = ReregistrationRepository::get_by_id( $reregistration_id );
+		$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( $reregistration_id, $user_id );
+		if ( ! $rereg || ! $submission || 'active' !== $rereg->status || ! self::can_retract( $rereg, $submission ) || ! ReregistrationSubmissionWriter::retract( (int) $submission->id ) ) {
+			wp_send_json_error( array( 'message' => __( 'This submission can no longer be retracted: it was already reviewed or the campaign is closed.', 'ffcertificate' ) ) );
+		}
+
+		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'reregistration_submission_retracted',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+				array(
+					'reregistration_id' => $reregistration_id,
+					'submission_id'     => (int) $submission->id,
+				),
+				$user_id
+			);
+		}
+
+		wp_send_json_success( array( 'message' => __( 'Submission retracted. It is a draft again: edit it and submit it before the deadline.', 'ffcertificate' ) ) );
 	}
 
 	// ------------------------------------------------------------------.
@@ -366,7 +468,7 @@ class ReregistrationFrontend {
 	 * Get active reregistrations for a user with submission status.
 	 *
 	 * Aggregates `ReregistrationRepository`, `ReregistrationSubmissionReader`,
-	 * and `MagicLinkHelper` into a flat array consumed by the dashboard
+	 * into a flat array consumed by the dashboard
 	 * shortcode, the REST `/user-data/reregistrations` endpoint, and the
 	 * user-summary REST endpoint. Not a delegate — owns the join logic.
 	 *
@@ -381,13 +483,6 @@ class ReregistrationFrontend {
 			$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( (int) $rereg->id, $user_id );
 			$sub_status = $submission ? $submission->status : self::STATUS_NO_SUBMISSION;
 
-			// Build magic link for submitted/approved submissions.
-			$magic_link = '';
-			if ( $submission && in_array( $sub_status, array( 'submitted', 'approved' ), true ) ) {
-				$token      = ReregistrationSubmissionWriter::ensure_magic_token( $submission );
-				$magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $token );
-			}
-
 			$result[] = array(
 				'id'                => (int) $rereg->id,
 				'title'             => $rereg->title,
@@ -397,8 +492,13 @@ class ReregistrationFrontend {
 				'auto_approve'      => ! empty( $rereg->auto_approve ),
 				'submission_status' => $sub_status,
 				'submission_id'     => $submission ? (int) $submission->id : 0,
-				'can_submit'        => in_array( $sub_status, self::SUBMITTABLE_STATUSES, true ),
-				'magic_link'        => $magic_link,
+				'can_submit'        => in_array( $sub_status, self::SUBMITTABLE_STATUSES, true ) && ReregistrationWindow::is_open( (string) $rereg->start_date, (string) $rereg->end_date ),
+				// The Record downloads, signed in, only while approved (#2242).
+				'can_download'      => $submission && 'approved' === $sub_status && ! empty( $submission->auth_code ),
+				'can_retract'       => self::can_retract( $rereg, $submission ),
+				// The reviewer's reason for a rejection or a return to draft
+				// (#2242); '' otherwise.
+				'review_reason'     => $submission ? self::review_reason( $submission ) : '',
 				// Approval instant, unix UTC (category A); null when the
 				// submission was never reviewed. The dashboard counts the
 				// approved banner's window from it (#1887).
@@ -407,6 +507,24 @@ class ReregistrationFrontend {
 		}
 
 		return $result;
+	}
+
+	/**
+	 * The reason the member reads on the banner, or ''.
+	 *
+	 * `notes` also holds "Auto-approved" on an approved row, so only a
+	 * rejected or returned row shows it: a returned row is the only draft
+	 * that carries notes.
+	 *
+	 * @param object $submission Submission row.
+	 * @phpstan-param ReregistrationSubmissionRow $submission
+	 * @return string
+	 */
+	private static function review_reason( object $submission ): string {
+		if ( ! in_array( (string) $submission->status, array( 'rejected', 'in_progress' ), true ) ) {
+			return '';
+		}
+		return is_string( $submission->notes ?? null ) ? trim( $submission->notes ) : '';
 	}
 
 	/**
@@ -460,8 +578,6 @@ class ReregistrationFrontend {
 				continue;
 			}
 
-			$token = ReregistrationSubmissionWriter::ensure_magic_token( $submission );
-
 			$result[] = array(
 				'id'                => (int) $rereg->id,
 				'title'             => $rereg->title,
@@ -472,7 +588,9 @@ class ReregistrationFrontend {
 				'submission_status' => 'approved',
 				'submission_id'     => (int) $submission->id,
 				'can_submit'        => false,
-				'magic_link'        => \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $token ),
+				'can_download'      => ! empty( $submission->auth_code ),
+				'can_retract'       => false,
+				'review_reason'     => '',
 				'reviewed_at'       => $reviewed_at,
 			);
 		}

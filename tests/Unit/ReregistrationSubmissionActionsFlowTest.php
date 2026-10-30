@@ -47,6 +47,18 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 	 */
 	private array $mailed = array();
 
+	/**
+	 * Submission statuses, by id. 21 and 3 await review; 5 was never
+	 * answered, which is the row a bulk "select all" must not approve.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $statuses = array(
+		21 => 'submitted',
+		3  => 'submitted',
+		5  => 'pending',
+	);
+
 	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
 	private $wpdb_backup;
 
@@ -56,6 +68,14 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The campaign window is read on the site's clock (#2242); pin it
+		// inside the fixtures' campaigns.
+		Functions\when( 'current_time' )->alias(
+			static function ( $type ) {
+				return 'Y-m-d' === $type ? '2026-06-15' : ( 'mysql' === $type ? '2026-06-15 12:00:00' : 0 );
+			}
+		);
+
 
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
@@ -97,6 +117,9 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 			return true;
 		} );
 
+		// Approval issues an authentication code (#2242).
+		Functions\when( 'wp_rand' )->alias( static fn ( $min, $max ) => random_int( $min, $max ) );
+
 		$this->updates   = array();
 		$GLOBALS['wpdb'] = $this->database();
 	}
@@ -125,13 +148,48 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 		$wpdb->users  = 'wp_users';
 
 		// Interpolates, so the reads below can dispatch on the query's intent.
+		// A conditional UPDATE (#2242) is kept as its parsed parts instead,
+		// and `query()` applies it against the status map.
+		$pending = array();
 		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
-			static function ( $sql, ...$args ) {
+			static function ( $sql, ...$args ) use ( &$pending ) {
 				$values = ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args;
+				if ( 0 === strpos( (string) $sql, 'UPDATE %i SET' ) ) {
+					$pending[] = array( (string) $sql, $values );
+					return 'COND:' . ( count( $pending ) - 1 );
+				}
 				foreach ( $values as $v ) {
 					$sql = (string) preg_replace( '/%[ids]/', (string) $v, (string) $sql, 1 );
 				}
 				return $sql;
+			}
+		);
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $marker ) use ( &$pending ) {
+				list( $sql, $values ) = $pending[ (int) substr( (string) $marker, 5 ) ];
+				$table                = array_shift( $values );
+				$set                  = substr( $sql, strlen( 'UPDATE %i SET ' ), strpos( $sql, ' WHERE ' ) - strlen( 'UPDATE %i SET ' ) );
+				$data                 = array();
+				foreach ( explode( ', ', $set ) as $part ) {
+					$column          = array_shift( $values );
+					$data[ $column ] = '%i = NULL' === $part ? null : array_shift( $values );
+				}
+				$id      = (int) array_shift( $values );
+				$allowed = $values;
+				if ( ! in_array( $this->statuses[ $id ] ?? '', $allowed, true ) ) {
+					return 0;
+				}
+				$this->statuses[ $id ] = (string) ( $data['status'] ?? $this->statuses[ $id ] );
+				$this->updates[]       = array( $table, $data, array( 'id' => $id ) );
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				if ( preg_match( '/^SELECT status FROM \\S+ WHERE id = (\\d+)/', (string) $sql, $m ) ) {
+					return $this->statuses[ (int) $m[1] ] ?? null;
+				}
+				return null;
 			}
 		);
 
@@ -149,10 +207,21 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 			'end_date'               => '2099-12-31',
 		);
 
+		$statuses = &$this->statuses;
 		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
-			static function ( $sql ) use ( $submission, $campaign ) {
+			static function ( $sql ) use ( $submission, $campaign, &$statuses ) {
 				if ( str_contains( $sql, 'wp_ffc_reregistration_submissions WHERE id = 3' ) ) {
 					return $submission;
+				}
+				// The review decision reads each selected row (#2242): 21 is
+				// campaign 4's, 40 belongs to another campaign.
+				if ( preg_match( '/wp_ffc_reregistration_submissions WHERE id = (21|40)$/', $sql, $m ) ) {
+					return (object) array(
+						'id'                => (int) $m[1],
+						'reregistration_id' => '40' === $m[1] ? 99 : 4,
+						'user_id'           => '50',
+						'status'            => $statuses[ (int) $m[1] ] ?? 'submitted',
+					);
 				}
 				if ( str_contains( $sql, 'wp_ffc_reregistration_submissions' ) && str_contains( $sql, 'user_id = 50' ) ) {
 					return $submission;
@@ -216,37 +285,92 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 		$this->assertSame( 21, $writes[0][0] );
 		$this->assertSame( 'approved', $writes[0][1]['status'] );
 		$this->assertSame( 8, $writes[0][1]['reviewed_by'] );
+		$this->assertMatchesRegularExpression( '/^[A-Z0-9]{12}$/', (string) $writes[0][1]['auth_code'], 'Approval issues the code (#2242).' );
 		$this->assertSame( array( 'approve_submission_21' ), $this->nonces );
 		$this->assertSame( array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=submissions&id=4&message=approved' ), $this->redirects );
 	}
 
-	public function test_reject_records_the_reviewer_and_returns_to_the_list(): void {
-		$this->single( 'reject' );
+	private function decide( string $decision, array $ids, string $reason = 'Your RF does not match the payroll record.' ): void {
+		// The member's e-mail goes through the plugin's own path (#2242).
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'wp_strip_all_tags' )->alias( 'strip_tags' );
+		Functions\when( 'home_url' )->alias( static fn ( $path = '' ) => 'https://example.com' . $path );
+		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
+		Functions\when( 'wp_timezone' )->alias( static fn () => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias( static fn ( $format, $ts = null ) => gmdate( (string) $format, (int) $ts ) );
+		$_POST = array(
+			'ffc_action'        => 'review_decision',
+			'reregistration_id' => '4',
+			'ffc_review_nonce'  => 'good',
+			'decision'          => $decision,
+			'submission_ids'    => $ids,
+			'review_reason'     => $reason,
+		);
+	}
 
-		$this->runHandler( 'handle_reject' );
+	public function test_reject_records_the_reviewer_the_reason_and_mails_the_member(): void {
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'user_email' => 'member@example.test', 'display_name' => 'Member' ) );
+		$this->decide( 'reject', array( '21' ) );
+
+		$this->runHandler( 'handle_review_decision' );
 
 		$writes = $this->submission_writes();
 		$this->assertCount( 1, $writes );
 		$this->assertSame( 21, $writes[0][0] );
 		$this->assertSame( 'rejected', $writes[0][1]['status'] );
 		$this->assertSame( 8, $writes[0][1]['reviewed_by'] );
-		$this->assertSame( array( 'reject_submission_21' ), $this->nonces );
-		$this->assertSame( array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=submissions&id=4&message=rejected' ), $this->redirects );
+		$this->assertSame( 'Your RF does not match the payroll record.', $writes[0][1]['notes'] );
+		$this->assertNull( $writes[0][1]['auth_code'], 'Reject deletes the code (#2242).' );
+		$this->assertNull( $writes[0][1]['reminder_sent_at'], 'A rejected member is reminded again (#2242).' );
+		$this->assertSame( array( 'review_decision_4' ), $this->nonces );
+		$this->assertSame( array( 'member@example.test' ), $this->mailed );
+		$this->assertStringEndsWith( '&message=rejected&count=1&skipped=0', $this->redirects[0] );
 	}
 
-	public function test_return_to_draft_reopens_the_submission(): void {
-		$this->single( 'return_to_draft' );
+	public function test_return_to_draft_keeps_the_reason_for_the_member(): void {
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'user_email' => 'member@example.test', 'display_name' => 'Member' ) );
+		$this->decide( 'return_to_draft', array( '21' ) );
 
-		$this->runHandler( 'handle_return_to_draft' );
+		$this->runHandler( 'handle_review_decision' );
 
 		$writes = $this->submission_writes();
 		$this->assertCount( 1, $writes );
-		$this->assertSame( 21, $writes[0][0] );
 		$this->assertSame( 'in_progress', $writes[0][1]['status'] );
-		$this->assertArrayHasKey( 'reviewed_by', $writes[0][1] );
 		$this->assertNull( $writes[0][1]['reviewed_by'] );
-		$this->assertSame( array( 'return_to_draft_submission_21' ), $this->nonces );
-		$this->assertSame( array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=submissions&id=4&message=returned_to_draft' ), $this->redirects );
+		$this->assertSame( 'Your RF does not match the payroll record.', $writes[0][1]['notes'] );
+		$this->assertSame( array( 'member@example.test' ), $this->mailed );
+		$this->assertStringEndsWith( '&message=returned_to_draft&count=1&skipped=0', $this->redirects[0] );
+	}
+
+	public function test_a_short_reason_changes_nothing(): void {
+		$this->decide( 'reject', array( '21' ), 'too short' );
+
+		$this->runHandler( 'handle_review_decision' );
+
+		$this->assertSame( array(), $this->submission_writes() );
+		$this->assertSame( array(), $this->mailed );
+		$this->assertSame( 'submitted', $this->statuses[21] );
+		$this->assertStringEndsWith( '&message=reason_required', $this->redirects[0] );
+	}
+
+	public function test_a_selection_skips_other_campaigns_and_unreviewable_rows(): void {
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'user_email' => 'member@example.test', 'display_name' => 'Member' ) );
+		// 3 awaits review; 5 was never answered; 40 is another campaign's;
+		// 9 does not exist.
+		$this->statuses[40] = 'submitted';
+		$this->decide( 'reject', array( '3', '5', '40', '9' ) );
+
+		$this->runHandler( 'handle_review_decision' );
+
+		$this->assertSame( array( 3 ), array_column( $this->submission_writes(), 0 ) );
+		$this->assertSame( 'submitted', $this->statuses[40] );
+		$this->assertSame( 'pending', $this->statuses[5] );
+		$this->assertStringEndsWith( '&message=rejected&count=1&skipped=3', $this->redirects[0] );
 	}
 
 	private function bulk( string $action, array $ids ): void {
@@ -259,30 +383,22 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 		);
 	}
 
-	public function test_bulk_approve_approves_every_selected_id(): void {
-		$this->bulk( 'approve', array( '3', '5' ) );
+	public function test_bulk_approve_approves_only_the_selected_rows_awaiting_review(): void {
+		// 5 was never answered: a "select all" must leave it alone and say so
+		// (#2242).
+		$this->bulk( 'approve', array( '3', '5', '21' ) );
 
 		$this->runHandler( 'handle_bulk' );
 
 		$writes = $this->submission_writes();
-		$this->assertSame( array( 3, 5 ), array_column( $writes, 0 ) );
+		$this->assertSame( array( 3, 21 ), array_column( $writes, 0 ) );
 		foreach ( $writes as $write ) {
 			$this->assertSame( 'approved', $write[1]['status'] );
 			$this->assertSame( 8, $write[1]['reviewed_by'] );
 		}
+		$this->assertSame( 'pending', $this->statuses[5] );
 		$this->assertSame( array( 'bulk_submissions_4' ), $this->nonces );
-		$this->assertStringEndsWith( '&message=bulk_approved', $this->redirects[0] );
-	}
-
-	public function test_bulk_return_to_draft_reopens_every_selected_id(): void {
-		$this->bulk( 'return_to_draft', array( '3' ) );
-
-		$this->runHandler( 'handle_bulk' );
-
-		$writes = $this->submission_writes();
-		$this->assertSame( array( 3 ), array_column( $writes, 0 ) );
-		$this->assertSame( 'in_progress', $writes[0][1]['status'] );
-		$this->assertStringEndsWith( '&message=bulk_returned_to_draft', $this->redirects[0] );
+		$this->assertStringEndsWith( '&message=bulk_approved&count=2&skipped=1', $this->redirects[0] );
 	}
 
 	public function test_bulk_reminder_reaches_the_owners_of_the_submissions_that_exist(): void {
@@ -316,7 +432,41 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 		$this->assertSame( array( 3 ), array_column( $writes, 0 ) );
 		$this->assertArrayHasKey( 'reminder_sent_at', $writes[0][1] );
 		$this->assertSame(
-			array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=submissions&id=4&message=reminders_sent&count=1' ),
+			array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=submissions&id=4&message=reminders_sent&count=1&skipped=1&failed=0' ),
+			$this->redirects,
+			'The submission that does not exist is counted as skipped (#2242).'
+		);
+	}
+
+	public function test_bulk_reminder_skips_a_member_who_already_answered(): void {
+		$this->bulk( 'send_reminder', array( '3', '21' ) );
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'wp_timezone' )->alias( static fn () => new \DateTimeZone( 'UTC' ) );
+
+		$this->runHandler( 'handle_bulk' );
+
+		// 21 is submitted: nothing to remind. 3 is pending, but its owner has
+		// no account here, so the send fails and is counted as such.
+		$this->assertSame( array(), $this->mailed );
+		$this->assertSame(
+			array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=submissions&id=4&message=reminders_sent&count=0&skipped=1&failed=1' ),
+			$this->redirects
+		);
+	}
+
+	public function test_bulk_reminder_says_why_nothing_can_go_out(): void {
+		$this->bulk( 'send_reminder', array( '3' ) );
+		Functions\when( 'get_option' )->alias(
+			static fn ( $key, $default = false ) => 'ffc_settings' === $key ? array( 'disable_all_emails' => '1' ) : $default
+		);
+
+		$this->runHandler( 'handle_bulk' );
+
+		$this->assertSame( array(), $this->mailed );
+		$this->assertSame( array(), $this->submission_writes() );
+		$this->assertSame(
+			array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=submissions&id=4&message=reminders_blocked&reason=emails_disabled' ),
 			$this->redirects
 		);
 	}

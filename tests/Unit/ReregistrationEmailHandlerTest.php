@@ -88,6 +88,14 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The campaign window is read on the site's clock (#2242); pin it
+		// inside the fixtures' campaigns.
+		Functions\when( 'current_time' )->alias(
+			static function ( $type ) {
+				return 'Y-m-d' === $type ? '2026-06-15' : ( 'mysql' === $type ? '2026-06-15 12:00:00' : 0 );
+			}
+		);
+
 
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
@@ -491,6 +499,31 @@ class ReregistrationEmailHandlerTest extends TestCase {
 		$this->assertStringContainsString( 'DATEDIFF(end_date', $this->queries[0] );
 	}
 
+	/**
+	 * The campaign dates are wall-clock values in the site's calendar, so the
+	 * sweep compares them with the site's date, never the database server's
+	 * `CURDATE()`, whose zone is whatever the host set (#2242).
+	 */
+	public function test_the_reminder_sweep_counts_days_from_the_site_date(): void {
+		$this->due_campaigns = array();
+
+		ReregistrationEmailHandler::run_automated_reminders();
+
+		$this->assertStringNotContainsString( 'CURDATE', $this->queries[0] );
+		$this->assertStringContainsString( "DATEDIFF(end_date, '2026-06-15') <= reminder_days", $this->queries[0] );
+		$this->assertStringContainsString( "DATEDIFF(end_date, '2026-06-15') >= 0", $this->queries[0] );
+	}
+
+	public function test_the_reminder_sweep_skips_a_campaign_that_has_not_opened(): void {
+		// An invitation may go out before the opening date; a reminder may
+		// not (#2242).
+		$this->due_campaigns = array();
+
+		ReregistrationEmailHandler::run_automated_reminders();
+
+		$this->assertStringContainsString( "DATE(start_date) <= '2026-06-15'", $this->queries[0] );
+	}
+
 	public function test_run_automated_reminders_returns_early_when_campaigns_null(): void {
 		$this->due_campaigns = null;
 
@@ -722,12 +755,14 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	// send_confirmation() — full success path with magic link + auth code
 	// ==================================================================
 
-	public function test_send_confirmation_success_with_magic_link(): void {
+	public function test_send_confirmation_leads_to_the_dashboard_not_a_public_link(): void {
+		// The Record downloads only signed in (#2242): the confirmation's
+		// button and `{{magic_link_url}}` both lead to the dashboard.
 		$this->submission(
 			1,
 			5,
 			10,
-			'submitted',
+			'approved',
 			array(
 				'magic_token' => 'tok123',
 				'auth_code'   => 'AC99',
@@ -751,10 +786,70 @@ class ReregistrationEmailHandlerTest extends TestCase {
 		$this->assertTrue( $result );
 		$this->assertSame( array( 'alice@example.com' ), $this->recipients() );
 		$body = $this->mails[0][2];
-		// The magic link is built from the submission's own token, on the
-		// verification page's fallback URL; the auth code carries the
-		// reregistration prefix.
-		$this->assertStringContainsString( 'https://example.com/valid/#token=tok123', $body );
+		$this->assertStringNotContainsString( 'tok123', $body, 'No public link to the record is mailed.' );
+		$this->assertStringContainsString( 'href="https://example.com/dashboard"', $body );
 		$this->assertStringContainsString( 'R-AC99', $body );
+	}
+
+	// ==================================================================
+	// send_review_decision() (#2242)
+	// ==================================================================
+
+	/**
+	 * @dataProvider provider_review_decisions
+	 */
+	public function test_send_review_decision_mails_the_member_the_reason( string $decision, string $heading ): void {
+		Functions\when( 'esc_html' )->alias( static fn ( $text ) => htmlspecialchars( (string) $text, ENT_QUOTES ) );
+		$this->submission( 1, 5, 10, 'rejected' );
+		// No campaign toggle gates it: the member has to act on it.
+		$this->campaign(
+			array(
+				'id'                         => 5,
+				'email_confirmation_enabled' => 0,
+			)
+		);
+		Functions\when( 'get_userdata' )->justReturn(
+			(object) array(
+				'display_name' => 'Alice',
+				'user_email'   => 'alice@example.com',
+			)
+		);
+
+		$this->assertTrue( ReregistrationEmailHandler::send_review_decision( 1, $decision, "The RF <b>does not</b> match.\nPlease fix it." ) );
+
+		$this->assertSame( array( 'alice@example.com' ), $this->recipients() );
+		$body = $this->mails[0][2];
+		$this->assertStringContainsString( $heading, $body );
+		$this->assertStringContainsString( 'The RF &lt;b&gt;does not&lt;/b&gt; match.<br />', $body, 'The reason is escaped text with its line breaks kept.' );
+		$this->assertStringNotContainsString( '<b>does not</b>', $body );
+	}
+
+	/**
+	 * @return array<string, array{string, string}>
+	 */
+	public static function provider_review_decisions(): array {
+		return array(
+			'reject'          => array( 'reject', 'Reregistration not approved' ),
+			'return to draft' => array( 'return_to_draft', 'Reregistration returned for revision' ),
+		);
+	}
+
+	public function test_send_review_decision_ignores_an_unknown_decision(): void {
+		$this->submission( 1, 5, 10, 'submitted' );
+
+		$this->assertFalse( ReregistrationEmailHandler::send_review_decision( 1, 'approve', 'A reason long enough.' ) );
+		$this->assertSame( array(), $this->queries, 'Nothing is read for a decision that has no e-mail.' );
+	}
+
+	public function test_send_review_decision_respects_the_kill_switch(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'disable_all_emails' => 1 ) );
+
+		$this->assertFalse( ReregistrationEmailHandler::send_review_decision( 1, 'reject', 'A reason long enough.' ) );
+		$this->assertSame( array(), $this->queries );
+	}
+
+	public function test_send_review_decision_returns_false_for_a_missing_submission(): void {
+		$this->assertFalse( ReregistrationEmailHandler::send_review_decision( 999, 'reject', 'A reason long enough.' ) );
+		$this->assertSame( array(), $this->mails );
 	}
 }

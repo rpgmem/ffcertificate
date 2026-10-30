@@ -109,7 +109,11 @@ class DashboardAssetManager {
 		wp_enqueue_script( 'ffc-dashboard-certificates', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-certificates{$s}.js", array( 'ffc-dashboard' ), FFC_VERSION, true );
 		wp_enqueue_script( 'ffc-dashboard-appointments', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-appointments{$s}.js", array( 'ffc-dashboard', 'ffc-dashboard-cal-export' ), FFC_VERSION, true );
 		wp_enqueue_script( 'ffc-dashboard-audience', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-audience{$s}.js", array( 'ffc-dashboard', 'ffc-dashboard-cal-export' ), FFC_VERSION, true );
-		wp_enqueue_script( 'ffc-dashboard-reregistrations', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-reregistrations{$s}.js", array( 'ffc-dashboard' ), FFC_VERSION, true );
+		// The Record is built in the browser from the REST record route
+		// (#2242), so the generator rides along; it fetches its PDF bundles
+		// only on the first download.
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-pdf-generator' );
+		wp_enqueue_script( 'ffc-dashboard-reregistrations', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-reregistrations{$s}.js", array( 'ffc-dashboard', 'ffc-pdf-generator' ), FFC_VERSION, true );
 		// `ffc-field-behaviours` masks the profile's phone like the
 		// reregistration form's.
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-field-behaviours' );
@@ -212,6 +216,8 @@ class DashboardAssetManager {
 					'removeDay'         => __( 'Remove day', 'ffcertificate' ),
 					'dualPostShowValue' => __( 'I hold', 'ffcertificate' ),
 					'importLoading'     => __( 'Bringing previous answers…', 'ffcertificate' ),
+					'retractConfirm'    => __( 'Retract your submission? It goes back to draft and leaves the review queue. Your answers are kept, and you must submit again before the deadline for it to be reviewed.', 'ffcertificate' ),
+					'errorRetracting'   => __( 'Could not retract the submission.', 'ffcertificate' ),
 				),
 			)
 		);

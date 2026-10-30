@@ -457,6 +457,8 @@ class ReregistrationAdminTest extends TestCase {
 	public function test_ajax_generate_record_returns_error_for_missing_id(): void {
 		Functions\when( 'check_ajax_referer' )->justReturn( true );
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
 		$_POST['submission_id'] = 0;
 
 		$admin = new ReregistrationAdmin();
@@ -622,6 +624,61 @@ class ReregistrationAdminTest extends TestCase {
 	}
 
 	/**
+	 * Saving a campaign that is already active seeds its audiences (#2242):
+	 * an audience added to it gets its rows now, without reopening anything
+	 * and without the invitations notice of an activation.
+	 */
+	public function test_handle_save_seeds_an_already_active_campaign(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			function ( $url ) use ( &$redirect ) {
+				$redirect = $url;
+				throw new \RuntimeException( 'redirected' );
+			}
+		);
+
+		$_POST['ffc_action']             = 'save_reregistration';
+		$_POST['reregistration_id']      = 9;
+		$_POST['rereg_email_invitation'] = '1';
+		$_POST['rereg_title']            = 'C';
+		$_POST['rereg_start_date']       = '2026-01-01';
+		$_POST['rereg_end_date']         = '2026-12-31';
+		$_POST['rereg_status']           = 'active';
+		$_POST['rereg_audience_ids']     = array( '3' );
+
+		$this->campaigns[9] = (object) array(
+			'id'       => 9,
+			'status'   => 'active',
+			'end_date' => '2026-12-31',
+		);
+		$this->members[3]   = array( 21 );
+
+		$admin = new ReregistrationAdmin();
+		try {
+			$this->invoke_private( $admin, 'handle_save' );
+		} catch ( \RuntimeException $e ) {
+			unset( $e );
+		}
+
+		$calls = array();
+		foreach ( $this->writes as $w ) {
+			if ( 'query' !== $w[0] ) {
+				continue;
+			}
+			if ( str_contains( $w[1], "SET status = 'pending'" ) ) {
+				$calls[] = 'reopen';
+			} elseif ( str_contains( $w[1], 'INSERT IGNORE INTO %i' ) ) {
+				$this->assertSame( array( 'wp_ffc_reregistration_submissions', 9, 21, 'pending' ), array_slice( $w[2], 1 ) );
+				$calls[] = 'seed';
+			}
+		}
+
+		$this->assertSame( array( 'seed' ), $calls, 'Seeded, and nothing reopened: it was not a reactivation.' );
+		$this->assertStringNotContainsString( 'invitations=scheduled', $redirect );
+	}
+
+	/**
 	 * A cleared field must not write zero (#1117).
 	 *
 	 * `absint( '' )` is 0, and the reminder sweep reads
@@ -731,6 +788,45 @@ class ReregistrationAdminTest extends TestCase {
 			'its audience links are replaced by the empty posted set'
 		);
 		$this->assertSame( array(), $this->queries_with( '' ), 'no submission is reopened or seeded' );
+	}
+
+	/**
+	 * A campaign whose end is not after its start is a window nobody can
+	 * answer in (#2242): it is refused before any write, and says so.
+	 *
+	 * @dataProvider inverted_window_provider
+	 */
+	public function test_handle_save_refuses_an_end_that_is_not_after_the_start( string $start, string $end ): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+		$errors = array();
+		Functions\when( 'add_settings_error' )->alias(
+			function ( $setting, $code, $message, $type ) use ( &$errors ) {
+				$errors[] = array( $code, $type );
+			}
+		);
+
+		$_POST['ffc_action']        = 'save_reregistration';
+		$_POST['reregistration_id'] = 0;
+		$_POST['rereg_title']       = 'C';
+		$_POST['rereg_start_date']  = $start;
+		$_POST['rereg_end_date']    = $end;
+		$_POST['rereg_status']      = 'active';
+
+		$this->invoke_private( new ReregistrationAdmin(), 'handle_save' );
+
+		$this->assertSame( array( array( 'ffc_window', 'error' ) ), $errors );
+		$this->assertSame( array(), $this->writes_to( 'wp_ffc_reregistrations' ), 'Nothing is saved.' );
+	}
+
+	/** @return array<string, array{string, string}> */
+	public static function inverted_window_provider(): array {
+		return array(
+			'end before start' => array( '2026-12-01T08:00', '2026-11-30T18:00' ),
+			'end equals start' => array( '2026-12-01T08:00', '2026-12-01T08:00' ),
+			'missing end'      => array( '2026-12-01T08:00', '' ),
+			'unreadable start' => array( 'tomorrow', '2026-12-31T18:00' ),
+		);
 	}
 
 	public function test_handle_save_returns_early_without_action(): void {

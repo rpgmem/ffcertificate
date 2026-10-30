@@ -9,7 +9,8 @@
  *
  * Available placeholders:
  *   {{user_name}}, {{reregistration_title}}, {{audience_name}},
- *   {{submission_status}}, {{auth_code}}, {{magic_link_url}},
+ *   {{submission_status}}, {{auth_code}}, {{magic_link_url}} (the
+ *   dashboard since #2242: the Record downloads only signed in),
  *   {{dashboard_url}}, {{site_name}}
  *
  * @since 4.11.0
@@ -31,13 +32,9 @@ return array(
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Status:', 'ffcertificate' ) . '</strong> {{submission_status}}</p>'
 		. '<p style="margin: 0;"><strong>' . __( 'Verification Code:', 'ffcertificate' ) . '</strong> {{auth_code}}</p>'
 		. '</div>'
+		. '<p style="margin: 0 0 15px 0;">' . __( 'Once your reregistration is approved, sign in to your dashboard to download your record (PDF). You can review your submission there at any time.', 'ffcertificate' ) . '</p>'
 		. '<p style="text-align:center;margin:24px 0;">'
-		. '<a href="{{magic_link_url}}" style="display:inline-block;padding:12px 28px;background:#2271b1;color:#fff;text-decoration:none;border-radius:4px;font-weight:600;">'
-		. __( 'View and Download Record', 'ffcertificate' )
-		. '</a></p>'
-		. '<p style="margin: 0 0 15px 0;">' . __( 'Click the button above to verify and download your reregistration record (PDF). You can also review your submission details in your dashboard at any time.', 'ffcertificate' ) . '</p>'
-		. '<p style="text-align:center;margin:16px 0;">'
-		. '<a href="{{dashboard_url}}" style="display:inline-block;padding:10px 24px;background:#2271b1;color:#fff;text-decoration:none;border-radius:4px;font-weight:600;">'
+		. '<a href="{{dashboard_url}}" style="display:inline-block;padding:12px 28px;background:#2271b1;color:#fff;text-decoration:none;border-radius:4px;font-weight:600;">'
 		. __( 'View Dashboard', 'ffcertificate' )
 		. '</a></p>',
 );

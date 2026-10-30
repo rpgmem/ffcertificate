@@ -504,6 +504,31 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->assertCount( 3, $daily, 'submission cleanup + CSV reap + schedule-exception reap.' );
 	}
 
+	public function test_the_daily_reregistration_run_seeds_late_joiners_before_it_mails(): void {
+		$loader = new Loader();
+		Functions\when( 'get_option' )->justReturn( array() );
+
+		$callbacks = array();
+		Functions\when( 'add_action' )->alias(
+			function ( $hook, $callback = null ) use ( &$callbacks ) {
+				if ( 'ffcertificate_reregistration_expire_hook' === $hook && is_array( $callback ) ) {
+					$callbacks[] = $callback[1];
+				}
+				return true;
+			}
+		);
+
+		$this->invoke_private( $loader, 'define_admin_hooks' );
+
+		// Expire first, so a closed campaign is not seeded; seed before the
+		// reminders and the invitations read the table, so a late joiner is
+		// reached the same day (#2242).
+		$this->assertSame(
+			array( 'expire_overdue', 'seed_active_campaigns', 'run_automated_reminders', 'run_pending_invitations' ),
+			$callbacks
+		);
+	}
+
 	public function test_define_admin_hooks_skips_disabled_module_crons(): void {
 		$loader = new Loader();
 

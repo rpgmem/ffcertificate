@@ -290,10 +290,16 @@ class AdminActivityLogPage {
 			'reregistration_reminders_sent'                => __( 'Reregistration Reminders Sent', 'ffcertificate' ),
 			'reregistration_pii_revealed'                  => __( 'Reregistration Personal Data Revealed', 'ffcertificate' ),
 			'reregistration_details_viewed'                => __( 'Reregistration Details Viewed', 'ffcertificate' ),
+			'reregistration_record_verified'               => __( 'Reregistration Record Verified', 'ffcertificate' ),
+			'reregistration_record_downloaded'             => __( 'Reregistration Record Downloaded', 'ffcertificate' ),
+			'reregistration_submission_rejected'           => __( 'Reregistration Submission Rejected', 'ffcertificate' ),
+			'reregistration_submission_returned'           => __( 'Reregistration Submission Returned to Draft', 'ffcertificate' ),
+			'reregistration_submission_retracted'          => __( 'Reregistration Submission Retracted', 'ffcertificate' ),
 			'date_messages_pii_revealed'                   => __( 'Date Messages Personal Data Revealed', 'ffcertificate' ),
 			'activity_log_ip_revealed'                     => __( 'Activity Log Address Revealed', 'ffcertificate' ),
 			'rate_limit_ip_revealed'                       => __( 'Rate Limit Address Revealed', 'ffcertificate' ),
 			'custom_field_sensitive_demotion_refused'      => __( 'Sensitive Field Demotion Refused', 'ffcertificate' ),
+			'custom_field_locked_change_refused'           => __( 'Answered Field Change Refused', 'ffcertificate' ),
 
 			// Recruitment.
 			'recruitment_notice_status_changed'            => __( 'Recruitment Notice Status Changed', 'ffcertificate' ),

@@ -346,6 +346,24 @@ class MigrationStatusCalculator {
 					unset( $this->strategy_errors['birth_date_backfill'] );
 					break;
 
+				case 'rereg_draft_encryption':
+					$strategy_dir = __DIR__ . '/strategies/';
+					$core_dir     = dirname( __DIR__ ) . '/core/';
+
+					if ( ! trait_exists( '\\FreeFormCertificate\\Core\\DatabaseHelperTrait', false ) ) {
+						include $core_dir . 'class-ffc-database-helper-trait.php';
+					}
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\ReregistrationDraftEncryptionMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-reregistration-draft-encryption-migration-strategy.php';
+					}
+
+					$this->strategies['rereg_draft_encryption'] = new \FreeFormCertificate\Migrations\Strategies\ReregistrationDraftEncryptionMigrationStrategy();
+					unset( $this->strategy_errors['rereg_draft_encryption'] );
+					break;
+
 				case 'import_legacy_templates':
 					$strategy_dir = __DIR__ . '/strategies/';
 

@@ -24,11 +24,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h4><?php esc_html_e( 'Workflow', 'ffcertificate' ); ?></h4>
 		<ol>
 			<li><?php esc_html_e( 'Create a campaign and link it to one or more audiences.', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'Set the start and end dates.', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'Configure the emails (invitation, reminder, confirmation) and whether submissions auto-approve.', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'Activate the campaign — a submission is created for every audience member at once. Invitation emails are not sent at that moment: they go out with the next daily run, in batches, so a campaign activated by mistake can still be deactivated before anybody is mailed. The screen says when that run is.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Set the start and end dates. The end must be after the start. The form accepts drafts and submissions only between the two, on the site\'s clock (Settings → General in WordPress), from the start without waiting for anything and until the end without waiting for the daily run to expire the campaign.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Configure the emails (invitation, reminder, confirmation) and whether submissions auto-approve. The not-approved and returned-for-revision e-mails are always sent and are edited in Settings → Email texts.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Activate the campaign — a submission is created for every member of its audiences and of their child audiences at once. Saving an active campaign creates the submissions of an audience added to it. Invitation emails are not sent at that moment: they go out with the next daily run, in batches, so a campaign activated by mistake can still be deactivated before anybody is mailed. The screen says when that run is.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Members see a banner on their dashboard and fill in the form there.', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'Admins review and approve or reject each submission (unless auto-approve is on).', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Admins review and approve or reject each submission (unless auto-approve is on). Bulk Approve acts only on submissions awaiting review and says how many of the selection it skipped.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Reject and Return to Draft, for one submission or a selection, open a dialog that asks for the reason, at least 10 characters; nothing changes without one. The member reads the reason on the dashboard banner and receives it by e-mail. Reject is for a submission awaiting review; Return to Draft also reopens an approved or rejected one, keeping its answers.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Until it is reviewed, the member can retract a submission from the dashboard banner while the campaign is open. After a warning it goes back to draft with its answers and leaves the review queue; it has to be submitted again to be reviewed.', 'ffcertificate' ); ?></li>
 		</ol>
 	</div>
 
@@ -36,9 +38,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h4><?php esc_html_e( 'Campaign settings', 'ffcertificate' ); ?></h4>
 		<ul>
 			<li><strong><?php esc_html_e( 'Auto-approve', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'submissions are approved on submit instead of waiting for review.', 'ffcertificate' ); ?></li>
-			<li><strong><?php esc_html_e( 'Invitation email', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'sent by the daily run to every member who has not received one yet, starting with the first run after the campaign is activated. Members who join later get theirs on the following run. The Send invitations button sends them right away.', 'ffcertificate' ); ?></li>
-			<li><strong><?php esc_html_e( 'Reminder email', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'sent automatically when the deadline is within N days (default 7). Each member receives it ONCE per campaign, not once a day: the send is stamped on the submission, and the daily sweep skips whoever already has that stamp.', 'ffcertificate' ); ?></li>
-			<li><strong><?php esc_html_e( 'Confirmation email', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'sent after a member submits; carries the Record magic link.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Invitation email', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'sent by the daily run to every member who has not received one yet, starting with the first run after the campaign is activated. The same run creates the submission of anyone who joined one of the campaign\'s audiences, or one of their child audiences, since the activation, so late joiners get their invitation, their reminders and their place in the totals. An invitation can go out before the start date; it then names the day the form opens. The Send invitations button sends them right away.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Reminder email', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'sent automatically when the deadline is within N days (default 7) and the campaign has already opened. Each member receives it ONCE per campaign, not once a day: the send is stamped on the submission, and the daily sweep skips whoever already has that stamp.', 'ffcertificate' ); ?> <?php esc_html_e( 'It reaches members who have not submitted and members whose submission was rejected; a rejection or a return to draft clears the stamp, so they are reminded again.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Confirmation email', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'sent after a member submits; its button leads to the dashboard, where the Record downloads once the submission is approved.', 'ffcertificate' ); ?></li>
 		</ul>
 		<p class="description"><?php esc_html_e( 'On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created.', 'ffcertificate' ); ?> <?php esc_html_e( 'The status is the exception: it changes only on Save.', 'ffcertificate' ); ?></p>
 		<p class="description"><?php esc_html_e( 'All three emails go through the shared Email Model chrome and the one pipeline.', 'ffcertificate' ); ?> <a href="#reference-emails"><?php esc_html_e( 'See Emails & Delivery', 'ffcertificate' ); ?></a>.</p>
@@ -49,7 +51,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<p><?php esc_html_e( 'The reminder is sent once per member per campaign. There are exactly two ways it goes out a second time, and both are deliberate:', 'ffcertificate' ); ?></p>
 		<ul>
 			<li><strong><?php esc_html_e( 'You extend the deadline', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'moving the end date forward reopens the reminder for everyone who has not finished, once per extension. Extending twice sends twice. This mirrors how the invitation already behaves.', 'ffcertificate' ); ?></li>
-			<li><strong><?php esc_html_e( 'You send it by hand', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'resending to specific members from the campaign screen always goes out, whether or not they were already reminded.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'You send it by hand', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'resending to specific members from the campaign screen always goes out, whether or not they were already reminded.', 'ffcertificate' ); ?> <?php esc_html_e( 'Only members who still have to answer (pending, in progress or rejected) are reminded. The notice counts the selected members who were skipped and the reminders that could not be sent, and says why nothing went out when reminders are off or every plugin e-mail is disabled.', 'ffcertificate' ); ?></li>
 		</ul>
 		<p class="description"><strong><?php esc_html_e( 'A manual resend replaces that member\'s automatic reminder — it does not add to it.', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'The manual send stamps the submission just like the automatic one, so the daily sweep will skip that member for the rest of the campaign. Someone you remind by hand today will not also be reminded by the system tomorrow.', 'ffcertificate' ); ?></p>
 	</div>
@@ -63,7 +65,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'The member form', 'ffcertificate' ); ?></h4>
-		<p><?php esc_html_e( 'There is no separate reregistration shortcode. Active campaigns appear as a banner on the member\'s personal dashboard (the user_dashboard_personal shortcode); the form loads and submits there over AJAX. Members are targeted by audience membership, not by matching a CPF/RF. On submit, the plugin generates an authentication code and a Record magic link, syncs mapped fields to the user profile, and sends the confirmation email.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'There is no separate reregistration shortcode. Active campaigns appear as a banner on the member\'s personal dashboard (the user_dashboard_personal shortcode); the form loads and submits there over AJAX. Members are targeted by audience membership, not by matching a CPF/RF. On submit, the plugin syncs mapped fields to the user profile and sends the confirmation email. The authentication code is issued on approval: Reject deletes it, Return to draft keeps it stored but hidden, and approving again brings back the same code, so a printed Record still matches.', 'ffcertificate' ); ?></p>
 		<p class="description"><?php esc_html_e( 'Once a submission is approved, its banner offers the Record download until the window in Settings → Reregistration ("Hide the approved banner after (days)", default 30) has passed since the later of the campaign\'s end and the approval, even after the daily run has expired the campaign; 0 never hides it. The dashboard\'s Reregistration tab keeps listing it either way.', 'ffcertificate' ); ?></p>
 		<p class="description"><?php esc_html_e( 'The contact fields carry two institutional e-mails, one @sme and one @edu, and a personal one. The @edu field reaches the audiences created before it on the first admin request after the update, placed right after the @sme one and not required.', 'ffcertificate' ); ?></p>
 		<p class="description"><?php esc_html_e( 'The CEP is checked without any outside lookup: it needs eight digits, cannot repeat one digit eight times, and must fall in the Correios range of the UF chosen in the same form. A CEP from another state is refused with a message naming the UF, since either field may be the typo. A CEP that passes can still not exist; only a lookup can tell.', 'ffcertificate' ); ?></p>
@@ -76,10 +78,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<p><strong><?php esc_html_e( 'Submission:', 'ffcertificate' ); ?></strong></p>
 		<ul>
 			<li><code>pending</code> — <?php esc_html_e( 'created for the member, not started.', 'ffcertificate' ); ?></li>
-			<li><code>in_progress</code> — <?php esc_html_e( 'a draft was saved but not submitted.', 'ffcertificate' ); ?></li>
+			<li><code>in_progress</code> — <?php esc_html_e( 'a draft was saved but not submitted. Sensitive answers are stored encrypted in a draft, as in a submission.', 'ffcertificate' ); ?></li>
 			<li><code>submitted</code> — <?php esc_html_e( 'submitted, awaiting review.', 'ffcertificate' ); ?></li>
-			<li><code>approved</code> / <code>rejected</code> — <?php esc_html_e( 'reviewed (rejections can carry notes).', 'ffcertificate' ); ?></li>
+			<li><code>approved</code> / <code>rejected</code> — <?php esc_html_e( 'reviewed. A rejection always carries the reviewer\'s reason, which the member sees and can act on until the deadline.', 'ffcertificate' ); ?></li>
 			<li><code>expired</code> — <?php esc_html_e( 'the campaign ended before submission.', 'ffcertificate' ); ?></li>
+		</ul>
+		<p><?php esc_html_e( 'A submission returned to draft or retracted is in_progress again; a returned one shows the reviewer\'s reason on the banner.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'A member can save a draft or submit only while the submission is pending, in progress or rejected. Once it is submitted, a second click or a form left open in another tab is refused, so the submission stays in the review queue and the confirmation e-mail goes out once.', 'ffcertificate' ); ?></p>
+	</div>
+
+	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'Reviewing a large campaign', 'ffcertificate' ); ?></h4>
+		<ul>
+			<li><?php esc_html_e( 'The submissions list shows 50 per page. "Reveal this page" reveals the e-mails of the page on screen, never of the whole campaign.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'The search box takes a name, an e-mail, a CPF or an RF. A CPF or RF is matched through its hash, so the member is found although the value is stored encrypted.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Filter by status, by "not finished" (pending or in progress: the members still to chase) or, when the campaign reaches several audiences, by audience, child audiences included.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Each status card links to the list filtered by that status; the Total card clears every filter.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Export CSV exports what the list shows: the same filters, every page.', 'ffcertificate' ); ?></li>
 		</ul>
 	</div>
 
@@ -116,6 +131,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h4><?php esc_html_e( 'Who each row belongs to', 'ffcertificate' ); ?></h4>
 		<p><?php esc_html_e( 'A row is matched to an existing account by CPF, then by RF, then by e-mail — the same resolution certificates and appointments use, so somebody already known to the plugin is matched rather than duplicated. Only when none of the three matches is an account created, and the person is added to the chosen audience either way.', 'ffcertificate' ); ?></p>
 		<p class="description"><strong><?php esc_html_e( 'Two rows resolving to the same account fail the file.', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'That is what a shared department mailbox looks like from here: matching by e-mail binds every one of those rows to whoever owns the address. Give each person their own address, or their CPF/RF.', 'ffcertificate' ); ?></p>
+		<p class="description"><strong><?php esc_html_e( 'A row that matches a staff account fails the file.', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'An import never changes the account of a WordPress administrator or of anyone who can see personal data (FFC Administrator and every module\'s Manager and Administrator tiers). Staff update their own profile in wp-admin. The check runs again while the rows are written, so an account that became staff in between is left untouched and its row is reported as failed.', 'ffcertificate' ); ?></p>
 
 		<h4><?php esc_html_e( 'What it does not send', 'ffcertificate' ); ?></h4>
 		<p><?php esc_html_e( 'An import sends no e-mail — neither the "your account was created" notice nor the submission confirmation. A confirmation would tell somebody their reregistration was received when an operator filed it for them, and at import scale it is one message per row. Use the campaign\'s own invitation to tell people: it reaches imported rows too, and carries the link they need to set a password.', 'ffcertificate' ); ?></p>
@@ -151,10 +167,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h4><?php esc_html_e( 'Capabilities', 'ffcertificate' ); ?></h4>
 		<ul>
 			<li><code>ffc_view_reregistration</code> — <?php esc_html_e( 'view campaigns and submissions.', 'ffcertificate' ); ?></li>
-			<li><code>ffc_manage_reregistration</code> — <?php esc_html_e( 'create/edit campaigns, approve/reject, generate Records. Editing the field definitions needs ffc_manage_custom_fields.', 'ffcertificate' ); ?></li>
+			<li><code>ffc_manage_reregistration</code> — <?php esc_html_e( 'create/edit campaigns, approve/reject. Editing the field definitions needs ffc_manage_custom_fields.', 'ffcertificate' ); ?></li>
 			<li><code>ffc_export_reregistration</code> / <code>ffc_delete_reregistration</code> — <?php esc_html_e( 'export CSV / delete a campaign.', 'ffcertificate' ); ?></li>
 			<li><code>ffc_import_reregistration</code> — <?php esc_html_e( 'load answers from a spreadsheet. Separate from manage on purpose: it writes personal data for people who never opened the form.', 'ffcertificate' ); ?></li>
-			<li><code>ffc_view_reregistration_pii</code> — <?php esc_html_e( 'reveal a submitter\'s email on the submissions list and open View Details, which shows the decrypted CPF, RF and RG. Without it the email stays masked and View Details is not offered, even to someone who can manage campaigns. Existing managers received it automatically on update.', 'ffcertificate' ); ?></li>
+			<li><code>ffc_view_reregistration_pii</code> — <?php esc_html_e( 'reveal a submitter\'s email on the submissions list, open View Details, which shows the decrypted CPF, RF and RG, and download the Record. Without it the email stays masked and neither View Details nor the Record is offered, even to someone who can manage campaigns. Existing managers received it automatically on update.', 'ffcertificate' ); ?></li>
 		</ul>
 		<p class="description"><?php esc_html_e( 'On the submissions list the email is masked for everyone, administrators included; the Reveal button fetches it on demand, and "Reveal this page" reveals every email listed. Every reveal and every opening of View Details writes an activity-log entry, whoever opens it. An export by the Operator, who holds no PII capability, carries the email and the sensitive fields masked.', 'ffcertificate' ); ?></p>
 		<p class="description"><?php esc_html_e( 'The member form itself is gated by login + audience membership, not a capability.', 'ffcertificate' ); ?></p>

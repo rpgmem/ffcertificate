@@ -70,6 +70,15 @@ class ReregistrationEmailHandler {
 	public const REMINDER_BATCH_DELAY = 60;
 
 	/**
+	 * Why {@see self::reminder_block_reason()} says no reminder can go out:
+	 * every plugin e-mail is switched off, the campaign's reminders are off,
+	 * or the reminder text is empty.
+	 */
+	public const REMINDER_BLOCKED_EMAILS_OFF   = 'emails_disabled';
+	public const REMINDER_BLOCKED_CAMPAIGN_OFF = 'reminders_off';
+	public const REMINDER_BLOCKED_NO_TEXT      = 'no_text';
+
+	/**
 	 * Statuses for which the invitation must not ask the person to complete
 	 * anything, because the campaign already holds their answer (#1300).
 	 *
@@ -247,7 +256,7 @@ class ReregistrationEmailHandler {
 			$extra = array(
 				'set_password_url' => \FreeFormCertificate\Core\PasswordInvite::issue_for( (int) $sub->user_id ),
 			);
-			$extra = array_merge( $extra, self::invitation_status_vars( (string) $sub->status ) );
+			$extra = array_merge( $extra, self::invitation_status_vars( (string) $sub->status ), self::invitation_opening_vars( $rereg ) );
 
 			if ( self::send_to_user( (int) $sub->user_id, $rereg, $template, $extra ) ) {
 				// Stamped at once, not at the end of the loop: on wp-cron a
@@ -323,6 +332,28 @@ class ReregistrationEmailHandler {
 	}
 
 	/**
+	 * The invitation's opening sentence, by the campaign window (#2242).
+	 *
+	 * An invitation may go out before the opening date — a late joiner, or a
+	 * campaign activated ahead of its start — and then it must not say the
+	 * campaign "has been opened": it names the day the form opens instead.
+	 *
+	 * @param object $rereg Campaign.
+	 * @phpstan-param ReregistrationRow $rereg
+	 * @return array{opening_line: string}
+	 */
+	private static function invitation_opening_vars( object $rereg ): array {
+		if ( ReregistrationWindow::BEFORE === ReregistrationWindow::state( (string) $rereg->start_date, (string) $rereg->end_date ) ) {
+			return array(
+				/* translators: %s: the campaign's opening date. */
+				'opening_line' => sprintf( __( 'A new reregistration campaign for your group opens on %s.', 'ffcertificate' ), DateFormatter::format_date( (string) $rereg->start_date ) ),
+			);
+		}
+
+		return array( 'opening_line' => __( 'A new reregistration campaign has been opened for your group.', 'ffcertificate' ) );
+	}
+
+	/**
 	 * Send reminder emails to pending/in-progress members.
 	 *
 	 * @param int        $reregistration_id Reregistration ID.
@@ -331,6 +362,32 @@ class ReregistrationEmailHandler {
 	 */
 	public static function send_reminders( int $reregistration_id, array $user_ids = array() ): int {
 		return self::dispatch_reminders( $reregistration_id, $user_ids, 0, 0 )['sent'];
+	}
+
+	/**
+	 * Why no reminder of this campaign can go out at all, or '' when one can.
+	 *
+	 * Asked by the send itself and by the bulk action, which tells the operator
+	 * the reason instead of reporting "0 sent" (#2242).
+	 *
+	 * @param int $reregistration_id The campaign ID.
+	 * @return string One of the `REMINDER_BLOCKED_*` values, or ''.
+	 */
+	public static function reminder_block_reason( int $reregistration_id ): string {
+		if ( self::emails_disabled() ) {
+			return self::REMINDER_BLOCKED_EMAILS_OFF;
+		}
+
+		$rereg = ReregistrationRepository::get_by_id( $reregistration_id );
+		if ( ! $rereg || empty( $rereg->email_reminder_enabled ) ) {
+			return self::REMINDER_BLOCKED_CAMPAIGN_OFF;
+		}
+
+		if ( ! self::effective_template( 'reregistration-reminder' ) ) {
+			return self::REMINDER_BLOCKED_NO_TEXT;
+		}
+
+		return '';
 	}
 
 	/**
@@ -407,17 +464,13 @@ class ReregistrationEmailHandler {
 			'last_id' => $after_id,
 		);
 
-		if ( self::emails_disabled() ) {
+		if ( '' !== self::reminder_block_reason( $reregistration_id ) ) {
 			return $empty;
 		}
 
-		$rereg = ReregistrationRepository::get_by_id( $reregistration_id );
-		if ( ! $rereg || empty( $rereg->email_reminder_enabled ) ) {
-			return $empty;
-		}
-
+		$rereg    = ReregistrationRepository::get_by_id( $reregistration_id );
 		$template = self::effective_template( 'reregistration-reminder' );
-		if ( ! $template ) {
+		if ( ! $rereg || ! $template ) {
 			return $empty;
 		}
 
@@ -445,7 +498,7 @@ class ReregistrationEmailHandler {
 			);
 		}
 
-		$days_left = max( 0, (int) ( ( strtotime( $rereg->end_date ) - time() ) / 86400 ) );
+		$days_left = ReregistrationWindow::days_left( (string) $rereg->end_date );
 
 		$count   = 0;
 		$last_id = $after_id;
@@ -517,11 +570,10 @@ class ReregistrationEmailHandler {
 
 		$status_label = ReregistrationSubmissionReader::get_status_label( $submission->status );
 
-		// Build magic link URL for direct verification.
-		$magic_link_url = '';
-		if ( ! empty( $submission->magic_token ) ) {
-			$magic_link_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $submission->magic_token );
-		}
+		// The Record downloads only signed in (#2242), so the e-mail's link
+		// leads to the dashboard, which asks for the login. `magic_link_url`
+		// keeps its name because an edited body may still use the token.
+		$magic_link_url = \FreeFormCertificate\Core\PasswordInvite::dashboard_url();
 
 		$auth_code_formatted = ! empty( $submission->auth_code )
 			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $submission->auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )
@@ -536,6 +588,57 @@ class ReregistrationEmailHandler {
 				'magic_link_url'    => $magic_link_url,
 				'auth_code'         => $auth_code_formatted,
 			)
+		);
+	}
+
+	/**
+	 * The e-mail a reject or a return to draft sends, by decision (#2242).
+	 *
+	 * @var array<string, string>
+	 */
+	private const REVIEW_TEMPLATES = array(
+		'reject'          => 'reregistration-rejected',
+		'return_to_draft' => 'reregistration-returned',
+	);
+
+	/**
+	 * Tell the member their submission was rejected or returned to draft.
+	 *
+	 * Not gated on a campaign toggle: the member has to act on it before the
+	 * deadline, and the reason is only on the dashboard otherwise. The global
+	 * kill switch still applies.
+	 *
+	 * @param int    $submission_id Submission ID.
+	 * @param string $decision      `reject` or `return_to_draft`.
+	 * @param string $reason        The reviewer's reason, plain text.
+	 * @return bool Whether the e-mail went out.
+	 */
+	public static function send_review_decision( int $submission_id, string $decision, string $reason ): bool {
+		if ( ! isset( self::REVIEW_TEMPLATES[ $decision ] ) || self::emails_disabled() ) {
+			return false;
+		}
+
+		$submission = ReregistrationSubmissionReader::get_by_id( $submission_id );
+		if ( ! $submission ) {
+			return false;
+		}
+
+		$rereg = ReregistrationRepository::get_by_id( (int) $submission->reregistration_id );
+		if ( ! $rereg ) {
+			return false;
+		}
+
+		$template = self::effective_template( self::REVIEW_TEMPLATES[ $decision ] );
+		if ( ! $template ) {
+			return false;
+		}
+
+		// The body is HTML and token values are not escaped by the resolver.
+		return self::send_to_user(
+			(int) $submission->user_id,
+			$rereg,
+			$template,
+			array( 'reason' => nl2br( esc_html( $reason ) ) )
 		);
 	}
 
@@ -557,16 +660,25 @@ class ReregistrationEmailHandler {
 		global $wpdb;
 		$table = ReregistrationRepository::get_table_name();
 
-		// Get active campaigns where reminder is due.
+		// Get active campaigns where reminder is due. "Today" is the site's
+		// date, not the database server's `CURDATE()`: the campaign dates are
+		// wall-clock values in the site's calendar (#2242). A campaign that has
+		// not opened yet is not reminded: an invitation may go out before the
+		// opening, a reminder may not.
+		$today = current_time( 'Y-m-d' );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cron sweep for campaigns whose reminder is due, over the plugin's own ffc_* table; a cached list is exactly what a due-date sweep must not read.
 		$campaigns = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i
                  WHERE status = 'active'
                    AND email_reminder_enabled = 1
-                   AND DATEDIFF(end_date, CURDATE()) <= reminder_days
-                   AND DATEDIFF(end_date, CURDATE()) >= 0",
-				$table
+                   AND DATE(start_date) <= %s
+                   AND DATEDIFF(end_date, %s) <= reminder_days
+                   AND DATEDIFF(end_date, %s) >= 0",
+				$table,
+				$today,
+				$today,
+				$today
 			)
 		);
 

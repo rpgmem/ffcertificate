@@ -29,6 +29,7 @@ use FreeFormCertificate\Core\ActivityLogSubscriber;
 use FreeFormCertificate\Reregistration\ReregistrationLoader;
 use FreeFormCertificate\Reregistration\ReregistrationRepository;
 use FreeFormCertificate\Reregistration\ReregistrationEmailHandler;
+use FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter;
 use FreeFormCertificate\UrlShortener\UrlShortenerActivator;
 use FreeFormCertificate\UrlShortener\UrlShortenerLoader;
 use FreeFormCertificate\Settings\SettingsReader;
@@ -1249,6 +1250,9 @@ class Loader {
 		// resume the moment the module is re-enabled (init runs every request).
 		if ( SettingsReader::module_enabled( 'reregistration' ) ) {
 			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );
+			// Late joiners get their row before the reminders and invitations
+			// read the table, so both reach them on the same run (#2242).
+			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationSubmissionWriter::class, 'seed_active_campaigns' ) );
 			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_automated_reminders' ) );
 			// Invitations wait for this run since #1762, instead of going out
 			// the moment a campaign is activated. After `expire_overdue`, so a

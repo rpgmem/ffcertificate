@@ -10,7 +10,10 @@
  * Available placeholders:
  *   {{user_name}}, {{reregistration_title}}, {{audience_name}},
  *   {{start_date}}, {{end_date}}, {{dashboard_url}}, {{site_name}},
- *   {{set_password_url}}, {{status_line}}, {{action_label}}
+ *   {{set_password_url}}, {{status_line}}, {{action_label}}, {{opening_line}}
+ *
+ * `{{opening_line}}` says the campaign has opened, or, for an invitation
+ * sent before the opening date, names the day it opens (#2242).
  *
  * `{{status_line}}` and `{{action_label}}` depend on what the person has
  * already done: the campaign reaches people whose reregistration is ALREADY
@@ -39,7 +42,7 @@ return array(
 	'subject' => __( 'Reregistration Open: {{reregistration_title}}', 'ffcertificate' ),
 	'body'    => '<h2 style="margin: 0 0 20px 0; font-size: 24px; color: #2271b1;">' . __( 'Reregistration open', 'ffcertificate' ) . '</h2>'
 		. '<p style="margin: 0 0 15px 0;">' . __( 'Hello {{user_name}},', 'ffcertificate' ) . '</p>'
-		. '<p style="margin: 0 0 15px 0;">' . __( 'A new reregistration campaign has been opened for your group.', 'ffcertificate' ) . '</p>'
+		. '<p style="margin: 0 0 15px 0;">{{opening_line}}</p>'
 		. '<div style="background: #eaf2fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2271b1;">'
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Campaign:', 'ffcertificate' ) . '</strong> {{reregistration_title}}</p>'
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Group:', 'ffcertificate' ) . '</strong> {{audience_name}}</p>'

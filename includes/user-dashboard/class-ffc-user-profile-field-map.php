@@ -201,6 +201,39 @@ final class UserProfileFieldMap {
 	);
 
 	/**
+	 * Profile keys a custom field may never be bound to (#2242), besides every
+	 * key stored in `wp_users`.
+	 *
+	 * `preferences` is the plugin's own JSON of per-user switches (the date
+	 * messages opt-out among them); a field bound to it would let a
+	 * participant overwrite them from a form.
+	 *
+	 * @var array<int, string>
+	 */
+	private const NOT_BINDABLE = array( 'preferences' );
+
+	/**
+	 * Whether a custom field may write to this profile key (#2242).
+	 *
+	 * A key whose primary store is `wp_users` is refused: `user_email` is the
+	 * login e-mail, and a field bound to it let any participant change it
+	 * without confirmation -- and, through the import, let an importer point
+	 * an administrator's login e-mail at their own mailbox and reset the
+	 * password. A key the map does not know stays bindable: it is stored as
+	 * its own `ffc_user_` meta and reaches no core column.
+	 *
+	 * @param string $key Profile key, already sanitised.
+	 * @return bool
+	 */
+	public static function is_bindable( string $key ): bool {
+		if ( '' === $key || in_array( $key, self::NOT_BINDABLE, true ) ) {
+			return false;
+		}
+		$descriptor = self::FIELDS[ $key ] ?? null;
+		return null === $descriptor || self::STORAGE_WP_USER !== $descriptor['storage'];
+	}
+
+	/**
 	 * Get the descriptor for a field key. Null when not registered.
 	 *
 	 * @param string $field_key Logical field key.

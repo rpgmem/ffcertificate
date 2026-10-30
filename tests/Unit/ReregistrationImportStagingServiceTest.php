@@ -92,6 +92,25 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	/** @var string What seeding a missing submission does: ok, lost_the_race or nothing_there. */
 	private string $seed_result = 'ok';
 
+	/**
+	 * The status a submission moved to after validation, or null when it did
+	 * not move: then the conditional write changes no row (#2242).
+	 *
+	 * @var string|null
+	 */
+	private ?string $moved_to = null;
+
+	/**
+	 * Accounts that hold a staff capability (#2242): an administrator here,
+	 * by id. Everyone else holds none.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $staff = array();
+
+	/** @var list<mixed> Statuses the last conditional submission write allowed. */
+	private array $written_statuses = array();
+
 	/** @var array{unprocessed: int, ready: int, skipped: int} Staging counts commit reads. */
 	private array $staging_counts = array(
 		'unprocessed' => 0,
@@ -143,6 +162,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
 
+		// Whether an account is staff is a capability read (#2242).
+		$this->staff = array();
+		Functions\when( 'user_can' )->alias( fn( $user_id, $cap ) => ( $this->staff[ (int) $user_id ] ?? null ) === $cap );
 		Functions\when( 'wp_generate_uuid4' )->justReturn( 'job-uuid-0001' );
 		Functions\when( 'wp_json_encode' )->alias(
 			static fn( $v ) => json_encode( $v ) // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- the stub IS the alternative.
@@ -330,6 +352,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		if ( preg_match( '/FROM wp_ffc_reregistration_submissions WHERE reregistration_id = 1 AND user_id = (\d+)/', $sql, $m ) ) {
 			return $this->submissions[ (int) $m[1] ] ?? null;
 		}
+		if ( null !== $this->moved_to && preg_match( '/FROM wp_ffc_reregistration_submissions WHERE id = (\d+)/', $sql, $m ) ) {
+			return $this->submission( (int) $m[1], $this->moved_to );
+		}
 		if ( str_contains( $sql, 'FROM wp_ffc_user_profiles WHERE user_id' ) ) {
 			return null;
 		}
@@ -350,6 +375,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 
 	/** @return string|null */
 	private function answer_var( string $sql ) {
+		if ( null !== $this->moved_to && str_starts_with( $sql, 'SELECT status FROM wp_ffc_reregistration_submissions WHERE id' ) ) {
+			return $this->moved_to;
+		}
 		if ( str_starts_with( $sql, 'SHOW TABLES LIKE' ) ) {
 			// Optional tables are absent: no appointment linking, no profile row on create.
 			return null;
@@ -406,6 +434,31 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 			return 0;
 		}
 		if ( str_starts_with( $sql, 'UPDATE wp_ffc_reregistration_import_jobs SET processed_count' ) ) {
+			return 1;
+		}
+		if ( str_starts_with( $sql, 'UPDATE wp_ffc_reregistration_submissions SET' ) ) {
+			// The conditional write (#2242), recorded in the shape `update()`
+			// records, decoded from its own prepare() call.
+			$last     = end( $this->queries );
+			$template = (string) $last['sql'];
+			$values   = array_values( (array) $last['values'] );
+			preg_match( '/^UPDATE %i SET (.+) WHERE id = %d AND status IN \(/', $template, $m );
+			$table = array_shift( $values );
+			$data  = array();
+			foreach ( explode( ', ', $m[1] ) as $assignment ) {
+				$column          = array_shift( $values );
+				$data[ $column ] = str_ends_with( $assignment, 'NULL' ) ? null : array_shift( $values );
+			}
+			$id                     = array_shift( $values );
+			$this->written_statuses = $values;
+			if ( null !== $this->moved_to ) {
+				return 0;
+			}
+			$this->updates[] = array(
+				'table' => (string) $table,
+				'data'  => $data,
+				'where' => array( 'id' => $id ),
+			);
 			return 1;
 		}
 		if ( str_starts_with( $sql, 'UPDATE wp_ffc_submissions SET user_id' ) ) {
@@ -901,11 +954,23 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 
 	public function test_a_draft_submission_is_still_fillable(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
-		$this->with_validation( array( '111' => 42 ), array( 42 => $this->submission( 900, 'draft' ) ) );
+		// A draft in progress is `in_progress`: the status `draft` the check
+		// used to name does not exist, so a member mid-draft read as already
+		// submitted and was skipped (#2242).
+		$this->with_validation( array( '111' => 42 ), array( 42 => $this->submission( 900, 'in_progress' ) ) );
 
 		$result = $this->run_validate( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
 
 		$this->assertSame( 1, $result['ready'], 'A draft is the user having started, not having submitted.' );
+	}
+
+	public function test_a_rejected_submission_is_not_overwritten(): void {
+		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
+		$this->with_validation( array( '111' => 42 ), array( 42 => $this->submission( 900, 'rejected' ) ) );
+
+		$result = $this->run_validate( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
+
+		$this->assertSame( 1, $result['skipped'], 'A reviewed answer is not the import\'s to replace.' );
 	}
 
 	/**
@@ -929,6 +994,61 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertSame( 1, $result['failed'] );
 		$this->assertSame( 'rereg_import_duplicate_identity:2', $result['failures'][0]['error'], 'The error names the line that claimed the user first.' );
 		$this->assertSame( 3, $result['failures'][0]['line'] );
+	}
+
+	/**
+	 * An import never rewrites a staff account (#2242): it would overwrite the
+	 * name and identifiers of an administrator, and a takeover needs no more.
+	 *
+	 * @dataProvider staff_capability_provider
+	 */
+	public function test_a_row_resolving_to_a_staff_account_fails( string $capability ): void {
+		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
+		$this->with_validation( array( '111' => 42 ), array( 42 => null ) );
+		$this->staff = array( 42 => $capability );
+
+		$result = $this->run_validate( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
+
+		$this->assertFalse( $result['ok'] );
+		$this->assertSame( 1, $result['failed'] );
+		$this->assertSame( 'rereg_import_staff_account', $result['failures'][0]['error'] );
+	}
+
+	/** @return array<string, array{string}> */
+	public static function staff_capability_provider(): array {
+		return array(
+			'a WordPress administrator'  => array( 'manage_options' ),
+			'a reregistration PII tier'  => array( 'ffc_view_reregistration_pii' ),
+			'another module\'s PII tier' => array( 'ffc_view_certificates_pii' ),
+		);
+	}
+
+	public function test_an_account_with_other_capabilities_is_not_staff(): void {
+		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
+		$this->with_validation( array( '111' => 42 ), array( 42 => null ) );
+		$this->staff = array( 42 => 'ffc_view_reregistration' );
+
+		$result = $this->run_validate( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
+
+		$this->assertSame( 1, $result['ready'], 'A Viewer or Operator holds no PII cap and is an ordinary member here.' );
+	}
+
+	/**
+	 * The account became staff between validation and promotion: the row is
+	 * marked failed and nothing is written to it -- no membership, no
+	 * submission, no profile.
+	 */
+	public function test_promotion_refuses_an_account_that_became_staff(): void {
+		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
+		$this->staff = array( 42 => 'manage_options' );
+
+		$result = $this->run_promote( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
+
+		$this->assertTrue( $result['ok'], 'A refused row does not abort the batch.' );
+		$this->assertSame( array(), $this->submission_writes() );
+		$this->assertSame( 'failed', $this->row_update()['row_status'] );
+		$this->assertSame( 'rereg_import_staff_account', $this->row_update()['error'] );
+		$this->assertSame( array(), array_filter( $this->inserts, static fn( array $i ) => str_contains( $i['table'], 'audience_members' ) ), 'The account is not added to the audience.' );
 	}
 
 	/**
@@ -1096,6 +1216,34 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertSame( 900, $this->row_update()['submission_id'] );
 	}
 
+	public function test_the_write_is_limited_to_the_importable_statuses(): void {
+		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
+
+		$this->run_promote( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
+
+		$this->assertSame( array( 'pending', 'in_progress' ), $this->written_statuses, 'The import writes only over a submission nobody sent yet (#2242).' );
+	}
+
+	/**
+	 * The member submitted between validation and this batch (#2242). The
+	 * write tests the status in the same statement, so it changes nothing and
+	 * the row is reported skipped — the person was first, and the file is not
+	 * wrong for it.
+	 */
+	public function test_a_submission_made_after_validation_is_not_overwritten(): void {
+		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
+		$this->moved_to = 'submitted';
+
+		$result = $this->run_promote( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
+
+		$this->assertTrue( $result['ok'], 'A skipped row does not abort the batch.' );
+		$this->assertSame( 1, $result['processed'] );
+		$this->assertSame( array(), $this->submission_writes(), 'Nothing is written over the member\'s own submission.' );
+		$this->assertSame( 'skipped', $this->row_update()['row_status'] );
+		$this->assertSame( 'rereg_import_already_submitted:submitted', $this->row_update()['error'] );
+		$this->assertSame( 1, $this->row_update()['processed'] );
+	}
+
 	/**
 	 * The load-bearing rule of the whole phase (#1214): promotion writes through
 	 * `process_submission()` and never touches the `data` JSON itself, because
@@ -1103,7 +1251,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 *
 	 * With the real processor running, the only write carrying `data` is its
 	 * own — the submission row, written together with the status and the
-	 * auth code it generates — and the import's own tables never carry one.
+	 * status it sets — and the import's own tables never carry one.
 	 */
 	public function test_the_import_never_writes_the_submission_json_itself(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
@@ -1117,7 +1265,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertCount( 1, $writes );
 		$this->assertArrayHasKey( 'data', $writes[0] );
 		$this->assertSame( 'submitted', $writes[0]['status'], 'The body arrives with the processor\'s own status change.' );
-		$this->assertArrayHasKey( 'auth_code', $writes[0], 'The body arrives with the auth code the processor generates.' );
+		$this->assertArrayNotHasKey( 'auth_code', $writes[0], 'A submitted row has no code: approval issues it (#2242).' );
 	}
 
 	/**

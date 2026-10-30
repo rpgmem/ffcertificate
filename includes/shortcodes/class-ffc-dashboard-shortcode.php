@@ -464,20 +464,20 @@ class DashboardShortcode {
 		foreach ( $reregistrations as $rereg ) {
 			$title    = (string) $rereg['title'];
 			$pdf_link = '';
-			if ( ! empty( $rereg['magic_link'] ) ) {
+			if ( ! empty( $rereg['can_download'] ) ) {
+				// Built in the browser from the signed-in REST route (#2242),
+				// by the same handler as the table's button.
 				$pdf_link = Button::html(
 					array(
 						'label'    => __( 'Download Record', 'ffcertificate' ),
 						'category' => 'neutral',
 						'icon'     => 'download',
-						'href'     => (string) $rereg['magic_link'],
 						// Not `ffc-btn-pdf`: that class takes the dashboard's
 						// compact table-row size, and a banner action has the
 						// family's standard size like its siblings (#1887).
-						'class'    => 'ffc-rereg-banner-record',
+						'class'    => 'ffc-rereg-banner-record ffc-rereg-download-record',
 						'attrs'    => array(
-							'target' => '_blank',
-							'rel'    => 'noopener',
+							'data-submission-id' => (string) (int) $rereg['submission_id'],
 						),
 					)
 				);
@@ -490,7 +490,19 @@ class DashboardShortcode {
 					}
 					$html .= self::reregistration_banner( 'success', 'success', $title, esc_html__( 'Your reregistration has been approved.', 'ffcertificate' ), $pdf_link );
 				} elseif ( 'submitted' === $rereg['submission_status'] ) {
-					$html .= self::reregistration_banner( 'info', 'clock', $title, esc_html__( 'Your reregistration has been submitted and is pending review.', 'ffcertificate' ), $pdf_link );
+					// Retract (#2242): the member takes back a submission nobody
+					// reviewed yet, while the window is open. The script asks
+					// for confirmation first.
+					$retract = empty( $rereg['can_retract'] ) ? '' : Button::html(
+						array(
+							'label'    => __( 'Retract submission', 'ffcertificate' ),
+							'category' => 'caution',
+							'icon'     => 'restore',
+							'class'    => 'ffc-rereg-retract',
+							'attrs'    => array( 'data-reregistration-id' => (string) (int) $rereg['id'] ),
+						)
+					);
+					$html   .= self::reregistration_banner( 'info', 'clock', $title, esc_html__( 'Your reregistration has been submitted and is pending review.', 'ffcertificate' ), $pdf_link . $retract );
 				} else {
 					/*
 					 * Every other non-submittable status (#1125). The two `if`s
@@ -549,6 +561,13 @@ class DashboardShortcode {
 					'attrs'    => array( 'data-reregistration-id' => (string) $rereg['id'] ),
 				)
 			);
+
+			// The reviewer's reason for a rejection or a return to draft
+			// (#2242), on its own line under the deadline.
+			$reason = isset( $rereg['review_reason'] ) && is_string( $rereg['review_reason'] ) ? $rereg['review_reason'] : '';
+			if ( '' !== $reason ) {
+				$deadline .= '<br><strong>' . esc_html__( 'Reviewer\'s note:', 'ffcertificate' ) . '</strong> ' . nl2br( esc_html( $reason ) );
+			}
 
 			// Three days or fewer is urgent: the danger tone, where the old
 			// banner repainted its warning one by hand.

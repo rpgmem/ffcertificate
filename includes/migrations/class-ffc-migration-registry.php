@@ -169,6 +169,16 @@ class MigrationRegistry {
 			'order'       => 11,
 		);
 
+		// #2242: reregistration drafts stored their sensitive values in clear
+		// until the draft save encrypted them like the final submit.
+		$this->migrations['rereg_draft_encryption'] = array(
+			'name'        => __( 'Reregistration: Encrypt Draft Answers', 'ffcertificate' ),
+			'description' => __( 'Encrypt the answers to sensitive fields (such as CPF, RF and birth date) that reregistration drafts stored in clear before drafts were saved encrypted. This covers drafts the daily run later expired and submissions returned to draft and saved again. Completion here means every stored submission was EXAMINED: one with nothing to encrypt is read, left as it is, and counted as done.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-encryption',
+			'batch_size'  => 100,
+			'order'       => 12,
+		);
+
 		// v5.4.1: Clear plaintext context on activity log rows that already
 		// hold a ciphertext, eliminating the dual-storage leak.
 		$this->migrations['activity_log_clear_plaintext'] = array(
