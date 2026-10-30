@@ -221,6 +221,7 @@ class AudienceAdminSettings {
 		$scheduling_message       = get_option( 'ffc_aud_scheduling_message', __( 'To book on this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate' ) );
 		$multiple_audiences_color = get_option( 'ffc_aud_multiple_audiences_color', '' );
 		$max_self_join_groups     = AudienceSelfJoinLimit::get();
+		$max_range_days           = AudienceBookingRules::max_range_days();
 
 		include FFC_PLUGIN_DIR . 'templates/admin/audience/audience-tab.php';
 	}
@@ -298,6 +299,10 @@ class AudienceAdminSettings {
 			$max_groups = RequestInput::get_post_string( AudienceSelfJoinLimit::OPTION, '' );
 			if ( '' !== $max_groups && is_numeric( $max_groups ) ) {
 				update_option( AudienceSelfJoinLimit::OPTION, AudienceSelfJoinLimit::clamp( $max_groups ) );
+			}
+			$max_range = RequestInput::get_post_string( AudienceBookingRules::MAX_RANGE_OPTION, '' );
+			if ( '' !== $max_range && is_numeric( $max_range ) ) {
+				update_option( AudienceBookingRules::MAX_RANGE_OPTION, AudienceBookingRules::clamp_max_range( $max_range ) );
 			}
 
 			add_settings_error( 'ffc_audience', 'ffc_message', __( 'Audience visibility settings saved.', 'ffcertificate' ), 'success' );

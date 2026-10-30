@@ -45,11 +45,46 @@ final class AudienceBookingRules {
 	public const CONFLICT      = 'conflict';
 
 	/**
-	 * Longest range one booking may cover, in consecutive days, inclusive of
-	 * both ends (#2243). A cap keeps one request from writing a month of
-	 * conflict checks, and a course or event that runs longer is two bookings.
+	 * Option holding the longest range one booking may cover, in consecutive
+	 * days, both ends included (#2243). Set on Scheduling → Settings →
+	 * Audience; a cap keeps one request from writing a year of conflict
+	 * checks, and a course that runs longer is two bookings.
 	 */
-	public const MAX_RANGE_DAYS = 30;
+	public const MAX_RANGE_OPTION = 'ffc_aud_max_range_days';
+
+	/**
+	 * The longest range before an administrator sets one.
+	 */
+	public const DEFAULT_MAX_RANGE_DAYS = 30;
+
+	/**
+	 * The highest value the setting accepts: a year.
+	 */
+	public const MAX_RANGE_LIMIT = 365;
+
+	/**
+	 * The longest range one booking may cover, clamped on read as well as on
+	 * save, so a value written by hand still lands between 1 and a year.
+	 *
+	 * @return int
+	 */
+	public static function max_range_days(): int {
+		return self::clamp_max_range( get_option( self::MAX_RANGE_OPTION, self::DEFAULT_MAX_RANGE_DAYS ) );
+	}
+
+	/**
+	 * Bring a stored or posted range limit inside 1 to {@see self::MAX_RANGE_LIMIT}.
+	 * A value that is not a number is not a limit, so it reads as the default.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return int
+	 */
+	public static function clamp_max_range( $value ): int {
+		if ( ! is_numeric( $value ) ) {
+			return self::DEFAULT_MAX_RANGE_DAYS;
+		}
+		return max( 1, min( self::MAX_RANGE_LIMIT, (int) $value ) );
+	}
 
 	/**
 	 * Whether the current user may book for people named one by one (#2243).

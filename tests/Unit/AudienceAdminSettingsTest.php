@@ -702,6 +702,57 @@ class AudienceAdminSettingsTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @return iterable<string, array{0: string, 1: int|null}>
+	 */
+	public static function posted_range_limits(): iterable {
+		yield 'a value inside the range' => array( '90', 90 );
+		yield 'above a year clamps' => array( '500', 365 );
+		yield 'below one day clamps' => array( '0', 1 );
+		yield 'empty keeps the stored value' => array( '', null );
+	}
+
+	/**
+	 * The longest booking range is clamped to 1–365 on save, and a cleared
+	 * field writes nothing (#2243).
+	 *
+	 * @dataProvider posted_range_limits
+	 *
+	 * @param string   $posted   Posted value.
+	 * @param int|null $expected Written value, null for no write.
+	 */
+	public function test_audience_visibility_saves_the_range_limit( string $posted, ?int $expected ): void {
+		$written = $this->record_writes();
+		$this->record_notices();
+		$_POST = array(
+			'ffc_action'               => 'save_aud_visibility_settings',
+			'ffc_aud_visibility_nonce' => 'n',
+			'ffc_aud_max_range_days'   => $posted,
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		if ( null === $expected ) {
+			$this->assertArrayNotHasKey( 'ffc_aud_max_range_days', $written->getArrayCopy() );
+		} else {
+			$this->assertSame( $expected, $written['ffc_aud_max_range_days'] );
+		}
+	}
+
+	public function test_audience_tab_draws_the_range_limit_field_with_its_default(): void {
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => false !== $default ? $default : '' );
+		$_GET['tab'] = 'audience';
+
+		$html = $this->render( $this->page() );
+
+		$this->assertMatchesRegularExpression(
+			'/<input type="number" name="ffc_aud_max_range_days" id="ffc_aud_max_range_days" class="small-text" required\s+min="1"\s+max="365"\s+value="30">/',
+			$html
+		);
+		$this->assertLessThan( (int) strpos( $html, '</form>' ), (int) strpos( $html, 'name="ffc_aud_max_range_days"' ), 'the Save button posts the limit too' );
+	}
+
 	public function test_self_join_limit_without_the_capability_is_not_saved(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
 		$written = $this->record_writes();

@@ -29885,8 +29885,6 @@ msgstr ""
 msgid "On a phone the work-hours table keeps its columns and scrolls sideways; a shadow at the edge shows there is more."
 msgstr ""
 
-msgid "A booking can cover a range of days: set an end date in the booking form and the booking takes every day from its date to that one. The hours on each day are either the same every day, or run from the start time on the first day to the end time on the last, with the whole opening window in between. Every day is checked against the rules and for conflicts; a clash on any day refuses the whole booking, and the form lists the days already taken. A holiday or a weekday the space is closed inside the range refuses the booking unless \"Skip blocked days\" is ticked, and then those days are left out without a warning and recorded as skipped. A range covers at most 30 consecutive days, and a longer one is refused with a message naming the limit; an all-day booking covers one day."
-msgstr ""
 
 msgid "A booking can cover at most %d consecutive days."
 msgstr ""
@@ -29986,4 +29984,16 @@ msgid "Importing needs ffc_import_audiences, which the Audience Calendars Operat
 msgstr ""
 
 msgid "reveal the account email of the people on the Members and User access tabs and in a booking's details, and the sensitive custom fields on another user's profile, with an audited Reveal; a members export carries the email in clear only with it. Existing holders of ffc_manage_audiences received it on update."
+msgstr ""
+
+msgid "A booking can cover a range of days: set an end date in the booking form and the booking takes every day from its date to that one. The hours on each day are either the same every day, or run from the start time on the first day to the end time on the last, with the whole opening window in between. Every day is checked against the rules and for conflicts; a clash on any day refuses the whole booking, and the form lists the days already taken. A holiday or a weekday the space is closed inside the range refuses the booking unless \"Skip blocked days\" is ticked, and then those days are left out without a warning and recorded as skipped. A range covers at most 30 consecutive days unless the limit is changed under Scheduling → Settings → Audience Calendars → Bookings over several days, \"Longest range\" (1 to 365). A longer range is refused with a message naming the limit, already by the conflict check; an all-day booking covers one day."
+msgstr ""
+
+msgid "Bookings over several days"
+msgstr ""
+
+msgid "Longest range"
+msgstr ""
+
+msgid "The most consecutive days one booking may cover, from 1 to %1$d (default %2$d). The conflict check and the booking both refuse a longer range, naming the limit. Saved with the Save Settings button below."
 msgstr ""
