@@ -432,7 +432,41 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 		$this->assertSame( array( 3 ), array_column( $writes, 0 ) );
 		$this->assertArrayHasKey( 'reminder_sent_at', $writes[0][1] );
 		$this->assertSame(
-			array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=submissions&id=4&message=reminders_sent&count=1' ),
+			array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=submissions&id=4&message=reminders_sent&count=1&skipped=1&failed=0' ),
+			$this->redirects,
+			'The submission that does not exist is counted as skipped (#2242).'
+		);
+	}
+
+	public function test_bulk_reminder_skips_a_member_who_already_answered(): void {
+		$this->bulk( 'send_reminder', array( '3', '21' ) );
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'wp_timezone' )->alias( static fn () => new \DateTimeZone( 'UTC' ) );
+
+		$this->runHandler( 'handle_bulk' );
+
+		// 21 is submitted: nothing to remind. 3 is pending, but its owner has
+		// no account here, so the send fails and is counted as such.
+		$this->assertSame( array(), $this->mailed );
+		$this->assertSame(
+			array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=submissions&id=4&message=reminders_sent&count=0&skipped=1&failed=1' ),
+			$this->redirects
+		);
+	}
+
+	public function test_bulk_reminder_says_why_nothing_can_go_out(): void {
+		$this->bulk( 'send_reminder', array( '3' ) );
+		Functions\when( 'get_option' )->alias(
+			static fn ( $key, $default = false ) => 'ffc_settings' === $key ? array( 'disable_all_emails' => '1' ) : $default
+		);
+
+		$this->runHandler( 'handle_bulk' );
+
+		$this->assertSame( array(), $this->mailed );
+		$this->assertSame( array(), $this->submission_writes() );
+		$this->assertSame(
+			array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=submissions&id=4&message=reminders_blocked&reason=emails_disabled' ),
 			$this->redirects
 		);
 	}

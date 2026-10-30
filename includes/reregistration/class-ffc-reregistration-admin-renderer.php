@@ -32,6 +32,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class ReregistrationAdminRenderer {
 
+	/**
+	 * Submissions listed per page (#2242). A campaign reaches thousands of
+	 * members, and every row carries a masked e-mail and its Reveal button.
+	 */
+	public const SUBMISSIONS_PER_PAGE = 50;
+
 	// ─────────────────────────────────────────────.
 	// LIST VIEW.
 	// ─────────────────────────────────────────────.
@@ -124,13 +130,14 @@ final class ReregistrationAdminRenderer {
 		// wider list would be an error the operator could only discover by
 		// uploading a file first. Empty for a campaign being created, which is
 		// also when there is nothing to import into.
-		$import_audiences = self::import_audience_choices( $selected_ids );
+		$import_audiences = self::audience_choices( $selected_ids );
 
 		include FFC_PLUGIN_DIR . 'templates/admin/reregistration/form.php';
 	}
 
 	/**
-	 * Name the campaign's audiences for the import picker.
+	 * Name the campaign's audiences, for the import picker and the
+	 * submissions filter.
 	 *
 	 * An id whose audience has since been deleted is dropped rather than shown
 	 * with a blank label: the campaign row keeps the link, and offering a
@@ -139,7 +146,7 @@ final class ReregistrationAdminRenderer {
 	 * @param array<int, int|string> $audience_ids Ids linked to the campaign.
 	 * @return array<int, string> id => name, in the order given.
 	 */
-	private static function import_audience_choices( array $audience_ids ): array {
+	private static function audience_choices( array $audience_ids ): array {
 		$choices = array();
 
 		foreach ( $audience_ids as $audience_id ) {
@@ -171,28 +178,79 @@ final class ReregistrationAdminRenderer {
 			wp_die( esc_html__( 'Reregistration not found.', 'ffcertificate' ) );
 		}
 
-		$status_filter = \FreeFormCertificate\Core\RequestInput::get_get_string( 'sub_status' );
-		if ( '' === $status_filter ) {
-			$status_filter = null;
-		}
-		$search = \FreeFormCertificate\Core\RequestInput::get_get_string( 's' );
-		if ( '' === $search ) {
-			$search = null;
-		}
+		// One normalised filter set (#2242) feeds the list, its count, the
+		// pagination links, the stat-card links and the CSV export, so none of
+		// them can read the request differently.
+		$filters       = ReregistrationSubmissionReader::normalize_filters(
+			RequestInput::get_get_string( 'sub_status' ),
+			RequestInput::get_get_string( 's' ),
+			RequestInput::get_get_int( 'audience' )
+		);
+		$status_filter = $filters['status'];
+		$search        = $filters['search'];
+		$audience_id   = $filters['audience_id'];
 
-		$filters = array();
-		if ( $status_filter ) {
-			$filters['status'] = $status_filter;
-		}
-		if ( $search ) {
-			$filters['search'] = $search;
-		}
+		$total        = ReregistrationSubmissionReader::count_filtered( $id, $filters );
+		$total_pages  = max( 1, (int) ceil( $total / self::SUBMISSIONS_PER_PAGE ) );
+		$current_page = min( max( 1, RequestInput::get_get_int( 'paged' ) ), $total_pages );
 
-		$submissions = ReregistrationSubmissionReader::get_by_reregistration( $id, $filters );
+		$submissions = ReregistrationSubmissionReader::get_by_reregistration(
+			$id,
+			$filters + array(
+				'limit'  => self::SUBMISSIONS_PER_PAGE,
+				'offset' => ( $current_page - 1 ) * self::SUBMISSIONS_PER_PAGE,
+			)
+		);
 		$stats       = ReregistrationSubmissionReader::get_statistics( $id );
 		$back_url    = admin_url( 'admin.php?page=' . $menu_slug );
+		$audiences   = self::audience_choices( ReregistrationRepository::get_audience_ids( $id ) );
+
+		// The screen's own URL with no filter; the links below add theirs.
+		$base_url     = admin_url( 'admin.php?page=' . $menu_slug . '&view=submissions&id=' . $id );
+		$filtered_url = add_query_arg(
+			array_filter(
+				array(
+					'sub_status' => $status_filter,
+					's'          => $search,
+					'audience'   => $audience_id > 0 ? $audience_id : null,
+				),
+				static fn( $value ): bool => null !== $value
+			),
+			$base_url
+		);
+		$pagination   = $total_pages > 1
+			? (string) paginate_links(
+				array(
+					'base'      => add_query_arg( 'paged', '%#%', $filtered_url ),
+					'format'    => '',
+					'prev_text' => '&laquo;',
+					'next_text' => '&raquo;',
+					'total'     => $total_pages,
+					'current'   => $current_page,
+				)
+			)
+			: '';
 
 		include FFC_PLUGIN_DIR . 'templates/admin/reregistration/submissions.php';
+	}
+
+	/**
+	 * The count of listed submissions and the page links, for the top and the
+	 * bottom of the list (#2242).
+	 *
+	 * @param int    $total      Submissions matching the filters.
+	 * @param string $pagination `paginate_links()` output, '' for one page.
+	 * @return void
+	 */
+	public static function render_submissions_pagination( int $total, string $pagination ): void {
+		echo '<div class="tablenav-pages"><span class="displaying-num">';
+		/* translators: %s: number of submissions listed. */
+		echo esc_html( sprintf( _n( '%s submission', '%s submissions', $total, 'ffcertificate' ), number_format_i18n( $total ) ) );
+		echo '</span>';
+		if ( '' !== $pagination ) {
+			echo ' <span class="pagination-links">' . wp_kses_post( $pagination ) . '</span>';
+		}
+		echo '</div>';
 	}
 
 	/**

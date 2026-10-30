@@ -405,6 +405,12 @@ class ReregistrationAdmin {
 			if ( in_array( $msg, array( 'rejected', 'returned_to_draft' ), true ) && RequestInput::has_get( 'skipped' ) ) {
 				$messages[ $msg ] = self::review_decision_message( $msg, RequestInput::get_get_int( 'count' ), RequestInput::get_get_int( 'skipped' ) );
 			}
+			if ( 'reminders_sent' === $msg && RequestInput::has_get( 'skipped' ) ) {
+				$messages[ $msg ] = self::reminders_message( RequestInput::get_get_int( 'count' ), RequestInput::get_get_int( 'skipped' ), RequestInput::get_get_int( 'failed' ) );
+			}
+			if ( 'reminders_blocked' === $msg ) {
+				add_settings_error( 'ffc_reregistration', 'ffc_message', self::reminders_blocked_message( RequestInput::get_get_string( 'reason' ) ), 'error' );
+			}
 			if ( 'reason_required' === $msg ) {
 				add_settings_error( 'ffc_reregistration', 'ffc_message', self::reason_required_message(), 'error' );
 			}
@@ -478,6 +484,52 @@ class ReregistrationAdmin {
 			__( 'Nothing was changed: give the member a reason of at least %d characters.', 'ffcertificate' ),
 			ReregistrationSubmissionWriter::MIN_REASON_LENGTH
 		);
+	}
+
+	/**
+	 * The notice after a bulk reminder (#2242): how many went out, and how
+	 * many of the selection did not, with why.
+	 *
+	 * @param int $sent    Reminders sent.
+	 * @param int $skipped Selected rows not awaiting an answer.
+	 * @param int $failed  Reminders the mailer did not accept.
+	 * @return string
+	 */
+	public static function reminders_message( int $sent, int $skipped, int $failed ): string {
+		/* translators: %d: number of reminder e-mails sent. */
+		$message = sprintf( _n( '%d reminder sent.', '%d reminders sent.', $sent, 'ffcertificate' ), $sent );
+		if ( $skipped > 0 ) {
+			$message .= ' ' . sprintf(
+				/* translators: %d: number of selected submissions that were not awaiting an answer. */
+				_n( '%d selected submission was skipped because it is not awaiting an answer.', '%d selected submissions were skipped because they are not awaiting an answer.', $skipped, 'ffcertificate' ),
+				$skipped
+			);
+		}
+		if ( $failed > 0 ) {
+			$message .= ' ' . sprintf(
+				/* translators: %d: number of reminders the mailer did not send. */
+				_n( '%d reminder could not be sent (the member has no account or e-mail, or the mailer refused it).', '%d reminders could not be sent (the member has no account or e-mail, or the mailer refused it).', $failed, 'ffcertificate' ),
+				$failed
+			);
+		}
+		return $message;
+	}
+
+	/**
+	 * The notice when no reminder of the campaign can go out at all.
+	 *
+	 * @param string $reason A `ReregistrationEmailHandler::REMINDER_BLOCKED_*` value.
+	 * @return string
+	 */
+	public static function reminders_blocked_message( string $reason ): string {
+		switch ( $reason ) {
+			case ReregistrationEmailHandler::REMINDER_BLOCKED_EMAILS_OFF:
+				return __( 'No reminder was sent: every plugin e-mail is disabled in the settings.', 'ffcertificate' );
+			case ReregistrationEmailHandler::REMINDER_BLOCKED_NO_TEXT:
+				return __( 'No reminder was sent: the reminder e-mail text is empty.', 'ffcertificate' );
+			default:
+				return __( 'No reminder was sent: reminders are turned off for this campaign.', 'ffcertificate' );
+		}
 	}
 
 	/**

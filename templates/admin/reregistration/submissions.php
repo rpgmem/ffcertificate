@@ -48,12 +48,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 					continue;
 				}
 				$ffc_look = $ffc_rereg_stat_look[ $status ] ?? array( 'info', 'neutral' );
+				// Each card is a filter (#2242): its link lists that status.
 				echo \FreeFormCertificate\Admin\AdminUI::get_stat_card(
 					array(
 						'label' => ReregistrationSubmissionReader::get_status_label( (string) $status ),
 						'value' => (int) $count,
 						'icon'  => $ffc_look[0],
 						'tone'  => $ffc_look[1],
+						'url'   => add_query_arg( 'sub_status', (string) $status, $base_url ),
+						'link'  => __( 'Show', 'ffcertificate' ),
 					)
 				);
 			}
@@ -62,6 +65,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 					'label' => __( 'Total', 'ffcertificate' ),
 					'value' => (int) $stats['total'],
 					'icon'  => 'users',
+					'url'   => $base_url,
+					'link'  => __( 'Show', 'ffcertificate' ),
 				)
 			);
 			// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -74,13 +79,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<input type="hidden" name="page" value="<?php echo esc_attr( $menu_slug ); ?>">
 				<input type="hidden" name="view" value="submissions">
 				<input type="hidden" name="id" value="<?php echo esc_attr( (string) $id ); ?>">
-				<select name="sub_status">
+				<select name="sub_status" aria-label="<?php esc_attr_e( 'Status', 'ffcertificate' ); ?>">
 					<option value=""><?php esc_html_e( 'All Statuses', 'ffcertificate' ); ?></option>
+					<option value="<?php echo esc_attr( ReregistrationSubmissionReader::NOT_FINISHED_FILTER ); ?>" <?php selected( $status_filter, ReregistrationSubmissionReader::NOT_FINISHED_FILTER ); ?>><?php esc_html_e( 'Not finished (pending or in progress)', 'ffcertificate' ); ?></option>
 					<?php foreach ( ReregistrationSubmissionReader::STATUSES as $s ) : ?>
 						<option value="<?php echo esc_attr( $s ); ?>" <?php selected( $status_filter, $s ); ?>><?php echo esc_html( ReregistrationSubmissionReader::get_status_label( $s ) ); ?></option>
 					<?php endforeach; ?>
 				</select>
-				<input type="search" name="s" value="<?php echo esc_attr( $search ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Search name or email...', 'ffcertificate' ); ?>">
+				<?php if ( count( $audiences ) > 1 ) : ?>
+				<select name="audience" aria-label="<?php esc_attr_e( 'Audience', 'ffcertificate' ); ?>">
+					<option value="0"><?php esc_html_e( 'All Audiences', 'ffcertificate' ); ?></option>
+					<?php foreach ( $audiences as $ffc_audience_id => $ffc_audience_name ) : ?>
+						<option value="<?php echo esc_attr( (string) $ffc_audience_id ); ?>" <?php selected( $audience_id, $ffc_audience_id ); ?>><?php echo esc_html( $ffc_audience_name ); ?></option>
+					<?php endforeach; ?>
+				</select>
+				<?php endif; ?>
+				<input type="search" name="s" value="<?php echo esc_attr( $search ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Name, email, CPF or RF', 'ffcertificate' ); ?>" aria-label="<?php esc_attr_e( 'Search', 'ffcertificate' ); ?>">
 				<?php
 				\FreeFormCertificate\Admin\AdminUI::render_button(
 					array(
@@ -94,8 +108,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php
 			// Batched CSV export (#772): the button drives the shared
 			// window.FFCBatchedExport engine through the unified dispatcher. The
-			// campaign id rides along via data-id; the export covers the whole
-			// campaign (unaffected by the on-screen status/search filter, as before).
+			// applied filters ride along (#2242), so the file holds the rows
+			// listed here -- every page of them, not only this one.
 			?>
 			<?php
 			\FreeFormCertificate\Admin\AdminUI::render_button(
@@ -105,11 +119,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 					'id'    => 'ffc-rereg-export-btn',
 					'class' => 'ffc-rereg-ml-10',
 					'attrs' => array(
-						'data-id' => (string) $id,
+						'data-id'         => (string) $id,
+						'data-sub-status' => (string) $status_filter,
+						'data-search'     => (string) $search,
+						'data-audience'   => (string) $audience_id,
 					),
 				)
 			);
 			?>
+			<?php self::render_submissions_pagination( $total, $pagination ); ?>
 		</div>
 
 		<!-- Bulk actions form -->
@@ -166,6 +184,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php endif; ?>
 				</tbody>
 			</table>
+			<div class="tablenav bottom">
+				<?php self::render_submissions_pagination( $total, $pagination ); ?>
+			</div>
 		</form>
 
 		<?php if ( $can_edit ) : ?>

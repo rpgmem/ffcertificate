@@ -70,6 +70,15 @@ class ReregistrationEmailHandler {
 	public const REMINDER_BATCH_DELAY = 60;
 
 	/**
+	 * Why {@see self::reminder_block_reason()} says no reminder can go out:
+	 * every plugin e-mail is switched off, the campaign's reminders are off,
+	 * or the reminder text is empty.
+	 */
+	public const REMINDER_BLOCKED_EMAILS_OFF   = 'emails_disabled';
+	public const REMINDER_BLOCKED_CAMPAIGN_OFF = 'reminders_off';
+	public const REMINDER_BLOCKED_NO_TEXT      = 'no_text';
+
+	/**
 	 * Statuses for which the invitation must not ask the person to complete
 	 * anything, because the campaign already holds their answer (#1300).
 	 *
@@ -356,6 +365,32 @@ class ReregistrationEmailHandler {
 	}
 
 	/**
+	 * Why no reminder of this campaign can go out at all, or '' when one can.
+	 *
+	 * Asked by the send itself and by the bulk action, which tells the operator
+	 * the reason instead of reporting "0 sent" (#2242).
+	 *
+	 * @param int $reregistration_id The campaign ID.
+	 * @return string One of the `REMINDER_BLOCKED_*` values, or ''.
+	 */
+	public static function reminder_block_reason( int $reregistration_id ): string {
+		if ( self::emails_disabled() ) {
+			return self::REMINDER_BLOCKED_EMAILS_OFF;
+		}
+
+		$rereg = ReregistrationRepository::get_by_id( $reregistration_id );
+		if ( ! $rereg || empty( $rereg->email_reminder_enabled ) ) {
+			return self::REMINDER_BLOCKED_CAMPAIGN_OFF;
+		}
+
+		if ( ! self::effective_template( 'reregistration-reminder' ) ) {
+			return self::REMINDER_BLOCKED_NO_TEXT;
+		}
+
+		return '';
+	}
+
+	/**
 	 * One BATCH of reminders, and the rescheduling of the next when queue remains.
 	 *
 	 * WHY BATCH AT ALL
@@ -429,17 +464,13 @@ class ReregistrationEmailHandler {
 			'last_id' => $after_id,
 		);
 
-		if ( self::emails_disabled() ) {
+		if ( '' !== self::reminder_block_reason( $reregistration_id ) ) {
 			return $empty;
 		}
 
-		$rereg = ReregistrationRepository::get_by_id( $reregistration_id );
-		if ( ! $rereg || empty( $rereg->email_reminder_enabled ) ) {
-			return $empty;
-		}
-
+		$rereg    = ReregistrationRepository::get_by_id( $reregistration_id );
 		$template = self::effective_template( 'reregistration-reminder' );
-		if ( ! $template ) {
+		if ( ! $rereg || ! $template ) {
 			return $empty;
 		}
 

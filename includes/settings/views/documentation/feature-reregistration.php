@@ -51,7 +51,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<p><?php esc_html_e( 'The reminder is sent once per member per campaign. There are exactly two ways it goes out a second time, and both are deliberate:', 'ffcertificate' ); ?></p>
 		<ul>
 			<li><strong><?php esc_html_e( 'You extend the deadline', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'moving the end date forward reopens the reminder for everyone who has not finished, once per extension. Extending twice sends twice. This mirrors how the invitation already behaves.', 'ffcertificate' ); ?></li>
-			<li><strong><?php esc_html_e( 'You send it by hand', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'resending to specific members from the campaign screen always goes out, whether or not they were already reminded.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'You send it by hand', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'resending to specific members from the campaign screen always goes out, whether or not they were already reminded.', 'ffcertificate' ); ?> <?php esc_html_e( 'Only members who still have to answer (pending, in progress or rejected) are reminded. The notice counts the selected members who were skipped and the reminders that could not be sent, and says why nothing went out when reminders are off or every plugin e-mail is disabled.', 'ffcertificate' ); ?></li>
 		</ul>
 		<p class="description"><strong><?php esc_html_e( 'A manual resend replaces that member\'s automatic reminder — it does not add to it.', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'The manual send stamps the submission just like the automatic one, so the daily sweep will skip that member for the rest of the campaign. Someone you remind by hand today will not also be reminded by the system tomorrow.', 'ffcertificate' ); ?></p>
 	</div>
@@ -85,6 +85,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</ul>
 		<p><?php esc_html_e( 'A submission returned to draft or retracted is in_progress again; a returned one shows the reviewer\'s reason on the banner.', 'ffcertificate' ); ?></p>
 		<p><?php esc_html_e( 'A member can save a draft or submit only while the submission is pending, in progress or rejected. Once it is submitted, a second click or a form left open in another tab is refused, so the submission stays in the review queue and the confirmation e-mail goes out once.', 'ffcertificate' ); ?></p>
+	</div>
+
+	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'Reviewing a large campaign', 'ffcertificate' ); ?></h4>
+		<ul>
+			<li><?php esc_html_e( 'The submissions list shows 50 per page. "Reveal this page" reveals the e-mails of the page on screen, never of the whole campaign.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'The search box takes a name, an e-mail, a CPF or an RF. A CPF or RF is matched through its hash, so the member is found although the value is stored encrypted.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Filter by status, by "not finished" (pending or in progress: the members still to chase) or, when the campaign reaches several audiences, by audience, child audiences included.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Each status card links to the list filtered by that status; the Total card clears every filter.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Export CSV exports what the list shows: the same filters, every page.', 'ffcertificate' ); ?></li>
+		</ul>
 	</div>
 
 	<div class="ffc-doc-example">

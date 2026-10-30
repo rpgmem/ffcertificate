@@ -57,7 +57,8 @@
     /**
      * Batched CSV export (#772). The "Export CSV" button drives the unified
      * ffc_export_* dispatcher via the shared window.FFCBatchedExport driver,
-     * carrying the campaign id. Export order is id-DESC (a stable keyset).
+     * carrying the campaign id and the applied filters. Export order is
+     * id-DESC (a stable keyset).
      */
     function initCsvExport() {
         $(document).on('click', '#ffc-rereg-export-btn', function () {
@@ -84,7 +85,14 @@
                     downloading: s.exportDone,
                     error: s.exportError
                 },
-                startData: { id: $btn.data('id') || '' }
+                // The filters the list was drawn with (#2242), so the file
+                // holds the same rows.
+                startData: {
+                    id: $btn.data('id') || '',
+                    sub_status: $btn.attr('data-sub-status') || '',
+                    s: $btn.attr('data-search') || '',
+                    audience: $btn.attr('data-audience') || ''
+                }
             });
         });
     }

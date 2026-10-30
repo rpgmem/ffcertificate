@@ -14813,9 +14813,6 @@ msgstr ""
 msgid "Search logs..."
 msgstr ""
 
-#: templates/admin/reregistration/submissions.php:58
-msgid "Search name or email..."
-msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:113
 msgid "Search notices"
@@ -29814,4 +29811,64 @@ msgid "Once anybody has answered a custom field, in a reregistration or on their
 msgstr ""
 
 msgid "This field already has answers and cannot be deleted. Deactivate it instead; its answers stay in review, the Record and the export."
+msgstr ""
+
+msgid "Name, email, CPF or RF"
+msgstr ""
+
+msgid "No reminder was sent: every plugin e-mail is disabled in the settings."
+msgstr ""
+
+msgid "No reminder was sent: reminders are turned off for this campaign."
+msgstr ""
+
+msgid "No reminder was sent: the reminder e-mail text is empty."
+msgstr ""
+
+msgid "Not finished (pending or in progress)"
+msgstr ""
+
+#. translators: %d: number of reminder e-mails sent.
+msgid "%d reminder sent."
+msgid_plural "%d reminders sent."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: number of selected submissions that were not awaiting an answer.
+msgid "%d selected submission was skipped because it is not awaiting an answer."
+msgid_plural "%d selected submissions were skipped because they are not awaiting an answer."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: number of reminders the mailer did not send.
+msgid "%d reminder could not be sent (the member has no account or e-mail, or the mailer refused it)."
+msgid_plural "%d reminders could not be sent (the member has no account or e-mail, or the mailer refused it)."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of submissions listed.
+msgid "%s submission"
+msgid_plural "%s submissions"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Only members who still have to answer (pending, in progress or rejected) are reminded. The notice counts the selected members who were skipped and the reminders that could not be sent, and says why nothing went out when reminders are off or every plugin e-mail is disabled."
+msgstr ""
+
+msgid "Reviewing a large campaign"
+msgstr ""
+
+msgid "The submissions list shows 50 per page. \"Reveal this page\" reveals the e-mails of the page on screen, never of the whole campaign."
+msgstr ""
+
+msgid "The search box takes a name, an e-mail, a CPF or an RF. A CPF or RF is matched through its hash, so the member is found although the value is stored encrypted."
+msgstr ""
+
+msgid "Filter by status, by \"not finished\" (pending or in progress: the members still to chase) or, when the campaign reaches several audiences, by audience, child audiences included."
+msgstr ""
+
+msgid "Each status card links to the list filtered by that status; the Total card clears every filter."
+msgstr ""
+
+msgid "Export CSV exports what the list shows: the same filters, every page."
 msgstr ""
