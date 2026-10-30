@@ -487,12 +487,34 @@ class FormCacheTest extends TestCase {
 			->with( 'manage_options' )
 			->andReturn( true );
 
-		Functions\expect( 'wp_cache_flush' )
-			->once()
-			->andReturn( true );
+		// Only the plugin's group: flushing the whole object cache empties
+		// every other plugin's entries, and every site's on a multisite (#2241).
+		Functions\when( 'wp_cache_supports' )->justReturn( true );
+		Functions\expect( 'wp_cache_flush_group' )->once()->with( 'ffc_forms' )->andReturn( true );
+		Functions\expect( 'wp_cache_flush' )->never();
 
 		$result = FormCache::clear_all_cache();
 		$this->assertTrue( $result );
+	}
+
+	public function test_clear_all_cache_deletes_each_forms_keys_without_group_flushing(): void {
+		Functions\expect( 'current_user_can' )->once()->with( 'manage_options' )->andReturn( true );
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
+		Functions\when( 'get_posts' )->justReturn( array( 7 ) );
+		$deleted = array();
+		Functions\when( 'wp_cache_delete' )->alias(
+			static function ( $key, $group ) use ( &$deleted ): bool {
+				$deleted[] = $group . ':' . $key;
+				return true;
+			}
+		);
+		Functions\expect( 'wp_cache_flush' )->never();
+
+		$this->assertTrue( FormCache::clear_all_cache() );
+		$this->assertSame(
+			array( 'ffc_forms:config_7', 'ffc_forms:fields_7', 'ffc_forms:bg_7', 'ffc_forms:complete_7', 'ffc_forms:post_7' ),
+			$deleted
+		);
 	}
 
 	public function test_clear_all_cache_returns_false_without_capability(): void {

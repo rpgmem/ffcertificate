@@ -127,8 +127,13 @@ class PdfHtmlRenderer {
 				$value = \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $value, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE );
 			}
 
-			// Apply allowed HTML filtering.
-			$safe_value = wp_kses( $value, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
+			// A value is text: the layout is the HTML. What a participant
+			// typed used to pass through the layout's tag allowlist, which
+			// keeps `img src` and `style`, so an anonymous submitter could
+			// plant a remote image or styling in their own certificate, served
+			// again on every verification (#2241). Escaping here also fixes
+			// rows already stored, with no migration; line breaks survive.
+			$safe_value = nl2br( esc_html( (string) $value ), false );
 			$layout     = str_replace( '{{' . $key . '}}', $safe_value, $layout );
 		}
 

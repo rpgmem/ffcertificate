@@ -58,6 +58,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<p><?php esc_html_e( 'The layout box of the form editor sets a background image and a background colour; the colour fills the page wherever the image does not cover it. Preview renders the unsaved layout on the server with sample data, through the same renderer as the PDF, so the background, the colour and the QR code are the ones the certificate prints. Save as model keeps the layout, the image and the colour, and loading the model brings all three back.', 'ffcertificate' ); ?></p>
 		<p><?php esc_html_e( 'The {{qr_code}} image follows the design set in Settings → QR Code (module shape, colours, logo, frame) when that design is switched on for certificates; otherwise a plain black-and-white code is drawn.', 'ffcertificate' ); ?></p>
 		<p><?php esc_html_e( 'The All Forms list has a Features column with three switches per form — CSV (the public operator download), Quiz and Device limit. Each saves as soon as it is flipped, writes the same setting as the form editor, and is read-only for someone who cannot edit that form.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'A form takes submissions only while it is published: a draft, a private or a trashed form refuses them, with a message asking the visitor to contact the organizer, even when its shortcode is still on a page. What a participant types prints in the certificate as text; markup typed into a field is shown as written, never drawn.', 'ffcertificate' ); ?></p>
 	</div>
 
 	<?php ob_start(); ?>

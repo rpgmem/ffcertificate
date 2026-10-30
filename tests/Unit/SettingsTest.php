@@ -521,7 +521,8 @@ class SettingsTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 
-		$flush = CallLog::record( 'wp_cache_flush', true );
+		Functions\when( 'wp_cache_supports' )->justReturn( true );
+		$flush = CallLog::record( 'wp_cache_flush_group', true );
 		Functions\when( 'get_posts' )->justReturn( array( 7, 8 ) );
 		// Each published form's page cache is purged for the manual clear.
 		\Brain\Monkey\Actions\expectDone( 'ffc_form_cache_purged' )->once()->with( 7, 'manual_clear_all' );
@@ -529,7 +530,7 @@ class SettingsTest extends TestCase {
 
 		$url = $this->redirect_of( fn() => $this->settings->handle_cache_actions() );
 
-		$this->assertSame( 1, $flush->count(), 'The object cache is flushed once.' );
+		$this->assertSame( 1, $flush->count(), 'The plugin\'s cache group is flushed once.' );
 		$this->assertStringContainsString( 'msg=cache_cleared', $url );
 	}
 

@@ -396,8 +396,68 @@ class SubmissionGuardsTest extends TestCase {
 		}
 	}
 
+	/**
+	 * A published `ffc_form`, as `get_post()` answers it.
+	 *
+	 * @param string $status    Post status.
+	 * @param string $post_type Post type.
+	 */
+	private function stub_form_post( string $status = 'publish', string $post_type = 'ffc_form' ): void {
+		Functions\when( 'get_post' )->justReturn(
+			(object) array(
+				'ID'          => 7,
+				'post_type'   => $post_type,
+				'post_status' => $status,
+			)
+		);
+	}
+
+	/**
+	 * #2241 — only a published form takes submissions; REST already refused
+	 * the others, and the AJAX path did not.
+	 *
+	 * @dataProvider provider_unavailable_forms
+	 */
+	public function test_form_config_resolver_rejects_a_form_that_is_not_published( string $status, string $post_type ): void {
+		$_POST = array( 'form_id' => 7 );
+		$this->stub_form_post( $status, $post_type );
+		Functions\when( 'get_post_meta' )->alias(
+			static fn( $id, $key ) => '_ffc_form_config' === $key ? array() : array( array( 'name' => 'email', 'type' => 'email' ) )
+		);
+		try {
+			( new FormConfigResolver() )->apply( $this->ctx() );
+			$this->fail( 'expected SubmissionRejected' );
+		} catch ( SubmissionRejected $e ) {
+			$this->assertStringContainsString( 'not available', $e->get_payload()['message'] );
+		}
+	}
+
+	/**
+	 * @return array<string, array{string, string}>
+	 */
+	public static function provider_unavailable_forms(): array {
+		return array(
+			'draft'          => array( 'draft', 'ffc_form' ),
+			'private'        => array( 'private', 'ffc_form' ),
+			'trashed'        => array( 'trash', 'ffc_form' ),
+			'not a form'     => array( 'publish', 'post' ),
+		);
+	}
+
+	public function test_form_config_resolver_rejects_a_missing_post(): void {
+		$_POST = array( 'form_id' => 7 );
+		Functions\when( 'get_post' )->justReturn( null );
+		try {
+			( new FormConfigResolver() )->apply( $this->ctx() );
+			$this->fail( 'expected SubmissionRejected' );
+		} catch ( SubmissionRejected $e ) {
+			$this->assertStringContainsString( 'not available', $e->get_payload()['message'] );
+		}
+	}
+
 	public function test_form_config_resolver_rejects_absent_fields(): void {
 		$_POST = array( 'form_id' => 7 );
+		$this->stub_form_post();
 		Functions\when( 'get_post_meta' )->alias(
 			static fn( $id, $key ) => '_ffc_form_config' === $key ? array() : ''
 		);
@@ -411,6 +471,7 @@ class SubmissionGuardsTest extends TestCase {
 
 	public function test_form_config_resolver_populates_context(): void {
 		$_POST = array( 'form_id' => 7 );
+		$this->stub_form_post();
 		Functions\when( 'get_post_meta' )->alias(
 			static fn( $id, $key ) => '_ffc_form_config' === $key
 				? array( 'quiz_enabled' => '0' )

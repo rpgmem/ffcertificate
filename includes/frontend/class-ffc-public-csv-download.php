@@ -592,16 +592,7 @@ class PublicCsvDownload {
 			'ua'      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
 		);
 
-		// #243 Sprint 6: re-validate CPF here even though it was checked
-		// at info-screen time. Closes a small pre-existing security gap
-		// where holding the hash alone was enough to invoke the action.
-		// `silent_audit = true` so the validator's success row is NOT
-		// written — EarlyOpenAction::execute() writes a single
-		// `action_early_open` row capturing the same outcome.
-		$cpf_error = $this->validator->validate_cpf_requirement( $form_id, $cpf_input, true );
-		if ( null !== $cpf_error ) {
-			wp_send_json_error( array( 'message' => $cpf_error ), 403 );
-		}
+		$this->guard_action( $form_id, $posted_hash, $cpf_input );
 		$cpf_digits_clean = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( (string) $cpf_input );
 
 		$result = EarlyOpenAction::execute( $form_id, $posted_hash, $audit_meta, $cpf_digits_clean );
@@ -669,13 +660,7 @@ class PublicCsvDownload {
 			'ua'      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
 		);
 
-		// #243 Sprint 6: re-validate CPF (see parallel comment in
-		// ajax_open_early). `silent_audit = true` so only the action's
-		// own `action_postpone_close` row is written.
-		$cpf_error = $this->validator->validate_cpf_requirement( $form_id, $cpf_input, true );
-		if ( null !== $cpf_error ) {
-			wp_send_json_error( array( 'message' => $cpf_error ), 403 );
-		}
+		$this->guard_action( $form_id, $posted_hash, $cpf_input );
 		$cpf_digits_clean = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( (string) $cpf_input );
 
 		$result = ExtendEndAction::execute( $form_id, $posted_hash, $new_time_end, $audit_meta, $cpf_digits_clean );
@@ -737,16 +722,7 @@ class PublicCsvDownload {
 		$end_override   = RequestInput::get_post_string( 'end_override' );
 		$cpf_input      = RequestInput::get_post_string( 'cpf' );
 
-		// Mirror ajax_extend_end's CPF re-validation. `silent_audit = true`
-		// keeps the per-form audit ring buffer untouched here — the row
-		// for this action lands in Sprint 6's submission handler, tagged
-		// with the FULL exception context (override values + participant
-		// CPF). Recording it now would emit a half-formed entry that the
-		// admin Activity Log renderer (Sprint 9) cannot pretty-print.
-		$cpf_error = $this->validator->validate_cpf_requirement( $form_id, $cpf_input, true );
-		if ( null !== $cpf_error ) {
-			wp_send_json_error( array( 'message' => $cpf_error ), 403 );
-		}
+		$this->guard_action( $form_id, $posted_hash, $cpf_input );
 		$cpf_digits_clean = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( (string) $cpf_input );
 
 		$result = ScheduleExceptionAction::execute( $form_id, $posted_hash, $start_override, $end_override, $cpf_digits_clean );
@@ -784,6 +760,38 @@ class PublicCsvDownload {
 				'form_url' => $result['form_url'],
 			)
 		);
+	}
+
+	/**
+	 * The checks every public CSV action runs before its own, in this order
+	 * (#2241): the address's rate limit, the form's access hash, then the
+	 * CPF. The CPF answer says whether a CPF is authorised on the form, so a
+	 * caller without the hash must never reach it: the three actions used to
+	 * check the CPF first, which let anyone holding a page nonce probe CPFs
+	 * against a form, unthrottled. The CPF check stays silent because each
+	 * action writes its own audit row.
+	 *
+	 * @param int    $form_id     Form ID.
+	 * @param string $posted_hash Access hash.
+	 * @param string $cpf_input   CPF as typed.
+	 */
+	private function guard_action( int $form_id, string $posted_hash, string $cpf_input ): void {
+		if ( class_exists( RateLimiter::class ) ) {
+			$rate_check = RateLimiter::check_ip_limit( RequestInput::get_user_ip() );
+			if ( empty( $rate_check['allowed'] ) ) {
+				wp_send_json_error( array( 'message' => $rate_check['message'] ), 429 );
+			}
+		}
+
+		$hash_error = $this->validator->validate_hash_only( $form_id, $posted_hash );
+		if ( null !== $hash_error ) {
+			wp_send_json_error( array( 'message' => $hash_error ), 403 );
+		}
+
+		$cpf_error = $this->validator->validate_cpf_requirement( $form_id, $cpf_input, true );
+		if ( null !== $cpf_error ) {
+			wp_send_json_error( array( 'message' => $cpf_error ), 403 );
+		}
 	}
 
 	// ──────────────────────────────────────────────────────────────.

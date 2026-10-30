@@ -40,8 +40,11 @@ class CacheActionsAjaxEndpointTest extends TestCase {
 		// A warm form reads as already cached, so warming counts it.
 		Functions\when( 'wp_cache_get' )->justReturn( array( 'cached' ) );
 		$this->flushes = 0;
-		Functions\when( 'wp_cache_flush' )->alias(
-			function (): bool {
+		// The plugin's own group is flushed, never the whole cache (#2241).
+		Functions\when( 'wp_cache_supports' )->justReturn( true );
+		Functions\when( 'wp_cache_flush_group' )->alias(
+			function ( $group ): bool {
+				$this->assertSame( 'ffc_forms', $group );
 				++$this->flushes;
 				return true;
 			}

@@ -464,6 +464,17 @@ class PdfGeneratorTest extends TestCase {
 		$this->assertStringNotContainsString( '{{name}}', $html );
 	}
 
+	public function test_generate_html_renders_a_submitted_value_as_text(): void {
+		$this->stub_html_funcs();
+		Functions\when( 'esc_html' )->alias( fn ( $v ) => htmlspecialchars( (string) $v, ENT_QUOTES ) );
+		$config = array( 'pdf_layout' => '<p>{{name}}</p>' );
+		$data   = array( 'name' => "<img src=https://evil.example/x.png><b>Ana</b>\nSilva" );
+		$html   = $this->invoke( 'generate_html', array( $data, 'T', $config ) );
+		$this->assertStringNotContainsString( '<img', $html );
+		$this->assertStringNotContainsString( '<b>', $html );
+		$this->assertStringContainsString( '&lt;b&gt;Ana&lt;/b&gt;<br>' . "\nSilva", $html );
+	}
+
 	public function test_generate_html_maps_email_and_quiz_aliases(): void {
 		$this->stub_html_funcs();
 		$config = array( 'pdf_layout' => '<p>{{email}} {{score}} {{score_percent}}</p>' );
