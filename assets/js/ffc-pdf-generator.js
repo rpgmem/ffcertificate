@@ -21,6 +21,56 @@
         return true;
     }
 
+    // Whether both libraries are on the page, without logging (#2241).
+    function librariesLoaded() {
+        return typeof window.html2canvas !== 'undefined'
+            && typeof window.jspdf !== 'undefined'
+            && typeof window.jspdf.jsPDF !== 'undefined';
+    }
+
+    // The bundles are fetched when a page is about to need them rather than
+    // with it (#2241): about 700 KB a visitor who never submits never pays.
+    // `ffcPdfLibraries` carries their registered URLs; the handles are the
+    // same as before, and a page that enqueues them finds them loaded.
+    var loading = null;
+
+    function injectScript(url) {
+        return new Promise(function (resolve) {
+            var script = document.createElement('script');
+            script.src = url;
+            script.async = false;
+            script.onload = function () { resolve(true); };
+            script.onerror = function () { resolve(false); };
+            document.head.appendChild(script);
+        });
+    }
+
+    function loadLibraries() {
+        if (librariesLoaded()) {
+            return Promise.resolve(true);
+        }
+        if (loading) {
+            return loading;
+        }
+        var urls = window.ffcPdfLibraries || {};
+        var pending = [];
+        if (typeof window.html2canvas === 'undefined' && urls.html2canvas) {
+            pending.push(injectScript(urls.html2canvas));
+        }
+        if ((typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') && urls.jspdf) {
+            pending.push(injectScript(urls.jspdf));
+        }
+        loading = Promise.all(pending).then(function () {
+            var ok = librariesLoaded();
+            if (!ok) {
+                // A failed fetch may be retried by the next call.
+                loading = null;
+            }
+            return ok;
+        });
+        return loading;
+    }
+
     function showOverlay() {
         if ($('#ffc-pdf-overlay').length > 0) {
             return;
@@ -207,7 +257,18 @@
         });
     }
 
-    function generateAndDownloadPDF(pdfData, filename) {
+    function generateAndDownloadPDF(pdfData, filename, loadAttempted) {
+        // A submit can arrive before the libraries finish loading (#2241):
+        // the overlay opens and the generator waits for them, then runs
+        // again; if they never arrive, that run shows the error below.
+        if (!loadAttempted && !librariesLoaded() && window.ffcPdfLibraries) {
+            showOverlay();
+            loadLibraries().then(function () {
+                generateAndDownloadPDF(pdfData, filename, true);
+            });
+            return;
+        }
+
         if (!checkPDFLibraries()) {
             // This path runs BEFORE the overlay opens — the libraries
             // are needed to build it. Open a minimal overlay so we can
@@ -867,7 +928,10 @@
 
     window.ffcPdfGenerator = {
         generatePDF: generateAndDownloadPDF,
-        checkLibraries: checkPDFLibraries
+        checkLibraries: checkPDFLibraries,
+        // Fetches the PDF libraries when they are not on the page (#2241);
+        // resolves with whether both are now available.
+        load: loadLibraries
     };
 
 })(jQuery, window);

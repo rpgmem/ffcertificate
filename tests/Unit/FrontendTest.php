@@ -250,8 +250,11 @@ class FrontendTest extends TestCase {
 
 		$this->assertContains( 'ffc-frontend-css', $enqueued_styles );
 		$this->assertContains( 'ffc-frontend-js', $enqueued_scripts );
-		$this->assertContains( 'html2canvas', $enqueued_scripts );
-		$this->assertContains( 'jspdf', $enqueued_scripts );
+		// The PDF bundles are fetched when the page is about to need them,
+		// not with it (#2241).
+		$this->assertContains( 'ffc-pdf-generator', $enqueued_scripts );
+		$this->assertNotContains( 'html2canvas', $enqueued_scripts );
+		$this->assertNotContains( 'jspdf', $enqueued_scripts );
 	}
 
 	// ==================================================================
