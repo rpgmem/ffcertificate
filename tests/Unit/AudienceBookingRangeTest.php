@@ -124,6 +124,35 @@ class AudienceBookingRangeTest extends TestCase {
 		$this->assertGreaterThan( 2000000, AudienceBookingRules::range_length( '2026-03-01', '9999-12-31' ) );
 	}
 
+	public function test_weekly_dates_repeat_the_weekday_up_to_and_including_the_last_day(): void {
+		$this->assertSame(
+			array( '2026-11-02', '2026-11-09', '2026-11-16' ),
+			AudienceBookingRules::weekly_dates( '2026-11-02', '2026-11-16' ),
+			'The last day is included when it falls on the weekday.'
+		);
+		$this->assertSame(
+			array( '2026-11-02', '2026-11-09' ),
+			AudienceBookingRules::weekly_dates( '2026-11-02', '2026-11-15' ),
+			'A last day before the next weekday stops the series.'
+		);
+	}
+
+	public function test_weekly_dates_cross_a_leap_day_and_stop_at_the_cap(): void {
+		$dates = AudienceBookingRules::weekly_dates( '2028-02-22', '2030-12-31' );
+
+		$this->assertCount( AudienceBookingRules::SERIES_MAX_WEEKS, $dates, 'Never more than the cap, whatever the last day.' );
+		$this->assertSame( '2028-02-29', $dates[1] );
+		$this->assertSame( '2029-02-13', end( $dates ) );
+	}
+
+	public function test_weekly_count_is_a_date_difference(): void {
+		$this->assertSame( 1, AudienceBookingRules::weekly_count( '2026-11-02', '2026-11-08' ) );
+		$this->assertSame( 2, AudienceBookingRules::weekly_count( '2026-11-02', '2026-11-09' ) );
+		$this->assertSame( 52, AudienceBookingRules::weekly_count( '2026-11-02', '2027-10-25' ) );
+		$this->assertSame( 53, AudienceBookingRules::weekly_count( '2026-11-02', '2027-11-01' ) );
+		$this->assertSame( 413, AudienceBookingRules::weekly_count( '2026-11-02', '2034-10-01' ), 'A far date is counted, not walked.' );
+	}
+
 	public function test_daily_repeats_the_chosen_hours_on_every_day(): void {
 		$times = AudienceBookingRules::day_times( 'daily', false, false, '09:00', '12:00', array( 'start' => '08:00', 'end' => '18:00' ) );
 

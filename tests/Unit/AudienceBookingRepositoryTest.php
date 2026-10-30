@@ -1374,6 +1374,45 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$this->assertFalse(AudienceBookingWriter::cancel(5, 'Schedule conflict'));
 	}
 
+	// ==================================================================
+	// Weekly series (#2243)
+	// ==================================================================
+
+	public function test_assign_series_writes_the_first_id_on_every_occurrence(): void {
+		$bound = null;
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function (...$args) use (&$bound) {
+			$bound = $args;
+			return 'SERIES';
+		});
+		$this->wpdb->shouldReceive('query')->with('SERIES')->once()->andReturn(3);
+
+		$this->assertTrue(AudienceBookingWriter::assign_series(array( 7, 8, 9 )));
+		$this->assertStringContainsString('SET series_id = %d WHERE id IN (%d, %d, %d)', $bound[0]);
+		$this->assertSame(array( 'wp_ffc_audience_bookings', 7, 7, 8, 9 ), array_slice($bound, 1));
+	}
+
+	public function test_assign_series_reports_a_partial_write_and_refuses_a_single_booking(): void {
+		$this->wpdb->shouldReceive('prepare')->andReturn('SERIES');
+		$this->wpdb->shouldReceive('query')->with('SERIES')->once()->andReturn(1);
+
+		$this->assertFalse(AudienceBookingWriter::assign_series(array( 7, 8 )), 'One of two rows tied is not a series.');
+		$this->assertFalse(AudienceBookingWriter::assign_series(array( 7 )), 'One booking is no series; nothing is written.');
+	}
+
+	public function test_get_series_reads_the_active_occurrences_first_date_first(): void {
+		$sql = null;
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function (...$args) use (&$sql) {
+			$sql = $args;
+			return 'READ';
+		});
+		$rows = array( (object) array( 'id' => '7', 'booking_date' => '2026-05-20', 'start_time' => '09:00:00', 'end_time' => '10:00:00' ) );
+		$this->wpdb->shouldReceive('get_results')->with('READ')->once()->andReturn($rows);
+
+		$this->assertSame($rows, AudienceBookingReader::get_series(7));
+		$this->assertStringContainsString("WHERE series_id = %d AND status = 'active' ORDER BY booking_date ASC", $sql[0]);
+		$this->assertSame(array(), AudienceBookingReader::get_series(0), 'No series id reads nothing.');
+	}
+
 	public function test_cancel_returns_false_when_reason_is_empty(): void {
 		$result = AudienceBookingWriter::cancel(5, '');
 

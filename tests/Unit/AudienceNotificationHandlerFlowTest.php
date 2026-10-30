@@ -190,6 +190,12 @@ class AudienceNotificationHandlerFlowTest extends TestCase {
 				if ( false !== strpos( $q, 'FROM wp_ffc_audiences' ) && false !== strpos( $q, 'parent_id' ) ) {
 					return array(); // No child audiences.
 				}
+				if ( preg_match( "/FROM wp_ffc_audience_bookings WHERE series_id = (\\d+) AND status = 'active'/", $q, $m ) ) {
+					// The active occurrences of a weekly series (#2243), first date first.
+					$rows = array_values( array_filter( $this->bookings, static fn( $b ) => (int) ( $b->series_id ?? 0 ) === (int) $m[1] && 'active' === ( $b->status ?? 'active' ) ) );
+					usort( $rows, static fn( $a, $b ) => strcmp( $a->booking_date, $b->booking_date ) );
+					return $rows;
+				}
 				$this->fail( 'Unexpected get_results(): ' . $q );
 			}
 		);
@@ -434,6 +440,39 @@ class AudienceNotificationHandlerFlowTest extends TestCase {
 		$this->assertStringContainsString( 'METHOD:REQUEST', $this->attached[0] );
 		// Temp file cleaned up after send.
 		$this->assertFileDoesNotExist( $captured[0] );
+	}
+
+	// ==================================================================
+	// Weekly series (#2243)
+	// ==================================================================
+
+	/**
+	 * Booking 1 is the first of a three-week series; 2 and 3 follow it.
+	 */
+	private function store_series(): void {
+		$this->store( $this->schedule( array( 'include_ics' => 1 ) ), array( 10 ), array( 'series_id' => 1 ) );
+		$this->bookings[2] = $this->booking( array( 'id' => 2, 'booking_date' => '2026-05-27', 'series_id' => 1 ) );
+		$this->bookings[3] = $this->booking( array( 'id' => 3, 'booking_date' => '2026-06-03', 'series_id' => 1 ) );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $number ) => 1 === (int) $number ? $single : $plural );
+		Functions\when( 'get_user_by' )->alias( fn( $field, $id ) => $this->wp_user( (int) $id, 'a@example.com', 'Ana' ) );
+	}
+
+	public function test_a_series_is_announced_once_with_every_date_and_one_event_each(): void {
+		$this->store_series();
+
+		AudienceNotificationHandler::send_booking_created_notification( 1 );
+
+		$this->assertSame( array( 'a@example.com' ), $this->recipients() );
+		$this->assertStringContainsString( 'Weekly, 3 dates: 2026-05-20, 2026-05-27, 2026-06-03', $this->mailed[0][2], 'The e-mail lists every date.' );
+		$this->assertSame( 3, substr_count( $this->attached[0], 'BEGIN:VEVENT' ), 'One calendar event per date.' );
+		$this->assertStringContainsString( 'UID:ffc-booking-2@example.com', $this->attached[0], 'Each event keeps its own booking, so cancelling one date removes that date alone.' );
+	}
+
+	public function test_the_other_dates_of_a_series_send_nothing(): void {
+		$this->store_series();
+
+		$this->assertNull( AudienceNotificationHandler::send_booking_created_notification( 2 ) );
+		$this->assertSame( array(), $this->mailed );
 	}
 
 	// ==================================================================

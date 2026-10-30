@@ -450,7 +450,9 @@ class AudienceActivatorTest extends TestCase {
 		$this->assertStringNotContainsString( 'allow_self_join', $alters, 'the FFC_VERSION chain stayed gated' );
 		// The bookings lock and invitation scan read their new indexes (#2243),
 		// added before the ones they replace are dropped.
-		$this->assertSame( array( 'idx_env_status_date', 'idx_end_booking_date' ), $indexes );
+		// A weekly series is found by its first booking (#2243).
+		$this->assertSame( array( 'idx_env_status_date', 'idx_end_booking_date', 'idx_series' ), $indexes );
+		$this->assertStringContainsString( "ADD COLUMN 'series_id'", $alters );
 		$this->assertLessThan(
 			strpos( $alters, "DROP INDEX 'idx_environment'" ),
 			strpos( $alters, "ADD INDEX 'idx_env_status_date'" ),

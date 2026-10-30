@@ -45,9 +45,13 @@ export function bookingModalHtml(opts = {}) {
 						<fieldset id="booking-span" class="ffc-control-segmented">
 							<label><input type="radio" id="booking-span-1" name="booking_span" value="single" checked></label>
 							<label><input type="radio" id="booking-span-2" name="booking_span" value="range"></label>
+							<label><input type="radio" id="booking-span-3" name="booking_span" value="weekly"></label>
 						</fieldset>
 						<div class="ffc-form-group" id="booking-end-date-group" hidden>
 							<input type="date" name="end_date" id="booking-end-date">
+						</div>
+						<div class="ffc-form-group" id="booking-repeat-group" hidden>
+							<input type="date" name="repeat_until" id="booking-repeat-until">
 						</div>
 						<div class="ffc-booking-field" id="booking-all-day-group">
 							<label class="ffc-control-toggle" for="booking-all-day"><input type="checkbox" id="booking-all-day" name="is_all_day" value="1"></label>

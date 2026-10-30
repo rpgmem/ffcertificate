@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.12.0
  *
- * @phpstan-type BookingRow \stdClass&object{id: numeric-string, environment_id: numeric-string, booking_date: string, start_time: string, end_time: string, booking_type: string, description: string, status: string, created_by: numeric-string, created_at: numeric-string, cancelled_by: numeric-string|null, cancelled_at: numeric-string|null, cancellation_reason: string|null, is_all_day?: numeric-string, end_date?: string|null, time_mode?: string|null, skipped_dates?: string|null, attendance_mode?: string|null, attendance_min_percent?: numeric-string|null, post_event_custom?: numeric-string|null, post_event_form_id?: numeric-string|null, post_event_window_days?: numeric-string|null, post_event_attendees_only?: numeric-string|null, environment_name?: string|null, schedule_id?: numeric-string|null, audience_name?: string, audience_id?: numeric-string, title?: string, audiences?: array<int, mixed>, users?: array<int, int>}
+ * @phpstan-type BookingRow \stdClass&object{id: numeric-string, environment_id: numeric-string, booking_date: string, start_time: string, end_time: string, booking_type: string, description: string, status: string, created_by: numeric-string, created_at: numeric-string, cancelled_by: numeric-string|null, cancelled_at: numeric-string|null, cancellation_reason: string|null, series_id?: numeric-string|null, is_all_day?: numeric-string, end_date?: string|null, time_mode?: string|null, skipped_dates?: string|null, attendance_mode?: string|null, attendance_min_percent?: numeric-string|null, post_event_custom?: numeric-string|null, post_event_form_id?: numeric-string|null, post_event_window_days?: numeric-string|null, post_event_attendees_only?: numeric-string|null, environment_name?: string|null, schedule_id?: numeric-string|null, audience_name?: string, audience_id?: numeric-string, title?: string, audiences?: array<int, mixed>, users?: array<int, int>}
  */
 class AudienceBookingReader {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -349,6 +349,35 @@ class AudienceBookingReader {
 		}
 
 		return $booking;
+	}
+
+	/**
+	 * The active occurrences of a weekly series, first date first (#2243).
+	 *
+	 * @param int $series_id The id of the series' first booking.
+	 * @return list<object{id: numeric-string, booking_date: string, start_time: string, end_time: string}>
+	 */
+	public static function get_series( int $series_id ): array {
+		if ( $series_id <= 0 ) {
+			return array();
+		}
+
+		$wpdb = self::db();
+
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<object{id: numeric-string, booking_date: string, start_time: string, end_time: string}>|null $rows
+		 */
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, booking_date, start_time, end_time FROM %i WHERE series_id = %d AND status = 'active' ORDER BY booking_date ASC, id ASC",
+				self::get_table_name(),
+				$series_id
+			)
+		);
+
+		return is_array( $rows ) ? $rows : array();
 	}
 
 	/**

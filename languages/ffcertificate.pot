@@ -27506,7 +27506,7 @@ msgid "The last day must come after the first."
 msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
-msgid "The booking dialog asks when, where and for whom. One day or Several days sets the span; several days adds the last day, how the hours read on each day and the switch that skips blocked days. Audiences are ticked in a searchable list that shows each one's colour and how many people a booking for it reaches, a person in several sub-audiences counted once; ticking an audience ticks its sub-audiences too. One button checks the conflicts and, once the check passes, creates the booking; changing the date, the times, the space or who it is for asks for a new check. On a phone the dialog rises from the bottom of the screen and the audience list opens as a screen of its own."
+msgid "The booking dialog asks when, where and for whom. One day, Several days or Weekly sets the span; several days adds the last day, how the hours read on each day and the switch that skips blocked days, and weekly adds the last day the series may reach. Audiences are ticked in a searchable list that shows each one's colour and how many people a booking for it reaches, a person in several sub-audiences counted once; ticking an audience ticks its sub-audiences too. One button checks the conflicts and, once the check passes, creates the booking; changing the date, the times, the space or who it is for asks for a new check. On a phone the dialog rises from the bottom of the screen and the audience list opens as a screen of its own."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-date-messages.php
@@ -30070,3 +30070,58 @@ msgid "You will no longer see %d upcoming booking of this group, nor be expected
 msgid_plural "You will no longer see %d upcoming bookings of this group, nor be expected at them."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "A weekly series repeats one day. Choose one day, not several."
+msgstr ""
+
+msgid "Repeat until must be a valid date after the first one."
+msgstr ""
+
+msgid "A weekly series can repeat for at most %d weeks."
+msgstr ""
+
+msgid "Some dates changed since the check. Review the list and confirm again."
+msgstr ""
+
+msgid "No date of the series can be booked."
+msgstr ""
+
+msgid "%d weekly booking created."
+msgid_plural "%d weekly bookings created."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "These dates could not be booked: %s."
+msgstr ""
+
+msgid "Weekly, %1$d date: %2$s"
+msgid_plural "Weekly, %1$d dates: %2$s"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Weekly"
+msgstr ""
+
+msgid "Repeat until"
+msgstr ""
+
+msgid "Every week on the same day and hours, for up to %d weeks. The check lists the dates that cannot be booked; they are left out."
+msgstr ""
+
+msgid "%1$s, every week until %2$s"
+msgstr ""
+
+msgid "%1$d of %2$d dates can be booked."
+msgstr ""
+
+msgid "These dates will be left out:"
+msgstr ""
+
+msgid "Choose until when the booking repeats."
+msgstr ""
+
+msgid "Repeat until must be at least a week after the first date."
+msgstr ""
+
+msgid "Weekly repeats one day: the same day of the week, space, hours and people every week until the \"Repeat until\" date, for up to 52 weeks. The check runs the rules and the room's conflicts on each date and lists the dates that cannot be booked, with why; those dates are left out, and the rest are booked. A date in a weekly series is never booked over a conflict or a closed day, even by someone who may override: that stays a decision about one booking. Each date is an ordinary booking, with its own attendance, post-event form and cancellation, and the participants receive one e-mail that lists every date, with a calendar file holding them all."
+msgstr ""

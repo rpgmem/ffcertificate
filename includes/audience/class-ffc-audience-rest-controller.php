@@ -27,6 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * REST API controller for audience endpoints.
  *
  * @phpstan-import-type EnvironmentRow from AudienceEnvironmentRepository
+ * @phpstan-import-type ScheduleRow from AudienceScheduleRepository
  */
 class AudienceRestController {
 
@@ -147,6 +148,23 @@ class AudienceRestController {
 						'type'              => 'string',
 						'default'           => '',
 						'sanitize_callback' => 'sanitize_textarea_field',
+					),
+					// A weekly series (#2243): the last day it may reach, the
+					// dates the booker chose to leave out, and whether this
+					// call only lists what each date would meet.
+					'repeat_until'     => array(
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'skip_dates'       => array(
+						'type'    => 'array',
+						'items'   => array( 'type' => 'string' ),
+						'default' => array(),
+					),
+					'preview'          => array(
+						'type'    => 'boolean',
+						'default' => false,
 					),
 				),
 			)
@@ -741,6 +759,31 @@ class AudienceRestController {
 			return $refused;
 		}
 
+		// A weekly series repeats this one day (#2243).
+		$repeat_until = (string) $request->get_param( 'repeat_until' );
+		if ( '' !== $repeat_until ) {
+			if ( $is_range ) {
+				return self::refusal( 400, __( 'A weekly series repeats one day. Choose one day, not several.', 'ffcertificate' ) );
+			}
+			return $this->create_series(
+				$request,
+				$schedule,
+				$environment,
+				array(
+					'environment_id' => $environment_id,
+					'booking_date'   => $booking_date,
+					'start_time'     => $start_time,
+					'end_time'       => $end_time,
+					'is_all_day'     => $is_all_day ? 1 : 0,
+					'booking_type'   => $booking_type,
+					'description'    => $description,
+					'audience_ids'   => $audience_ids,
+					'user_ids'       => $user_ids,
+				),
+				$repeat_until
+			);
+		}
+
 		$has_bypass = AudienceScheduleRepository::user_has_bypass( $schedule_id, $user_id );
 
 		// The days this booking takes, after any skipped blocked days.
@@ -920,6 +963,180 @@ class AudienceRestController {
 				'success'    => true,
 				'booking_id' => $booking_id,
 				'message'    => __( 'Booking created successfully.', 'ffcertificate' ),
+			),
+			201
+		);
+	}
+
+	/**
+	 * Create a weekly series, or list what each of its dates would meet
+	 * (#2243).
+	 *
+	 * Every occurrence is an ordinary booking: the calendar's rules and the
+	 * room's conflicts are checked on each date, the way a single booking is
+	 * checked. A date that meets any of them is listed with the reasons and
+	 * left out, never overridden; the override stays a decision about one
+	 * booking. The same call serves the preview and the creation, so what
+	 * the booker was shown is what is booked: a date that went wrong between
+	 * the two answers again with the fresh list instead of being booked.
+	 *
+	 * The occurrences are tied by `series_id`. Each fires the usual
+	 * `ffcertificate_audience_booking_created`, and the e-mail is sent once,
+	 * for the first, listing every date.
+	 *
+	 * @param \WP_REST_Request    $request      Request.
+	 * @param object              $schedule     The calendar.
+	 * @param object              $environment  The space.
+	 * @param array<string,mixed> $booking_data The fields every occurrence shares, with the first date.
+	 * @param string              $repeat_until Last day the series may reach (Y-m-d).
+	 * @phpstan-param ScheduleRow $schedule
+	 * @phpstan-param EnvironmentRow $environment
+	 * @return \WP_REST_Response
+	 */
+	private function create_series( \WP_REST_Request $request, object $schedule, object $environment, array $booking_data, string $repeat_until ): \WP_REST_Response {
+		$first_date = (string) $booking_data['booking_date'];
+
+		if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $repeat_until ) || $repeat_until <= $first_date ) {
+			return self::refusal( 400, __( 'Repeat until must be a valid date after the first one.', 'ffcertificate' ) );
+		}
+		if ( AudienceBookingRules::weekly_count( $first_date, $repeat_until ) > AudienceBookingRules::SERIES_MAX_WEEKS ) {
+			/* translators: %d: the most weeks a series may repeat. */
+			return self::refusal( 400, sprintf( __( 'A weekly series can repeat for at most %d weeks.', 'ffcertificate' ), AudienceBookingRules::SERIES_MAX_WEEKS ), 'series_too_long' );
+		}
+
+		$environment_id = (int) $environment->id;
+		$is_all_day     = ! empty( $booking_data['is_all_day'] );
+		$skip_dates     = array_values( array_filter( array_map( 'strval', (array) $request->get_param( 'skip_dates' ) ), array( \FreeFormCertificate\Core\DateFormatter::class, 'is_valid_date' ) ) );
+
+		$occurrences = array();
+		foreach ( AudienceBookingRules::weekly_dates( $first_date, $repeat_until ) as $date ) {
+			$start_time = (string) $booking_data['start_time'];
+			$end_time   = (string) $booking_data['end_time'];
+			if ( $is_all_day ) {
+				$window     = AudienceBookingRules::all_day_window( $environment_id, $date );
+				$start_time = $window['start'];
+				$end_time   = $window['end'];
+			}
+
+			$problems = AudienceBookingRules::violations( $schedule, $environment, $date, $start_time, $end_time );
+			if ( ! empty( AudienceBookingReader::get_conflicts( $environment_id, $date, $start_time, $end_time ) ) ) {
+				$problems[] = AudienceBookingRules::reason( AudienceBookingRules::CONFLICT );
+			}
+
+			$occurrences[] = array(
+				'date'       => $date,
+				'start_time' => $start_time,
+				'end_time'   => $end_time,
+				'problems'   => $problems,
+				'skipped'    => in_array( $date, $skip_dates, true ),
+			);
+		}
+
+		$listed   = array_map(
+			static function ( array $occurrence ): array {
+				return array(
+					'date'     => $occurrence['date'],
+					'label'    => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $occurrence['date'] ),
+					'problems' => $occurrence['problems'],
+				);
+			},
+			$occurrences
+		);
+		$bookable = array_values( array_filter( $occurrences, static fn( array $o ): bool => empty( $o['problems'] ) ) );
+
+		if ( ! empty( $request->get_param( 'preview' ) ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success'     => true,
+					'preview'     => true,
+					'occurrences' => $listed,
+					'bookable'    => count( $bookable ),
+				),
+				200
+			);
+		}
+
+		// A date with a problem the booker did not agree to leave out:
+		// something changed since the preview.
+		foreach ( $occurrences as $occurrence ) {
+			if ( ! empty( $occurrence['problems'] ) && ! $occurrence['skipped'] ) {
+				return new \WP_REST_Response(
+					array(
+						'success'     => false,
+						'code'        => 'series_changed',
+						'message'     => __( 'Some dates changed since the check. Review the list and confirm again.', 'ffcertificate' ),
+						'occurrences' => $listed,
+						'bookable'    => count( $bookable ),
+					),
+					409
+				);
+			}
+		}
+
+		$to_book = array_values( array_filter( $bookable, static fn( array $o ): bool => ! $o['skipped'] ) );
+		if ( empty( $to_book ) ) {
+			return self::refusal( 400, __( 'No date of the series can be booked.', 'ffcertificate' ), 'series_empty' );
+		}
+
+		$created = array();
+		$failed  = array();
+		foreach ( $to_book as $occurrence ) {
+			$data = array_merge(
+				$booking_data,
+				array(
+					'booking_date' => $occurrence['date'],
+					'start_time'   => $occurrence['start_time'],
+					'end_time'     => $occurrence['end_time'],
+					'end_date'     => $occurrence['date'],
+					'time_mode'    => 'daily',
+					'skip_blocked' => false,
+				)
+			);
+
+			/** This action is documented in create_booking(). */
+			do_action( 'ffcertificate_before_audience_booking_create', $data );
+
+			$booking_id = AudienceBookingWriter::create( $data );
+			if ( $booking_id ) {
+				$created[] = (int) $booking_id;
+			} else {
+				$failed[] = $occurrence['date'];
+			}
+		}
+
+		if ( empty( $created ) ) {
+			return self::refusal( 500, __( 'Failed to create booking.', 'ffcertificate' ) );
+		}
+
+		if ( count( $created ) > 1 ) {
+			AudienceBookingWriter::assign_series( $created );
+		}
+
+		foreach ( $created as $booking_id ) {
+			/** This action is documented in create_booking(). */
+			do_action( 'ffcertificate_audience_booking_created', $booking_id );
+		}
+
+		$message = sprintf(
+			/* translators: %d: how many weekly bookings were created. */
+			_n( '%d weekly booking created.', '%d weekly bookings created.', count( $created ), 'ffcertificate' ),
+			count( $created )
+		);
+		if ( ! empty( $failed ) ) {
+			$message .= ' ' . sprintf(
+				/* translators: %s: the dates that could not be booked, comma-separated. */
+				__( 'These dates could not be booked: %s.', 'ffcertificate' ),
+				implode( ', ', array_map( array( \FreeFormCertificate\Core\DateFormatter::class, 'format_wallclock_date' ), $failed ) )
+			);
+		}
+
+		return new \WP_REST_Response(
+			array(
+				'success'      => true,
+				'booking_id'   => $created[0],
+				'booking_ids'  => $created,
+				'failed_dates' => $failed,
+				'message'      => $message,
 			),
 			201
 		);

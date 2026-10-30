@@ -24,6 +24,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Reregistration: a custom field keeps what was answered** (#2242). Once anybody answered it, its key, type, sensitivity and profile binding are locked and it cannot be deleted (server and editor); label, help text and options stay editable. A deactivated field's answers keep appearing in review, the Record and the CSV export.
 - **Reregistration: review at scale** (#2242). The submissions list pages 50 at a time, searches by CPF/RF through the hash as well as name and e-mail, filters by audience and by "not finished", and each stat card is a filter link. Export CSV follows the filters; a bulk reminder says how many were skipped or failed, and why nothing went out when blocked.
 - **Reregistration: the form saves itself and warns before losing changes** (#2242). The draft is saved 5 s after the last change; leaving the page or Cancel with unsaved changes asks first. The work-hours table scrolls sideways on a phone with an edge shadow.
+- **Audience Calendars: a weekly booking for up to 52 weeks in one dialog** (#2243). Weekly repeats a day until a chosen date; the check lists, per date, the rules or room clashes that leave it out, and the rest are booked as ordinary bookings tied by `series_id`. Participants get one e-mail listing every date, with one calendar event per date.
 
 ### Changed
 

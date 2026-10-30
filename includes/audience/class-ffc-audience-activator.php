@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '10';
+	public const SCHEMA_REVISION = '11';
 
 	/**
 	 * Option holding the revision last applied.
@@ -364,12 +364,14 @@ class AudienceActivator {
             post_event_form_id bigint(20) unsigned DEFAULT NULL,
             post_event_window_days smallint(5) unsigned DEFAULT NULL,
             post_event_attendees_only tinyint(1) DEFAULT NULL,
+            series_id bigint(20) unsigned DEFAULT NULL COMMENT 'First booking of its weekly series',
             PRIMARY KEY (id),
             KEY idx_date (booking_date),
             KEY idx_status (status),
             KEY idx_created_by (created_by),
             KEY idx_env_status_date (environment_id, status, booking_date),
-            KEY idx_end_booking_date (end_date, booking_date)
+            KEY idx_end_booking_date (end_date, booking_date),
+            KEY idx_series (series_id)
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -917,6 +919,7 @@ class AudienceActivator {
 		$healed = self::migrate_booking_day_times_column() && $healed;
 		$healed = self::migrate_booking_indexes() && $healed;
 		$healed = self::migrate_booking_timestamps() && $healed;
+		$healed = self::migrate_booking_series_column() && $healed;
 		$healed = self::migrate_booking_attendance_columns() && $healed;
 		$healed = self::migrate_post_event_form_columns() && $healed;
 		$healed = self::migrate_holiday_kind_column() && $healed;
@@ -1071,6 +1074,29 @@ class AudienceActivator {
 		}
 
 		return ! self::index_exists( $table_name, 'idx_env_date_status' ) && ! self::index_exists( $table_name, 'idx_environment' );
+	}
+
+	/**
+	 * Add the column that ties the occurrences of a weekly series (#2243).
+	 *
+	 * Each occurrence stays an ordinary booking, with its own attendance,
+	 * invitations and cancellation; `series_id` names the first one, so the
+	 * series can be told once and cancelled from a date onward.
+	 *
+	 * @return bool Whether the column and its index exist, or the table does not exist yet.
+	 */
+	private static function migrate_booking_series_column(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_bookings';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing( $table_name, 'series_id', 'bigint(20) unsigned DEFAULT NULL', 'post_event_attendees_only' );
+		self::add_index_if_missing( $table_name, 'idx_series', 'series_id' );
+
+		return self::has_columns( $table_name, array( 'series_id' ) ) && self::index_exists( $table_name, 'idx_series' );
 	}
 
 	/**

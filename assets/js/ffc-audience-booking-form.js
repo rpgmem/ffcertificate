@@ -35,6 +35,8 @@
         FFC.clearFieldMessage($('#ffc-booking-form').find('input, select, textarea'));
         $('#booking-date').val(date);
         $('#booking-end-date').val('').attr('min', date);
+        $('#booking-repeat-until').val('').attr({ min: addDays(date, 7), max: addDays(date, 7 * (seriesMaxWeeks() - 1)) });
+        state.seriesSkip = [];
         $('input[name="booking_span"][value="single"]').prop('checked', true);
         $('input[name="time_mode"][value="daily"]').prop('checked', true);
         $('#booking-skip-blocked').prop('checked', false);
@@ -146,6 +148,40 @@
     }
 
     /**
+     * Whether the person chose a weekly series (#2243): the same day of the
+     * week and hours, up to a year.
+     *
+     * @return {boolean}
+     */
+    function isWeekly() {
+        return $('input[name="booking_span"]:checked').val() === 'weekly';
+    }
+
+    /**
+     * The most weeks a series may repeat, as the server declares it.
+     *
+     * @return {number}
+     */
+    function seriesMaxWeeks() {
+        return parseInt(ffcAudience.seriesMaxWeeks, 10) || 52;
+    }
+
+    /**
+     * A date some days after another, both Y-m-d.
+     *
+     * @param {string} date Y-m-d.
+     * @param {number} days Days to add.
+     * @return {string}
+     */
+    function addDays(date, days) {
+        var d = parseDate(date);
+        d.setDate(d.getDate() + days);
+        var month = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return d.getFullYear() + '-' + month + '-' + day;
+    }
+
+    /**
      * The chosen way of reading the hours of a range: `daily` or `span`.
      *
      * @return {string}
@@ -167,17 +203,25 @@
         var date = $('#booking-date').val();
         var endDate = on ? ($('#booking-end-date').val() || '') : '';
 
+        var weekly = isWeekly();
         $('#booking-end-date-group, #booking-range-options').prop('hidden', !on);
         $('#booking-end-date').prop('required', on);
+        $('#booking-repeat-group').prop('hidden', !weekly);
+        $('#booking-repeat-until').prop('required', weekly);
         if (on && $('#booking-all-day').is(':checked')) {
             setAllDay(false);
         }
         $('#booking-all-day-group').prop('hidden', on);
 
         if (date) {
-            $('.ffc-booking-date-display').text(
-                endDate && endDate !== date ? formatBookingDate(date) + ' – ' + formatBookingDate(endDate) : formatBookingDate(date)
-            );
+            var until = weekly ? ($('#booking-repeat-until').val() || '') : '';
+            var heading = formatBookingDate(date);
+            if (endDate && endDate !== date) {
+                heading += ' – ' + formatBookingDate(endDate);
+            } else if (until) {
+                heading = ((ffcAudience.strings || {}).weeklyUntil || '%1$s, every week until %2$s').replace('%1$s', heading).replace('%2$s', formatBookingDate(until));
+            }
+            $('.ffc-booking-date-display').text(heading);
         }
         updateTimeModeHints();
     }
@@ -425,11 +469,146 @@
      * The button's action: check first, create once the check has passed.
      */
     function submitBooking() {
-        if ($('#ffc-booking-submit').attr('data-step') === 'create') {
+        var create = $('#ffc-booking-submit').attr('data-step') === 'create';
+        if (isWeekly()) {
+            if (create) {
+                createSeries();
+            } else {
+                checkSeries();
+            }
+        } else if (create) {
             createBooking();
         } else {
             checkConflicts();
         }
+    }
+
+    /**
+     * The lines of a series check (#2243): each date that cannot be booked,
+     * with why. Those dates are left out of the series.
+     *
+     * @param {Array} occurrences The server's list.
+     * @return {string[]}
+     */
+    function seriesProblemLines(occurrences) {
+        return (occurrences || []).filter(function(o) {
+            return o.problems && o.problems.length;
+        }).map(function(o) {
+            return o.label + ': ' + o.problems.map(function(p) { return p.message; }).join(' ');
+        });
+    }
+
+    /**
+     * Show what a series check found, and keep the dates it leaves out.
+     *
+     * @param {Object} body The server's answer: `occurrences`, `bookable`.
+     * @return {boolean} Whether any date can be booked.
+     */
+    function showSeriesCheck(body) {
+        var S = ffcAudience.strings || {};
+        var occurrences = body.occurrences || [];
+        var lines = seriesProblemLines(occurrences);
+        var bookable = parseInt(body.bookable, 10) || 0;
+
+        state.seriesSkip = occurrences.filter(function(o) {
+            return o.problems && o.problems.length;
+        }).map(function(o) { return o.date; });
+
+        var title = (S.seriesBookable || '%1$d of %2$d dates can be booked.')
+            .replace('%1$d', bookable)
+            .replace('%2$d', occurrences.length);
+
+        if (bookable === 0) {
+            $('#ffc-conflict-error')
+                .empty()
+                .append(FFC.notice('danger', 'error', lines, title, { role: 'alert', hook: 'conflict-error' }))
+                .prop('hidden', false);
+            return false;
+        }
+
+        if (lines.length) {
+            lines.unshift(S.seriesSkipped || 'These dates will be left out:');
+        }
+        $('#ffc-conflict-error')
+            .empty()
+            .append(FFC.notice(lines.length ? 'warning' : 'success', lines.length ? 'warning' : 'success', lines, title, { role: 'status', hook: 'conflict-error' }))
+            .prop('hidden', false);
+        return true;
+    }
+
+    /**
+     * Check every date of a weekly series against the calendar's rules and
+     * the room (#2243). The dates that cannot be booked are listed and left
+     * out; the rest are booked by the next step.
+     */
+    function checkSeries() {
+        if (!validateBookingForm()) {
+            return;
+        }
+
+        var data = getBookingFormData();
+        data.preview = 1;
+
+        resetConflicts();
+        setSubmitBusy(true);
+
+        FFC.rest(ffcAudience.restUrl + 'bookings', {
+            method: 'POST',
+            timeout: 30000,
+            nonce: ffcAudience.nonce,
+            data: data
+        })
+            .then(function(response) {
+                setSubmitStep(response && response.success && showSeriesCheck(response) ? 'create' : 'check');
+            })
+            .catch(function(err) {
+                var body = err && err.xhr && err.xhr.responseJSON;
+                setSubmitStep('check');
+                $('#ffc-conflict-error')
+                    .empty()
+                    .append(FFC.notice('danger', 'error', (body && body.message) || ffcAudience.strings.error, '', { role: 'alert', hook: 'conflict-error' }))
+                    .prop('hidden', false);
+            });
+    }
+
+    /**
+     * Book the dates a series check passed (#2243). A date that went wrong
+     * since the check comes back with the fresh list, to be checked again.
+     */
+    function createSeries() {
+        if (!validateBookingForm()) {
+            return;
+        }
+
+        var data = getBookingFormData();
+        data.skip_dates = state.seriesSkip || [];
+
+        setSubmitBusy(true);
+
+        FFC.rest(ffcAudience.restUrl + 'bookings', {
+            method: 'POST',
+            nonce: ffcAudience.nonce,
+            data: data
+        })
+            .then(function(response) {
+                if (response && response.success) {
+                    alert(response.message || ffcAudience.strings.bookingCreated);
+                    api.closeModals();
+                    api.renderCalendar();
+                } else {
+                    setSubmitStep('check');
+                    alert((response && response.message) || ffcAudience.strings.error);
+                }
+            })
+            .catch(function(err) {
+                var body = err && err.xhr && err.xhr.responseJSON;
+                setSubmitStep('check');
+                if (body && body.code === 'series_changed') {
+                    showSeriesCheck(body);
+                    return;
+                }
+                alert((body && body.message) || ffcAudience.strings.error);
+            });
     }
 
     /**
@@ -831,6 +1010,19 @@
             FFC.clearFieldMessage($endDate);
         }
 
+        // A weekly series needs its last week, within the cap (#2243).
+        var $repeat = $('#booking-repeat-until');
+        if (isWeekly()) {
+            var until = $repeat.val() || '';
+            var first = $('#booking-date').val();
+            var tooLong = until && until > addDays(first, 7 * (seriesMaxWeeks() - 1));
+            check($repeat, !until ? (S.repeatUntilRequired || 'Choose until when the booking repeats.')
+                : (until < addDays(first, 7) ? (S.repeatUntilInvalid || 'Repeat until must be at least a week after the first date.')
+                    : (tooLong ? (S.repeatUntilTooLong || 'A weekly series can repeat for at most %d weeks.').replace('%d', seriesMaxWeeks()) : '')));
+        } else {
+            FFC.clearFieldMessage($repeat);
+        }
+
         var length = ($description.val() || '').trim().length;
         check($description, length < 15 || length > 300 ? S.descriptionRequired : '');
 
@@ -887,6 +1079,10 @@
             user_ids: []
         };
 
+        if (isWeekly()) {
+            data.repeat_until = $('#booking-repeat-until').val() || '';
+        }
+
         if (type === 'audience') {
             data.audience_ids = selectedAudienceIds();
         } else {
@@ -908,6 +1104,7 @@
     api.createBooking      = createBooking;
     api.updateEnvironmentStatus = updateEnvironmentStatus;
     api.isRange            = isRange;
+    api.isWeekly           = isWeekly;
     api.setAllDay          = setAllDay;
     api.setBookingType     = setBookingType;
     api.updateTimeModeHints = updateTimeModeHints;
