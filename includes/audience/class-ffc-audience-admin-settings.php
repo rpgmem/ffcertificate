@@ -305,6 +305,63 @@ class AudienceAdminSettings {
 	}
 
 	/**
+	 * Add a global holiday (#2243).
+	 *
+	 * A date already in the list is refused with a message; the screen used
+	 * to report it added. A date that holds active audience bookings on any
+	 * calendar is not saved until the request confirms it: the General tab
+	 * lists those bookings, and the confirmation saves the date and cancels
+	 * each of them, telling their participants.
+	 *
+	 * @param string $date        Date (Y-m-d).
+	 * @param string $description Description, may be empty.
+	 * @param string $kind        Closed-date kind.
+	 * @return string|null The message to redirect with, or null while the bookings wait for confirmation.
+	 */
+	private function add_global_holiday( string $date, string $description, string $kind ): ?string {
+		if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $date ) ) {
+			return 'holiday_not_updated';
+		}
+
+		$holidays = get_option( 'ffc_global_holidays', array() );
+		$holidays = is_array( $holidays ) ? $holidays : array();
+		foreach ( $holidays as $holiday ) {
+			if ( is_array( $holiday ) && ( $holiday['date'] ?? '' ) === $date ) {
+				return 'holiday_exists';
+			}
+		}
+
+		$bookings = AudienceClosedDay::bookings_on( $date );
+		if ( ! empty( $bookings ) && ! AudienceClosedDay::confirmed() ) {
+			AudienceClosedDay::hold(
+				$date,
+				$kind,
+				$description,
+				$bookings,
+				array(
+					'ffc_action'                 => 'add_global_holiday',
+					'ffc_global_holiday_nonce'   => wp_create_nonce( 'ffc_global_holiday_action' ),
+					'global_holiday_date'        => $date,
+					'global_holiday_description' => $description,
+					'global_holiday_kind'        => $kind,
+				)
+			);
+			return null;
+		}
+
+		$holidays[] = array(
+			'date'        => $date,
+			'description' => $description,
+			'kind'        => $kind,
+		);
+		update_option( 'ffc_global_holidays', $holidays );
+
+		$cancelled = AudienceClosedDay::cancel_bookings( $bookings, $date, $description );
+
+		return 0 === $cancelled ? 'holiday_added' : 'holiday_added_cancelled&cancelled=' . $cancelled;
+	}
+
+	/**
 	 * Handle global holiday add/delete actions
 	 *
 	 * @return void
@@ -325,6 +382,17 @@ class AudienceAdminSettings {
 				add_settings_error( 'ffc_audience', 'ffc_message', $messages[ $message ], 'success' );
 			} elseif ( 'holiday_not_updated' === $message ) {
 				add_settings_error( 'ffc_audience', 'ffc_message', __( 'The holiday was not changed: the date is invalid or another holiday already uses it.', 'ffcertificate' ), 'error' );
+			} elseif ( 'holiday_exists' === $message ) {
+				add_settings_error( 'ffc_audience', 'ffc_message', __( 'Not added: that date is already a global holiday.', 'ffcertificate' ), 'error' );
+			} elseif ( 'holiday_added_cancelled' === $message ) {
+				$cancelled = RequestInput::get_get_int( 'cancelled' );
+				add_settings_error(
+					'ffc_audience',
+					'ffc_message',
+					/* translators: %d: number of bookings cancelled */
+					sprintf( _n( 'Holiday added. %d booking was cancelled and its participants were e-mailed.', 'Holiday added. %d bookings were cancelled and their participants were e-mailed.', $cancelled, 'ffcertificate' ), $cancelled ),
+					'success'
+				);
 			}
 		}
 
@@ -371,29 +439,13 @@ class AudienceAdminSettings {
 			$description = RequestInput::get_post_string( 'global_holiday_description' );
 			$kind        = \FreeFormCertificate\Scheduling\ClosedDateKind::normalize( RequestInput::get_post_string( 'global_holiday_kind' ) );
 
-			if ( ! empty( $date ) ) {
-				$holidays = get_option( 'ffc_global_holidays', array() );
-
-				// Avoid duplicates.
-				$exists = false;
-				foreach ( $holidays as $h ) {
-					if ( $h['date'] === $date ) {
-						$exists = true;
-						break;
-					}
-				}
-
-				if ( ! $exists ) {
-					$holidays[] = array(
-						'date'        => $date,
-						'description' => $description,
-						'kind'        => $kind,
-					);
-					update_option( 'ffc_global_holidays', $holidays );
-				}
+			$message = $this->add_global_holiday( $date, $description, $kind );
+			if ( null === $message ) {
+				// Bookings on that date wait for confirmation: the tab lists them.
+				return;
 			}
 
-			wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=general&message=holiday_added' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=general&message=' . $message ) );
 			exit;
 		}
 

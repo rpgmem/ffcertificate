@@ -49,6 +49,9 @@ class AudienceAdminCalendarTest extends TestCase {
 	 */
 	private array $rows = array();
 
+	/** @var list<object> Active bookings on the date a closed day is asked about (#2243). */
+	private array $day_bookings = array();
+
 	/** @var array<int, int> Bookings per calendar (#2243); a calendar not listed has none. */
 	private array $bookings_by_schedule = array();
 
@@ -204,9 +207,14 @@ class AudienceAdminCalendarTest extends TestCase {
 				);
 			}
 		);
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $text ) => $text );
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $q ) {
 				$this->reads[] = array( $q['sql'], $q['args'] );
+				if ( 0 === strpos( $q['sql'], 'SELECT b.*, e.name as environment_name' ) ) {
+					// AudienceBookingReader::get_all() for one day of one calendar.
+					return $this->day_bookings;
+				}
 				if ( 1 === preg_match( '/^SELECT \* FROM %i\s*(?:WHERE (.+?))?\s*(?:ORDER BY [\w ]+)?$/', $q['sql'], $m ) ) {
 					return $this->select( $q['args'], $m[1] ?? '' );
 				}
@@ -246,6 +254,13 @@ class AudienceAdminCalendarTest extends TestCase {
 		$wpdb->shouldReceive( 'update' )->andReturnUsing(
 			function ( $table, $data, $where ) {
 				$this->writes[] = array( 'update', $table, $data, $where );
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $q ) {
+				// AudienceBookingWriter::cancel(): the conditional UPDATE.
+				$this->writes[] = array( 'cancel', (string) $q['args'][0], array( 'reason' => $q['args'][3] ), array( 'id' => $q['args'][4] ) );
 				return 1;
 			}
 		);
@@ -908,6 +923,101 @@ class AudienceAdminCalendarTest extends TestCase {
 			),
 			$this->writes
 		);
+	}
+
+	/**
+	 * A closed date is posted to the calendar's Closed dates tab.
+	 *
+	 * @param array<string, string> $extra More POST fields.
+	 */
+	private function post_holiday( array $extra = array() ): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		$_POST = array_merge(
+			array(
+				'ffc_action'          => 'add_holiday',
+				'ffc_holiday_nonce'   => 'n',
+				'schedule_id'         => '5',
+				'holiday_date'        => '2026-12-25',
+				'holiday_description' => 'Xmas',
+				'holiday_kind'        => 'holiday',
+			),
+			$extra
+		);
+	}
+
+	public function test_a_date_the_calendar_already_closes_is_refused_with_a_message(): void {
+		$this->store( self::HOLIDAY_TABLE, array( 'id' => 3, 'schedule_id' => 5, 'holiday_date' => '2026-12-25' ) );
+		$notices = array();
+		Functions\when( 'add_settings_error' )->alias( static function ( ...$args ) use ( &$notices ) { $notices[] = $args; } );
+		$this->post_holiday();
+
+		( new AudienceAdminCalendar( 'ffc-scheduling' ) )->handle_actions();
+
+		$this->assertSame( array(), $this->writes );
+		$this->assertSame( 'error', $notices[0][3] );
+		$this->assertStringContainsString( 'already closes', $notices[0][2] );
+	}
+
+	public function test_a_day_with_bookings_waits_for_confirmation_and_saves_nothing(): void {
+		\FreeFormCertificate\Audience\AudienceClosedDay::reset();
+		$this->day_bookings = array( (object) array( 'id' => 41, 'environment_id' => 9, 'booking_date' => '2026-12-25', 'start_time' => '09:00:00', 'end_time' => '10:00:00', 'environment_name' => 'Room', 'description' => 'Class' ) );
+		$this->post_holiday();
+
+		( new AudienceAdminCalendar( 'ffc-scheduling' ) )->handle_actions();
+
+		$this->assertSame( array(), $this->writes, 'Nothing is saved or cancelled before the confirmation.' );
+		$pending = \FreeFormCertificate\Audience\AudienceClosedDay::pending();
+		$this->assertNotNull( $pending );
+		$this->assertSame( '2026-12-25', $pending['date'] );
+		$this->assertCount( 1, $pending['bookings'] );
+		$this->assertSame( 'add_holiday', $pending['fields']['ffc_action'] );
+		\FreeFormCertificate\Audience\AudienceClosedDay::reset();
+	}
+
+	public function test_the_confirmation_lists_the_bookings_and_posts_the_form_again(): void {
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts ) => gmdate( $format, $ts ) );
+		\FreeFormCertificate\Audience\AudienceClosedDay::hold(
+			'2026-12-25',
+			'holiday',
+			'Xmas',
+			array( (object) array( 'id' => 41, 'environment_id' => 9, 'booking_date' => '2026-12-25', 'start_time' => '09:00:00', 'end_time' => '10:00:00', 'environment_name' => 'Room A', 'description' => 'Weekly class' ) ),
+			array( 'ffc_action' => 'add_holiday', 'holiday_date' => '2026-12-25' )
+		);
+
+		ob_start();
+		\FreeFormCertificate\Audience\AudienceClosedDay::render_pending();
+		$html = (string) ob_get_clean();
+		\FreeFormCertificate\Audience\AudienceClosedDay::reset();
+
+		$this->assertStringContainsString( 'will be cancelled and its participants e-mailed', $html );
+		$this->assertStringContainsString( '09:00–10:00', $html );
+		$this->assertStringContainsString( 'Room A', $html );
+		$this->assertStringContainsString( 'name="ffc_action" value="add_holiday"', $html );
+		$this->assertStringContainsString( 'name="ffc_confirm_close_day" value="1"', $html );
+		$this->assertStringNotContainsString( 'style=', $html );
+	}
+
+	public function test_a_confirmed_closure_saves_the_date_and_cancels_each_booking(): void {
+		\FreeFormCertificate\Audience\AudienceClosedDay::reset();
+		$this->day_bookings = array(
+			(object) array( 'id' => 41 ),
+			(object) array( 'id' => 42 ),
+		);
+		$cancelled = \FreeFormCertificate\Tests\Support\CallLog::record( 'do_action' );
+		$notices   = array();
+		Functions\when( 'add_settings_error' )->alias( static function ( ...$args ) use ( &$notices ) { $notices[] = $args; } );
+		Functions\when( 'current_time' )->justReturn( '2026-12-20 10:00:00' );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
+		$this->post_holiday( array( \FreeFormCertificate\Audience\AudienceClosedDay::CONFIRM_FIELD => '1' ) );
+
+		( new AudienceAdminCalendar( 'ffc-scheduling' ) )->handle_actions();
+
+		$this->assertSame( array( 'insert', 'cancel', 'cancel' ), array_column( $this->writes, 0 ) );
+		$this->assertSame( array( 'reason' => 'Closed day: Xmas' ), $this->writes[1][2] );
+		$this->assertSame( array( 'id' => 42 ), $this->writes[2][3] );
+		$this->assertSame( 2, $cancelled->count(), 'Each cancelled booking fires the hook that e-mails its participants.' );
+		$this->assertStringContainsString( 'were cancelled', $notices[0][2] );
 	}
 
 	public function test_handle_actions_deletes_holiday_and_redirects(): void {

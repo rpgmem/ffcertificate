@@ -29950,3 +29950,31 @@ msgstr ""
 
 msgid "The same holds one level up. A calendar that still has environments or bookings cannot be deleted; the message names how many, and an environment without bookings can be deleted first. An audience that a booking names, directly or through one of its groups, cannot be deleted either, because deleting it would also remove its groups and memberships and shrink the participant list of those bookings after the fact. Deactivate it instead; the list shows \"Has bookings, kept\" in place of Delete."
 msgstr ""
+
+msgid "%1$d booking will be cancelled and its participants e-mailed if %2$s is closed:"
+msgid_plural "%1$d bookings will be cancelled and their participants e-mailed if %2$s is closed:"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Holiday added. %d booking was cancelled and its participants were e-mailed."
+msgid_plural "Holiday added. %d bookings were cancelled and their participants were e-mailed."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Closed day: %s"
+msgstr ""
+
+msgid "Not added: this calendar already closes on that date."
+msgstr ""
+
+msgid "Not added: the date is invalid or this calendar already closes on it."
+msgstr ""
+
+msgid "Not added: that date is already a global holiday."
+msgstr ""
+
+msgid "Close the day and cancel the bookings"
+msgstr ""
+
+msgid "A date that is already closed, on the same calendar or in the global list, is refused with a message. Closing a date that already holds audience bookings asks first: the screen lists those bookings, and \"Close the day and cancel the bookings\" saves the date and cancels each one with the reason \"Closed day:\" followed by the description, e-mailing its participants as any cancellation does. A calendar's closed date takes that calendar's bookings; a global holiday takes the bookings of every audience calendar. Personal-calendar appointments on that date are not cancelled."
+msgstr ""

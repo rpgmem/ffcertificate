@@ -189,6 +189,80 @@ class AudienceAdminSettingsTest extends TestCase {
 	}
 
 	// ==================================================================
+	// handle_global_holiday_actions() — closing a day (#2243)
+	// ==================================================================
+
+	/**
+	 * Post a global holiday and run the handler until it redirects.
+	 *
+	 * @param array<string, string> $extra More POST fields.
+	 * @return string The redirect target, or '' when the handler returned.
+	 */
+	private function add_global_holiday( array $extra = array() ): string {
+		$_POST = array_merge(
+			array(
+				'ffc_action'                 => 'add_global_holiday',
+				'ffc_global_holiday_nonce'   => 'n',
+				'global_holiday_date'        => '2026-12-25',
+				'global_holiday_description' => 'Xmas',
+			),
+			$extra
+		);
+		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'wp_safe_redirect' )->alias( static function ( $url ) { throw new \RuntimeException( 'redirect:' . $url ); } );
+
+		$page = new AudienceAdminSettings( 'ffc-scheduling', \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class )->shouldIgnoreMissing() );
+		try {
+			$page->handle_global_holiday_actions();
+		} catch ( \RuntimeException $e ) {
+			return $e->getMessage();
+		}
+		return '';
+	}
+
+	public function test_a_date_already_a_global_holiday_is_refused_with_a_message(): void {
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => 'ffc_global_holidays' === $key ? array( array( 'date' => '2026-12-25' ) ) : $default );
+		$update_option = CallLog::record( 'update_option', true );
+
+		$this->assertStringContainsString( 'message=holiday_exists', $this->add_global_holiday() );
+		$this->assertSame( 0, $update_option->count() );
+	}
+
+	public function test_a_global_holiday_on_a_booked_day_waits_for_confirmation(): void {
+		\FreeFormCertificate\Audience\AudienceClosedDay::reset();
+		global $wpdb;
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $text ) => $text );
+		$wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'id' => 41 ) ) );
+		$update_option = CallLog::record( 'update_option', true );
+
+		$this->assertSame( '', $this->add_global_holiday(), 'The handler returns to the tab instead of redirecting.' );
+		$this->assertSame( 0, $update_option->count() );
+		$pending = \FreeFormCertificate\Audience\AudienceClosedDay::pending();
+		$this->assertNotNull( $pending );
+		$this->assertSame( 'add_global_holiday', $pending['fields']['ffc_action'] );
+		\FreeFormCertificate\Audience\AudienceClosedDay::reset();
+	}
+
+	public function test_a_confirmed_global_holiday_is_saved_and_cancels_the_day(): void {
+		global $wpdb;
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $text ) => $text );
+		$wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'id' => 41 ) ) );
+		$wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'current_time' )->justReturn( '2026-12-20 10:00:00' );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		$cancelled     = CallLog::record( 'do_action' );
+		$update_option = CallLog::record( 'update_option', true );
+
+		$redirect = $this->add_global_holiday( array( \FreeFormCertificate\Audience\AudienceClosedDay::CONFIRM_FIELD => '1' ) );
+
+		$this->assertStringContainsString( 'message=holiday_added_cancelled&cancelled=1', $redirect );
+		$this->assertSame( 1, $update_option->count() );
+		$this->assertSame( 1, $cancelled->count() );
+	}
+
+	// ==================================================================
 	// render_page() — default tab
 	// ==================================================================
 

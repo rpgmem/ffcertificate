@@ -30032,3 +30032,31 @@ msgstr "Não excluído: %d agendamento(s) indicam este público ou um dos seus g
 
 msgid "The same holds one level up. A calendar that still has environments or bookings cannot be deleted; the message names how many, and an environment without bookings can be deleted first. An audience that a booking names, directly or through one of its groups, cannot be deleted either, because deleting it would also remove its groups and memberships and shrink the participant list of those bookings after the fact. Deactivate it instead; the list shows \"Has bookings, kept\" in place of Delete."
 msgstr "O mesmo vale um nível acima. Um calendário que ainda tem ambientes ou agendamentos não pode ser excluído; a mensagem informa quantos, e um ambiente sem agendamentos pode ser excluído antes. Um público indicado por um agendamento, diretamente ou por um dos seus grupos, também não pode ser excluído, porque excluí-lo removeria também seus grupos e participações e reduziria depois a lista de participantes desses agendamentos. Desative-o; a lista mostra \"Tem agendamentos, mantido\" no lugar de Excluir."
+
+msgid "%1$d booking will be cancelled and its participants e-mailed if %2$s is closed:"
+msgid_plural "%1$d bookings will be cancelled and their participants e-mailed if %2$s is closed:"
+msgstr[0] "%1$d agendamento será cancelado e seus participantes avisados por e-mail se %2$s for fechado:"
+msgstr[1] "%1$d agendamentos serão cancelados e seus participantes avisados por e-mail se %2$s for fechado:"
+
+msgid "Holiday added. %d booking was cancelled and its participants were e-mailed."
+msgid_plural "Holiday added. %d bookings were cancelled and their participants were e-mailed."
+msgstr[0] "Feriado adicionado. %d agendamento foi cancelado e seus participantes foram avisados por e-mail."
+msgstr[1] "Feriado adicionado. %d agendamentos foram cancelados e seus participantes foram avisados por e-mail."
+
+msgid "Closed day: %s"
+msgstr "Dia fechado: %s"
+
+msgid "Not added: this calendar already closes on that date."
+msgstr "Não adicionado: este calendário já está fechado nessa data."
+
+msgid "Not added: the date is invalid or this calendar already closes on it."
+msgstr "Não adicionado: a data é inválida ou este calendário já está fechado nela."
+
+msgid "Not added: that date is already a global holiday."
+msgstr "Não adicionado: essa data já é um feriado global."
+
+msgid "Close the day and cancel the bookings"
+msgstr "Fechar o dia e cancelar os agendamentos"
+
+msgid "A date that is already closed, on the same calendar or in the global list, is refused with a message. Closing a date that already holds audience bookings asks first: the screen lists those bookings, and \"Close the day and cancel the bookings\" saves the date and cancels each one with the reason \"Closed day:\" followed by the description, e-mailing its participants as any cancellation does. A calendar's closed date takes that calendar's bookings; a global holiday takes the bookings of every audience calendar. Personal-calendar appointments on that date are not cancelled."
+msgstr "Uma data já fechada, no mesmo calendário ou na lista global, é recusada com uma mensagem. Fechar uma data que já tem agendamentos de público pergunta antes: a tela lista esses agendamentos, e \"Fechar o dia e cancelar os agendamentos\" salva a data e cancela cada um com o motivo \"Dia fechado:\" seguido da descrição, avisando os participantes por e-mail como qualquer cancelamento. A data fechada de um calendário leva os agendamentos desse calendário; um feriado global leva os agendamentos de todos os calendários de público. Os agendamentos dos calendários pessoais nessa data não são cancelados."

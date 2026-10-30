@@ -59,6 +59,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<p class="description">
 				<?php esc_html_e( 'Holidays added here will block bookings across all calendars in both scheduling systems. Use per-calendar blocked dates for calendar-specific closures.', 'ffcertificate' ); ?>
 			</p>
+			<?php \FreeFormCertificate\Audience\AudienceClosedDay::render_pending(); ?>
 
 			<form method="post">
 				<?php wp_nonce_field( 'ffc_global_holiday_action', 'ffc_global_holiday_nonce' ); ?>
