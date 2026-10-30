@@ -148,7 +148,6 @@ class ReregistrationStandardFieldsSeeder {
 	 * English source or its former pt_BR translation for a label, the former
 	 * list for the options -- so a field an operator edited stays as it is.
 	 *
-	 *
 	 * @return void
 	 */
 	public static function update_schedule_fields(): void {

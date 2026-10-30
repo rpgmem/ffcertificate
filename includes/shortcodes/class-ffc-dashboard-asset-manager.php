@@ -190,6 +190,8 @@ class DashboardAssetManager {
 					'saveDraft'         => __( 'Save Draft', 'ffcertificate' ),
 					'submit'            => __( 'Submit', 'ffcertificate' ),
 					'draftSaved'        => __( 'Draft saved.', 'ffcertificate' ),
+					'draftAutoSaved'    => __( 'Draft saved automatically.', 'ffcertificate' ),
+					'cancelConfirm'     => __( 'Close the form? Changes not saved yet will be lost.', 'ffcertificate' ),
 					'submitted'         => __( 'Reregistration submitted successfully!', 'ffcertificate' ),
 					'errorLoading'      => __( 'Error loading form.', 'ffcertificate' ),
 					'errorSaving'       => __( 'Error saving draft.', 'ffcertificate' ),

@@ -154,8 +154,30 @@
     margin-top: var(--ffc-spacing-sm);
 }
 
+/* On a phone the table keeps its six columns and scrolls sideways (#2242).
+   A shadow at the edge says more is there: the two `local` layers move with
+   the content and cover the two `scroll` shadows while that edge is reached,
+   so a shadow shows only on the side that still has columns to show. */
+.ffc-wh-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    background:
+        linear-gradient(to right, var(--ffc-bg-card) 30%, transparent) left center / 2rem 100% no-repeat local,
+        linear-gradient(to left, var(--ffc-bg-card) 30%, transparent) right center / 2rem 100% no-repeat local,
+        radial-gradient(farthest-side at 0 50%, var(--ffc-border), transparent) left center / 0.75rem 100% no-repeat scroll,
+        radial-gradient(farthest-side at 100% 50%, var(--ffc-border), transparent) right center / 0.75rem 100% no-repeat scroll;
+}
+
+.ffc-wh-scroll:focus-visible {
+    outline: 2px solid var(--ffc-border-focus);
+    outline-offset: 2px;
+}
+
+/* 34rem literal: the narrowest width at which two time inputs per shift and
+   the day select stay readable; a layout width, not a distance. */
 .ffc-wh-table {
     width: 100%;
+    min-width: 34rem;
     border-collapse: collapse;
     font-size: var(--ffc-font-size-sm);
 }

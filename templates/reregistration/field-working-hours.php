@@ -20,6 +20,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<?php $wh_json = wp_json_encode( $wh_data ); ?>
 		<input type="hidden" id="<?php echo esc_attr( $field_id ); ?>" name="<?php echo esc_attr( $field_name ); ?>" value="<?php echo esc_attr( $wh_json ? $wh_json : '' ); ?>">
 		<div class="ffc-working-hours" data-target="<?php echo esc_attr( $field_id ); ?>">
+			<?php
+			// The table keeps its columns on a phone and scrolls sideways in
+			// this region, which a keyboard can scroll too (#2242).
+			?>
+			<div class="ffc-wh-scroll" role="region" tabindex="0" aria-label="<?php esc_attr_e( 'Work Hours', 'ffcertificate' ); ?>">
 			<table class="ffc-wh-table">
 				<thead>
 					<tr>
@@ -62,6 +67,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php endforeach; ?>
 				</tbody>
 			</table>
+			</div>
 			<?php
 			\FreeFormCertificate\Core\Button::render(
 				array(
