@@ -301,21 +301,26 @@ class AudienceNotificationHandlerFlowTest extends TestCase {
 	// ==================================================================
 
 	public function test_init_registers_booking_hooks(): void {
+		// The request only queues (#2243); the batch hook sends.
 		Functions\expect( 'add_action' )->once()->with(
 			'ffcertificate_audience_booking_created',
-			array( AudienceNotificationHandler::class, 'send_booking_created_notification' )
+			array( AudienceNotificationHandler::class, 'queue_booking_created' )
 		);
 		Functions\expect( 'add_action' )->once()->with(
 			'ffcertificate_audience_booking_cancelled',
-			array( AudienceNotificationHandler::class, 'send_booking_cancelled_notification' ),
+			array( AudienceNotificationHandler::class, 'queue_booking_cancelled' ),
 			10,
 			2
 		);
 		Functions\expect( 'add_action' )->once()->with(
 			'ffcertificate_audience_booking_overridden',
-			array( AudienceNotificationHandler::class, 'send_booking_overridden_notification' ),
+			array( AudienceNotificationHandler::class, 'queue_booking_overridden' ),
 			10,
 			4
+		);
+		Functions\expect( 'add_action' )->once()->with(
+			AudienceNotificationHandler::BATCH_HOOK,
+			array( AudienceNotificationHandler::class, 'run_batch' )
 		);
 
 		AudienceNotificationHandler::init();
@@ -561,6 +566,121 @@ class AudienceNotificationHandlerFlowTest extends TestCase {
 			$this->assertSame( array(), (array) $mail[4], 'No cancellation .ics.' );
 		}
 		$this->assertStringContainsString( 'User 3', $this->mailed[0][2], 'The operator is who cancelled the day.' );
+	}
+
+	// ==================================================================
+	// Queue and batches (#2243)
+	// ==================================================================
+
+	/**
+	 * Capture the batches a run schedules instead of scheduling them.
+	 *
+	 * @return array<int, array<string, mixed>> Filled with each job scheduled.
+	 */
+	private function capture_batches(): array {
+		$this->scheduled = array();
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		Functions\when( 'wp_schedule_single_event' )->alias(
+			function ( $when, $hook, $args ) {
+				$this->assertSame( AudienceNotificationHandler::BATCH_HOOK, $hook );
+				$this->scheduled[] = $args[0];
+				return true;
+			}
+		);
+		return $this->scheduled;
+	}
+
+	/** @var array<int, array<string, mixed>> */
+	private array $scheduled = array();
+
+	public function test_the_request_only_queues_and_sends_nothing(): void {
+		$this->capture_batches();
+		Functions\when( 'get_current_user_id' )->justReturn( 9 );
+
+		AudienceNotificationHandler::queue_booking_created( 1 );
+		AudienceNotificationHandler::queue_booking_cancelled( 1, 'Room flooded' );
+		AudienceNotificationHandler::queue_booking_overridden( 1, 2, 'The visiting committee needs the room.', array( '2026-05-20' ) );
+
+		$this->assertSame( array(), $this->mailed, 'No e-mail inside the request.' );
+		$this->assertSame(
+			array(
+				array( 'kind' => 'created', 'booking_id' => 1, 'after' => 0 ),
+				array( 'kind' => 'cancelled', 'booking_id' => 1, 'reason' => 'Room flooded', 'after' => 0 ),
+				array(
+					'kind'           => 'overridden',
+					'booking_id'     => 1,
+					'new_booking_id' => 2,
+					'reason'         => 'The visiting committee needs the room.',
+					'lost_days'      => array( '2026-05-20' ),
+					'actor'          => 9,
+					'after'          => 0,
+				),
+			),
+			$this->scheduled
+		);
+	}
+
+	public function test_a_large_audience_is_mailed_in_batches_once_each_and_the_job_ends(): void {
+		$users = range( 101, 220 );
+		$this->store( $this->schedule( array( 'notify_on_cancellation' => 1 ) ), $users, array( 'cancelled_by' => 3 ) );
+		Functions\when( 'get_user_by' )->alias(
+			fn( $field, $id ) => $this->wp_user( (int) $id, 'u' . (int) $id . '@example.com', 'User ' . (int) $id )
+		);
+		$this->capture_batches();
+
+		$job    = array( 'kind' => 'cancelled', 'booking_id' => 1, 'reason' => 'Room flooded' );
+		$rounds = 0;
+		do {
+			$before = count( $this->scheduled );
+			AudienceNotificationHandler::run_batch( $job );
+			$job = count( $this->scheduled ) > $before ? end( $this->scheduled ) : null;
+			++$rounds;
+		} while ( null !== $job && $rounds < 10 );
+
+		$this->assertSame( 3, $rounds, '120 people in batches of 50.' );
+		$this->assertSame( array( 150, 200 ), array_column( $this->scheduled, 'after' ) );
+		$recipients = $this->recipients();
+		$this->assertCount( 120, $recipients );
+		$this->assertSame( $recipients, array_values( array_unique( $recipients ) ), 'Nobody is mailed twice.' );
+	}
+
+	public function test_a_failing_send_does_not_hold_the_job(): void {
+		$this->store( $this->schedule( array( 'notify_on_cancellation' => 1 ) ), range( 1, 60 ), array( 'cancelled_by' => 3 ) );
+		Functions\when( 'get_user_by' )->alias(
+			fn( $field, $id ) => $this->wp_user( (int) $id, 'u' . (int) $id . '@example.com', 'User ' . (int) $id )
+		);
+		Functions\when( 'wp_mail' )->justReturn( false );
+		$this->capture_batches();
+
+		AudienceNotificationHandler::run_batch( array( 'kind' => 'cancelled', 'booking_id' => 1, 'reason' => 'x' ) );
+		$this->assertSame( array( 50 ), array_column( $this->scheduled, 'after' ), 'The cursor moves past failed sends.' );
+
+		AudienceNotificationHandler::run_batch( end( $this->scheduled ) );
+		$this->assertCount( 1, $this->scheduled, 'The last batch schedules nothing.' );
+	}
+
+	public function test_the_owner_is_told_with_the_first_batch_only(): void {
+		$this->store( $this->schedule( array( 'notify_on_cancellation' => 1 ) ), range( 10, 69 ), array( 'created_by' => 2 ) );
+		Functions\when( 'get_user_by' )->alias(
+			fn( $field, $id ) => $this->wp_user( (int) $id, 'u' . (int) $id . '@example.com', 'User ' . (int) $id )
+		);
+		$this->capture_batches();
+
+		AudienceNotificationHandler::run_batch( array( 'kind' => 'overridden', 'booking_id' => 1, 'new_booking_id' => 2, 'reason' => 'x', 'lost_days' => array(), 'actor' => 9 ) );
+		AudienceNotificationHandler::run_batch( end( $this->scheduled ) );
+
+		$this->assertSame( 1, count( array_keys( $this->recipients(), 'u2@example.com', true ) ) );
+		$this->assertCount( 61, $this->recipients(), 'The owner, then 60 participants.' );
+	}
+
+	public function test_a_booking_cancelled_before_its_batch_ran_is_not_announced(): void {
+		$this->store( $this->schedule( array( 'notify_on_booking' => 1 ) ), array( 10 ), array( 'status' => 'cancelled' ) );
+		$this->capture_batches();
+
+		AudienceNotificationHandler::run_batch( array( 'kind' => 'created', 'booking_id' => 1 ) );
+
+		$this->assertSame( array(), $this->mailed );
+		$this->assertSame( array(), $this->scheduled );
 	}
 
 	public function test_cancelled_returns_when_booking_missing(): void {

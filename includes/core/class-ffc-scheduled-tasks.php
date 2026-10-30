@@ -127,6 +127,10 @@ final class ScheduledTasks {
 			'recurrence' => self::SINGLE,
 			'module'     => 'reregistration',
 		),
+		'ffc_audience_notification_batch'             => array(
+			'recurrence' => self::SINGLE,
+			'module'     => 'audiences',
+		),
 		'ffc_date_messages_daily'                     => array(
 			'recurrence' => 'daily',
 			'module'     => 'date_messages',
@@ -195,6 +199,8 @@ final class ScheduledTasks {
 				return __( 'Reregistration reminder batch (one per batch)', 'ffcertificate' );
 			case 'ffc_reregistration_invitation_batch':
 				return __( 'Reregistration invitation batch (one per batch)', 'ffcertificate' );
+			case 'ffc_audience_notification_batch':
+				return __( 'Audience booking e-mails (one per batch)', 'ffcertificate' );
 			case 'ffc_date_messages_daily':
 				return __( 'Date messages (birthdays and other dates)', 'ffcertificate' );
 			case 'ffc_date_messages_batch':

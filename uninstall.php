@@ -58,6 +58,7 @@ if ( ! $ffcertificate_purge ) {
 	wp_clear_scheduled_hook( 'ffc_daily_expired_tickets_cleanup' );
 	wp_unschedule_hook( 'ffc_reregistration_reminder_batch' );
 	wp_unschedule_hook( 'ffc_reregistration_invitation_batch' );
+	wp_unschedule_hook( 'ffc_audience_notification_batch' );
 	wp_clear_scheduled_hook( 'ffc_date_messages_daily' );
 	wp_unschedule_hook( 'ffc_date_messages_batch' );
 	wp_unschedule_hook( 'ffc_date_messages_digest' );
@@ -392,6 +393,7 @@ wp_clear_scheduled_hook( 'ffc_cloudflare_cidr_refresh' );
 wp_clear_scheduled_hook( 'ffc_daily_expired_tickets_cleanup' );
 wp_unschedule_hook( 'ffc_reregistration_reminder_batch' );
 wp_unschedule_hook( 'ffc_reregistration_invitation_batch' );
+wp_unschedule_hook( 'ffc_audience_notification_batch' );
 wp_clear_scheduled_hook( 'ffc_date_messages_daily' );
 wp_unschedule_hook( 'ffc_date_messages_batch' );
 wp_unschedule_hook( 'ffc_date_messages_digest' );

@@ -30008,3 +30008,9 @@ msgstr ""
 
 msgid "Public calendar API reads (slots, list, detail) — protects the booking endpoints from scraping. Logged-in users and allowlisted IPs bypass. The audience calendar's bookings read is counted for logged-in users too, per account, so one person cannot sweep the calendar while colleagues behind the same address are not capped. Active by default; saving the tab is not needed."
 msgstr ""
+
+msgid "Audience booking e-mails (one per batch)"
+msgstr ""
+
+msgid "These e-mails leave in the background: saving or cancelling a booking only queues them, and WP-Cron sends them in batches of 50, each person once. With Total Mail Queue active they join its queue, attributed to Audience Calendars. On a site whose WP-Cron runs only on visits, set the server cron line from Settings → Scheduled Tasks so they do not wait for traffic."
+msgstr ""

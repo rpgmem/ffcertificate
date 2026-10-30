@@ -68,6 +68,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Notifications', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Each schedule independently notifies affected users on booking and cancellation, and can attach an ICS calendar invite. Two opt-in admin toggles (off by default) also notify a recipient list (comma-separated; blank falls back to the site admin) on new bookings and cancellations.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'These e-mails leave in the background: saving or cancelling a booking only queues them, and WP-Cron sends them in batches of 50, each person once. With Total Mail Queue active they join its queue, attributed to Audience Calendars. On a site whose WP-Cron runs only on visits, set the server cron line from Settings → Scheduled Tasks so they do not wait for traffic.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'A booking is cancelled once. A second request for the same booking, from another tab or another person, answers that it is already cancelled and sends no e-mail. A booking and its participants are saved together: if one of them cannot be written, nothing is saved and the person sees an error.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Admin pages', 'ffcertificate' ); ?></h4>

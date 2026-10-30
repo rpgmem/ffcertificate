@@ -320,6 +320,7 @@ class ScheduledTasksTest extends TestCase {
 				'ffc_process_submission_async'        => 3,
 				'ffc_reregistration_reminder_batch'   => 0,
 				'ffc_reregistration_invitation_batch' => 0,
+				'ffc_audience_notification_batch'     => 0,
 				'ffc_date_messages_batch'             => 0,
 				'ffc_date_messages_digest'            => 0,
 				'ffc_date_messages_announce'          => 0,

@@ -36,6 +36,7 @@ class Deactivator {
 		// longer loaded (#1538 -- it was cleared nowhere).
 		wp_unschedule_hook( 'ffc_reregistration_reminder_batch' );
 		wp_unschedule_hook( 'ffc_reregistration_invitation_batch' );
+		wp_unschedule_hook( 'ffc_audience_notification_batch' );
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::unschedule();
 		\FreeFormCertificate\DateMessages\DateMessagesCron::unschedule();
