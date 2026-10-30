@@ -68,12 +68,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Admin: list toggles lose the redundant "Active" label, and recruitment Call wears a person-being-called icon** (#2239). The toggles on Short URLs and Date Messages keep their accessible name; the Call and Call selected buttons use the new `user-call` icon instead of the phone, which stays in the registry.
 - **Certificates: the admin search and the duplicate check read indexes** (#2241). The search tries the ID, auth code, hashes and token first and scans the answers only on an install without encryption when those find nothing. A submission now looks up an earlier one once, not two or three times; with encryption, a ticket is read by its hash only.
 - **Certificates: the PDF libraries load when a page is about to need them** (#2241). jsPDF and html2canvas (about 700 KB) are fetched on the first focus in a form field, and right after the verification page or a magic link loads; a submit that arrives first waits for them. The script handles are unchanged.
+- **Certificates: verification is one lookup per kind** (#2241). `VerificationHandler` routes between `CertificateVerificationLookup`, `AppointmentVerificationLookup` and `ReregistrationVerificationLookup`; the identity-audit queries left `SubmissionReader` for `SubmissionIdentityAudit`. A parity test pins the same answers and reads.
 
 ### Deprecated
 
 - **65 PHP methods and 11 JavaScript functions nothing in the plugin calls** (#2089). Readers, writers, activators' `drop_tables()`, debug helpers, accessors, `FFCCalendarCore` setters and `FFC` helpers left by earlier refactors now warn (a PHP notice, a console warning) and leave in 6.45.0; none has a replacement because nothing used them. Six docblocks that named callers that never existed are corrected.
 - **Five one-shot migration cards leave in 6.45.0** (#2115): Split CPF/RF, Rehash Email Lookup Hashes, Activity Log: Clear Plaintext on Encrypted Rows, Import Legacy Certificate Templates and Rewrite html/ Image References. Each card says so; run any that still shows records pending before updating to 6.45.0.
 - **Certificates: the form-settings cache, its daily warming and four unused submission lookups** (#2241). `FormCache`'s getters, warming and clearing, `SettingsReader::cache_expiration_seconds()`, and `SubmissionRepository`/`SubmissionReader::getForExport`, `findByFormId`, `findByEmail` and `findByCpfRf` warn and leave in 6.45.0.
+- **`SubmissionReader`'s four identity-audit queries** (#2241): `find_orphan_user_links`, `find_users_with_multiple_identities`, `find_unlinked_with_matching_identity` and `find_shared_identities` moved to `SubmissionIdentityAudit`; the reader's copies delegate, warn and leave in 6.45.0.
 
 ### Removed
 

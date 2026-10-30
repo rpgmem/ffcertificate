@@ -10,6 +10,8 @@
  * v3.3.0: Added strict types and type hints
  * v3.2.0: Migrated to namespace
  * v4.6.8: Extracted rendering to VerificationResponseRenderer (M7 refactoring)
+ * 6.43.0: One lookup class per kind (certificate, appointment, reregistration);
+ *         this class keeps the routing, the rate limit and the responses (#2241)
  *
  * @package FreeFormCertificate\Frontend
  */
@@ -22,7 +24,6 @@ use FreeFormCertificate\Core\Utils;
 use FreeFormCertificate\Core\RequestInput;
 
 use FreeFormCertificate\Submissions\SubmissionHandler;
-use FreeFormCertificate\Repositories\SubmissionRepository;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -30,9 +31,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Handler for verification operations.
- *
- * @phpstan-import-type ReregistrationRow from \FreeFormCertificate\Reregistration\ReregistrationRepository
- * @phpstan-import-type ReregistrationSubmissionRow from \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader
  */
 class VerificationHandler {
 
@@ -50,6 +48,27 @@ class VerificationHandler {
 	private VerificationResponseRenderer $renderer;
 
 	/**
+	 * Certificate lookup.
+	 *
+	 * @var CertificateVerificationLookup
+	 */
+	private CertificateVerificationLookup $certificates;
+
+	/**
+	 * Appointment lookup.
+	 *
+	 * @var AppointmentVerificationLookup
+	 */
+	private AppointmentVerificationLookup $appointments;
+
+	/**
+	 * Reregistration lookup.
+	 *
+	 * @var ReregistrationVerificationLookup
+	 */
+	private ReregistrationVerificationLookup $reregistrations;
+
+	/**
 	 * Constructor
 	 *
 	 * @param SubmissionHandler|null $submission_handler Submission handler dependency.
@@ -57,6 +76,9 @@ class VerificationHandler {
 	public function __construct( ?SubmissionHandler $submission_handler = null ) {
 		$this->submission_handler = $submission_handler;
 		$this->renderer           = new VerificationResponseRenderer();
+		$this->certificates       = new CertificateVerificationLookup( fn(): SubmissionHandler => $this->submission_handler() );
+		$this->appointments       = new AppointmentVerificationLookup();
+		$this->reregistrations    = new ReregistrationVerificationLookup();
 	}
 
 	/**
@@ -70,18 +92,11 @@ class VerificationHandler {
 	}
 
 	/**
-	 * Search for certificate by authentication code
+	 * Search for a document by its code.
 	 *
-	 * @param string $auth_code Auth code.
-	 * @return array
-	 */
-	/**
-	 * Search for certificate - uses Repository.
-	 *
-	 * Supports virtual prefix routing (C/R/A) for faster lookups.
-	 * When a prefix is detected, the corresponding table is searched first,
-	 * with fallback to other tables. Without prefix, all tables are searched
-	 * sequentially (backwards compatible).
+	 * Supports virtual prefix routing (C/R/A): the kind the prefix names is
+	 * searched first, then the others. Without a prefix, certificates come
+	 * first, then appointments, then reregistrations.
 	 *
 	 * @param string $auth_code Auth code.
 	 * @since 5.0.0 Added prefix-based routing.
@@ -93,141 +108,42 @@ class VerificationHandler {
 		$prefix     = $parsed['prefix'];
 
 		if ( empty( $clean_code ) ) {
-			return array(
-				'found'      => false,
-				'submission' => null,
-				'data'       => array(),
-			);
+			return VerificationResult::not_found();
 		}
 
-		$repository = new SubmissionRepository();
-
-		// Prefix-based routing: search the hinted table first.
 		if ( \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT === $prefix ) {
-			// A = Appointment first.
-			$appointment_result = $this->search_appointment_by_code( $clean_code );
+			// A = Appointment first, then certificates, then reregistrations.
+			$appointment_result = $this->appointments->by_code( $clean_code );
 			if ( $appointment_result['found'] ) {
 				return $appointment_result;
 			}
-			// Fallback: certificates, then reregistrations.
-			$submission = $this->certificate_by_auth_code( $repository, $clean_code );
+			$submission = $this->certificates->by_code( $clean_code );
 			if ( ! $submission ) {
-				return $this->search_reregistration_by_code( $clean_code );
+				return $this->reregistrations->by_code( $clean_code );
 			}
 		} elseif ( \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION === $prefix ) {
-			// R = Reregistration first.
-			$rereg_result = $this->search_reregistration_by_code( $clean_code );
+			// R = Reregistration first, then certificates, then appointments.
+			$rereg_result = $this->reregistrations->by_code( $clean_code );
 			if ( $rereg_result['found'] ) {
 				return $rereg_result;
 			}
-			// Fallback: certificates, then appointments.
-			$submission = $this->certificate_by_auth_code( $repository, $clean_code );
+			$submission = $this->certificates->by_code( $clean_code );
 			if ( ! $submission ) {
-				return $this->search_appointment_by_code( $clean_code );
+				return $this->appointments->by_code( $clean_code );
 			}
 		} else {
-			// C prefix or no prefix: certificates first (original behavior).
-			$submission = $this->certificate_by_auth_code( $repository, $clean_code );
-
-			// Fallback: search appointments by validation_code.
+			// C prefix or no prefix: certificates, then appointments, then reregistrations.
+			$submission = $this->certificates->by_code( $clean_code );
 			if ( ! $submission ) {
-				$appointment_result = $this->search_appointment_by_code( $clean_code );
+				$appointment_result = $this->appointments->by_code( $clean_code );
 				if ( $appointment_result['found'] ) {
 					return $appointment_result;
 				}
-
-				// Fallback: search reregistration submissions by auth_code.
-				return $this->search_reregistration_by_code( $clean_code );
+				return $this->reregistrations->by_code( $clean_code );
 			}
 		}
 
-		if ( self::is_revoked( $submission ) ) {
-			return self::revoked_result( $submission );
-		}
-
-		// Decrypt.
-		$submission = $this->submission_handler()->decrypt_submission_data( $submission );
-
-		// Rebuild data.
-		$data = array(
-			'email' => $submission['email'],
-		);
-
-		if ( ! empty( $submission['auth_code'] ) ) {
-			$data['auth_code'] = $submission['auth_code'];
-		}
-
-		if ( ! empty( $submission['cpf_rf'] ) ) {
-			$data['cpf_rf'] = $submission['cpf_rf'];
-		}
-		if ( ! empty( $submission['cpf'] ) ) {
-			$data['cpf'] = $submission['cpf'];
-		}
-		if ( ! empty( $submission['rf'] ) ) {
-			$data['rf'] = $submission['rf'];
-		}
-
-		$extra_data = json_decode( $submission['data'], true );
-		if ( ! is_array( $extra_data ) ) {
-			$extra_data = json_decode( wp_unslash( $submission['data'] ), true );
-		}
-
-		if ( is_array( $extra_data ) && ! empty( $extra_data ) ) {
-			$data = array_merge( $extra_data, $data );
-		}
-
-		return array(
-			'found'      => true,
-			'submission' => (object) $submission,
-			'data'       => $data,
-		);
-	}
-
-	/**
-	 * The certificate an auth code names, or null.
-	 *
-	 * A quiz attempt that did not pass carries an auth code but is not a
-	 * certificate, so it is not found (#1744).
-	 *
-	 * @param SubmissionRepository $repository Submissions repository.
-	 * @param string               $code       Clean auth code.
-	 * @return array<string, mixed>|null
-	 */
-	private function certificate_by_auth_code( SubmissionRepository $repository, string $code ): ?array {
-		$submission = $repository->findByAuthCode( $code );
-		if ( ! is_array( $submission ) || \FreeFormCertificate\Core\SubmissionStatus::is_unpassed_quiz( $submission ) ) {
-			return null;
-		}
-		return $submission;
-	}
-
-	/**
-	 * Whether a certificate row was revoked (#2241).
-	 *
-	 * The trash is the revocation: a trashed certificate is still found, so
-	 * the page can say it was revoked instead of that it never existed.
-	 *
-	 * @param array<string, mixed> $submission Submission row.
-	 * @return bool
-	 */
-	private static function is_revoked( array $submission ): bool {
-		return \FreeFormCertificate\Core\SubmissionStatus::TRASH === ( $submission['status'] ?? '' );
-	}
-
-	/**
-	 * The result for a revoked certificate: no data, no PDF.
-	 *
-	 * @param array<string, mixed> $submission Submission row.
-	 * @return array<string, mixed>
-	 */
-	private static function revoked_result( array $submission ): array {
-		return array(
-			'found'      => false,
-			'submission' => null,
-			'data'       => array(),
-			'revoked'    => true,
-			'revoked_at' => is_numeric( $submission['revoked_at'] ?? null ) ? (int) $submission['revoked_at'] : 0,
-		);
+		return $this->certificates->code_result( $submission );
 	}
 
 	/**
@@ -248,287 +164,6 @@ class VerificationHandler {
 			__( 'This certificate was revoked on %s.', 'ffcertificate' ),
 			\FreeFormCertificate\Core\DateFormatter::format_date( $revoked_at )
 		);
-	}
-
-	/**
-	 * Search for appointment by validation code
-	 *
-	 * @since 4.2.0
-	 * @param string $code Cleaned validation code (no hyphens).
-	 * @return array<string, mixed> Result array with 'found', 'submission', 'data', 'type'
-	 */
-	private function search_appointment_by_code( string $code ): array {
-		if ( ! class_exists( '\\FreeFormCertificate\\Repositories\\AppointmentRepository' ) ) {
-			return array(
-				'found'      => false,
-				'submission' => null,
-				'data'       => array(),
-			);
-		}
-
-		$repo        = new \FreeFormCertificate\Repositories\AppointmentRepository();
-		$appointment = $repo->findByValidationCode( $code );
-
-		if ( ! $appointment ) {
-			return array(
-				'found'      => false,
-				'submission' => null,
-				'data'       => array(),
-			);
-		}
-
-		return $this->build_appointment_result( $appointment );
-	}
-
-	/**
-	 * Search for appointment by confirmation token (magic link)
-	 *
-	 * @since 4.2.0
-	 * @param string $token Confirmation token (64 hex chars).
-	 * @return array<string, mixed> Result array with 'found', 'submission', 'data', 'type'
-	 */
-	private function search_appointment_by_token( string $token ): array {
-		if ( ! class_exists( '\\FreeFormCertificate\\Repositories\\AppointmentRepository' ) ) {
-			return array(
-				'found'      => false,
-				'submission' => null,
-				'data'       => array(),
-			);
-		}
-
-		$repo        = new \FreeFormCertificate\Repositories\AppointmentRepository();
-		$appointment = $repo->findByConfirmationToken( $token );
-
-		if ( ! $appointment ) {
-			return array(
-				'found'      => false,
-				'submission' => null,
-				'data'       => array(),
-			);
-		}
-
-		return $this->build_appointment_result( $appointment );
-	}
-
-	/**
-	 * Build result array from appointment data
-	 *
-	 * @since 4.2.0
-	 * @param array<string, mixed> $appointment Appointment data from database.
-	 * @return array<string, mixed> Standardized result array
-	 */
-	private function build_appointment_result( array $appointment ): array {
-		// Decrypt sensitive fields.
-		$email = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' );
-
-		// Decrypt split cpf/rf columns.
-		$cpf_val = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'cpf' );
-		$rf_val  = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'rf' );
-		$cpf_rf  = ! empty( $cpf_val ) ? $cpf_val : ( ! empty( $rf_val ) ? $rf_val : '' );
-
-		// Build data array.
-		$data = array(
-			'name'             => $appointment['name'] ?? '',
-			'email'            => $email,
-			'cpf_rf'           => $cpf_rf,
-			'auth_code'        => $appointment['validation_code'] ?? '',
-			'calendar_title'   => '',
-			'appointment_date' => $appointment['appointment_date'] ?? '',
-			'start_time'       => $appointment['start_time'] ?? '',
-			'end_time'         => $appointment['end_time'] ?? '',
-			'status'           => $appointment['status'] ?? 'pending',
-			'magic_token'      => $appointment['confirmation_token'] ?? '',
-		);
-
-		// Get calendar title.
-		if ( ! empty( $appointment['calendar_id'] ) ) {
-			$calendar_repo = new \FreeFormCertificate\Repositories\CalendarRepository();
-			$calendar      = $calendar_repo->findById( (int) $appointment['calendar_id'] );
-			if ( $calendar ) {
-				$data['calendar_title'] = $calendar['title'] ?? '';
-			}
-		}
-
-		// Build a pseudo-submission object for compatibility with format methods.
-		// `submission_date` on the real table is unix UTC int since 6.6.0
-		// (#249 sub-escopo a), so we adapt the appointment's `created_at`
-		// DATETIME — interpreted in the site TZ — to match the renderer's
-		// expectation.
-		$created_at_raw    = (string) ( $appointment['created_at'] ?? '' );
-		$created_at_ts     = '' !== $created_at_raw ? (int) strtotime( $created_at_raw ) : 0;
-		$pseudo_submission = array(
-			'id'              => $appointment['id'],
-			'form_id'         => 0,
-			'submission_date' => $created_at_ts,
-			'auth_code'       => $appointment['validation_code'] ?? '',
-			'email'           => $email,
-			'cpf_rf'          => $cpf_rf,
-			'data'            => '{}',
-			'magic_token'     => $appointment['confirmation_token'] ?? '',
-		);
-
-		return array(
-			'found'       => true,
-			'submission'  => (object) $pseudo_submission,
-			'data'        => $data,
-			'type'        => 'appointment',
-			'appointment' => $appointment,
-			'magic_token' => $appointment['confirmation_token'] ?? '',
-		);
-	}
-
-	/**
-	 * Search for reregistration submission by auth_code.
-	 *
-	 * @since 4.12.0
-	 * @param string $code Cleaned auth code (no hyphens, uppercase).
-	 * @return array<string, mixed> Result array with 'found', 'submission', 'data', 'type'.
-	 */
-	private function search_reregistration_by_code( string $code ): array {
-		if ( ! class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationSubmissionReader' ) ) {
-			return array(
-				'found'      => false,
-				'submission' => null,
-				'data'       => array(),
-			);
-		}
-
-		$submission = \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_by_auth_code( $code );
-		if ( ! $submission ) {
-			return array(
-				'found'      => false,
-				'submission' => null,
-				'data'       => array(),
-			);
-		}
-
-		$rereg = \FreeFormCertificate\Reregistration\ReregistrationRepository::get_by_id( (int) $submission->reregistration_id );
-		$user  = get_userdata( (int) $submission->user_id );
-
-		$fields = $this->decode_submission_fields( $submission, $rereg );
-
-		$status_labels = \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_status_labels();
-
-		return array(
-			'found'          => true,
-			'submission'     => $submission,
-			'data'           => $fields,
-			'type'           => 'reregistration',
-			'reregistration' => array(
-				'title'         => $rereg ? $rereg->title : '',
-				'display_name'  => $fields['display_name'] ?? ( $user ? $user->display_name : '' ),
-				'cpf'           => $fields['cpf'] ?? '',
-				'email'         => $user ? $user->user_email : '',
-				'status'        => $submission->status,
-				'status_label'  => $status_labels[ $submission->status ] ?? $submission->status,
-				'auth_code'     => $submission->auth_code,
-				'submitted_at'  => $submission->submitted_at ?? '',
-				'submission_id' => (int) $submission->id,
-				// 6.7.5 — Campaign window dates surfaced so the /valid
-				// renderer can show "Period: X — Y" alongside the
-				// status. Wall-clock dates (Category B per CLAUDE.md).
-				'start_date'    => $rereg ? (string) ( $rereg->start_date ?? '' ) : '',
-				'end_date'      => $rereg ? (string) ( $rereg->end_date ?? '' ) : '',
-			),
-		);
-	}
-
-	/**
-	 * Search for reregistration submission by magic_token.
-	 *
-	 * @since 4.12.0
-	 * @param string $token Magic token (64 hex chars).
-	 * @return array<string, mixed> Result array with 'found', 'submission', 'data', 'type'.
-	 */
-	private function search_reregistration_by_magic_token( string $token ): array {
-		if ( ! class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationSubmissionReader' ) ) {
-			return array(
-				'found'      => false,
-				'submission' => null,
-				'data'       => array(),
-			);
-		}
-
-		$submission = \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_by_magic_token( $token );
-		if ( ! $submission ) {
-			return array(
-				'found'      => false,
-				'submission' => null,
-				'data'       => array(),
-			);
-		}
-
-		// Reuse the same result builder as auth_code verification.
-		$rereg = \FreeFormCertificate\Reregistration\ReregistrationRepository::get_by_id( (int) $submission->reregistration_id );
-		$user  = get_userdata( (int) $submission->user_id );
-
-		$fields = $this->decode_submission_fields( $submission, $rereg );
-
-		$status_labels = \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_status_labels();
-
-		return array(
-			'found'          => true,
-			'submission'     => $submission,
-			'data'           => $fields,
-			'type'           => 'reregistration',
-			'magic_token'    => $submission->magic_token,
-			'reregistration' => array(
-				'title'         => $rereg ? $rereg->title : '',
-				'display_name'  => $fields['display_name'] ?? ( $user ? $user->display_name : '' ),
-				'cpf'           => $fields['cpf'] ?? '',
-				'email'         => $user ? $user->user_email : '',
-				'status'        => $submission->status,
-				'status_label'  => $status_labels[ $submission->status ] ?? $submission->status,
-				'auth_code'     => $submission->auth_code,
-				'submitted_at'  => $submission->submitted_at ?? '',
-				'submission_id' => (int) $submission->id,
-				// 6.7.5 — Campaign window dates surfaced so the /valid
-				// renderer can show "Period: X — Y" alongside the
-				// status. Wall-clock dates (Category B per CLAUDE.md).
-				'start_date'    => $rereg ? (string) ( $rereg->start_date ?? '' ) : '',
-				'end_date'      => $rereg ? (string) ( $rereg->end_date ?? '' ) : '',
-			),
-		);
-	}
-
-	/**
-	 * Decode a reregistration submission's stored fields, decrypting any
-	 * values whose field definition is marked as sensitive.
-	 *
-	 * @since 5.0.0
-	 * @param object      $submission Submission row.
-	 * @param object|null $rereg      Reregistration row.
-	 * @phpstan-param ReregistrationSubmissionRow $submission
-	 * @phpstan-param ReregistrationRow|null $rereg
-	 * @return array<string, mixed> field_key => plain value.
-	 */
-	private function decode_submission_fields( object $submission, $rereg ): array {
-		$sub_data = $submission->data ? json_decode( $submission->data, true ) : array();
-		$values   = is_array( $sub_data['fields'] ?? null ) ? $sub_data['fields'] : array();
-
-		if ( ! $rereg || ! class_exists( '\\FreeFormCertificate\\Reregistration\\CustomFieldReader' ) ) {
-			return $values;
-		}
-
-		if ( ! class_exists( '\\FreeFormCertificate\\Core\\Encryption' ) ) {
-			return $values;
-		}
-
-		// Gather every active field for the reregistration's audiences, then hand
-		// the map to the shared reader.
-		//
-		// THE DECRYPTION LOOP THAT USED TO BE HERE WAS A THIRD COPY (#1509), and
-		// it read `is_sensitive` to decide — a flag an administrator edits, while
-		// the value in the row was written under whatever it said then. Turning it
-		// off made this method return CIPHERTEXT, which the public verification
-		// page then printed as the person's CPF. The reader decides from the
-		// envelope now, so the flag is not consulted and neither direction of a
-		// flag change can misread. Only the field KEYS are gathered here.
-		$fields = \FreeFormCertificate\Reregistration\CustomFieldReader::get_for_audiences(
-			\FreeFormCertificate\Reregistration\ReregistrationRepository::get_audience_ids( (int) $rereg->id )
-		);
-
-		return \FreeFormCertificate\Reregistration\RecordGenerator::decrypt_field_values( $fields, $values );
 	}
 
 	/**
@@ -578,14 +213,11 @@ class VerificationHandler {
 			);
 		}
 
-		// Get submission by token. A quiz attempt that did not pass has a
-		// token but is not a certificate (#1744).
-		$submission = $this->submission_handler()->get_submission_by_token( $token );
-		if ( \FreeFormCertificate\Core\SubmissionStatus::is_unpassed_quiz( $submission ) ) {
-			$submission = null;
-		}
-		if ( is_array( $submission ) && self::is_revoked( $submission ) ) {
-			return self::revoked_result( $submission ) + array( 'magic_token' => '' );
+		// A quiz attempt that did not pass has a token but is not a
+		// certificate (#1744).
+		$submission = $this->certificates->by_token( $token );
+		if ( null !== $submission && CertificateVerificationLookup::is_revoked( $submission ) ) {
+			return CertificateVerificationLookup::revoked_result( $submission ) + array( 'magic_token' => '' );
 		}
 
 		\FreeFormCertificate\Core\Debug::log_frontend(
@@ -596,84 +228,22 @@ class VerificationHandler {
 			)
 		);
 
-		// Fallback: search appointments by confirmation_token.
+		// Not a certificate: an appointment, then a reregistration.
 		if ( ! $submission ) {
-			$appointment_result = $this->search_appointment_by_token( $token );
+			$appointment_result = $this->appointments->by_token( $token );
 			if ( $appointment_result['found'] ) {
 				return $appointment_result;
 			}
 
-			// Fallback: search reregistration submissions by magic_token.
-			$rereg_result = $this->search_reregistration_by_magic_token( $token );
+			$rereg_result = $this->reregistrations->by_token( $token );
 			if ( $rereg_result['found'] ) {
 				return $rereg_result;
 			}
 
-			return array(
-				'found'       => false,
-				'submission'  => null,
-				'data'        => array(),
-				'magic_token' => '',
-			);
+			return VerificationResult::not_found() + array( 'magic_token' => '' );
 		}
 
-		// v2.10.0: Log access for LGPD compliance.
-		if ( class_exists( '\\FreeFormCertificate\\Core\\ActivityLog' ) ) {
-			\FreeFormCertificate\Core\ActivityLog::log_data_accessed(
-				(int) $submission['id'],  // Convert to int (wpdb returns strings).
-				array(
-					'method' => 'magic_link',
-					'token'  => substr( $token, 0, 8 ) . '...',
-					'ip'     => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
-				)
-			);
-		}
-
-		// v2.9.16: REBUILD complete data (columns + JSON)
-		// v2.10.0: NOTE - Automatic decryption.
-		// Data already comes decrypted from Submission Handler.
-		// The get_submission_by_token() method calls decrypt_submission_data()
-		// internally, so the fields email, cpf_rf, user_ip, data are already.
-		// in plain text here. No need to decrypt again.
-
-		// Step 1: Required fields from columns.
-		$data = array();
-
-		if ( ! empty( $submission['email'] ) ) {
-			$data['email'] = $submission['email'];
-		}
-
-		if ( ! empty( $submission['auth_code'] ) ) {
-			$data['auth_code'] = $submission['auth_code'];
-		}
-
-		if ( ! empty( $submission['cpf_rf'] ) ) {
-			$data['cpf_rf'] = $submission['cpf_rf'];
-		}
-
-		// Passo 2: Campos extras do JSON.
-		$extra_data = json_decode( $submission['data'], true );
-		if ( ! is_array( $extra_data ) ) {
-			$extra_data = json_decode( wp_unslash( $submission['data'] ), true );
-		}
-
-		// Step 3: Merge (columns have priority over JSON).
-		if ( ! empty( $extra_data ) ) {
-			$data = array_merge( $extra_data, $data );
-		}
-
-		// Ensure magic_token exists (fallback for old submissions).
-		$magic_token = $submission['magic_token'];
-		if ( empty( $magic_token ) ) {
-			$magic_token = $this->submission_handler()->ensure_magic_token( (int) $submission['id'] );
-		}
-
-		return array(
-			'found'       => true,
-			'submission'  => (object) $submission,
-			'data'        => $data,
-			'magic_token' => $magic_token,
-		);
+		return $this->certificates->token_result( $submission, $token );
 	}
 
 	/**
@@ -730,13 +300,7 @@ class VerificationHandler {
 			);
 		}
 
-		if ( ! empty( $result['type'] ) && 'appointment' === $result['type'] ) {
-			$html = $this->renderer->format_appointment_verification_response( $result );
-		} elseif ( ! empty( $result['type'] ) && 'reregistration' === $result['type'] ) {
-			$html = $this->renderer->format_reregistration_verification_response( $result );
-		} else {
-			$html = $this->renderer->format_verification_response( $result['submission'], $result['data'], true );
-		}
+		$html = $this->response_html( $result );
 
 		return array(
 			'success' => true,
@@ -794,37 +358,13 @@ class VerificationHandler {
 			);
 		}
 
-		$pdf_generator = new \FreeFormCertificate\Generators\PdfGenerator();
-
-		// Check if this is an appointment result.
-		if ( ! empty( $result['type'] ) && 'appointment' === $result['type'] && ! empty( $result['appointment'] ) ) {
-			$pdf_data = $this->renderer->generate_appointment_verification_pdf( $result, $pdf_generator );
-		} elseif ( ! empty( $result['type'] ) && 'reregistration' === $result['type'] ) {
-			$pdf_data = \FreeFormCertificate\Reregistration\RecordGenerator::generate_record_data( (int) $result['reregistration']['submission_id'] );
-		} else {
-			// Certificate: use standard PDF generator.
-			$pdf_data = $pdf_generator->generate_pdf_data(
-				(int) $result['submission']->id,
-				$this->submission_handler()
-			);
-		}
+		$pdf_data = $this->pdf_data( $result );
 
 		if ( is_wp_error( $pdf_data ) ) {
 			wp_send_json_error( array( 'message' => $pdf_data->get_error_message() ) );
 		}
 
-		// Format response HTML with download button.
-		if ( ! empty( $result['type'] ) && 'appointment' === $result['type'] ) {
-			$html = $this->renderer->format_appointment_verification_response( $result );
-		} elseif ( ! empty( $result['type'] ) && 'reregistration' === $result['type'] ) {
-			$html = $this->renderer->format_reregistration_verification_response( $result );
-		} else {
-			$html = $this->renderer->format_verification_response(
-				$result['submission'],
-				$result['data'],
-				true
-			);
-		}
+		$html = $this->response_html( $result );
 
 		wp_send_json_success(
 			array(
@@ -903,36 +443,13 @@ class VerificationHandler {
 			);
 		}
 
-		$pdf_generator = new \FreeFormCertificate\Generators\PdfGenerator();
-
-		// Check if this is an appointment result.
-		if ( ! empty( $result['type'] ) && 'appointment' === $result['type'] && ! empty( $result['appointment'] ) ) {
-			$pdf_data = $this->renderer->generate_appointment_verification_pdf( $result, $pdf_generator );
-		} elseif ( ! empty( $result['type'] ) && 'reregistration' === $result['type'] ) {
-			$pdf_data = \FreeFormCertificate\Reregistration\RecordGenerator::generate_record_data( (int) $result['reregistration']['submission_id'] );
-		} else {
-			// Certificate: use standard PDF generator.
-			$pdf_data = $pdf_generator->generate_pdf_data(
-				(int) $result['submission']->id,
-				$this->submission_handler()
-			);
-		}
+		$pdf_data = $this->pdf_data( $result );
 
 		if ( is_wp_error( $pdf_data ) ) {
 			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $pdf_data->get_error_message() ) ) );
 		}
 
-		if ( ! empty( $result['type'] ) && 'appointment' === $result['type'] ) {
-			$html = $this->renderer->format_appointment_verification_response( $result );
-		} elseif ( ! empty( $result['type'] ) && 'reregistration' === $result['type'] ) {
-			$html = $this->renderer->format_reregistration_verification_response( $result );
-		} else {
-			$html = $this->renderer->format_verification_response(
-				$result['submission'],
-				$result['data'],
-				true
-			);
-		}
+		$html = $this->response_html( $result );
 
 		wp_send_json_success(
 			array(
@@ -941,5 +458,44 @@ class VerificationHandler {
 				'pdf_data'      => $pdf_data,
 			)
 		);
+	}
+
+	/**
+	 * The PDF data for a found document, by kind.
+	 *
+	 * @param array<string, mixed> $result A found result.
+	 * @return array<string, mixed>|\WP_Error|null
+	 */
+	private function pdf_data( array $result ) {
+		$type = $result['type'] ?? '';
+
+		if ( 'appointment' === $type && ! empty( $result['appointment'] ) ) {
+			return $this->renderer->generate_appointment_verification_pdf( $result, new \FreeFormCertificate\Generators\PdfGenerator() );
+		}
+		if ( 'reregistration' === $type ) {
+			return \FreeFormCertificate\Reregistration\RecordGenerator::generate_record_data( (int) $result['reregistration']['submission_id'] );
+		}
+		return ( new \FreeFormCertificate\Generators\PdfGenerator() )->generate_pdf_data(
+			(int) $result['submission']->id,
+			$this->submission_handler()
+		);
+	}
+
+	/**
+	 * The verification page's HTML for a found document, by kind.
+	 *
+	 * @param array<string, mixed> $result A found result.
+	 * @return string
+	 */
+	private function response_html( array $result ): string {
+		$type = $result['type'] ?? '';
+
+		if ( 'appointment' === $type ) {
+			return $this->renderer->format_appointment_verification_response( $result );
+		}
+		if ( 'reregistration' === $type ) {
+			return $this->renderer->format_reregistration_verification_response( $result );
+		}
+		return $this->renderer->format_verification_response( $result['submission'], $result['data'], true );
 	}
 }

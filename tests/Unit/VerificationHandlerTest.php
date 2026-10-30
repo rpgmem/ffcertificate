@@ -8,6 +8,8 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Frontend\AppointmentVerificationLookup;
+use FreeFormCertificate\Frontend\ReregistrationVerificationLookup;
 use FreeFormCertificate\Frontend\VerificationHandler;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 use FreeFormCertificate\Tests\Support\Identifiers;
@@ -17,6 +19,10 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  * magic token verification, data merging, and appointment result building.
  *
  * @covers \FreeFormCertificate\Frontend\VerificationHandler
+ * @covers \FreeFormCertificate\Frontend\CertificateVerificationLookup
+ * @covers \FreeFormCertificate\Frontend\AppointmentVerificationLookup
+ * @covers \FreeFormCertificate\Frontend\ReregistrationVerificationLookup
+ * @covers \FreeFormCertificate\Frontend\VerificationResult
  */
 class VerificationHandlerTest extends TestCase {
 
@@ -483,7 +489,7 @@ class VerificationHandlerTest extends TestCase {
 	}
 
 	// ==================================================================
-	// build_appointment_result() — private method
+	// AppointmentVerificationLookup::result()
 	// ==================================================================
 
 	public function test_build_appointment_result_builds_correct_structure(): void {
@@ -504,7 +510,7 @@ class VerificationHandlerTest extends TestCase {
 			'created_at'        => '2026-03-01 10:00:00',
 		);
 
-		$result = $this->invokePrivate( 'build_appointment_result', [ $appointment ] );
+		$result = ( new AppointmentVerificationLookup() )->result( $appointment );
 
 		$this->assertTrue( $result['found'] );
 		$this->assertSame( 'appointment', $result['type'] );
@@ -545,7 +551,7 @@ class VerificationHandlerTest extends TestCase {
 		$wpdb->shouldReceive( 'get_row' )
 			->andReturn( array( 'id' => '3', 'title' => 'Sala de Consulta' ) );
 
-		$result = $this->invokePrivate( 'build_appointment_result', [ $appointment ] );
+		$result = ( new AppointmentVerificationLookup() )->result( $appointment );
 
 		$this->assertSame( 'Sala de Consulta', $result['data']['calendar_title'] );
 	}
@@ -571,7 +577,7 @@ class VerificationHandlerTest extends TestCase {
 		// Calendar not found
 		$wpdb->shouldReceive( 'get_row' )->andReturn( null );
 
-		$result = $this->invokePrivate( 'build_appointment_result', [ $appointment ] );
+		$result = ( new AppointmentVerificationLookup() )->result( $appointment );
 
 		$this->assertSame( '', $result['data']['calendar_title'] );
 	}
@@ -583,7 +589,7 @@ class VerificationHandlerTest extends TestCase {
 			'calendar_id' => '0',
 		);
 
-		$result = $this->invokePrivate( 'build_appointment_result', [ $appointment ] );
+		$result = ( new AppointmentVerificationLookup() )->result( $appointment );
 
 		$this->assertTrue( $result['found'] );
 		$this->assertSame( '', $result['data']['name'] );
@@ -968,7 +974,7 @@ class VerificationHandlerTest extends TestCase {
 	}
 
 	// ==================================================================
-	// search_reregistration_by_code() — private method
+	// ReregistrationVerificationLookup::by_code() / by_token()
 	// ==================================================================
 
 	public function test_search_reregistration_by_code_no_class_returns_not_found(): void {
@@ -977,7 +983,7 @@ class VerificationHandlerTest extends TestCase {
 		global $wpdb;
 		$wpdb->shouldReceive( 'get_row' )->andReturn( null );
 
-		$result = $this->invokePrivate( 'search_reregistration_by_code', [ 'REREG1234567' ] );
+		$result = ( new ReregistrationVerificationLookup() )->by_code( 'REREG1234567' );
 
 		$this->assertFalse( $result['found'] );
 	}
@@ -1007,7 +1013,7 @@ class VerificationHandlerTest extends TestCase {
 
 		Functions\when( 'get_userdata' )->justReturn( null );
 
-		$result = $this->invokePrivate( 'search_reregistration_by_code', [ 'REREG1234567' ] );
+		$result = ( new ReregistrationVerificationLookup() )->by_code( 'REREG1234567' );
 
 		$this->assertTrue( $result['found'] );
 		$this->assertSame( 'reregistration', $result['type'] );
@@ -1025,7 +1031,7 @@ class VerificationHandlerTest extends TestCase {
 		global $wpdb;
 		$wpdb->shouldReceive( 'get_row' )->andReturn( null );
 
-		$result = $this->invokePrivate( 'search_reregistration_by_magic_token', [ 'sometoken123' ] );
+		$result = ( new ReregistrationVerificationLookup() )->by_token( 'sometoken123' );
 
 		$this->assertFalse( $result['found'] );
 	}
@@ -1054,7 +1060,7 @@ class VerificationHandlerTest extends TestCase {
 
 		Functions\when( 'get_userdata' )->justReturn( null );
 
-		$result = $this->invokePrivate( 'search_reregistration_by_magic_token', [ 'magictoken64hex' ] );
+		$result = ( new ReregistrationVerificationLookup() )->by_token( 'magictoken64hex' );
 
 		$this->assertTrue( $result['found'] );
 		$this->assertSame( 'reregistration', $result['type'] );
