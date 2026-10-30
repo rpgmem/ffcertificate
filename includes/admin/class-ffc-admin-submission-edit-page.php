@@ -101,6 +101,17 @@ class AdminSubmissionEditPage {
 	}
 
 	/**
+	 * Whether the current user may change which account owns the submission.
+	 *
+	 * The owner reads the certificate unmasked, so relinking hands its data
+	 * to an account of the editor's choosing, their own included: it takes
+	 * the module's manage capability, not the edit one (#2241).
+	 */
+	private function can_change_owner(): bool {
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_certificates' );
+	}
+
+	/**
 	 * Render the edit page
 	 *
 	 * Main entry point that delegates to specialized render methods.
@@ -479,28 +490,28 @@ class AdminSubmissionEditPage {
 			echo '<p class="description">' . esc_html__( 'Submission created before magic links', 'ffcertificate' ) . '</p></div>';
 			return;
 		}
-		$magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $magic_token );
+
+		/*
+		 * The link opens the certificate and everything it prints, so it is
+		 * personal data: masked here, revealed and audited on demand, and the
+		 * certificate opens through the audited route (#2241).
+		 */
+		if ( ! $this->reveal_context() ) {
+			echo '<p class="description">' . esc_html__( 'Opening the certificate or its link needs permission to reveal personal data.', 'ffcertificate' ) . '</p></div>';
+			return;
+		}
 		?>
-		<p class="ffc-edit-magic-link">
-			<a href="<?php echo esc_url( $magic_link ); ?>" target="_blank" rel="noopener" class="ffc-magic-link"><?php echo esc_html( $magic_link ); ?></a>
+		<p class="ffc-edit-magic-link ffc-pii-row">
+			<span class="ffc-pii-value ffc-magic-link" data-field="magic_link">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span>
+			<?php echo $this->reveal_button( 'magic_link' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- PiiReveal::field_button() escapes every attribute. ?>
 		</p>
 		<p class="ffc-edit-actions">
 			<?php
 			AdminUI::render_button(
 				array(
-					'label' => __( 'Copy', 'ffcertificate' ),
-					'icon'  => 'copy',
-					'class' => 'ffc-copy-magic-link',
-					'attrs' => array(
-						'data-url' => $magic_link,
-					),
-				)
-			);
-			AdminUI::render_button(
-				array(
 					'label' => __( 'Open certificate', 'ffcertificate' ),
 					'icon'  => 'external',
-					'href'  => $magic_link,
+					'href'  => CertificateOpenHandler::url( (int) $this->sub_array['id'] ),
 					'attrs' => array(
 						'target' => '_blank',
 						'rel'    => 'noopener',
@@ -509,7 +520,7 @@ class AdminSubmissionEditPage {
 			);
 			?>
 		</p>
-		<p class="description"><?php esc_html_e( 'Anyone with this link can download the certificate.', 'ffcertificate' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Anyone with this link can download the certificate. Revealing it or opening the certificate is recorded in the activity log.', 'ffcertificate' ); ?></p>
 		</div>
 		<?php
 	}
@@ -677,26 +688,29 @@ class AdminSubmissionEditPage {
 										),
 									)
 								);
-								AdminUI::render_button(
-									array(
-										'label'    => __( 'Unlink User', 'ffcertificate' ),
-										'category' => 'caution',
-										'icon'     => 'unlink',
-										'class'    => 'ffc-unlink-user-btn',
-										'attrs'    => array(
-											'data-confirm' => __( 'Are you sure you want to unlink this user from the submission?', 'ffcertificate' ),
-										),
-									)
-								);
-								AdminUI::render_button(
-									array(
-										'label' => __( 'Link to Another User', 'ffcertificate' ),
-										'icon'  => 'link',
-										'class' => 'ffc-relink-user-btn',
-									)
-								);
+								if ( $this->can_change_owner() ) {
+									AdminUI::render_button(
+										array(
+											'label'    => __( 'Unlink User', 'ffcertificate' ),
+											'category' => 'caution',
+											'icon'     => 'unlink',
+											'class'    => 'ffc-unlink-user-btn',
+											'attrs'    => array(
+												'data-confirm' => __( 'Are you sure you want to unlink this user from the submission?', 'ffcertificate' ),
+											),
+										)
+									);
+									AdminUI::render_button(
+										array(
+											'label' => __( 'Link to Another User', 'ffcertificate' ),
+											'icon'  => 'link',
+											'class' => 'ffc-relink-user-btn',
+										)
+									);
+								}
 								?>
 								</div>
+								<?php if ( $this->can_change_owner() ) : ?>
 								<p class="description">
 									<?php esc_html_e( 'Removes the link between this submission and the WordPress user.', 'ffcertificate' ); ?>
 									<?php esc_html_e( 'An unlinked submission has no account, which is the state the identity queue adopts.', 'ffcertificate' ); ?>
@@ -704,6 +718,7 @@ class AdminSubmissionEditPage {
 								<p class="description">
 									<?php esc_html_e( 'Choose another user to own this submission. The change is applied when you save.', 'ffcertificate' ); ?>
 								</p>
+								<?php endif; ?>
 							</div>
 						</div>
 					<?php endif; ?>
@@ -715,7 +730,16 @@ class AdminSubmissionEditPage {
 					 * so changing the account no longer means unlinking, saving,
 					 * searching and saving again.
 					 */
-					?>
+					if ( ! $this->can_change_owner() ) :
+						if ( ! $current_user ) :
+							?>
+							<p class="ffc-no-user">
+								<em><?php esc_html_e( 'No user linked to this submission.', 'ffcertificate' ); ?></em>
+							</p>
+							<?php
+						endif;
+					else :
+						?>
 					<div class="ffc-user-search-container<?php echo $current_user ? ' ffc-hidden' : ''; ?>">
 						<?php if ( ! $current_user ) : ?>
 							<p class="ffc-no-user">
@@ -748,6 +772,7 @@ class AdminSubmissionEditPage {
 							<?php esc_html_e( 'Search for a WordPress user to link to this submission. The user will see this certificate in their dashboard.', 'ffcertificate' ); ?>
 						</p>
 					</div>
+					<?php endif; ?>
 				</div>
 		</div>
 		<?php
@@ -990,8 +1015,9 @@ class AdminSubmissionEditPage {
 		// Update submission data (email + custom fields).
 		$this->submission_handler->update_submission( $id, $new_email, $clean_data );
 
-		// Update user link if changed (not __keep__).
-		if ( '__keep__' !== $linked_user_id ) {
+		// Update user link if changed (not __keep__). Changing the owner takes
+		// the manage capability; a post from an editor without it is ignored (#2241).
+		if ( '__keep__' !== $linked_user_id && $this->can_change_owner() ) {
 			$new_user_id = '' === $linked_user_id ? null : (int) $linked_user_id;
 
 			// Validate user exists if linking to a user.

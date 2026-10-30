@@ -495,39 +495,69 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringNotContainsString( 'Trash', $out );
 	}
 
-	public function test_pdf_button_links_the_stored_token_to_the_verification_page(): void {
-		$this->stubStaticCollaborators( false, false );
+	/**
+	 * #2241 — the certificate prints the holder's data and its magic link
+	 * opens it, so the button opens it through the audited route and never
+	 * carries the link in the page.
+	 *
+	 * @dataProvider provider_revealing_tiers
+	 */
+	public function test_pdf_button_opens_the_audited_route_for_a_revealing_tier( string $tier ): void {
+		$this->stubStaticCollaborators( false, false, $tier );
 		$list = $this->makeList();
 		$item = array( 'id' => 5, 'status' => 'publish', 'magic_token' => self::TOKEN );
 		$out  = $this->call_protected( $list, 'render_pdf_button', array( $item ) );
-		$this->assertStringContainsString( 'href="' . self::VALID_URL . '#token=' . self::TOKEN . '"', $out );
-	}
-
-	public function test_pdf_button_fallback_to_handler_when_no_token(): void {
-		$this->stubStaticCollaborators( false, false );
-		$handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
-		$handler->shouldReceive( 'ensure_magic_token' )->once()->with( 7 )->andReturn( self::TOKEN );
-		$list = $this->makeList( $handler );
-		$item = array( 'id' => 7, 'status' => 'publish' ); // no magic_token
-		$out  = $this->call_protected( $list, 'render_pdf_button', array( $item ) );
-		$this->assertStringContainsString( 'PDF', $out );
-		$this->assertStringContainsString( self::VALID_URL . '#token=' . self::TOKEN, $out );
+		$this->assertStringContainsString( 'href="https://example.com/wp-admin/admin-post.php?action=ffc_open_certificate&submission_id=5&_wpnonce=test"', $out );
+		$this->assertStringNotContainsString( '#token=', $out );
 	}
 
 	/**
-	 * A submission whose token the handler cannot ensure gets the "No token"
-	 * placeholder, never a link to a token nothing stores (#2187).
+	 * @return array<string, array{string}>
 	 */
-	public function test_pdf_button_shows_no_token_when_the_handler_cannot_ensure_one(): void {
-		$this->stubStaticCollaborators( false, false );
-		$handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
-		$handler->shouldReceive( 'ensure_magic_token' )->once()->with( 0 )->andReturn( '' );
-		$list = $this->makeList( $handler );
-		$item = array( 'id' => 0, 'status' => 'publish' );
-		$out  = $this->call_protected( $list, 'render_pdf_button', array( $item ) );
-		$this->assertStringContainsString( 'ffc-no-token', $out );
-		$this->assertStringContainsString( 'No token', $out );
-		$this->assertStringNotContainsString( '#token=', $out );
+	public static function provider_revealing_tiers(): array {
+		return array(
+			'site administrator' => array( 'unmasked' ),
+			'PII capability'     => array( 'reveal' ),
+		);
+	}
+
+	public function test_pdf_button_is_absent_for_a_tier_that_cannot_reveal(): void {
+		$this->stubStaticCollaborators( true, true, 'masked' );
+		$list = $this->makeList();
+		$item = array( 'id' => 5, 'status' => 'publish', 'magic_token' => self::TOKEN );
+
+		$this->assertSame( '', $this->call_protected( $list, 'render_pdf_button', array( $item ) ) );
+		$actions = $this->call_protected( $list, 'column_default', array( $item, 'actions' ) );
+		$this->assertStringNotContainsString( 'PDF', $actions );
+		$this->assertStringNotContainsString( '#token=', $actions );
+		$this->assertStringContainsString( 'Edit', $actions, 'The other actions stay.' );
+	}
+
+	public function test_pdf_button_opens_the_owners_own_certificate(): void {
+		$this->stubStaticCollaborators( false, false, 'masked' );
+		$list = $this->makeList();
+		$item = array( 'id' => 5, 'status' => 'publish', 'user_id' => 7, 'magic_token' => self::TOKEN );
+		$this->assertStringContainsString( 'action=ffc_open_certificate', $this->call_protected( $list, 'render_pdf_button', array( $item ) ) );
+	}
+
+	/**
+	 * #2241 — the preview masks a personal value by its key; a non-personal
+	 * one reads as typed.
+	 */
+	public function test_format_data_preview_masks_personal_keys(): void {
+		$this->stubStaticCollaborators();
+		$list = $this->makeList();
+		$json = json_encode(
+			array(
+				'telefone'        => '11987654321',
+				'data_nascimento' => '1990-05-20',
+				'curso'           => 'Matemática',
+			)
+		);
+		$out = $this->call_protected( $list, 'column_default', array( array( 'data' => $json ), 'data' ) );
+		$this->assertStringNotContainsString( '11987654321', $out );
+		$this->assertStringNotContainsString( '1990-05-20', $out );
+		$this->assertStringContainsString( 'Matemática', $out );
 	}
 
 	// ==================================================================

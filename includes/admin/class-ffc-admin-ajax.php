@@ -137,7 +137,7 @@ class AdminAjax {
 			return 'ip' === $field;
 		}
 		if ( 'submission' === $type ) {
-			return in_array( $field, array( 'cpf', 'rf', 'email', 'ip', 'account_email' ), true );
+			return in_array( $field, array( 'cpf', 'rf', 'email', 'ip', 'account_email', 'magic_link' ), true );
 		}
 		if ( 'appointment' === $type ) {
 			return in_array( $field, array( 'cpf', 'rf', 'email', 'ip', 'phone' ), true );
@@ -293,6 +293,11 @@ class AdminAjax {
 				return $account ? (string) $account->user_email : '';
 			case 'email':
 				return (string) ( $record['email'] ?? '' );
+			case 'magic_link':
+				// The certificate's link opens everything it prints, so it is
+				// revealed and audited like the data itself (#2241).
+				$token = (string) ( $record['magic_token'] ?? '' );
+				return '' === $token ? '' : \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $token );
 			default:
 				// A user-profile custom field, `cf_<id>`.
 				$fields = is_array( $record['fields'] ?? null ) ? $record['fields'] : array();

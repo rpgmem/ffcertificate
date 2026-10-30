@@ -223,9 +223,9 @@ class SubmissionsList extends \WP_List_Table {
 	private function action_buttons( array $item ): string {
 		$base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions' );
 
-		// 3-state model: read-only viewers (ffc_view_certificates) get the PDF
-		// button only; editing a record needs ffc_edit_certificates; the
+		// 3-state model: editing a record needs ffc_edit_certificates; the
 		// trash/restore/delete write actions need ffc_manage_certificates.
+		// The PDF button follows the reveal policy instead (#2241).
 		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_certificates' );
 		$can_edit   = $can_manage || \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_edit_certificates' );
 
@@ -296,27 +296,24 @@ class SubmissionsList extends \WP_List_Table {
 	/**
 	 * Render pdf button.
 	 *
+	 * The certificate prints the holder's personal data and its magic link
+	 * opens all of it, so the button is a reveal: only for whoever may reveal
+	 * the submission's data, and through the audited route, never the bare
+	 * link in the page (#2241).
+	 *
 	 * @param array<string, mixed> $item Item.
 	 * @return string
 	 */
 	private function render_pdf_button( array $item ): string {
-		// Use token directly from item (more efficient, avoids extra DB query).
-		if ( ! empty( $item['magic_token'] ) ) {
-			$magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $item['magic_token'] );
-		} else {
-			// Fallback: generate token if missing (convert id to int - wpdb returns strings).
-			$magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::get_submission_magic_link( (int) $item['id'], $this->submission_handler );
-		}
-
-		if ( empty( $magic_link ) ) {
-			return '<em class="ffc-no-token">' . esc_html__( 'No token', 'ffcertificate' ) . '</em>';
+		if ( ! CertificateOpenHandler::current_user_can_open( (int) ( $item['user_id'] ?? 0 ) ) ) {
+			return '';
 		}
 
 		return self::row_action(
 			__( 'PDF', 'ffcertificate' ),
 			'neutral',
 			'file',
-			$magic_link,
+			CertificateOpenHandler::url( (int) $item['id'] ),
 			array(
 				'target' => '_blank',
 				'title'  => __( 'Opens PDF in new tab', 'ffcertificate' ),
@@ -421,7 +418,10 @@ class SubmissionsList extends \WP_List_Table {
 				$value = implode( ', ', $value );
 			}
 
-			$value           = \FreeFormCertificate\Core\Utils::truncate( $value, 40 );
+			// The list is seen by every tier, so a personal value is masked
+			// by its kind, as on every other staff surface (#2241).
+			$value           = \FreeFormCertificate\Core\DocumentFormatter::mask_field_value( (string) $key, (string) $value );
+			$value           = \FreeFormCertificate\Core\Utils::truncate( (string) $value, 40 );
 			$label           = ucfirst( str_replace( '_', ' ', $key ) );
 			$preview_items[] = '<strong>' . esc_html( $label ) . ':</strong> ' . esc_html( $value );
 			++$count;
