@@ -163,3 +163,54 @@ describe('FFCGeofence.validateDateTime', () => {
 		expect(result.message).toBe('Custom not-yet message');
 	});
 });
+
+// ----------------------------------------------------------------------
+// #2241 — one message per moment
+// ----------------------------------------------------------------------
+
+describe('FFCGeofence.validateDateTime — per-moment messages', () => {
+	const messages = {
+		before: 'Opens on 1 June.',
+		after: 'Registration has closed.',
+		during: 'Open daily from 8 to 17.',
+	};
+	const window2026 = {
+		dateStart: '2026-06-01',
+		dateEnd: '2026-06-30',
+		timeStart: '08:00',
+		timeEnd: '17:00',
+		timeMode: 'daily',
+		messages,
+	};
+
+	it('shows the before-it-opens message before the start date', () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(2026, 4, 1, 12, 0));
+		const result = window.FFCGeofence.validateDateTime(window2026);
+		expect(result.phase).toBe('before');
+		expect(result.message).toBe(messages.before);
+	});
+
+	it('shows the after-it-closes message after the end date', () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(2026, 6, 1, 12, 0));
+		const result = window.FFCGeofence.validateDateTime(window2026);
+		expect(result.phase).toBe('after');
+		expect(result.message).toBe(messages.after);
+	});
+
+	it('shows the outside-the-hours message outside the daily slot', () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(2026, 5, 15, 20, 0));
+		const result = window.FFCGeofence.validateDateTime(window2026);
+		expect(result.phase).toBe('during');
+		expect(result.message).toBe(messages.during);
+	});
+
+	it('falls back to the single message, then the default', () => {
+		const single = window.FFCGeofence.phaseMessage({ message: 'Not available now.' }, 'after', 'formNoLongerAvailable', 'Default.');
+		const none = window.FFCGeofence.phaseMessage({}, 'after', 'formNoLongerAvailable', 'Default.');
+		expect(single).toBe('Not available now.');
+		expect(none).toBe('Default.');
+	});
+});

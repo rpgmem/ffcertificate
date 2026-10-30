@@ -338,6 +338,7 @@ $ffcertificate_options = array(
 	'ffc_reasons_caps_wired_v1',
 	'ffc_recruitment_email_hub_v1',
 	'ffc_required_data_v1',
+	'ffc_geofence_window_messages_v1',
 	'ffc_reregistration_pii_cap_v1',
 	'ffc_role_tiers_v1',
 	'ffc_module_role_labels_v1',

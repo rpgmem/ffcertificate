@@ -754,17 +754,18 @@ class FormEditorSaveHandlerTest extends TestCase {
 
 	private const VALID_MSG = 'This form is closed outside its scheduled window.'; // 49 chars.
 
-	public function test_empty_datetime_message_blocks_save_when_enabled(): void {
+	public function test_empty_datetime_messages_save_and_fall_back_to_the_defaults(): void {
+		// An empty message shows its moment's default (#2241), so it no
+		// longer blocks the save.
 		$config = array(
-			'datetime_enabled' => '1',
-			'date_start'       => '2026-01-01',
-			'date_end'         => '2026-01-01',
-			'msg_datetime'     => '', // cleared by operator → too short.
+			'datetime_enabled'  => '1',
+			'date_start'        => '2026-01-01',
+			'date_end'          => '2026-01-01',
+			'msg_before_open'   => '',
+			'msg_after_close'   => '',
+			'msg_outside_hours' => '',
 		);
-		$errors = $this->invoke( 'validate_geofence_config', array( $config ) );
-		$this->assertNotEmpty( $errors );
-		$joined = implode( ' | ', $errors );
-		$this->assertStringContainsString( 'Blocked Message', $joined );
+		$this->assertSame( array(), $this->invoke( 'validate_geofence_config', array( $config ) ) );
 	}
 
 	public function test_short_datetime_message_blocks_save(): void {
@@ -772,10 +773,11 @@ class FormEditorSaveHandlerTest extends TestCase {
 			'datetime_enabled' => '1',
 			'date_start'       => '2026-01-01',
 			'date_end'         => '2026-01-01',
-			'msg_datetime'     => 'Closed.', // 7 chars < 25.
+			'msg_after_close'  => 'Closed.', // 7 chars < 25.
 		);
 		$errors = $this->invoke( 'validate_geofence_config', array( $config ) );
 		$this->assertNotEmpty( $errors );
+		$this->assertStringContainsString( 'left empty for the default', implode( ' | ', $errors ) );
 	}
 
 	public function test_valid_datetime_message_passes(): void {
@@ -783,7 +785,8 @@ class FormEditorSaveHandlerTest extends TestCase {
 			'datetime_enabled' => '1',
 			'date_start'       => '2026-01-01',
 			'date_end'         => '2026-01-01',
-			'msg_datetime'     => self::VALID_MSG,
+			'msg_before_open'  => self::VALID_MSG,
+			'msg_after_close'  => self::VALID_MSG,
 		);
 		$errors = $this->invoke( 'validate_geofence_config', array( $config ) );
 		$this->assertSame( array(), $errors );
@@ -811,7 +814,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 			'time_start'       => '08:00',
 			'time_end'         => '17:00',
 			'time_mode'        => 'span',
-			'msg_datetime'     => 'too short',
+			'msg_outside_hours' => 'too short',
 		);
 		$errors = $this->invoke( 'validate_geofence_config', array( $config ) );
 		$keys   = $this->invoke( 'geofence_error_tab_keys', array( $config, $errors ) );
@@ -1386,7 +1389,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 				'time_end'         => '17:00',
 				'time_mode'        => 'daily',
 				// ≥25 chars so the block-message length gate passes.
-				'msg_datetime'     => 'This form is closed outside its scheduled window.',
+				'msg_before_open'  => 'This form is closed outside its scheduled window.',
 			),
 		);
 
@@ -1422,7 +1425,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 				'time_end'         => '17:00',
 				'time_mode'        => 'daily',
 				// ≥25 chars so the block-message length gate passes.
-				'msg_datetime'     => 'This form is closed outside its scheduled window.',
+				'msg_before_open'  => 'This form is closed outside its scheduled window.',
 			),
 		);
 
@@ -1432,6 +1435,40 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$this->assertSame( '1', $merged['multi_day'] );
 		$this->assertSame( '2026-05-25', $merged['date_end'] );
 		$this->assertSame( 'daily', $merged['time_mode'] );
+	}
+
+	/**
+	 * The three out-of-window messages are saved and replace the single one
+	 * the form carried before (#2241); an empty one is saved empty.
+	 */
+	public function test_datetime_messages_save_and_replace_the_single_message(): void {
+		$bag     = $this->stub_for_save();
+		$written = &$bag[0];
+
+		Functions\when( 'get_post_meta' )->alias(
+			static fn( $id, $key ) => '_ffc_geofence_config' === $key ? array( 'msg_datetime' => 'The single message every moment used to show.' ) : array()
+		);
+
+		$_POST = array(
+			'ffc_form_nonce' => 'ok',
+			'ffc_geofence'   => array(
+				'datetime_enabled'  => '1',
+				'date_start'        => '2026-05-20',
+				'date_end'          => '2026-05-20',
+				'time_mode'         => 'daily',
+				'msg_before_open'   => 'Opens on 20 May at eight in the morning.',
+				'msg_after_close'   => 'Closed: the registration period has ended.',
+				'msg_outside_hours' => '',
+			),
+		);
+
+		$this->handler->save_form_data( 10 );
+
+		$merged = $written['_ffc_geofence_config'];
+		$this->assertSame( 'Opens on 20 May at eight in the morning.', $merged['msg_before_open'] );
+		$this->assertSame( 'Closed: the registration period has ended.', $merged['msg_after_close'] );
+		$this->assertSame( '', $merged['msg_outside_hours'] );
+		$this->assertArrayNotHasKey( 'msg_datetime', $merged );
 	}
 
 	/**

@@ -465,7 +465,7 @@
             FFCGeofence.handleBlocked(
                 ctx.wrapper,
                 FFCGeofence.pickHideMode(ctx.config.datetime, result.phase),
-                ctx.config.datetime.message || result.message
+                result.message
             );
         }
     });

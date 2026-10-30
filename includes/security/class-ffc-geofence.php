@@ -348,7 +348,7 @@ class Geofence {
 	 * default when it's missing OR empty.
 	 *
 	 * The `??` null-coalescing operator only substitutes for `null`, not
-	 * for an empty string — so `$config['msg_datetime'] ?? $default`
+	 * for an empty string — so `$config['msg_geo_blocked'] ?? $default`
 	 * returned `''` whenever the operator cleared the "Blocked Message"
 	 * field (a saved empty string, not an absent key). An empty message
 	 * propagated to the AJAX response, where the frontend's
@@ -359,7 +359,7 @@ class Geofence {
 	 * and the '' cases so the phase-specific default always wins.
 	 *
 	 * @param array<string, mixed> $config  Geofence config.
-	 * @param string               $key     Message key (msg_datetime / msg_geo_*).
+	 * @param string               $key     Message key (msg_geo_*).
 	 * @param string               $default Phase-specific fallback copy.
 	 * @return string Non-empty message.
 	 */
@@ -393,7 +393,7 @@ class Geofence {
 			if ( $now < $start_datetime ) {
 				return array(
 					'valid'   => false,
-					'message' => self::message_or_default( $config, 'msg_datetime', __( 'This form is not yet available.', 'ffcertificate' ) ),
+					'message' => GeofenceWindowMessages::message( $config, 'before' ),
 					'details' => array(
 						'reason' => 'before_start_datetime',
 						'mode'   => 'span',
@@ -406,7 +406,7 @@ class Geofence {
 			if ( $now > $end_datetime ) {
 				return array(
 					'valid'   => false,
-					'message' => self::message_or_default( $config, 'msg_datetime', __( 'This form is no longer available.', 'ffcertificate' ) ),
+					'message' => GeofenceWindowMessages::message( $config, 'after' ),
 					'details' => array(
 						'reason' => 'after_end_datetime',
 						'mode'   => 'span',
@@ -429,7 +429,7 @@ class Geofence {
 		if ( ! empty( $config['date_start'] ) && $current_date < $config['date_start'] ) {
 			return array(
 				'valid'   => false,
-				'message' => self::message_or_default( $config, 'msg_datetime', __( 'This form is not yet available.', 'ffcertificate' ) ),
+				'message' => GeofenceWindowMessages::message( $config, 'before' ),
 				'details' => array(
 					'reason'       => 'before_start_date',
 					'current_date' => $current_date,
@@ -441,7 +441,7 @@ class Geofence {
 		if ( ! empty( $config['date_end'] ) && $current_date > $config['date_end'] ) {
 			return array(
 				'valid'   => false,
-				'message' => self::message_or_default( $config, 'msg_datetime', __( 'This form is no longer available.', 'ffcertificate' ) ),
+				'message' => GeofenceWindowMessages::message( $config, 'after' ),
 				'details' => array(
 					'reason'       => 'after_end_date',
 					'current_date' => $current_date,
@@ -459,7 +459,7 @@ class Geofence {
 			if ( $current_time < $time_start || $current_time > $time_end ) {
 				return array(
 					'valid'   => false,
-					'message' => self::message_or_default( $config, 'msg_datetime', __( 'This form is only available during specific hours.', 'ffcertificate' ) ),
+					'message' => GeofenceWindowMessages::message( $config, 'during' ),
 					'details' => array(
 						'reason'       => 'outside_time_range',
 						'mode'         => 'daily',
@@ -913,7 +913,9 @@ class Geofence {
 					'timeStart'      => $config['time_start'] ?? '',
 					'timeEnd'        => $config['time_end'] ?? '',
 					'timeMode'       => $config['time_mode'] ?? 'daily', // 'span' or 'daily'
-					'message'        => $config['msg_datetime'] ?? '',
+					// One message per moment (#2241): before it opens, after
+					// it closes, outside the daily hours.
+					'messages'       => GeofenceWindowMessages::all( $config ),
 					// Per-phase hide modes (#159). Each one falls back to the legacy
 					// single `datetime_hide_mode` for forms saved before #159 S1.
 					'hideModeBefore' => self::resolve_hide_mode( $config, 'before' ),
