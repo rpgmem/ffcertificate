@@ -485,6 +485,30 @@ class ReregistrationSubmissionWriter {
 	}
 
 	/**
+	 * Create the missing submissions of every active campaign (#2242).
+	 *
+	 * Activation seeds a row per member once, so whoever joins one of the
+	 * campaign's audiences later — directly or through a child audience — had
+	 * a banner and no row: no invitation, no reminder, and absent from Pending
+	 * and the totals. The daily run calls this before the reminders and the
+	 * invitations, so a late joiner flows into both the same day.
+	 *
+	 * Cheap to repeat: `create_for_audience_members()` is one `INSERT IGNORE`
+	 * per 500 members over the table's unique key, so an existing row is
+	 * never touched and a run with no newcomer writes nothing. Campaigns
+	 * outside their window are included on purpose: an invitation may go out
+	 * before the opening date, and a campaign already past its end is expired
+	 * by the step that runs first.
+	 *
+	 * @return void
+	 */
+	public static function seed_active_campaigns(): void {
+		foreach ( ReregistrationRepository::get_active_ids() as $reregistration_id ) {
+			self::create_for_audience_members( $reregistration_id, ReregistrationRepository::get_audience_ids( $reregistration_id ) );
+		}
+	}
+
+	/**
 	 * Stamps the REMINDER's send on a submission.
 	 *
 	 * PER ITEM, not in a batch like {@see self::mark_invited()} -- the

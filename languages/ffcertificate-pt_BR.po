@@ -15335,9 +15335,6 @@ msgstr "Enviado automaticamente quando um horário lotado entra na fila ou é li
 msgid "sent automatically when the deadline is within N days (default 7)."
 msgstr "enviado automaticamente quando o prazo estiver a N dias (padrão: 7)."
 
-#: includes/settings/views/documentation/feature-reregistration.php:40
-msgid "sent automatically when the deadline is within N days (default 7). Each member receives it ONCE per campaign, not once a day: the send is stamped on the submission, and the daily sweep skips whoever already has that stamp."
-msgstr "enviado automaticamente quando o prazo está a N dias do fim (padrão: 7). Cada membro o recebe UMA VEZ por campanha, não uma vez por dia: o envio é registrado na submissão, e a varredura diária ignora quem já tem esse registro."
 
 #: includes/core/class-ffc-email-template-options.php:93
 msgid "Sent by {{site_title}}"
@@ -25511,13 +25508,7 @@ msgstr "Nenhum convite foi enviado ainda. Eles saem na próxima execução diár
 msgid "Send invitation email (daily run after activation)"
 msgstr "Enviar e-mail de convite (execução diária após a ativação)"
 
-#: includes/settings/views/documentation/feature-reregistration.php
-msgid "sent by the daily run to every member who has not received one yet, starting with the first run after the campaign is activated. Members who join later get theirs on the following run. The Send invitations button sends them right away."
-msgstr "enviado pela execução diária a cada membro que ainda não recebeu, a partir da primeira execução após a ativação da campanha. Membros que entram depois recebem o seu na execução seguinte. O botão Enviar convites envia na hora."
 
-#: includes/settings/views/documentation/feature-reregistration.php
-msgid "Activate the campaign — a submission is created for every audience member at once. Invitation emails are not sent at that moment: they go out with the next daily run, in batches, so a campaign activated by mistake can still be deactivated before anybody is mailed. The screen says when that run is."
-msgstr "Ative a campanha — uma submissão é criada na hora para cada membro do público. Os e-mails de convite não são enviados nesse momento: eles saem na próxima execução diária, em lotes, de modo que uma campanha ativada por engano ainda pode ser desativada antes de alguém receber. A tela informa quando será essa execução."
 
 #: templates/admin/reregistration/form.php
 msgid "Sends the invitation now, without waiting for the daily run, to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished."
@@ -29774,3 +29765,15 @@ msgstr "O campo \"%1$s\" não pode gravar na chave de perfil \"%2$s\": o e-mail 
 
 msgid "Matches a staff account (an administrator, or someone who can see personal data). An import never changes a staff account; they update their own profile in wp-admin."
 msgstr "Corresponde a uma conta da equipe (um administrador ou alguém que pode ver dados pessoais). Uma importação nunca altera uma conta da equipe; a pessoa atualiza o próprio perfil no wp-admin."
+
+msgid "sent by the daily run to every member who has not received one yet, starting with the first run after the campaign is activated. The same run creates the submission of anyone who joined one of the campaign's audiences, or one of their child audiences, since the activation, so late joiners get their invitation, their reminders and their place in the totals. An invitation can go out before the start date; it then names the day the form opens. The Send invitations button sends them right away."
+msgstr "enviado pela execução diária a todo membro que ainda não recebeu um, a partir da primeira execução depois que a campanha é ativada. A mesma execução cria o envio de quem entrou em um dos públicos da campanha, ou em um dos públicos filhos, depois da ativação, então quem chega depois recebe o convite, os lembretes e entra nos totais. Um convite pode sair antes da data de início; nesse caso ele informa o dia em que o formulário abre. O botão Enviar convites os envia na hora."
+
+msgid "sent automatically when the deadline is within N days (default 7) and the campaign has already opened. Each member receives it ONCE per campaign, not once a day: the send is stamped on the submission, and the daily sweep skips whoever already has that stamp."
+msgstr "enviado automaticamente quando o prazo está a N dias do fim (padrão: 7) e a campanha já abriu. Cada membro o recebe UMA VEZ por campanha, não uma vez por dia: o envio é registrado na submissão, e a varredura diária ignora quem já tem esse registro."
+
+msgid "Activate the campaign — a submission is created for every member of its audiences and of their child audiences at once. Saving an active campaign creates the submissions of an audience added to it. Invitation emails are not sent at that moment: they go out with the next daily run, in batches, so a campaign activated by mistake can still be deactivated before anybody is mailed. The screen says when that run is."
+msgstr "Ative a campanha — um envio é criado na hora para cada membro dos públicos dela e dos públicos filhos. Salvar uma campanha ativa cria os envios de um público adicionado a ela. Os e-mails de convite não saem nesse momento: vão com a próxima execução diária, em lotes, então uma campanha ativada por engano ainda pode ser desativada antes que alguém receba e-mail. A tela informa quando é essa execução."
+
+msgid "A new reregistration campaign for your group opens on %s."
+msgstr "Uma nova campanha de recadastramento do seu grupo abre em %s."

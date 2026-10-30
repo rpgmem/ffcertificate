@@ -98,6 +98,14 @@ class ReregistrationInvitationBatchTest extends TestCase {
 
 		class_exists( '\FreeFormCertificate\Reregistration\ReregistrationEmailHandler' );
 
+		// The invitation's opening line reads the campaign window on the site
+		// clock (#2242); pin it inside the staged campaign.
+		Functions\when( 'current_time' )->alias(
+			static function ( $type ) {
+				return 'Y-m-d' === $type ? '2026-06-15' : ( 'mysql' === $type ? '2026-06-15 12:00:00' : 0 );
+			}
+		);
+
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
 
@@ -279,12 +287,12 @@ class ReregistrationInvitationBatchTest extends TestCase {
 	 * @param list<int> $failing   `user_id`s whose `get_userdata` fails.
 	 * @return void
 	 */
-	private function stage( int $rows, array $failing = array() ): void {
+	private function stage( int $rows, array $failing = array(), string $start_date = '2026-01-01' ): void {
 		$this->campaign = (object) array(
 			'id'                       => 7,
 			'title'                    => 'Census',
 			'email_invitation_enabled' => 1,
-			'start_date'               => '2026-01-01',
+			'start_date'               => $start_date,
 			'end_date'                 => '2099-12-31',
 		);
 
@@ -426,5 +434,28 @@ class ReregistrationInvitationBatchTest extends TestCase {
 
 		$this->assertSame( array(), $this->queries, 'The kill-switch comes before the sweep.' );
 		$this->assertSame( 0, $this->stamps );
+	}
+
+	// ==================================================================
+	// The opening line (#2242)
+	// ==================================================================
+
+	public function test_an_invitation_for_an_open_campaign_says_it_has_opened(): void {
+		$this->stage( 1 );
+
+		ReregistrationEmailHandler::send_invitation_batch( 7, 0 );
+
+		$this->assertStringContainsString( 'A new reregistration campaign has been opened for your group.', $this->mails[0][1] );
+		$this->assertStringNotContainsString( '{{opening_line}}', $this->mails[0][1] );
+	}
+
+	public function test_an_invitation_sent_before_the_opening_names_the_day_it_opens(): void {
+		$this->stage( 1, array(), '2026-07-01' );
+
+		ReregistrationEmailHandler::send_invitation_batch( 7, 0 );
+
+		$this->assertSame( 1, $this->stamps, 'An invitation may go out before the opening date.' );
+		$this->assertStringContainsString( 'A new reregistration campaign for your group opens on', $this->mails[0][1] );
+		$this->assertStringNotContainsString( 'has been opened', $this->mails[0][1] );
 	}
 }

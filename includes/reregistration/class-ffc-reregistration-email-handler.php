@@ -247,7 +247,7 @@ class ReregistrationEmailHandler {
 			$extra = array(
 				'set_password_url' => \FreeFormCertificate\Core\PasswordInvite::issue_for( (int) $sub->user_id ),
 			);
-			$extra = array_merge( $extra, self::invitation_status_vars( (string) $sub->status ) );
+			$extra = array_merge( $extra, self::invitation_status_vars( (string) $sub->status ), self::invitation_opening_vars( $rereg ) );
 
 			if ( self::send_to_user( (int) $sub->user_id, $rereg, $template, $extra ) ) {
 				// Stamped at once, not at the end of the loop: on wp-cron a
@@ -320,6 +320,28 @@ class ReregistrationEmailHandler {
 				? __( 'View My Reregistration', 'ffcertificate' )
 				: __( 'Complete Reregistration', 'ffcertificate' ),
 		);
+	}
+
+	/**
+	 * The invitation's opening sentence, by the campaign window (#2242).
+	 *
+	 * An invitation may go out before the opening date — a late joiner, or a
+	 * campaign activated ahead of its start — and then it must not say the
+	 * campaign "has been opened": it names the day the form opens instead.
+	 *
+	 * @param object $rereg Campaign.
+	 * @phpstan-param ReregistrationRow $rereg
+	 * @return array{opening_line: string}
+	 */
+	private static function invitation_opening_vars( object $rereg ): array {
+		if ( ReregistrationWindow::BEFORE === ReregistrationWindow::state( (string) $rereg->start_date, (string) $rereg->end_date ) ) {
+			return array(
+				/* translators: %s: the campaign's opening date. */
+				'opening_line' => sprintf( __( 'A new reregistration campaign for your group opens on %s.', 'ffcertificate' ), DateFormatter::format_date( (string) $rereg->start_date ) ),
+			);
+		}
+
+		return array( 'opening_line' => __( 'A new reregistration campaign has been opened for your group.', 'ffcertificate' ) );
 	}
 
 	/**
@@ -559,7 +581,9 @@ class ReregistrationEmailHandler {
 
 		// Get active campaigns where reminder is due. "Today" is the site's
 		// date, not the database server's `CURDATE()`: the campaign dates are
-		// wall-clock values in the site's calendar (#2242).
+		// wall-clock values in the site's calendar (#2242). A campaign that has
+		// not opened yet is not reminded: an invitation may go out before the
+		// opening, a reminder may not.
 		$today = current_time( 'Y-m-d' );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cron sweep for campaigns whose reminder is due, over the plugin's own ffc_* table; a cached list is exactly what a due-date sweep must not read.
 		$campaigns = $wpdb->get_results(
@@ -567,9 +591,11 @@ class ReregistrationEmailHandler {
 				"SELECT * FROM %i
                  WHERE status = 'active'
                    AND email_reminder_enabled = 1
+                   AND DATE(start_date) <= %s
                    AND DATEDIFF(end_date, %s) <= reminder_days
                    AND DATEDIFF(end_date, %s) >= 0",
 				$table,
+				$today,
 				$today,
 				$today
 			)

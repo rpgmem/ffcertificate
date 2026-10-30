@@ -114,6 +114,21 @@ class ReregistrationRepository {
 	}
 
 	/**
+	 * IDs of the active campaigns, oldest first.
+	 *
+	 * Read uncached: the daily run that uses it must see a campaign activated
+	 * since the last request.
+	 *
+	 * @return list<int>
+	 */
+	public static function get_active_ids(): array {
+		$wpdb = self::db();
+		$ids  = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM %i WHERE status = 'active' ORDER BY id ASC", self::get_table_name() ) );
+
+		return array_map( 'intval', $ids );
+	}
+
+	/**
 	 * Set audience IDs for a reregistration (replaces all existing).
 	 *
 	 * @param int        $reregistration_id Reregistration ID.

@@ -113,6 +113,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificates: an issued certificate no longer prints a literal `{{tag}}`** (#2241). A field the submission lacks prints blank and an unknown tag stays visible; a field's tag locks once the form has submissions, and the layout editor says how many issued certificates a change reaches.
 - **Certificates: a form shows the right message before it opens, after it closes and outside its hours** (#2241). One message served all three, so "Opens on…" still showed after the form closed. Each moment now has its own; an empty one shows that moment's default, and each form's message is copied into all three once.
 - **Reregistration: one status gate and the campaign window hold on the server** (#2242). Draft and submit accept only a pending, in-progress or rejected submission, in one conditional write, so a double submit changes one row and mails once; the form opens only between the start and end on the site clock; reminders and days-left count site days; an expired campaign drops its cached rows; the import treats a draft as open and never overwrites a submission made mid-job.
+- **Reregistration: late joiners and child audiences get their row, invitation and reminders** (#2242). The daily run creates the submission of anyone who joined a campaign's audience (or a child audience) after activation, and saving an active campaign seeds an added audience. An invitation sent before the start names the opening date; reminders wait for the opening.
 
 ### Security
 

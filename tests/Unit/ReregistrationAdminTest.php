@@ -622,6 +622,61 @@ class ReregistrationAdminTest extends TestCase {
 	}
 
 	/**
+	 * Saving a campaign that is already active seeds its audiences (#2242):
+	 * an audience added to it gets its rows now, without reopening anything
+	 * and without the invitations notice of an activation.
+	 */
+	public function test_handle_save_seeds_an_already_active_campaign(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			function ( $url ) use ( &$redirect ) {
+				$redirect = $url;
+				throw new \RuntimeException( 'redirected' );
+			}
+		);
+
+		$_POST['ffc_action']             = 'save_reregistration';
+		$_POST['reregistration_id']      = 9;
+		$_POST['rereg_email_invitation'] = '1';
+		$_POST['rereg_title']            = 'C';
+		$_POST['rereg_start_date']       = '2026-01-01';
+		$_POST['rereg_end_date']         = '2026-12-31';
+		$_POST['rereg_status']           = 'active';
+		$_POST['rereg_audience_ids']     = array( '3' );
+
+		$this->campaigns[9] = (object) array(
+			'id'       => 9,
+			'status'   => 'active',
+			'end_date' => '2026-12-31',
+		);
+		$this->members[3]   = array( 21 );
+
+		$admin = new ReregistrationAdmin();
+		try {
+			$this->invoke_private( $admin, 'handle_save' );
+		} catch ( \RuntimeException $e ) {
+			unset( $e );
+		}
+
+		$calls = array();
+		foreach ( $this->writes as $w ) {
+			if ( 'query' !== $w[0] ) {
+				continue;
+			}
+			if ( str_contains( $w[1], "SET status = 'pending'" ) ) {
+				$calls[] = 'reopen';
+			} elseif ( str_contains( $w[1], 'INSERT IGNORE INTO %i' ) ) {
+				$this->assertSame( array( 'wp_ffc_reregistration_submissions', 9, 21, 'pending' ), array_slice( $w[2], 1 ) );
+				$calls[] = 'seed';
+			}
+		}
+
+		$this->assertSame( array( 'seed' ), $calls, 'Seeded, and nothing reopened: it was not a reactivation.' );
+		$this->assertStringNotContainsString( 'invitations=scheduled', $redirect );
+	}
+
+	/**
 	 * A cleared field must not write zero (#1117).
 	 *
 	 * `absint( '' )` is 0, and the reminder sweep reads

@@ -542,6 +542,10 @@ class ReregistrationAdmin {
 				ReregistrationRepository::reopen_expired_submissions( $id );
 				ReregistrationSubmissionWriter::create_for_audience_members( $id, $audience_ids );
 				$notice = self::invitations_notice_arg( $data );
+			} elseif ( 'active' === $data['status'] ) {
+				// Saving an active campaign seeds too (#2242): an audience added
+				// to it gets its rows now, not only on the next daily run.
+				ReregistrationSubmissionWriter::create_for_audience_members( $id, $audience_ids );
 			}
 
 			wp_safe_redirect( admin_url( 'admin.php?page=' . self::MENU_SLUG . '&view=edit&id=' . $id . '&message=updated' . $notice ) );
