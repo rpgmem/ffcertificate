@@ -907,7 +907,7 @@ class CustomFieldReader {
 			$users    = get_users(
 				array(
 					'meta_key'     => self::USER_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_query_meta_key -- Run only when the editor renders a field or a locked property changes; one row is enough.
-					'meta_value'   => '"field_' . $id . '";', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_query_meta_value -- As above.
+					'meta_value'   => '"field_' . $id . '";', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_query_meta_value -- Same lookup as the meta key above, capped at one row.
 					'meta_compare' => 'LIKE',
 					'number'       => 1,
 					'fields'       => 'ID',
