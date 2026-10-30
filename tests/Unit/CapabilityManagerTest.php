@@ -1665,4 +1665,35 @@ class CapabilityManagerTest extends TestCase {
 			$this->assertContains( $send, CapabilityManager::ADMIN_CAPABILITIES );
 		}
 	}
+
+	/**
+	 * Staff, for a bulk operation that must never rewrite an account (#2242):
+	 * a WordPress administrator, or anyone holding a `_pii` capability.
+	 */
+	public function test_is_staff_account_reads_admin_and_pii_capabilities(): void {
+		$held = array(
+			1 => array( 'manage_options' ),
+			2 => array( 'ffc_view_reregistration_pii' ),
+			3 => array( 'ffc_view_settings_pii' ),
+			4 => array( 'ffc_view_reregistration', 'ffc_manage_reregistration' ),
+			5 => array(),
+		);
+		Functions\when( 'user_can' )->alias( static fn( $user_id, $cap ) => in_array( $cap, $held[ (int) $user_id ] ?? array(), true ) );
+
+		$this->assertTrue( CapabilityManager::is_staff_account( 1 ) );
+		$this->assertTrue( CapabilityManager::is_staff_account( 2 ) );
+		$this->assertTrue( CapabilityManager::is_staff_account( 3 ), 'Any module\'s PII tier counts, not only reregistration\'s.' );
+		$this->assertFalse( CapabilityManager::is_staff_account( 4 ), 'An operator without a PII cap is an ordinary member.' );
+		$this->assertFalse( CapabilityManager::is_staff_account( 5 ) );
+		$this->assertFalse( CapabilityManager::is_staff_account( 0 ) );
+	}
+
+	public function test_every_role_that_holds_a_pii_cap_is_staff(): void {
+		// The rule rests on the PII caps sitting on the Manager and
+		// Administrator tiers; FFC Administrator holds them all.
+		$definitions = CapabilityManager::module_roles_definition();
+		$pii         = array_filter( CapabilityManager::get_all_capabilities(), static fn( $c ) => str_ends_with( $c, '_pii' ) );
+		$this->assertNotEmpty( $pii );
+		$this->assertNotEmpty( array_intersect( $pii, $definitions['ffc_administrator']['caps'] ), 'FFC Administrator holds a PII cap.' );
+	}
 }

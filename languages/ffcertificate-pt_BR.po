@@ -29759,3 +29759,18 @@ msgstr "Este recadastramento já foi enviado e aguarda análise."
 
 msgid "a draft was saved but not submitted. Sensitive answers are stored encrypted in a draft, as in a submission."
 msgstr "um rascunho foi salvo, mas não enviado. As respostas sensíveis ficam criptografadas no rascunho, como no envio."
+
+msgid "A row that matches a staff account fails the file."
+msgstr "Uma linha que corresponde a uma conta da equipe reprova o arquivo."
+
+msgid "An import never changes the account of a WordPress administrator or of anyone who can see personal data (FFC Administrator and every module's Manager and Administrator tiers). Staff update their own profile in wp-admin. The check runs again while the rows are written, so an account that became staff in between is left untouched and its row is reported as failed."
+msgstr "Uma importação nunca altera a conta de um administrador do WordPress nem de quem pode ver dados pessoais (FFC Administrator e os níveis Gerente e Administrador de cada módulo). A equipe atualiza o próprio perfil no wp-admin. A verificação é repetida enquanto as linhas são gravadas, então uma conta que passou a ser da equipe nesse intervalo fica intacta e a sua linha é relatada como reprovada."
+
+msgid "A field cannot be mapped to the account e-mail, or to anything else WordPress keeps in its users table, nor to the plugin's own preferences: the editor refuses such a mapping, so a form can never change how someone signs in."
+msgstr "Um campo não pode ser vinculado ao e-mail da conta, a nada mais que o WordPress guarda na sua tabela de usuários nem às preferências do próprio plugin: o editor recusa esse vínculo, de modo que um formulário nunca muda a forma como alguém entra."
+
+msgid "Field \"%1$s\" cannot write to the profile key \"%2$s\": the account e-mail and the plugin's own settings are not filled from forms."
+msgstr "O campo \"%1$s\" não pode gravar na chave de perfil \"%2$s\": o e-mail da conta e as configurações do próprio plugin não são preenchidos por formulários."
+
+msgid "Matches a staff account (an administrator, or someone who can see personal data). An import never changes a staff account; they update their own profile in wp-admin."
+msgstr "Corresponde a uma conta da equipe (um administrador ou alguém que pode ver dados pessoais). Uma importação nunca altera uma conta da equipe; a pessoa atualiza o próprio perfil no wp-admin."

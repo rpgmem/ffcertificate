@@ -123,6 +123,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificates: submitted values are text, and public endpoints hold their limits** (#2241). A participant's answer prints escaped in the certificate (no remote image or styling); a draft, private or trashed form refuses submissions; the public CSV actions check the hash and rate limit before the CPF; a magic link counts one attempt per open.
 - **Certificates: a reprint by CPF/RF never shows someone else's certificate** (#2241). Unless the logged-in owner asks, the link is e-mailed to the stored address (at most every 15 minutes) and the screen shows only that address, masked.
 - **Reregistration: drafts store sensitive answers encrypted** (#2242). The draft save encrypts every sensitive value as the submit does; the "Reregistration: Encrypt Draft Answers" migration card encrypts what earlier drafts stored in clear.
+- **Reregistration: no account takeover through the import or a profile key** (#2242). A custom field can no longer be mapped to the login e-mail, another `wp_users` key or the plugin's preferences; an import row that resolves to a WordPress administrator or a holder of any `_pii` capability fails and leaves that account untouched.
+
 
 ## [6.42.0] (2026-10-26) — `8241871c`
 

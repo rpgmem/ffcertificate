@@ -422,6 +422,34 @@ class CustomFieldRepositoryTest extends TestCase {
 		$this->assertSame(42, $result);
 	}
 
+	/**
+	 * The writer refuses a binding to the login e-mail itself, so no caller
+	 * besides the editor can write one either (#2242).
+	 */
+	public function test_create_refuses_a_binding_to_the_login_email(): void {
+		$this->wpdb->shouldNotReceive('insert');
+
+		$this->assertFalse(CustomFieldWriter::create([
+			'audience_id'       => 10,
+			'field_key'         => 'contact',
+			'field_label'       => 'Contact',
+			'field_profile_key' => 'user_email',
+		]));
+	}
+
+	public function test_update_refuses_a_binding_to_the_login_email(): void {
+		$this->wpdb->shouldNotReceive('update');
+
+		$this->assertFalse(CustomFieldWriter::update(5, ['field_profile_key' => 'user_email']));
+	}
+
+	public function test_update_may_clear_a_binding(): void {
+		$this->wpdb->shouldReceive('get_row')->andReturn(null);
+		$this->wpdb->shouldReceive('update')->once()->andReturn(1);
+
+		$this->assertTrue(CustomFieldWriter::update(5, ['field_profile_key' => null]));
+	}
+
 	public function test_create_returns_false_on_insert_failure(): void {
 		// ensure_unique_key: no conflict
 		$this->wpdb->shouldReceive('get_var')->once()->andReturn(0);

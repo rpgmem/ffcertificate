@@ -1090,6 +1090,31 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertSame( '{"choices":["A","B"]}', $writes[0]['data']['field_options'] );
 	}
 
+	/**
+	 * A field bound to the login e-mail let any participant change it from a
+	 * form, and through the import an importer could point an administrator's
+	 * login at their own mailbox (#2242). The editor refuses the binding.
+	 */
+	public function test_save_custom_fields_refuses_a_binding_to_the_login_email(): void {
+		$this->postFields(
+			array(
+				array(
+					'id'          => 'new_1',
+					'label'       => 'Contact',
+					'key'         => 'contact',
+					'type'        => 'text',
+					'profile_key' => 'user_email',
+				),
+			)
+		);
+
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_save_custom_fields() );
+
+		$this->assertFalse( $this->responses[0]['ok'] );
+		$this->assertStringContainsString( 'cannot write to the profile key "user_email"', $this->responses[0]['data']['message'] );
+		$this->assertSame( array(), $this->writes_to( 'wp_ffc_custom_fields' ), 'Nothing is saved.' );
+	}
+
 	public function test_save_custom_fields_reports_label_error(): void {
 		$this->postFields(
 			array(
