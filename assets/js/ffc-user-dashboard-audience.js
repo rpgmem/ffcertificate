@@ -62,13 +62,16 @@
         if (booking.status === 'cancelled') rowClass = 'ffc-row-cancelled';
         else if (booking.is_past) rowClass = 'ffc-row-past';
 
+        // Every field is text, whoever wrote it: a booker's description, an
+        // admin's space name (#2243).
+        var esc = helpers.esc;
         var html = '<tr' + (rowClass ? ' class="' + rowClass + '"' : '') + '>';
-        html += '<td>' + booking.environment_name;
-        if (booking.schedule_name) html += '<br><small class="ffc-booking-schedule">' + booking.schedule_name + '</small>';
+        html += '<td>' + esc(booking.environment_name || '');
+        if (booking.schedule_name) html += '<br><small class="ffc-booking-schedule">' + esc(booking.schedule_name) + '</small>';
         html += '</td>';
-        html += '<td>' + booking.booking_date + '</td>';
-        html += '<td>' + (booking.time_label || (booking.start_time + ' - ' + booking.end_time)) + '</td>';
-        html += '<td>' + (booking.description || '');
+        html += '<td>' + esc(booking.booking_date || '') + '</td>';
+        html += '<td>' + esc(booking.time_label || (booking.start_time + ' - ' + booking.end_time)) + '</td>';
+        html += '<td>' + esc(booking.description || '');
         // Why it was cancelled, in the canceller's words (#2243).
         if (booking.cancellation_reason) {
             html += '<br><small class="ffc-booking-cancel-reason">' + helpers.esc((ffcDashboard.strings.cancelReason || 'Reason: %s').replace('%s', booking.cancellation_reason)) + '</small>';

@@ -26242,7 +26242,7 @@ msgid "Your booking was cancelled by an administrator: {{schedule_name}}"
 msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php:75
-msgid "book outside the calendar rules and over an occupied slot, after the warning, on calendars whose Admin bypass toggle is on; also see every calendar and cancel any booking. Held by the FFC Audience Calendars - Administrator role and FFC Administrator. ffc_bypass_appointments no longer reaches audience calendars."
+msgid "book outside the calendar rules and over an occupied slot, after the warning, and cancel anyone's booking, on calendars whose Admin bypass toggle is on; also see every calendar. With the toggle off, cancelling someone else's booking needs Cancel Others on the calendar, as for anyone. Held by the FFC Audience Calendars - Administrator role and FFC Administrator. ffc_bypass_appointments no longer reaches audience calendars."
 msgstr ""
 
 #: includes/settings/views/documentation/email-texts-hub.php

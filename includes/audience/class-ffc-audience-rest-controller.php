@@ -281,13 +281,8 @@ class AudienceRestController {
 			return false;
 		}
 
-		// Admin/audience bypass can cancel anything.
-		if ( AudienceScheduleRepository::user_has_bypass_capability() ) {
-			return true;
-		}
-
 		$booking_id = $request->get_param( 'id' );
-		$booking    = AudienceBookingReader::get_by_id( $booking_id );
+		$booking    = AudienceBookingReader::get_by_id( is_numeric( $booking_id ) ? (int) $booking_id : 0 );
 
 		if ( ! $booking ) {
 			return false;
@@ -298,13 +293,18 @@ class AudienceRestController {
 			return true;
 		}
 
-		// Check if user has cancel_others permission on this schedule.
 		$environment = AudienceEnvironmentRepository::get_by_id( (int) $booking->environment_id );
-		if ( $environment ) {
-			return AudienceScheduleRepository::user_can_cancel_others( (int) $environment->schedule_id, get_current_user_id() );
+		if ( ! $environment ) {
+			return false;
 		}
 
-		return false;
+		// The audience bypass cancels anyone's booking only where the
+		// calendar's switch lets it, as it does for creating (#2243); with the
+		// switch off its holder needs the cancel-others permission like
+		// everyone else, which administrators keep.
+		$schedule_id = (int) $environment->schedule_id;
+		return AudienceScheduleRepository::user_has_bypass( $schedule_id )
+			|| AudienceScheduleRepository::user_can_cancel_others( $schedule_id, get_current_user_id() );
 	}
 
 	/**
@@ -461,7 +461,16 @@ class AudienceRestController {
 		// Get user info for each booking.
 		$user_id      = get_current_user_id();
 		$is_logged_in = is_user_logged_in();
-		$has_bypass   = AudienceScheduleRepository::user_has_bypass_capability();
+		// Whether the caller cancels others' bookings, per calendar: the
+		// bypass counts only where the calendar's switch allows it (#2243).
+		$cancels_others = array();
+		$has_bypass     = static function ( $booking ) use ( &$cancels_others, $user_id ): bool {
+			$schedule_id = (int) ( $booking->schedule_id ?? 0 );
+			if ( ! isset( $cancels_others[ $schedule_id ] ) ) {
+				$cancels_others[ $schedule_id ] = $user_id > 0 && AudienceScheduleRepository::user_has_bypass( $schedule_id );
+			}
+			return $cancels_others[ $schedule_id ];
+		};
 
 		// Transform bookings for response.
 		$bookings_data = array_map(
@@ -517,7 +526,7 @@ class AudienceRestController {
 					'description'      => $booking->description,
 					'status'           => $booking->status,
 					'created_by'       => (int) $booking->created_by,
-					'can_cancel'       => $has_bypass || (int) $booking->created_by === $user_id,
+					'can_cancel'       => $has_bypass( $booking ) || (int) $booking->created_by === $user_id,
 					'audiences'        => array_map(
 						function ( $a ) {
 							return array(

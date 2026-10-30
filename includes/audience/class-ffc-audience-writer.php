@@ -364,10 +364,14 @@ class AudienceWriter {
 	 * time (`md5( args )` hashes); this key can — a mutator always knows whose
 	 * membership it changed.
 	 *
+	 * Public for the one writer of memberships outside this class: the
+	 * dashboard's "Leave all groups", which removes them in one `DELETE`
+	 * (#2243).
+	 *
 	 * @param array<int|string> $user_ids Affected user IDs.
 	 * @return void
 	 */
-	private static function invalidate_user_audiences( array $user_ids ): void {
+	public static function invalidate_user_audiences( array $user_ids ): void {
 		foreach ( array_unique( array_map( 'absint', $user_ids ) ) as $uid ) {
 			if ( $uid <= 0 ) {
 				continue;

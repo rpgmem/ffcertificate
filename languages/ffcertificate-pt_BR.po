@@ -26324,8 +26324,8 @@ msgid "Your booking was cancelled by an administrator: {{schedule_name}}"
 msgstr "Sua reserva foi cancelada por um administrador: {{schedule_name}}"
 
 #: includes/settings/views/documentation/scheduling-audiences.php:75
-msgid "book outside the calendar rules and over an occupied slot, after the warning, on calendars whose Admin bypass toggle is on; also see every calendar and cancel any booking. Held by the FFC Audience Calendars - Administrator role and FFC Administrator. ffc_bypass_appointments no longer reaches audience calendars."
-msgstr "reservar fora das regras do calendário e sobre um horário ocupado, após o aviso, nos calendários com o Exceção para administradores ligado; também ver todos os calendários e cancelar qualquer reserva. Atribuída à função FFC Calendários de Público-alvo - Administrador e ao FFC Administrador. ffc_bypass_appointments não alcança mais os calendários de público."
+msgid "book outside the calendar rules and over an occupied slot, after the warning, and cancel anyone's booking, on calendars whose Admin bypass toggle is on; also see every calendar. With the toggle off, cancelling someone else's booking needs Cancel Others on the calendar, as for anyone. Held by the FFC Audience Calendars - Administrator role and FFC Administrator. ffc_bypass_appointments no longer reaches audience calendars."
+msgstr "reservar fora das regras do calendário e sobre um horário ocupado, após o aviso, e cancelar a reserva de qualquer pessoa, nos calendários com o Exceção para administradores ligado; também ver todos os calendários. Com o interruptor desligado, cancelar a reserva de outra pessoa exige Cancelar de Outros no calendário, como para qualquer um. Atribuída à função FFC Calendários de Público-alvo - Administrador e ao FFC Administrador. ffc_bypass_appointments não alcança mais os calendários de público."
 
 #: includes/settings/views/documentation/email-texts-hub.php
 msgid "global only; a schedule does not override it."

@@ -153,6 +153,23 @@ describe('FFCDashboard.panels.audience.render', () => {
 		expect(reason.querySelector('b')).toBeNull();
 	});
 
+	it('prints every booking field as text, never as markup (#2243)', () => {
+		panel().render([
+			makeBooking({
+				environment_name: '<img src=x onerror=alert(1)>',
+				schedule_name: '<b>Sched</b>',
+				description: '<script>x</script>',
+				booking_date: '<i>d</i>',
+				time_label: '<u>t</u>',
+			}),
+		], 1);
+		const row = document.querySelector('#ffc-tabpanel-audience table tbody tr');
+		expect(row.querySelector('img, b, script, i, u')).toBeNull();
+		expect(row.textContent).toContain('<img src=x onerror=alert(1)>');
+		expect(row.textContent).toContain('<script>x</script>');
+		expect(row.textContent).toContain('<u>t</u>');
+	});
+
 	it('draws no reason line for a booking without one', () => {
 		panel().render([makeBooking({ description: 'Yoga' })], 1);
 		expect(document.querySelector('#ffc-tabpanel-audience .ffc-booking-cancel-reason')).toBeNull();

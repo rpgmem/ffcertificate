@@ -677,7 +677,6 @@ class UserAudienceRestController {
 			}
 
 			$audiences_table = $wpdb->prefix . 'ffc_audiences';
-			$members_table   = $wpdb->prefix . 'ffc_audience_members';
 
 			// Verify group is self-joinable (top-level or child — mirrors join()).
 			$group = $wpdb->get_row(
@@ -696,17 +695,14 @@ class UserAudienceRestController {
 				return new \WP_Error( 'keep_one_group', __( 'This audience keeps its members in at least one group. Join or switch to another of its groups before leaving this one.', 'ffcertificate' ), array( 'status' => 409 ) );
 			}
 
-			$deleted = $wpdb->delete(
-				$members_table,
-				array(
-					'audience_id' => $group_id,
-					'user_id'     => $user_id,
-				),
-				array( '%d', '%d' )
-			);
-
-			if ( ! $deleted ) {
+			if ( ! \FreeFormCertificate\Audience\AudienceReader::is_member( $group_id, $user_id ) ) {
 				return new \WP_Error( 'not_member', __( 'You are not a member of this group', 'ffcertificate' ), array( 'status' => 404 ) );
+			}
+
+			// Through the writer, which clears the member's cached audiences, so
+			// the calendars they may book update at once (#2243).
+			if ( ! \FreeFormCertificate\Audience\AudienceWriter::remove_member( $group_id, $user_id ) ) {
+				return new \WP_Error( 'leave_group_error', __( 'Error leaving group', 'ffcertificate' ), array( 'status' => 500 ) );
 			}
 
 			return rest_ensure_response(
@@ -766,6 +762,8 @@ class UserAudienceRestController {
 			);
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The argument is the string $wpdb->prepare() returned above.
 			$deleted = is_string( $sql ) ? $wpdb->query( $sql ) : 0;
+			// The cached audiences of the member go with the memberships (#2243).
+			\FreeFormCertificate\Audience\AudienceWriter::invalidate_user_audiences( array( $user_id ) );
 
 			// `kept` names, per tree, the group left in place, so the
 			// dashboard can say what stayed and why.
