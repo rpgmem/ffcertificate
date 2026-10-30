@@ -45,11 +45,12 @@ class RateLimitGuard {
 		// device creating multiple FRESH submissions for different CPFs, not
 		// re-downloading one's own certificate. Pre-run ReprintDetector and
 		// whitelist the device check via the existing skip_device flag (same
-		// flag the manager bypass uses, so check_all stays untouched).
+		// flag the manager bypass uses, so check_all stays untouched). The
+		// lookup is kept on the context for the stages after this one (#2241).
 		if ( ! $ctx->skip_device
 			&& '' !== $ctx->val_cpf
 			&& class_exists( '\FreeFormCertificate\Frontend\ReprintDetector' ) ) {
-			$reprint_preview = \FreeFormCertificate\Frontend\ReprintDetector::detect( $ctx->form_id, $ctx->val_cpf, $ctx->val_ticket );
+			$reprint_preview = \FreeFormCertificate\Frontend\ReprintDetector::for_context( $ctx );
 			if ( ! empty( $reprint_preview['is_reprint'] ) ) {
 				$ctx->skip_device = true;
 			}

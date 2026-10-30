@@ -48,6 +48,13 @@ class ReprintDetectorTest extends TestCase {
 	 */
 	private array $prepared = array();
 
+	/**
+	 * The text of every prepared query, in order.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $queries = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -64,8 +71,10 @@ class ReprintDetectorTest extends TestCase {
 
 		// Default wpdb stubs
 		$this->prepared = array();
+		$this->queries  = array();
 		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function ($query, ...$args) {
 			$this->prepared[] = $args;
+			$this->queries[]  = $query;
 			return 'SQL';
 		})->byDefault();
 		$this->wpdb->shouldReceive('esc_like')->andReturnUsing(function ($val) {
@@ -150,26 +159,20 @@ class ReprintDetectorTest extends TestCase {
 	}
 
 	// ==================================================================
-	// detect by ticket — hash miss, JSON fallback
+	// detect by ticket — an encrypted install never scans `data`
 	// ==================================================================
 
-	public function test_detect_by_ticket_falls_back_to_json_when_hash_misses(): void {
-		$row = $this->makeSubmissionRow([
-			'id' => 55,
-			'data' => '{"ticket":"ABC-123","name":"Maria"}',
-			'submission_date' => '2025-03-10 08:30:00',
-		]);
-
-		// Hash lookup returns null, JSON LIKE returns row
-		$this->wpdb->shouldReceive('get_row')
-			->twice()
-			->andReturn(null, $row);
+	public function test_detect_by_ticket_reads_only_the_hash_when_encryption_is_configured(): void {
+		// With a key every ticket is stored as its hash, so a hash miss means
+		// no certificate: the LIKE over `data` is for installs without one
+		// (#2241), and with encryption `data` holds nothing to match.
+		$this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
 
 		$result = ReprintDetector::detect(1, '', 'ABC-123');
 
-		$this->assertTrue($result['is_reprint']);
-		$this->assertSame(55, $result['id']);
-		$this->assertSame('Maria', $result['data']['name']);
+		$this->assertFalse($result['is_reprint']);
+		$this->assertCount(1, $this->queries);
+		$this->assertStringNotContainsString('LIKE', $this->queries[0]);
 	}
 
 	// ==================================================================
@@ -229,9 +232,10 @@ class ReprintDetectorTest extends TestCase {
 		$result = ReprintDetector::detect(1, self::mask_cpf( Identifiers::CPF_A ), '');
 
 		$this->assertSame(
-			array( 'wp_ffc_submissions', 1, 'cpf_hash', SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A ) ),
+			array( 'wp_ffc_submissions', 1, SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A ) ),
 			$this->prepared[0]
 		);
+		$this->assertStringContainsString( 'AND cpf_hash = %s', $this->queries[0] );
 		$this->assertTrue($result['is_reprint']);
 		$this->assertSame(77, $result['id']);
 	}
@@ -252,9 +256,10 @@ class ReprintDetectorTest extends TestCase {
 		$result = ReprintDetector::detect(1, Identifiers::RF_A, '');
 
 		$this->assertSame(
-			array( 'wp_ffc_submissions', 1, 'rf_hash', SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::RF_A ) ),
+			array( 'wp_ffc_submissions', 1, SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::RF_A ) ),
 			$this->prepared[0]
 		);
+		$this->assertStringContainsString( 'AND rf_hash = %s', $this->queries[0] );
 		$this->assertTrue($result['is_reprint']);
 		$this->assertSame(88, $result['id']);
 	}
@@ -285,7 +290,7 @@ class ReprintDetectorTest extends TestCase {
 		$result = ReprintDetector::detect(1, self::mask_cpf( Identifiers::CPF_A ), '');
 
 		$this->assertCount( 1, $this->prepared );
-		$this->assertSame( Encryption::hash( Identifiers::CPF_A ), $this->prepared[0][3], 'the digits are hashed, not the formatted value' );
+		$this->assertSame( Encryption::hash( Identifiers::CPF_A ), $this->prepared[0][2], 'the digits are hashed, not the formatted value' );
 		$this->assertTrue($result['is_reprint']);
 	}
 
@@ -307,6 +312,37 @@ class ReprintDetectorTest extends TestCase {
 
 		$this->assertTrue($result['is_reprint']);
 		$this->assertSame(66, $result['id']);
+	}
+
+	// ==================================================================
+	// row_for / for_context — one lookup per submission (#2241)
+	// ==================================================================
+
+	public function test_a_submission_looks_its_row_up_once(): void {
+		$row = $this->makeSubmissionRow(['id' => 31]);
+		$this->wpdb->shouldReceive('get_row')->once()->andReturn($row);
+
+		$ctx           = new \FreeFormCertificate\Frontend\Submission\SubmissionContext();
+		$ctx->form_id  = 4;
+		$ctx->val_cpf  = Identifiers::CPF_A;
+
+		$first  = ReprintDetector::for_context($ctx);
+		$second = ReprintDetector::for_context($ctx);
+
+		$this->assertTrue($first['is_reprint']);
+		$this->assertSame($first, $second);
+		$this->assertSame($row, ReprintDetector::row_for($ctx), 'Every stage reads the row the first one fetched.');
+	}
+
+	public function test_a_lookup_that_found_nothing_is_not_repeated(): void {
+		$this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
+
+		$ctx          = new \FreeFormCertificate\Frontend\Submission\SubmissionContext();
+		$ctx->form_id = 4;
+		$ctx->val_cpf = Identifiers::CPF_A;
+
+		$this->assertNull(ReprintDetector::row_for($ctx));
+		$this->assertFalse(ReprintDetector::for_context($ctx)['is_reprint']);
 	}
 
 	// ==================================================================

@@ -46,9 +46,11 @@ class AccessRestrictionChecker {
 	 * @param string               $val_ticket Ticket from form.
 	 * @param int                  $form_id Form ID (needed for ticket consumption).
 	 * @param string|null          $val_password Password the caller submitted; null reads `ffc_password` from POST.
+	 * @param \Closure|null        $is_reprint   Answers whether the ticket already issued a certificate, from the
+	 *                                            submission's single lookup (#2241); null looks it up here.
 	 * @return array<string, mixed> ['allowed' => bool, 'message' => string, 'is_ticket' => bool]
 	 */
-	public static function check( array $form_config, string $val_cpf, string $val_ticket, int $form_id, ?string $val_password = null ): array {
+	public static function check( array $form_config, string $val_cpf, string $val_ticket, int $form_id, ?string $val_password = null, ?\Closure $is_reprint = null ): array {
 		$restrictions = isset( $form_config['restrictions'] ) ? $form_config['restrictions'] : array();
 
 		// Clean CPF/RF (remove any mask).
@@ -152,7 +154,7 @@ class AccessRestrictionChecker {
 			);
 
 			if ( ! in_array( $ticket, $tickets, true ) ) {
-				if ( self::is_reprint_of_used_ticket( $form_config, $form_id, $ticket ) ) {
+				if ( self::is_reprint_of_used_ticket( $form_config, $form_id, $ticket, $is_reprint ) ) {
 					return self::reprint_pass();
 				}
 				return array(
@@ -170,7 +172,7 @@ class AccessRestrictionChecker {
 			// caller wins the UNIQUE-keyed insert; a loser is rejected as
 			// already-used, closing the TOCTOU race.
 			if ( ! self::try_claim_ticket( $form_id, $ticket ) ) {
-				if ( self::is_reprint_of_used_ticket( $form_config, $form_id, $ticket ) ) {
+				if ( self::is_reprint_of_used_ticket( $form_config, $form_id, $ticket, $is_reprint ) ) {
 					return self::reprint_pass();
 				}
 				return array(
@@ -218,11 +220,15 @@ class AccessRestrictionChecker {
 	 * @param array<string, mixed> $form_config Form configuration.
 	 * @param int                  $form_id     Form ID.
 	 * @param string               $ticket      Normalised ticket code.
+	 * @param \Closure|null        $is_reprint  The submission's own lookup, when the caller has one.
 	 * @return bool
 	 */
-	private static function is_reprint_of_used_ticket( array $form_config, int $form_id, string $ticket ): bool {
+	private static function is_reprint_of_used_ticket( array $form_config, int $form_id, string $ticket, ?\Closure $is_reprint = null ): bool {
 		if ( ! empty( $form_config['quiz_enabled'] ) && '1' === (string) $form_config['quiz_enabled'] ) {
 			return false;
+		}
+		if ( null !== $is_reprint ) {
+			return true === $is_reprint();
 		}
 		// No database layer (very early bootstrap): nothing can be looked up,
 		// so the ticket keeps its plain "already used" answer.

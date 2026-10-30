@@ -338,6 +338,20 @@ class SubmissionRepository extends AbstractRepository {
 	}
 
 	/**
+	 * The latest submission of a form for a CPF/RF or ticket.
+	 *
+	 * @since 6.43.0
+	 * @param int       $form_id   Form ID.
+	 * @param string    $cpf_rf    CPF/RF as typed.
+	 * @param string    $ticket    Normalised ticket code.
+	 * @param bool|null $encrypted Whether the install encrypts; read from Encryption when null.
+	 * @return object|null
+	 */
+	public function findForReprint( int $form_id, string $cpf_rf, string $ticket = '', ?bool $encrypted = null ): ?object {
+		return $this->reader->findForReprint( $form_id, $cpf_rf, $ticket, $encrypted );
+	}
+
+	/**
 	 * SQL fragment for the WP_User_Query orderby rewrite.
 	 *
 	 * @since 6.6.2
