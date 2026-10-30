@@ -180,10 +180,11 @@ class RateLimiter {
 	 * @since 6.6.2
 	 * @param string $ip           Client IP.
 	 * @param string $endpoint_key Endpoint identifier (e.g. `calendar_slots`).
+	 * @param int    $user_id      Account to count instead of the address, or 0.
 	 * @return RateLimitVerdict
 	 */
-	public static function check_read_limit( string $ip, string $endpoint_key ): array {
-		return RateLimitChecker::check_read_limit( $ip, $endpoint_key );
+	public static function check_read_limit( string $ip, string $endpoint_key, int $user_id = 0 ): array {
+		return RateLimitChecker::check_read_limit( $ip, $endpoint_key, $user_id );
 	}
 
 	/**
@@ -192,10 +193,11 @@ class RateLimiter {
 	 * @since 6.6.2
 	 * @param string $ip           Client IP.
 	 * @param string $endpoint_key Endpoint identifier.
+	 * @param int    $user_id      Account to count instead of the address, or 0.
 	 * @return void
 	 */
-	public static function record_read_attempt( string $ip, string $endpoint_key ): void {
-		RateLimitChecker::record_read_attempt( $ip, $endpoint_key );
+	public static function record_read_attempt( string $ip, string $endpoint_key, int $user_id = 0 ): void {
+		RateLimitChecker::record_read_attempt( $ip, $endpoint_key, $user_id );
 	}
 
 	/**

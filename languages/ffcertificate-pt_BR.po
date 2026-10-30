@@ -12405,9 +12405,6 @@ msgstr "alternadores por área (submissões, agendamento, acesso público, usuá
 msgid "Per-device limit (fingerprint)"
 msgstr "Limite por dispositivo (impressão digital)"
 
-#: includes/settings/views/documentation/config-rate-limit.php:36
-msgid "per-endpoint per-minute/hour"
-msgstr "por endpoint, por minuto/hora"
 
 #: includes/settings/views/ffc-tab-rate-limit.php:197
 msgid "Per-endpoint rate limit for public GET endpoints (e.g. the Calendar shortcode's /slots lookup). Prevents scraping while leaving submission limits independent."
@@ -13160,9 +13157,6 @@ msgstr "Público"
 msgid "Public access is disabled for this form."
 msgstr "O acesso público a este formulário está desativado."
 
-#: includes/settings/views/documentation/config-rate-limit.php:36
-msgid "Public calendar API reads (slots, list, detail) — protects the booking endpoints from scraping. Logged-in users and allowlisted IPs bypass."
-msgstr "Leituras da API de calendário público (slots, listagem, detalhes) — protegem os endpoints de agendamento contra *scraping*. Usuários autenticados e IPs em lista de permissões estão isentos dessa restrição."
 
 #: templates/admin/recruitment/notice-edit/general-section.php:47
 msgid "Public columns"
@@ -30088,3 +30082,12 @@ msgstr "Motivo, enviado às pessoas cujos dias são cancelados"
 
 msgid "Between %1$d and %2$d characters."
 msgstr "Entre %1$d e %2$d caracteres."
+
+msgid "Audience calendar — Bookings (GET /audience/bookings), counted for logged-in users too"
+msgstr "Calendário de público-alvo — Agendamentos (GET /audience/bookings), contado também para usuários logados"
+
+msgid "per-endpoint per-minute/hour; audience bookings 30/minute, 500/hour"
+msgstr "por endpoint, por minuto/hora; reservas do calendário de público-alvo 30/minuto, 500/hora"
+
+msgid "Public calendar API reads (slots, list, detail) — protects the booking endpoints from scraping. Logged-in users and allowlisted IPs bypass. The audience calendar's bookings read is counted for logged-in users too, per account, so one person cannot sweep the calendar while colleagues behind the same address are not capped. Active by default; saving the tab is not needed."
+msgstr "Leituras da API de calendário público (slots, listagem, detalhes) — protegem os endpoints de agendamento contra *scraping*. Usuários autenticados e IPs em lista de permissões estão isentos dessa restrição. A leitura das reservas do calendário de público-alvo é contada também para usuários autenticados, por conta, para que uma pessoa não varra o calendário sem que colegas atrás do mesmo endereço sejam limitados. Ativo por padrão; não é preciso salvar a aba."

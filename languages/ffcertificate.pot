@@ -12385,9 +12385,6 @@ msgstr ""
 msgid "Per-device limit (fingerprint)"
 msgstr ""
 
-#: includes/settings/views/documentation/config-rate-limit.php:36
-msgid "per-endpoint per-minute/hour"
-msgstr ""
 
 #: includes/settings/views/ffc-tab-rate-limit.php:197
 msgid "Per-endpoint rate limit for public GET endpoints (e.g. the Calendar shortcode's /slots lookup). Prevents scraping while leaving submission limits independent."
@@ -13135,9 +13132,6 @@ msgstr ""
 msgid "Public access is disabled for this form."
 msgstr ""
 
-#: includes/settings/views/documentation/config-rate-limit.php:36
-msgid "Public calendar API reads (slots, list, detail) — protects the booking endpoints from scraping. Logged-in users and allowlisted IPs bypass."
-msgstr ""
 
 #: templates/admin/recruitment/notice-edit/general-section.php:47
 msgid "Public columns"
@@ -30005,4 +29999,12 @@ msgid "Reason, sent to the people whose days are cancelled"
 msgstr ""
 
 msgid "Between %1$d and %2$d characters."
+
+msgid "Audience calendar — Bookings (GET /audience/bookings), counted for logged-in users too"
+msgstr ""
+
+msgid "per-endpoint per-minute/hour; audience bookings 30/minute, 500/hour"
+msgstr ""
+
+msgid "Public calendar API reads (slots, list, detail) — protects the booking endpoints from scraping. Logged-in users and allowlisted IPs bypass. The audience calendar's bookings read is counted for logged-in users too, per account, so one person cannot sweep the calendar while colleagues behind the same address are not capped. Active by default; saving the tab is not needed."
 msgstr ""
