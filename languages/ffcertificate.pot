@@ -22911,7 +22911,7 @@ msgstr ""
 msgid "The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate's authentication code to confirm it is genuine and view its status. The same lookup and the magic link also verify appointment receipts and reregistration records by their own codes and links. This path is protected by a nonce, a honeypot + the configured captcha, and IP rate-limiting."
 msgstr ""
 
-msgid "The edit screen lets you correct the participant email and the form's custom-field values, and, with ffc_manage_certificates, link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed)."
+msgid "The edit screen lets you correct the participant email and, with ffc_manage_certificates, link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed). The form answers are read-only too, with one exception: a holder of ffc_manage_certificates can fix a typo in an issued certificate with Correct an answer. It changes one answer at a time, the name included but never CPF/RF or e-mail, asks for a reason of at least 10 characters, records the old value (masked when personal) and the new one in the Activity Log, marks the answer as corrected, and does not e-mail the participant. The certificate shows the new value the next time it is generated."
 msgstr ""
 
 msgid "Export the current (filtered) submissions to CSV in the background. The export contains decrypted personal data (email, IP, CPF/RF), the magic-link token and the consent record, so it is gated by its own capability."
@@ -29651,4 +29651,64 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-certificates.php
 msgid "A form takes submissions only while it is published: a draft, a private or a trashed form refuses them, with a message asking the visitor to contact the organizer, even when its shortcode is still on a page. What a participant types prints in the certificate as text; markup typed into a field is shown as written, never drawn."
+msgstr ""
+
+#: includes/admin/class-ffc-answer-correction-handler.php
+msgid "You do not have permission to correct answers."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php
+msgid "Answer corrected and recorded in the activity log. The certificate shows it the next time it is generated."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php
+msgid "Say why the answer changes: the reason is required."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php
+msgid "The new value is the same as the stored one, so nothing changed."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php
+msgid "That answer cannot be corrected here. CPF/RF and e-mail are changed through identity resolution."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php
+msgid "The answer could not be corrected. Reload the submission and try again."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Answer Corrected"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Corrected after issue; see the activity log."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Correct an answer"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "For a typo in an issued certificate. The certificate shows the new value the next time it is generated, and the participant is not e-mailed. CPF/RF and e-mail are changed through identity resolution."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Choose an answer"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "New value"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Reason for the correction"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Correct answer"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Correct this answer? The old and new values and the reason are recorded in the activity log."
 msgstr ""

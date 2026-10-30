@@ -505,6 +505,28 @@ class SubmissionHandler {
 	}
 
 	/**
+	 * Drops the cached copies of a row that verification reads.
+	 *
+	 * The auth-code and magic-token lookups cache the row under their own
+	 * keys, which an update by id does not clear: after a change to the
+	 * answers, verification would keep serving the old ones until the key
+	 * expired.
+	 *
+	 * @param array<string, mixed> $submission The row, as read before the change.
+	 */
+	public static function forget_cached_lookups( array $submission ): void {
+		foreach ( array(
+			'auth_'  => 'auth_code',
+			'token_' => 'magic_token',
+		) as $prefix => $column ) {
+			$value = $submission[ $column ] ?? '';
+			if ( is_string( $value ) && '' !== $value ) {
+				wp_cache_delete( $prefix . $value, 'ffc_submissions' );
+			}
+		}
+	}
+
+	/**
 	 * Rebuilds the array the visitor posted, out of the decrypted row.
 	 *
 	 * The key order is the counterpart documented in
