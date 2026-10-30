@@ -805,12 +805,56 @@ class AdminSubmissionEditPageTest extends TestCase {
 
 		$this->assertStringContainsString( 'Grade open answers', $html );
 		$this->assertStringContainsString( 'earned 6 of 10 points. The passing score is 70%.', $html );
-		$this->assertStringContainsString( 'name="ffc_grade[essay]" form="ffc-grade-form" min="0" max="4" step="1" required', $html );
+		$this->assertStringContainsString( 'name="ffc_grade[essay]" form="ffc-grade-form" value="" min="0" max="4" step="1" required', $html );
+		$this->assertStringContainsString( 'data-confirm="Save the grades and send the result to the participant? This decides the attempt."', $html, 'Sending the result asks first (#2241).' );
+		$this->assertStringNotContainsString( 'ffc_grade_reason', $html, 'A first grade needs no reason.' );
 		$this->assertStringContainsString( '<form id="ffc-grade-form" method="POST" action="admin-post.php">', $html );
 		$this->assertStringContainsString( 'name="action" value="ffc_grade_submission"', $html );
 		$this->assertSame( 1, substr_count( $html, '<form id="ffc-grade-form"' ), 'The grading form is not nested in the edit form.' );
 		$this->assertGreaterThan( strpos( $html, '</form>' ), strpos( $html, '<form id="ffc-grade-form"' ), 'It is printed after the edit form closes.' );
 		$this->assertStringNotContainsString( 'name="data[_quiz_pending]"', $html );
+	}
+
+	/**
+	 * #2241 — an attempt a person graded shows its grades filled in, to
+	 * correct, with a required reason.
+	 */
+	public function test_render_offers_to_change_the_grades_of_a_graded_attempt(): void {
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id, $key ) {
+				if ( '_ffc_form_fields' === $key ) {
+					return array(
+						array(
+							'type'        => 'textarea',
+							'name'        => 'essay',
+							'label'       => 'Explain why',
+							'quiz_scored' => '1',
+							'quiz_text'   => 'manual',
+							'quiz_points' => '4',
+						),
+					);
+				}
+				return array( 'quiz_passing_score' => '70' );
+			}
+		);
+		$data = array(
+			'essay'         => 'Because.',
+			'_quiz_percent' => 90,
+			'_quiz_grades'  => array( 'essay' => 3 ),
+		);
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'data' => self::json( $data ) ) ) );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Graded answers', $html );
+		$this->assertStringContainsString( 'The attempt scored 90%. The passing score is 70%.', $html );
+		$this->assertStringContainsString( 'name="ffc_grade[essay]" form="ffc-grade-form" value="3" min="0" max="4"', $html );
+		$this->assertStringContainsString( 'name="ffc_grade_reason" form="ffc-grade-form" rows="3" class="large-text" required minlength="10"', $html );
+		$this->assertStringContainsString( 'Change grades', $html );
+		$this->assertStringContainsString( 'ffc-btn-caution', $html );
+		$this->assertStringContainsString( 'data-confirm="Change the grades?', $html );
 	}
 
 	public function test_render_hides_the_grading_card_from_a_user_who_cannot_grade(): void {

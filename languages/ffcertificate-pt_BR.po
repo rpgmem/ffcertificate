@@ -22926,8 +22926,8 @@ msgstr "percentual mínimo para aprovação (padrão 70; 0 significa sem mínimo
 msgid "retries allowed per CPF/RF (0 = unlimited)."
 msgstr "tentativas permitidas por CPF/RF (0 = ilimitadas)."
 
-msgid "An attempt below the passing score is kept as a \"Quiz: Retry\" submission while attempts remain, and as \"Quiz: Failed\" once they run out; no certificate is issued for either."
-msgstr "Uma tentativa abaixo da nota de aprovação é mantida como submissão \"Quiz: Tentando\" enquanto restarem tentativas, e como \"Quiz: Reprovado\" quando elas se esgotam; nenhum certificado é emitido em nenhum dos dois casos."
+msgid "An attempt below the passing score is kept as a \"Quiz: Retry\" submission while attempts remain, and as \"Quiz: Failed\" once they run out; no certificate is issued for either. Attempts are counted per CPF/RF and form, and a new attempt replaces the previous one; when a later attempt passes, the certificate is issued and emailed as on a first attempt."
+msgstr "Uma tentativa abaixo da nota de aprovação é mantida como submissão \"Quiz: Tentando\" enquanto restarem tentativas, e como \"Quiz: Reprovado\" quando elas se esgotam; nenhum certificado é emitido em nenhum dos dois casos. As tentativas são contadas por CPF/RF e formulário, e uma nova tentativa substitui a anterior; quando uma tentativa posterior é aprovada, o certificado é emitido e enviado por e-mail como numa primeira tentativa."
 
 msgid "Validation page:"
 msgstr "Página de validação:"
@@ -25496,8 +25496,8 @@ msgid "Your score was %d%%, below the passing score."
 msgstr "Sua nota foi %d%%, abaixo da nota de aprovação."
 
 #: includes/settings/views/documentation/feature-quiz.php:33
-msgid "an attempt with an open answer graded by a person shows no result: it is stored as \"Quiz: Awaiting Grading\", the participant is told the result will be emailed, and no certificate exists yet. While it waits, the same CPF/RF cannot start another attempt. Grading it on the submission edit screen decides it and emails the participant: the document link on a pass; otherwise the result, with the score only when the form shows it, and how many attempts are left."
-msgstr "uma tentativa com uma resposta aberta corrigida por uma pessoa não mostra resultado: ela fica como \"Quiz: Aguardando correção\", o participante é avisado de que o resultado será enviado por e-mail e ainda não existe certificado. Enquanto ela aguarda, o mesmo CPF/RF não pode começar outra tentativa. Corrigi-la na tela de edição do envio a decide e envia o resultado ao participante: o link do documento na aprovação; caso contrário, o resultado, com a nota apenas quando o formulário a exibe, e quantas tentativas restam."
+msgid "an attempt with an open answer graded by a person shows no result: it is stored as \"Quiz: Awaiting Grading\", the participant is told the result will be emailed, and no certificate exists yet. While it waits, the same CPF/RF cannot start another attempt. Grading it on the submission edit screen decides it and emails the participant: the document link on a pass; otherwise the result, with the score only when the form shows it, and how many attempts are left. A grade already sent can be changed on the same screen by whoever may grade, to correct a mistake: a reason is required, the old and new grades are recorded in the activity log, and the participant is emailed again only when the result changes between passed and not passed."
+msgstr "uma tentativa com uma resposta aberta corrigida por uma pessoa não mostra resultado: ela fica como \"Quiz: Aguardando correção\", o participante é avisado de que o resultado será enviado por e-mail e ainda não existe certificado. Enquanto ela aguarda, o mesmo CPF/RF não pode começar outra tentativa. Corrigi-la na tela de edição do envio a decide e envia o resultado ao participante: o link do documento na aprovação; caso contrário, o resultado, com a nota apenas quando o formulário a exibe, e quantas tentativas restam. Uma nota já enviada pode ser alterada na mesma tela por quem pode corrigir, para consertar um erro: o motivo é obrigatório, as notas antiga e nova ficam no log de atividades, e o participante só recebe novo e-mail quando o resultado muda entre aprovado e não aprovado."
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:221
 #, php-format
@@ -29689,3 +29689,44 @@ msgstr "Desligado por padrão. Quando ligado, o formulário de recadastramento e
 #. includes/settings/views/documentation/feature-reregistration.php
 msgid "The CEP comes right before the address, and audiences created before this order are reordered once on the first admin request after the update; the Record PDF keeps its layout. When the address lookup is on (Settings → General), a CEP that passes the check is looked up: the address fields wait read-only for at least 3 seconds and at most 5, then street, neighbourhood, city and UF are filled with what the service returned. An empty answer never erases what was typed, and number and complement are never touched. A CEP the service does not know is reported at once and the address is typed by hand; the submit is never blocked."
 msgstr "O CEP vem logo antes do endereço, e os públicos criados antes dessa ordem são reordenados uma vez na primeira requisição do admin após a atualização; o PDF da Ficha mantém o layout. Com a busca de endereço ligada (Configurações → Geral), um CEP que passa na verificação é consultado: os campos de endereço aguardam somente leitura por no mínimo 3 segundos e no máximo 5, e então logradouro, bairro, cidade e UF são preenchidos com o que o serviço devolveu. Uma resposta vazia nunca apaga o que foi digitado, e número e complemento nunca são alterados. Um CEP que o serviço não conhece é avisado na hora e o endereço é digitado à mão; o envio nunca é bloqueado."
+
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Change grades"
+msgstr "Alterar notas"
+
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Change the grades? The change is recorded in the activity log, and the participant is e-mailed only if the result changes between passed and not passed."
+msgstr "Alterar as notas? A alteração fica registrada no log de atividades, e o participante só recebe e-mail se o resultado mudar entre aprovado e não aprovado."
+
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Graded answers"
+msgstr "Respostas corrigidas"
+
+#. includes/admin/class-ffc-admin.php
+msgid "Grades changed and recorded in the activity log. The participant is e-mailed only when the result changes between passed and not passed."
+msgstr "Notas alteradas e registradas no log de atividades. O participante só recebe e-mail quando o resultado muda entre aprovado e não aprovado."
+
+#. includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Quiz Regraded"
+msgstr "Quiz recorrigido"
+
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Reason for the change"
+msgstr "Motivo da alteração"
+
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Save the grades and send the result to the participant? This decides the attempt."
+msgstr "Salvar as notas e enviar o resultado ao participante? Isso decide a tentativa."
+
+#. includes/admin/class-ffc-admin.php
+msgid "Say why the grade changes: the reason is required."
+msgstr "Diga por que a nota muda: o motivo é obrigatório."
+
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+#, php-format
+msgid "The attempt scored %1$d%%. The passing score is %2$d%%. Change a grade only to correct a mistake."
+msgstr "A tentativa obteve %1$d%%. A nota de aprovação é %2$d%%. Altere uma nota só para corrigir um erro."
+
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "The reason and both grades are recorded in the activity log."
+msgstr "O motivo e as duas notas ficam registrados no log de atividades."

@@ -687,6 +687,166 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertSame( 2, $stored['_quiz_attempt'], 'The encrypted data carries the second attempt.' );
 	}
 
+	/**
+	 * #2241 — with encryption on, the attempt lives in `data_encrypted` and
+	 * `data` is NULL; the earlier read of `data` alone counted every attempt
+	 * as the first, so the limit never held.
+	 */
+	public function test_quiz_attempt_limit_reads_the_encrypted_payload(): void {
+		Functions\when( 'get_post' )->justReturn( null );
+
+		$this->quiz_row = $this->storedRow(
+			array(
+				'id'             => '51',
+				'status'         => 'quiz_in_progress',
+				'data'           => null,
+				'data_encrypted' => Encryption::encrypt( (string) json_encode( array( '_quiz_attempt' => 2 ) ) ),
+			)
+		);
+
+		$handler = $this->bareHandler();
+		$handler->shouldReceive( 'process_submission' )->never();
+
+		$ctx = $this->ctx(
+			array(
+				'form_config'     => array(
+					'quiz_enabled'       => '1',
+					'quiz_passing_score' => 70,
+					'quiz_max_attempts'  => 2,
+				),
+				'fields_config'   => $this->quizFieldsConfig(),
+				'submission_data' => array( 'q1' => 'B' ),
+			)
+		);
+
+		try {
+			( new SubmissionPersister( $handler ) )->apply( $ctx );
+			$this->fail( 'Expected SubmissionRejected' );
+		} catch ( SubmissionRejected $e ) {
+			$this->assertTrue( $e->get_payload()['quiz']['attempts_exhausted'] );
+		}
+	}
+
+	/**
+	 * @dataProvider provider_stored_attempts
+	 *
+	 * @param array<string, mixed> $row      Stored payload columns.
+	 * @param int                  $expected Attempt the row records.
+	 */
+	public function test_previous_attempt_reads_either_column_and_counts_a_row_as_one( array $row, int $expected ): void {
+		$this->assertSame( $expected, SubmissionPersister::previous_attempt( $this->storedRow( $row ) ) );
+	}
+
+	/**
+	 * @return array<string, array{array<string, mixed>, int}>
+	 */
+	public static function provider_stored_attempts(): array {
+		return array(
+			'plaintext data'       => array( array( 'data' => '{"_quiz_attempt":3}' ), 3 ),
+			'unreadable payload'   => array(
+				array(
+					'data'           => null,
+					'data_encrypted' => null,
+				),
+				1,
+			),
+			'payload without one' => array( array( 'data' => '{}' ), 1 ),
+		);
+	}
+
+	public function test_previous_attempt_decrypts_the_encrypted_column(): void {
+		$row = $this->storedRow(
+			array(
+				'data'           => null,
+				'data_encrypted' => Encryption::encrypt( '{"_quiz_attempt":4}' ),
+			)
+		);
+		$this->assertSame( 4, SubmissionPersister::previous_attempt( $row ) );
+	}
+
+	/**
+	 * #2241 — a retry stores a unix timestamp (the column is BIGINT; a MySQL
+	 * date string was truncated to its year) and, when it passes, schedules
+	 * the certificate e-mail an insert would have.
+	 */
+	public function test_quiz_retry_that_passes_stores_a_timestamp_and_schedules_the_email(): void {
+		Functions\when( 'get_post' )->justReturn( null );
+
+		$this->quiz_row = $this->storedRow(
+			array(
+				'id'             => '61',
+				'status'         => 'quiz_in_progress',
+				'data'           => null,
+				'data_encrypted' => Encryption::encrypt( '{"_quiz_attempt":1}' ),
+			)
+		);
+
+		$captured = null;
+		$handler  = $this->handlerWithRepo( $repo );
+		$repo->shouldReceive( 'update' )->once()->andReturnUsing(
+			function ( $id, $fields ) use ( &$captured ) {
+				$captured = $fields;
+				return 1;
+			}
+		);
+		$handler->shouldReceive( 'schedule_async_pipeline' )->once()->with( 61 );
+
+		$before = time();
+		$ctx    = $this->ctx(
+			array(
+				'form_config'     => array(
+					'quiz_enabled'       => '1',
+					'quiz_passing_score' => 70,
+					'quiz_max_attempts'  => 3,
+				),
+				'fields_config'   => $this->quizFieldsConfig(),
+				'submission_data' => array( 'q1' => 'A' ),
+			)
+		);
+		( new SubmissionPersister( $handler ) )->apply( $ctx );
+
+		$this->assertSame( 'publish', $captured['status'] );
+		$this->assertIsInt( $captured['submission_date'] );
+		$this->assertGreaterThanOrEqual( $before, $captured['submission_date'] );
+		$this->assertLessThanOrEqual( time(), $captured['submission_date'] );
+		$this->assertSame( (string) $captured['submission_date'], $ctx->real_submission_date );
+		$this->assertSame( 2, $ctx->submission_data['_quiz_attempt'] );
+	}
+
+	public function test_quiz_retry_whose_update_fails_is_rejected_without_email(): void {
+		Functions\when( 'get_post' )->justReturn( null );
+
+		$this->quiz_row = $this->storedRow(
+			array(
+				'id'     => '62',
+				'status' => 'quiz_in_progress',
+				'data'   => '{"_quiz_attempt":1}',
+			)
+		);
+
+		$handler = $this->handlerWithRepo( $repo );
+		$repo->shouldReceive( 'update' )->once()->andReturn( false );
+		$handler->shouldReceive( 'schedule_async_pipeline' )->never();
+
+		$ctx = $this->ctx(
+			array(
+				'form_config'     => array(
+					'quiz_enabled'       => '1',
+					'quiz_passing_score' => 70,
+				),
+				'fields_config'   => $this->quizFieldsConfig(),
+				'submission_data' => array( 'q1' => 'A' ),
+			)
+		);
+
+		try {
+			( new SubmissionPersister( $handler ) )->apply( $ctx );
+			$this->fail( 'Expected SubmissionRejected' );
+		} catch ( SubmissionRejected $e ) {
+			$this->assertSame( 'db_error', $e->get_payload()['code'] );
+		}
+	}
+
 	public function test_quiz_already_passed_is_reprint(): void {
 		Functions\when( 'get_post' )->justReturn( null );
 

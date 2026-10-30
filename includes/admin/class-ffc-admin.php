@@ -422,6 +422,13 @@ class Admin {
 				$text = __( 'That attempt is not waiting for grading any more.', 'ffcertificate' );
 				$type = 'error';
 				break;
+			case 'quiz_regraded':
+				$text = __( 'Grades changed and recorded in the activity log. The participant is e-mailed only when the result changes between passed and not passed.', 'ffcertificate' );
+				break;
+			case 'quiz_regrade_no_reason':
+				$text = __( 'Say why the grade changes: the reason is required.', 'ffcertificate' );
+				$type = 'error';
+				break;
 			case 'quiz_grade_incomplete':
 				$text = __( 'Give every open answer a grade.', 'ffcertificate' );
 				$type = 'error';

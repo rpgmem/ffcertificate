@@ -7,6 +7,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Admin\QuizGradingHandler;
 use FreeFormCertificate\Core\SubmissionStatus;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -29,7 +30,8 @@ class QuizGradingHandlerSpy extends QuizGradingHandler {
 }
 
 /**
- * Saving a person's grades for an attempt awaiting grading (#1732).
+ * Saving a person's grades for an attempt awaiting grading (#1732), and
+ * changing them once the result was sent (#2241).
  *
  * @covers \FreeFormCertificate\Admin\QuizGradingHandler
  */
@@ -111,6 +113,7 @@ class QuizGradingHandlerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		ActivityLogBuffer::reset();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -269,6 +272,121 @@ class QuizGradingHandlerTest extends TestCase {
 		} finally {
 			$_POST = array();
 		}
+		$this->assertSame( array(), $this->updates );
+	}
+	// =====================================================================
+	// Regrade (#2241)
+	// =====================================================================
+
+	/**
+	 * An attempt a person already graded.
+	 *
+	 * @param string $status Stored status.
+	 * @param int    $given  Points the essay was given.
+	 */
+	private function graded_row( string $status, int $given ): array {
+		$score = 6 + $given;
+		$row   = $this->row(
+			$status,
+			array(
+				'_quiz_score'          => $score,
+				'_quiz_percent'        => $score * 10,
+				'_quiz_passed'         => $score >= 7 ? '1' : '0',
+				'_quiz_grades'         => array( 'essay' => $given ),
+				'_quiz_correct_count'  => 4 === $given ? 1 : 0,
+				'_quiz_question_count' => 1,
+			)
+		);
+		$data = json_decode( $row['data'], true );
+		unset( $data['_quiz_pending'] );
+		$row['data'] = json_encode( $data );
+		return $row;
+	}
+
+	/** Turn the activity log on, so what a regrade records can be read. */
+	private function log_on(): void {
+		ActivityLogBuffer::reset();
+		ActivityLogBuffer::stub_functions();
+		Functions\when( 'get_option' )->alias( static fn( $k, $d = false ) => 'ffc_settings' === $k ? ActivityLogBuffer::ENABLED_SETTINGS : ( 'ffc_email_bodies' === $k ? array() : $d ) );
+		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => (string) $v );
+	}
+
+	public function test_a_regrade_without_a_reason_writes_and_sends_nothing(): void {
+		$this->log_on();
+		$spy = $this->grader( $this->graded_row( SubmissionStatus::PUBLISH, 4 ) );
+
+		$this->assertSame( 'quiz_regrade_no_reason', $spy->regrade( 5, array( 'essay' => 1 ), '  typo  ' ) );
+		$this->assertSame( array(), $this->updates );
+		$this->assertSame( array(), $spy->sent );
+		$this->assertSame( array(), ActivityLogBuffer::entries() );
+	}
+
+	public function test_a_regrade_on_the_same_outcome_is_logged_and_not_emailed(): void {
+		$this->log_on();
+		$spy = $this->grader( $this->graded_row( SubmissionStatus::PUBLISH, 4 ) );
+
+		$this->assertSame( 'quiz_regraded', $spy->regrade( 5, array( 'essay' => 1 ), 'Wrong rubric applied.' ) );
+
+		$this->assertSame( SubmissionStatus::PUBLISH, $this->updates[5]['status'], '7 of 10 still passes at 70%.' );
+		$this->assertSame( array(), $spy->sent, 'Same outcome: the participant is not e-mailed.' );
+
+		$logged = ActivityLogBuffer::contexts();
+		$this->assertCount( 1, $logged );
+		$this->assertSame( 'quiz_regraded', $logged[0]['action'] );
+		$this->assertSame( 'Wrong rubric applied.', $logged[0]['context']['reason'] );
+		$this->assertSame( array( 'essay' => 4 ), $logged[0]['context']['old_grades'] );
+		$this->assertSame( array( 'essay' => 1 ), $logged[0]['context']['new_grades'] );
+		$this->assertSame( 100, $logged[0]['context']['old_percent'] );
+		$this->assertSame( 70, $logged[0]['context']['new_percent'] );
+		$this->assertFalse( $logged[0]['context']['outcome_change'] );
+	}
+
+	public function test_a_regrade_that_fails_a_pass_emails_the_result(): void {
+		$this->log_on();
+		$spy = $this->grader( $this->graded_row( SubmissionStatus::PUBLISH, 4 ) );
+
+		$this->assertSame( 'quiz_regraded', $spy->regrade( 5, array( 'essay' => 0 ), 'Answer copied from a classmate.' ) );
+
+		$this->assertSame( SubmissionStatus::QUIZ_IN_PROGRESS, $this->updates[5]['status'], 'Attempt 1 of 2: another try is open.' );
+		$this->assertCount( 1, $spy->sent );
+		$this->assertStringContainsString( 'Your score was 60%, below the passing score.', $spy->sent[0]['body'] );
+		$this->assertTrue( ActivityLogBuffer::contexts()[0]['context']['outcome_change'] );
+	}
+
+	public function test_a_regrade_that_passes_a_failed_attempt_sends_the_document_link(): void {
+		$this->log_on();
+		$spy = $this->grader( $this->graded_row( SubmissionStatus::QUIZ_IN_PROGRESS, 0 ) );
+
+		$this->assertSame( 'quiz_regraded', $spy->regrade( 5, array( 'essay' => 4 ), 'Grade typed in the wrong row.' ) );
+
+		$this->assertSame( SubmissionStatus::PUBLISH, $this->updates[5]['status'] );
+		$this->assertCount( 1, $spy->sent );
+		$this->assertStringContainsString( '#token=' . self::TOKEN, $spy->sent[0]['body'] );
+		$this->assertSame( array( 'auth_ABCD1234EFGH', 'token_' . self::TOKEN ), $this->cache_deleted );
+	}
+
+	public function test_a_regrade_needs_an_attempt_a_person_graded(): void {
+		$this->log_on();
+
+		$pending = $this->grader( $this->row() );
+		$this->assertSame( 'quiz_grade_stale', $pending->regrade( 5, array( 'essay' => 1 ), 'Still waiting for a grade.' ), 'An attempt awaiting grading is graded, not regraded.' );
+
+		$this->assertSame( array(), $this->updates );
+	}
+
+	public function test_an_automatically_scored_attempt_cannot_be_regraded(): void {
+		$this->log_on();
+		$spy = $this->grader( $this->row( SubmissionStatus::PUBLISH, array( '_quiz_grades' => array() ) ) );
+
+		$this->assertSame( 'quiz_grade_stale', $spy->regrade( 5, array(), 'Nothing a person graded.' ) );
+		$this->assertSame( array(), $this->updates );
+	}
+
+	public function test_a_regrade_missing_a_grade_writes_nothing(): void {
+		$this->log_on();
+		$spy = $this->grader( $this->graded_row( SubmissionStatus::PUBLISH, 4 ) );
+
+		$this->assertSame( 'quiz_grade_incomplete', $spy->regrade( 5, array(), 'Clearing the grade.' ) );
 		$this->assertSame( array(), $this->updates );
 	}
 }

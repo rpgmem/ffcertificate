@@ -50,6 +50,11 @@ class QuizGradingHandler {
 	public const CAPABILITY = 'ffc_grade_certificates';
 
 	/**
+	 * Shortest reason a regrade accepts (#2241).
+	 */
+	public const MIN_REASON_LENGTH = 10;
+
+	/**
 	 * Submission handler.
 	 *
 	 * @var SubmissionHandler
@@ -100,7 +105,85 @@ class QuizGradingHandler {
 			wp_die( esc_html__( 'You do not have permission to grade quiz answers.', 'ffcertificate' ), '', array( 'response' => 403 ) );
 		}
 
+		$sub = $this->submission_handler->get_submission( $id );
+		if ( is_array( $sub ) && SubmissionStatus::QUIZ_PENDING !== ( $sub['status'] ?? '' ) ) {
+			$this->redirect( $this->regrade( $id, $this->posted_grades(), RequestInput::get_post_string( 'ffc_grade_reason' ) ) );
+		}
 		$this->redirect( $this->grade( $id, $this->posted_grades() ) );
+	}
+
+	/**
+	 * Change the grades of an attempt already decided (#2241).
+	 *
+	 * A typo in a grade had no way out once the result was sent. The reason
+	 * is required and both grades go to the activity log; the participant is
+	 * e-mailed only when the outcome flips between pass and fail, since a new
+	 * score on the same outcome changes nothing they can act on.
+	 *
+	 * @param int                $id     Submission ID.
+	 * @param array<string, int> $grades New points, keyed by question name.
+	 * @param string             $reason Why the grade changes.
+	 * @return string `quiz_regraded`, `quiz_regrade_no_reason`, `quiz_grade_stale` or `quiz_grade_incomplete`.
+	 */
+	public function regrade( int $id, array $grades, string $reason ): string {
+		$sub  = $this->submission_handler->get_submission( $id );
+		$data = is_array( $sub ) ? json_decode( is_string( $sub['data'] ?? null ) ? $sub['data'] : '', true ) : null;
+		$data = is_array( $data ) ? $data : array();
+		if ( ! is_array( $sub ) || SubmissionStatus::QUIZ_PENDING === ( $sub['status'] ?? '' ) || ! self::has_grades( $data ) ) {
+			return 'quiz_grade_stale';
+		}
+
+		$reason = trim( sanitize_textarea_field( $reason ) );
+		if ( mb_strlen( $reason ) < self::MIN_REASON_LENGTH ) {
+			return 'quiz_regrade_no_reason';
+		}
+
+		$form_id     = (int) ( $sub['form_id'] ?? 0 );
+		$fields      = get_post_meta( $form_id, '_ffc_form_fields', true );
+		$form_config = get_post_meta( $form_id, '_ffc_form_config', true );
+		$form_config = is_array( $form_config ) ? $form_config : array();
+		$graded      = QuizGrading::graded_questions( $data, is_array( $fields ) ? $fields : array() );
+
+		$result = QuizGrading::regrade( $data, $graded, $form_config, $grades );
+		if ( is_wp_error( $result ) ) {
+			return 'quiz_grade_incomplete';
+		}
+
+		$this->persist( $id, $result, $sub );
+
+		$was_passed = '1' === ( $data['_quiz_passed'] ?? '0' );
+		\FreeFormCertificate\Core\ActivityLog::log(
+			'quiz_regraded',
+			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+			array(
+				'form_id'        => $form_id,
+				'reason'         => $reason,
+				'old_grades'     => array_map( static fn( array $q ): int => $q['given'], $graded ),
+				'new_grades'     => array_intersect_key( $result['data']['_quiz_grades'], $graded ),
+				'old_percent'    => \FreeFormCertificate\Core\ArrayValue::int( $data, '_quiz_percent', 0 ),
+				'new_percent'    => $result['percent'],
+				'old_status'     => (string) ( $sub['status'] ?? '' ),
+				'new_status'     => $result['status'],
+				'outcome_change' => $was_passed !== $result['passed'],
+			),
+			get_current_user_id(),
+			$id
+		);
+
+		if ( $was_passed !== $result['passed'] ) {
+			$this->send_result_email( $sub, $result, $form_config );
+		}
+
+		return 'quiz_regraded';
+	}
+
+	/**
+	 * Whether an attempt's data records grades a person gave.
+	 *
+	 * @param array<string, mixed> $data Stored submission data.
+	 */
+	public static function has_grades( array $data ): bool {
+		return isset( $data['_quiz_grades'] ) && is_array( $data['_quiz_grades'] ) && array() !== $data['_quiz_grades'];
 	}
 
 	/**

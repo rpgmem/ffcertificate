@@ -139,14 +139,7 @@ class SubmissionPersister {
 				}
 			} else {
 				// Count attempts.
-				$prev_attempt = 0;
-				if ( $existing ) {
-					$prev_data = json_decode( $existing->data ?? '{}', true );
-					if ( ! is_array( $prev_data ) ) {
-						$prev_data = array();
-					}
-					$prev_attempt = ArrayValue::int( $prev_data, '_quiz_attempt', 0 );
-				}
+				$prev_attempt                     = $existing ? self::previous_attempt( $existing ) : 0;
 				$attempt_number                   = $prev_attempt + 1;
 				$submission_data['_quiz_attempt'] = $attempt_number;
 
@@ -182,9 +175,12 @@ class SubmissionPersister {
 					$data_json_raw  = wp_json_encode( $extra_data );
 					$data_json      = $data_json_raw ? $data_json_raw : '{}';
 
+					// `submission_date` is a unix UTC int (Category A); a MySQL
+					// date string here was truncated to its year (#2241).
+					$now           = time();
 					$update_fields = array(
 						'status'          => $quiz_status,
-						'submission_date' => current_time( 'mysql' ),
+						'submission_date' => $now,
 					);
 					if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
 						$update_fields['data_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $data_json );
@@ -192,8 +188,21 @@ class SubmissionPersister {
 						$update_fields['data'] = $data_json;
 					}
 
-					$repo->update( $submission_id, $update_fields );
-					$real_submission_date = current_time( 'mysql' );
+					if ( false === $repo->update( $submission_id, $update_fields ) ) {
+						throw new SubmissionRejected(
+							array(
+								'code'    => 'db_error',
+								'message' => __( "We couldn't save your submission. Try again — if the problem persists, contact the organizer.", 'ffcertificate' ),
+							)
+						);
+					}
+					$real_submission_date = (string) $now;
+
+					// A retry that passes is the moment the certificate exists,
+					// so it is e-mailed now, as a first attempt's insert is.
+					if ( 'publish' === $quiz_status ) {
+						$this->submission_handler->schedule_async_pipeline( $submission_id );
+					}
 				} else {
 					// INSERT new submission via existing handler.
 					$submission_id = $this->submission_handler->process_submission(
@@ -388,6 +397,23 @@ class SubmissionPersister {
 	}
 
 	/**
+	 * The attempt number a stored quiz row records (#2241).
+	 *
+	 * With encryption on, the attempt lives in `data_encrypted` and `data` is
+	 * NULL, so reading `data` alone counted every attempt as the first and
+	 * the limit never held. A row that exists records one attempt at least,
+	 * so a row whose payload cannot be read still counts as one.
+	 *
+	 * @param object $existing Stored submission row.
+	 * @return int At least 1.
+	 */
+	public static function previous_attempt( object $existing ): int {
+		$json = \FreeFormCertificate\Core\Encryption::decrypt_field( (array) $existing, 'data' );
+		$data = json_decode( '' !== $json ? $json : '{}', true );
+		return max( 1, ArrayValue::int( is_array( $data ) ? $data : array(), '_quiz_attempt', 0 ) );
+	}
+
+	/**
 	 * Calculate the quiz score of a submission (#1730: {@see QuizScorer}).
 	 *
 	 * @param array<int, array<string, mixed>> $fields_config Form fields configuration.
@@ -402,6 +428,11 @@ class SubmissionPersister {
 	 * Find existing quiz submission for a CPF + form combination
 	 *
 	 * Returns the most recent submission (any quiz status: in_progress, failed, or publish).
+	 *
+	 * Without encryption keys no identifier is stored at all — the insert
+	 * writes neither the CPF/RF nor a hash of it — so there is nothing to find
+	 * by, and attempt limits cannot hold on such an install. WordPress writes
+	 * the keys at install, so this is a broken configuration, not a mode.
 	 *
 	 * @param int    $form_id Form ID.
 	 * @param string $cpf     CPF/RF value.
