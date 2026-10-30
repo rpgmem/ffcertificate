@@ -308,9 +308,9 @@ class AudienceBookingExportSource implements BatchedExportSourceInterface {
 			implode( ', ', $audiences ),
 			(string) $participant_count,
 			$this->user_name( (int) ( $row['created_by'] ?? 0 ) ),
-			(string) ( $row['created_at'] ?? '' ),
+			self::instant( $row['created_at'] ?? null ),
 			$this->user_name( (int) ( $row['cancelled_by'] ?? 0 ) ),
-			(string) ( $row['cancelled_at'] ?? '' ),
+			self::instant( $row['cancelled_at'] ?? null ),
 			(string) ( $row['cancellation_reason'] ?? '' ),
 		);
 	}
@@ -368,5 +368,17 @@ class AudienceBookingExportSource implements BatchedExportSourceInterface {
 
 		$this->user_names[ $user_id ] = $name;
 		return $name;
+	}
+
+	/**
+	 * An instant column (UTC seconds) in the site's zone and format (#2243),
+	 * or empty for an unset one: an active booking has no `cancelled_at`.
+	 *
+	 * @param mixed $value Stored value.
+	 * @return string
+	 */
+	private static function instant( $value ): string {
+		$seconds = is_numeric( $value ) ? (int) $value : 0;
+		return $seconds > 0 ? \FreeFormCertificate\Core\DateFormatter::format_datetime( $seconds ) : '';
 	}
 }

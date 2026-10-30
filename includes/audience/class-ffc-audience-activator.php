@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '9';
+	public const SCHEMA_REVISION = '10';
 
 	/**
 	 * Option holding the revision last applied.
@@ -350,9 +350,9 @@ class AudienceActivator {
             description varchar(300) NOT NULL COMMENT 'Required, 15-300 chars',
             status enum('active','cancelled') DEFAULT 'active',
             created_by bigint(20) unsigned NOT NULL,
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            created_at bigint(20) unsigned NOT NULL DEFAULT 0,
             cancelled_by bigint(20) unsigned DEFAULT NULL,
-            cancelled_at datetime DEFAULT NULL,
+            cancelled_at bigint(20) unsigned DEFAULT NULL,
             cancellation_reason varchar(500) DEFAULT NULL COMMENT 'Required when cancelling',
             end_date date DEFAULT NULL COMMENT 'Last day of a range, NULL for a single day',
             time_mode enum('daily','span') DEFAULT NULL COMMENT 'Hours of a range: daily or span',
@@ -916,6 +916,7 @@ class AudienceActivator {
 		$healed = self::migrate_booking_range_columns() && $healed;
 		$healed = self::migrate_booking_day_times_column() && $healed;
 		$healed = self::migrate_booking_indexes() && $healed;
+		$healed = self::migrate_booking_timestamps() && $healed;
 		$healed = self::migrate_booking_attendance_columns() && $healed;
 		$healed = self::migrate_post_event_form_columns() && $healed;
 		$healed = self::migrate_holiday_kind_column() && $healed;
@@ -1070,6 +1071,48 @@ class AudienceActivator {
 		}
 
 		return ! self::index_exists( $table_name, 'idx_env_date_status' ) && ! self::index_exists( $table_name, 'idx_environment' );
+	}
+
+	/**
+	 * Store a booking's creation and cancellation as UTC seconds (#2243).
+	 *
+	 * Both are instants the list, the CSV and the details show, and they
+	 * disagreed: `created_at` was MySQL's `CURRENT_TIMESTAMP`, in the
+	 * database session's zone, and `cancelled_at` was `current_time()`, in
+	 * the site's. Each converts by the rule of the zone that wrote it:
+	 * `UNIX_TIMESTAMP()` reads `created_at` in the same session zone that
+	 * stamped it, so that column is staged, filled and swapped here; and
+	 * {@see self::migrate_datetime_column_to_unix()} reads `cancelled_at` in
+	 * `wp_timezone()`.
+	 *
+	 * @return bool Whether both columns are now BIGINT, or the table does not exist yet.
+	 */
+	private static function migrate_booking_timestamps(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_bookings';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		$created_type = strtolower( (string) self::column_type( $table_name, 'created_at' ) );
+		if ( '' !== $created_type && 0 !== strpos( $created_type, 'bigint' ) ) {
+			self::add_column_if_missing( $table_name, 'created_at_ts', 'BIGINT UNSIGNED NOT NULL DEFAULT 0', 'created_at' );
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- One-shot schema migration on the plugin's own table.
+			$wpdb->query( $wpdb->prepare( 'UPDATE %i SET created_at_ts = UNIX_TIMESTAMP(created_at) WHERE created_at_ts = 0 AND created_at IS NOT NULL', $table_name ) );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table_name, 'created_at' ) );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i CHANGE %i %i BIGINT UNSIGNED NOT NULL DEFAULT 0', $table_name, 'created_at_ts', 'created_at' ) );
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+		}
+		self::migrate_datetime_column_to_unix( $table_name, 'cancelled_at', true );
+
+		foreach ( array( 'created_at', 'cancelled_at' ) as $column ) {
+			$type = strtolower( (string) self::column_type( $table_name, $column ) );
+			if ( '' !== $type && 0 !== strpos( $type, 'bigint' ) ) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**

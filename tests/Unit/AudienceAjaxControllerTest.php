@@ -380,6 +380,12 @@ class AudienceAjaxControllerTest extends TestCase {
 		}
 	}
 
+	/** Render instants in UTC, so a stored `created_at` reads back predictably. */
+	private function stubDates(): void {
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts ) => gmdate( $format, (int) $ts ) );
+	}
+
 	/**
 	 * A stored booking row, as the joined reader query returns it.
 	 *
@@ -400,7 +406,7 @@ class AudienceAjaxControllerTest extends TestCase {
 				'description'      => 'desc',
 				'booking_type'     => 'meeting',
 				'status'           => 'active',
-				'created_at'       => '2026-05-01',
+				'created_at'       => '1777629600',
 			),
 			$overrides
 		);
@@ -513,10 +519,16 @@ class AudienceAjaxControllerTest extends TestCase {
 		$_POST          = array( 'nonce' => 'n', 'booking_id' => '9', 'reason' => 'x' );
 		$this->bookings = array( 9 => $this->booking() );
 
+		$before = time();
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_cancel_booking() );
+		$after = time();
 
 		$this->assertTrue( $this->responses[0]['ok'] );
 		$this->assertStringContainsString( 'cancelled successfully', $this->responses[0]['data']['message'] );
+		// The cancellation is an instant in UTC seconds (#2243); read the clock on both sides.
+		$at = $this->writes[0]['data']['cancelled_at'];
+		$this->assertGreaterThanOrEqual( $before, $at );
+		$this->assertLessThanOrEqual( $after, $at );
 		$this->assertSame(
 			array(
 				array(
@@ -525,7 +537,7 @@ class AudienceAjaxControllerTest extends TestCase {
 					'data'  => array(
 						'status'              => 'cancelled',
 						'cancelled_by'        => 1,
-						'cancelled_at'        => '2026-05-20 10:00:00',
+						'cancelled_at'        => $at,
 						'cancellation_reason' => 'x',
 					),
 					'where' => array( 'id' => 9 ),
@@ -605,6 +617,7 @@ class AudienceAjaxControllerTest extends TestCase {
 	 * @dataProvider reveal_tiers
 	 */
 	public function test_get_booking_maps_full_payload( bool $can_reveal ): void {
+		$this->stubDates();
 		$this->stubAccountEmail( $can_reveal );
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
@@ -628,6 +641,8 @@ class AudienceAjaxControllerTest extends TestCase {
 		$data = $this->responses[0]['data'];
 		$this->assertSame( 4, $data['id'] );
 		$this->assertSame( 'Creator', $data['created_by'] );
+		// UTC seconds, rendered in the site's zone and format (#2243).
+		$this->assertSame( gmdate( 'd/m/Y H:i', 1777629600 ), $data['created_at'] );
 		$this->assertSame( 1, $data['is_all_day'] );
 		$this->assertSame( array( array( 'id' => 2, 'name' => 'Aud2' ) ), $data['audiences'] );
 		$this->assertSame( 7, $data['users'][0]['id'] );
@@ -638,6 +653,7 @@ class AudienceAjaxControllerTest extends TestCase {
 	}
 
 	public function test_get_booking_shows_the_viewer_their_own_address(): void {
+		$this->stubDates();
 		$this->stubAccountEmail( false );
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
@@ -653,6 +669,7 @@ class AudienceAjaxControllerTest extends TestCase {
 	}
 
 	public function test_get_booking_unknown_creator_and_empty_relations(): void {
+		$this->stubDates();
 		$_POST          = array( 'nonce' => 'n', 'booking_id' => '4' );
 		$this->bookings = array( 4 => $this->booking( array( 'id' => 4, 'created_by' => 0, 'description' => '' ) ) );
 
