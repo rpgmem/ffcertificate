@@ -30,6 +30,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FormEditorBuilderMetabox {
 
 	/**
+	 * Whether the form being edited already holds submissions, which locks
+	 * the tag name of the fields it had (#2241).
+	 *
+	 * @var bool
+	 */
+	private bool $names_locked = false;
+
+	/**
 	 * Canonical certificate form field types — the union consumed by both
 	 * entry paths (this server-rendered row `<select>` and the JS field
 	 * builder), so a type saved through one path is always editable in the
@@ -143,7 +151,9 @@ class FormEditorBuilderMetabox {
 				);
 			}
 		}
-		$missing = is_array( $fields ) ? $this->missing_required_rows( $fields ) : SettingsReader::required_form_fields();
+		$missing            = is_array( $fields ) ? $this->missing_required_rows( $fields ) : SettingsReader::required_form_fields();
+		$this->names_locked = 'auto-draft' !== $post->post_status
+			&& ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->countLiveByForm( (int) $post->ID ) > 0;
 		?>
 		<div id="ffc-fields-container">
 			<?php
@@ -304,7 +314,21 @@ class FormEditorBuilderMetabox {
 				</div>
 				<div class="ffc-grid-item ffc-standard-row<?php echo $is_display_only ? ' ffc-hidden' : ''; ?>">
 					<label><?php esc_html_e( 'Variable Name (Tag)', 'ffcertificate' ); ?></label>
-					<input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][name]" value="<?php echo esc_attr( $name ); ?>" placeholder="<?php esc_attr_e( 'ex: course_name', 'ffcertificate' ); ?>" class="ffc-w100"<?php echo $is_locked ? ' readonly aria-describedby="' . esc_attr( $lock_id ) . '"' : ''; ?>>
+					<?php
+					// A stored field keeps its tag once the form has submissions
+					// (#2241): the rows hold its value under that name, and a
+					// renamed tag would print literally on certificates already
+					// issued. The save handler restores it whatever is posted.
+					$name_locked = $this->names_locked && '' !== (string) $name && 'TEMPLATE' !== $index;
+					$name_note   = 'ffc_field_name_lock_' . $index;
+					?>
+					<input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][name]" value="<?php echo esc_attr( $name ); ?>" placeholder="<?php esc_attr_e( 'ex: course_name', 'ffcertificate' ); ?>" class="ffc-w100"<?php echo $is_locked ? ' readonly aria-describedby="' . esc_attr( $lock_id ) . '"' : ( $name_locked ? ' readonly aria-describedby="' . esc_attr( $name_note ) . '"' : '' ); ?>>
+					<?php if ( $name_locked ) : ?>
+						<input type="hidden" name="ffc_fields[<?php echo esc_attr( $index ); ?>][original_name]" value="<?php echo esc_attr( $name ); ?>">
+						<?php if ( ! $is_locked ) : ?>
+							<span class="description ffc-edit-note" id="<?php echo esc_attr( $name_note ); ?>"><?php esc_html_e( 'Locked: this form has submissions stored under this tag.', 'ffcertificate' ); ?></span>
+						<?php endif; ?>
+					<?php endif; ?>
 				</div>
 				<?php
 				// The type is chosen once, from the Add New Field menu, and is

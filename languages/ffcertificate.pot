@@ -29737,3 +29737,18 @@ msgstr ""
 #: includes/settings/views/documentation/submissions-list.php
 msgid "Trash means revoked. A certificate moved to the trash stops verifying: the verification page, its QR code, its magic link and the REST API say it was revoked and on which day, with none of its data and no PDF, and a new submission with the same CPF/RF is refused instead of issuing another. Restoring it from the trash lifts the revocation."
 msgstr ""
+
+#: includes/settings/views/documentation/submissions-download.php
+msgid "Because of that, a change to a form's layout reaches every certificate it already issued, and the layout editor says how many there are. A tag for a field the form has but a submission lacks (a field added later, or an optional one left empty) prints blank; a tag that is no field of the form stays visible as written, so a typo is noticed. Once the form has submissions, the tag name of each field it had is locked in the form builder."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php
+msgid "Locked: this form has submissions stored under this tag."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+#, php-format
+msgid "This form has %s issued certificate; layout changes apply to it the next time it is generated or verified."
+msgid_plural "This form has %s issued certificates; layout changes apply to them the next time they are generated or verified."
+msgstr[0] ""
+msgstr[1] ""

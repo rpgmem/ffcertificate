@@ -29821,3 +29821,18 @@ msgstr "Já existe um certificado para este CPF/RF. Enviamos o link para o e-mai
 #: includes/settings/views/documentation/submissions-list.php
 msgid "Trash means revoked. A certificate moved to the trash stops verifying: the verification page, its QR code, its magic link and the REST API say it was revoked and on which day, with none of its data and no PDF, and a new submission with the same CPF/RF is refused instead of issuing another. Restoring it from the trash lifts the revocation."
 msgstr "Lixeira significa revogado. Um certificado movido para a lixeira deixa de ser validado: a página de validação, o QR code, o link mágico e a API REST dizem que ele foi revogado e em que dia, sem nenhum dado e sem PDF, e um novo envio com o mesmo CPF/RF é recusado em vez de emitir outro. Restaurá-lo da lixeira desfaz a revogação."
+
+#: includes/settings/views/documentation/submissions-download.php
+msgid "Because of that, a change to a form's layout reaches every certificate it already issued, and the layout editor says how many there are. A tag for a field the form has but a submission lacks (a field added later, or an optional one left empty) prints blank; a tag that is no field of the form stays visible as written, so a typo is noticed. Once the form has submissions, the tag name of each field it had is locked in the form builder."
+msgstr "Por isso, uma mudança no layout de um formulário alcança todos os certificados que ele já emitiu, e o editor de layout diz quantos são. Uma tag de um campo que o formulário tem mas o envio não traz (um campo acrescentado depois, ou um opcional deixado vazio) sai em branco; uma tag que não é campo do formulário continua visível como foi escrita, para que um erro de digitação seja notado. Quando o formulário já tem envios, o nome da tag de cada campo que ele tinha fica travado no construtor do formulário."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php
+msgid "Locked: this form has submissions stored under this tag."
+msgstr "Travada: este formulário tem envios guardados sob esta tag."
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+#, php-format
+msgid "This form has %s issued certificate; layout changes apply to it the next time it is generated or verified."
+msgid_plural "This form has %s issued certificates; layout changes apply to them the next time they are generated or verified."
+msgstr[0] "Este formulário tem %s certificado emitido; mudanças no layout valem para ele na próxima vez que for gerado ou validado."
+msgstr[1] "Este formulário tem %s certificados emitidos; mudanças no layout valem para eles na próxima vez que forem gerados ou validados."

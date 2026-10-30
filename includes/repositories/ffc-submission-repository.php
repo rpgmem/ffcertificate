@@ -243,6 +243,16 @@ class SubmissionRepository extends AbstractRepository {
 	}
 
 	/**
+	 * How many submissions a form holds outside the trash (#2241).
+	 *
+	 * @param int $form_id Form ID.
+	 * @return int
+	 */
+	public function countLiveByForm( int $form_id ): int {
+		return $this->reader->countLiveByForm( $form_id );
+	}
+
+	/**
 	 * Count total matching rows for export progress reporting.
 	 *
 	 * @since 5.0.0
