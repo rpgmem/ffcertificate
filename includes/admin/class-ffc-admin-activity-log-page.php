@@ -281,6 +281,7 @@ class AdminActivityLogPage {
 			'appointment_booked_on_behalf'                 => __( 'Appointment Booked on Behalf of a Person', 'ffcertificate' ),
 			'appointment_bulk_purged'                      => __( 'Calendar Appointments Purged', 'ffcertificate' ),
 			'appointment_bulk_cancelled'                   => __( 'Calendar Future Appointments Cancelled', 'ffcertificate' ),
+			'appointment_bulk_closed'                      => __( 'Old Appointments Closed', 'ffcertificate' ),
 			'audience_account_email_revealed'              => __( 'Audience Account Email Revealed', 'ffcertificate' ),
 			'audience_booking_override'                    => __( 'Audience Booking Made Outside the Rules', 'ffcertificate' ),
 

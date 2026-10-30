@@ -30318,3 +30318,66 @@ msgstr "Na lista de Agendamentos, um agendamento confirmado cuja data já chegou
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:209
 msgid "Undo attendance"
 msgstr "Desfazer comparecimento"
+
+#: includes/self-scheduling/views/appointments-list.php:457
+msgid "Appointments dated %1$d or more days ago are still open: %2$d confirmed (will be marked completed) and %3$d pending (will be cancelled). The daily run closes them; you can close them now."
+msgstr "Agendamentos com data de %1$d dias atrás ou mais ainda estão abertos: %2$d confirmados (serão marcados como concluídos) e %3$d pendentes (serão cancelados). A rotina diária os fecha; você pode fechá-los agora."
+
+#: templates/admin/audience/self-scheduling-tab.php:187
+msgid "Close Old Appointments"
+msgstr "Fechar Agendamentos Antigos"
+
+#: includes/core/class-ffc-scheduled-tasks.php:195
+msgid "Close old appointments (confirmed to completed, pending to cancelled)"
+msgstr "Fechar agendamentos antigos (confirmados para concluídos, pendentes para cancelados)"
+
+#: includes/self-scheduling/views/appointments-list.php:464
+msgid "Close old appointments now"
+msgstr "Fechar agendamentos antigos agora"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-closeout.php:130
+msgid "Closed automatically: the date passed without approval."
+msgstr "Fechado automaticamente: a data passou sem aprovação."
+
+#: templates/admin/audience/self-scheduling-tab.php:195
+msgid "Days after the appointment"
+msgstr "Dias após o agendamento"
+
+#: templates/admin/audience/self-scheduling-tab.php:207
+msgid "From 0 to %1$d (default %2$d). 0 turns the close-out off, the daily run and the button alike."
+msgstr "De 0 a %1$d (padrão %2$d). 0 desliga o fechamento, tanto a rotina diária quanto o botão."
+
+#: includes/audience/class-ffc-audience-admin-settings.php:276
+msgid "Not saved: enter a number of days from 0 to 365."
+msgstr "Não salvo: informe um número de dias de 0 a 365."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:284
+msgid "Old Appointments Closed"
+msgstr "Agendamentos Antigos Fechados"
+
+#: includes/audience/class-ffc-audience-admin-settings.php:274
+msgid "Old appointment close-out saved."
+msgstr "Fechamento de agendamentos antigos salvo."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:61
+msgid "Old appointments close themselves: once a day, an appointment whose date passed the number of days set under Close Old Appointments on the Personal Calendars tab of the Scheduling settings (default 7, 0 turns it off) and that is still confirmed is marked completed, and one still pending is cancelled with a reason saying nobody approved it in time. No e-mail is sent. When any are due, the Appointments list says how many and offers Close old appointments now, which runs the same close-out at once; each run that changed something leaves one Activity Log entry."
+msgstr "Agendamentos antigos se fecham sozinhos: uma vez por dia, um agendamento cuja data passou do número de dias definido em Fechar Agendamentos Antigos, na aba Calendários Pessoais das configurações de Agendamento (padrão 7, 0 desliga), e que ainda está confirmado é marcado como concluído; um ainda pendente é cancelado com um motivo dizendo que ninguém o aprovou a tempo. Nenhum e-mail é enviado. Quando há algum vencido, a lista de Agendamentos informa quantos e oferece Fechar agendamentos antigos agora, que executa o mesmo fechamento na hora; cada execução que alterou algo deixa um registro no Registro de Atividades."
+
+#: includes/self-scheduling/views/appointments-list.php:49
+msgid "Old appointments closed: %1$d marked completed, %2$d pending cancelled."
+msgstr "Agendamentos antigos fechados: %1$d marcados como concluídos, %2$d pendentes cancelados."
+
+#: templates/admin/audience/self-scheduling-tab.php:189
+msgid "Once a day, appointments whose date passed this many days ago and that nobody closed are closed: a confirmed one is marked completed, a pending one is cancelled, since nobody approved it in time. No e-mail is sent, and an attendance mark already set is kept. The Appointments list offers the same close-out on demand."
+msgstr "Uma vez por dia, agendamentos cuja data passou há esse número de dias e que ninguém fechou são fechados: um confirmado é marcado como concluído, um pendente é cancelado, já que ninguém o aprovou a tempo. Nenhum e-mail é enviado, e uma marcação de comparecimento já feita é mantida. A lista de Agendamentos oferece o mesmo fechamento sob demanda."
+
+#: includes/self-scheduling/views/appointments-list.php:43
+msgid "The close-out stopped on a database error. Appointments changed before it stay changed; run it again."
+msgstr "O fechamento parou em um erro de banco de dados. Os agendamentos alterados antes disso continuam alterados; execute de novo."
+
+#: includes/self-scheduling/views/appointments-list.php:479
+#, php-format
+msgid "Close %d old appointment? This cannot be undone in bulk."
+msgid_plural "Close %d old appointments? This cannot be undone in bulk."
+msgstr[0] "Fechar %d agendamento antigo? Isso não pode ser desfeito em lote."
+msgstr[1] "Fechar %d agendamentos antigos? Isso não pode ser desfeito em lote."

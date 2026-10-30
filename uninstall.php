@@ -48,6 +48,7 @@ if ( ! $ffcertificate_purge ) {
 	wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 	wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 	wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
+	wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_closeout' );
 	wp_clear_scheduled_hook( 'ffcertificate_audience_post_event_invites' );
 	wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
 	wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
@@ -251,6 +252,8 @@ $ffcertificate_options = array(
 	// Self-scheduling module options (audited gap).
 	'ffc_ss_business_hours_booking_message',
 	'ffc_ss_business_hours_viewing_message',
+	// Written only when the Personal Calendars tab is saved (#2285).
+	'ffc_ss_closeout_days',
 	'ffc_ss_private_display_mode',
 	'ffc_ss_scheduling_message',
 	'ffc_ss_visibility_message',
@@ -387,6 +390,7 @@ wp_unschedule_hook( 'ffc_process_submission_async' );
 wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
+wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_closeout' );
 wp_clear_scheduled_hook( 'ffcertificate_audience_post_event_invites' );
 wp_clear_scheduled_hook( 'ffc_cloudflare_cidr_refresh' );
 // See the cron-only block above (#1538).

@@ -30,6 +30,7 @@ class Deactivator {
 		wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 		wp_clear_scheduled_hook( 'ffcertificate_bulk_issue_purge' );
 		wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
+		wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_closeout' );
 		wp_clear_scheduled_hook( 'ffcertificate_audience_post_event_invites' );
 		wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 		// A pending reminder batch would otherwise fire into code that is no
@@ -85,6 +86,7 @@ class Deactivator {
 		// The old one stays: an event scheduled the old way may still be pending.
 		wp_unschedule_hook( 'ffc_process_submission_async' );
 		wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
+		wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_closeout' );
 		wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::unschedule();

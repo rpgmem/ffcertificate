@@ -45,6 +45,7 @@ return array(
 	'Audience>Reregistration',
 	'Audience>Scheduling',
 	'Audience>Security',
+	'Audience>SelfScheduling',
 	'Audience>Settings',
 	'Audience>UserDashboard',
 	'Core>Reregistration',

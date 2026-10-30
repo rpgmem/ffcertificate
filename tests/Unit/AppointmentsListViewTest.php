@@ -59,6 +59,9 @@ class AppointmentsListViewTest extends TestCase {
 	/** @var list<array<int, mixed>> Arguments of every set_transient() call. */
 	private array $transients = array();
 
+	/** @var list<array<string, string>> What the close-out count reads (#2285). */
+	private array $closeout_due = array();
+
 	/** @var list<string> Queries the double did not recognise. */
 	private array $unexpected = array();
 
@@ -100,6 +103,7 @@ class AppointmentsListViewTest extends TestCase {
 		Functions\when( 'user_can' )->justReturn( false );
 		Functions\when( 'get_user_by' )->justReturn( false );
 		Functions\when( 'current_time' )->justReturn( '2026-05-01 10:00:00' );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce123' );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'get_transient' )->justReturn( false );
@@ -129,6 +133,7 @@ class AppointmentsListViewTest extends TestCase {
 		$this->update_result = 1;
 		$this->updates       = array();
 		$this->unexpected    = array();
+		$this->closeout_due  = array();
 		$this->actions       = array();
 		$this->transients    = array();
 
@@ -200,6 +205,9 @@ class AppointmentsListViewTest extends TestCase {
 				// An empty WHERE leaves its separating space behind.
 				if ( 'SELECT * FROM ' . self::APPOINTMENTS . '  ORDER BY created_at DESC LIMIT 20 OFFSET 0' === $sql ) {
 					return array_values( $this->appointments );
+				}
+				if ( str_starts_with( $sql, 'SELECT status, COUNT(*) AS total FROM ' . self::APPOINTMENTS ) ) {
+					return $this->closeout_due;
 				}
 				return $this->unexpected_query( $sql );
 			}
@@ -655,6 +663,83 @@ class AppointmentsListViewTest extends TestCase {
 		// The header's Export CSV is a family button with the hook the script binds (#1904).
 		$this->assertStringContainsString( '<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-download" id="ffc-appointments-export-btn"', $out );
 		$this->assertStringNotContainsString( 'page-title-action', $out );
+	}
+
+	public function test_the_list_offers_no_close_out_when_nothing_is_due(): void {
+		ob_start();
+		$this->include_view();
+		$out = ob_get_clean();
+
+		$this->assertStringNotContainsString( 'Close old appointments now', $out );
+	}
+
+	public function test_the_list_offers_the_close_out_with_the_due_counts(): void {
+		Functions\when( 'wp_nonce_url' )->alias( static fn( $url, $action ) => $url . '&_wpnonce=' . $action );
+		Functions\when( '_n' )->alias( static fn( $one, $many, $n ) => 1 === $n ? $one : $many );
+		$this->closeout_due = array(
+			array( 'status' => 'confirmed', 'total' => '3' ),
+			array( 'status' => 'pending', 'total' => '1' ),
+		);
+
+		ob_start();
+		$this->include_view();
+		$out = ob_get_clean();
+
+		$this->assertStringContainsString( 'dated 7 or more days ago are still open: 3 confirmed (will be marked completed) and 1 pending (will be cancelled)', $out );
+		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-caution ffc-icon-calendar-check"', $out );
+		$this->assertStringContainsString( '_wpnonce=ffc_close_old_appointments', $out );
+		$this->assertStringContainsString( 'data-confirm="Close 4 old appointments? This cannot be undone in bulk."', $out );
+	}
+
+	public function test_a_read_only_viewer_is_not_offered_the_close_out(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$this->closeout_due = array( array( 'status' => 'confirmed', 'total' => '3' ) );
+
+		ob_start();
+		$this->include_view();
+		$out = ob_get_clean();
+
+		$this->assertStringNotContainsString( 'Close old appointments now', $out );
+	}
+
+	public function test_close_old_runs_the_close_out_and_reports_the_counts(): void {
+		$_GET['ffc_action'] = 'close_old';
+		$referers           = array();
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( $action ) use ( &$referers ) {
+				$referers[] = $action;
+				return true;
+			}
+		);
+		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+		Functions\when( 'wp_cache_supports' )->justReturn( true );
+		Functions\when( 'wp_cache_flush_group' )->justReturn( true );
+		$queries = array();
+		$GLOBALS['wpdb']->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $sql ) use ( &$queries ) {
+				$queries[] = $sql;
+				return 1 === count( $queries ) ? 2 : 1;
+			}
+		);
+
+		$this->include_view_expecting_stop( 'redirected' );
+
+		$this->assertSame( array( 'ffc_close_old_appointments' ), $referers );
+		$this->assertCount( 2, $queries, 'One short batch each: confirmed, then pending.' );
+		$this->assertSame(
+			array( 'type' => 'success', 'message' => 'Old appointments closed: 2 marked completed, 1 pending cancelled.' ),
+			$this->transients[0][1]
+		);
+	}
+
+	public function test_close_old_without_the_capability_dies_before_anything_runs(): void {
+		$_GET['ffc_action'] = 'close_old';
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'wp_die' )->alias( fn( $m ) => throw new \RuntimeException( 'died: ' . $m ) );
+		Functions\expect( 'check_admin_referer' )->never();
+
+		$this->include_view_expecting_stop( 'died' );
+		$this->assertSame( array(), $this->transients );
 	}
 
 	public function test_the_list_offers_no_page_reveal_without_the_pii_cap(): void {

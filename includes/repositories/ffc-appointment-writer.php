@@ -200,6 +200,77 @@ class AppointmentWriter extends AbstractRepository {
 	}
 
 	/**
+	 * Mark one batch of confirmed appointments dated on or before $cutoff as
+	 * completed (the old-appointment close-out).
+	 *
+	 * The status is in the WHERE clause, so a row closed by this batch leaves
+	 * the set the next batch reads, and a caller looping until a batch changes
+	 * fewer rows than it asked for always stops.
+	 *
+	 * @param string $cutoff Last appointment date to close, `Y-m-d` (wall-clock).
+	 * @param int    $limit  Rows per batch.
+	 * @return int|false Rows changed, or false on a database error.
+	 */
+	public function completeConfirmedUpTo( string $cutoff, int $limit ) {
+		$sql = $this->wpdb->prepare(
+			"UPDATE %i SET status = 'completed', updated_at = %s
+             WHERE status = 'confirmed' AND appointment_date <= %s
+             ORDER BY id LIMIT %d",
+			$this->table,
+			current_time( 'mysql' ),
+			$cutoff,
+			$limit
+		);
+		return $this->run_closeout( $sql );
+	}
+
+	/**
+	 * Cancel one batch of pending appointments dated on or before $cutoff:
+	 * nobody approved them, and their date has gone.
+	 *
+	 * @param string $cutoff Last appointment date to close, `Y-m-d` (wall-clock).
+	 * @param string $reason Cancellation reason stored on each row.
+	 * @param int    $limit  Rows per batch.
+	 * @return int|false Rows changed, or false on a database error.
+	 */
+	public function expirePendingUpTo( string $cutoff, string $reason, int $limit ) {
+		$sql = $this->wpdb->prepare(
+			"UPDATE %i SET status = 'cancelled', cancelled_at = %d, cancelled_by = NULL,
+             cancellation_reason = %s, updated_at = %s
+             WHERE status = 'pending' AND appointment_date <= %s
+             ORDER BY id LIMIT %d",
+			$this->table,
+			time(),
+			$reason,
+			current_time( 'mysql' ),
+			$cutoff,
+			$limit
+		);
+		return $this->run_closeout( $sql );
+	}
+
+	/**
+	 * Run one close-out UPDATE and drop the group cache when it changed rows.
+	 *
+	 * @param string|null $sql Prepared statement.
+	 * @return int|false
+	 */
+	private function run_closeout( ?string $sql ) {
+		if ( ! is_string( $sql ) ) {
+			return false;
+		}
+		$rows = $this->wpdb->query( $sql );
+		if ( ! is_int( $rows ) ) {
+			$this->log_db_error( 'update' );
+			return false;
+		}
+		if ( $rows > 0 ) {
+			$this->clear_cache();
+		}
+		return $rows;
+	}
+
+	/**
 	 * Mark reminder as sent
 	 *
 	 * @param int $id Record ID.
