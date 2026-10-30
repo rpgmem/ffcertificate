@@ -225,10 +225,11 @@ class Frontend {
 		}
 
 		if ( $has_form || $has_verification ) {
-			// PDF Libraries - Using centralized version constants.
-			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'html2canvas', 'jspdf' );
-
-			// PDF Generator (shared module).
+			// PDF Generator (shared module). The two PDF bundles are not
+			// enqueued: about 700 KB a visitor who never submits never pays.
+			// ffc-frontend.js asks the generator for them on the first focus
+			// in a form field, and right after the page loads on the
+			// verification page and the magic link (#2241).
 			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-pdf-generator' );
 
 			// ffc-preflight: the boot watchdog this script reports to (#2030).

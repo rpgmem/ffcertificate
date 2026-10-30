@@ -67,6 +67,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Tests: two more order dependencies found by the random-order run are fixed** (#2208). `FrontendTest` inherited the rate-limit settings cache from an earlier test, and a holiday test inherited `$_POST` from its neighbour; both now start from the state they assert on.
 - **Admin: list toggles lose the redundant "Active" label, and recruitment Call wears a person-being-called icon** (#2239). The toggles on Short URLs and Date Messages keep their accessible name; the Call and Call selected buttons use the new `user-call` icon instead of the phone, which stays in the registry.
 - **Certificates: the admin search and the duplicate check read indexes** (#2241). The search tries the ID, auth code, hashes and token first and scans the answers only on an install without encryption when those find nothing. A submission now looks up an earlier one once, not two or three times; with encryption, a ticket is read by its hash only.
+- **Certificates: the PDF libraries load when a page is about to need them** (#2241). jsPDF and html2canvas (about 700 KB) are fetched on the first focus in a form field, and right after the verification page or a magic link loads; a submit that arrives first waits for them. The script handles are unchanged.
 
 ### Deprecated
 
