@@ -1084,6 +1084,10 @@
     line-height: 1.5;
 }
 
+.ffc-shortcode .ffc-override-reason {
+    margin-top: var(--ffc-spacing-lg);
+}
+
 .ffc-shortcode .ffc-override-countdown {
     margin: var(--ffc-spacing-lg) 0 0;
     color: var(--ffc-text-muted);

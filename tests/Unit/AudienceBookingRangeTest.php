@@ -423,4 +423,49 @@ class AudienceBookingRangeTest extends TestCase {
 		);
 		$this->assertSame( array(), AudienceBookingRules::day_times_map( (object) ( array( 'time_mode' => 'daily' ) + (array) $span ) ) );
 	}
+
+	public function test_a_span_freezes_each_day_and_a_daily_range_or_a_single_day_freezes_nothing(): void {
+		$days = array(
+			array( 'date' => '2026-03-16', 'start_time' => '14:00', 'end_time' => '18:00' ),
+			array( 'date' => '2026-03-17', 'start_time' => '08:00:00', 'end_time' => '10:00:00' ),
+		);
+
+		$this->assertSame( '{"2026-03-16":["14:00","18:00"],"2026-03-17":["08:00","10:00"]}', AudienceBookingRules::encode_day_times( $days, 'span' ) );
+		$this->assertNull( AudienceBookingRules::encode_day_times( $days, 'daily' ) );
+		$this->assertNull( AudienceBookingRules::encode_day_times( array( $days[0] ), 'span' ) );
+	}
+
+	public function test_frozen_hours_win_over_the_window_read_today(): void {
+		// Editing the space's working hours after the booking was made must
+		// not move it (#2243): the middle day keeps the hours it was given.
+		$row = (object) array(
+			'environment_id' => 1,
+			'booking_date'   => '2026-03-16',
+			'end_date'       => '2026-03-18',
+			'time_mode'      => 'span',
+			'skipped_dates'  => null,
+			'day_times'      => '{"2026-03-16":["14:00","18:00"],"2026-03-17":["08:00","18:00"],"2026-03-18":["08:00","10:00"]}',
+			'start_time'     => '14:00:00',
+			'end_time'       => '10:00:00',
+		);
+
+		$this->assertSame( array( 'start_time' => '08:00', 'end_time' => '18:00' ), AudienceBookingRules::stored_day_times( $row, '2026-03-17' ) );
+		$this->assertSame( array( 'start_time' => '14:00', 'end_time' => '18:00' ), AudienceBookingRules::stored_day_times( $row, '2026-03-16' ) );
+	}
+
+	public function test_a_malformed_frozen_value_falls_back_to_the_window(): void {
+		$row = (object) array(
+			'environment_id' => 1,
+			'booking_date'   => '2026-03-16',
+			'end_date'       => '2026-03-18',
+			'time_mode'      => 'span',
+			'skipped_dates'  => null,
+			'day_times'      => '{"2026-03-17":"08:00"}',
+			'start_time'     => '14:00:00',
+			'end_time'       => '10:00:00',
+		);
+
+		$this->assertSame( array(), AudienceBookingRules::frozen_day_times( $row ) );
+		$this->assertSame( array( 'start_time' => '00:00', 'end_time' => '23:59' ), AudienceBookingRules::stored_day_times( $row, '2026-03-17' ) );
+	}
 }

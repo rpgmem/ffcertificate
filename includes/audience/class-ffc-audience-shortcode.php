@@ -1068,6 +1068,10 @@ class AudienceShortcode {
 						'createBooking'          => __( 'Create Booking', 'ffcertificate' ),
 						/* translators: %s: the dates of a booking range that another booking already takes. */
 						'collidingDays'          => __( 'Already booked on: %s', 'ffcertificate' ),
+						// The reason an override must give (#2243), asked in the warning.
+						'overrideReason'         => __( 'Reason, sent to the people whose days are cancelled', 'ffcertificate' ),
+						/* translators: 1: fewest characters, 2: most characters. */
+						'overrideReasonHint'     => __( 'Between %1$d and %2$d characters.', 'ffcertificate' ),
 						'newBooking'             => __( 'New Booking', 'ffcertificate' ),
 						'environmentLabel'       => __( 'Environment', 'ffcertificate' ),
 						'allEnvironments'        => __( 'All Environments', 'ffcertificate' ),

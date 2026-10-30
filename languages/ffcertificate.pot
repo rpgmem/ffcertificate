@@ -26111,9 +26111,6 @@ msgstr ""
 msgid "A booking that breaks one of those rules first opens a warning listing every rule it breaks; its \"I agree\" button unlocks after 15 seconds, the server saves nothing without that confirmation, and each confirmed booking is written to the Activity Log. Capacity is never bypassed."
 msgstr ""
 
-#: includes/settings/views/documentation/scheduling-audiences.php
-msgid "A user whose User access row carries Override Conflicts, or a bypass holder, may book over an occupied slot. The earlier booking is then cancelled entirely, on every day it covers even when only one of them clashed, and its owner receives the \"booking cancelled by an administrator\" email with the reason."
-msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "Admin bypass and Override Conflicts"
@@ -26203,9 +26200,6 @@ msgstr ""
 msgid "Outside hours"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-rest-controller.php
-msgid "Overridden by a priority booking: the space is no longer available at this time."
-msgstr ""
 
 #: includes/audience/class-ffc-audience-shortcode.php
 msgid "Past date"
@@ -27401,9 +27395,6 @@ msgstr ""
 msgid "From %1$s on the first day to %2$s on the last day"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-rest-controller.php
-msgid "This time slot is already booked for this environment. Confirming cancels that booking entirely, on every day it covers."
-msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "When the hours run from the first day to the last, the calendar, the booking details, the user dashboard and the emails show the hours each day actually takes, and the calendar file covers every booked day. Cancelling a range cancels every day it covers; the confirmation names them and enables its button after a short countdown."
@@ -29996,4 +29987,22 @@ msgid "Longest range"
 msgstr ""
 
 msgid "The most consecutive days one booking may cover, from 1 to %1$d (default %2$d). The conflict check and the booking both refuse a longer range, naming the limit. Saved with the Save Settings button below."
+msgstr ""
+
+msgid "A user whose User access row carries Override Conflicts, or a bypass holder, may book over an occupied slot, after writing why. The earlier booking loses only the days that clash: its other days stay booked, with their attendance and post-event invitations, and a booking left with no day is cancelled. Its owner receives the \"booking cancelled by an administrator\" email naming the days and the reason, and its participants the usual cancellation notice. The hours of each day of a booking that spans several days are stored when it is made, so editing a space's working hours later does not move bookings already made."
+msgstr ""
+
+msgid "This time slot is already booked for this environment. Confirming cancels that booking on the days that clash; its other days stay booked."
+msgstr ""
+
+msgid "Write why the other booking gives way, between %1$d and %2$d characters. It is sent to the people who lose those days."
+msgstr ""
+
+msgid "%s Only the days listed were cancelled; the rest of the booking stands."
+msgstr ""
+
+msgid "Reason, sent to the people whose days are cancelled"
+msgstr ""
+
+msgid "Between %1$d and %2$d characters."
 msgstr ""

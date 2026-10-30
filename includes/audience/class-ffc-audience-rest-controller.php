@@ -139,6 +139,13 @@ class AudienceRestController {
 						'type'    => 'boolean',
 						'default' => false,
 					),
+					// Why an override takes days from other bookings, sent to
+					// their owners and participants (#2243).
+					'override_reason'  => array(
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_textarea_field',
+					),
 				),
 			)
 		);
@@ -614,6 +621,7 @@ class AudienceRestController {
 		$user_ids_param     = $request->get_param( 'user_ids' );
 		$user_ids           = $user_ids_param ? $user_ids_param : array();
 		$confirm_override   = ! empty( $request->get_param( 'confirm_override' ) );
+		$override_reason    = trim( (string) $request->get_param( 'override_reason' ) );
 		$end_date           = (string) $request->get_param( 'end_date' );
 		$time_mode          = (string) $request->get_param( 'time_mode' );
 		$time_mode          = '' === $time_mode ? 'daily' : $time_mode;
@@ -746,10 +754,10 @@ class AudienceRestController {
 				$refused->data['colliding_dates'] = $colliding_dates;
 				return $refused;
 			}
-			// Overriding cancels the other booking whole, every day of a range,
-			// even when only one of its days clashes: the warning says so.
+			// Overriding takes only the days that clash (#2243): the other
+			// booking keeps its other days, attendance and invitations.
 			$conflict_reason            = AudienceBookingRules::reason( AudienceBookingRules::CONFLICT );
-			$conflict_reason['message'] = __( 'This time slot is already booked for this environment. Confirming cancels that booking entirely, on every day it covers.', 'ffcertificate' );
+			$conflict_reason['message'] = __( 'This time slot is already booked for this environment. Confirming cancels that booking on the days that clash; its other days stay booked.', 'ffcertificate' );
 			$reasons[]                  = $conflict_reason;
 		}
 
@@ -762,6 +770,10 @@ class AudienceRestController {
 					'message'         => __( 'This booking breaks the calendar rules. Confirm to book anyway.', 'ffcertificate' ),
 					'reasons'         => $reasons,
 					'colliding_dates' => $colliding_dates,
+					'reason_required' => empty( $conflicts ) ? null : array(
+						'min' => AudienceBookingRules::OVERRIDE_REASON_MIN,
+						'max' => AudienceBookingRules::OVERRIDE_REASON_MAX,
+					),
 					'conflicts'       => array_map(
 						static function ( $b ) {
 							return array(
@@ -776,6 +788,19 @@ class AudienceRestController {
 				),
 				409
 			);
+		}
+
+		// The people who lose days are told why, in the operator's words (#2243).
+		if ( ! empty( $conflicts ) ) {
+			$reason_length = mb_strlen( $override_reason );
+			if ( $reason_length < AudienceBookingRules::OVERRIDE_REASON_MIN || $reason_length > AudienceBookingRules::OVERRIDE_REASON_MAX ) {
+				return self::refusal(
+					400,
+					/* translators: 1: fewest characters, 2: most characters. */
+					sprintf( __( 'Write why the other booking gives way, between %1$d and %2$d characters. It is sent to the people who lose those days.', 'ffcertificate' ), AudienceBookingRules::OVERRIDE_REASON_MIN, AudienceBookingRules::OVERRIDE_REASON_MAX ),
+					'override_reason_required'
+				);
+			}
 		}
 
 		$booking_data = array(
@@ -793,10 +818,10 @@ class AudienceRestController {
 			'skip_blocked'   => $skip_blocked,
 		);
 
-		// The bookings this one overrides give way to it. The writer cancels
-		// them in the transaction that inserts this one: cancelling them after
-		// the insert left the insert to find them still active and refuse.
-		$override_reason = __( 'Overridden by a priority booking: the space is no longer available at this time.', 'ffcertificate' );
+		// The bookings this one overrides give way to it on the days that
+		// clash. The writer takes those days in the transaction that inserts
+		// this one: doing it after the insert left the insert to find them
+		// still active and refuse.
 		if ( ! empty( $conflicts ) ) {
 			$booking_data['override_ids']  = array_map( static fn( $conflict ): int => (int) $conflict->id, $conflicts );
 			$booking_data['override_note'] = $override_reason;
@@ -811,26 +836,33 @@ class AudienceRestController {
 		do_action( 'ffcertificate_before_audience_booking_create', $booking_data );
 
 		// Create the booking.
-		$booking_id = AudienceBookingWriter::create( $booking_data );
+		$overridden = array();
+		$booking_id = AudienceBookingWriter::create( $booking_data, $overridden );
 
 		if ( ! $booking_id ) {
 			return self::refusal( 500, __( 'Failed to create booking.', 'ffcertificate' ) );
 		}
 
 		$cancelled_ids = array();
-		foreach ( $conflicts as $conflict ) {
-			$cancelled_ids[] = (int) $conflict->id;
+		$trimmed       = array();
+		foreach ( $overridden as $overridden_id => $lost_days ) {
+			if ( empty( $lost_days ) ) {
+				$cancelled_ids[] = (int) $overridden_id;
+			} else {
+				$trimmed[ (int) $overridden_id ] = $lost_days;
+			}
 
 			/**
-			 * Fires when a booking is cancelled because a confirmed
-			 * override took its slot (#1859).
+			 * Fires when a booking gives way to a confirmed override (#1859):
+			 * cancelled whole, or only on the days that clashed (#2243).
 			 *
 			 * @since 6.40.0
-			 * @param int    $cancelled_id The booking that gave way.
-			 * @param int    $booking_id   The booking that took the slot.
-			 * @param string $reason       The cancellation reason.
+			 * @param int      $overridden_id The booking that gave way.
+			 * @param int      $booking_id    The booking that took the slot.
+			 * @param string   $reason        The operator's reason.
+			 * @param string[] $lost_days     The days it lost (Y-m-d); empty when it was cancelled whole.
 			 */
-			do_action( 'ffcertificate_audience_booking_overridden', (int) $conflict->id, (int) $booking_id, $override_reason );
+			do_action( 'ffcertificate_audience_booking_overridden', (int) $overridden_id, (int) $booking_id, $override_reason, $lost_days );
 		}
 
 		if ( ! empty( $reasons ) ) {
@@ -846,6 +878,8 @@ class AudienceRestController {
 					'end_time'           => $end_time,
 					'reasons'            => array_column( $reasons, 'code' ),
 					'cancelled_bookings' => $cancelled_ids,
+					'trimmed_bookings'   => $trimmed,
+					'override_reason'    => $override_reason,
 					'confirmed_at'       => time(),
 				),
 				$user_id

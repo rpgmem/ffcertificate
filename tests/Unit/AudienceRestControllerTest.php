@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceRestController;
+use FreeFormCertificate\Audience\AudienceBookingRules;
 use FreeFormCertificate\Tests\Support\CallLog;
 use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 
@@ -1716,9 +1717,17 @@ class AudienceRestControllerTest extends TestCase {
 			}
 		);
 
-		$result = ( new AudienceRestController() )->create_booking( $this->booking_request( array( 'confirm_override' => true ) ) );
+		$result = ( new AudienceRestController() )->create_booking(
+			$this->booking_request(
+				array(
+					'confirm_override' => true,
+					'override_reason'  => 'The visiting committee needs the room.',
+				)
+			)
+		);
 
 		$this->assertSame( 201, $result->get_status() );
+		$this->assertSame( 'The visiting committee needs the room.', $this->bookings[99]->cancellation_reason, 'The operator\'s reason is what the owner reads.' );
 
 		// The writer cancels the overridden booking inside the transaction that
 		// inserts this one. Cancelling it after create() never happened,
@@ -1755,8 +1764,98 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertCount( 1, $overridden );
 		$this->assertSame( 99, $overridden[0][1] );
 		$this->assertSame( 56, $overridden[0][2] );
+		$this->assertSame( array(), $overridden[0][4], 'A one-day booking that clashes is cancelled whole.' );
 
 		$this->assertCount( 1, ActivityLogBuffer::entries(), 'The confirmed override is logged once.' );
+	}
+
+	public function test_an_override_asks_for_a_reason_and_refuses_one_too_short(): void {
+		// The people who lose days are told why, in the operator's words (#2243).
+		$this->given_an_open_space();
+		$this->permissions = array();
+		$this->permit( 20, 5, array( 'can_override_conflicts' => 1 ) );
+		$this->booking( 99, 10, '2026-04-01', '09:00', '10:00' );
+
+		$asked = ( new AudienceRestController() )->create_booking( $this->booking_request() );
+		$this->assertSame( 409, $asked->get_status() );
+		$this->assertSame(
+			array(
+				'min' => AudienceBookingRules::OVERRIDE_REASON_MIN,
+				'max' => AudienceBookingRules::OVERRIDE_REASON_MAX,
+			),
+			$asked->get_data()['reason_required']
+		);
+
+		$refused = ( new AudienceRestController() )->create_booking(
+			$this->booking_request(
+				array(
+					'confirm_override' => true,
+					'override_reason'  => 'Because',
+				)
+			)
+		);
+		$this->assertSame( 400, $refused->get_status() );
+		$this->assertSame( 'override_reason_required', $refused->get_data()['code'] );
+		$this->assertSame( array(), $this->writes, 'Nothing is written or cancelled.' );
+		$this->assertSame( 'active', $this->bookings[99]->status );
+	}
+
+	public function test_an_override_takes_only_the_clashing_day_of_a_range(): void {
+		// A five-day course overridden on its third day keeps the other four,
+		// with their attendance and invitations (#2243).
+		$this->given_an_open_space();
+		$this->permissions = array();
+		$this->permit( 20, 5, array( 'can_override_conflicts' => 1 ) );
+		$this->booking(
+			99,
+			10,
+			'2026-03-30',
+			'09:00',
+			'10:00',
+			array(
+				'end_date'  => '2026-04-03',
+				'time_mode' => 'daily',
+			)
+		);
+		$this->next_booking_id = 56;
+
+		$actions = array();
+		Functions\when( 'do_action' )->alias(
+			static function ( ...$args ) use ( &$actions ) {
+				$actions[] = $args;
+			}
+		);
+
+		$result = ( new AudienceRestController() )->create_booking(
+			$this->booking_request(
+				array(
+					'confirm_override' => true,
+					'override_reason'  => 'The visiting committee needs the room.',
+				)
+			)
+		);
+
+		$this->assertSame( 201, $result->get_status() );
+		$this->assertSame( 'active', $this->bookings[99]->status, 'The earlier booking stands.' );
+		$this->assertSame( '["2026-04-01"]', $this->bookings[99]->skipped_dates );
+		$this->assertSame(
+			array( '2026-03-30', '2026-03-31', '2026-04-02', '2026-04-03' ),
+			AudienceBookingRules::booked_days( '2026-03-30', '2026-04-03', $this->bookings[99]->skipped_dates )
+		);
+
+		$overridden = array_values(
+			array_filter(
+				$actions,
+				static fn( array $a ): bool => 'ffcertificate_audience_booking_overridden' === $a[0]
+			)
+		);
+		$this->assertCount( 1, $overridden );
+		$this->assertSame( 'The visiting committee needs the room.', $overridden[0][3] );
+		$this->assertSame( array( '2026-04-01' ), $overridden[0][4] );
+
+		$logged = ActivityLogBuffer::contexts()[0]['context'];
+		$this->assertSame( array(), $logged['cancelled_bookings'] );
+		$this->assertSame( array( 99 => array( '2026-04-01' ) ), $logged['trimmed_bookings'] );
 	}
 
 	public function test_a_conflict_without_override_permission_is_refused(): void {

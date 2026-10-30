@@ -691,7 +691,7 @@
      *
      * @param {boolean} [confirmed] Send the override confirmation.
      */
-    function createBooking(confirmed) {
+    function createBooking(confirmed, reason) {
         if (!validateBookingForm()) {
             return;
         }
@@ -699,6 +699,9 @@
         var data = getBookingFormData();
         if (confirmed === true) {
             data.confirm_override = true;
+            if (reason) {
+                data.override_reason = reason;
+            }
         }
 
         var $btn = $('#ffc-booking-submit');
@@ -733,12 +736,21 @@
                             message: ((ffcAudience.strings || {}).collidingDays || 'Already booked on: %s').replace('%s', body.colliding_dates.join(', '))
                         });
                     }
+                    var S = ffcAudience.strings || {};
+                    var asked = body.reason_required;
                     FFC.overrideConfirm({
                         reasons: reasons,
-                        strings: (ffcAudience.strings || {}).override
+                        strings: S.override,
+                        // Days taken from other bookings need the operator's reason (#2243).
+                        reasonField: asked ? {
+                            label: S.overrideReason || 'Reason',
+                            hint: String(S.overrideReasonHint || '').replace('%1$d', asked.min).replace('%2$d', asked.max),
+                            min: asked.min,
+                            max: asked.max
+                        } : null
                     }).then(function(agreed) {
                         if (agreed) {
-                            createBooking(true);
+                            createBooking(true, typeof agreed === 'string' ? agreed : '');
                         } else {
                             restore();
                             $btn.trigger('focus');

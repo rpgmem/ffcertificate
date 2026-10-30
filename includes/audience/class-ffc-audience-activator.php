@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '7';
+	public const SCHEMA_REVISION = '8';
 
 	/**
 	 * Option holding the revision last applied.
@@ -357,6 +357,7 @@ class AudienceActivator {
             end_date date DEFAULT NULL COMMENT 'Last day of a range, NULL for a single day',
             time_mode enum('daily','span') DEFAULT NULL COMMENT 'Hours of a range: daily or span',
             skipped_dates text DEFAULT NULL COMMENT 'JSON list of blocked days a range left out',
+            day_times text DEFAULT NULL COMMENT 'JSON hours of each day of a span, frozen at creation',
             attendance_mode enum('single','total') DEFAULT NULL,
             attendance_min_percent tinyint(3) unsigned DEFAULT NULL,
             post_event_custom tinyint(1) DEFAULT 0,
@@ -913,6 +914,7 @@ class AudienceActivator {
 
 		$healed = self::migrate_audience_tree_access_columns();
 		$healed = self::migrate_booking_range_columns() && $healed;
+		$healed = self::migrate_booking_day_times_column() && $healed;
 		$healed = self::migrate_booking_attendance_columns() && $healed;
 		$healed = self::migrate_post_event_form_columns() && $healed;
 		$healed = self::migrate_holiday_kind_column() && $healed;
@@ -975,6 +977,58 @@ class AudienceActivator {
 		self::add_column_if_missing( $table_name, 'skipped_dates', 'text DEFAULT NULL', 'time_mode' );
 
 		return self::has_columns( $table_name, array( 'end_date', 'time_mode', 'skipped_dates' ) );
+	}
+
+	/**
+	 * Add the frozen hours of a span to bookings (#2243), and freeze them on
+	 * the active spans that do not end in the past.
+	 *
+	 * A span's middle days took the space's opening window read at every
+	 * conflict check, so editing the working hours moved bookings already
+	 * made. The hours each span takes today are written once, which is what
+	 * those readers computed until now; past spans are left as they are,
+	 * since nothing books against them any more. The walk is bounded by the
+	 * active spans still to happen, a handful on any install.
+	 *
+	 * @return bool Whether the table now has the column, or does not exist yet.
+	 */
+	private static function migrate_booking_day_times_column(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_bookings';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing( $table_name, 'day_times', 'text DEFAULT NULL', 'skipped_dates' );
+		if ( ! self::has_columns( $table_name, array( 'day_times' ) ) ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot migration over the plugin's own table; there is no WordPress API for it and the result is used once.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, environment_id, booking_date, end_date, time_mode, skipped_dates, day_times, start_time, end_time FROM %i
+                WHERE status = 'active' AND time_mode = 'span' AND day_times IS NULL AND end_date > booking_date AND end_date >= CURDATE()",
+				$table_name
+			)
+		);
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			if ( ! is_object( $row ) ) {
+				continue;
+			}
+			$days = array();
+			foreach ( AudienceBookingRules::booked_days( (string) ( $row->booking_date ?? '' ), (string) ( $row->end_date ?? '' ), isset( $row->skipped_dates ) ? (string) $row->skipped_dates : null ) as $day ) {
+				$days[] = array( 'date' => $day ) + AudienceBookingRules::stored_day_times( $row, $day );
+			}
+			$frozen = AudienceBookingRules::encode_day_times( $days, 'span' );
+			if ( null !== $frozen ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot migration over the plugin's own table; there is no WordPress API for it.
+				$wpdb->update( $table_name, array( 'day_times' => $frozen ), array( 'id' => (int) ( $row->id ?? 0 ) ), array( '%s' ), array( '%d' ) );
+			}
+		}
+
+		return true;
 	}
 
 	/**
