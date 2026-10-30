@@ -971,7 +971,7 @@ Current inventory (point-in-time snapshot — re-verify a column against the liv
 | --- | --- | --- |
 | `ffc_reregistration_submissions` | P1 (MySQL auto) | `ORDER BY created_at` in repository |
 | `ffc_recruitment_*` (6 tables) | P2 (PHP-managed, `NOT NULL`) | written via `current_time('mysql')` |
-| `ffc_audience_*` (5 tables) | P1 (MySQL auto) | — |
+| `ffc_audience_*` | P1 (MySQL auto) | `ffc_audience_bookings` left this category in #2243: its `created_at` and `cancelled_at` are Category A instants |
 | `ffc_rate_limit_*` (3 tables) | P1 (MySQL auto) | — |
 | `ffc_custom_fields*` (3 tables) | P1 (MySQL auto) | — |
 | `ffc_short_urls` | P2 (PHP-managed, `NOT NULL`) | table name is `ffc_short_urls` (not `ffc_url_shortener`, which is only an option-key/meta-box id prefix) |

@@ -551,7 +551,10 @@ class AudienceBookingRepositoryTest extends TestCase {
 						&& $data['description'] === 'Morning meeting'
 						&& $data['status'] === 'active'
 						&& $data['booking_type'] === 'audience'
-						&& $data['created_by'] === 1;
+						&& $data['created_by'] === 1
+						// An instant in UTC seconds, not the session's CURRENT_TIMESTAMP (#2243).
+						&& is_int($data['created_at'])
+						&& abs($data['created_at'] - time()) <= 5;
 				}),
 				Mockery::type('array')
 			)
@@ -1322,7 +1325,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 			'description' => 'Full update',
 			'status' => 'cancelled',
 			'cancelled_by' => 1,
-			'cancelled_at' => '2026-03-01 10:00:00',
+			'cancelled_at' => 1772359200,
 			'cancellation_reason' => 'No longer needed',
 		]);
 	}
@@ -1352,11 +1355,17 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$bound = null;
 		$this->expect_cancel_update(1, $bound);
 
+		$before = time();
 		$this->assertTrue(AudienceBookingWriter::cancel(5, 'Schedule conflict'));
+		$after = time();
 
 		// One conditional UPDATE: a booking that is no longer active is not touched (#2243).
 		$this->assertStringContainsString("WHERE id = %d AND status = 'active'", $bound[0]);
-		$this->assertSame(array( 'wp_ffc_audience_bookings', 1, '2026-03-01 10:00:00', 'Schedule conflict', 5 ), array_slice($bound, 1));
+		$this->assertStringContainsString('cancelled_at = %d', $bound[0]);
+		// UTC seconds, read on both sides of the clock (#2243).
+		$this->assertGreaterThanOrEqual($before, $bound[3]);
+		$this->assertLessThanOrEqual($after, $bound[3]);
+		$this->assertSame(array( 'wp_ffc_audience_bookings', 1, $bound[3], 'Schedule conflict', 5 ), array_slice($bound, 1));
 	}
 
 	public function test_a_second_cancel_changes_no_row_and_reports_false(): void {

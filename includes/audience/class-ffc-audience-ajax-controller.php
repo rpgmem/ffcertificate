@@ -218,7 +218,8 @@ final class AudienceAjaxController {
 					'status'           => $booking->status,
 					'cancel_reason'    => $booking->cancel_reason ?? '',
 					'created_by'       => $creator_name,
-					'created_at'       => $booking->created_at,
+					// UTC seconds, rendered in the site's zone and format (#2243).
+					'created_at'       => \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $booking->created_at ),
 					'audiences'        => $audiences,
 					'users'            => $users,
 				)

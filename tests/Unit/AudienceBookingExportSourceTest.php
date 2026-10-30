@@ -68,6 +68,10 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		// The instants render through DateFormatter, in UTC and the default format.
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts ) => gmdate( $format, (int) $ts ) );
 
 		$this->source = new AudienceBookingExportSource();
 	}
@@ -185,7 +189,7 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 			'description'         => 'Team sync',
 			'status'              => 'active',
 			'created_by'          => 5,
-			'created_at'          => '2026-05-01 08:00:00',
+			'created_at'          => '1777622400',
 			'cancelled_by'        => 0,
 			'cancelled_at'        => null,
 			'cancellation_reason' => null,
@@ -234,7 +238,8 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 		$this->assertSame( 'Nurses, Doctors', $result[11] );
 		$this->assertSame( '3', $result[12] );
 		$this->assertSame( 'Alice', $result[13] );
-		$this->assertSame( '2026-05-01 08:00:00', $result[14] );
+		// UTC seconds, rendered in the site's zone and format (#2243).
+		$this->assertSame( gmdate( 'd/m/Y H:i', 1777622400 ), $result[14] );
 		$this->assertSame( '', $result[15] );
 		$this->assertSame( '', $result[16] );
 		$this->assertSame( '', $result[17] );

@@ -191,6 +191,8 @@ class AudienceBookingWriter {
 				'description'    => $data['description'],
 				'status'         => $data['status'],
 				'created_by'     => $data['created_by'],
+				// An instant, stored as UTC seconds (#2243).
+				'created_at'     => time(),
 				'end_date'       => $is_range ? $end_date : null,
 				'time_mode'      => $is_range ? $time_mode : null,
 				'skipped_dates'  => ! empty( $plan['skipped'] ) ? wp_json_encode( $plan['skipped'] ) : null,
@@ -198,7 +200,7 @@ class AudienceBookingWriter {
 				// working hours later must not move a booking already made.
 				'day_times'      => $is_range ? AudienceBookingRules::encode_day_times( $plan['days'], $time_mode ) : null,
 			),
-			array( '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s' )
+			array( '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s' )
 		);
 
 		if ( ! $result ) {
@@ -325,7 +327,7 @@ class AudienceBookingWriter {
 				'description'         => '%s',
 				'status'              => '%s',
 				'cancelled_by'        => '%d',
-				'cancelled_at'        => '%s',
+				'cancelled_at'        => '%d',
 				'cancellation_reason' => '%s',
 			);
 
@@ -511,10 +513,10 @@ class AudienceBookingWriter {
 		// and both send the e-mails. The second now changes no row.
 		$wpdb = self::db();
 		$sql  = $wpdb->prepare(
-			"UPDATE %i SET status = 'cancelled', cancelled_by = %d, cancelled_at = %s, cancellation_reason = %s WHERE id = %d AND status = 'active'",
+			"UPDATE %i SET status = 'cancelled', cancelled_by = %d, cancelled_at = %d, cancellation_reason = %s WHERE id = %d AND status = 'active'",
 			self::get_table_name(),
 			get_current_user_id(),
-			current_time( 'mysql' ),
+			time(),
 			$reason,
 			$id
 		);
