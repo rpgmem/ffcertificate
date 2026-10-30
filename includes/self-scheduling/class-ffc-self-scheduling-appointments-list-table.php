@@ -196,6 +196,37 @@ class AppointmentsListTable extends \WP_List_Table {
 			);
 		}
 
+		// Attendance (completed / no-show) is marked on a confirmed appointment
+		// from its date on, and either mark can be undone back to confirmed.
+		$attendance_actions = array();
+		$appointment_date   = (string) ( $item['appointment_date'] ?? '' );
+		if ( $ffc_can_edit_appt && 'confirmed' === $item['status'] && '' !== $appointment_date && $appointment_date <= wp_date( 'Y-m-d' ) ) {
+			$attendance_actions = array(
+				'attended' => __( 'Attended', 'ffcertificate' ),
+				'no_show'  => __( 'No-show', 'ffcertificate' ),
+			);
+		} elseif ( $ffc_can_edit_appt && in_array( $item['status'], \FreeFormCertificate\Repositories\AppointmentWriter::ATTENDANCE_STATUSES, true ) ) {
+			$attendance_actions = array( 'undo_attendance' => __( 'Undo attendance', 'ffcertificate' ) );
+		}
+		foreach ( $attendance_actions as $attendance_action => $attendance_label ) {
+			$attendance_url                = wp_nonce_url(
+				add_query_arg(
+					array(
+						'page'        => $ffc_page_slug,
+						'ffc_action'  => $attendance_action,
+						'appointment' => $item['id'],
+					),
+					admin_url( 'admin.php' )
+				),
+				'ffc_' . $attendance_action . '_appointment_' . $item['id']
+			);
+			$actions[ $attendance_action ] = sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( $attendance_url ),
+				esc_html( $attendance_label )
+			);
+		}
+
 		// View link: uses just appointment=X (no action parameter to avoid admin_action_view dispatch).
 		// The detail view is manage-gated (views/appointments-list.php), so a
 		// read-only viewer is not offered a link it would be refused (#1769).

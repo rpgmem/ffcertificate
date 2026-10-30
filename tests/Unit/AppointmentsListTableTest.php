@@ -548,6 +548,68 @@ class AppointmentsListTableTest extends TestCase {
 		$this->assertStringNotContainsString( 'Confirm', $html );
 	}
 
+	public function test_column_id_confirmed_on_or_after_its_date_offers_both_attendance_marks(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_nonce_url' )->alias( fn( $u, $a = '' ) => $u . '&_n=' . $a );
+		Functions\when( 'wp_date' )->justReturn( '2026-05-10' );
+
+		$table = new AppointmentsListTable();
+		foreach ( array( '2026-05-10', '2026-05-01' ) as $date ) {
+			$html = $table->column_id( array( 'id' => 31, 'status' => 'confirmed', 'appointment_date' => $date, 'confirmation_token' => 'tok' ) );
+
+			$this->assertStringContainsString( '>Attended<', $html, $date );
+			$this->assertStringContainsString( 'ffc_attended_appointment_31', $html, $date );
+			$this->assertStringContainsString( '>No-show<', $html, $date );
+			$this->assertStringContainsString( 'ffc_no_show_appointment_31', $html, $date );
+			$this->assertStringNotContainsString( 'Undo attendance', $html, $date );
+		}
+	}
+
+	public function test_column_id_offers_no_attendance_mark_before_the_date_or_without_one(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_nonce_url' )->alias( fn( $u, $a = '' ) => $u . '&_n=' . $a );
+		Functions\when( 'wp_date' )->justReturn( '2026-05-10' );
+
+		$table = new AppointmentsListTable();
+		foreach ( array( array( 'appointment_date' => '2026-05-11' ), array() ) as $extra ) {
+			$html = $table->column_id( array( 'id' => 31, 'status' => 'confirmed', 'confirmation_token' => 'tok' ) + $extra );
+
+			$this->assertStringNotContainsString( 'ffc_attended_appointment_31', $html );
+			$this->assertStringNotContainsString( 'ffc_no_show_appointment_31', $html );
+			// Cancel stays available on a confirmed appointment.
+			$this->assertStringContainsString( 'ffc_cancel_appointment_31', $html );
+		}
+	}
+
+	public function test_column_id_attendance_mark_offers_only_undo(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_nonce_url' )->alias( fn( $u, $a = '' ) => $u . '&_n=' . $a );
+		Functions\when( 'wp_date' )->justReturn( '2026-05-10' );
+
+		$table = new AppointmentsListTable();
+		foreach ( array( 'completed', 'no_show' ) as $status ) {
+			$html = $table->column_id( array( 'id' => 32, 'status' => $status, 'appointment_date' => '2026-05-01', 'confirmation_token' => 'tok' ) );
+
+			$this->assertStringContainsString( '>Undo attendance<', $html, $status );
+			$this->assertStringContainsString( 'ffc_undo_attendance_appointment_32', $html, $status );
+			$this->assertStringNotContainsString( 'ffc_attended_appointment_32', $html, $status );
+			$this->assertStringNotContainsString( 'ffc_cancel_appointment_32', $html, $status );
+		}
+	}
+
+	public function test_column_id_readonly_viewer_gets_no_attendance_action(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'wp_date' )->justReturn( '2026-05-10' );
+
+		$table = new AppointmentsListTable();
+		foreach ( array( 'confirmed', 'completed' ) as $status ) {
+			$html = $table->column_id( array( 'id' => 33, 'status' => $status, 'appointment_date' => '2026-05-01', 'confirmation_token' => 'tok' ) );
+
+			$this->assertStringNotContainsString( 'Attended', $html, $status );
+			$this->assertStringNotContainsString( 'Undo attendance', $html, $status );
+		}
+	}
+
 	public function test_column_id_waitlist_readonly_offers_no_mutation(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
 

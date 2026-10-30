@@ -1160,6 +1160,49 @@ class AppointmentRepositoryTest extends TestCase {
 		$this->assertArrayHasKey('updated_at', $captured_data);
 	}
 
+	public function test_attendance_marks_write_only_over_a_confirmed_row(): void {
+		$wheres = [];
+		$this->wpdb->shouldReceive('update')
+			->twice()
+			->andReturnUsing(function($table, $data, $where) use (&$wheres) {
+				$wheres[] = [$data['status'], $where];
+				return 0;
+			});
+
+		// 0 rows: the appointment was no longer confirmed.
+		$this->assertSame(0, $this->repo->markCompleted(3));
+		$this->assertSame(0, $this->repo->markNoShow(3));
+		$this->assertSame(
+			[
+				['completed', ['id' => 3, 'status' => 'confirmed']],
+				['no_show', ['id' => 3, 'status' => 'confirmed']],
+			],
+			$wheres
+		);
+	}
+
+	public function test_revert_attendance_writes_confirmed_over_the_status_read(): void {
+		$captured = [];
+		$this->wpdb->shouldReceive('update')
+			->once()
+			->andReturnUsing(function($table, $data, $where) use (&$captured) {
+				$captured = [$data, $where];
+				return 1;
+			});
+
+		$this->assertSame(1, $this->repo->revertAttendance(4, 'completed'));
+		$this->assertSame('confirmed', $captured[0]['status']);
+		$this->assertSame(['id' => 4, 'status' => 'completed'], $captured[1]);
+	}
+
+	public function test_revert_attendance_refuses_a_status_that_is_not_an_attendance_mark(): void {
+		$this->wpdb->shouldNotReceive('update');
+
+		foreach (['cancelled', 'pending', 'confirmed', 'waitlist', ''] as $from) {
+			$this->assertFalse($this->repo->revertAttendance(4, $from), $from);
+		}
+	}
+
 	// ==================================================================
 	// markReminderSent
 	// ==================================================================

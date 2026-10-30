@@ -448,6 +448,17 @@ class AppointmentRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Undo an attendance mark, putting the appointment back to confirmed.
+	 *
+	 * @param int    $id   Record ID.
+	 * @param string $from The attendance status the caller read on the row.
+	 * @return int|false
+	 */
+	public function revertAttendance( int $id, string $from ) {
+		return $this->writer->revertAttendance( $id, $from );
+	}
+
+	/**
 	 * Mark reminder as sent
 	 *
 	 * @param int $id Record ID.

@@ -358,6 +358,123 @@ class AppointmentsListViewTest extends TestCase {
 	}
 
 	// ==================================================================
+	// Attendance marks
+	// ==================================================================
+
+	/**
+	 * Run an attendance action on appointment 5 and return the notice it left.
+	 *
+	 * @param string $action The ffc_action.
+	 * @return array<string, string>
+	 */
+	private function run_attendance( string $action ): array {
+		$_GET['appointment'] = '5';
+		$_GET['ffc_action']  = $action;
+		$referers            = array();
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( $nonce_action ) use ( &$referers ) {
+				$referers[] = $nonce_action;
+				return true;
+			}
+		);
+		Functions\when( 'wp_date' )->justReturn( '2026-05-10' );
+		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+
+		$this->include_view_expecting_stop( 'redirected' );
+
+		$this->assertSame( array( 'ffc_' . $action . '_appointment_5' ), $referers );
+		$this->assertCount( 1, $this->transients );
+		$this->assertSame( 'ffc_admin_notice_1', $this->transients[0][0] );
+		return $this->transients[0][1];
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string, 2: string}>
+	 */
+	public static function attendance_marks(): array {
+		return array(
+			'attended' => array( 'attended', 'completed', 'Appointment marked as attended.' ),
+			'no-show'  => array( 'no_show', 'no_show', 'Appointment marked as no-show.' ),
+		);
+	}
+
+	/**
+	 * @dataProvider attendance_marks
+	 */
+	public function test_attendance_mark_writes_only_over_a_confirmed_row( string $action, string $status, string $message ): void {
+		$this->appointments[5] = array( 'id' => 5, 'status' => 'confirmed', 'appointment_date' => '2026-05-10' );
+
+		$notice = $this->run_attendance( $action );
+
+		$this->assertCount( 1, $this->updates );
+		$this->assertSame( self::APPOINTMENTS_TABLE, $this->updates[0][0] );
+		$this->assertSame( $status, $this->updates[0][1]['status'] );
+		$this->assertSame( array( 'id' => 5, 'status' => 'confirmed' ), $this->updates[0][2] );
+		$this->assertSame( array( 'type' => 'success', 'message' => $message ), $notice );
+		$this->assertSame( array(), $this->actions, 'An attendance mark sends no e-mail and fires no hook.' );
+	}
+
+	/**
+	 * @dataProvider attendance_marks
+	 */
+	public function test_attendance_mark_before_the_date_writes_nothing( string $action ): void {
+		$this->appointments[5] = array( 'id' => 5, 'status' => 'confirmed', 'appointment_date' => '2026-05-11' );
+
+		$notice = $this->run_attendance( $action );
+
+		$this->assertSame( array(), $this->updates );
+		$this->assertSame(
+			array( 'type' => 'error', 'message' => 'Attendance can only be marked from the appointment date on.' ),
+			$notice
+		);
+	}
+
+	public function test_attendance_mark_on_a_missing_appointment_writes_nothing(): void {
+		$notice = $this->run_attendance( 'attended' );
+
+		$this->assertSame( array(), $this->updates );
+		$this->assertSame( array( 'type' => 'error', 'message' => 'Appointment not found.' ), $notice );
+	}
+
+	public function test_attendance_mark_on_a_row_that_moved_meanwhile_reports_an_error(): void {
+		$this->appointments[5] = array( 'id' => 5, 'status' => 'confirmed', 'appointment_date' => '2026-05-01' );
+		// The conditional UPDATE matched no row: another request changed it.
+		$this->update_result = 0;
+
+		$notice = $this->run_attendance( 'no_show' );
+
+		$this->assertCount( 1, $this->updates );
+		$this->assertSame( 'error', $notice['type'] );
+		$this->assertStringContainsString( 'may have changed meanwhile', $notice['message'] );
+	}
+
+	public function test_undo_attendance_puts_the_row_back_to_confirmed(): void {
+		$this->appointments[5] = array( 'id' => 5, 'status' => 'no_show', 'appointment_date' => '2026-05-01' );
+
+		$notice = $this->run_attendance( 'undo_attendance' );
+
+		$this->assertCount( 1, $this->updates );
+		$this->assertSame( 'confirmed', $this->updates[0][1]['status'] );
+		$this->assertSame( array( 'id' => 5, 'status' => 'no_show' ), $this->updates[0][2] );
+		$this->assertSame(
+			array( 'type' => 'success', 'message' => 'Attendance mark undone. The appointment is confirmed again.' ),
+			$notice
+		);
+	}
+
+	public function test_undo_attendance_refuses_a_row_without_an_attendance_mark(): void {
+		foreach ( array( 'cancelled', 'pending', 'confirmed' ) as $status ) {
+			$this->appointments[5] = array( 'id' => 5, 'status' => $status, 'appointment_date' => '2026-05-01' );
+			$this->transients      = array();
+
+			$notice = $this->run_attendance( 'undo_attendance' );
+
+			$this->assertSame( array(), $this->updates, $status );
+			$this->assertSame( 'error', $notice['type'], $status );
+		}
+	}
+
+	// ==================================================================
 	// Detail view
 	// ==================================================================
 

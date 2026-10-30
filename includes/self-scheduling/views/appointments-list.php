@@ -23,7 +23,7 @@ $ffcertificate_appointments_url = add_query_arg( array( 'page' => 'ffc-appointme
 
 // Determine if viewing a specific appointment:
 // - appointment=X alone → view.
-// - appointment=X + ffc_action=confirm|cancel → mutation.
+// - appointment=X + ffc_action=confirm|cancel|attended|no_show|undo_attendance → mutation.
 $ffc_self_scheduling_appointment_id = \FreeFormCertificate\Core\RequestInput::get_get_int( 'appointment' );
 $ffcertificate_action               = \FreeFormCertificate\Core\RequestInput::get_get_string( 'ffc_action' );
 
@@ -37,7 +37,7 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 
 	$ffcertificate_repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
 
-	// Handle mutations (confirm/cancel) — these redirect and exit.
+	// Handle mutations (confirm/cancel/attendance) — these redirect and exit.
 	if ( 'confirm' === $ffcertificate_action ) {
 		check_admin_referer( 'ffc_confirm_appointment_' . $ffc_self_scheduling_appointment_id );
 		$ffcertificate_result = $ffcertificate_repo->confirm( $ffc_self_scheduling_appointment_id, get_current_user_id() );
@@ -109,6 +109,46 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 			);
 		}
 
+		wp_safe_redirect( $ffcertificate_appointments_url );
+		exit;
+
+	} elseif ( in_array( $ffcertificate_action, array( 'attended', 'no_show', 'undo_attendance' ), true ) ) {
+		check_admin_referer( 'ffc_' . $ffcertificate_action . '_appointment_' . $ffc_self_scheduling_appointment_id );
+		$ffcertificate_appointment = $ffcertificate_repo->findById( $ffc_self_scheduling_appointment_id );
+		$ffcertificate_status      = is_array( $ffcertificate_appointment ) ? (string) ( $ffcertificate_appointment['status'] ?? '' ) : '';
+		$ffcertificate_notice      = array(
+			'type'    => 'error',
+			'message' => __( 'Failed to update the appointment status. It may have changed meanwhile; reload the list.', 'ffcertificate' ),
+		);
+
+		if ( 'undo_attendance' === $ffcertificate_action ) {
+			if ( $ffcertificate_repo->revertAttendance( $ffc_self_scheduling_appointment_id, $ffcertificate_status ) ) {
+				$ffcertificate_notice = array(
+					'type'    => 'success',
+					'message' => __( 'Attendance mark undone. The appointment is confirmed again.', 'ffcertificate' ),
+				);
+			}
+		} elseif ( ! is_array( $ffcertificate_appointment ) ) {
+			$ffcertificate_notice['message'] = __( 'Appointment not found.', 'ffcertificate' );
+		} elseif ( '' === (string) ( $ffcertificate_appointment['appointment_date'] ?? '' ) || (string) $ffcertificate_appointment['appointment_date'] > wp_date( 'Y-m-d' ) ) {
+			// Attendance is a fact about a day that has come; the date is
+			// wall-clock, so it is compared with today in the site timezone.
+			$ffcertificate_notice['message'] = __( 'Attendance can only be marked from the appointment date on.', 'ffcertificate' );
+		} else {
+			$ffcertificate_result = 'attended' === $ffcertificate_action
+				? $ffcertificate_repo->markCompleted( $ffc_self_scheduling_appointment_id )
+				: $ffcertificate_repo->markNoShow( $ffc_self_scheduling_appointment_id );
+			if ( $ffcertificate_result ) {
+				$ffcertificate_notice = array(
+					'type'    => 'success',
+					'message' => 'attended' === $ffcertificate_action
+						? __( 'Appointment marked as attended.', 'ffcertificate' )
+						: __( 'Appointment marked as no-show.', 'ffcertificate' ),
+				);
+			}
+		}
+
+		set_transient( 'ffc_admin_notice_' . get_current_user_id(), $ffcertificate_notice, 30 );
 		wp_safe_redirect( $ffcertificate_appointments_url );
 		exit;
 

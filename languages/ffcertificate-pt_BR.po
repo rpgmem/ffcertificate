@@ -30282,3 +30282,39 @@ msgstr "Editar, ao lado de Cancelar na lista do dia, abre o diálogo de reserva 
 
 msgid "Save changes"
 msgstr "Salvar alterações"
+
+#: includes/self-scheduling/views/appointments-list.php:145
+msgid "Appointment marked as attended."
+msgstr "Agendamento marcado como compareceu."
+
+#: includes/self-scheduling/views/appointments-list.php:146
+msgid "Appointment marked as no-show."
+msgstr "Agendamento marcado como não compareceu."
+
+#: includes/self-scheduling/views/appointments-list.php:136
+msgid "Attendance can only be marked from the appointment date on."
+msgstr "O comparecimento só pode ser marcado a partir da data do agendamento."
+
+#: includes/self-scheduling/views/appointments-list.php:128
+msgid "Attendance mark undone. The appointment is confirmed again."
+msgstr "Marcação de comparecimento desfeita. O agendamento voltou a ficar confirmado."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:205
+msgid "Attended"
+msgstr "Compareceu"
+
+#: includes/self-scheduling/views/appointments-list.php:121
+msgid "Failed to update the appointment status. It may have changed meanwhile; reload the list."
+msgstr "Não foi possível atualizar o status do agendamento. Ele pode ter mudado nesse meio-tempo; recarregue a lista."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:206
+msgid "No-show"
+msgstr "Não compareceu"
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:60
+msgid "On the Appointments list, a confirmed appointment whose date has come offers Attended and No-show; either mark is replaced by Undo attendance, which puts the appointment back to confirmed. Marking attendance needs ffc_manage_appointments and sends no e-mail."
+msgstr "Na lista de Agendamentos, um agendamento confirmado cuja data já chegou oferece Compareceu e Não compareceu; qualquer das duas marcações dá lugar a Desfazer comparecimento, que devolve o agendamento a confirmado. Marcar comparecimento exige ffc_manage_appointments e não envia e-mail."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:209
+msgid "Undo attendance"
+msgstr "Desfazer comparecimento"
