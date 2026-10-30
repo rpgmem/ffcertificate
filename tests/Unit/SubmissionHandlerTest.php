@@ -96,6 +96,9 @@ class SubmissionHandlerTest extends TestCase {
 		// entry point, which feeds `ffc_user_profiles` and so invalidates that
 		// repository's cache group (#1313 PR 7).
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		Functions\when( 'wp_cache_add_global_groups' )->justReturn( null );
 		Functions\when( 'current_time' )->justReturn( '2026-02-17 12:00:00' );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );

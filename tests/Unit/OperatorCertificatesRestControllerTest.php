@@ -161,6 +161,9 @@ class OperatorCertificatesRestControllerTest extends TestCase {
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		// Guarded by function_exists() in the handler: stubbed so the branch is
 		// chosen here, never inherited from an earlier test.
 		Functions\when( 'wp_schedule_single_event' )->alias(

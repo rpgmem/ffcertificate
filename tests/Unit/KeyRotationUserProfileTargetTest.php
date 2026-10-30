@@ -147,6 +147,9 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'is_wp_error' )->alias( static fn( $t ) => $t instanceof \WP_Error );

@@ -37,6 +37,9 @@ class BlockedDateRepositoryTest extends TestCase {
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		Functions\when( 'current_time' )->justReturn( '2030-01-01 00:00:00' );
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 		Functions\when( 'wp_json_encode' )->alias( fn ( $v ) => json_encode( $v ) );

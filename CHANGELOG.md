@@ -112,6 +112,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificates: a trashed certificate is revoked** (#2241). Verification, its QR code, the magic link and REST say when it was revoked, with no data or PDF, and the same CPF/RF cannot issue another; restoring lifts it. REST keeps the `certificate_deleted` code and adds `revoked_at`.
 - **Certificates: an issued certificate no longer prints a literal `{{tag}}`** (#2241). A field the submission lacks prints blank and an unknown tag stays visible; a field's tag locks once the form has submissions, and the layout editor says how many issued certificates a change reaches.
 - **Certificates: a form shows the right message before it opens, after it closes and outside its hours** (#2241). One message served all three, so "Opens on…" still showed after the form closed. Each moment now has its own; an empty one shows that moment's default, and each form's message is copied into all three once.
+- **A repository write no longer flushes the whole object cache** (#2241). An insert, a bulk status change or delete, a profile save or a QR-code cache write emptied every plugin's cache and, on a multisite with a persistent cache, every site's; it now flushes only the repository's group, with the full flush kept for a cache that cannot flush one.
 
 ### Security
 

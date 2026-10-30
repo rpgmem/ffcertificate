@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Repositories\AbstractRepository;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 class ConcreteTestRepository extends AbstractRepository {
 
@@ -80,6 +81,10 @@ class AbstractRepositoryTest extends TestCase {
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() without a key reaches both (#2241); every test that
+		// writes through the repository chooses the branch here.
+		Functions\when( 'wp_cache_supports' )->justReturn( true );
+		Functions\when( 'wp_cache_flush_group' )->justReturn( true );
 
 		$this->repo = new ConcreteTestRepository();
 	}
@@ -269,6 +274,35 @@ class AbstractRepositoryTest extends TestCase {
 
 		$result = $this->repo->insert( array( 'name' => 'test' ) );
 		$this->assertFalse( $result );
+	}
+
+	public function test_insert_flushes_only_its_own_cache_group(): void {
+		$this->wpdb->shouldReceive( 'insert' )->once()->andReturn( 1 );
+		$groups = array();
+		Functions\when( 'wp_cache_flush_group' )->alias(
+			static function ( string $group ) use ( &$groups ): bool {
+				$groups[] = $group;
+				return true;
+			}
+		);
+		$flush = CallLog::record( 'wp_cache_flush', true );
+
+		$this->repo->insert( array( 'name' => 'test' ) );
+
+		$this->assertSame( array( 'ffc_test' ), $groups, 'Only the repository\'s own group is flushed.' );
+		$this->assertSame( 0, $flush->count(), 'The whole object cache is never flushed when the backend can flush a group.' );
+	}
+
+	public function test_insert_falls_back_to_full_flush_without_group_support(): void {
+		$this->wpdb->shouldReceive( 'insert' )->once()->andReturn( 1 );
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
+		$group = CallLog::record( 'wp_cache_flush_group', true );
+		$flush = CallLog::record( 'wp_cache_flush', true );
+
+		$this->repo->insert( array( 'name' => 'test' ) );
+
+		$this->assertSame( 0, $group->count(), 'A backend without group flushing is never asked to flush one.' );
+		$this->assertSame( 1, $flush->count(), 'The full flush stays as the fallback.' );
 	}
 
 	public function test_update_returns_rows_affected(): void {

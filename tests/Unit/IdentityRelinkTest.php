@@ -792,6 +792,9 @@ class IdentityRelinkTest extends TestCase {
 			}
 		);
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		$this->absent = array( 'wp_ffc_user_profiles' );
 
 		$relink  = new IdentityRelink();

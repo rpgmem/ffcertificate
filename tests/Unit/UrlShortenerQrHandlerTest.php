@@ -100,6 +100,9 @@ class UrlShortenerQrHandlerTest extends TestCase {
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		// UrlShortenerWriter clears the whole group after a qr_cache write.
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		Functions\when( 'wp_json_encode' )->alias(
 			static function ( $data ) {
 				return json_encode( $data );
