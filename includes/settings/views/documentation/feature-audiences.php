@@ -70,5 +70,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Data Storage:', 'ffcertificate' ); ?></h4>
 		<p><?php esc_html_e( 'Field definitions are stored in the ffc_custom_fields table. User data is stored as JSON in wp_usermeta under the key ffc_custom_fields_data; fields mapped to a profile key (such as CPF, RF, RG or birth date) are also written, encrypted, to the plugin user profile.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'A field cannot be mapped to the account e-mail, or to anything else WordPress keeps in its users table, nor to the plugin\'s own preferences: the editor refuses such a mapping, so a form can never change how someone signs in.', 'ffcertificate' ); ?></p>
 	</div>
 </div>

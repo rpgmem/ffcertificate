@@ -100,6 +100,14 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 */
 	private ?string $moved_to = null;
 
+	/**
+	 * Accounts that hold a staff capability (#2242): an administrator here,
+	 * by id. Everyone else holds none.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $staff = array();
+
 	/** @var list<mixed> Statuses the last conditional submission write allowed. */
 	private array $written_statuses = array();
 
@@ -154,6 +162,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
 
+		// Whether an account is staff is a capability read (#2242).
+		$this->staff = array();
+		Functions\when( 'user_can' )->alias( fn( $user_id, $cap ) => ( $this->staff[ (int) $user_id ] ?? null ) === $cap );
 		Functions\when( 'wp_generate_uuid4' )->justReturn( 'job-uuid-0001' );
 		Functions\when( 'wp_json_encode' )->alias(
 			static fn( $v ) => json_encode( $v ) // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- the stub IS the alternative.
@@ -980,6 +991,61 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertSame( 1, $result['failed'] );
 		$this->assertSame( 'rereg_import_duplicate_identity:2', $result['failures'][0]['error'], 'The error names the line that claimed the user first.' );
 		$this->assertSame( 3, $result['failures'][0]['line'] );
+	}
+
+	/**
+	 * An import never rewrites a staff account (#2242): it would overwrite the
+	 * name and identifiers of an administrator, and a takeover needs no more.
+	 *
+	 * @dataProvider staff_capability_provider
+	 */
+	public function test_a_row_resolving_to_a_staff_account_fails( string $capability ): void {
+		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
+		$this->with_validation( array( '111' => 42 ), array( 42 => null ) );
+		$this->staff = array( 42 => $capability );
+
+		$result = $this->run_validate( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
+
+		$this->assertFalse( $result['ok'] );
+		$this->assertSame( 1, $result['failed'] );
+		$this->assertSame( 'rereg_import_staff_account', $result['failures'][0]['error'] );
+	}
+
+	/** @return array<string, array{string}> */
+	public static function staff_capability_provider(): array {
+		return array(
+			'a WordPress administrator'  => array( 'manage_options' ),
+			'a reregistration PII tier'  => array( 'ffc_view_reregistration_pii' ),
+			'another module\'s PII tier' => array( 'ffc_view_certificates_pii' ),
+		);
+	}
+
+	public function test_an_account_with_other_capabilities_is_not_staff(): void {
+		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
+		$this->with_validation( array( '111' => 42 ), array( 42 => null ) );
+		$this->staff = array( 42 => 'ffc_view_reregistration' );
+
+		$result = $this->run_validate( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
+
+		$this->assertSame( 1, $result['ready'], 'A Viewer or Operator holds no PII cap and is an ordinary member here.' );
+	}
+
+	/**
+	 * The account became staff between validation and promotion: the row is
+	 * marked failed and nothing is written to it -- no membership, no
+	 * submission, no profile.
+	 */
+	public function test_promotion_refuses_an_account_that_became_staff(): void {
+		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
+		$this->staff = array( 42 => 'manage_options' );
+
+		$result = $this->run_promote( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
+
+		$this->assertTrue( $result['ok'], 'A refused row does not abort the batch.' );
+		$this->assertSame( array(), $this->submission_writes() );
+		$this->assertSame( 'failed', $this->row_update()['row_status'] );
+		$this->assertSame( 'rereg_import_staff_account', $this->row_update()['error'] );
+		$this->assertSame( array(), array_filter( $this->inserts, static fn( array $i ) => str_contains( $i['table'], 'audience_members' ) ), 'The account is not added to the audience.' );
 	}
 
 	/**

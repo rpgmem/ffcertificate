@@ -479,6 +479,35 @@ class CapabilityManager {
 	}
 
 	/**
+	 * Whether an account is staff that a bulk operation must never rewrite
+	 * (#2242).
+	 *
+	 * A WordPress administrator, or anyone holding a `_pii` capability. The
+	 * second covers FFC Administrator and every module's Administrator and
+	 * Manager tier, because those are the tiers the PII caps sit on, so a new
+	 * module's roles are covered the day they ship. A reregistration import
+	 * resolving to one of these accounts would otherwise overwrite its name
+	 * and identifiers, and a takeover needs nothing more than that.
+	 *
+	 * @param int $user_id WordPress user ID.
+	 * @return bool
+	 */
+	public static function is_staff_account( int $user_id ): bool {
+		if ( $user_id <= 0 ) {
+			return false;
+		}
+		if ( user_can( $user_id, 'manage_options' ) ) {
+			return true;
+		}
+		foreach ( self::get_all_capabilities() as $cap ) {
+			if ( str_ends_with( $cap, '_pii' ) && user_can( $user_id, $cap ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Grant capabilities based on context
 	 *
 	 * @since 4.4.0

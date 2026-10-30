@@ -493,6 +493,18 @@ final class AudienceAjaxController {
 					}
 				}
 
+				// A field bound to the login e-mail, or to any key stored in
+				// wp_users, let a participant change it from a form (#2242).
+				if ( isset( $data['field_profile_key'] ) && ! \FreeFormCertificate\UserDashboard\UserProfileFieldMap::is_bindable( (string) $data['field_profile_key'] ) ) {
+					$errors[] = sprintf(
+						/* translators: 1: field label, 2: profile key */
+						__( 'Field "%1$s" cannot write to the profile key "%2$s": the account e-mail and the plugin\'s own settings are not filled from forms.', 'ffcertificate' ),
+						$label,
+						(string) $data['field_profile_key']
+					);
+					continue;
+				}
+
 				if ( $is_new ) {
 					// New fields are always marked as custom; standard fields.
 					// are only ever created via the seeder.

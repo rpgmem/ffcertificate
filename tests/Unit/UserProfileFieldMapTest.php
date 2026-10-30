@@ -176,4 +176,28 @@ class UserProfileFieldMapTest extends TestCase {
 			$this->assertContains( $k, $keys, "Missing canonical field: {$k}" );
 		}
 	}
+
+	/**
+	 * A custom field may never write to the login e-mail, any other key stored
+	 * in wp_users, or the plugin's own preferences (#2242).
+	 */
+	public function test_is_bindable_refuses_wp_users_keys_and_preferences(): void {
+		$this->assertFalse( UserProfileFieldMap::is_bindable( 'user_email' ), 'The login e-mail is never filled from a form.' );
+		$this->assertFalse( UserProfileFieldMap::is_bindable( 'preferences' ) );
+		$this->assertFalse( UserProfileFieldMap::is_bindable( '' ) );
+
+		foreach ( UserProfileFieldMap::field_keys() as $key ) {
+			$spec = UserProfileFieldMap::get( $key );
+			if ( UserProfileFieldMap::STORAGE_WP_USER === $spec['storage'] ) {
+				$this->assertFalse( UserProfileFieldMap::is_bindable( $key ), "{$key} lives in wp_users." );
+			}
+		}
+	}
+
+	public function test_is_bindable_keeps_the_profile_keys_the_standard_fields_use(): void {
+		foreach ( array( 'display_name', 'phone', 'cpf', 'rf', 'rg', 'jornada', 'birth_date' ) as $key ) {
+			$this->assertTrue( UserProfileFieldMap::is_bindable( $key ), "{$key} is a seeded binding." );
+		}
+		$this->assertTrue( UserProfileFieldMap::is_bindable( 'divisao_setor' ), 'A key the map does not know is stored as its own ffc_user_ meta.' );
+	}
 }
