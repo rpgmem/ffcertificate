@@ -10,6 +10,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceAccountEmail;
+use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Audience\AudienceAjaxController;
 use FreeFormCertificate\Tests\Support\CallLog;
 
@@ -554,7 +555,13 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Booking not found', $this->responses[0]['data']['message'] );
 	}
 
-	public function test_get_booking_maps_full_payload(): void {
+	/**
+	 * @dataProvider reveal_tiers
+	 */
+	public function test_get_booking_maps_full_payload( bool $can_reveal ): void {
+		$this->stubAccountEmail( $can_reveal );
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
 		$_POST                      = array( 'nonce' => 'n', 'booking_id' => '4' );
 		$this->bookings             = array( 4 => $this->booking( array( 'id' => 4, 'is_all_day' => 1 ) ) );
 		$this->booking_audiences[4] = array( array( 'id' => 2, 'name' => 'Aud2' ) );
@@ -578,7 +585,25 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertSame( 1, $data['is_all_day'] );
 		$this->assertSame( array( array( 'id' => 2, 'name' => 'Aud2' ) ), $data['audiences'] );
 		$this->assertSame( 7, $data['users'][0]['id'] );
-		$this->assertSame( 'm@e.com', $data['users'][0]['email'] );
+		// The address never travels in clear to someone who is not its owner (#2243).
+		$this->assertSame( DocumentFormatter::mask_email( 'm@e.com' ), $data['users'][0]['email'] );
+		$this->assertStringNotContainsString( 'm@e.com', $data['users'][0]['email_html'] );
+		$this->assertSame( $can_reveal, str_contains( $data['users'][0]['email_html'], 'ffc-reveal-pii' ), 'The Reveal button follows the policy.' );
+	}
+
+	public function test_get_booking_shows_the_viewer_their_own_address(): void {
+		$this->stubAccountEmail( false );
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		$_POST                  = array( 'nonce' => 'n', 'booking_id' => '4' );
+		$this->bookings         = array( 4 => $this->booking( array( 'id' => 4 ) ) );
+		$this->booking_users[4] = array( '7' );
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 7, 'display_name' => 'Member', 'user_email' => 'm@e.com' ) );
+
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_get_booking() );
+
+		$this->assertSame( 'm@e.com', $this->responses[0]['data']['users'][0]['email'] );
 	}
 
 	public function test_get_booking_unknown_creator_and_empty_relations(): void {
@@ -608,22 +633,30 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertSame( array(), $this->responses[0]['data'] );
 	}
 
-	public function test_search_users_maps_results(): void {
+	/**
+	 * @dataProvider reveal_tiers
+	 */
+	public function test_search_users_masks_the_address_and_searches_it_only_for_who_may_reveal( bool $can_reveal ): void {
+		$this->stubAccountEmail( $can_reveal );
 		$_POST = array( 'nonce' => 'n', 'query' => 'john' );
 
-		Functions\when( 'get_users' )->justReturn(
-			array(
-				(object) array( 'ID' => 3, 'display_name' => 'John', 'user_email' => 'j@e.com' ),
-			)
+		$args = array();
+		Functions\when( 'get_users' )->alias(
+			static function ( $query ) use ( &$args ) {
+				$args = $query;
+				return array( (object) array( 'ID' => 3, 'display_name' => 'John', 'user_email' => 'j@e.com' ) );
+			}
 		);
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_search_users() );
 
 		$this->assertTrue( $this->responses[0]['ok'] );
 		$this->assertSame(
-			array( array( 'id' => 3, 'name' => 'John', 'email' => 'j@e.com' ) ),
+			array( array( 'id' => 3, 'name' => 'John', 'email' => DocumentFormatter::mask_email( 'j@e.com' ) ) ),
 			$this->responses[0]['data']
 		);
+		$this->assertSame( $can_reveal, in_array( 'user_email', $args['search_columns'], true ), 'Searching by address would confirm who holds it.' );
+		$this->assertContains( 'display_name', $args['search_columns'] );
 	}
 
 	// ── get_environments ───────────────────────────────────────────────

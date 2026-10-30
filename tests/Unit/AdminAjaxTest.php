@@ -232,6 +232,9 @@ class AdminAjaxTest extends TestCase {
 				if ( 1 === preg_match( '/^SELECT COUNT\(\*\) FROM wp_ffc_audience_schedule_permissions WHERE user_id = \d+$/', $sql ) ) {
 					return '0';
 				}
+				if ( 1 === preg_match( '/^SELECT 1 FROM wp_ffc_audience_booking_users WHERE user_id = \d+ LIMIT 1$/', $sql ) ) {
+					return null;
+				}
 				if ( 1 === preg_match( '/^SELECT user_id FROM wp_ffc_submissions WHERE (cpf_hash|rf_hash) = (\S+) AND user_id IS NOT NULL LIMIT 1$/', $sql, $m ) ) {
 					return $this->identifier_owners[ $m[1] . '=' . $m[2] ] ?? null;
 				}

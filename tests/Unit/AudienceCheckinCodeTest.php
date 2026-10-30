@@ -149,7 +149,7 @@ class AudienceCheckinCodeTest extends TestCase {
 		$this->assertSame( intdiv( self::T0, 120 ), AudienceCheckinCode::slot( 120, self::T0 ) );
 	}
 
-	public function test_a_receipt_round_trips_and_lasts_ten_minutes(): void {
+	public function test_a_receipt_round_trips_and_verify_stops_at_the_longest_rotation(): void {
 		$receipt = AudienceCheckinReceipt::issue( 123, '2027-01-15', 7, self::T0 );
 
 		$expected = array(
@@ -159,8 +159,19 @@ class AudienceCheckinCodeTest extends TestCase {
 			'issued_at'  => self::T0,
 		);
 		$this->assertSame( $expected, AudienceCheckinReceipt::verify( $receipt, self::T0 ) );
-		$this->assertSame( $expected, AudienceCheckinReceipt::verify( $receipt, self::T0 + 600 ), 'Valid for the whole TTL, enough to log in.' );
-		$this->assertNull( AudienceCheckinReceipt::verify( $receipt, self::T0 + 601 ) );
+		$this->assertSame( $expected, AudienceCheckinReceipt::verify( $receipt, self::T0 + 1200 ), 'Two of the longest rotation.' );
+		$this->assertNull( AudienceCheckinReceipt::verify( $receipt, self::T0 + 1201 ) );
+	}
+
+	public function test_a_receipt_lives_two_of_its_window_rotations(): void {
+		$this->assertSame( 120, AudienceCheckinReceipt::ttl( 60 ) );
+		$this->assertSame( 600, AudienceCheckinReceipt::ttl( 300 ) );
+		$this->assertSame( 120, AudienceCheckinReceipt::ttl( 45 ), 'An unknown rotation reads as the default.' );
+
+		$this->assertTrue( AudienceCheckinReceipt::is_fresh( self::T0, 60, self::T0 + 120 ) );
+		$this->assertFalse( AudienceCheckinReceipt::is_fresh( self::T0, 60, self::T0 + 121 ) );
+		$this->assertTrue( AudienceCheckinReceipt::is_fresh( self::T0, 600, self::T0 + 1200 ) );
+		$this->assertFalse( AudienceCheckinReceipt::is_fresh( self::T0, 600, self::T0 + 1201 ) );
 	}
 
 	public function test_a_receipt_from_the_future_is_refused_beyond_the_skew(): void {

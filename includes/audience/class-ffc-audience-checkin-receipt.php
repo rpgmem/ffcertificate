@@ -21,9 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * A code lives one or two rotations; a participant who has to log in takes
  * longer than that. So a valid scan is exchanged at once for a receipt that
- * names the booking, the day and the window and is valid for
- * {@see self::TTL} seconds; the receipt is what crosses the login, and the
- * confirmation is checked against it. A photo of an old code stays useless,
+ * names the booking, the day and the window and is valid for two of that
+ * window's rotations ({@see self::ttl()}, #2243); the receipt is what crosses
+ * the login, and the confirmation is checked against it. A photo of an old code stays useless,
  * because only a scan of a live code earns a receipt.
  *
  * Shape: `<booking>.<Ymd>.<window>.<issued_at>.<signature>`, with its own HMAC
@@ -34,11 +34,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class AudienceCheckinReceipt {
 
 	/**
-	 * Seconds a receipt stays valid.
+	 * Rotations a receipt stays valid for (#2243).
 	 *
 	 * @var int
 	 */
-	public const TTL = 600;
+	public const TTL_ROTATIONS = 2;
 
 	/**
 	 * Clock skew tolerated on a receipt's issue time.
@@ -77,7 +77,13 @@ class AudienceCheckinReceipt {
 	}
 
 	/**
-	 * Read a receipt back, if it is genuine and still valid.
+	 * Read a receipt back, if it is genuine and young enough for the longest
+	 * rotation.
+	 *
+	 * Whether it is still valid for its own window depends on that window's
+	 * rotation, which the caller reads from the window the receipt names:
+	 * {@see self::is_fresh()}. A receipt older than any rotation allows is
+	 * refused here, before anything is looked up.
 	 *
 	 * @param string $receipt Receipt.
 	 * @param int    $now     Unix time.
@@ -94,7 +100,7 @@ class AudienceCheckinReceipt {
 		}
 
 		$issued_at = (int) $m[6];
-		if ( $issued_at > $now + self::SKEW || $now - $issued_at > self::TTL ) {
+		if ( $issued_at > $now + self::SKEW || ! self::is_fresh( $issued_at, max( AudienceCheckinCode::ROTATIONS ), $now ) ) {
 			return null;
 		}
 
@@ -108,6 +114,28 @@ class AudienceCheckinReceipt {
 			'window_id'  => (int) $m[5],
 			'issued_at'  => $issued_at,
 		);
+	}
+
+	/**
+	 * Seconds a receipt stays valid for a window: two of its rotations.
+	 *
+	 * @param int $rotation The window's seconds between codes.
+	 * @return int
+	 */
+	public static function ttl( int $rotation ): int {
+		return self::TTL_ROTATIONS * AudienceCheckinCode::normalize_rotation( $rotation );
+	}
+
+	/**
+	 * Whether a receipt issued at a moment is still valid for a window.
+	 *
+	 * @param int $issued_at The receipt's issue time.
+	 * @param int $rotation  The window's seconds between codes.
+	 * @param int $now       Unix time.
+	 * @return bool
+	 */
+	public static function is_fresh( int $issued_at, int $rotation, int $now ): bool {
+		return $now - $issued_at <= self::ttl( $rotation );
 	}
 
 	/**

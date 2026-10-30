@@ -633,6 +633,30 @@ class AudienceBookingReader {
 	}
 
 	/**
+	 * Whether an account is a custom user of any booking, whatever its status.
+	 *
+	 * The booking details list those people, so the account-email reveal
+	 * serves them too (#2243).
+	 *
+	 * @param int $user_id User ID.
+	 * @return bool
+	 */
+	public static function is_participant_of_any( int $user_id ): bool {
+		$wpdb  = self::db();
+		$table = self::get_booking_users_table_name();
+
+		$found = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT 1 FROM %i WHERE user_id = %d LIMIT 1',
+				$table,
+				$user_id
+			)
+		);
+
+		return null !== $found;
+	}
+
+	/**
 	 * Get all affected users for a booking (from audiences + individual users)
 	 *
 	 * @param int $booking_id Booking ID.

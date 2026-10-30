@@ -322,6 +322,17 @@ class AudienceCheckinTest extends TestCase {
 		$this->assertSame( array(), $this->ran, 'An expired receipt reaches no store, the window lookup included.' );
 	}
 
+	public function test_a_receipt_lives_two_of_its_window_rotations(): void {
+		$this->window_is_open( $this->window() );
+
+		$this->assertIsArray( AudienceCheckin::context( $this->receipt(), self::USER, self::T0 + 120 ), 'Two rotations of 60 s.' );
+		$this->assertSame( AudienceCheckin::ERROR_EXPIRED_RECEIPT, AudienceCheckin::context( $this->receipt(), self::USER, self::T0 + 121 )->get_error_code() );
+
+		$this->window_is_open( $this->window( array( 'rotation_seconds' => 600 ) ) );
+
+		$this->assertIsArray( AudienceCheckin::context( $this->receipt(), self::USER, self::T0 + 1200 ), 'Two rotations of 10 minutes.' );
+	}
+
 	public function test_a_receipt_of_a_window_closed_or_reopened_since_is_refused(): void {
 		$this->window_is_open( $this->window( array( 'id' => 8 ) ) );
 
