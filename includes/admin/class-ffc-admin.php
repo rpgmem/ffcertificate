@@ -429,6 +429,26 @@ class Admin {
 				$text = __( 'Say why the grade changes: the reason is required.', 'ffcertificate' );
 				$type = 'error';
 				break;
+			case 'answer_corrected':
+				$text = __( 'Answer corrected and recorded in the activity log. The certificate shows it the next time it is generated.', 'ffcertificate' );
+				break;
+			case 'answer_no_reason':
+				$text = __( 'Say why the answer changes: the reason is required.', 'ffcertificate' );
+				$type = 'error';
+				break;
+			case 'answer_unchanged':
+				$text = __( 'The new value is the same as the stored one, so nothing changed.', 'ffcertificate' );
+				$type = 'error';
+				break;
+			case 'answer_not_correctable':
+				$text = __( 'That answer cannot be corrected here. CPF/RF and e-mail are changed through identity resolution.', 'ffcertificate' );
+				$type = 'error';
+				break;
+			case 'answer_not_found':
+			case 'answer_not_saved':
+				$text = __( 'The answer could not be corrected. Reload the submission and try again.', 'ffcertificate' );
+				$type = 'error';
+				break;
 			case 'quiz_grade_incomplete':
 				$text = __( 'Give every open answer a grade.', 'ffcertificate' );
 				$type = 'error';

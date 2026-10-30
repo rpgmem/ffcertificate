@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\AdminSubmissionEditPage;
+use FreeFormCertificate\Admin\AnswerCorrectionHandler;
 
 /**
  * Behavior tests for AdminSubmissionEditPage::render() and ::handle_save().
@@ -937,6 +938,38 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringNotContainsString( 'ffc-grade-form', $html );
+	}
+
+	public function test_render_offers_a_manager_the_answer_correction(): void {
+		$data = array(
+			'name'                                     => 'Ana Silv',
+			'auth_code'                                => 'ABCD1234EFGH',
+			AnswerCorrectionHandler::CORRECTED_KEY     => array( 'name' ),
+		);
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'data' => self::json( $data ) ) ) );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Correct an answer', $html );
+		$this->assertStringContainsString( '<option value="name">', $html );
+		$this->assertStringNotContainsString( '<option value="auth_code">', $html, 'The certificate\'s identity is not offered.' );
+		$this->assertStringContainsString( 'name="ffc_correct_reason" form="ffc-correct-form" rows="2" class="large-text" required minlength="10"', $html );
+		$this->assertStringContainsString( 'value="ffc_correct_answer"', $html );
+		$this->assertStringContainsString( 'Corrected after issue; see the activity log.', $html );
+		$this->assertStringNotContainsString( '_corrected_fields', $html, 'The marker list is not shown as an answer.' );
+	}
+
+	public function test_render_hides_the_answer_correction_from_an_operator(): void {
+		$this->denied = array( 'manage_options', 'ffc_manage_certificates' );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'data' => self::json( array( 'name' => 'Ana' ) ) ) ) );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'ffc-correct-form', $html );
 	}
 
 	public function test_render_reads_protected_fields_as_text(): void {

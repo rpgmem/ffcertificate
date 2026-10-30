@@ -270,17 +270,7 @@ class QuizGradingHandler {
 		}
 		$this->submission_handler->get_repository()->update( $id, $fields );
 
-		// The lookups the certificate is reached by are cached under their own
-		// keys, which an update by id does not clear.
-		foreach ( array(
-			'auth_'  => 'auth_code',
-			'token_' => 'magic_token',
-		) as $prefix => $column ) {
-			$value = $sub[ $column ] ?? '';
-			if ( is_string( $value ) && '' !== $value ) {
-				wp_cache_delete( $prefix . $value, 'ffc_submissions' );
-			}
-		}
+		SubmissionHandler::forget_cached_lookups( $sub );
 	}
 
 	/**

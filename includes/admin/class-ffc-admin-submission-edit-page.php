@@ -35,7 +35,7 @@ class AdminSubmissionEditPage {
 	 *
 	 * @var array<int, string>
 	 */
-	private const PRESERVED_KEYS = array( '_quiz_pending', '_quiz_grades' );
+	private const PRESERVED_KEYS = array( '_quiz_pending', '_quiz_grades', AnswerCorrectionHandler::CORRECTED_KEY );
 
 	/**
 	 * Submission handler instance
@@ -182,6 +182,7 @@ class AdminSubmissionEditPage {
 						$this->render_grading_card();
 						$this->render_participant_data_section();
 						$this->render_dynamic_fields();
+						$this->render_correction_card();
 						$this->render_system_info_section();
 						$this->render_consent_section();
 						?>
@@ -196,6 +197,7 @@ class AdminSubmissionEditPage {
 				</div>
 			</form>
 			<?php $this->render_grading_form(); ?>
+			<?php $this->render_correction_form(); ?>
 		</div>
 		<?php
 	}
@@ -957,10 +959,14 @@ class AdminSubmissionEditPage {
 			}
 
 			// An answer is locked: it reads as text, and the save keeps what is stored.
+			// One changed through the audited correction says so (#2241).
 			$answers .= sprintf(
-				'<dt class="ffc-facts__label">%1$s</dt><dd class="ffc-facts__value">%2$s</dd>',
+				'<dt class="ffc-facts__label">%1$s</dt><dd class="ffc-facts__value">%2$s%3$s</dd>',
 				esc_html( (string) $lbl ),
-				nl2br( esc_html( $display_value ) )
+				nl2br( esc_html( $display_value ) ),
+				in_array( $k, $this->corrected_fields(), true )
+					? '<span class="description ffc-edit-note ffc-icon-edit">' . esc_html__( 'Corrected after issue; see the activity log.', 'ffcertificate' ) . '</span>'
+					: ''
 			);
 		}
 
@@ -974,6 +980,107 @@ class AdminSubmissionEditPage {
 			echo '<dl class="ffc-facts ffc-edit-protected">' . $protected . '</dl>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value escaped where the markup is built above.
 		}
 		\FreeFormCertificate\Admin\AdminUI::render_section_close();
+	}
+
+	/**
+	 * The answers changed through the audited correction (#2241).
+	 *
+	 * @return array<int, string>
+	 */
+	private function corrected_fields(): array {
+		$list = $this->data[ AnswerCorrectionHandler::CORRECTED_KEY ] ?? array();
+		return is_array( $list ) ? array_values( array_filter( $list, 'is_string' ) ) : array();
+	}
+
+	/**
+	 * The answers a correction may change, keyed by data key, with their label.
+	 *
+	 * @return array<string, string>
+	 */
+	private function correctable_answers(): array {
+		$out = array();
+		foreach ( $this->data as $k => $v ) {
+			$k = (string) $k;
+			if ( ! AnswerCorrectionHandler::is_correctable( $k ) || is_array( $v ) ) {
+				continue;
+			}
+			$label = $k;
+			foreach ( (array) $this->fields as $f ) {
+				if ( isset( $f['name'], $f['label'] ) && $f['name'] === $k ) {
+					$label = (string) $f['label'];
+				}
+			}
+			$out[ $k ] = $label;
+		}
+		return $out;
+	}
+
+	/**
+	 * Main column: correct one answer of an issued certificate (#2241).
+	 *
+	 * Its inputs belong to the correction form printed after the edit form,
+	 * like the grading card's: forms cannot nest.
+	 */
+	private function render_correction_card(): void {
+		$answers = $this->correctable_answers();
+		if ( ! AnswerCorrectionHandler::current_user_can_correct() || array() === $answers ) {
+			return;
+		}
+		self::card_open( __( 'Correct an answer', 'ffcertificate' ), 'edit' );
+		?>
+		<p class="description"><?php esc_html_e( 'For a typo in an issued certificate. The certificate shows the new value the next time it is generated, and the participant is not e-mailed. CPF/RF and e-mail are changed through identity resolution.', 'ffcertificate' ); ?></p>
+		<p>
+			<label for="ffc-correct-field"><strong><?php esc_html_e( 'Answer', 'ffcertificate' ); ?></strong></label><br>
+			<select id="ffc-correct-field" name="ffc_correct_field" form="ffc-correct-form" required>
+				<option value=""><?php esc_html_e( 'Choose an answer', 'ffcertificate' ); ?></option>
+				<?php foreach ( $answers as $key => $label ) : ?>
+					<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</p>
+		<p>
+			<label for="ffc-correct-value"><strong><?php esc_html_e( 'New value', 'ffcertificate' ); ?></strong></label><br>
+			<textarea id="ffc-correct-value" name="ffc_correct_value" form="ffc-correct-form" rows="2" class="large-text"></textarea>
+		</p>
+		<p>
+			<label for="ffc-correct-reason"><strong><?php esc_html_e( 'Reason for the correction', 'ffcertificate' ); ?></strong></label><br>
+			<textarea id="ffc-correct-reason" name="ffc_correct_reason" form="ffc-correct-form" rows="2" class="large-text" required minlength="<?php echo esc_attr( (string) QuizGradingHandler::MIN_REASON_LENGTH ); ?>"></textarea>
+		</p>
+		<p class="ffc-edit-actions">
+			<?php
+			AdminUI::render_button(
+				array(
+					'label'    => __( 'Correct answer', 'ffcertificate' ),
+					'category' => 'caution',
+					'icon'     => 'save',
+					'type'     => 'submit',
+					'attrs'    => array(
+						'form'         => 'ffc-correct-form',
+						'data-confirm' => __( 'Correct this answer? The old and new values and the reason are recorded in the activity log.', 'ffcertificate' ),
+					),
+				)
+			);
+			?>
+		</p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * The correction form the card's inputs post through, outside the edit form.
+	 */
+	private function render_correction_form(): void {
+		if ( ! AnswerCorrectionHandler::current_user_can_correct() || array() === $this->correctable_answers() ) {
+			return;
+		}
+		$id = (int) $this->sub_array['id'];
+		?>
+		<form id="ffc-correct-form" method="POST" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<input type="hidden" name="action" value="<?php echo esc_attr( AnswerCorrectionHandler::ACTION ); ?>">
+			<input type="hidden" name="submission_id" value="<?php echo esc_attr( (string) $id ); ?>">
+			<?php wp_nonce_field( AnswerCorrectionHandler::nonce_action( $id ) ); ?>
+		</form>
+		<?php
 	}
 
 	/**
