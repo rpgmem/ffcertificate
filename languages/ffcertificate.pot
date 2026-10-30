@@ -2634,14 +2634,6 @@ msgstr ""
 msgid "Automatic check"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-cache.php:224
-msgid "Automatic Warming"
-msgstr ""
-
-#: includes/settings/views/documentation/config-cache.php:33
-msgid "Automatic warming"
-msgstr ""
-
 #: includes/settings/views/documentation/feature-url-shortener.php:26
 msgid "Automatically"
 msgstr ""
@@ -2770,10 +2762,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-geolocation.php:26
 msgid "Backend IP validation needs an external lookup service. It is off by default; the per-form IP toggle stays disabled until you enable it here."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:253
-msgid "Backend:"
 msgstr ""
 
 #: templates/admin/settings/email-model-box.php:28 templates/admin/settings/email-model-box.php:36 templates/admin/settings/email-model-box.php:45 templates/admin/settings/email-model-box.php:50
@@ -3201,10 +3189,6 @@ msgstr ""
 msgid "Business hours restriction messages saved."
 msgstr ""
 
-#: includes/settings/views/documentation/config-cache.php:34
-msgid "buttons to pre-load or flush the form cache immediately."
-msgstr ""
-
 #: includes/admin/views/ffc-admin-activity-log.php:145
 msgid "By Level:"
 msgstr ""
@@ -3249,10 +3233,6 @@ msgstr ""
 msgid "Cache"
 msgstr ""
 
-#: includes/admin/class-ffc-cache-actions-ajax-endpoint.php:91
-msgid "Cache cleared."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-geolocation.php:296
 msgid "Cache IP geolocation results to reduce API calls"
 msgstr ""
@@ -3271,17 +3251,6 @@ msgstr ""
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:82
 msgid "Cache TTL (seconds)"
-msgstr ""
-
-#. %d: number of forms whose cache was warmed.
-#: includes/admin/class-ffc-cache-actions-ajax-endpoint.php:72
-msgid "Cache warmed for %d form."
-msgid_plural "Cache warmed for %d forms."
-msgstr[0] ""
-msgstr[1] ""
-
-#: includes/settings/views/documentation/config-cache.php:29
-msgid "Caches each form's resolved settings to speed up rendering."
 msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:212 includes/privacy/class-ffc-privacy-exporters.php:289 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:325 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:74 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:368 includes/audience/class-ffc-audience-admin-environment.php:134 includes/audience/class-ffc-audience-admin-environment.php:279 includes/audience/class-ffc-audience-notification-handler.php:406 includes/audience/class-ffc-audience-notification-handler.php:442 includes/self-scheduling/views/appointments-list.php:255
@@ -4096,16 +4065,8 @@ msgstr ""
 msgid "Clear"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-cache.php:284 includes/settings/tabs/class-ffc-tab-cache.php:78
-msgid "Clear all cache?"
-msgstr ""
-
 #: includes/settings/views/documentation/operations-troubleshooting.php:70
 msgid "Clear browser cache (Ctrl+F5)"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:285
-msgid "Clear Cache"
 msgstr ""
 
 #: includes/admin/class-ffc-submissions-list.php:607
@@ -6808,14 +6769,6 @@ msgstr ""
 msgid "Enable browser-environment diagnostic log"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-cache.php:186
-msgid "Enable Cache"
-msgstr ""
-
-#: includes/settings/views/documentation/config-cache.php:31
-msgid "Enable cache"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-geolocation.php:255
 msgid "Enable cascade: if primary fails, try the other service"
 msgstr ""
@@ -6886,10 +6839,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-smtp.php:44
 msgid "Enable Email Sending"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:195
-msgid "Enable form caching"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:378
@@ -7550,18 +7499,6 @@ msgstr ""
 msgid "Exit View Mode"
 msgstr ""
 
-#: includes/settings/views/documentation/config-cache.php:32
-msgid "Expiration"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:209
-msgid "Expiration Time"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:261
-msgid "Expiration:"
-msgstr ""
-
 #: includes/api/class-ffc-user-reregistrations-rest-controller.php:93 includes/reregistration/class-ffc-reregistration-submission-reader.php:64 includes/reregistration/class-ffc-reregistration-repository.php:56
 msgid "Expired"
 msgstr ""
@@ -7713,10 +7650,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:40
 msgid "Extend the trusted reverse-proxy CIDRs, or the Cloudflare edge ranges, the secure strategy honours when walking X-Forwarded-For / CF-Connecting-IP."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:176
-msgid "External cache active (Redis/Memcached)"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:394
@@ -8308,14 +8241,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:298
 msgid "Form Builder (Fields)"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:172
-msgid "Form Cache"
-msgstr ""
-
-#: includes/settings/views/documentation/config-cache.php:28
-msgid "Form cache"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:237
@@ -12294,10 +12219,6 @@ msgstr ""
 msgid "Page {current} of {total}"
 msgstr ""
 
-#: includes/settings/views/documentation/config-cache.php:20
-msgid "Page-cache compatibility (detection only)"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-cache.php:71
 msgid "Pages with [user_dashboard_personal] are automatically excluded from page cache via DONOTCACHEPAGE constant, no-cache headers, and LiteSpeed-specific hooks."
 msgstr ""
@@ -12970,10 +12891,6 @@ msgstr ""
 msgid "Pre-flight Banner Shown"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-cache.php:233
-msgid "Pre-load cache daily"
-msgstr ""
-
 #: includes/settings/views/documentation/forms-geolocation.php:24
 msgid "precise; the browser asks the visitor to share their location."
 msgstr ""
@@ -13355,10 +13272,6 @@ msgstr ""
 msgid "Published"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-cache.php:265
-msgid "Published Forms:"
-msgstr ""
-
 #: includes/settings/views/documentation/developer-hooks-api.php:27 includes/settings/views/documentation/feature-recruitment.php:28
 msgid "Purpose"
 msgstr ""
@@ -13477,10 +13390,6 @@ msgstr ""
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:87
 msgid "Rate limit (requests / minute / IP)"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:81
-msgid "Rate limiter counters persist between requests. Form cache is shared across all processes."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-security.php:67
@@ -13649,10 +13558,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-smtp.php:255
 msgid "Recommended for reliable delivery"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:203
-msgid "Recommended for sites with many forms or high traffic."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:302
@@ -14635,10 +14540,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:788
 msgid "Run the rotation to re-encrypt them under the new key, then remove FFC_ENCRYPTION_KEY_PREVIOUS. Do not change the keys again until it reaches 100%."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:238
-msgid "Runs a daily cron job to keep the cache always updated."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:323 includes/settings/views/documentation/operations-maintenance.php:51
@@ -16765,10 +16666,6 @@ msgstr ""
 msgid "The bulk operation failed."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-cache.php:174
-msgid "The cache stores form settings to improve performance."
-msgstr ""
-
 #: includes/settings/views/documentation/feature-reregistration.php:60
 msgid "the campaign ended before submission."
 msgstr ""
@@ -17873,10 +17770,6 @@ msgstr ""
 msgid "Across dates"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-cache.php:218
-msgid "Time the data remains in cache before being updated."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:176
 msgid "Time to assume"
 msgstr ""
@@ -17901,10 +17794,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-rate-limit.php:317
 msgid "Timezone"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:271
-msgid "Tip: Install Redis or Memcached for better performance."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-shortcode-metabox.php:45
@@ -18145,10 +18034,6 @@ msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:119 includes/shortcodes/class-ffc-dashboard-asset-manager.php:172 includes/admin/class-ffc-admin-user-custom-fields.php:76 includes/admin/class-ffc-admin-user-custom-fields.php:253 includes/self-scheduling/class-ffc-self-scheduling-editor.php:121 includes/self-scheduling/class-ffc-self-scheduling-editor.php:458 includes/reregistration/class-ffc-reregistration-form-renderer.php:410 includes/audience/class-ffc-audience-admin-environment.php:332
 msgid "Tuesday"
-msgstr ""
-
-#: includes/settings/views/documentation/config-cache.php:31
-msgid "turn form-settings caching on or off."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-quiz-metabox.php:55
@@ -18697,10 +18582,6 @@ msgstr ""
 msgid "Uses WordPress default mail function. Simple but may have deliverability issues."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-cache.php:178
-msgid "Using default WordPress cache (database)"
-msgstr ""
-
 #: includes/settings/views/documentation/feature-certificates.php:65
 msgid "Using in Forms:"
 msgstr ""
@@ -19075,14 +18956,6 @@ msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:183
 msgid "Waitlist spot opened (promotion)"
-msgstr ""
-
-#: includes/settings/views/documentation/config-cache.php:34
-msgid "Warm / Clear now"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:282
-msgid "Warm Cache Now"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:91 includes/admin/views/ffc-admin-activity-log.php:35
@@ -19531,10 +19404,6 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-admin-page.php:94 includes/recruitment/class-ffc-recruitment-candidates-list-table.php:410 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:468 includes/recruitment/class-ffc-recruitment-dashboard-section.php:329 templates/admin/recruitment/admin-page/settings-tab.php:108
 msgid "Withdrew"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:86
-msgid "Without Redis/Memcached, rate limiter hourly counters reset on each request and form cache is not shared. Install an object cache plugin (e.g. LiteSpeed Cache with Redis) for full rate limiting functionality."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:324
@@ -20198,15 +20067,6 @@ msgstr ""
 
 #: templates/admin/recruitment/admin-page/candidates-csv-import-section.php:46
 msgid "— Select a notice —"
-msgstr ""
-
-#: includes/admin/class-ffc-settings.php:529
-msgid "Cache cleared successfully!"
-msgstr ""
-
-#. %d: number of forms pre-loaded
-#: includes/admin/class-ffc-settings.php:516
-msgid "Cache warmed! %d form(s) pre-loaded."
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:479
@@ -22104,9 +21964,6 @@ msgstr ""
 msgid "Times saved. Changed tasks were moved to their new time."
 msgstr ""
 
-msgid "Form cache warming (when \"Pre-load cache daily\" is on)"
-msgstr ""
-
 msgid "These fields arrived empty or with an invalid choice and kept their previous value: %s"
 msgstr ""
 
@@ -22617,9 +22474,6 @@ msgid "View details."
 msgstr ""
 
 msgid "The \"View details\" modal shows the plugin's banner and the tabs a WordPress.org plugin has: description, installation, FAQ, changelog and screenshots, taken from the offered release's readme. The screenshots load from GitHub when the modal opens; ratings and active installs are not shown, because only WordPress.org has them."
-msgstr ""
-
-msgid "Settings → Scheduled Tasks lists the background tasks the plugin runs through WP-Cron — cleanups, reminders, cache warming, date messages and the like — and helps you keep them running on time."
 msgstr ""
 
 msgid "The task table"
@@ -23832,9 +23686,6 @@ msgid "Where they are assigned"
 msgstr ""
 
 msgid "create, edit, duplicate and delete rules. Sending a rule, or saving an active announcement with a send time, takes ffc_send_date_messages. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings."
-msgstr ""
-
-msgid "off by default; when \"Pre-load cache daily\" is on, a daily task pre-loads every published form into the cache. Its time is set on Settings → Scheduled Tasks."
 msgstr ""
 
 msgid "the \"FFC Permissions\" section of the user-edit screen adds or removes FFC roles and grants individual capabilities on top of them. Roles are toggled one at a time and kept alongside the user's other WordPress roles."
@@ -25714,26 +25565,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-captcha.php:233
 msgid "\"Protected by ALTCHA\" footer"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:226
-msgid "1 h"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:224
-msgid "15 min"
-msgstr ""
-
-#: includes/settings/views/documentation/config-cache.php:34
-msgid "15 minutes, 30 minutes, 1 hour or 24 hours. A new install starts at 15 minutes; an install that never saved the tab keeps 1 hour."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:227
-msgid "24 h"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:225
-msgid "30 min"
 msgstr ""
 
 #: includes/settings/views/documentation/config-captcha.php:40 includes/settings/views/ffc-tab-captcha.php:41
@@ -29739,6 +29570,49 @@ msgid "This form has %s issued certificate; layout changes apply to it the next 
 msgid_plural "This form has %s issued certificates; layout changes apply to them the next time they are generated or verified."
 msgstr[0] ""
 msgstr[1] ""
+
+#: includes/settings/views/ffc-tab-cache.php
+msgid "Asks the page-cache plugins above, and any integration listening on the ffc_form_cache_purged hook, to drop their copies of the pages that show a form. Saving a form already does this for that form."
+msgstr ""
+
+#: includes/admin/class-ffc-cache-actions-ajax-endpoint.php
+msgid "Page caches purged."
+msgstr ""
+
+#: includes/settings/views/documentation/config-cache.php
+msgid "Page-cache compatibility"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-cache.php
+msgid "Purge page caches"
+msgstr ""
+
+#: includes/settings/views/documentation/config-cache.php
+msgid "Purge page caches:"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-cache.php
+msgid "Purge the page caches of every published form?"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-cache.php
+msgid "Rate limiter counters persist between requests."
+msgstr ""
+
+#: includes/settings/views/documentation/config-scheduled-tasks.php
+msgid "Settings → Scheduled Tasks lists the background tasks the plugin runs through WP-Cron — cleanups, reminders, date messages and the like — and helps you keep them running on time."
+msgstr ""
+
+#: includes/settings/views/documentation/config-cache.php
+msgid "The form-settings cache, with its Enable, Expiration and daily warming settings, was removed in 6.43.0: WordPress already caches form settings with the post, so the plugin's copy saved nothing."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-cache.php
+msgid "Without Redis/Memcached, rate limiter hourly counters reset on each request. Install an object cache plugin (e.g. LiteSpeed Cache with Redis) for full rate limiting functionality."
+msgstr ""
+
+#: includes/settings/views/documentation/config-cache.php
+msgid "asks the page-cache plugins, and any integration listening on the ffc_form_cache_purged hook, to drop their copies of every page that shows a published form. Saving a form already does this for that form."
 
 #. translators: %d: minimum character count
 #, php-format

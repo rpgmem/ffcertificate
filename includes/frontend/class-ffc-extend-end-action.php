@@ -218,7 +218,6 @@ final class ExtendEndAction {
 		// so per-post invalidation can't reach the page hosting the
 		// shortcode. Mirrors what `EarlyOpenAction::execute()` does for
 		// the same reason (see #233).
-		\FreeFormCertificate\Submissions\FormCache::clear_form_cache( $form_id );
 		\FreeFormCertificate\Submissions\FormCache::purge_external_caches( $form_id, 'end_postponed' );
 		\FreeFormCertificate\Submissions\FormCache::purge_all_pages( $form_id, 'end_postponed' );
 

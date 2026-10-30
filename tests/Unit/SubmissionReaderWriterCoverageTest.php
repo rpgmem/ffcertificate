@@ -32,6 +32,13 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 	private $wpdb;
 
 	/**
+	 * Methods that announced their deprecation, in call order.
+	 *
+	 * @var list<string>
+	 */
+	private array $deprecated = array();
+
+	/**
 	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
 	 *
 	 * @param string $cpf Eleven digits.
@@ -43,6 +50,13 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->deprecated = array();
+		Functions\when( '_deprecated_function' )->alias(
+			function ( string $method ): void {
+				$this->deprecated[] = $method;
+			}
+		);
 
 		class_exists( '\\FreeFormCertificate\\Repositories\\SubmissionReader' );
 		class_exists( '\\FreeFormCertificate\\Repositories\\SubmissionWriter' );
@@ -406,6 +420,23 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
 
 		$this->assertSame( $rows, $this->repo()->getForExport( null, null ) );
+	}
+
+	public function test_unused_lookups_announce_their_deprecation(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->times( 4 )->andReturn( array() );
+
+		$repo = $this->repo();
+		$repo->findByEmail( 'a@b.com' );
+		$repo->findByCpfRf( Identifiers::RF_A );
+		$repo->findByFormId( 3 );
+		$repo->getForExport( array( 1 ), null );
+
+		$expected = array();
+		foreach ( array( 'findByEmail', 'findByCpfRf', 'findByFormId', 'getForExport' ) as $method ) {
+			$expected[] = 'FreeFormCertificate\\Repositories\\SubmissionRepository::' . $method;
+			$expected[] = 'FreeFormCertificate\\Repositories\\SubmissionReader::' . $method;
+		}
+		$this->assertSame( $expected, $this->deprecated );
 	}
 
 	// ==================================================================

@@ -582,9 +582,17 @@ final class SettingsReader {
 		return self::get_int( 'rereg_approved_banner_days', 30 );
 	}
 
-	/** TTL for the WP object cache entries the plugin manages. */
+	/**
+	 * TTL of the retired form-settings cache. The setting left with the
+	 * cache, so this answers the old default.
+	 *
+	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
+	 * @removal    6.45.0
+	 */
 	public static function cache_expiration_seconds(): int {
-		return self::get_int( 'cache_expiration', 3600 );
+		_deprecated_function( __METHOD__, '6.43.0' );
+
+		return HOUR_IN_SECONDS;
 	}
 
 	/**

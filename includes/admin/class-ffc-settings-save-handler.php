@@ -282,16 +282,6 @@ class SettingsSaveHandler {
 			}
 		}
 
-		// v4.6.16: Cache settings moved to Cache tab.
-		if ( 'cache' === $ffc_tab ) {
-			$clean['cache_enabled'] = isset( $new['cache_enabled'] ) ? 1 : 0;
-
-			if ( isset( $new['cache_expiration'] ) ) {
-				$clean['cache_expiration'] = absint( $new['cache_expiration'] );
-			}
-
-			$clean['cache_auto_warm'] = isset( $new['cache_auto_warm'] ) ? 1 : 0;
-		}
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		return $clean;

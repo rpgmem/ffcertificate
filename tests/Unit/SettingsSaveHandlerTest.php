@@ -484,13 +484,13 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertArrayNotHasKey( 'debug_pdf_generator', $result );
 	}
 
-	public function test_general_cache_tab_settings(): void {
+	public function test_the_retired_form_cache_settings_are_no_longer_saved(): void {
 		$_POST['_ffc_tab'] = 'cache';
 		$new = array( 'cache_enabled' => '1', 'cache_expiration' => '3600', 'cache_auto_warm' => '1' );
 		$result = $this->invoke( 'save_general_settings', array( array(), $new ) );
-		$this->assertSame( 1, $result['cache_enabled'] );
-		$this->assertSame( 3600, $result['cache_expiration'] );
-		$this->assertSame( 1, $result['cache_auto_warm'] );
+		$this->assertArrayNotHasKey( 'cache_enabled', $result );
+		$this->assertArrayNotHasKey( 'cache_expiration', $result );
+		$this->assertArrayNotHasKey( 'cache_auto_warm', $result );
 	}
 
 	public function test_general_cache_settings_ignored_on_non_cache_tab(): void {

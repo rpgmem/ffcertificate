@@ -175,8 +175,13 @@ class SubmissionRepository extends AbstractRepository {
 	 * @param string $email Email address.
 	 * @param int    $limit Limit.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2241).
+	 * @removal    6.45.0
 	 */
 	public function findByEmail( string $email, int $limit = 10 ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return $this->reader->findByEmail( $email, $limit );
 	}
 
@@ -186,8 +191,13 @@ class SubmissionRepository extends AbstractRepository {
 	 * @param string $cpf Cpf.
 	 * @param int    $limit Limit.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2241).
+	 * @removal    6.45.0
 	 */
 	public function findByCpfRf( string $cpf, int $limit = 10 ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return $this->reader->findByCpfRf( $cpf, $limit );
 	}
 
@@ -198,8 +208,13 @@ class SubmissionRepository extends AbstractRepository {
 	 * @param int $limit Limit.
 	 * @param int $offset Offset.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2241).
+	 * @removal    6.45.0
 	 */
 	public function findByFormId( int $form_id, int $limit = 100, int $offset = 0 ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return $this->reader->findByFormId( $form_id, $limit, $offset );
 	}
 
@@ -209,8 +224,13 @@ class SubmissionRepository extends AbstractRepository {
 	 * @param int|array<int, int>|null $form_ids Single form ID, array of IDs, or null for all forms.
 	 * @param string|null              $status Status filter (publish, trash, null = all).
 	 * @return array<int, array<string, mixed>> Array of submissions
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2241).
+	 * @removal    6.45.0
 	 */
 	public function getForExport( $form_ids = null, ?string $status = 'publish' ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return $this->reader->getForExport( $form_ids, $status );
 	}
 

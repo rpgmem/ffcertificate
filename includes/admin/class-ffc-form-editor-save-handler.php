@@ -576,7 +576,6 @@ class FormEditorSaveHandler {
 				// Use the aggressive site-wide purge — geofence edits
 				// are admin-triggered, infrequent, and the visible
 				// surface lives on whatever page hosts the shortcode.
-				\FreeFormCertificate\Submissions\FormCache::clear_form_cache( $post_id );
 				\FreeFormCertificate\Submissions\FormCache::purge_external_caches( $post_id, 'geofence_changed' );
 				\FreeFormCertificate\Submissions\FormCache::purge_all_pages( $post_id, 'geofence_changed' );
 			}

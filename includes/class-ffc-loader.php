@@ -427,15 +427,13 @@ class Loader {
 		// outside is_admin(), so this must not sit behind an admin-only gate.
 		\FreeFormCertificate\Settings\IpResolverSettingsBridge::init();
 
-		// Form cache invalidation and the daily warming (#1541). Wired here,
+		// Saving a form purges the page caches that embed it. Wired here,
 		// explicitly, rather than by an `add_action( 'init', … )` at the
-		// bottom of the class file: that ran only when something happened to
-		// load the class before `init` priority 5, so whether saving a form
-		// invalidated its cache depended on load order. The warming event is
-		// reconciled with its toggle on every request, which is what finally
-		// makes "Pre-load cache daily" do something.
+		// bottom of the class file, which ran only when something happened to
+		// load the class first (#1541). The daily warming is retired (#2241):
+		// an event an install still carries is cleared on the next request.
 		\FreeFormCertificate\Submissions\FormCache::register_hooks();
-		\FreeFormCertificate\Submissions\FormCache::sync_warming_schedule();
+		\FreeFormCertificate\Submissions\FormCache::retire_warming_schedule();
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::init();
 		// The address lookup by CEP (#2234): the form's AJAX action and the
 		// Settings test. Registered whatever the toggle says, so the test

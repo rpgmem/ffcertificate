@@ -41,6 +41,9 @@ class FormCacheThirdPartyPurgeTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
+		// The form-settings getters are deprecated (#2241) and emit the notice.
+		Functions\when( '_deprecated_function' )->justReturn( null );
+
 		$GLOBALS['ffc_test_purges'] = array();
 		$this->log_file             = (string) tempnam( sys_get_temp_dir(), 'ffc-log' );
 		$this->saved_error_log      = ini_get( 'error_log' );
@@ -338,35 +341,5 @@ class FormCacheThirdPartyPurgeTest extends TestCase {
 		$log = $this->log();
 		$this->assertStringContainsString( 'Form config cache MISS', $log );
 		$this->assertStringContainsString( 'Form config cache HIT', $log );
-	}
-
-	public function test_the_scheduled_warming_warms_every_form_when_the_toggle_is_on(): void {
-		Functions\when( 'get_option' )->justReturn(
-			array(
-				'cache_enabled'   => 1,
-				'cache_auto_warm' => 1,
-			)
-		);
-		$queried = null;
-		Functions\when( 'get_posts' )->alias(
-			static function ( $args ) use ( &$queried ) {
-				$queried = $args;
-				return array( 4 );
-			}
-		);
-		$warmed = array();
-		Functions\when( 'wp_cache_get' )->justReturn( false );
-		Functions\when( 'get_post_meta' )->justReturn( '' );
-		Functions\when( 'wp_cache_set' )->alias(
-			static function ( $key ) use ( &$warmed ) {
-				$warmed[] = $key;
-				return true;
-			}
-		);
-
-		FormCache::run_scheduled_warming();
-
-		$this->assertSame( 'ffc_form', $queried['post_type'] );
-		$this->assertSame( array( 'complete_4' ), $warmed );
 	}
 }
