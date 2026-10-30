@@ -27,6 +27,36 @@
             var id = $(this).data('reregistration-id');
             loadForm(id);
         });
+        $(document).on('click', '.ffc-rereg-retract', function (e) {
+            e.preventDefault();
+            retract($(this));
+        });
+    }
+
+    /* ─── Banner: Retract Submission ───────────────────── */
+
+    // The member takes back a submission nobody reviewed yet (#2242). The
+    // banners are drawn by the server, so the page reloads to redraw them.
+    function retract($btn) {
+        if (!window.confirm(S.retractConfirm || 'Retract your submission?')) {
+            return;
+        }
+        $btn.prop('disabled', true).addClass('ffc-btn-loading');
+        FFC.request(
+            'ffc_retract_reregistration',
+            { reregistration_id: $btn.data('reregistration-id') },
+            { nonce: ffcReregistration.nonce, ajaxUrl: ffcReregistration.ajaxUrl }
+        )
+            .then(function () {
+                window.location.reload();
+            })
+            .catch(function (err) {
+                $btn.prop('disabled', false).removeClass('ffc-btn-loading');
+                var msg = (err && err.fromServer && err.message) || S.errorRetracting || 'Could not retract the submission.';
+                var $banner = $btn.closest('.ffc-notice');
+                $banner.next('.ffc-rereg-retract-error').remove();
+                $banner.after($(FFC.notice('danger', 'error', msg, '', { role: 'alert' })).addClass('ffc-rereg-retract-error'));
+            });
     }
 
     function loadForm(reregistrationId) {

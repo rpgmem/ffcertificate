@@ -240,22 +240,27 @@ class ReregistrationAdmin {
 				'viewDetailsNonce' => wp_create_nonce( 'ffc_view_submission_details' ),
 				'exportNonce'      => wp_create_nonce( 'ffc_reregistration_export' ),
 				'strings'          => array(
-					'inviteSending'        => __( 'Sending…', 'ffcertificate' ),
-					'inviteError'          => __( 'An error occurred.', 'ffcertificate' ),
-					'exportPreparing'      => __( 'Preparing…', 'ffcertificate' ),
+					'inviteSending'       => __( 'Sending…', 'ffcertificate' ),
+					'inviteError'         => __( 'An error occurred.', 'ffcertificate' ),
+					'exportPreparing'     => __( 'Preparing…', 'ffcertificate' ),
 					/* translators: %1$d processed, %2$d total */
-					'exportProgress'       => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
-					'exportDone'           => __( 'Done!', 'ffcertificate' ),
-					'exportError'          => __( 'An error occurred.', 'ffcertificate' ),
-					'confirmDelete'        => __( 'Are you sure you want to delete this reregistration? This will also delete all submissions.', 'ffcertificate' ),
-					'confirmApprove'       => __( 'Approve selected submissions?', 'ffcertificate' ),
-					'confirmReturnToDraft' => __( 'Return this submission to draft? The user will be able to edit and resubmit.', 'ffcertificate' ),
-					'generatingPdf'        => __( 'Generating PDF...', 'ffcertificate' ),
-					'errorGenerating'      => __( 'Error generating record.', 'ffcertificate' ),
-					'record'               => __( 'Record', 'ffcertificate' ),
-					'affectedUsers'        => __( 'Affected users:', 'ffcertificate' ),
-					'loadingDetails'       => __( 'Loading…', 'ffcertificate' ),
-					'errorLoadingDetails'  => __( 'Failed to load submission details.', 'ffcertificate' ),
+					'exportProgress'      => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
+					'exportDone'          => __( 'Done!', 'ffcertificate' ),
+					'exportError'         => __( 'An error occurred.', 'ffcertificate' ),
+					'confirmDelete'       => __( 'Are you sure you want to delete this reregistration? This will also delete all submissions.', 'ffcertificate' ),
+					'confirmApprove'      => __( 'Approve selected submissions?', 'ffcertificate' ),
+					'reviewRejectTitle'   => __( 'Reject submission', 'ffcertificate' ),
+					'reviewReturnTitle'   => __( 'Return to draft', 'ffcertificate' ),
+					/* translators: %d: number of selected submissions. */
+					'reviewRejectIntro'   => __( 'Selected: %d. The member is told the reason and can correct and resubmit until the deadline. The verification code is deleted.', 'ffcertificate' ),
+					/* translators: %d: number of selected submissions. */
+					'reviewReturnIntro'   => __( 'Selected: %d. The submission goes back to the member as a draft with its answers, and the member is told the reason.', 'ffcertificate' ),
+					'generatingPdf'       => __( 'Generating PDF...', 'ffcertificate' ),
+					'errorGenerating'     => __( 'Error generating record.', 'ffcertificate' ),
+					'record'              => __( 'Record', 'ffcertificate' ),
+					'affectedUsers'       => __( 'Affected users:', 'ffcertificate' ),
+					'loadingDetails'      => __( 'Loading…', 'ffcertificate' ),
+					'errorLoadingDetails' => __( 'Failed to load submission details.', 'ffcertificate' ),
 				),
 			)
 		);
@@ -385,18 +390,23 @@ class ReregistrationAdmin {
 		if ( RequestInput::has_get( 'message' ) ) {
 			$msg      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'message' );
 			$messages = array(
-				'created'                => __( 'Reregistration created successfully.', 'ffcertificate' ),
-				'updated'                => __( 'Reregistration updated successfully.', 'ffcertificate' ),
-				'deleted'                => __( 'Reregistration deleted successfully.', 'ffcertificate' ),
-				'approved'               => __( 'Submission approved.', 'ffcertificate' ),
-				'rejected'               => __( 'Submission rejected.', 'ffcertificate' ),
-				'returned_to_draft'      => __( 'Submission returned to draft for revision.', 'ffcertificate' ),
-				'bulk_approved'          => __( 'Selected submissions approved.', 'ffcertificate' ),
-				'bulk_returned_to_draft' => __( 'Selected submissions returned to draft.', 'ffcertificate' ),
-				'reminders_sent'         => __( 'Reminder emails sent.', 'ffcertificate' ),
+				'created'           => __( 'Reregistration created successfully.', 'ffcertificate' ),
+				'updated'           => __( 'Reregistration updated successfully.', 'ffcertificate' ),
+				'deleted'           => __( 'Reregistration deleted successfully.', 'ffcertificate' ),
+				'approved'          => __( 'Submission approved.', 'ffcertificate' ),
+				'rejected'          => __( 'Submission rejected.', 'ffcertificate' ),
+				'returned_to_draft' => __( 'Submission returned to draft for revision.', 'ffcertificate' ),
+				'bulk_approved'     => __( 'Selected submissions approved.', 'ffcertificate' ),
+				'reminders_sent'    => __( 'Reminder emails sent.', 'ffcertificate' ),
 			);
 			if ( 'bulk_approved' === $msg && RequestInput::has_get( 'skipped' ) ) {
 				$messages[ $msg ] = self::bulk_approved_message( RequestInput::get_get_int( 'count' ), RequestInput::get_get_int( 'skipped' ) );
+			}
+			if ( in_array( $msg, array( 'rejected', 'returned_to_draft' ), true ) && RequestInput::has_get( 'skipped' ) ) {
+				$messages[ $msg ] = self::review_decision_message( $msg, RequestInput::get_get_int( 'count' ), RequestInput::get_get_int( 'skipped' ) );
+			}
+			if ( 'reason_required' === $msg ) {
+				add_settings_error( 'ffc_reregistration', 'ffc_message', self::reason_required_message(), 'error' );
 			}
 			if ( isset( $messages[ $msg ] ) ) {
 				add_settings_error( 'ffc_reregistration', 'ffc_message', $messages[ $msg ], 'success' );
@@ -413,8 +423,7 @@ class ReregistrationAdmin {
 
 		// Submission workflow (delegated).
 		ReregistrationSubmissionActions::handle_approve();
-		ReregistrationSubmissionActions::handle_reject();
-		ReregistrationSubmissionActions::handle_return_to_draft();
+		ReregistrationSubmissionActions::handle_review_decision();
 		ReregistrationSubmissionActions::handle_bulk();
 
 		// CSV export moved to the batched engine (#772): the "Export CSV" button
@@ -432,6 +441,43 @@ class ReregistrationAdmin {
 	 */
 	private static function invitations_notice_arg( array $data ): string {
 		return empty( $data['email_invitation_enabled'] ) ? '' : '&invitations=scheduled';
+	}
+
+	/**
+	 * The notice after a reject or a return to draft (#2242).
+	 *
+	 * @param string $decision `rejected` or `returned_to_draft`.
+	 * @param int    $done     Rows changed.
+	 * @param int    $skipped  Selected rows the decision did not apply to.
+	 * @return string
+	 */
+	public static function review_decision_message( string $decision, int $done, int $skipped ): string {
+		$message = 'rejected' === $decision
+			/* translators: %d: number of submissions rejected. */
+			? sprintf( _n( '%d submission rejected.', '%d submissions rejected.', $done, 'ffcertificate' ), $done )
+			/* translators: %d: number of submissions returned to draft. */
+			: sprintf( _n( '%d submission returned to draft.', '%d submissions returned to draft.', $done, 'ffcertificate' ), $done );
+		if ( $skipped > 0 ) {
+			$message .= ' ' . sprintf(
+				/* translators: %d: number of selected submissions the decision did not apply to. */
+				_n( '%d selected submission was skipped because its status does not allow it.', '%d selected submissions were skipped because their status does not allow it.', $skipped, 'ffcertificate' ),
+				$skipped
+			);
+		}
+		return $message;
+	}
+
+	/**
+	 * The notice when a reject or a return arrives without a usable reason.
+	 *
+	 * @return string
+	 */
+	public static function reason_required_message(): string {
+		return sprintf(
+			/* translators: %d: minimum number of characters. */
+			__( 'Nothing was changed: give the member a reason of at least %d characters.', 'ffcertificate' ),
+			ReregistrationSubmissionWriter::MIN_REASON_LENGTH
+		);
 	}
 
 	/**

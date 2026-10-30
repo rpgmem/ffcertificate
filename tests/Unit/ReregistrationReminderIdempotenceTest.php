@@ -125,21 +125,20 @@ class ReregistrationReminderIdempotenceTest extends TestCase {
 	 * The reminder's base audience is a DELIBERATE subset of what the invitation
 	 * reaches.
 	 *
-	 * The invitation reopens for `UNFINISHED_STATUSES`, which includes `expired`
-	 * and `rejected`. Adopting that set as the reminder's base would WIDEN who
-	 * gets an email -- a behaviour change that does not belong in a duplication
-	 * fix. This assertion exists so that widening cannot enter without somebody
-	 * deciding on it.
+	 * The invitation reopens for `UNFINISHED_STATUSES`, which also includes
+	 * `expired`. `rejected` joined the reminder by decision (#2242): a rejected
+	 * member still has to resubmit. This assertion exists so that any further
+	 * widening cannot enter without somebody deciding on it.
 	 */
-	public function test_the_base_audience_stays_pending_and_in_progress(): void {
+	public function test_the_base_audience_is_unsubmitted_and_rejected(): void {
 		ReregistrationSubmissionReader::get_awaiting_reminder( 7, null );
 
 		// The double's `prepare()` interpolates without quoting, so the captured
-		// shape is `IN (pending,in_progress)`. What matters here is WHICH statuses
-		// enter, not how the driver quotes them.
-		$this->assertStringContainsString( 'status IN (pending,in_progress)', $this->captured );
+		// shape is `IN (pending,in_progress,rejected)`. What matters here is WHICH
+		// statuses enter, not how the driver quotes them.
+		$this->assertStringContainsString( 'status IN (pending,in_progress,rejected)', $this->captured );
 		$this->assertSame(
-			array( 'pending', 'in_progress' ),
+			array( 'pending', 'in_progress', 'rejected' ),
 			ReregistrationSubmissionReader::REMINDABLE_STATUSES
 		);
 		$this->assertNotSame(

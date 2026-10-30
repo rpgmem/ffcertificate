@@ -25,10 +25,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<ol>
 			<li><?php esc_html_e( 'Create a campaign and link it to one or more audiences.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Set the start and end dates. The end must be after the start. The form accepts drafts and submissions only between the two, on the site\'s clock (Settings → General in WordPress), from the start without waiting for anything and until the end without waiting for the daily run to expire the campaign.', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'Configure the emails (invitation, reminder, confirmation) and whether submissions auto-approve.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Configure the emails (invitation, reminder, confirmation) and whether submissions auto-approve. The not-approved and returned-for-revision e-mails are always sent and are edited in Settings → Email texts.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Activate the campaign — a submission is created for every member of its audiences and of their child audiences at once. Saving an active campaign creates the submissions of an audience added to it. Invitation emails are not sent at that moment: they go out with the next daily run, in batches, so a campaign activated by mistake can still be deactivated before anybody is mailed. The screen says when that run is.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Members see a banner on their dashboard and fill in the form there.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Admins review and approve or reject each submission (unless auto-approve is on). Bulk Approve acts only on submissions awaiting review and says how many of the selection it skipped.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Reject and Return to Draft, for one submission or a selection, open a dialog that asks for the reason, at least 10 characters; nothing changes without one. The member reads the reason on the dashboard banner and receives it by e-mail. Reject is for a submission awaiting review; Return to Draft also reopens an approved or rejected one, keeping its answers.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Until it is reviewed, the member can retract a submission from the dashboard banner while the campaign is open. After a warning it goes back to draft with its answers and leaves the review queue; it has to be submitted again to be reviewed.', 'ffcertificate' ); ?></li>
 		</ol>
 	</div>
 
@@ -37,7 +39,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<ul>
 			<li><strong><?php esc_html_e( 'Auto-approve', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'submissions are approved on submit instead of waiting for review.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Invitation email', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'sent by the daily run to every member who has not received one yet, starting with the first run after the campaign is activated. The same run creates the submission of anyone who joined one of the campaign\'s audiences, or one of their child audiences, since the activation, so late joiners get their invitation, their reminders and their place in the totals. An invitation can go out before the start date; it then names the day the form opens. The Send invitations button sends them right away.', 'ffcertificate' ); ?></li>
-			<li><strong><?php esc_html_e( 'Reminder email', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'sent automatically when the deadline is within N days (default 7) and the campaign has already opened. Each member receives it ONCE per campaign, not once a day: the send is stamped on the submission, and the daily sweep skips whoever already has that stamp.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Reminder email', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'sent automatically when the deadline is within N days (default 7) and the campaign has already opened. Each member receives it ONCE per campaign, not once a day: the send is stamped on the submission, and the daily sweep skips whoever already has that stamp.', 'ffcertificate' ); ?> <?php esc_html_e( 'It reaches members who have not submitted and members whose submission was rejected; a rejection or a return to draft clears the stamp, so they are reminded again.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Confirmation email', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'sent after a member submits; its button leads to the dashboard, where the Record downloads once the submission is approved.', 'ffcertificate' ); ?></li>
 		</ul>
 		<p class="description"><?php esc_html_e( 'On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created.', 'ffcertificate' ); ?> <?php esc_html_e( 'The status is the exception: it changes only on Save.', 'ffcertificate' ); ?></p>
@@ -78,9 +80,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><code>pending</code> — <?php esc_html_e( 'created for the member, not started.', 'ffcertificate' ); ?></li>
 			<li><code>in_progress</code> — <?php esc_html_e( 'a draft was saved but not submitted. Sensitive answers are stored encrypted in a draft, as in a submission.', 'ffcertificate' ); ?></li>
 			<li><code>submitted</code> — <?php esc_html_e( 'submitted, awaiting review.', 'ffcertificate' ); ?></li>
-			<li><code>approved</code> / <code>rejected</code> — <?php esc_html_e( 'reviewed (rejections can carry notes).', 'ffcertificate' ); ?></li>
+			<li><code>approved</code> / <code>rejected</code> — <?php esc_html_e( 'reviewed. A rejection always carries the reviewer\'s reason, which the member sees and can act on until the deadline.', 'ffcertificate' ); ?></li>
 			<li><code>expired</code> — <?php esc_html_e( 'the campaign ended before submission.', 'ffcertificate' ); ?></li>
 		</ul>
+		<p><?php esc_html_e( 'A submission returned to draft or retracted is in_progress again; a returned one shows the reviewer\'s reason on the banner.', 'ffcertificate' ); ?></p>
 		<p><?php esc_html_e( 'A member can save a draft or submit only while the submission is pending, in progress or rejected. Once it is submitted, a second click or a form left open in another tab is refused, so the submission stays in the review queue and the confirmation e-mail goes out once.', 'ffcertificate' ); ?></p>
 	</div>
 

@@ -617,9 +617,13 @@ class ReregistrationSubmissionReader {
 	 * {@see self::UNFINISHED_STATUSES} -- see
 	 * {@see self::get_awaiting_reminder()} for why.
 	 *
+	 * `rejected` joined in #2242: a rejected member still has to resubmit
+	 * before the deadline, and the rejection clears the reminder mark so the
+	 * next sweep reaches them. `expired` stays out -- the window is closed.
+	 *
 	 * @var array<int, string>
 	 */
-	public const REMINDABLE_STATUSES = array( 'pending', 'in_progress' );
+	public const REMINDABLE_STATUSES = array( 'pending', 'in_progress', 'rejected' );
 
 	/**
 	 * Statuses in which the member may still save a draft or submit (#2242).
@@ -737,11 +741,10 @@ class ReregistrationSubmissionReader {
 	 *
 	 * TWO DELIBERATE DIFFERENCES FROM THE INVITATION
 	 *
-	 * 1. The base audience stays `pending` + `in_progress`, which is exactly who
-	 *    the reminder already reached. The invitation uses
-	 *    `UNFINISHED_STATUSES` (which includes `expired` and `rejected`);
-	 *    adopting that set here would silently WIDEN who gets a reminder, a
-	 *    behaviour change that does not belong in a duplication fix.
+	 * 1. The base audience is {@see self::REMINDABLE_STATUSES} (`pending`,
+	 *    `in_progress` and, since #2242, `rejected`). The invitation uses
+	 *    `UNFINISHED_STATUSES`, which also includes `expired`: a closed window
+	 *    is not something to be reminded of.
 	 * 2. On the reopening by extension, however, the set is the invitation's --
 	 *    if the deadline moved forward, whoever did not finish becomes
 	 *    remindable by the same criterion that makes them invitable.

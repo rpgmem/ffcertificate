@@ -343,7 +343,8 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="--ffc-color:<?php echo esc_attr( $aud->color ); ?>' => array( 1, self::OPERATOR_COLOUR ),
 		),
 		'templates/admin/reregistration/submissions.php' => array(
-			'style=: style="display:none;' => array( 1, self::INITIAL_STATE ),
+			// The details modal and the review-decision modal (#2242).
+			'style=: style="display:none;' => array( 2, self::INITIAL_STATE ),
 		),
 		'templates/admin/settings/email-body-hub.php' => array(
 			'style=: style="display:none;' => array( 1, self::INITIAL_STATE ),

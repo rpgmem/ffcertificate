@@ -3406,9 +3406,6 @@ msgstr ""
 msgid "Campaign"
 msgstr ""
 
-#: includes/settings/views/documentation/reference-emails.php:69
-msgid "Campaign invitation, reminder and confirmation"
-msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:461
 msgid "Campaign lifecycle emails — text edited globally in the hub above; each still on/off per campaign."
@@ -4328,9 +4325,6 @@ msgstr ""
 msgid "Configure recruitment"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-reregistration.php:28
-msgid "Configure the emails (invitation, reminder, confirmation) and whether submissions auto-approve."
-msgstr ""
 
 #: templates/admin/settings/email-model-box.php:72
 msgid "Configure the single chrome (header, body, footer and outer container) that wraps every plugin email. The message content is injected into the body automatically."
@@ -14260,9 +14254,6 @@ msgstr ""
 msgid "Retention (days)"
 msgstr ""
 
-#: includes/reregistration/class-ffc-reregistration-admin.php:218
-msgid "Return this submission to draft? The user will be able to edit and resubmit."
-msgstr ""
 
 #: templates/admin/reregistration/submission-row.php:47 templates/admin/reregistration/submissions.php:82
 msgid "Return to Draft"
@@ -14334,9 +14325,6 @@ msgstr ""
 msgid "Reviewed"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-reregistration.php:59
-msgid "reviewed (rejections can carry notes)."
-msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-export-source.php:183
 msgid "Reviewed At"
@@ -15113,9 +15101,6 @@ msgstr ""
 msgid "Selected submissions approved."
 msgstr ""
 
-#: includes/reregistration/class-ffc-reregistration-admin.php:310
-msgid "Selected submissions returned to draft."
-msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:160
 msgid "Selected time is outside working hours."
@@ -29716,3 +29701,105 @@ msgstr ""
 
 msgid "A new reregistration campaign for your group opens on %s."
 msgstr ""
+
+msgid "A submission returned to draft or retracted is in_progress again; a returned one shows the reviewer's reason on the banner."
+msgstr ""
+
+msgid "Campaign invitation, reminder, confirmation, not approved and returned for revision"
+msgstr ""
+
+msgid "Configure the emails (invitation, reminder, confirmation) and whether submissions auto-approve. The not-approved and returned-for-revision e-mails are always sent and are edited in Settings → Email texts."
+msgstr ""
+
+msgid "Could not retract the submission."
+msgstr ""
+
+msgid "It reaches members who have not submitted and members whose submission was rejected; a rejection or a return to draft clears the stamp, so they are reminded again."
+msgstr ""
+
+msgid "Nothing was changed: give the member a reason of at least %d characters."
+msgstr ""
+
+msgid "Reason sent to the member"
+msgstr ""
+
+msgid "Reject and Return to Draft, for one submission or a selection, open a dialog that asks for the reason, at least 10 characters; nothing changes without one. The member reads the reason on the dashboard banner and receives it by e-mail. Reject is for a submission awaiting review; Return to Draft also reopens an approved or rejected one, keeping its answers."
+msgstr ""
+
+msgid "Reject submission"
+msgstr ""
+
+msgid "Reregistration Submission Rejected"
+msgstr ""
+
+msgid "Reregistration Submission Retracted"
+msgstr ""
+
+msgid "Reregistration Submission Returned to Draft"
+msgstr ""
+
+msgid "Reregistration not approved"
+msgstr ""
+
+msgid "Reregistration not approved: {{reregistration_title}}"
+msgstr ""
+
+msgid "Reregistration returned for revision"
+msgstr ""
+
+msgid "Reregistration returned for revision: {{reregistration_title}}"
+msgstr ""
+
+msgid "Retract submission"
+msgstr ""
+
+msgid "Retract your submission? It goes back to draft and leaves the review queue. Your answers are kept, and you must submit again before the deadline for it to be reviewed."
+msgstr ""
+
+msgid "Return to draft"
+msgstr ""
+
+msgid "Reviewer's note:"
+msgstr ""
+
+msgid "Selected: %d. The member is told the reason and can correct and resubmit until the deadline. The verification code is deleted."
+msgstr ""
+
+msgid "Selected: %d. The submission goes back to the member as a draft with its answers, and the member is told the reason."
+msgstr ""
+
+msgid "Submission retracted. It is a draft again: edit it and submit it before the deadline."
+msgstr ""
+
+msgid "The member reads it on the dashboard and receives it by e-mail. At least %d characters."
+msgstr ""
+
+msgid "This submission can no longer be retracted: it was already reviewed or the campaign is closed."
+msgstr ""
+
+msgid "Until it is reviewed, the member can retract a submission from the dashboard banner while the campaign is open. After a warning it goes back to draft with its answers and leaves the review queue; it has to be submitted again to be reviewed."
+msgstr ""
+
+msgid "Your reregistration was returned to you for revision. Your answers were kept: review them and submit again before the deadline."
+msgstr ""
+
+msgid "Your reregistration was reviewed and was not approved. You can correct it and submit it again until the deadline."
+msgstr ""
+
+msgid "reviewed. A rejection always carries the reviewer's reason, which the member sees and can act on until the deadline."
+msgstr ""
+
+msgid "%d submission rejected."
+msgid_plural "%d submissions rejected."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%d submission returned to draft."
+msgid_plural "%d submissions returned to draft."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%d selected submission was skipped because its status does not allow it."
+msgid_plural "%d selected submissions were skipped because their status does not allow it."
+msgstr[0] ""
+msgstr[1] ""

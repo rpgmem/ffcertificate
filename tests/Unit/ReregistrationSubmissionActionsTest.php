@@ -11,8 +11,8 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationSubmissionActions;
 
 /**
- * Tests for ReregistrationSubmissionActions: approve, reject,
- * return-to-draft, and bulk action handlers.
+ * Tests for ReregistrationSubmissionActions: approve, the review decision
+ * (reject or return to draft), and bulk action handlers.
  *
  * Each handler checks $_GET/$_POST params and a nonce before writing. These
  * tests drive every guard and assert that the write did NOT happen.
@@ -134,81 +134,52 @@ class ReregistrationSubmissionActionsTest extends TestCase {
 	}
 
 	// ==================================================================
-	// handle_reject()
+	// handle_review_decision() (#2242)
 	// ==================================================================
 
-	public function test_handle_reject_returns_early_when_get_is_empty(): void {
-		$_GET = array();
+	public function test_handle_review_decision_returns_early_when_post_is_empty(): void {
+		$_POST = array();
 		Functions\expect('get_current_user_id')->never();
 		Functions\expect('wp_safe_redirect')->never();
-		ReregistrationSubmissionActions::handle_reject();
+		ReregistrationSubmissionActions::handle_review_decision();
 	}
 
-	public function test_handle_reject_returns_early_when_action_is_not_reject(): void {
-		$_GET['action'] = 'approve';
-		$_GET['sub_id'] = '10';
+	public function test_handle_review_decision_returns_early_when_ffc_action_wrong(): void {
+		$_POST['ffc_action'] = 'bulk_submissions';
+		$_POST['decision']   = 'reject';
 		Functions\expect('get_current_user_id')->never();
 		Functions\expect('wp_safe_redirect')->never();
-		ReregistrationSubmissionActions::handle_reject();
+		ReregistrationSubmissionActions::handle_review_decision();
 	}
 
-	public function test_handle_reject_returns_early_when_sub_id_missing(): void {
-		$_GET['action'] = 'reject';
-		Functions\expect('get_current_user_id')->never();
-		Functions\expect('wp_safe_redirect')->never();
-		ReregistrationSubmissionActions::handle_reject();
-	}
-
-	public function test_handle_reject_returns_early_when_nonce_invalid(): void {
-		$_GET['action']   = 'reject';
-		$_GET['sub_id']   = '10';
-		$_GET['id']       = '5';
-		$_GET['_wpnonce'] = 'bad-nonce';
+	public function test_handle_review_decision_returns_early_when_nonce_invalid(): void {
+		$_POST['ffc_action']        = 'review_decision';
+		$_POST['reregistration_id'] = '5';
+		$_POST['decision']          = 'reject';
+		$_POST['submission_ids']    = array( '10' );
+		$_POST['review_reason']     = 'A reason long enough to pass.';
+		$_POST['ffc_review_nonce']  = 'bad-nonce';
 
 		Functions\when('wp_verify_nonce')->justReturn(false);
 
 		Functions\expect('get_current_user_id')->never();
 		Functions\expect('wp_safe_redirect')->never();
-		ReregistrationSubmissionActions::handle_reject();
+		ReregistrationSubmissionActions::handle_review_decision();
 	}
 
-	// ==================================================================
-	// handle_return_to_draft()
-	// ==================================================================
+	public function test_handle_review_decision_returns_early_on_an_unknown_decision(): void {
+		$_POST['ffc_action']        = 'review_decision';
+		$_POST['reregistration_id'] = '5';
+		$_POST['decision']          = 'approve';
+		$_POST['submission_ids']    = array( '10' );
+		$_POST['review_reason']     = 'A reason long enough to pass.';
+		$_POST['ffc_review_nonce']  = 'good';
 
-	public function test_handle_return_to_draft_returns_early_when_get_is_empty(): void {
-		$_GET = array();
-		Functions\expect('get_current_user_id')->never();
-		Functions\expect('wp_safe_redirect')->never();
-		ReregistrationSubmissionActions::handle_return_to_draft();
-	}
-
-	public function test_handle_return_to_draft_returns_early_when_action_wrong(): void {
-		$_GET['action'] = 'approve';
-		$_GET['sub_id'] = '10';
-		Functions\expect('get_current_user_id')->never();
-		Functions\expect('wp_safe_redirect')->never();
-		ReregistrationSubmissionActions::handle_return_to_draft();
-	}
-
-	public function test_handle_return_to_draft_returns_early_when_sub_id_missing(): void {
-		$_GET['action'] = 'return_to_draft';
-		Functions\expect('get_current_user_id')->never();
-		Functions\expect('wp_safe_redirect')->never();
-		ReregistrationSubmissionActions::handle_return_to_draft();
-	}
-
-	public function test_handle_return_to_draft_returns_early_when_nonce_invalid(): void {
-		$_GET['action']   = 'return_to_draft';
-		$_GET['sub_id']   = '10';
-		$_GET['id']       = '5';
-		$_GET['_wpnonce'] = 'bad-nonce';
-
-		Functions\when('wp_verify_nonce')->justReturn(false);
+		Functions\when('wp_verify_nonce')->justReturn(1);
 
 		Functions\expect('get_current_user_id')->never();
 		Functions\expect('wp_safe_redirect')->never();
-		ReregistrationSubmissionActions::handle_return_to_draft();
+		ReregistrationSubmissionActions::handle_review_decision();
 	}
 
 	// ==================================================================

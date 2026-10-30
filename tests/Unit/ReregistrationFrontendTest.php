@@ -123,8 +123,10 @@ class ReregistrationFrontendTest extends TestCase {
 	// init()
 	// ==================================================================
 
-	public function test_init_registers_the_four_ajax_actions(): void {
+	public function test_init_registers_the_ajax_actions(): void {
 		ReregistrationFrontend::init();
+
+		$this->assertArrayHasKey('wp_ajax_ffc_retract_reregistration', $this->registered_actions, 'Retract (#2242).');
 
 		$this->assertArrayHasKey('wp_ajax_ffc_get_reregistration_form', $this->registered_actions);
 		$this->assertArrayHasKey('wp_ajax_ffc_submit_reregistration', $this->registered_actions);
@@ -596,6 +598,85 @@ class ReregistrationFrontendTest extends TestCase {
 	}
 
 	// ==================================================================
+	// ajax_retract() (#2242)
+	// ==================================================================
+
+	private function retract(): FrontendJsonErrorException|FrontendJsonSuccessException {
+		try {
+			ReregistrationFrontend::ajax_retract();
+		} catch (FrontendJsonErrorException|FrontendJsonSuccessException $e) {
+			return $e;
+		}
+		$this->fail('ajax_retract() must answer.');
+	}
+
+	private function campaign(string $status = 'active'): object {
+		return (object) array('id' => 1, 'status' => $status, 'title' => 'Test', 'start_date' => '2026-01-01', 'end_date' => '2026-06-30');
+	}
+
+	public function test_ajax_retract_takes_back_an_unreviewed_submission(): void {
+		Functions\when('get_current_user_id')->justReturn(1);
+		// The activity log is off on an install nobody configured.
+		Functions\when('get_option')->alias(static fn ($key, $default = false) => $default);
+		$_POST['reregistration_id'] = 1;
+
+		global $wpdb;
+		$wpdb->shouldReceive('get_row')->andReturn($this->campaign(), (object) array('id' => 10, 'status' => 'submitted', 'user_id' => 1));
+		$writes = array();
+		$wpdb->shouldReceive('query')->andReturnUsing(static function ($sql) use (&$writes) {
+			$writes[] = $sql;
+			return 1;
+		});
+
+		$answer = $this->retract();
+
+		$this->assertInstanceOf(FrontendJsonSuccessException::class, $answer);
+		$this->assertCount(1, $writes, 'One conditional write.');
+		$this->assertStringContainsString('status IN (%s)', $writes[0], 'Only a submission awaiting review moves.');
+	}
+
+	/**
+	 * @dataProvider provider_retract_refusals
+	 */
+	public function test_ajax_retract_refuses(string $campaign_status, string $submission_status, string $now): void {
+		Functions\when('get_current_user_id')->justReturn(1);
+		Functions\when('current_time')->justReturn($now);
+		$_POST['reregistration_id'] = 1;
+
+		global $wpdb;
+		$wpdb->shouldReceive('get_row')->andReturn($this->campaign($campaign_status), (object) array('id' => 10, 'status' => $submission_status, 'user_id' => 1));
+		$wpdb->shouldReceive('query')->never();
+
+		$answer = $this->retract();
+
+		$this->assertInstanceOf(FrontendJsonErrorException::class, $answer);
+		$this->assertStringContainsString('can no longer be retracted', $answer->payload['message']);
+	}
+
+	/**
+	 * @return array<string, array{string, string, string}>
+	 */
+	public static function provider_retract_refusals(): array {
+		return array(
+			'already reviewed'     => array('active', 'approved', '2026-06-15 12:00:00'),
+			'rejected'             => array('active', 'rejected', '2026-06-15 12:00:00'),
+			'still a draft'        => array('active', 'in_progress', '2026-06-15 12:00:00'),
+			'window closed'        => array('active', 'submitted', '2026-07-01 00:00:01'),
+			'campaign not active'  => array('closed', 'submitted', '2026-06-15 12:00:00'),
+		);
+	}
+
+	public function test_ajax_retract_errors_when_no_reregistration_id(): void {
+		Functions\when('get_current_user_id')->justReturn(1);
+		$_POST['reregistration_id'] = 0;
+
+		$answer = $this->retract();
+
+		$this->assertInstanceOf(FrontendJsonErrorException::class, $answer);
+		$this->assertSame('Invalid request.', $answer->payload['message']);
+	}
+
+	// ==================================================================
 	// get_user_reregistrations() — returns structured array
 	// ==================================================================
 
@@ -636,6 +717,35 @@ class ReregistrationFrontendTest extends TestCase {
 		$this->assertTrue($result[0]['can_submit']);
 		$this->assertFalse($result[0]['can_download'], 'Only an approved record downloads (#2242).');
 		$this->assertArrayNotHasKey('magic_link', $result[0], 'The Record is never offered through a public link.');
+	}
+
+	/**
+	 * @dataProvider provider_review_reason
+	 */
+	public function test_the_banner_row_carries_the_reason_and_the_retract_flag(string $status, ?string $notes, string $reason, bool $can_retract): void {
+		global $wpdb;
+		$rereg = (object) array('id' => 5, 'title' => 'Campaign 2026', 'audience_name' => 'Teachers', 'start_date' => '2026-01-01', 'end_date' => '2026-06-30', 'auto_approve' => 0);
+		$wpdb->shouldReceive('get_results')->andReturn(array($rereg));
+		$audience = (object) array('id' => 5, 'name' => 'Teachers', 'parent_id' => 0);
+		$wpdb->shouldReceive('get_row')->andReturnValues(array($audience, (object) array('id' => 20, 'status' => $status, 'user_id' => 1, 'notes' => $notes)));
+
+		$result = ReregistrationFrontend::get_user_reregistrations(1);
+
+		$this->assertSame($reason, $result[0]['review_reason']);
+		$this->assertSame($can_retract, $result[0]['can_retract']);
+	}
+
+	/**
+	 * @return array<string, array{string, ?string, string, bool}>
+	 */
+	public static function provider_review_reason(): array {
+		return array(
+			'rejected shows the reason'         => array('rejected', ' Attach the document. ', 'Attach the document.', false),
+			'returned draft shows the reason'   => array('in_progress', 'Fix the RF.', 'Fix the RF.', false),
+			'approved hides its notes'          => array('approved', 'Auto-approved', '', false),
+			'submitted may be retracted'        => array('submitted', null, '', true),
+			'a draft without notes shows none'  => array('in_progress', null, '', false),
+		);
 	}
 
 	// ==================================================================

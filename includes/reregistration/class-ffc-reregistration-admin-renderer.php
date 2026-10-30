@@ -210,14 +210,6 @@ final class ReregistrationAdminRenderer {
 			admin_url( 'admin.php?page=' . $menu_slug . '&action=approve&sub_id=' . $sub->id . '&id=' . $rereg_id ),
 			'approve_submission_' . $sub->id
 		);
-		$reject_url  = wp_nonce_url(
-			admin_url( 'admin.php?page=' . $menu_slug . '&action=reject&sub_id=' . $sub->id . '&id=' . $rereg_id ),
-			'reject_submission_' . $sub->id
-		);
-		$draft_url   = wp_nonce_url(
-			admin_url( 'admin.php?page=' . $menu_slug . '&action=return_to_draft&sub_id=' . $sub->id . '&id=' . $rereg_id ),
-			'return_to_draft_submission_' . $sub->id
-		);
 
 		if ( $sub->submitted_at ) {
 			// `submitted_at` is unix UTC int since 6.6.0 (#249 sub-escopo b).
@@ -234,8 +226,9 @@ final class ReregistrationAdminRenderer {
 			$reviewed = '—';
 		}
 
-		// Statuses that can be sent back to draft for user revision.
-		$can_return_to_draft = in_array( $sub->status, array( 'submitted', 'approved', 'rejected' ), true );
+		// Statuses that can be sent back to draft for user revision. Reject and
+		// Return open the review modal, which asks for the reason (#2242).
+		$can_return_to_draft = in_array( $sub->status, ReregistrationSubmissionWriter::RETURNABLE_STATUSES, true );
 
 		// PII (#1815). The email is masked for every viewer: the clear value is fetched through the audited
 		// `ffc_reveal_pii` endpoint, so it never sits in the list's HTML. The
