@@ -212,7 +212,7 @@ $ffc_env_label   = $schedule_id > 0
 								</a>
 								<?php if ( $ffc_active ) : ?>
 									|
-									<a href="#" class="ffc-cancel-booking ffc-delete-link" data-booking-id="<?php echo esc_attr( (string) $ffc_id ); ?>" data-days="<?php echo esc_attr( (string) $ffc_days ); ?>" data-date-label="<?php echo esc_attr( $ffc_date_label ); ?>">
+									<a href="#" class="ffc-cancel-booking ffc-delete-link" data-booking-id="<?php echo esc_attr( (string) $ffc_id ); ?>" data-days="<?php echo esc_attr( (string) $ffc_days ); ?>" data-series="<?php echo esc_attr( (int) ( $booking->series_id ?? 0 ) > 0 ? '1' : '' ); ?>" data-date-label="<?php echo esc_attr( $ffc_date_label ); ?>">
 										<?php esc_html_e( 'Cancel', 'ffcertificate' ); ?>
 									</a>
 								<?php endif; ?>

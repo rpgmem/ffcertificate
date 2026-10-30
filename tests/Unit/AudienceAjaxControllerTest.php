@@ -331,6 +331,10 @@ class AudienceAjaxControllerTest extends TestCase {
 			$rows = array_values( array_filter( $this->audiences, static fn( $a ) => (int) ( $a['parent_id'] ?? 0 ) === (int) $args[1] ) );
 		} elseif ( 'wp_ffc_custom_fields' === $table && false !== strpos( $sql, 'WHERE audience_id = %d ORDER BY' ) ) {
 			$rows = $this->fields_where( array( 'audience_id' => $args[1] ) );
+		} elseif ( 'wp_ffc_audience_bookings' === $table && false !== strpos( $sql, "WHERE series_id = %d AND status = 'active'" ) ) {
+			// AudienceBookingReader::get_series() (#2243), first date first.
+			$rows = array_values( array_filter( $this->bookings, static fn( $b ) => (int) ( $b['series_id'] ?? 0 ) === (int) $args[1] && 'active' === $b['status'] ) );
+			usort( $rows, static fn( $a, $b ) => strcmp( $a['booking_date'], $b['booking_date'] ) );
 		}
 		if ( null === $rows ) {
 			$this->unexpected[] = 'get_results: ' . $sql;
@@ -545,6 +549,22 @@ class AudienceAjaxControllerTest extends TestCase {
 			),
 			$this->writes
 		);
+	}
+
+	public function test_cancel_booking_can_take_the_later_dates_of_a_series(): void {
+		$_POST          = array( 'nonce' => 'n', 'booking_id' => '10', 'reason' => 'The course ended early', 'scope' => 'following' );
+		$this->bookings = array(
+			9  => $this->booking( array( 'series_id' => 9 ) ),
+			10 => $this->booking( array( 'id' => 10, 'booking_date' => '2026-05-27', 'series_id' => 9 ) ),
+			11 => $this->booking( array( 'id' => 11, 'booking_date' => '2026-06-03', 'series_id' => 9 ) ),
+		);
+		Functions\when( '_n' )->alias( static fn( $s, $p, $n ) => 1 === $n ? $s : $p );
+
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_cancel_booking() );
+
+		$this->assertTrue( $this->responses[0]['ok'] );
+		$this->assertSame( array( 10, 11 ), $this->responses[0]['data']['cancelled'] );
+		$this->assertSame( array( array( 'id' => 10 ), array( 'id' => 11 ) ), array_column( $this->writes, 'where' ), 'The earlier date stays, and the single-booking path writes nothing more.' );
 	}
 
 	// ── cancel_bookings (bulk, #2243) ──────────────────────────────────

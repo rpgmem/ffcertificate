@@ -23088,8 +23088,8 @@ msgstr "Desativa a verificação de atualizações no GitHub — argumentos ( tr
 msgid "After a submission is edited — args ( submission_id, update_data ) — or deleted — args ( submission_id )."
 msgstr "Depois que um envio é editado — argumentos ( submission_id, update_data ) — ou excluído — argumentos ( submission_id )."
 
-msgid "Audience booking lifecycle — args ( booking_id ) on create, ( booking_id, reason ) on cancel."
-msgstr "Ciclo de vida da reserva de público-alvo — argumentos ( booking_id ) na criação, ( booking_id, reason ) no cancelamento."
+msgid "Audience booking lifecycle — args ( booking_id ) on create, ( booking_id, reason, context ) on cancel; context is empty for one booking and names the ids and dates of a weekly series cancelled together."
+msgstr "Ciclo de vida da reserva de público-alvo — argumentos ( booking_id ) na criação, ( booking_id, reason, context ) no cancelamento; context fica vazio para uma reserva e traz os ids e as datas de uma série semanal cancelada em conjunto."
 
 msgid "Before a short-URL redirect is sent — args ( record, target_url, redirect_type )."
 msgstr "Antes de o redirecionamento de uma URL curta ser enviado — argumentos ( record, target_url, redirect_type )."
@@ -30208,3 +30208,20 @@ msgstr "Repetir até deve ser ao menos uma semana depois da primeira data."
 
 msgid "Weekly repeats one day: the same day of the week, space, hours and people every week until the \"Repeat until\" date, for up to 52 weeks. The check runs the rules and the room's conflicts on each date and lists the dates that cannot be booked, with why; those dates are left out, and the rest are booked. A date in a weekly series is never booked over a conflict or a closed day, even by someone who may override: that stays a decision about one booking. Each date is an ordinary booking, with its own attendance, post-event form and cancellation, and the participants receive one e-mail that lists every date, with a calendar file holding them all."
 msgstr "Semanal repete um dia: o mesmo dia da semana, espaço, horário e pessoas toda semana até a data de \"Repetir até\", por até 52 semanas. A verificação aplica as regras e os conflitos da sala em cada data e lista as datas que não podem ser reservadas, com o motivo; essas datas ficam de fora, e as demais são reservadas. Uma data de uma série semanal nunca é reservada por cima de um conflito ou de um dia fechado, nem por quem pode sobrepor: isso continua sendo uma decisão sobre uma única reserva. Cada data é uma reserva comum, com sua própria presença, formulário pós-evento e cancelamento, e os participantes recebem um único e-mail que lista todas as datas, com um arquivo de calendário que reúne todas elas."
+
+msgid "This date is part of a weekly series. Choose whether the later dates are cancelled too; earlier dates stay."
+msgstr "Esta data faz parte de uma série semanal. Escolha se as datas seguintes também serão canceladas; as datas anteriores continuam."
+
+msgid "This date"
+msgstr "Esta data"
+
+msgid "This and following"
+msgstr "Esta e as seguintes"
+
+msgid "Cancelling a date of a series asks whether to cancel this date only or this date and every later one; earlier dates stay. The participants receive one cancellation e-mail that lists the dates cancelled, with a calendar file that takes each of them off their calendar. The bookings list asks the same."
+msgstr "Cancelar uma data de uma série pergunta se é para cancelar só esta data ou esta e todas as seguintes; as datas anteriores continuam. Os participantes recebem um único e-mail de cancelamento que lista as datas canceladas, com um arquivo de calendário que tira cada uma delas da agenda. A lista de reservas pergunta o mesmo."
+
+msgid "%d date of the series cancelled."
+msgid_plural "%d dates of the series cancelled."
+msgstr[0] "%d data da série cancelada."
+msgstr[1] "%d datas da série canceladas."

@@ -316,7 +316,7 @@ class AudienceNotificationHandlerFlowTest extends TestCase {
 			'ffcertificate_audience_booking_cancelled',
 			array( AudienceNotificationHandler::class, 'queue_booking_cancelled' ),
 			10,
-			2
+			3
 		);
 		Functions\expect( 'add_action' )->once()->with(
 			'ffcertificate_audience_booking_overridden',
@@ -473,6 +473,52 @@ class AudienceNotificationHandlerFlowTest extends TestCase {
 
 		$this->assertNull( AudienceNotificationHandler::send_booking_created_notification( 2 ) );
 		$this->assertSame( array(), $this->mailed );
+	}
+
+	public function test_a_series_cancelled_together_is_queued_once_by_its_first_date(): void {
+		$this->capture_batches();
+		$context = array(
+			'series_lead'  => 2,
+			'series_ids'   => array( 2, 3 ),
+			'series_dates' => array( '2026-05-27', '2026-06-03' ),
+		);
+
+		AudienceNotificationHandler::queue_booking_cancelled( 2, 'The course ended early', $context );
+		AudienceNotificationHandler::queue_booking_cancelled( 3, 'The course ended early', $context );
+
+		$this->assertSame(
+			array(
+				array(
+					'kind'       => 'series_cancelled',
+					'booking_id' => 2,
+					'reason'     => 'The course ended early',
+					'series_ids' => array( 2, 3 ),
+					'after'      => 0,
+				),
+			),
+			$this->scheduled
+		);
+	}
+
+	public function test_a_series_cancellation_is_one_e_mail_listing_the_dates_with_one_cancel_event_each(): void {
+		$this->store_series();
+		$this->schedules[5]->notify_on_cancellation = 1;
+
+		AudienceNotificationHandler::run_batch(
+			array(
+				'kind'       => 'series_cancelled',
+				'booking_id' => 2,
+				'reason'     => 'The course ended early',
+				'series_ids' => array( 2, 3 ),
+			)
+		);
+
+		$this->assertSame( array( 'a@example.com' ), $this->recipients() );
+		$this->assertStringContainsString( 'Weekly, 2 dates: 2026-05-27, 2026-06-03', $this->mailed[0][2], 'The e-mail lists the dates cancelled, not the earlier one.' );
+		$this->assertStringContainsString( 'METHOD:CANCEL', $this->attached[0] );
+		$this->assertSame( 2, substr_count( $this->attached[0], 'BEGIN:VEVENT' ) );
+		$this->assertStringContainsString( 'UID:ffc-booking-3@example.com', $this->attached[0], 'Each event is removed by the UID it was created with.' );
+		$this->assertStringNotContainsString( 'UID:ffc-booking-1@example.com', $this->attached[0] );
 	}
 
 	// ==================================================================

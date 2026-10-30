@@ -54,7 +54,7 @@ class AudienceNotificationHandler {
 	 */
 	public static function init(): void {
 		add_action( 'ffcertificate_audience_booking_created', array( __CLASS__, 'queue_booking_created' ) );
-		add_action( 'ffcertificate_audience_booking_cancelled', array( __CLASS__, 'queue_booking_cancelled' ), 10, 2 );
+		add_action( 'ffcertificate_audience_booking_cancelled', array( __CLASS__, 'queue_booking_cancelled' ), 10, 3 );
 		add_action( 'ffcertificate_audience_booking_overridden', array( __CLASS__, 'queue_booking_overridden' ), 10, 4 );
 		add_action( self::BATCH_HOOK, array( __CLASS__, 'run_batch' ) );
 	}
@@ -77,11 +77,31 @@ class AudienceNotificationHandler {
 	/**
 	 * Queue the e-mails of a booking just cancelled.
 	 *
-	 * @param int    $booking_id Booking ID.
-	 * @param string $reason     Cancellation reason.
+	 * Dates of a weekly series cancelled together are told in one e-mail,
+	 * queued by the first of them (#2243); the others queue nothing.
+	 *
+	 * @param int                  $booking_id Booking ID.
+	 * @param string               $reason     Cancellation reason.
+	 * @param array<string, mixed> $context    `series_lead` and `series_ids` when a series was cancelled together.
 	 * @return void
 	 */
-	public static function queue_booking_cancelled( int $booking_id, string $reason ): void {
+	public static function queue_booking_cancelled( int $booking_id, string $reason, array $context = array() ): void {
+		$lead = (int) ( $context['series_lead'] ?? 0 );
+		if ( $lead > 0 ) {
+			if ( $lead === $booking_id ) {
+				$ids = isset( $context['series_ids'] ) && is_array( $context['series_ids'] ) ? $context['series_ids'] : array( $booking_id );
+				self::schedule_batch(
+					array(
+						'kind'       => 'series_cancelled',
+						'booking_id' => $booking_id,
+						'reason'     => $reason,
+						'series_ids' => array_values( array_map( 'intval', $ids ) ),
+					)
+				);
+			}
+			return;
+		}
+
 		self::schedule_batch(
 			array(
 				'kind'       => 'cancelled',
@@ -140,6 +160,10 @@ class AudienceNotificationHandler {
 			case 'cancelled':
 				$next = self::send_booking_cancelled_notification( $booking_id, $reason, array(), array(), $after );
 				break;
+			case 'series_cancelled':
+				$series_ids = isset( $job['series_ids'] ) && is_array( $job['series_ids'] ) ? array_values( array_map( 'intval', $job['series_ids'] ) ) : array( $booking_id );
+				$next       = self::send_series_cancelled_notification( $booking_id, $reason, $series_ids, $after );
+				break;
 			case 'overridden':
 				$next = self::send_booking_overridden_notification( $booking_id, (int) ( $job['new_booking_id'] ?? 0 ), $reason, $lost_days, $after, $actor );
 				break;
@@ -156,7 +180,7 @@ class AudienceNotificationHandler {
 	/**
 	 * Schedule a batch to run on the next WP-Cron tick.
 	 *
-	 * @param array<string, mixed> $job Job: `kind`, `booking_id`, and per kind `reason`, `new_booking_id`, `lost_days`, `actor`, `after`.
+	 * @param array<string, mixed> $job Job: `kind`, `booking_id`, and per kind `reason`, `new_booking_id`, `lost_days`, `actor`, `series_ids`, `after`.
 	 * @return void
 	 */
 	private static function schedule_batch( array $job ): void {
@@ -355,6 +379,70 @@ class AudienceNotificationHandler {
 			if ( in_array( (int) $user_id, $exclude, true ) ) {
 				continue;
 			}
+			$user = get_user_by( 'id', (int) $user_id );
+			if ( ! $user || ! $user->user_email ) {
+				continue;
+			}
+
+			self::send_email(
+				$user->user_email,
+				self::render_subject( \FreeFormCertificate\Core\EmailTemplates::effective_body( 'audience-cancellation', 'subject' ), $booking_data ),
+				self::render_template( $template, $booking_data, $user ),
+				$ics_content
+			);
+		}
+
+		return $next;
+	}
+
+	/**
+	 * Send one batch of the e-mail of a weekly series cancelled from one of
+	 * its dates on (#2243): the dates cancelled, in one message, with a
+	 * cancellation `.ics` that takes each of them off the calendar by its
+	 * own UID.
+	 *
+	 * @param int        $booking_id The first date cancelled.
+	 * @param string     $reason     Cancellation reason.
+	 * @param array<int> $series_ids Every date cancelled together.
+	 * @param int        $after      The last participant id an earlier batch reached.
+	 * @return int|null The cursor of the next batch, or NULL when done.
+	 */
+	public static function send_series_cancelled_notification( int $booking_id, string $reason, array $series_ids, int $after = 0 ): ?int {
+		$context = self::cancelled_booking_context( $booking_id, $reason );
+		if ( null === $context ) {
+			return null;
+		}
+		$schedule     = $context['schedule'];
+		$booking_data = $context['data'];
+
+		$occurrences = array();
+		foreach ( $series_ids as $series_booking_id ) {
+			$occurrence = AudienceBookingReader::get_by_id( (int) $series_booking_id );
+			if ( $occurrence ) {
+				$occurrences[] = $occurrence;
+			}
+		}
+		if ( count( $occurrences ) > 1 ) {
+			$booking_data['booking_date'] = self::series_date_label( $occurrences );
+		}
+
+		if ( 0 === $after ) {
+			self::maybe_notify_admin_of_cancellation( $schedule, $booking_data );
+		}
+
+		if ( ! $schedule->notify_on_cancellation ) {
+			return null;
+		}
+
+		list( $affected_users, $next ) = self::slice_batch( AudienceBookingReader::get_booking_users( $booking_id ), $after );
+		if ( empty( $affected_users ) ) {
+			return null;
+		}
+
+		$ics_content = $schedule->include_ics ? self::generate_series_ics( $booking_data, $occurrences, 'cancelled' ) : null;
+		$template    = $schedule->email_template_cancellation ? $schedule->email_template_cancellation : self::get_default_cancellation_template();
+
+		foreach ( $affected_users as $user_id ) {
 			$user = get_user_by( 'id', (int) $user_id );
 			if ( ! $user || ! $user->user_email ) {
 				continue;
@@ -583,16 +671,22 @@ class AudienceNotificationHandler {
 	 * removes that date alone from the participant's calendar.
 	 *
 	 * @param array<string, mixed> $booking_data The first booking's tokens.
-	 * @param array<int, object>   $series       The active occurrences.
+	 * @param array<int, object>   $series       The occurrences.
+	 * @param string               $action       `created`, or `cancelled` for a cancellation.
 	 * @phpstan-param list<object{id: numeric-string, booking_date: string, start_time: string, end_time: string}> $series
 	 * @return string
 	 */
-	private static function generate_series_ics( array $booking_data, array $series ): string {
+	private static function generate_series_ics( array $booking_data, array $series, string $action = 'created' ): string {
+		$summary = (string) $booking_data['description'];
+		if ( 'cancelled' === $action ) {
+			$summary = '[' . __( 'CANCELLED', 'ffcertificate' ) . '] ' . $summary;
+		}
+
 		$events = array();
 		foreach ( $series as $occurrence ) {
 			$events[] = array(
 				'uid'         => 'ffc-booking-' . (int) $occurrence->id,
-				'summary'     => $booking_data['description'],
+				'summary'     => $summary,
 				'description' => $booking_data['description'],
 				'location'    => $booking_data['environment_name'],
 				'date'        => (string) $occurrence->booking_date,
@@ -601,7 +695,7 @@ class AudienceNotificationHandler {
 			);
 		}
 
-		return \FreeFormCertificate\Scheduling\IcsGenerator::generate_many( $events, 'REQUEST' );
+		return \FreeFormCertificate\Scheduling\IcsGenerator::generate_many( $events, 'cancelled' === $action ? 'CANCEL' : 'REQUEST' );
 	}
 
 	/**

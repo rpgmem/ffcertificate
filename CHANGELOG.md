@@ -25,6 +25,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Reregistration: review at scale** (#2242). The submissions list pages 50 at a time, searches by CPF/RF through the hash as well as name and e-mail, filters by audience and by "not finished", and each stat card is a filter link. Export CSV follows the filters; a bulk reminder says how many were skipped or failed, and why nothing went out when blocked.
 - **Reregistration: the form saves itself and warns before losing changes** (#2242). The draft is saved 5 s after the last change; leaving the page or Cancel with unsaved changes asks first. The work-hours table scrolls sideways on a phone with an edge shadow.
 - **Audience Calendars: a weekly booking for up to 52 weeks in one dialog** (#2243). Weekly repeats a day until a chosen date; the check lists, per date, the rules or room clashes that leave it out, and the rest are booked as ordinary bookings tied by `series_id`. Participants get one e-mail listing every date, with one calendar event per date.
+- **Audience Calendars: cancel a date of a weekly series alone or with every later date** (#2243). The participant's cancel and the bookings list ask which; the participants get one cancellation e-mail listing the dates, with a calendar file that removes each. The cancel hook gains a third `context` argument.
 
 ### Changed
 

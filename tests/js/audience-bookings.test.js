@@ -161,6 +161,20 @@ describe('ffc-audience-bookings — cancelBooking', () => {
 		expect(api.renderCalendar).toHaveBeenCalled();
 	});
 
+	it('sends the series scope the dialog chose and shows how many dates went (#2243)', async () => {
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue({ choice: 'following', reason: '' });
+		vi.spyOn(window, 'prompt').mockReturnValue('Course ended');
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true, cancelled: [1, 5], message: '2 dates of the series cancelled.' });
+
+		api.loadDayBookings(DATE);
+		window.$('#ffc-day-bookings .ffc-cancel-booking[data-id="1"]').trigger('click');
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		expect(restSpy.mock.calls[0][1].data.scope).toBe('following');
+		expect(alertSpy).toHaveBeenCalledWith('2 dates of the series cancelled.');
+	});
+
 	it('alerts the server message when the cancel reports failure', async () => {
 		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(true);
 		vi.spyOn(window, 'prompt').mockReturnValue('reason');

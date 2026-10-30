@@ -1088,6 +1088,19 @@
     margin-top: var(--ffc-spacing-lg);
 }
 
+/* A choice before the confirm (#2243): the segmented control, its legend
+   read as the field's label. */
+.ffc-shortcode .ffc-override-choice {
+    display: block;
+    margin-top: var(--ffc-spacing-lg);
+}
+
+.ffc-shortcode .ffc-override-choice legend {
+    margin-bottom: var(--ffc-spacing-2xs);
+    padding: 0;
+    font-weight: 600;
+}
+
 .ffc-shortcode .ffc-override-countdown {
     margin: var(--ffc-spacing-lg) 0 0;
     color: var(--ffc-text-muted);
