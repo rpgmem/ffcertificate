@@ -700,3 +700,95 @@ describe('ffc-audience-booking-form — the dialog of #2008', () => {
 		expect(window.$('#ffc-conflict-error').prop('hidden')).toBe(false);
 	});
 });
+
+describe('ffc-audience-booking-form — a weekly series (#2243)', () => {
+	beforeEach(() => {
+		setValidAudienceForm();
+		window.$('input[name="booking_span"][value="weekly"]').prop('checked', true);
+		window.$('#booking-repeat-until').val('2026-07-01');
+		api.setRangeOptions(api.isRange());
+	});
+
+	const preview = {
+		success: true,
+		preview: true,
+		bookable: 3,
+		occurrences: [
+			{ date: '2026-06-10', label: '10/06/2026', problems: [] },
+			{ date: '2026-06-17', label: '17/06/2026', problems: [{ code: 'holiday', message: 'This date is a holiday.' }] },
+			{ date: '2026-06-24', label: '24/06/2026', problems: [] },
+			{ date: '2026-07-01', label: '01/07/2026', problems: [] },
+		],
+	};
+
+	it('shows the last day of the series and hides the range fields', () => {
+		expect(window.$('#booking-repeat-group').prop('hidden')).toBe(false);
+		expect(window.$('#booking-end-date-group').prop('hidden')).toBe(true);
+		expect(api.isWeekly()).toBe(true);
+	});
+
+	it('checks every date, lists the ones left out and moves to create', async () => {
+		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue(preview);
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+
+		const sent = restSpy.mock.calls[0][1].data;
+		expect(restSpy.mock.calls[0][0]).toContain('/bookings');
+		expect(sent.preview).toBe(1);
+		expect(sent.repeat_until).toBe('2026-07-01');
+		const notice = window.$('#ffc-conflict-error');
+		expect(notice.prop('hidden')).toBe(false);
+		expect(notice.text()).toContain('17/06/2026: This date is a holiday.');
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('create');
+	});
+
+	it('creates the series leaving out the dates the check listed', async () => {
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const restSpy = vi.spyOn(window.FFC, 'rest')
+			.mockResolvedValueOnce(preview)
+			.mockResolvedValueOnce({ success: true, message: '3 weekly bookings created.' });
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+
+		const sent = restSpy.mock.calls[1][1].data;
+		expect(sent.preview).toBeUndefined();
+		expect(sent.skip_dates).toEqual(['2026-06-17']);
+		expect(alertSpy).toHaveBeenCalledWith('3 weekly bookings created.');
+		expect(api.closeModals).toHaveBeenCalled();
+	});
+
+	it('asks for a new check when a date changed since the last one', async () => {
+		vi.spyOn(window.FFC, 'rest')
+			.mockResolvedValueOnce(preview)
+			.mockRejectedValueOnce({ xhr: { responseJSON: Object.assign({}, preview, { success: false, code: 'series_changed', bookable: 2 }) } });
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve()).then(() => Promise.resolve());
+
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('check');
+		expect(window.$('#ffc-conflict-error').text()).toContain('2 of 4');
+	});
+
+	it('refuses to move on when no date can be booked', async () => {
+		vi.spyOn(window.FFC, 'rest').mockResolvedValue(Object.assign({}, preview, { bookable: 0 }));
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('check');
+	});
+
+	it('needs a last day at least a week after the first and within the cap', () => {
+		const restSpy = vi.spyOn(window.FFC, 'rest');
+		window.$('#booking-repeat-until').val('2026-06-12');
+		api.submitBooking();
+		window.$('#booking-repeat-until').val('2028-01-01');
+		api.submitBooking();
+		window.$('#booking-repeat-until').val('');
+		api.submitBooking();
+
+		expect(restSpy).not.toHaveBeenCalled();
+	});
+});

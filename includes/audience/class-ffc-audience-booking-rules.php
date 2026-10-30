@@ -75,6 +75,12 @@ final class AudienceBookingRules {
 	public const OVERRIDE_REASON_MAX = 300;
 
 	/**
+	 * The most occurrences a weekly series may hold (#2243): a year of one
+	 * weekday, enough for a semester or a school year in one dialog.
+	 */
+	public const SERIES_MAX_WEEKS = 52;
+
+	/**
 	 * The longest range one booking may cover, clamped on read as well as on
 	 * save, so a value written by hand still lands between 1 and a year.
 	 *
@@ -129,6 +135,44 @@ final class AudienceBookingRules {
 		$end   = new \DateTimeImmutable( $end_date, $utc );
 
 		return (int) $start->diff( $end )->days + 1;
+	}
+
+	/**
+	 * The dates of a weekly series: the first date and the same weekday every
+	 * week after it, up to and including `$until` (#2243).
+	 *
+	 * Bounded by {@see self::SERIES_MAX_WEEKS} before anything is built, so
+	 * an absurd last date is refused by the caller from the count alone.
+	 *
+	 * @param string $first_date First occurrence (Y-m-d).
+	 * @param string $until      Last day the series may reach (Y-m-d), after the first.
+	 * @return list<string>
+	 */
+	public static function weekly_dates( string $first_date, string $until ): array {
+		$utc   = new \DateTimeZone( 'UTC' );
+		$day   = new \DateTimeImmutable( $first_date, $utc );
+		$last  = new \DateTimeImmutable( $until, $utc );
+		$dates = array();
+
+		for ( $week = 0; $week < self::SERIES_MAX_WEEKS && $day <= $last; $week++ ) {
+			$dates[] = $day->format( 'Y-m-d' );
+			$day     = $day->modify( '+7 days' );
+		}
+
+		return $dates;
+	}
+
+	/**
+	 * How many occurrences a weekly series from `$first_date` to `$until`
+	 * would hold, without building them: a date difference, as
+	 * {@see self::range_length()} is.
+	 *
+	 * @param string $first_date First occurrence (Y-m-d).
+	 * @param string $until      Last day the series may reach (Y-m-d), on or after the first.
+	 * @return int
+	 */
+	public static function weekly_count( string $first_date, string $until ): int {
+		return intdiv( self::range_length( $first_date, $until ) - 1, 7 ) + 1;
 	}
 
 	/**

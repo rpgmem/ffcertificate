@@ -529,6 +529,37 @@ class AudienceBookingWriter {
 	}
 
 	/**
+	 * Tie the occurrences of a weekly series to its first booking (#2243).
+	 *
+	 * Run once every occurrence is in, so a series is never left half tied:
+	 * the first id is the series id, written on all of them, itself included.
+	 *
+	 * @param array<int> $booking_ids The occurrences, first date first.
+	 * @return bool Whether every occurrence now carries the series id.
+	 */
+	public static function assign_series( array $booking_ids ): bool {
+		$ids = array_values( array_filter( array_map( 'intval', $booking_ids ), static fn( int $id ): bool => $id > 0 ) );
+		if ( count( $ids ) < 2 ) {
+			return false;
+		}
+
+		$wpdb         = self::db();
+		$placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
+		$sql          = $wpdb->prepare(
+			"UPDATE %i SET series_id = %d WHERE id IN ({$placeholders})",
+			...array_merge( array( self::get_table_name(), $ids[0] ), $ids )
+		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The argument is the string $wpdb->prepare() returned above; the sniff cannot follow a prepared string across an assignment.
+		$changed = null === $sql ? false : $wpdb->query( $sql );
+
+		foreach ( $ids as $id ) {
+			static::cache_delete( "id_{$id}" );
+		}
+
+		return count( $ids ) === $changed;
+	}
+
+	/**
 	 * Delete a booking
 	 *
 	 * @param int $id Booking ID.

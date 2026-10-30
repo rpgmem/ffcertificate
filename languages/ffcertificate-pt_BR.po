@@ -27588,8 +27588,8 @@ msgid "The last day must come after the first."
 msgstr "O último dia deve vir depois do primeiro."
 
 #: includes/settings/views/documentation/scheduling-audiences.php
-msgid "The booking dialog asks when, where and for whom. One day or Several days sets the span; several days adds the last day, how the hours read on each day and the switch that skips blocked days. Audiences are ticked in a searchable list that shows each one's colour and how many people a booking for it reaches, a person in several sub-audiences counted once; ticking an audience ticks its sub-audiences too. One button checks the conflicts and, once the check passes, creates the booking; changing the date, the times, the space or who it is for asks for a new check. On a phone the dialog rises from the bottom of the screen and the audience list opens as a screen of its own."
-msgstr "O diálogo de reserva pergunta quando, onde e para quem. Um dia ou Vários dias define a duração; vários dias acrescenta o último dia, como o horário vale em cada dia e o botão que pula os dias bloqueados. Os públicos-alvo são marcados numa lista com busca que mostra a cor de cada um e quantas pessoas uma reserva para ele alcança, contando uma só vez quem está em vários subpúblicos; marcar um público-alvo marca também os seus subpúblicos. Um só botão verifica os conflitos e, passada a verificação, cria a reserva; mudar a data, o horário, o espaço ou para quem é pede uma nova verificação. No celular o diálogo sobe da parte de baixo da tela e a lista de públicos-alvo abre como uma tela própria."
+msgid "The booking dialog asks when, where and for whom. One day, Several days or Weekly sets the span; several days adds the last day, how the hours read on each day and the switch that skips blocked days, and weekly adds the last day the series may reach. Audiences are ticked in a searchable list that shows each one's colour and how many people a booking for it reaches, a person in several sub-audiences counted once; ticking an audience ticks its sub-audiences too. One button checks the conflicts and, once the check passes, creates the booking; changing the date, the times, the space or who it is for asks for a new check. On a phone the dialog rises from the bottom of the screen and the audience list opens as a screen of its own."
+msgstr "O diálogo de reserva pergunta quando, onde e para quem. Um dia, Vários dias ou Semanal define a duração; vários dias acrescenta o último dia, como o horário vale em cada dia e o botão que pula os dias bloqueados, e semanal acrescenta o último dia que a série pode alcançar. Os públicos-alvo são marcados numa lista com busca que mostra a cor de cada um e quantas pessoas uma reserva para ele alcança, contando uma só vez quem está em vários subpúblicos; marcar um público-alvo marca também os seus subpúblicos. Um só botão verifica os conflitos e, passada a verificação, cria a reserva; mudar a data, o horário, o espaço ou para quem é pede uma nova verificação. No celular o diálogo sobe da parte de baixo da tela e a lista de públicos-alvo abre como uma tela própria."
 
 #: includes/settings/views/documentation/feature-date-messages.php
 msgid "An announcement to audiences reads only their members, sub-audiences included, so its run and its preview never list anyone outside them; an announcement to everyone reads every account."
@@ -30153,3 +30153,58 @@ msgid "You will no longer see %d upcoming booking of this group, nor be expected
 msgid_plural "You will no longer see %d upcoming bookings of this group, nor be expected at them."
 msgstr[0] "Você deixará de ver %d próxima reserva deste grupo e não será mais esperado nela."
 msgstr[1] "Você deixará de ver %d próximas reservas deste grupo e não será mais esperado nelas."
+
+msgid "A weekly series repeats one day. Choose one day, not several."
+msgstr "Uma série semanal repete um dia. Escolha um dia, não vários."
+
+msgid "Repeat until must be a valid date after the first one."
+msgstr "Repetir até deve ser uma data válida depois da primeira."
+
+msgid "A weekly series can repeat for at most %d weeks."
+msgstr "Uma série semanal pode se repetir por no máximo %d semanas."
+
+msgid "Some dates changed since the check. Review the list and confirm again."
+msgstr "Algumas datas mudaram desde a verificação. Revise a lista e confirme de novo."
+
+msgid "No date of the series can be booked."
+msgstr "Nenhuma data da série pode ser reservada."
+
+msgid "%d weekly booking created."
+msgid_plural "%d weekly bookings created."
+msgstr[0] "%d reserva semanal criada."
+msgstr[1] "%d reservas semanais criadas."
+
+msgid "These dates could not be booked: %s."
+msgstr "Estas datas não puderam ser reservadas: %s."
+
+msgid "Weekly, %1$d date: %2$s"
+msgid_plural "Weekly, %1$d dates: %2$s"
+msgstr[0] "Semanal, %1$d data: %2$s"
+msgstr[1] "Semanal, %1$d datas: %2$s"
+
+msgid "Weekly"
+msgstr "Semanal"
+
+msgid "Repeat until"
+msgstr "Repetir até"
+
+msgid "Every week on the same day and hours, for up to %d weeks. The check lists the dates that cannot be booked; they are left out."
+msgstr "Toda semana no mesmo dia e horário, por até %d semanas. A verificação lista as datas que não podem ser reservadas; elas ficam de fora."
+
+msgid "%1$s, every week until %2$s"
+msgstr "%1$s, toda semana até %2$s"
+
+msgid "%1$d of %2$d dates can be booked."
+msgstr "%1$d de %2$d datas podem ser reservadas."
+
+msgid "These dates will be left out:"
+msgstr "Estas datas ficarão de fora:"
+
+msgid "Choose until when the booking repeats."
+msgstr "Escolha até quando a reserva se repete."
+
+msgid "Repeat until must be at least a week after the first date."
+msgstr "Repetir até deve ser ao menos uma semana depois da primeira data."
+
+msgid "Weekly repeats one day: the same day of the week, space, hours and people every week until the \"Repeat until\" date, for up to 52 weeks. The check runs the rules and the room's conflicts on each date and lists the dates that cannot be booked, with why; those dates are left out, and the rest are booked. A date in a weekly series is never booked over a conflict or a closed day, even by someone who may override: that stays a decision about one booking. Each date is an ordinary booking, with its own attendance, post-event form and cancellation, and the participants receive one e-mail that lists every date, with a calendar file holding them all."
+msgstr "Semanal repete um dia: o mesmo dia da semana, espaço, horário e pessoas toda semana até a data de \"Repetir até\", por até 52 semanas. A verificação aplica as regras e os conflitos da sala em cada data e lista as datas que não podem ser reservadas, com o motivo; essas datas ficam de fora, e as demais são reservadas. Uma data de uma série semanal nunca é reservada por cima de um conflito ou de um dia fechado, nem por quem pode sobrepor: isso continua sendo uma decisão sobre uma única reserva. Cada data é uma reserva comum, com sua própria presença, formulário pós-evento e cancelamento, e os participantes recebem um único e-mail que lista todas as datas, com um arquivo de calendário que reúne todas elas."

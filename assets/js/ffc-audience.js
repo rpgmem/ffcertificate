@@ -197,7 +197,7 @@
             });
 
             // The last day changes the heading and the continuous hint (#1946).
-            $('#booking-end-date').on('change', function() {
+            $('#booking-end-date, #booking-repeat-until').on('change', function() {
                 api.setRangeOptions(api.isRange());
             });
 

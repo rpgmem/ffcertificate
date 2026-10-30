@@ -201,6 +201,14 @@ class AudienceNotificationHandler {
 			return null;
 		}
 
+		// A weekly series is announced once, by its first booking, with
+		// every date (#2243); the other occurrences send nothing.
+		$series_id = (int) ( $booking->series_id ?? 0 );
+		if ( $series_id > 0 && $series_id !== $booking_id ) {
+			return null;
+		}
+		$series = $series_id > 0 ? AudienceBookingReader::get_series( $series_id ) : array();
+
 		$environment = AudienceEnvironmentRepository::get_by_id( (int) $booking->environment_id );
 		if ( ! $environment ) {
 			return null;
@@ -235,6 +243,9 @@ class AudienceNotificationHandler {
 			'description'       => $booking->description,
 			'creator_name'      => $creator_name,
 		);
+		if ( count( $series ) > 1 ) {
+			$booking_data['booking_date'] = self::series_date_label( $series );
+		}
 
 		// Get audiences for the booking.
 		$audiences                 = AudienceBookingReader::get_booking_audiences( $booking_id );
@@ -265,7 +276,7 @@ class AudienceNotificationHandler {
 		// Generate ICS if enabled.
 		$ics_content = null;
 		if ( $schedule->include_ics ) {
-			$ics_content = self::generate_ics( $booking_data, 'created' );
+			$ics_content = count( $series ) > 1 ? self::generate_series_ics( $booking_data, $series ) : self::generate_ics( $booking_data, 'created' );
 		}
 
 		// Get email template or use default.
@@ -562,6 +573,52 @@ class AudienceNotificationHandler {
 				)
 			),
 			$method
+		);
+	}
+
+	/**
+	 * One `.ics` holding every occurrence of a weekly series (#2243).
+	 *
+	 * Each event keeps its occurrence's own UID, so cancelling one date later
+	 * removes that date alone from the participant's calendar.
+	 *
+	 * @param array<string, mixed> $booking_data The first booking's tokens.
+	 * @param array<int, object>   $series       The active occurrences.
+	 * @phpstan-param list<object{id: numeric-string, booking_date: string, start_time: string, end_time: string}> $series
+	 * @return string
+	 */
+	private static function generate_series_ics( array $booking_data, array $series ): string {
+		$events = array();
+		foreach ( $series as $occurrence ) {
+			$events[] = array(
+				'uid'         => 'ffc-booking-' . (int) $occurrence->id,
+				'summary'     => $booking_data['description'],
+				'description' => $booking_data['description'],
+				'location'    => $booking_data['environment_name'],
+				'date'        => (string) $occurrence->booking_date,
+				'start_time'  => (string) $occurrence->start_time,
+				'end_time'    => (string) $occurrence->end_time,
+			);
+		}
+
+		return \FreeFormCertificate\Scheduling\IcsGenerator::generate_many( $events, 'REQUEST' );
+	}
+
+	/**
+	 * Every date of a weekly series, for a message (#2243).
+	 *
+	 * @param array<int, object> $series The active occurrences.
+	 * @phpstan-param list<object{id: numeric-string, booking_date: string, start_time: string, end_time: string}> $series
+	 * @return string
+	 */
+	private static function series_date_label( array $series ): string {
+		$dates = array_map( static fn( object $occurrence ): string => self::format_date( (string) $occurrence->booking_date ), $series );
+
+		return sprintf(
+			/* translators: 1: how many dates, 2: the dates, comma-separated. */
+			_n( 'Weekly, %1$d date: %2$s', 'Weekly, %1$d dates: %2$s', count( $dates ), 'ffcertificate' ),
+			count( $dates ),
+			implode( ', ', $dates )
 		);
 	}
 

@@ -121,6 +121,7 @@ class AudienceRestControllerTest extends TestCase {
 		});
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $number ) => 1 === (int) $number ? $single : $plural );
 		Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
 		Functions\when( 'sanitize_text_field' )->alias( function( $str ) { return trim( strip_tags( (string) $str ) ); } );
 		Functions\when( 'sanitize_textarea_field' )->alias( function( $str ) { return trim( strip_tags( (string) $str ) ); } );
@@ -268,6 +269,17 @@ class AudienceRestControllerTest extends TestCase {
 						$booking->{$key} = $value;
 					}
 					return 1;
+				}
+				if ( false !== strpos( (string) $sql, 'SET series_id = %d' ) ) {
+					// AudienceBookingWriter::assign_series() (#2243).
+					$bound          = $this->bound( (string) $sql );
+					$series_id      = (int) $bound[2];
+					$ids            = array_map( 'intval', array_slice( $bound, 3 ) );
+					$this->writes[] = array( 'series', 'wp_ffc_audience_bookings', array( 'series_id' => $series_id, 'ids' => $ids ) );
+					foreach ( $ids as $id ) {
+						$this->bookings[ $id ]->series_id = $series_id;
+					}
+					return count( $ids );
 				}
 				return $this->unknown( 'query', (string) $sql );
 			}
@@ -1280,6 +1292,137 @@ class AudienceRestControllerTest extends TestCase {
 			array( array( 'booking_id' => 42, 'audience_id' => 1 ) ),
 			$this->written( 'insert', 'wp_ffc_audience_booking_audiences' )
 		);
+	}
+
+	// ------------------------------------------------------------------
+	// Weekly series (#2243)
+	// ------------------------------------------------------------------
+
+	/**
+	 * A weekly series request: Wednesday 2026-04-01 at 09:00, repeating.
+	 *
+	 * @param array<string, mixed> $extra Parameters to add or change.
+	 */
+	private function series_request( array $extra = array() ): object {
+		return $this->make_request(
+			$extra + array(
+				'environment_id' => 10,
+				'booking_date'   => '2026-04-01',
+				'start_time'     => '09:00',
+				'end_time'       => '10:00',
+				'booking_type'   => 'audience',
+				'description'    => 'A sufficiently long description for booking',
+				'is_all_day'     => false,
+				'audience_ids'   => array( 1 ),
+				'user_ids'       => array(),
+				'repeat_until'   => '2026-04-22',
+			)
+		);
+	}
+
+	public function test_a_series_preview_lists_each_date_and_writes_nothing(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		$this->environment( 10, 20 );
+		$this->booking( 99, 10, '2026-04-15', '09:30', '11:00' );
+
+		$result = ( new AudienceRestController() )->create_booking( $this->series_request( array( 'preview' => true ) ) );
+
+		$this->assertSame( 200, $result->get_status() );
+		$data = $result->get_data();
+		$this->assertTrue( $data['preview'] );
+		$this->assertSame( array( '2026-04-01', '2026-04-08', '2026-04-15', '2026-04-22' ), array_column( $data['occurrences'], 'date' ) );
+		$this->assertSame( 3, $data['bookable'] );
+		$this->assertSame( array( 'conflict' ), array_column( $data['occurrences'][2]['problems'], 'code' ), 'The clashing date says why.' );
+		$this->assertSame( array(), $data['occurrences'][0]['problems'] );
+		$this->assertSame( array(), $this->writes, 'A preview books nothing.' );
+	}
+
+	public function test_a_series_books_the_free_dates_ties_them_and_announces_each(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		$actions = array();
+		Functions\when( 'do_action' )->alias(
+			static function ( $hook, ...$args ) use ( &$actions ) {
+				$actions[] = array( $hook, $args );
+			}
+		);
+		$this->environment( 10, 20 );
+		$this->booking( 99, 10, '2026-04-15', '09:30', '11:00' );
+		$this->next_booking_id = 100;
+
+		$result = ( new AudienceRestController() )->create_booking( $this->series_request( array( 'skip_dates' => array( '2026-04-15' ) ) ) );
+
+		$this->assertSame( 201, $result->get_status() );
+		$data = $result->get_data();
+		$this->assertSame( array( 100, 101, 102 ), $data['booking_ids'] );
+		$this->assertSame( array( '2026-04-01', '2026-04-08', '2026-04-22' ), array( $this->bookings[100]->booking_date, $this->bookings[101]->booking_date, $this->bookings[102]->booking_date ) );
+		$this->assertSame( array( array( 'series_id' => 100, 'ids' => array( 100, 101, 102 ) ) ), $this->written( 'series', 'wp_ffc_audience_bookings' ) );
+		$created = array_values( array_filter( $actions, static fn( $a ) => 'ffcertificate_audience_booking_created' === $a[0] ) );
+		$this->assertSame( array( array( 100 ), array( 101 ), array( 102 ) ), array_column( $created, 1 ), 'Each occurrence is announced to listeners; the e-mail goes once.' );
+		$this->assertStringContainsString( '3 weekly bookings created', $data['message'] );
+	}
+
+	public function test_a_date_that_went_wrong_since_the_preview_books_nothing(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		$this->environment( 10, 20 );
+		$this->booking( 99, 10, '2026-04-15', '09:30', '11:00' );
+
+		// The booker was shown a free series and did not skip the 15th.
+		$result = ( new AudienceRestController() )->create_booking( $this->series_request() );
+
+		$this->assertSame( 409, $result->get_status() );
+		$this->assertSame( 'series_changed', $result->get_data()['code'] );
+		$this->assertSame( 3, $result->get_data()['bookable'] );
+		$this->assertSame( array(), $this->writes );
+	}
+
+	public function test_a_series_never_takes_a_closed_date_even_for_a_bypass_holder(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		$this->caps = array( 'manage_options', 'ffc_bypass_audiences' );
+		$this->environment( 10, 20 );
+		$this->global_holidays = array( array( 'date' => '2026-04-08', 'description' => 'Holiday' ) );
+
+		$result = ( new AudienceRestController() )->create_booking( $this->series_request( array( 'preview' => true ) ) );
+
+		$this->assertSame( array( 'holiday' ), array_column( $result->get_data()['occurrences'][1]['problems'], 'code' ) );
+		$this->assertSame( 3, $result->get_data()['bookable'] );
+	}
+
+	public function test_a_series_longer_than_the_cap_is_refused_before_anything_is_built(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		$this->environment( 10, 20 );
+
+		$result = ( new AudienceRestController() )->create_booking( $this->series_request( array( 'repeat_until' => '2031-01-01' ) ) );
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertSame( 'series_too_long', $result->get_data()['code'] );
+		$this->assertStringContainsString( '52', $result->get_data()['message'] );
+		$this->assertSame( array(), $this->preparedWith( 'WHERE environment_id = %d' ), 'No date was checked.' );
+	}
+
+	public function test_a_series_needs_a_last_day_after_the_first_and_one_day_not_a_range(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		$this->environment( 10, 20 );
+
+		$before = ( new AudienceRestController() )->create_booking( $this->series_request( array( 'repeat_until' => '2026-04-01' ) ) );
+		$range  = ( new AudienceRestController() )->create_booking( $this->series_request( array( 'end_date' => '2026-04-03' ) ) );
+
+		$this->assertSame( 400, $before->get_status() );
+		$this->assertStringContainsString( 'Repeat until', $before->get_data()['message'] );
+		$this->assertSame( 400, $range->get_status() );
+		$this->assertStringContainsString( 'repeats one day', $range->get_data()['message'] );
+	}
+
+	public function test_a_series_with_every_date_skipped_is_refused(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		$this->environment( 10, 20 );
+
+		$result = ( new AudienceRestController() )->create_booking(
+			$this->series_request( array( 'repeat_until' => '2026-04-08', 'skip_dates' => array( '2026-04-01', '2026-04-08' ) ) )
+		);
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertSame( 'series_empty', $result->get_data()['code'] );
+		$this->assertSame( array(), $this->written( 'insert', 'wp_ffc_audience_bookings' ) );
 	}
 
 	// ------------------------------------------------------------------

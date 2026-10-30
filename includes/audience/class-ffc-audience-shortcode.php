@@ -399,6 +399,7 @@ class AudienceShortcode {
 									'options' => array(
 										'single' => __( 'One day', 'ffcertificate' ),
 										'range'  => __( 'Several days', 'ffcertificate' ),
+										'weekly' => __( 'Weekly', 'ffcertificate' ),
 									),
 									'value'   => 'single',
 									'size'    => 'lg',
@@ -410,6 +411,18 @@ class AudienceShortcode {
 							<div class="ffc-form-group" id="booking-end-date-group" hidden>
 								<label for="booking-end-date"><?php esc_html_e( 'Until', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 								<input type="date" name="end_date" id="booking-end-date">
+							</div>
+
+							<?php // The same day of the week and hours, up to a year (#2243). ?>
+							<div class="ffc-form-group" id="booking-repeat-group" hidden>
+								<label for="booking-repeat-until"><?php esc_html_e( 'Repeat until', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
+								<input type="date" name="repeat_until" id="booking-repeat-until" aria-describedby="booking-repeat-hint">
+								<span class="ffc-booking-choice-hint" id="booking-repeat-hint">
+									<?php
+									/* translators: %d: the most weeks a series may repeat. */
+									echo esc_html( sprintf( __( 'Every week on the same day and hours, for up to %d weeks. The check lists the dates that cannot be booked; they are left out.', 'ffcertificate' ), AudienceBookingRules::SERIES_MAX_WEEKS ) );
+									?>
+								</span>
 							</div>
 
 							<div class="ffc-booking-field" id="booking-all-day-group">
@@ -1022,6 +1035,7 @@ class AudienceShortcode {
 				'timeFormat'             => \FreeFormCertificate\Core\DateFormatter::resolve_time_format(),
 				'firstDayOfWeek'         => (int) get_option( 'start_of_week', 0 ),
 				'multipleAudiencesColor' => get_option( 'ffc_aud_multiple_audiences_color', '' ),
+				'seriesMaxWeeks'         => AudienceBookingRules::SERIES_MAX_WEEKS,
 				'strings'                => array_merge(
 					// The state names (#2215): the calendar's own (#2223), else the general ones, else the translated default.
 					\FreeFormCertificate\Scheduling\CalendarAppearance::strings( self::names_override( $schedules ) ),
@@ -1109,6 +1123,16 @@ class AudienceShortcode {
 						'hintSpan'               => __( 'From %1$s on %2$s to %3$s on %4$s', 'ffcertificate' ),
 						'endDateRequired'        => __( 'Choose the last day.', 'ffcertificate' ),
 						'endDateInvalid'         => __( 'The last day must come after the first.', 'ffcertificate' ),
+						// A weekly series (#2243).
+						/* translators: 1: the first date, 2: the last day the series may reach. */
+						'weeklyUntil'            => __( '%1$s, every week until %2$s', 'ffcertificate' ),
+						/* translators: 1: dates that can be booked, 2: dates in the series. */
+						'seriesBookable'         => __( '%1$d of %2$d dates can be booked.', 'ffcertificate' ),
+						'seriesSkipped'          => __( 'These dates will be left out:', 'ffcertificate' ),
+						'repeatUntilRequired'    => __( 'Choose until when the booking repeats.', 'ffcertificate' ),
+						'repeatUntilInvalid'     => __( 'Repeat until must be at least a week after the first date.', 'ffcertificate' ),
+						/* translators: %d: the most weeks a series may repeat. */
+						'repeatUntilTooLong'     => __( 'A weekly series can repeat for at most %d weeks.', 'ffcertificate' ),
 					)
 				),
 			)
