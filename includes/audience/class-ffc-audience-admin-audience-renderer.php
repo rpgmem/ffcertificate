@@ -152,6 +152,8 @@ final class AudienceAdminAudienceRenderer {
 					| <a href="<?php echo esc_url( $deactivate_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to deactivate this audience?', 'ffcertificate' ); ?>');">
 						<?php esc_html_e( 'Deactivate', 'ffcertificate' ); ?>
 					</a>
+				<?php elseif ( ! $is_active && $can_delete && AudienceBookingReader::count_for_audience_tree( (int) $audience->id ) > 0 ) : ?>
+					| <span class="description"><?php esc_html_e( 'Has bookings, kept', 'ffcertificate' ); ?></span>
 				<?php elseif ( ! $is_active && $can_delete ) : ?>
 					| <a href="<?php echo esc_url( $delete_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to permanently delete this audience?', 'ffcertificate' ); ?>');">
 						<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>

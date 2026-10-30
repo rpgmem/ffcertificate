@@ -102,6 +102,17 @@ class AudienceAdminAudience {
 			);
 			if ( isset( $messages[ $msg ] ) ) {
 				add_settings_error( 'ffc_audience', 'ffc_message', $messages[ $msg ], 'success' );
+			} elseif ( 'has_bookings' === $msg ) {
+				add_settings_error(
+					'ffc_audience',
+					'ffc_message',
+					sprintf(
+						/* translators: %d: number of bookings */
+						__( 'Not deleted: %d booking(s) name this audience or one of its groups. It stays inactive, so it takes no new bookings, and those bookings keep their participants.', 'ffcertificate' ),
+						RequestInput::get_get_int( 'bookings' )
+					),
+					'error'
+				);
 			}
 		}
 
@@ -220,6 +231,14 @@ class AudienceAdminAudience {
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( RequestInput::get_get_string( '_wpnonce' ), 'delete_audience_' . $id ) ) {
 				$aud = AudienceReader::get_by_id( $id );
+				// Deleting an audience takes its groups and memberships with it, so
+				// the rosters of its bookings would shrink after the fact (#2243).
+				// One that bookings name stays inactive instead.
+				$bookings = $aud ? AudienceBookingReader::count_for_audience_tree( $id ) : 0;
+				if ( $aud && 'active' !== $aud->status && $bookings > 0 ) {
+					wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&message=has_bookings&bookings=' . $bookings ) );
+					exit;
+				}
 				if ( $aud && 'active' !== $aud->status ) {
 					AudienceWriter::delete( $id );
 					wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&message=deleted' ) );
