@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- {$where_clause}/{$exclude_clause}/{$env_join}/{$env_where}/{$limit_clause} are fragments assembled here and {$placeholders} is %d repeated to match the bound array — prepare() takes them as one argument, which is what ReplacementsWrongNumber trips on. {$orderby} comes from sanitize_sql_orderby() and {$id} from an int cast.
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- {$where_clause}/{$exclude_clause}/{$env_join}/{$env_where}/{$limit_clause} are fragments assembled here and {$placeholders} is %d repeated to match the bound array — prepare() takes them as one argument, which is what ReplacementsWrongNumber trips on. {$orderby} comes from sanitize_sql_orderby(), {$tie_direction} from a two-way ternary and {$id} from an int cast.
 // phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Read queries for audience booking records.
@@ -139,13 +139,16 @@ class AudienceBookingReader {
 
 		$orderby_sanitized = sanitize_sql_orderby( 'b.' . $args['orderby'] . ' ' . $args['order'] );
 		$orderby           = $orderby_sanitized ? $orderby_sanitized : 'b.booking_date ASC';
-		$limit_clause      = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
+		// The time and the id break ties in the direction asked for, so a list
+		// read newest first stays newest first inside a day (#2288).
+		$tie_direction = 'DESC' === strtoupper( (string) $args['order'] ) ? 'DESC' : 'ASC';
+		$limit_clause  = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
 		$sql = "SELECT b.*, e.name as environment_name, e.schedule_id
                 FROM %i b
                 INNER JOIN %i e ON b.environment_id = e.id
                 {$where_clause}
-                ORDER BY {$orderby}, b.start_time ASC
+                ORDER BY {$orderby}, b.start_time {$tie_direction}, b.id {$tie_direction}
                 {$limit_clause}";
 
 		$prepare_args = array_merge( array( $table, $env_table ), $values );

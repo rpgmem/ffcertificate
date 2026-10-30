@@ -96,6 +96,9 @@ class SchedulingFrameControlsTest extends TestCase {
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_date' )->alias(
+			static fn( $format, $ts = null, $tz = null ) => ( new \DateTimeImmutable( '@' . (int) ( $ts ?? time() ) ) )->setTimezone( $tz ?? new \DateTimeZone( 'UTC' ) )->format( $format )
+		);
 		$this->settings = array();
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) => 'ffc_settings' === $key ? $this->settings : $default

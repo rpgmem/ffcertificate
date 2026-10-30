@@ -80,6 +80,17 @@ class AppointmentRepository extends AbstractRepository {
 	}
 
 	/**
+	 * The reader's date sort, with its time tie-breaker (#2288).
+	 *
+	 * @param string $column    Allowlisted column.
+	 * @param string $direction `ASC` or `DESC`.
+	 * @return string
+	 */
+	protected function order_clause( string $column, string $direction ): string {
+		return AppointmentReader::date_order_clause( $column, $direction );
+	}
+
+	/**
 	 * Get cache group.
 	 *
 	 * @return string

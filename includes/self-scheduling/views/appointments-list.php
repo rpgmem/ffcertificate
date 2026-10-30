@@ -325,8 +325,8 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 					<table class="form-table">
 						<tr><th><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th><td><span class="ffc-appointment-status ffc-appointment-status-<?php echo esc_attr( 'no_show' === $ffcertificate_appointment['status'] ? 'noshow' : $ffcertificate_appointment['status'] ); ?>"><?php echo esc_html( $ffcertificate_status_text ); ?></span></td></tr>
 						<tr><th><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_calendar_title ); ?></td></tr>
-						<tr><th><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['appointment_date'] ?? '-' ); ?></td></tr>
-						<tr><th><?php esc_html_e( 'Time', 'ffcertificate' ); ?></th><td><?php echo esc_html( ( $ffcertificate_appointment['start_time'] ?? '' ) . ' - ' . ( $ffcertificate_appointment['end_time'] ?? '' ) ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th><td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) ( $ffcertificate_appointment['appointment_date'] ?? '' ) ) ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Time', 'ffcertificate' ); ?></th><td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) ( $ffcertificate_appointment['start_time'] ?? '' ) ) . ' - ' . \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) ( $ffcertificate_appointment['end_time'] ?? '' ) ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Name', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_name ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'E-mail', 'ffcertificate' ); ?></th><td><?php $ffcertificate_render_pii( 'email', (string) $ffcertificate_email, \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $ffcertificate_email ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Phone', 'ffcertificate' ); ?></th><td><?php $ffcertificate_render_pii( 'phone', (string) $ffcertificate_phone, \FreeFormCertificate\Core\DocumentFormatter::mask_phone( (string) $ffcertificate_phone ) ); ?></td></tr>
@@ -345,7 +345,7 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 						<?php if ( ! empty( $ffcertificate_appointment['admin_notes'] ) ) : ?>
 						<tr><th><?php esc_html_e( 'Admin Notes', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['admin_notes'] ); ?></td></tr>
 						<?php endif; ?>
-						<tr><th><?php esc_html_e( 'Created', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['created_at'] ?? '-' ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Created', 'ffcertificate' ); ?></th><td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_datetime( (string) ( $ffcertificate_appointment['created_at'] ?? '' ), 'default', ' ', new \DateTimeZone( 'UTC' ) ) ); ?></td></tr>
 						<?php if ( ! empty( $ffcertificate_appointment['confirmation_token'] ) ) : ?>
 						<tr><th><?php esc_html_e( 'Confirmation Token', 'ffcertificate' ); ?></th><td><code><?php echo esc_html( $ffcertificate_appointment['confirmation_token'] ); ?></code></td></tr>
 						<?php endif; ?>

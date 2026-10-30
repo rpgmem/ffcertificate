@@ -134,6 +134,22 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$this->assertSame('Booking A', $result[0]->description);
 	}
 
+	public function test_get_all_breaks_date_ties_on_the_time_in_the_direction_asked_for(): void {
+		$captured = array();
+		$this->wpdb->shouldReceive('prepare')->twice()->andReturnUsing(function() use (&$captured) {
+			$captured[] = preg_replace('/\s+/', ' ', func_get_args()[0]);
+			return end($captured);
+		});
+		$this->wpdb->shouldReceive('get_results')->twice()->andReturn([]);
+
+		// The admin bookings list reads newest first (#2288).
+		AudienceBookingReader::get_all(['orderby' => 'booking_date', 'order' => 'DESC']);
+		AudienceBookingReader::get_all();
+
+		$this->assertStringContainsString('ORDER BY b.booking_date DESC, b.start_time DESC, b.id DESC', $captured[0]);
+		$this->assertStringContainsString('ORDER BY b.booking_date ASC, b.start_time ASC, b.id ASC', $captured[1]);
+	}
+
 	public function test_get_all_filters_by_environment_id(): void {
 		$captured_sql = '';
 		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {

@@ -67,6 +67,33 @@ class AppointmentReader extends AbstractRepository {
 	}
 
 	/**
+	 * A date sort breaks ties on the start time, then the id, in the same
+	 * direction, so appointments on one day keep their time order (#2288).
+	 *
+	 * @param string $column    Allowlisted column.
+	 * @param string $direction `ASC` or `DESC`.
+	 * @return string
+	 */
+	protected function order_clause( string $column, string $direction ): string {
+		return self::date_order_clause( $column, $direction );
+	}
+
+	/**
+	 * The ORDER BY clause shared by the reader and the façade, so the two
+	 * cannot sort one date differently.
+	 *
+	 * @param string $column    Allowlisted column.
+	 * @param string $direction `ASC` or `DESC`.
+	 * @return string
+	 */
+	public static function date_order_clause( string $column, string $direction ): string {
+		if ( 'appointment_date' === $column ) {
+			return "appointment_date {$direction}, start_time {$direction}, id {$direction}";
+		}
+		return "{$column} {$direction}";
+	}
+
+	/**
 	 * Find appointments by calendar ID
 	 *
 	 * @param int      $calendar_id Calendar ID.

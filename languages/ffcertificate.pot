@@ -30298,3 +30298,7 @@ msgid "Close %d old appointment? This cannot be undone in bulk."
 msgid_plural "Close %d old appointments? This cannot be undone in bulk."
 msgstr[0] ""
 msgstr[1] ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:60
+msgid "The Appointments list opens sorted by appointment date, newest first, and by start time, latest first, within a day. Dates and times use the formats set on the General tab of FFC Settings."
+msgstr ""

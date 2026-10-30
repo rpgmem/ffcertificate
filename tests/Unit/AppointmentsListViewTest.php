@@ -104,6 +104,9 @@ class AppointmentsListViewTest extends TestCase {
 		Functions\when( 'get_user_by' )->justReturn( false );
 		Functions\when( 'current_time' )->justReturn( '2026-05-01 10:00:00' );
 		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias(
+			static fn( $format, $ts = null, $tz = null ) => ( new \DateTimeImmutable( '@' . (int) ( $ts ?? time() ) ) )->setTimezone( $tz ?? new \DateTimeZone( 'UTC' ) )->format( $format )
+		);
 		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce123' );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'get_transient' )->justReturn( false );
@@ -203,7 +206,7 @@ class AppointmentsListViewTest extends TestCase {
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $sql ) {
 				// An empty WHERE leaves its separating space behind.
-				if ( 'SELECT * FROM ' . self::APPOINTMENTS . '  ORDER BY created_at DESC LIMIT 20 OFFSET 0' === $sql ) {
+				if ( 'SELECT * FROM ' . self::APPOINTMENTS . '  ORDER BY appointment_date DESC, start_time DESC, id DESC LIMIT 20 OFFSET 0' === $sql ) {
 					return array_values( $this->appointments );
 				}
 				if ( str_starts_with( $sql, 'SELECT status, COUNT(*) AS total FROM ' . self::APPOINTMENTS ) ) {
@@ -499,7 +502,7 @@ class AppointmentsListViewTest extends TestCase {
 			'start_time'       => '09:00:00',
 			'end_time'         => '10:00:00',
 			'name'             => 'Alice',
-			'created_at'       => '2026-05-01',
+			'created_at'       => '2026-05-01 14:05:00',
 			'custom_data'      => '{"field_a":"v","field_b":["x","y"]}',
 		);
 		$this->calendars[7]    = array( 'id' => 7, 'title' => 'Clinic' );
@@ -508,6 +511,11 @@ class AppointmentsListViewTest extends TestCase {
 		$this->include_view();
 		$out = ob_get_clean();
 
+		// Dates and times in the site's formats, not the stored ones (#2288).
+		$this->assertStringContainsString( '<td>20/05/2026</td>', $out );
+		$this->assertStringContainsString( '<td>09:00 - 10:00</td>', $out );
+		$this->assertStringContainsString( '<td>01/05/2026 14:05</td>', $out );
+		$this->assertStringNotContainsString( '2026-05-20', $out );
 		$this->assertStringContainsString( 'Appointment Details', $out );
 		$this->assertStringContainsString( 'Clinic', $out );
 		$this->assertStringContainsString( 'Alice', $out );

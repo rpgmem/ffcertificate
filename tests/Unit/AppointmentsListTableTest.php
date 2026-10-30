@@ -40,6 +40,9 @@ class AppointmentsListTableTest extends TestCase {
 	/** @var array<int, array<string, mixed>> Calendar rows by id. */
 	private array $calendars = array();
 
+	/** @var array<string, string>|null What `ffc_settings` answers, when a test chooses it. */
+	private ?array $settings_override = null;
+
 	/** @var list<array<string, mixed>> Rows the appointment list query answers. */
 	private array $appointment_rows = array();
 
@@ -103,10 +106,11 @@ class AppointmentsListTableTest extends TestCase {
 		// Stubbed explicitly so DateFormatter and MagicLinkHelper read the
 		// same world whatever ran before: the time format, and no
 		// verification page stored (the magic link falls back to /valid/).
+		$this->settings_override = null;
 		Functions\when( 'get_option' )->alias(
-			static function ( $key, $default = false ) {
+			function ( $key, $default = false ) {
 				if ( 'ffc_settings' === $key ) {
-					return array( 'time_format' => 'H:i' );
+					return $this->settings_override ?? array( 'time_format' => 'H:i' );
 				}
 				return $default;
 			}
@@ -425,6 +429,16 @@ class AppointmentsListTableTest extends TestCase {
 		);
 	}
 
+	public function test_date_and_created_columns_follow_the_site_formats(): void {
+		$this->settings_override = array( 'date_format' => 'custom', 'date_format_custom' => 'd-m-Y', 'time_format' => 'H\hi' );
+		$table                   = new AppointmentsListTable();
+
+		$this->assertSame( '21-10-2026', $table->column_appointment_date( array( 'appointment_date' => '2026-10-21' ) ) );
+		$this->assertSame( '01-10-2026 14h05', $table->column_created_at( array( 'created_at' => '2026-10-01 14:05:00' ) ) );
+		$this->assertSame( '-', $table->column_appointment_date( array( 'appointment_date' => '' ) ) );
+		$this->assertSame( '-', $table->column_created_at( array() ) );
+	}
+
 	public function test_column_status_known_label_and_fallback(): void {
 		$table = new AppointmentsListTable();
 
@@ -446,7 +460,7 @@ class AppointmentsListTableTest extends TestCase {
 		$where = "WHERE `calendar_id` = '9' AND `status` = 'confirmed'";
 		$this->assertSame(
 			array(
-				'SELECT * FROM ' . self::APPOINTMENTS . " {$where} ORDER BY created_at DESC LIMIT 20 OFFSET 0",
+				'SELECT * FROM ' . self::APPOINTMENTS . " {$where} ORDER BY appointment_date DESC, start_time DESC, id DESC LIMIT 20 OFFSET 0",
 				'SELECT COUNT(*) FROM ' . self::APPOINTMENTS . " {$where}",
 			),
 			$this->ran
@@ -466,12 +480,12 @@ class AppointmentsListTableTest extends TestCase {
 
 	/**
 	 * Run prepare_items() under the given query string and return the ORDER
-	 * BY column and direction the list query carried (#1770).
+	 * BY clause the list query carried (#1770, #2288).
 	 *
 	 * @param array<string, string> $query Request query vars.
-	 * @return array<int, string>
+	 * @return string
 	 */
-	private function order_for( array $query ): array {
+	private function order_for( array $query ): string {
 		unset( $_GET['orderby'], $_GET['order'] );
 		foreach ( $query as $key => $value ) {
 			$_GET[ $key ] = $value;
@@ -481,13 +495,24 @@ class AppointmentsListTableTest extends TestCase {
 		$table = new AppointmentsListTable();
 		$table->prepare_items();
 
-		$this->assertMatchesRegularExpression( '/ ORDER BY (\S+) (ASC|DESC) LIMIT 20 OFFSET 0$/', $this->ran[0] );
-		preg_match( '/ ORDER BY (\S+) (ASC|DESC) LIMIT/', $this->ran[0], $m );
-		return array( $m[1], $m[2] );
+		$this->assertMatchesRegularExpression( '/ ORDER BY (.+) LIMIT 20 OFFSET 0$/', $this->ran[0] );
+		preg_match( '/ ORDER BY (.+) LIMIT 20 OFFSET 0$/', $this->ran[0], $m );
+		return $m[1];
 	}
 
-	public function test_prepare_items_default_order_is_created_at_desc(): void {
-		$this->assertSame( array( 'created_at', 'DESC' ), $this->order_for( array() ) );
+	public function test_prepare_items_default_order_is_appointment_date_then_time_newest_first(): void {
+		$this->assertSame( 'appointment_date DESC, start_time DESC, id DESC', $this->order_for( array() ) );
+	}
+
+	public function test_a_date_sort_breaks_ties_on_the_time_in_the_same_direction(): void {
+		$this->assertSame(
+			'appointment_date ASC, start_time ASC, id ASC',
+			$this->order_for( array( 'orderby' => 'appointment_date', 'order' => 'asc' ) )
+		);
+		$this->assertSame(
+			'appointment_date DESC, start_time DESC, id DESC',
+			$this->order_for( array( 'orderby' => 'appointment_date', 'order' => 'desc' ) )
+		);
 	}
 
 	/**
@@ -503,13 +528,13 @@ class AppointmentsListTableTest extends TestCase {
 
 		$this->assertNotEmpty( $orderby );
 		foreach ( $orderby as $column ) {
-			$this->assertSame(
-				array( $column, 'ASC' ),
+			$this->assertStringStartsWith(
+				"{$column} ASC",
 				$this->order_for( array( 'orderby' => $column, 'order' => 'asc' ) ),
 				"orderby={$column}&order=asc must sort by {$column} ASC."
 			);
-			$this->assertSame(
-				array( $column, 'DESC' ),
+			$this->assertStringStartsWith(
+				"{$column} DESC",
 				$this->order_for( array( 'orderby' => $column, 'order' => 'desc' ) ),
 				"orderby={$column}&order=desc must sort by {$column} DESC."
 			);
@@ -518,11 +543,11 @@ class AppointmentsListTableTest extends TestCase {
 
 	public function test_prepare_items_ignores_an_unlisted_orderby(): void {
 		$this->assertSame(
-			array( 'created_at', 'DESC' ),
+			'appointment_date DESC, start_time DESC, id DESC',
 			$this->order_for( array( 'orderby' => 'email_encrypted', 'order' => 'asc' ) )
 		);
 		$this->assertSame(
-			array( 'created_at', 'DESC' ),
+			'appointment_date DESC, start_time DESC, id DESC',
 			$this->order_for( array( 'orderby' => 'id; DROP TABLE x', 'order' => 'asc' ) )
 		);
 	}
