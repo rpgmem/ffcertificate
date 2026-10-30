@@ -23,6 +23,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Reregistration: Reject and Return to draft carry a reason, and the member can retract** (#2242). Both open a dialog that requires a reason of 10+ characters; the member reads it on the dashboard banner and gets a new e-mail ("not approved" or "returned for revision"), and rejected members are reminded again. A member can retract an unreviewed submission while the window is open.
 - **Reregistration: a custom field keeps what was answered** (#2242). Once anybody answered it, its key, type, sensitivity and profile binding are locked and it cannot be deleted (server and editor); label, help text and options stay editable. A deactivated field's answers keep appearing in review, the Record and the CSV export.
 - **Reregistration: review at scale** (#2242). The submissions list pages 50 at a time, searches by CPF/RF through the hash as well as name and e-mail, filters by audience and by "not finished", and each stat card is a filter link. Export CSV follows the filters; a bulk reminder says how many were skipped or failed, and why nothing went out when blocked.
+- **Reregistration: the form saves itself and warns before losing changes** (#2242). The draft is saved 5 s after the last change; leaving the page or Cancel with unsaved changes asks first. The work-hours table scrolls sideways on a phone with an edge shadow.
 
 ### Changed
 
@@ -72,6 +73,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificates: the admin search and the duplicate check read indexes** (#2241). The search tries the ID, auth code, hashes and token first and scans the answers only on an install without encryption when those find nothing. A submission now looks up an earlier one once, not two or three times; with encryption, a ticket is read by its hash only.
 - **Certificates: the PDF libraries load when a page is about to need them** (#2241). jsPDF and html2canvas (about 700 KB) are fetched on the first focus in a form field, and right after the verification page or a magic link loads; a submit that arrives first waits for them. The script handles are unchanged.
 - **Certificates: verification is one lookup per kind** (#2241). `VerificationHandler` routes between `CertificateVerificationLookup`, `AppointmentVerificationLookup` and `ReregistrationVerificationLookup`; the identity-audit queries left `SubmissionReader` for `SubmissionIdentityAudit`. A parity test pins the same answers and reads.
+- **Reregistration: fewer reads per request** (#2242). A submit reads the campaign's field definitions once instead of three times, and the six one-shot steps on seeded fields read one autoloaded version option instead of six options on every admin request.
 
 ### Deprecated
 
@@ -118,6 +120,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Reregistration: one status gate and the campaign window hold on the server** (#2242). Draft and submit accept only a pending, in-progress or rejected submission, in one conditional write, so a double submit changes one row and mails once; the form opens only between the start and end on the site clock; reminders and days-left count site days; an expired campaign drops its cached rows; the import treats a draft as open and never overwrites a submission made mid-job.
 - **Reregistration: bulk Approve acts only on submissions awaiting review** (#2242). A "select all" no longer approves members who never answered; the notice says how many of the selection were skipped. The authentication code is issued on approval, deleted on Reject, and kept but hidden on Return to draft, so re-approval restores the same code.
 - **Reregistration: late joiners and child audiences get their row, invitation and reminders** (#2242). The daily run creates the submission of anyone who joined a campaign's audience (or a child audience) after activation, and saving an active campaign seeds an added audience. An invitation sent before the start names the opening date; reminders wait for the opening.
+- **Reregistration: hidden second-post fields no longer block the submit** (#2242). The workload, role and work hours of a second post are required and stored only while one is declared; a value typed before switching to "I do not hold" is dropped.
 - **A repository write no longer flushes the whole object cache** (#2241). An insert, a bulk status change or delete, a profile save or a QR-code cache write emptied every plugin's cache and, on a multisite with a persistent cache, every site's; it now flushes only the repository's group, with the full flush kept for a cache that cannot flush one.
 
 ### Security

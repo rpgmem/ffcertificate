@@ -41,6 +41,8 @@ class LoaderCapabilitiesTest extends TestCase {
 		// Constructor wiring — irrelevant here; stub so `new Loader()` is cheap.
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'register_activation_hook' )->justReturn( true );
+		// ReregistrationLoader keeps its per-request group out of a persistent cache (#2242).
+		Functions\when( 'wp_cache_add_non_persistent_groups' )->justReturn( null );
 		Functions\when( 'register_deactivation_hook' )->justReturn( true );
 	}
 

@@ -29954,3 +29954,24 @@ msgstr "Cada cartão de status leva à lista filtrada por aquele status; o cart�
 
 msgid "Export CSV exports what the list shows: the same filters, every page."
 msgstr "Exportar CSV exporta o que a lista mostra: os mesmos filtros, todas as páginas."
+
+msgid "Draft saved automatically."
+msgstr "Rascunho salvo automaticamente."
+
+msgid "Close the form? Changes not saved yet will be lost."
+msgstr "Fechar o formulário? As alterações ainda não salvas serão perdidas."
+
+msgid "Filling in the form"
+msgstr "Preenchendo o formulário"
+
+msgid "The draft saves itself 5 seconds after the member stops typing; Save Draft still saves at once. Leaving the page or pressing Cancel with changes not saved yet asks first."
+msgstr "O rascunho é salvo sozinho 5 segundos depois que o membro para de digitar; Salvar Rascunho continua salvando na hora. Sair da página ou clicar em Cancelar com alterações ainda não salvas pede confirmação antes."
+
+msgid "When the member has an approved reregistration from an earlier campaign, the form offers \"Bring previous answers\". Nothing is fetched until it is clicked; it fills only the fields this campaign also has, and every field stays editable, so the member reviews what came from the previous cycle before submitting."
+msgstr "Quando o membro tem um recadastramento aprovado de uma campanha anterior, o formulário oferece \"Trazer respostas anteriores\". Nada é buscado até o clique; só são preenchidos os campos que esta campanha também tem, e todos continuam editáveis, para que o membro revise o que veio do ciclo anterior antes de enviar."
+
+msgid "The second post's fields (its workload, role and work hours) are asked, required and stored only while the member answers that they hold another post. Answers typed before switching to \"I do not hold\" are not kept."
+msgstr "Os campos do segundo cargo (jornada, cargo e horário de trabalho) só são perguntados, exigidos e gravados enquanto o membro responde que acumula outro cargo. Respostas digitadas antes de trocar para \"Eu não tenho\" não são guardadas."
+
+msgid "On a phone the work-hours table keeps its columns and scrolls sideways; a shadow at the edge shows there is more."
+msgstr "No celular, a tabela de horários mantém as colunas e rola para o lado; uma sombra na borda mostra que há mais."

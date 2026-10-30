@@ -42,24 +42,86 @@ class ReregistrationStandardFieldsSeeder {
 	public static function register(): void {
 		add_action( 'ffc_audience_created', array( __CLASS__, 'on_audience_created' ), 10, 2 );
 		// `admin_init` rather than the activator's `plugins_loaded` chain: the
-		// new label is a translated string, and translations are loaded by
-		// then. Default priority -- nothing else depends on the order.
-		add_action( 'admin_init', array( __CLASS__, 'maybe_relabel_union' ) );
-		// Same hook and reason as the union relabel (#2225).
-		add_action( 'admin_init', array( __CLASS__, 'maybe_update_schedule_fields' ) );
-		// Same hook and reason again: the new field's label is translated.
-		add_action( 'admin_init', array( __CLASS__, 'maybe_add_edu_email_field' ) );
-		// Same hook, so the seeded rows match the definition from one request on.
-		add_action( 'admin_init', array( __CLASS__, 'maybe_validate_rf_fields' ) );
-		add_action( 'admin_init', array( __CLASS__, 'maybe_validate_cep_fields' ) );
-		// Same hook: the form must ask for the CEP before the address it fills.
-		add_action( 'admin_init', array( __CLASS__, 'maybe_move_cep_before_address' ) );
+		// labels the steps write are translated strings, and translations are
+		// loaded by then. Default priority -- nothing else depends on the order.
+		add_action( 'admin_init', array( __CLASS__, 'maybe_upgrade_seeded_fields' ) );
 	}
 
 	/**
-	 * Option flagging that the union relabel has run.
+	 * The version the seeded fields of an install have reached (#2242).
+	 *
+	 * One autoloaded option replaces the six flags the steps below used to
+	 * read on every admin request, each a query of its own because none was
+	 * autoloaded.
 	 */
-	public const UNION_RELABEL_OPTION = 'ffc_union_label_relabelled';
+	public const FIELDS_VERSION_OPTION = 'ffc_rereg_fields_version';
+
+	/**
+	 * The steps that bring seeded rows up to the current definition, by the
+	 * version each one reaches, in the order they run. A new step takes the
+	 * next number; a step never changes its number.
+	 *
+	 * @var array<int, string>
+	 */
+	private const FIELD_STEPS = array(
+		1 => 'relabel_union',
+		2 => 'update_schedule_fields',
+		3 => 'add_edu_email_field',
+		4 => 'validate_rf_fields',
+		5 => 'validate_cep_fields',
+		6 => 'move_cep_before_address_everywhere',
+	);
+
+	/**
+	 * The flag each step wrote before the version option existed, read once to
+	 * skip the steps an install already ran and then deleted.
+	 *
+	 * @var array<int, string>
+	 */
+	private const LEGACY_STEP_OPTIONS = array(
+		1 => 'ffc_union_label_relabelled',
+		2 => 'ffc_schedule_fields_updated',
+		3 => 'ffc_edu_email_field_added',
+		4 => 'ffc_rf_field_validated',
+		5 => 'ffc_cep_field_validated',
+		6 => 'ffc_cep_before_address',
+	);
+
+	/**
+	 * Run the steps the install has not reached yet, once each.
+	 *
+	 * An install whose version is current reads one autoloaded option and
+	 * returns. Each step runs once in the life of an install: a step that
+	 * finds nothing to change still counts as run, because re-running one
+	 * would undo what an operator did since (a CEP moved back, a rule
+	 * removed).
+	 *
+	 * @return void
+	 */
+	public static function maybe_upgrade_seeded_fields(): void {
+		$current = max( array_keys( self::FIELD_STEPS ) );
+		$version = (int) get_option( self::FIELDS_VERSION_OPTION, 0 );
+		if ( $version >= $current ) {
+			return;
+		}
+
+		foreach ( self::FIELD_STEPS as $step => $method ) {
+			if ( $step <= $version ) {
+				continue;
+			}
+			// An install upgraded from the per-step flags already ran the
+			// steps it flagged; they are skipped, never repeated.
+			if ( 0 === $version && get_option( self::LEGACY_STEP_OPTIONS[ $step ] ) ) {
+				continue;
+			}
+			self::$method();
+		}
+
+		update_option( self::FIELDS_VERSION_OPTION, $current, true );
+		foreach ( self::LEGACY_STEP_OPTIONS as $legacy ) {
+			delete_option( $legacy );
+		}
+	}
 
 	/**
 	 * Relabel the `sindicato` fields seeded while "Union" translated as
@@ -67,28 +129,16 @@ class ReregistrationStandardFieldsSeeder {
 	 *
 	 * A field label is stored, so the fix to the catalogue reached only the
 	 * audiences created after it. Only rows still carrying that exact label
-	 * change: one an operator renamed is a deliberate choice and stays. Runs
-	 * once; the flag is written even when nothing matched.
+	 * change: one an operator renamed is a deliberate choice and stays.
 	 *
 	 * @return void
 	 */
-	public static function maybe_relabel_union(): void {
-		if ( get_option( self::UNION_RELABEL_OPTION ) ) {
-			return;
-		}
-
+	public static function relabel_union(): void {
 		$label = __( 'Union', 'ffcertificate' );
 		foreach ( CustomFieldReader::standard_field_ids_with_label( 'sindicato', array( 'Estado' ) ) as $id ) {
 			CustomFieldWriter::update( $id, array( 'field_label' => $label ) );
 		}
-
-		update_option( self::UNION_RELABEL_OPTION, '1', false );
 	}
-
-	/**
-	 * Option flagging that the schedule-fields update has run.
-	 */
-	public const SCHEDULE_FIELDS_OPTION = 'ffc_schedule_fields_updated';
 
 	/**
 	 * The labels and the jornada options #2225 changed, applied to the rows
@@ -97,15 +147,10 @@ class ReregistrationStandardFieldsSeeder {
 	 * A row is touched only while it still carries what was shipped -- the
 	 * English source or its former pt_BR translation for a label, the former
 	 * list for the options -- so a field an operator edited stays as it is.
-	 * Runs once; the flag is written even when nothing matched.
 	 *
 	 * @return void
 	 */
-	public static function maybe_update_schedule_fields(): void {
-		if ( get_option( self::SCHEDULE_FIELDS_OPTION ) ) {
-			return;
-		}
-
+	public static function update_schedule_fields(): void {
 		$relabel = array(
 			'vinculo'          => array( __( 'Employment Bond', 'ffcertificate' ), array( 'Contrato de Trabalho' ) ),
 			'jornada'          => array( __( 'Workload or Category', 'ffcertificate' ), array( 'Work Schedule', 'Horário de Trabalho' ) ),
@@ -129,14 +174,7 @@ class ReregistrationStandardFieldsSeeder {
 				CustomFieldWriter::update( $id, array( 'field_options' => $options ) );
 			}
 		}
-
-		update_option( self::SCHEDULE_FIELDS_OPTION, '1', false );
 	}
-
-	/**
-	 * Option flagging that the @edu e-mail field has been added.
-	 */
-	public const EDU_EMAIL_FIELD_OPTION = 'ffc_edu_email_field_added';
 
 	/**
 	 * Add the `email_institucional_edu` field to every audience that already
@@ -146,16 +184,11 @@ class ReregistrationStandardFieldsSeeder {
 	 * to the definition after that reaches no existing audience on its own.
 	 * The new row takes the `sort_order` of the audience's @sme field and,
 	 * having the higher id, lands right after it. An audience that already
-	 * has the key is left alone. Runs once; the flag is written even when
-	 * nothing matched.
+	 * has the key is left alone.
 	 *
 	 * @return void
 	 */
-	public static function maybe_add_edu_email_field(): void {
-		if ( get_option( self::EDU_EMAIL_FIELD_OPTION ) ) {
-			return;
-		}
-
+	public static function add_edu_email_field(): void {
 		$definition = null;
 		foreach ( self::get_standard_fields_definition() as $def ) {
 			if ( 'email_institucional_edu' === $def['field_key'] ) {
@@ -189,67 +222,36 @@ class ReregistrationStandardFieldsSeeder {
 				);
 			}
 		}
-
-		update_option( self::EDU_EMAIL_FIELD_OPTION, '1', false );
 	}
-
-	/**
-	 * Option flagging that the seeded RF fields validate as an RF.
-	 */
-	public const RF_VALIDATION_OPTION = 'ffc_rf_field_validated';
 
 	/**
 	 * Give the seeded `rf` fields the RF format check (#2227).
 	 *
 	 * The field carried only an input mask, so a value of any length reached
 	 * the record. A row an operator gave rules of its own keeps them; only one
-	 * with none takes the format. Runs once; the flag is written even when
-	 * nothing matched.
+	 * with none takes the format.
 	 *
 	 * @return void
 	 */
-	public static function maybe_validate_rf_fields(): void {
-		if ( get_option( self::RF_VALIDATION_OPTION ) ) {
-			return;
-		}
-
+	public static function validate_rf_fields(): void {
 		foreach ( CustomFieldReader::standard_field_ids_without_rules( 'rf' ) as $id ) {
 			CustomFieldWriter::update( $id, array( 'validation_rules' => array( 'format' => 'rf' ) ) );
 		}
-
-		update_option( self::RF_VALIDATION_OPTION, '1', false );
 	}
-
-	/**
-	 * Option flagging that the seeded CEP fields validate as a CEP.
-	 */
-	public const CEP_VALIDATION_OPTION = 'ffc_cep_field_validated';
 
 	/**
 	 * Give the seeded `cep` fields the offline CEP check (#2233).
 	 *
-	 * Same shape as {@see self::maybe_validate_rf_fields()}: a row an operator
-	 * gave rules of its own keeps them; runs once, and the flag is written
-	 * even when nothing matched.
+	 * Same shape as {@see self::validate_rf_fields()}: a row an operator
+	 * gave rules of its own keeps them.
 	 *
 	 * @return void
 	 */
-	public static function maybe_validate_cep_fields(): void {
-		if ( get_option( self::CEP_VALIDATION_OPTION ) ) {
-			return;
-		}
-
+	public static function validate_cep_fields(): void {
 		foreach ( CustomFieldReader::standard_field_ids_without_rules( 'cep' ) as $id ) {
 			CustomFieldWriter::update( $id, array( 'validation_rules' => array( 'format' => 'cep' ) ) );
 		}
-
-		update_option( self::CEP_VALIDATION_OPTION, '1', false );
 	}
-
-	/**
-	 * Option flagging that the CEP was moved before the address.
-	 */
-	public const CEP_ORDER_OPTION = 'ffc_cep_before_address';
 
 	/**
 	 * Put the `cep` field right before `endereco` in every audience (#2234).
@@ -261,21 +263,15 @@ class ReregistrationStandardFieldsSeeder {
 	 * audience where `cep` already precedes `endereco` is left alone. Only the
 	 * CEP moves: the fields between the two shift down by one, and the
 	 * audience's sort orders are renumbered 0..n-1 in their existing order so
-	 * a tie cannot hide the move. Runs once; the Record PDF is unaffected,
+	 * a tie cannot hide the move. The Record PDF is unaffected,
 	 * because its template places each value by placeholder.
 	 *
 	 * @return void
 	 */
-	public static function maybe_move_cep_before_address(): void {
-		if ( get_option( self::CEP_ORDER_OPTION ) ) {
-			return;
-		}
-
+	public static function move_cep_before_address_everywhere(): void {
 		foreach ( array_keys( CustomFieldReader::standard_field_positions( 'cep' ) ) as $audience_id ) {
 			self::move_cep_before_address( (int) $audience_id );
 		}
-
-		update_option( self::CEP_ORDER_OPTION, '1', false );
 	}
 
 	/**
