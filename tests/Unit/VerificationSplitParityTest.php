@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\VerificationHandler;
 use FreeFormCertificate\Submissions\SubmissionHandler;
+use FreeFormCertificate\Tests\Support\Identifiers;
 use FreeFormCertificate\Tests\Support\LegacyVerificationHandler;
 
 /**
@@ -152,7 +153,7 @@ class VerificationSplitParityTest extends TestCase {
 			'form_id'     => '3',
 			'status'      => 'publish',
 			'email'       => 'ana@example.test',
-			'cpf_rf'      => '12345678901',
+			'cpf_rf'      => Identifiers::CPF_A,
 			'auth_code'   => 'ABCD1234EFGH',
 			'data'        => '{"name":"Ana","course":"PHP"}',
 			'magic_token' => str_repeat( 'ab', 16 ),
