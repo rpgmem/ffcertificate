@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use Brain\Monkey\Actions;
 use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -654,6 +655,13 @@ class PdfGeneratorTest extends TestCase {
 		);
 		$handler = $this->make_submission_handler( $row );
 
+		$hooked = null;
+		Actions\expectDone( 'ffcertificate_after_pdf_generation' )->once()->whenHappen(
+			static function ( $pdf_data ) use ( &$hooked ) {
+				$hooked = $pdf_data;
+			}
+		);
+
 		$result = $this->generator->generate_pdf_data( 55, $handler );
 
 		$this->assertIsArray( $result );
@@ -665,8 +673,12 @@ class PdfGeneratorTest extends TestCase {
 		// JSON `name` merged into template data and rendered.
 		$this->assertStringContainsString( 'Marina', $result['html'] );
 		$this->assertStringContainsString( 'user@example.com', $result['html'] );
+		// The payload reaches the browser, so it carries no raw answers (#2241);
+		// listeners of the hook still receive them.
+		$this->assertArrayNotHasKey( 'submission', $result );
 		// enrich adds the schedule placeholders resolved from the geofence.
-		$this->assertArrayHasKey( 'schedule', $result['submission'] );
+		$this->assertArrayHasKey( 'schedule', $hooked['submission'] );
+		$this->assertSame( 'user@example.com', $hooked['submission']['email'] );
 	}
 
 	public function test_generate_pdf_data_handles_slashed_json_and_missing_optionals(): void {
@@ -729,9 +741,9 @@ class PdfGeneratorTest extends TestCase {
 		$this->assertIsArray( $result );
 		$this->assertSame( 'Frontend Form', $result['form_title'] );
 		$this->assertStringContainsString( 'Clara', $result['html'] );
-		// Date was injected into submission data.
-		$this->assertArrayHasKey( 'fill_date', $result['submission'] );
-		$this->assertArrayHasKey( 'date', $result['submission'] );
+		// Date was injected into the data the layout reads.
+		$this->assertStringNotContainsString( '{{fill_date}}', $result['html'] );
+		$this->assertArrayNotHasKey( 'submission', $result, 'No raw answers in the browser payload (#2241).' );
 	}
 
 	public function test_generate_pdf_data_from_form_without_date(): void {
@@ -748,8 +760,7 @@ class PdfGeneratorTest extends TestCase {
 		$result = $this->generator->generate_pdf_data_from_form( array( 'name' => 'Zed' ), 11, null );
 
 		$this->assertIsArray( $result );
-		// No date passed → no fill_date injected.
-		$this->assertArrayNotHasKey( 'fill_date', $result['submission'] );
+		$this->assertArrayNotHasKey( 'submission', $result, 'No raw answers in the browser payload (#2241).' );
 		$this->assertSame( '', $result['auth_code'] ?? '' );
 	}
 

@@ -11637,9 +11637,6 @@ msgstr "Nenhum modelo encontrado."
 msgid "no title"
 msgstr "sem título"
 
-#: includes/admin/class-ffc-submissions-list.php:254
-msgid "No token"
-msgstr "Sem token"
 
 #: includes/settings/views/documentation/operations-updates.php:33
 msgid "No token or licence key."
@@ -15160,8 +15157,8 @@ msgid "See the REST API"
 msgstr "Consulte a API REST"
 
 #: includes/settings/views/documentation/submissions-list.php:40
-msgid "See the submissions list and the PDF button (read-only)."
-msgstr "Veja a lista de submissões e o botão de PDF (somente leitura)."
+msgid "See the submissions list (read-only). Its data preview masks personal values such as phone and birth date."
+msgstr "Veja a lista de submissões (somente leitura). A prévia de dados mascara valores pessoais como telefone e data de nascimento."
 
 #: includes/settings/views/documentation/submissions-download.php:32
 #| msgid "6. Validation URL"
@@ -23001,17 +22998,17 @@ msgstr "adia o horário de fechamento no dia previsto para o encerramento, depoi
 msgid "The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate's authentication code to confirm it is genuine and view its status. The same lookup and the magic link also verify appointment receipts and reregistration records by their own codes and links. This path is protected by a nonce, a honeypot + the configured captcha, and IP rate-limiting."
 msgstr "A página /valid (shortcode [ffc_verification]) também oferece uma consulta manual: qualquer pessoa pode digitar o código de autenticação de um certificado para confirmar que ele é autêntico e ver seu status. A mesma consulta e o link mágico também verificam comprovantes de agendamento e fichas de recadastramento pelos seus próprios códigos e links. Esse caminho é protegido por nonce, honeypot + o captcha configurado e limitação de taxa por IP."
 
-msgid "The edit screen lets you correct the participant email and the form's custom-field values, and link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed)."
-msgstr "A tela de edição permite corrigir o e-mail do participante e os valores dos campos personalizados do formulário, além de vincular, desvincular ou trocar o usuário do WordPress. O status de consentimento da LGPD é exibido apenas para consulta. Os campos de identidade e integridade são somente leitura: ID da submissão, data, status, token de link mágico, IP, CPF/RF e código de autenticação (garantindo que um certificado nunca possa ser redirecionado silenciosamente)."
+msgid "The edit screen lets you correct the participant email and the form's custom-field values, and, with ffc_manage_certificates, link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed)."
+msgstr "A tela de edição permite corrigir o e-mail do participante e os valores dos campos personalizados do formulário e, com ffc_manage_certificates, vincular, desvincular ou trocar o usuário do WordPress. O status de consentimento da LGPD é exibido apenas para consulta. Os campos de identidade e integridade são somente leitura: ID da submissão, data, status, token de link mágico, IP, CPF/RF e código de autenticação (garantindo que um certificado nunca possa ser redirecionado silenciosamente)."
 
 msgid "Export the current (filtered) submissions to CSV in the background. The export contains decrypted personal data (email, IP, CPF/RF), the magic-link token and the consent record, so it is gated by its own capability."
 msgstr "Exporte as submissões atuais (filtradas) para CSV em segundo plano. A exportação contém dados pessoais descriptografados (e-mail, IP, CPF/RF), o token de link mágico e o registro de consentimento, por isso é controlada por uma permissão própria."
 
-msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form) and \"Send link by e-mail\", which sends a link only to the submissions that never received one."
-msgstr "Mover para a lixeira, restaurar e ações em massa, incluindo \"Mover para formulário…\" (oferecida quando a lista está filtrada por um único formulário) e \"Enviar link por e-mail\", que envia o link apenas às submissões que nunca o receberam."
+msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form) and \"Send link by e-mail\", which sends a link only to the submissions that never received one. Also changing which WordPress user owns a submission."
+msgstr "Mover para a lixeira, restaurar e ações em massa, incluindo \"Mover para formulário…\" (oferecida quando a lista está filtrada por um único formulário) e \"Enviar link por e-mail\", que envia o link apenas às submissões que nunca o receberam. Também trocar o usuário do WordPress dono de uma submissão."
 
-msgid "Reveal the decrypted CPF / RF / email, and the IP on the edit screen, on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
-msgstr "Revelar sob demanda o CPF / RF / e-mail descriptografados, e o IP na tela de edição, em vez dos valores mascarados; cada revelação é auditada. Sem ela, a lista e a tela de edição permanecem mascaradas, independentemente de outras permissões do operador. O PDF do certificado não é mascarado: ele imprime o CPF/RF formatado com pontuação."
+msgid "Reveal the decrypted CPF / RF / email, and the IP on the edit screen, on demand instead of the masked values; every reveal is audited. It also shows the list's PDF button and the edit screen's magic link and Open certificate button, each opening audited, because the certificate PDF is not masked: it prints CPF/RF formatted with punctuation. Without it the list and the edit screen stay masked, whatever else the operator holds."
+msgstr "Revelar sob demanda o CPF / RF / e-mail descriptografados, e o IP na tela de edição, em vez dos valores mascarados; cada revelação é auditada. Ela também mostra o botão de PDF da lista e o link mágico e o botão Abrir certificado da tela de edição, com cada abertura auditada, porque o PDF do certificado não é mascarado: ele imprime o CPF/RF formatado com pontuação. Sem ela, a lista e a tela de edição permanecem mascaradas, independentemente de outras permissões do operador."
 
 msgid "Minimum interval between bookings"
 msgstr "Intervalo mínimo entre agendamentos"
@@ -23751,8 +23748,8 @@ msgstr "Onde as submissões são aceitas, a partir de locais cadastrados ou coor
 msgid "Whether the operator can use Start Form Early or Postpone Close right now."
 msgstr "Se o operador pode usar Início Antecipado ou Adiar Fechamento agora."
 
-msgid "Anyone with this link can download the certificate."
-msgstr "Qualquer pessoa com este link pode baixar o certificado."
+msgid "Anyone with this link can download the certificate. Revealing it or opening the certificate is recorded in the activity log."
+msgstr "Qualquer pessoa com este link pode baixar o certificado. Revelá-lo ou abrir o certificado fica registrado no log de atividades."
 
 msgid "Form answers"
 msgstr "Respostas do formulário"
@@ -24460,8 +24457,8 @@ msgstr "Na tela de edição, o CPF/RF, o e-mail e o IP começam mascarados para 
 msgid "Certificates → Dashboard opens with a summary row (forms in the month shown, submissions today and over the last 7 days, GeoFence windows open now) above a calendar of forms by GeoFence start date, or by publication date when a form has none. Picking a day lists its forms beside the calendar. It needs ffc_view_certificates."
 msgstr "Certificados → Painel abre com uma linha de resumo (formulários no mês exibido, submissões de hoje e dos últimos 7 dias, janelas de GeoFence abertas agora) acima de um calendário de formulários pela data de início da GeoFence, ou pela data de publicação quando o formulário não tem uma. Escolher um dia lista seus formulários ao lado do calendário. Requer ffc_view_certificates."
 
-msgid "The record sits beside a side panel with Save, the magic link with a Copy button, an Open certificate button that opens the public certificate page in a new tab, and the linked user."
-msgstr "O registro fica ao lado de um painel lateral com Salvar, o link mágico com um botão Copiar, um botão Abrir certificado que abre a página pública do certificado em uma nova aba, e o usuário vinculado."
+msgid "The record sits beside a side panel with Save, the magic link, masked behind its own Reveal button, an Open certificate button that opens the certificate in a new tab, and the linked user. The certificate prints the holder's name and CPF/RF and its link opens all of it, so both are shown only to whoever may reveal personal data, and each reveal or opening writes an Activity Log entry."
+msgstr "O registro fica ao lado de um painel lateral com Salvar, o link mágico, mascarado atrás do seu próprio botão Revelar, um botão Abrir certificado que abre o certificado em uma nova aba, e o usuário vinculado. O certificado imprime o nome e o CPF/RF do titular e o link abre tudo isso, por isso ambos só aparecem para quem pode revelar dados pessoais, e cada revelação ou abertura gera um registro no log de atividades."
 
 msgid "Body appearance"
 msgstr "Aparência do corpo"
@@ -29730,3 +29727,11 @@ msgstr "A tentativa obteve %1$d%%. A nota de aprovação é %2$d%%. Altere uma n
 #. includes/admin/class-ffc-admin-submission-edit-page.php
 msgid "The reason and both grades are recorded in the activity log."
 msgstr "O motivo e as duas notas ficam registrados no log de atividades."
+
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Opening the certificate or its link needs permission to reveal personal data."
+msgstr "Abrir o certificado ou o seu link exige permissão para revelar dados pessoais."
+
+#. includes/admin/class-ffc-certificate-open-handler.php
+msgid "You do not have permission to open this certificate."
+msgstr "Você não tem permissão para abrir este certificado."

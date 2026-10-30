@@ -430,8 +430,8 @@ class VerificationHandlerAjaxTest extends TestCase {
 			$this->assertSame( 7, $pdf['submission_id'] );
 			$this->assertSame( 'GOOD12345678', $pdf['auth_code'] );
 			$this->assertStringContainsString( 'GOOD12345678', $pdf['filename'] );
-			// The e-mail was decrypted on the way to the PDF.
-			$this->assertSame( 'ok@test.com', $pdf['submission']['email'] );
+			// The answers stay on the server (#2241): the PDF carries only its HTML.
+			$this->assertArrayNotHasKey( 'submission', $pdf );
 			$this->assertStringContainsString( 'Ana Lima ok@test.com', $pdf['html'] );
 		}
 	}
