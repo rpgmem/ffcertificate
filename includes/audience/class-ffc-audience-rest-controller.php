@@ -1100,6 +1100,22 @@ class AudienceRestController {
 				);
 			}
 
+			// A range longer than the cap is refused here, with the message the
+			// create endpoint gives, so the check does not pass a booking the
+			// next step would refuse (#2243).
+			$end_date = sanitize_text_field( (string) $request->get_param( 'end_date' ) );
+			if ( '' !== $end_date
+				&& \FreeFormCertificate\Core\DateFormatter::is_valid_date( $end_date )
+				&& $end_date > $booking_date
+				&& AudienceBookingRules::range_length( $booking_date, $end_date ) > AudienceBookingRules::MAX_RANGE_DAYS ) {
+				return self::refusal(
+					400,
+					/* translators: %d: the most consecutive days one booking may cover. */
+					sprintf( __( 'A booking can cover at most %d consecutive days.', 'ffcertificate' ), AudienceBookingRules::MAX_RANGE_DAYS ),
+					'range_too_long'
+				);
+			}
+
 			// The environment must exist and belong to a schedule the caller
 			// may read; both refusals read the same, so the probe does not
 			// tell an environment that exists from one that does not (#1861).

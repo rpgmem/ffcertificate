@@ -666,7 +666,14 @@
                 console.error('Conflict check error:', err && err.message, xhr && xhr.responseText);
                 var message = ffcAudience.strings.error;
                 if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
-                    message = xhr.responseJSON.message;
+                    // A refusal the server explains (a range over the limit,
+                    // #2243) is shown where the conflicts are, like one.
+                    setSubmitStep('check');
+                    $('#ffc-conflict-error')
+                        .empty()
+                        .append(FFC.notice('danger', 'error', xhr.responseJSON.message, '', { role: 'alert', hook: 'conflict-error' }))
+                        .prop('hidden', false);
+                    return;
                 } else if (xhr && xhr.statusText === 'timeout') {
                     message = ffcAudience.strings.timeout;
                 }

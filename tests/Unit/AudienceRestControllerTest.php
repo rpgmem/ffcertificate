@@ -1409,6 +1409,25 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( 400, $result->get_status() );
 	}
 
+	public function test_check_conflicts_refuses_a_range_over_the_cap_as_the_create_step_does(): void {
+		$result = ( new AudienceRestController() )->check_conflicts(
+			$this->make_request(
+				array(
+					'environment_id' => 10,
+					'booking_date'   => '2026-07-01',
+					'end_date'       => '2026-07-31',
+					'start_time'     => '09:00',
+					'end_time'       => '10:00',
+				)
+			)
+		);
+
+		$this->assertSame( 400, $result->get_status() );
+		$data = $result->get_data();
+		$this->assertSame( 'range_too_long', $data['code'] );
+		$this->assertStringContainsString( (string) \FreeFormCertificate\Audience\AudienceBookingRules::MAX_RANGE_DAYS, $data['message'], 'The refusal names the limit, as the create step does (#2243).' );
+	}
+
 	// ------------------------------------------------------------------
 	// Booking rules for every caller (#1859)
 	// ------------------------------------------------------------------

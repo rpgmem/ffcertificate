@@ -442,15 +442,20 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		expect(alertSpy).toHaveBeenCalledWith('Error');
 	});
 
-	it('surfaces the xhr responseJSON message on a rejected conflict request', async () => {
+	it('shows a refusal the server explains where the conflicts are, not in an alert', async () => {
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		vi.spyOn(window.FFC, 'rest').mockRejectedValue({
-			message: 'http 409',
-			xhr: { responseJSON: { message: 'Server says conflict' } },
+			message: 'http 400',
+			xhr: { responseJSON: { code: 'range_too_long', message: 'A booking can cover at most 30 consecutive days.' } },
 		});
 		api.checkConflicts();
 		await Promise.resolve().then(() => Promise.resolve());
-		expect(alertSpy).toHaveBeenCalledWith('Server says conflict');
+		expect(alertSpy).not.toHaveBeenCalled();
+		const notice = document.querySelector('#ffc-conflict-error [data-ffc-notice="conflict-error"]');
+		expect(notice.className).toBe('ffc-notice ffc-notice-danger');
+		expect(notice.querySelector('.ffc-notice-text').textContent).toBe('A booking can cover at most 30 consecutive days.');
+		// Nothing to book: the button stays a check (#2243).
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('check');
 	});
 
 	it('surfaces the timeout string when the xhr reports a timeout', async () => {
