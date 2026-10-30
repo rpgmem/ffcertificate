@@ -142,7 +142,7 @@ class AudienceBookingReader {
 		// The time and the id break ties in the direction asked for, so a list
 		// read newest first stays newest first inside a day (#2288).
 		$tie_direction = 'DESC' === strtoupper( (string) $args['order'] ) ? 'DESC' : 'ASC';
-		$limit_clause      = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
+		$limit_clause  = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
 		$sql = "SELECT b.*, e.name as environment_name, e.schedule_id
                 FROM %i b
