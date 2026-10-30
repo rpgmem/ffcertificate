@@ -123,35 +123,80 @@ class AppointmentWriter extends AbstractRepository {
 	}
 
 	/**
-	 * Mark as completed
+	 * The statuses an attendance mark writes over a confirmed appointment.
+	 */
+	public const ATTENDANCE_STATUSES = array( 'completed', 'no_show' );
+
+	/**
+	 * Mark a confirmed appointment as attended.
 	 *
 	 * @param int $id Record ID.
-	 * @return int|false
+	 * @return int|false Rows changed (0 when the appointment is no longer
+	 *                   confirmed), or false on a database error.
 	 */
 	public function markCompleted( int $id ) {
-		return $this->update(
-			$id,
-			array(
-				'status'     => 'completed',
-				'updated_at' => current_time( 'mysql' ),
-			)
-		);
+		return $this->transition( $id, 'confirmed', 'completed' );
 	}
 
 	/**
-	 * Mark as no-show
+	 * Mark a confirmed appointment as a no-show.
 	 *
 	 * @param int $id Record ID.
-	 * @return int|false
+	 * @return int|false Rows changed (0 when the appointment is no longer
+	 *                   confirmed), or false on a database error.
 	 */
 	public function markNoShow( int $id ) {
-		return $this->update(
-			$id,
+		return $this->transition( $id, 'confirmed', 'no_show' );
+	}
+
+	/**
+	 * Undo an attendance mark, putting the appointment back to confirmed.
+	 *
+	 * @param int    $id   Record ID.
+	 * @param string $from The attendance status the caller read on the row.
+	 * @return int|false Rows changed (0 when the row no longer carries $from),
+	 *                   or false on a database error or a $from that is not
+	 *                   an attendance status.
+	 */
+	public function revertAttendance( int $id, string $from ) {
+		if ( ! in_array( $from, self::ATTENDANCE_STATUSES, true ) ) {
+			return false;
+		}
+		return $this->transition( $id, $from, 'confirmed' );
+	}
+
+	/**
+	 * Move an appointment from one status to another, only if it still
+	 * carries the first one.
+	 *
+	 * The status is part of the WHERE clause, so a row another request moved
+	 * meanwhile is left alone and the write reports 0 rows.
+	 *
+	 * @param int    $id   Record ID.
+	 * @param string $from Status the row must carry.
+	 * @param string $to   Status to write.
+	 * @return int|false
+	 */
+	private function transition( int $id, string $from, string $to ) {
+		$result = $this->wpdb->update(
+			$this->table,
 			array(
-				'status'     => 'no_show',
+				'status'     => $to,
 				'updated_at' => current_time( 'mysql' ),
+			),
+			array(
+				'id'     => $id,
+				'status' => $from,
 			)
 		);
+
+		if ( false === $result ) {
+			$this->log_db_error( 'update', $id );
+		} else {
+			$this->clear_cache( "id_{$id}" );
+		}
+
+		return $result;
 	}
 
 	/**

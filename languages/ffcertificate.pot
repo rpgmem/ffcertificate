@@ -30199,3 +30199,39 @@ msgstr ""
 
 msgid "Save changes"
 msgstr ""
+
+#: includes/self-scheduling/views/appointments-list.php:145
+msgid "Appointment marked as attended."
+msgstr ""
+
+#: includes/self-scheduling/views/appointments-list.php:146
+msgid "Appointment marked as no-show."
+msgstr ""
+
+#: includes/self-scheduling/views/appointments-list.php:136
+msgid "Attendance can only be marked from the appointment date on."
+msgstr ""
+
+#: includes/self-scheduling/views/appointments-list.php:128
+msgid "Attendance mark undone. The appointment is confirmed again."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:205
+msgid "Attended"
+msgstr ""
+
+#: includes/self-scheduling/views/appointments-list.php:121
+msgid "Failed to update the appointment status. It may have changed meanwhile; reload the list."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:206
+msgid "No-show"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:60
+msgid "On the Appointments list, a confirmed appointment whose date has come offers Attended and No-show; either mark is replaced by Undo attendance, which puts the appointment back to confirmed. Marking attendance needs ffc_manage_appointments and sends no e-mail."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:209
+msgid "Undo attendance"
+msgstr ""
