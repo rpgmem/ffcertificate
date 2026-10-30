@@ -273,6 +273,8 @@ $ffcertificate_options = array(
 	'ffc_display_name_backfill_state',
 	// The birth-date backfill cursor (#1538), written only when that card runs.
 	'ffc_birth_date_backfill_state',
+	// The reregistration draft-encryption cursor (#2242), written only when that card runs.
+	'ffc_rereg_draft_encryption_state',
 	// The name-parts backfill cursor (#1552), written only when that card runs.
 	'ffc_name_parts_backfill_state',
 	// When each recurring task last ran (#1538), written only when one runs --

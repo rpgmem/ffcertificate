@@ -940,9 +940,6 @@ msgstr ""
 msgid "A disabled module keeps every row it already stored; only its screens and runtime stop. Public URLs that a disabled module used to answer (a short link, a public recruitment queue) stop responding until you turn it back on."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-reregistration.php:57
-msgid "a draft was saved but not submitted."
-msgstr ""
 
 #: includes/settings/views/documentation/email-texts-hub.php:24
 msgid "A feature-grouped selector lists every editable email; pick one and only that email's editor opens (its rich editor is created on demand, so the page stays light even though many emails exist). Each editor has its own {{token}} help and a \"Restore Default Text\" button. One \"Save email texts\" button persists them all — you do not save per email."
@@ -15365,9 +15362,6 @@ msgstr ""
 msgid "Set an end date in the Geolocation & Date/Time metabox to enable this action."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-reregistration.php:27
-msgid "Set the start and end dates."
-msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:34 includes/settings/views/documentation/config-general.php:25 includes/settings/views/documentation/forms-schedule.php:27 includes/settings/views/documentation/feature-url-shortener.php:59 includes/settings/views/documentation/config-geolocation.php:30
 msgid "Setting"
@@ -29641,4 +29635,43 @@ msgid "Shown within the date range but outside the daily time slot, when the tim
 msgstr ""
 
 msgid "Three messages, one per moment: before the form opens, after it closes, and outside the daily hours (daily mode only). A message left empty shows that moment's default. Forms saved with the single message from earlier versions show it in all three until edited."
+msgstr ""
+
+msgid "A member can save a draft or submit only while the submission is pending, in progress or rejected. Once it is submitted, a second click or a form left open in another tab is refused, so the submission stays in the review queue and the confirmation e-mail goes out once."
+msgstr ""
+
+msgid "Encrypt the answers to sensitive fields (such as CPF, RF and birth date) that reregistration drafts stored in clear before drafts were saved encrypted. This covers drafts the daily run later expired and submissions returned to draft and saved again. Completion here means every stored submission was EXAMINED: one with nothing to encrypt is read, left as it is, and counted as done."
+msgstr ""
+
+msgid "Encrypted the sensitive values of %1$d of %2$d reregistration submissions examined."
+msgstr ""
+
+msgid "Encryption keys are not configured, so the values cannot be encrypted."
+msgstr ""
+
+msgid "Reregistration: Encrypt Draft Answers"
+msgstr ""
+
+msgid "Set the start and end dates. The end must be after the start. The form accepts drafts and submissions only between the two, on the site's clock (Settings → General in WordPress), from the start without waiting for anything and until the end without waiting for the daily run to expire the campaign."
+msgstr ""
+
+msgid "The \"Reregistration: Encrypt Draft Answers\" card encrypts the sensitive answers that reregistration drafts stored in clear before drafts were saved encrypted."
+msgstr ""
+
+msgid "The end date must be after the start date. Nothing was saved."
+msgstr ""
+
+msgid "The reregistration table is not available — nothing to migrate."
+msgstr ""
+
+msgid "This reregistration has closed."
+msgstr ""
+
+msgid "This reregistration has not opened yet."
+msgstr ""
+
+msgid "This reregistration was already submitted and is awaiting review."
+msgstr ""
+
+msgid "a draft was saved but not submitted. Sensitive answers are stored encrypted in a draft, as in a submission."
 msgstr ""

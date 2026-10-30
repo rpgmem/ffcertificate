@@ -445,7 +445,7 @@ class ReregistrationEmailHandler {
 			);
 		}
 
-		$days_left = max( 0, (int) ( ( strtotime( $rereg->end_date ) - time() ) / 86400 ) );
+		$days_left = ReregistrationWindow::days_left( (string) $rereg->end_date );
 
 		$count   = 0;
 		$last_id = $after_id;
@@ -557,16 +557,21 @@ class ReregistrationEmailHandler {
 		global $wpdb;
 		$table = ReregistrationRepository::get_table_name();
 
-		// Get active campaigns where reminder is due.
+		// Get active campaigns where reminder is due. "Today" is the site's
+		// date, not the database server's `CURDATE()`: the campaign dates are
+		// wall-clock values in the site's calendar (#2242).
+		$today = current_time( 'Y-m-d' );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cron sweep for campaigns whose reminder is due, over the plugin's own ffc_* table; a cached list is exactly what a due-date sweep must not read.
 		$campaigns = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i
                  WHERE status = 'active'
                    AND email_reminder_enabled = 1
-                   AND DATEDIFF(end_date, CURDATE()) <= reminder_days
-                   AND DATEDIFF(end_date, CURDATE()) >= 0",
-				$table
+                   AND DATEDIFF(end_date, %s) <= reminder_days
+                   AND DATEDIFF(end_date, %s) >= 0",
+				$table,
+				$today,
+				$today
 			)
 		);
 

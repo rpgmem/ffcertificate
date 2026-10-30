@@ -479,7 +479,7 @@ class ReregistrationAdmin {
 
 		// An emptied number field is "not supplied", never zero. `absint( '' )`
 		// is 0, and the reminder sweep reads
-		// `DATEDIFF(end_date, CURDATE()) <= reminder_days`, so a cleared field
+		// `DATEDIFF(end_date, <site date>) <= reminder_days`, so a cleared field
 		// would quietly move every reminder to the campaign's last day — late
 		// enough to be useless, with nothing on screen saying so. The input
 		// declares `min="1"`, so a deliberately typed 0 lands on that floor
@@ -497,6 +497,15 @@ class ReregistrationAdmin {
 			'reminder_days'              => '' === $ffc_reminder_raw ? 7 : max( 1, absint( $ffc_reminder_raw ) ),
 			'status'                     => \FreeFormCertificate\Core\RequestInput::get_post_string( 'rereg_status', 'draft' ),
 		);
+
+		// The window has to be a window: an end on or before the start would
+		// leave a campaign nobody can ever answer (#2242).
+		$ffc_start = ReregistrationWindow::normalise( (string) $data['start_date'] );
+		$ffc_end   = ReregistrationWindow::normalise( (string) $data['end_date'] );
+		if ( '' === $ffc_start || '' === $ffc_end || $ffc_end <= $ffc_start ) {
+			add_settings_error( 'ffc_reregistration', 'ffc_window', __( 'The end date must be after the start date. Nothing was saved.', 'ffcertificate' ), 'error' );
+			return;
+		}
 
 		// Collect audience IDs from transfer list hidden inputs.
 		$audience_ids = array();

@@ -584,6 +584,7 @@ class MigrationStatusCalculatorTest extends TestCase {
 			'display_name_backfill'           => array( 'display_name_backfill', $ns . 'DisplayNameBackfillMigrationStrategy' ),
 			'name_parts_backfill'             => array( 'name_parts_backfill', $ns . 'NamePartsBackfillMigrationStrategy' ),
 			'birth_date_backfill'             => array( 'birth_date_backfill', $ns . 'BirthDateBackfillMigrationStrategy' ),
+			'rereg_draft_encryption'          => array( 'rereg_draft_encryption', $ns . 'ReregistrationDraftEncryptionMigrationStrategy' ),
 			'import_legacy_templates'         => array( 'import_legacy_templates', $ns . 'ImportLegacyTemplatesMigrationStrategy' ),
 			'rewrite_html_image_refs'         => array( 'rewrite_html_image_refs', $ns . 'RewriteHtmlImageRefsMigrationStrategy' ),
 		);

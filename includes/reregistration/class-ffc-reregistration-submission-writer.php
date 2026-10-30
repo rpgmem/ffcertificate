@@ -133,11 +133,107 @@ class ReregistrationSubmissionWriter {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		unset( $data['id'], $data['reregistration_id'], $data['user_id'], $data['created_at'] );
+		list( $update_data, $format ) = self::columns( $data );
 
-		if ( empty( $data ) ) {
+		if ( empty( $update_data ) ) {
 			return false;
 		}
+
+		$result = $wpdb->update(
+			$table,
+			$update_data,
+			array( 'id' => $id ),
+			$format,
+			array( '%d' )
+		);
+
+		static::cache_delete( "id_{$id}" );
+
+		return false !== $result;
+	}
+
+	/**
+	 * Update a submission only while its status is one of `$statuses` (#2242).
+	 *
+	 * The status test and the write are one statement, so a second request
+	 * that arrives after the first moved the row on — a double click, a stale
+	 * tab — changes nothing. Checking first and writing after would let both
+	 * pass the check.
+	 *
+	 * MySQL reports zero changed rows when the values are already the ones
+	 * written, so zero is told apart by reading the status again: a row still
+	 * in an allowed status was written (with what it already held), a row that
+	 * left was not.
+	 *
+	 * @param int                  $id       Submission ID.
+	 * @param array<string, mixed> $data     Update data, as for {@see self::update()}.
+	 * @param array<int, string>   $statuses Statuses the row may be in.
+	 * @return bool Whether the row was in an allowed status and holds `$data` now.
+	 */
+	public static function update_if_status( int $id, array $data, array $statuses ): bool {
+		list( $columns, $formats ) = self::columns( $data );
+
+		if ( empty( $columns ) || empty( $statuses ) ) {
+			return false;
+		}
+
+		$wpdb   = self::db();
+		$table  = self::get_table_name();
+		$set    = array();
+		$values = array( $table );
+		$i      = 0;
+
+		foreach ( $columns as $column => $value ) {
+			$format = $formats[ $i++ ];
+			if ( null === $value ) {
+				$set[]    = '%i = NULL';
+				$values[] = $column;
+				continue;
+			}
+			$set[]    = '%i = ' . $format;
+			$values[] = $column;
+			$values[] = $value;
+		}
+
+		$values[] = $id;
+		$values   = array_merge( $values, array_values( $statuses ) );
+
+		$query = 'UPDATE %i SET ' . implode( ', ', $set ) . ' WHERE id = %d AND status IN (' . implode( ',', array_fill( 0, count( $statuses ), '%s' ) ) . ')';
+
+		/**
+		 * `$query` is assembled from placeholders only — the SET list from the
+		 * fixed column map, the IN list from the status count — so it is a
+		 * runtime string rather than the `literal-string` the stub declares.
+		 * Every value travels in `$values`.
+		 *
+		 * @phpstan-ignore argument.type
+		 */
+		$sql = $wpdb->prepare( $query, $values ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Placeholders only; every value goes through prepare().
+
+		$affected = null === $sql ? false : $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Prepared just above.
+
+		static::cache_delete( "id_{$id}" );
+
+		if ( false === $affected ) {
+			return false;
+		}
+		if ( $affected > 0 ) {
+			return true;
+		}
+
+		$status = $wpdb->get_var( $wpdb->prepare( 'SELECT status FROM %i WHERE id = %d', $table, $id ) );
+
+		return is_string( $status ) && in_array( $status, $statuses, true );
+	}
+
+	/**
+	 * The writable columns of `$data`, with their formats.
+	 *
+	 * @param array<string, mixed> $data Update data.
+	 * @return array{0: array<string, mixed>, 1: list<string>}
+	 */
+	private static function columns( array $data ): array {
+		unset( $data['id'], $data['reregistration_id'], $data['user_id'], $data['created_at'] );
 
 		$update_data = array();
 		$format      = array();
@@ -171,21 +267,7 @@ class ReregistrationSubmissionWriter {
 			$format[]            = $field_formats[ $key ];
 		}
 
-		if ( empty( $update_data ) ) {
-			return false;
-		}
-
-		$result = $wpdb->update(
-			$table,
-			$update_data,
-			array( 'id' => $id ),
-			$format,
-			array( '%d' )
-		);
-
-		static::cache_delete( "id_{$id}" );
-
-		return false !== $result;
+		return array( $update_data, $format );
 	}
 
 	/**

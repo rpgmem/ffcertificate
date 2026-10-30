@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h4><?php esc_html_e( 'Workflow', 'ffcertificate' ); ?></h4>
 		<ol>
 			<li><?php esc_html_e( 'Create a campaign and link it to one or more audiences.', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'Set the start and end dates.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Set the start and end dates. The end must be after the start. The form accepts drafts and submissions only between the two, on the site\'s clock (Settings → General in WordPress), from the start without waiting for anything and until the end without waiting for the daily run to expire the campaign.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Configure the emails (invitation, reminder, confirmation) and whether submissions auto-approve.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Activate the campaign — a submission is created for every audience member at once. Invitation emails are not sent at that moment: they go out with the next daily run, in batches, so a campaign activated by mistake can still be deactivated before anybody is mailed. The screen says when that run is.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Members see a banner on their dashboard and fill in the form there.', 'ffcertificate' ); ?></li>
@@ -76,11 +76,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<p><strong><?php esc_html_e( 'Submission:', 'ffcertificate' ); ?></strong></p>
 		<ul>
 			<li><code>pending</code> — <?php esc_html_e( 'created for the member, not started.', 'ffcertificate' ); ?></li>
-			<li><code>in_progress</code> — <?php esc_html_e( 'a draft was saved but not submitted.', 'ffcertificate' ); ?></li>
+			<li><code>in_progress</code> — <?php esc_html_e( 'a draft was saved but not submitted. Sensitive answers are stored encrypted in a draft, as in a submission.', 'ffcertificate' ); ?></li>
 			<li><code>submitted</code> — <?php esc_html_e( 'submitted, awaiting review.', 'ffcertificate' ); ?></li>
 			<li><code>approved</code> / <code>rejected</code> — <?php esc_html_e( 'reviewed (rejections can carry notes).', 'ffcertificate' ); ?></li>
 			<li><code>expired</code> — <?php esc_html_e( 'the campaign ended before submission.', 'ffcertificate' ); ?></li>
 		</ul>
+		<p><?php esc_html_e( 'A member can save a draft or submit only while the submission is pending, in progress or rejected. Once it is submitted, a second click or a form left open in another tab is refused, so the submission stays in the review queue and the confirmation e-mail goes out once.', 'ffcertificate' ); ?></p>
 	</div>
 
 	<div class="ffc-doc-example">

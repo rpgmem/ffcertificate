@@ -56,6 +56,14 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The campaign window is read on the site's clock (#2242); pin it
+		// inside the fixtures' campaigns.
+		Functions\when( 'current_time' )->alias(
+			static function ( $type ) {
+				return 'Y-m-d' === $type ? '2026-06-15' : ( 'mysql' === $type ? '2026-06-15 12:00:00' : 0 );
+			}
+		);
+
 
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;

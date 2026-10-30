@@ -92,6 +92,17 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	/** @var string What seeding a missing submission does: ok, lost_the_race or nothing_there. */
 	private string $seed_result = 'ok';
 
+	/**
+	 * The status a submission moved to after validation, or null when it did
+	 * not move: then the conditional write changes no row (#2242).
+	 *
+	 * @var string|null
+	 */
+	private ?string $moved_to = null;
+
+	/** @var list<mixed> Statuses the last conditional submission write allowed. */
+	private array $written_statuses = array();
+
 	/** @var array{unprocessed: int, ready: int, skipped: int} Staging counts commit reads. */
 	private array $staging_counts = array(
 		'unprocessed' => 0,
@@ -327,6 +338,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		if ( preg_match( '/FROM wp_ffc_reregistration_submissions WHERE reregistration_id = 1 AND user_id = (\d+)/', $sql, $m ) ) {
 			return $this->submissions[ (int) $m[1] ] ?? null;
 		}
+		if ( null !== $this->moved_to && preg_match( '/FROM wp_ffc_reregistration_submissions WHERE id = (\d+)/', $sql, $m ) ) {
+			return $this->submission( (int) $m[1], $this->moved_to );
+		}
 		if ( str_contains( $sql, 'FROM wp_ffc_user_profiles WHERE user_id' ) ) {
 			return null;
 		}
@@ -347,6 +361,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 
 	/** @return string|null */
 	private function answer_var( string $sql ) {
+		if ( null !== $this->moved_to && str_starts_with( $sql, 'SELECT status FROM wp_ffc_reregistration_submissions WHERE id' ) ) {
+			return $this->moved_to;
+		}
 		if ( str_starts_with( $sql, 'SHOW TABLES LIKE' ) ) {
 			// Optional tables are absent: no appointment linking, no profile row on create.
 			return null;
@@ -403,6 +420,31 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 			return 0;
 		}
 		if ( str_starts_with( $sql, 'UPDATE wp_ffc_reregistration_import_jobs SET processed_count' ) ) {
+			return 1;
+		}
+		if ( str_starts_with( $sql, 'UPDATE wp_ffc_reregistration_submissions SET' ) ) {
+			// The conditional write (#2242), recorded in the shape `update()`
+			// records, decoded from its own prepare() call.
+			$last     = end( $this->queries );
+			$template = (string) $last['sql'];
+			$values   = array_values( (array) $last['values'] );
+			preg_match( '/^UPDATE %i SET (.+) WHERE id = %d AND status IN \(/', $template, $m );
+			$table = array_shift( $values );
+			$data  = array();
+			foreach ( explode( ', ', $m[1] ) as $assignment ) {
+				$column          = array_shift( $values );
+				$data[ $column ] = str_ends_with( $assignment, 'NULL' ) ? null : array_shift( $values );
+			}
+			$id                     = array_shift( $values );
+			$this->written_statuses = $values;
+			if ( null !== $this->moved_to ) {
+				return 0;
+			}
+			$this->updates[] = array(
+				'table' => (string) $table,
+				'data'  => $data,
+				'where' => array( 'id' => $id ),
+			);
 			return 1;
 		}
 		if ( str_starts_with( $sql, 'UPDATE wp_ffc_submissions SET user_id' ) ) {
@@ -898,11 +940,23 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 
 	public function test_a_draft_submission_is_still_fillable(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
-		$this->with_validation( array( '111' => 42 ), array( 42 => $this->submission( 900, 'draft' ) ) );
+		// A draft in progress is `in_progress`: the status `draft` the check
+		// used to name does not exist, so a member mid-draft read as already
+		// submitted and was skipped (#2242).
+		$this->with_validation( array( '111' => 42 ), array( 42 => $this->submission( 900, 'in_progress' ) ) );
 
 		$result = $this->run_validate( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
 
 		$this->assertSame( 1, $result['ready'], 'A draft is the user having started, not having submitted.' );
+	}
+
+	public function test_a_rejected_submission_is_not_overwritten(): void {
+		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
+		$this->with_validation( array( '111' => 42 ), array( 42 => $this->submission( 900, 'rejected' ) ) );
+
+		$result = $this->run_validate( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
+
+		$this->assertSame( 1, $result['skipped'], 'A reviewed answer is not the import\'s to replace.' );
 	}
 
 	/**
@@ -1091,6 +1145,34 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertSame( 1, $this->row_update()['processed'] );
 		$this->assertSame( 42, $this->row_update()['user_id'] );
 		$this->assertSame( 900, $this->row_update()['submission_id'] );
+	}
+
+	public function test_the_write_is_limited_to_the_importable_statuses(): void {
+		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
+
+		$this->run_promote( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
+
+		$this->assertSame( array( 'pending', 'in_progress' ), $this->written_statuses, 'The import writes only over a submission nobody sent yet (#2242).' );
+	}
+
+	/**
+	 * The member submitted between validation and this batch (#2242). The
+	 * write tests the status in the same statement, so it changes nothing and
+	 * the row is reported skipped — the person was first, and the file is not
+	 * wrong for it.
+	 */
+	public function test_a_submission_made_after_validation_is_not_overwritten(): void {
+		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
+		$this->moved_to = 'submitted';
+
+		$result = $this->run_promote( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
+
+		$this->assertTrue( $result['ok'], 'A skipped row does not abort the batch.' );
+		$this->assertSame( 1, $result['processed'] );
+		$this->assertSame( array(), $this->submission_writes(), 'Nothing is written over the member\'s own submission.' );
+		$this->assertSame( 'skipped', $this->row_update()['row_status'] );
+		$this->assertSame( 'rereg_import_already_submitted:submitted', $this->row_update()['error'] );
+		$this->assertSame( 1, $this->row_update()['processed'] );
 	}
 
 	/**

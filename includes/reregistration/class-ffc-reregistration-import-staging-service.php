@@ -354,7 +354,10 @@ class ReregistrationImportStagingService {
 				$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( (int) $job->reregistration_id, $user_id );
 				if ( null !== $submission ) {
 					$submission_id = (int) $submission->id;
-					if ( ! in_array( (string) $submission->status, array( 'pending', 'draft' ), true ) ) {
+					// `draft` named a status that does not exist, so a member
+					// with a draft in progress read as "already submitted" and
+					// was skipped (#2242).
+					if ( ! in_array( (string) $submission->status, ReregistrationSubmissionReader::IMPORTABLE_STATUSES, true ) ) {
 						$status = 'skipped';
 						$error  = sprintf( 'rereg_import_already_submitted:%s', (string) $submission->status );
 					}
@@ -526,6 +529,11 @@ class ReregistrationImportStagingService {
 			}
 
 			$outcome = self::promote_row( $row, $rereg, (int) $job->audience_id );
+			if ( isset( $outcome['skipped'] ) ) {
+				self::mark_row_skipped( (int) $row->id, $outcome['user_id'], $outcome['submission_id'], $outcome['skipped'] );
+				++$processed_now;
+				continue;
+			}
 			if ( ! $outcome['ok'] ) {
 				self::bump_processed( $job_id, $processed_now );
 				return array(
@@ -570,7 +578,7 @@ class ReregistrationImportStagingService {
 	 * @param object $rereg       Campaign.
 	 * @phpstan-param ReregistrationRow $rereg
 	 * @param int    $audience_id Audience the file is for.
-	 * @return array{ok: true, user_id: int, submission_id: int}|array{ok: false, error: string}
+	 * @return array{ok: true, user_id: int, submission_id: int}|array{ok: true, user_id: int, submission_id: int, skipped: string}|array{ok: false, error: string}
 	 */
 	private static function promote_row( object $row, object $rereg, int $audience_id ): array {
 		$cpf_hash = SensitiveFieldRegistry::hash_identifier( 'cpf', (string) $row->cpf_normalized );
@@ -643,13 +651,29 @@ class ReregistrationImportStagingService {
 		// through it is what stops the import writing past a boundary the public
 		// path never skips. `process_submission()` encrypts and persists; it
 		// does not sanitize.
-		ReregistrationDataProcessor::process_submission(
+		//
+		// The write re-checks the status in the same statement: the member may
+		// have submitted between validation and this batch, and the import must
+		// not write over that (#2242). The row is then skipped, not failed —
+		// nothing is wrong with the file, the person was simply first.
+		$written = ReregistrationDataProcessor::process_submission(
 			$submission,
 			$rereg,
 			ReregistrationDataProcessor::sanitize_values( $payload, $rereg ),
 			$user_id,
-			false
+			false,
+			ReregistrationSubmissionReader::IMPORTABLE_STATUSES
 		);
+
+		if ( ! $written ) {
+			$now = ReregistrationSubmissionReader::get_by_id( (int) $submission->id );
+			return array(
+				'ok'            => true,
+				'user_id'       => $user_id,
+				'submission_id' => (int) $submission->id,
+				'skipped'       => 'rereg_import_already_submitted:' . ( $now ? (string) $now->status : '' ),
+			);
+		}
 
 		return array(
 			'ok'            => true,
@@ -678,6 +702,34 @@ class ReregistrationImportStagingService {
 			),
 			array( 'id' => $id ),
 			array( '%d', '%d', '%d' ),
+			array( '%d' )
+		);
+	}
+
+	/**
+	 * Mark a staged row done without writing it: the submission left the
+	 * importable statuses after validation (#2242).
+	 *
+	 * @param int    $id            Staging row id.
+	 * @param int    $user_id       Resolved user.
+	 * @param int    $submission_id Submission it would have written.
+	 * @param string $error         Reason code, in the shape validation records.
+	 * @return void
+	 */
+	private static function mark_row_skipped( int $id, int $user_id, int $submission_id, string $error ): void {
+		global $wpdb;
+
+		$wpdb->update(
+			self::staging_table(),
+			array(
+				'user_id'       => $user_id,
+				'submission_id' => $submission_id,
+				'row_status'    => 'skipped',
+				'error'         => $error,
+				'processed'     => 1,
+			),
+			array( 'id' => $id ),
+			array( '%d', '%d', '%s', '%s', '%d' ),
 			array( '%d' )
 		);
 	}

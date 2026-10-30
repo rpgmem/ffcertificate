@@ -339,6 +339,25 @@ class ReregistrationFrontendFlowTest extends TestCase {
 				return 1;
 			}
 		);
+		// The submission write is one UPDATE that tests the status in the
+		// same statement (#2242); recorded in the shape `update()` records.
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $q ) {
+				$this->ran[] = $q['sql'];
+				if ( 1 !== preg_match( '/^UPDATE %i SET (.+) WHERE id = %d AND status IN \(/', $q['sql'], $m ) ) {
+					$this->fail( 'Unexpected query(): ' . $q['sql'] );
+				}
+				$values = $q['args'];
+				$table  = array_shift( $values );
+				$data   = array();
+				foreach ( explode( ', ', $m[1] ) as $assignment ) {
+					$column          = array_shift( $values );
+					$data[ $column ] = str_ends_with( $assignment, 'NULL' ) ? null : array_shift( $values );
+				}
+				$this->updates[] = array( $table, $data, array( 'id' => array_shift( $values ) ) );
+				return 1;
+			}
+		);
 		return $wpdb;
 	}
 
@@ -580,5 +599,80 @@ class ReregistrationFrontendFlowTest extends TestCase {
 
 		$this->assertSame( 'Invalid submission.', $this->response['data']['message'] );
 		$this->assertSame( array(), $this->ran, 'The honeypot answers before any store is read.' );
+	}
+
+	// ==================================================================
+	// One status gate and the campaign window (#2242)
+	// ==================================================================
+
+	/**
+	 * The dashboard draws the button only for open statuses; a stale tab used
+	 * to post anyway, and the handlers refused only `approved` and `expired`,
+	 * so a submitted row went back to a draft and out of the review queue.
+	 */
+	public function test_save_draft_refuses_a_submitted_row(): void {
+		$_POST['reregistration_id'] = '3';
+		$_POST['fields']            = array( 'name' => 'Ana' );
+		$this->own_submission       = $this->submission( 'submitted' );
+
+		$this->call( 'ajax_save_draft' );
+
+		$this->assertSame( 'This reregistration was already submitted and is awaiting review.', $this->response['data']['message'] );
+		$this->assertSame( array(), $this->updates, 'The submitted row is not pulled back into a draft.' );
+	}
+
+	public function test_submit_refuses_a_submitted_row(): void {
+		$_POST['reregistration_id'] = '3';
+		$_POST['fields']            = array( 'cpf' => self::masked( Identifiers::CPF_A ), 'name' => 'Ana' );
+		$this->own_submission       = $this->submission( 'submitted' );
+
+		$this->call( 'ajax_submit' );
+
+		$this->assertSame( 'error', $this->response['type'] );
+		$this->assertSame( array(), $this->updates, 'A second submit issues no new code and sends nothing.' );
+	}
+
+	public function test_submit_refuses_after_the_end_without_waiting_for_the_daily_run(): void {
+		// The campaign still reads `active` -- the daily run has not expired
+		// it yet -- but the site clock is past its end.
+		Functions\when( 'current_time' )->justReturn( '2027-01-01 00:00:01' );
+		$_POST['reregistration_id'] = '3';
+		$_POST['fields']            = array( 'cpf' => self::masked( Identifiers::CPF_A ), 'name' => 'Ana' );
+
+		$this->call( 'ajax_submit' );
+
+		$this->assertSame( 'This reregistration has closed.', $this->response['data']['message'] );
+		$this->assertSame( array(), $this->updates );
+	}
+
+	public function test_save_draft_refuses_before_the_start(): void {
+		Functions\when( 'current_time' )->justReturn( '2026-09-30 23:59:59' );
+		$_POST['reregistration_id'] = '3';
+		$_POST['fields']            = array( 'name' => 'Ana' );
+
+		$this->call( 'ajax_save_draft' );
+
+		$this->assertSame( 'This reregistration has not opened yet.', $this->response['data']['message'] );
+		$this->assertSame( array(), $this->updates );
+	}
+
+	public function test_get_form_refuses_outside_the_window(): void {
+		Functions\when( 'current_time' )->justReturn( '2027-01-01 00:00:01' );
+		$_POST['reregistration_id'] = '3';
+
+		$this->call( 'ajax_get_form' );
+
+		$this->assertSame( 'This reregistration has closed.', $this->response['data']['message'] );
+	}
+
+	public function test_save_draft_stores_an_open_row_as_in_progress(): void {
+		$_POST['reregistration_id'] = '3';
+		$_POST['fields']            = array( 'name' => 'Ana' );
+
+		$this->call( 'ajax_save_draft' );
+
+		$this->assertSame( array( 'type' => 'success', 'data' => array( 'message' => 'Draft saved.' ) ), $this->response );
+		$this->assertCount( 1, $this->updates );
+		$this->assertSame( 'in_progress', $this->updates[0][1]['status'] );
 	}
 }

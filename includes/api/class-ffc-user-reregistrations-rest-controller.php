@@ -205,7 +205,9 @@ class UserReregistrationsRestController {
 				// automatically — no extra status check needed.
 				$can_download = ! empty( $sub->auth_code );
 				$is_active    = 'active' === $sub->reregistration_status;
-				$can_submit   = $is_active && in_array( $sub->status, array( 'pending', 'in_progress', 'rejected' ), true );
+				$can_submit   = $is_active
+					&& in_array( $sub->status, \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::OPEN_STATUSES, true )
+					&& \FreeFormCertificate\Reregistration\ReregistrationWindow::is_open( (string) $sub->start_date, (string) $sub->end_date );
 
 				// Build magic link for direct verification.
 				$magic_link = '';
@@ -223,10 +225,12 @@ class UserReregistrationsRestController {
 					'reregistration_status' => $sub->reregistration_status,
 					'start_date'            => $sub->start_date,
 					'end_date'              => $sub->end_date,
-					'start_date_formatted'  => ( false !== $start_ts ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $start_ts ) : $sub->start_date,
-					'end_date_formatted'    => ( false !== $end_ts ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $end_ts ) : $sub->end_date,
+					// Wall-clock (Category B): formatted in UTC so the stored value
+					// prints as written instead of being shifted by the site zone.
+					'start_date_formatted'  => ( false !== $start_ts ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $start_ts, 'default', 'UTC' ) : $sub->start_date,
+					'end_date_formatted'    => ( false !== $end_ts ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $end_ts, 'default', 'UTC' ) : $sub->end_date,
 					'submitted_at'          => $submitted_at,
-					'days_left'             => $is_active ? max( 0, (int) ( ( $end_ts - time() ) / 86400 ) ) : 0,
+					'days_left'             => $is_active ? \FreeFormCertificate\Reregistration\ReregistrationWindow::days_left( (string) $sub->end_date ) : 0,
 					'can_download'          => $can_download,
 					'can_submit'            => $can_submit,
 					'can_view_answers'      => ! empty( $sub->submitted_at ),

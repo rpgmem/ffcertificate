@@ -112,6 +112,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificates: a trashed certificate is revoked** (#2241). Verification, its QR code, the magic link and REST say when it was revoked, with no data or PDF, and the same CPF/RF cannot issue another; restoring lifts it. REST keeps the `certificate_deleted` code and adds `revoked_at`.
 - **Certificates: an issued certificate no longer prints a literal `{{tag}}`** (#2241). A field the submission lacks prints blank and an unknown tag stays visible; a field's tag locks once the form has submissions, and the layout editor says how many issued certificates a change reaches.
 - **Certificates: a form shows the right message before it opens, after it closes and outside its hours** (#2241). One message served all three, so "Opens on…" still showed after the form closed. Each moment now has its own; an empty one shows that moment's default, and each form's message is copied into all three once.
+- **Reregistration: one status gate and the campaign window hold on the server** (#2242). Draft and submit accept only a pending, in-progress or rejected submission, in one conditional write, so a double submit changes one row and mails once; the form opens only between the start and end on the site clock; reminders and days-left count site days; an expired campaign drops its cached rows; the import treats a draft as open and never overwrites a submission made mid-job.
 
 ### Security
 
@@ -121,6 +122,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificates: a certificate's personal data stays with whoever may reveal it** (#2241). Public verification no longer returns the raw answers; the list preview masks personal values; the PDF button and magic link show only to the PII tier, through an audited route; relinking an owner needs `ffc_manage_certificates`.
 - **Certificates: submitted values are text, and public endpoints hold their limits** (#2241). A participant's answer prints escaped in the certificate (no remote image or styling); a draft, private or trashed form refuses submissions; the public CSV actions check the hash and rate limit before the CPF; a magic link counts one attempt per open.
 - **Certificates: a reprint by CPF/RF never shows someone else's certificate** (#2241). Unless the logged-in owner asks, the link is e-mailed to the stored address (at most every 15 minutes) and the screen shows only that address, masked.
+- **Reregistration: drafts store sensitive answers encrypted** (#2242). The draft save encrypts every sensitive value as the submit does; the "Reregistration: Encrypt Draft Answers" migration card encrypts what earlier drafts stored in clear.
 
 ## [6.42.0] (2026-10-26) — `8241871c`
 
