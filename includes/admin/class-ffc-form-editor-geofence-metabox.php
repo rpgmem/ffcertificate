@@ -14,6 +14,7 @@ namespace FreeFormCertificate\Admin;
 
 use FreeFormCertificate\Security\Geofence;
 use FreeFormCertificate\Security\GeofenceLocationRegistry;
+use FreeFormCertificate\Security\GeofenceWindowMessages;
 use WP_Post;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -100,7 +101,13 @@ class FormEditorGeofenceMetabox {
 		$datetime_hide_mode_before = Geofence::resolve_hide_mode( $config, 'before' );
 		$datetime_hide_mode_during = Geofence::resolve_hide_mode( $config, 'during' );
 		$datetime_hide_mode_after  = Geofence::resolve_hide_mode( $config, 'after' );
-		$msg_datetime              = $config['msg_datetime'] ?? __( 'This form is not available at this time.', 'ffcertificate' );
+		// One message per moment (#2241). A form saved before the split shows
+		// its single message in each field, which is what it still prints.
+		$window_messages = array();
+		foreach ( GeofenceWindowMessages::KEYS as $phase => $key ) {
+			$stored                    = $config[ $key ] ?? ( $config[ GeofenceWindowMessages::LEGACY_KEY ] ?? null );
+			$window_messages[ $phase ] = is_scalar( $stored ) ? (string) $stored : '';
+		}
 
 		// Schedule exception per submission (#366). Four optional keys that
 		// live alongside the datetime config: a toggle that enables the
@@ -288,10 +295,24 @@ class FormEditorGeofenceMetabox {
 						</td>
 					</tr>
 					<tr>
-						<th><label><?php esc_html_e( 'Blocked Message', 'ffcertificate' ); ?></label></th>
+						<th><label for="ffc_msg_before_open"><?php esc_html_e( 'Message before it opens', 'ffcertificate' ); ?></label></th>
 						<td>
-							<textarea name="ffc_geofence[msg_datetime]" rows="3" class="ffc-w100"><?php echo esc_textarea( $msg_datetime ); ?></textarea>
-							<p class="description"><?php esc_html_e( 'Message shown when form is accessed outside allowed date/time.', 'ffcertificate' ); ?></p>
+							<textarea id="ffc_msg_before_open" name="ffc_geofence[msg_before_open]" rows="3" class="ffc-w100" placeholder="<?php echo esc_attr( GeofenceWindowMessages::default_message( 'before' ) ); ?>"><?php echo esc_textarea( $window_messages['before'] ); ?></textarea>
+							<p class="description"><?php esc_html_e( 'Shown before the start date and time. Leave empty for the default shown in the field.', 'ffcertificate' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="ffc_msg_after_close"><?php esc_html_e( 'Message after it closes', 'ffcertificate' ); ?></label></th>
+						<td>
+							<textarea id="ffc_msg_after_close" name="ffc_geofence[msg_after_close]" rows="3" class="ffc-w100" placeholder="<?php echo esc_attr( GeofenceWindowMessages::default_message( 'after' ) ); ?>"><?php echo esc_textarea( $window_messages['after'] ); ?></textarea>
+							<p class="description"><?php esc_html_e( 'Shown after the end date and time. Leave empty for the default shown in the field.', 'ffcertificate' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="ffc_msg_outside_hours"><?php esc_html_e( 'Message outside the daily hours', 'ffcertificate' ); ?></label></th>
+						<td>
+							<textarea id="ffc_msg_outside_hours" name="ffc_geofence[msg_outside_hours]" rows="3" class="ffc-w100" placeholder="<?php echo esc_attr( GeofenceWindowMessages::default_message( 'during' ) ); ?>"><?php echo esc_textarea( $window_messages['during'] ); ?></textarea>
+							<p class="description"><?php esc_html_e( 'Shown within the date range but outside the daily time slot, when the time applies to each day. Leave empty for the default shown in the field.', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
 					</tbody>

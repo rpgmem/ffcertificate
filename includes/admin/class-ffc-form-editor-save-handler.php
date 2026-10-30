@@ -495,7 +495,11 @@ class FormEditorSaveHandler {
 				$clean_geofence['datetime_hide_mode_before'] = sanitize_key( ArrayValue::string( $geofence, 'datetime_hide_mode_before', $legacy_hide_mode ) );
 				$clean_geofence['datetime_hide_mode_during'] = sanitize_key( ArrayValue::string( $geofence, 'datetime_hide_mode_during', $legacy_hide_mode ) );
 				$clean_geofence['datetime_hide_mode_after']  = sanitize_key( ArrayValue::string( $geofence, 'datetime_hide_mode_after', $legacy_hide_mode ) );
-				$clean_geofence['msg_datetime']              = sanitize_textarea_field( ArrayValue::string( $geofence, 'msg_datetime' ) );
+				// One message per moment (#2241); an empty one falls back to
+				// its moment's default when shown.
+				foreach ( \FreeFormCertificate\Security\GeofenceWindowMessages::KEYS as $message_key ) {
+					$clean_geofence[ $message_key ] = sanitize_textarea_field( ArrayValue::string( $geofence, $message_key ) );
+				}
 
 				// Multi-day toggle (UX scope: hides the End Date / Time
 				// Behavior / Display-during-slot controls when off). When
@@ -549,6 +553,10 @@ class FormEditorSaveHandler {
 				$current_geofence = array();
 			}
 			$merged_geofence = array_merge( $current_geofence, $clean_geofence );
+			// The single message is replaced by the three once they are saved (#2241).
+			if ( isset( $clean_geofence['msg_before_open'] ) ) {
+				unset( $merged_geofence[ \FreeFormCertificate\Security\GeofenceWindowMessages::LEGACY_KEY ] );
+			}
 
 			$validation_errors = $this->validator()->validate_geofence_config( $merged_geofence );
 			if ( ! empty( $validation_errors ) ) {

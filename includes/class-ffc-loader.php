@@ -529,6 +529,11 @@ class Loader {
 		// translated, and translations load too early before `init`.
 		add_action( 'init', array( \FreeFormCertificate\Settings\RequiredData::class, 'maybe_migrate' ), 5 );
 
+		// Copy each form's single out-of-window message into the three that
+		// replace it (#2241). One-shot and option-flagged like the step above;
+		// `init` because it queries the form post type.
+		add_action( 'init', array( \FreeFormCertificate\Security\GeofenceWindowMessages::class, 'maybe_migrate' ), 20 );
+
 		$this->ensure_admin_capabilities();
 		$this->ensure_admin_role_assigned();
 		$this->ensure_taxonomy_renamed();

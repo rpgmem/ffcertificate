@@ -348,6 +348,66 @@ class GeofenceDatetimeValidationTest extends TestCase {
 	// ──────────────────────────────────────────────────────
 
 	/**
+	 * Each moment shows its own message (#2241): "Opens on…" no longer shows
+	 * after the form has closed.
+	 *
+	 * @return array<string, array{string, string, string}>
+	 */
+	public static function moments(): array {
+		return array(
+			'before the start date'      => array( '2026-05-01', '12:00', 'Opens on 1 June.' ),
+			'after the end date'         => array( '2026-07-01', '12:00', 'Registration has closed.' ),
+			'outside the daily hours'    => array( '2026-06-15', '20:00', 'Open daily from 8 to 17.' ),
+		);
+	}
+
+	/**
+	 * @dataProvider moments
+	 */
+	public function test_each_moment_shows_its_own_message( string $date, string $time, string $expected ): void {
+		Functions\when( 'wp_date' )->alias( fn( $format ) => 'Y-m-d' === $format ? $date : ( 'H:i' === $format ? $time : '' ) );
+		Functions\when( '__' )->returnArg();
+
+		$result = Geofence::validate_datetime(
+			array(
+				'time_mode'         => 'daily',
+				'date_start'        => '2026-06-01',
+				'date_end'          => '2026-06-30',
+				'time_start'        => '08:00',
+				'time_end'          => '17:00',
+				'msg_before_open'   => 'Opens on 1 June.',
+				'msg_after_close'   => 'Registration has closed.',
+				'msg_outside_hours' => 'Open daily from 8 to 17.',
+			)
+		);
+
+		$this->assertFalse( $result['valid'] );
+		$this->assertSame( $expected, $result['message'] );
+	}
+
+	/**
+	 * An empty message shows that moment's default, not another moment's text.
+	 */
+	public function test_an_empty_moment_message_shows_its_default(): void {
+		Functions\when( 'wp_date' )->alias( fn( $format ) => 'Y-m-d' === $format ? '2026-07-01' : '12:00' );
+		Functions\when( '__' )->returnArg();
+
+		$result = Geofence::validate_datetime(
+			array(
+				'time_mode'         => 'daily',
+				'date_start'        => '2026-06-01',
+				'date_end'          => '2026-06-30',
+				'msg_before_open'   => 'Opens on 1 June.',
+				'msg_after_close'   => '',
+				'msg_outside_hours' => '',
+				'msg_datetime'      => 'A leftover single message.',
+			)
+		);
+
+		$this->assertSame( 'This form is no longer available.', $result['message'] );
+	}
+
+	/**
 	 * Empty config (no dates, no times) → valid.
 	 */
 	public function test_no_config_restrictions_returns_valid(): void {

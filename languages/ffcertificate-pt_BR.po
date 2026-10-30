@@ -10791,10 +10791,6 @@ msgstr "Mensagem"
 msgid "Message shown to users after being redirected (appears on the dashboard page)."
 msgstr "Mensagem exibida aos usuários após o redirecionamento (aparece na página do painel de controle)."
 
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:272
-msgid "Message shown when form is accessed outside allowed date/time."
-msgstr "Mensagem exibida quando o formulário é acessado fora da data/hora permitida."
-
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:555
 msgid "Message shown when location detection fails (GPS denied, etc)."
 msgstr "Mensagem exibida quando a detecção de localização falha (GPS negado, etc)."
@@ -16814,11 +16810,6 @@ msgstr "Horários diários de abertura e fechamento (hora local do site)."
 msgid "the dashboard resolves data from the current user and shows nothing to anonymous visitors."
 msgstr "o painel resolve os dados do usuário atual e não exibe nada para visitantes anônimos."
 
-#. %d: minimum character count
-#: includes/admin/class-ffc-form-editor-save-validator.php:202
-msgid "The date/time \"Blocked Message\" must be at least %d characters so visitors understand why the form is unavailable."
-msgstr "A mensagem de bloqueio com data e hora deve ter pelo menos %d caracteres para que os visitantes entendam por que o formulário está indisponível."
-
 #: includes/settings/views/ffc-tab-migrations.php:641
 msgid "The delete button unlocks for 5 minutes after a successful preview."
 msgstr "O botão de excluir fica desbloqueado por 5 minutos após uma pré-visualização bem-sucedida."
@@ -17490,10 +17481,6 @@ msgstr "Este formulário não possui data de término configurada. O download do
 #: includes/security/class-ffc-geofence.php:278 includes/security/class-ffc-geofence.php:313 includes/frontend/class-ffc-frontend.php:697
 msgid "This form is no longer available."
 msgstr "Este formulário não está mais disponível."
-
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:97
-msgid "This form is not available at this time."
-msgstr "Este formulário não está disponível no momento."
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:371 includes/security/class-ffc-geofence.php:404
 msgid "This form is not available in your location."
@@ -29710,3 +29697,32 @@ msgstr "Sem Redis/Memcached, os contadores horários do limitador de taxa são r
 #: includes/settings/views/documentation/config-cache.php
 msgid "asks the page-cache plugins, and any integration listening on the ffc_form_cache_purged hook, to drop their copies of every page that shows a published form. Saving a form already does this for that form."
 msgstr "pede aos plugins de cache de página, e a qualquer integração que escute o hook ffc_form_cache_purged, que descartem as cópias de todas as páginas que exibem um formulário publicado. Salvar um formulário já faz isso para aquele formulário."
+
+#. translators: %d: minimum character count
+#, php-format
+msgid "A date/time message must be at least %d characters so visitors understand why the form is unavailable, or left empty for the default."
+msgstr "Uma mensagem de data/horário deve ter pelo menos %d caracteres para que os visitantes entendam por que o formulário está indisponível, ou ficar vazia para usar a padrão."
+
+msgid "Blocked messages"
+msgstr "Mensagens de bloqueio"
+
+msgid "Message after it closes"
+msgstr "Mensagem após o encerramento"
+
+msgid "Message before it opens"
+msgstr "Mensagem antes da abertura"
+
+msgid "Message outside the daily hours"
+msgstr "Mensagem fora do horário diário"
+
+msgid "Shown after the end date and time. Leave empty for the default shown in the field."
+msgstr "Exibida após a data e o horário de término. Deixe vazia para usar a padrão mostrada no campo."
+
+msgid "Shown before the start date and time. Leave empty for the default shown in the field."
+msgstr "Exibida antes da data e do horário de início. Deixe vazia para usar a padrão mostrada no campo."
+
+msgid "Shown within the date range but outside the daily time slot, when the time applies to each day. Leave empty for the default shown in the field."
+msgstr "Exibida dentro do período, mas fora do horário diário, quando o horário vale para cada dia. Deixe vazia para usar a padrão mostrada no campo."
+
+msgid "Three messages, one per moment: before the form opens, after it closes, and outside the daily hours (daily mode only). A message left empty shows that moment's default. Forms saved with the single message from earlier versions show it in all three until edited."
+msgstr "Três mensagens, uma por momento: antes da abertura do formulário, após o encerramento e fora do horário diário (apenas no modo diário). Uma mensagem deixada vazia exibe a padrão daquele momento. Formulários salvos com a mensagem única de versões anteriores a exibem nas três até serem editados."
