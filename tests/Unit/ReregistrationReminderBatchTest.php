@@ -240,7 +240,7 @@ class ReregistrationReminderBatchTest extends TestCase {
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $sql ) {
 				$this->queries[] = $sql;
-				if ( preg_match( '/FROM wp_ffc_reregistration_submissions WHERE reregistration_id = (\d+) AND status IN \(\'pending\',\'in_progress\'\) AND \( reminder_sent_at IS NULL/', $sql, $m ) ) {
+				if ( preg_match( '/FROM wp_ffc_reregistration_submissions WHERE reregistration_id = (\d+) AND status IN \(\'pending\',\'in_progress\',\'rejected\'\) AND \( reminder_sent_at IS NULL/', $sql, $m ) ) {
 					$after = preg_match( '/AND id > (\d+)/', $sql, $c ) ? (int) $c[1] : 0;
 					$rows  = array_values(
 						array_filter(

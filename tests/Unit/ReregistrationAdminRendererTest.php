@@ -656,8 +656,12 @@ class ReregistrationAdminRendererTest extends TestCase {
 		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $sub, 7, true ) );
 
 		$this->assertStringContainsString( 'action=approve&sub_id=12&id=7&_wpnonce=approve_submission_12', $html );
-		$this->assertStringContainsString( 'action=reject&sub_id=12&id=7&_wpnonce=reject_submission_12', $html );
-		$this->assertStringContainsString( 'action=return_to_draft&sub_id=12&id=7&_wpnonce=return_to_draft_submission_12', $html );
+		// Reject and Return to Draft open the review modal, which asks for the
+		// reason (#2242): buttons carrying the decision, never a GET link.
+		$this->assertStringContainsString( 'ffc-review-decision-btn" data-decision="reject" data-submission-id="12"', $html );
+		$this->assertStringContainsString( 'ffc-review-decision-btn" data-decision="return_to_draft" data-submission-id="12"', $html );
+		$this->assertStringNotContainsString( 'action=reject', $html );
+		$this->assertStringNotContainsString( 'action=return_to_draft', $html );
 		$this->assertStringContainsString( '2026-01-01 00:00', $html );
 		$this->assertStringContainsString( '2026-01-02 00:00', $html );
 	}

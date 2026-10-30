@@ -168,6 +168,83 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</table>
 		</form>
 
+		<?php if ( $can_edit ) : ?>
+		<!-- Review decision modal (#2242): Reject and Return to Draft ask for the
+			reason the member reads, and the submit is the confirmation. -->
+		<div id="ffc-review-decision-modal" class="ffc-rereg-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ffc-review-decision-title">
+			<div class="ffc-rereg-modal-backdrop"></div>
+			<div class="ffc-rereg-modal-content">
+				<div class="ffc-rereg-modal-header">
+					<h2 id="ffc-review-decision-title"></h2>
+					<?php
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'     => __( 'Close', 'ffcertificate' ),
+							'category'  => 'neutral',
+							'icon'      => 'cross',
+							'icon_only' => true,
+							'class'     => 'ffc-rereg-modal-close',
+						)
+					);
+					?>
+				</div>
+				<form method="post" class="ffc-rereg-modal-body ffc-review-decision-form">
+					<?php wp_nonce_field( 'review_decision_' . $id, 'ffc_review_nonce' ); ?>
+					<input type="hidden" name="ffc_action" value="review_decision">
+					<input type="hidden" name="reregistration_id" value="<?php echo esc_attr( (string) $id ); ?>">
+					<input type="hidden" name="decision" value="">
+					<div class="ffc-review-decision-ids"></div>
+					<p class="ffc-review-decision-intro"></p>
+					<p>
+						<label for="ffc-review-reason"><strong><?php esc_html_e( 'Reason sent to the member', 'ffcertificate' ); ?></strong></label>
+						<textarea id="ffc-review-reason" name="review_reason" class="large-text" rows="4" required minlength="<?php echo esc_attr( (string) \FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter::MIN_REASON_LENGTH ); ?>"></textarea>
+					</p>
+					<p class="description">
+						<?php
+						printf(
+							/* translators: %d: minimum number of characters. */
+							esc_html__( 'The member reads it on the dashboard and receives it by e-mail. At least %d characters.', 'ffcertificate' ),
+							(int) \FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter::MIN_REASON_LENGTH
+						);
+						?>
+					</p>
+					<p class="ffc-review-decision-actions">
+						<?php
+						\FreeFormCertificate\Core\Button::render(
+							array(
+								'label'    => __( 'Cancel', 'ffcertificate' ),
+								'category' => 'neutral',
+								'icon'     => 'cross',
+								'class'    => 'ffc-rereg-modal-close',
+							)
+						);
+						\FreeFormCertificate\Core\Button::render(
+							array(
+								'label'    => __( 'Reject', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'cross',
+								'type'     => 'submit',
+								'class'    => 'ffc-review-decision-confirm',
+								'attrs'    => array( 'data-decision' => 'reject' ),
+							)
+						);
+						\FreeFormCertificate\Core\Button::render(
+							array(
+								'label'    => __( 'Return to Draft', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'restore',
+								'type'     => 'submit',
+								'class'    => 'ffc-review-decision-confirm',
+								'attrs'    => array( 'data-decision' => 'return_to_draft' ),
+							)
+						);
+						?>
+					</p>
+				</form>
+			</div>
+		</div>
+		<?php endif; ?>
+
 		<!-- Submission details modal -->
 		<div id="ffc-submission-details-modal" class="ffc-rereg-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ffc-submission-details-title">
 			<div class="ffc-rereg-modal-backdrop"></div>

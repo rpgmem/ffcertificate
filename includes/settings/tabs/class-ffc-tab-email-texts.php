@@ -216,6 +216,15 @@ class TabEmailTexts extends SettingsTab {
 				'label'  => __( 'Reregistration confirmation', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'submission_status', 'auth_code', 'magic_link_url', 'dashboard_url', 'site_name' ),
 			),
+			'reregistration-rejected'       => array(
+				'label'  => __( 'Reregistration not approved', 'ffcertificate' ),
+				// `reason` is what the reviewer typed (#2242).
+				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'start_date', 'end_date', 'reason', 'dashboard_url', 'site_name' ),
+			),
+			'reregistration-returned'       => array(
+				'label'  => __( 'Reregistration returned for revision', 'ffcertificate' ),
+				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'start_date', 'end_date', 'reason', 'dashboard_url', 'site_name' ),
+			),
 			'audience-booking'              => array(
 				'label'  => __( 'Audience booking confirmation', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'user_email', 'environment_name', 'environment_label', 'schedule_name', 'booking_date', 'time', 'start_time', 'end_time', 'description', 'audiences', 'creator_name', 'site_name', 'site_url' ),
@@ -334,6 +343,8 @@ class TabEmailTexts extends SettingsTab {
 				'reregistration-invitation',
 				'reregistration-reminder',
 				'reregistration-confirmation',
+				'reregistration-rejected',
+				'reregistration-returned',
 			),
 			__( 'Audience Calendars', 'ffcertificate' ) => array( 'audience-booking', 'audience-cancellation', 'audience-admin-cancellation', 'audience-post-event-invite' ),
 			__( 'Account access', 'ffcertificate' )     => array( 'access-granted' ),

@@ -561,6 +561,57 @@ class ReregistrationEmailHandler {
 	}
 
 	/**
+	 * The e-mail a reject or a return to draft sends, by decision (#2242).
+	 *
+	 * @var array<string, string>
+	 */
+	private const REVIEW_TEMPLATES = array(
+		'reject'          => 'reregistration-rejected',
+		'return_to_draft' => 'reregistration-returned',
+	);
+
+	/**
+	 * Tell the member their submission was rejected or returned to draft.
+	 *
+	 * Not gated on a campaign toggle: the member has to act on it before the
+	 * deadline, and the reason is only on the dashboard otherwise. The global
+	 * kill switch still applies.
+	 *
+	 * @param int    $submission_id Submission ID.
+	 * @param string $decision      `reject` or `return_to_draft`.
+	 * @param string $reason        The reviewer's reason, plain text.
+	 * @return bool Whether the e-mail went out.
+	 */
+	public static function send_review_decision( int $submission_id, string $decision, string $reason ): bool {
+		if ( ! isset( self::REVIEW_TEMPLATES[ $decision ] ) || self::emails_disabled() ) {
+			return false;
+		}
+
+		$submission = ReregistrationSubmissionReader::get_by_id( $submission_id );
+		if ( ! $submission ) {
+			return false;
+		}
+
+		$rereg = ReregistrationRepository::get_by_id( (int) $submission->reregistration_id );
+		if ( ! $rereg ) {
+			return false;
+		}
+
+		$template = self::effective_template( self::REVIEW_TEMPLATES[ $decision ] );
+		if ( ! $template ) {
+			return false;
+		}
+
+		// The body is HTML and token values are not escaped by the resolver.
+		return self::send_to_user(
+			(int) $submission->user_id,
+			$rereg,
+			$template,
+			array( 'reason' => nl2br( esc_html( $reason ) ) )
+		);
+	}
+
+	/**
 	 * Run automated reminders for all active campaigns.
 	 *
 	 * Called by the daily cron job. Sends reminders when:

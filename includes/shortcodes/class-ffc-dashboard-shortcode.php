@@ -490,7 +490,19 @@ class DashboardShortcode {
 					}
 					$html .= self::reregistration_banner( 'success', 'success', $title, esc_html__( 'Your reregistration has been approved.', 'ffcertificate' ), $pdf_link );
 				} elseif ( 'submitted' === $rereg['submission_status'] ) {
-					$html .= self::reregistration_banner( 'info', 'clock', $title, esc_html__( 'Your reregistration has been submitted and is pending review.', 'ffcertificate' ), $pdf_link );
+					// Retract (#2242): the member takes back a submission nobody
+					// reviewed yet, while the window is open. The script asks
+					// for confirmation first.
+					$retract = empty( $rereg['can_retract'] ) ? '' : Button::html(
+						array(
+							'label'    => __( 'Retract submission', 'ffcertificate' ),
+							'category' => 'caution',
+							'icon'     => 'restore',
+							'class'    => 'ffc-rereg-retract',
+							'attrs'    => array( 'data-reregistration-id' => (string) (int) $rereg['id'] ),
+						)
+					);
+					$html   .= self::reregistration_banner( 'info', 'clock', $title, esc_html__( 'Your reregistration has been submitted and is pending review.', 'ffcertificate' ), $pdf_link . $retract );
 				} else {
 					/*
 					 * Every other non-submittable status (#1125). The two `if`s
@@ -549,6 +561,13 @@ class DashboardShortcode {
 					'attrs'    => array( 'data-reregistration-id' => (string) $rereg['id'] ),
 				)
 			);
+
+			// The reviewer's reason for a rejection or a return to draft
+			// (#2242), on its own line under the deadline.
+			$reason = isset( $rereg['review_reason'] ) && is_string( $rereg['review_reason'] ) ? $rereg['review_reason'] : '';
+			if ( '' !== $reason ) {
+				$deadline .= '<br><strong>' . esc_html__( 'Reviewer\'s note:', 'ffcertificate' ) . '</strong> ' . nl2br( esc_html( $reason ) );
+			}
 
 			// Three days or fewer is urgent: the danger tone, where the old
 			// banner repainted its warning one by hand.

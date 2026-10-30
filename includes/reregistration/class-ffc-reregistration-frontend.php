@@ -65,6 +65,7 @@ class ReregistrationFrontend {
 		add_action( 'wp_ajax_ffc_submit_reregistration', array( __CLASS__, 'ajax_submit' ) );
 		add_action( 'wp_ajax_ffc_save_reregistration_draft', array( __CLASS__, 'ajax_save_draft' ) );
 		add_action( 'wp_ajax_ffc_import_previous_reregistration', array( __CLASS__, 'ajax_import_previous' ) );
+		add_action( 'wp_ajax_ffc_retract_reregistration', array( __CLASS__, 'ajax_retract' ) );
 	}
 
 	/**
@@ -401,6 +402,64 @@ class ReregistrationFrontend {
 		wp_send_json_success( array( 'message' => __( 'Draft saved.', 'ffcertificate' ) ) );
 	}
 
+	/**
+	 * Whether the member may take back a submission (#2242).
+	 *
+	 * Only one nobody reviewed yet (`submitted`), and only while the campaign
+	 * window is open, so the member can still submit it again. The caller
+	 * answers for the campaign being active.
+	 *
+	 * @param object      $rereg      Campaign.
+	 * @phpstan-param ReregistrationRow $rereg
+	 * @param object|null $submission Submission row, or null.
+	 * @phpstan-param ReregistrationSubmissionRow|null $submission
+	 * @return bool
+	 */
+	public static function can_retract( object $rereg, ?object $submission ): bool {
+		return $submission
+			&& 'submitted' === (string) $submission->status
+			&& ReregistrationWindow::is_open( (string) $rereg->start_date, (string) $rereg->end_date );
+	}
+
+	/**
+	 * AJAX: the member takes back a submission awaiting review (#2242).
+	 *
+	 * The row goes back to draft with its answers and leaves the review queue.
+	 * The dashboard asks for confirmation before calling this.
+	 *
+	 * @return void
+	 */
+	public static function ajax_retract(): void {
+		check_ajax_referer( 'ffc_reregistration_frontend', 'nonce' );
+
+		$reregistration_id = isset( $_POST['reregistration_id'] ) ? absint( $_POST['reregistration_id'] ) : 0;
+		$user_id           = get_current_user_id();
+
+		if ( ! $reregistration_id || ! $user_id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid request.', 'ffcertificate' ) ) );
+		}
+
+		$rereg      = ReregistrationRepository::get_by_id( $reregistration_id );
+		$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( $reregistration_id, $user_id );
+		if ( ! $rereg || ! $submission || 'active' !== $rereg->status || ! self::can_retract( $rereg, $submission ) || ! ReregistrationSubmissionWriter::retract( (int) $submission->id ) ) {
+			wp_send_json_error( array( 'message' => __( 'This submission can no longer be retracted: it was already reviewed or the campaign is closed.', 'ffcertificate' ) ) );
+		}
+
+		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'reregistration_submission_retracted',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+				array(
+					'reregistration_id' => $reregistration_id,
+					'submission_id'     => (int) $submission->id,
+				),
+				$user_id
+			);
+		}
+
+		wp_send_json_success( array( 'message' => __( 'Submission retracted. It is a draft again: edit it and submit it before the deadline.', 'ffcertificate' ) ) );
+	}
+
 	// ------------------------------------------------------------------.
 	// Public static helpers used by REST controllers + shortcodes.
 	// ------------------------------------------------------------------.
@@ -436,6 +495,10 @@ class ReregistrationFrontend {
 				'can_submit'        => in_array( $sub_status, self::SUBMITTABLE_STATUSES, true ) && ReregistrationWindow::is_open( (string) $rereg->start_date, (string) $rereg->end_date ),
 				// The Record downloads, signed in, only while approved (#2242).
 				'can_download'      => $submission && 'approved' === $sub_status && ! empty( $submission->auth_code ),
+				'can_retract'       => self::can_retract( $rereg, $submission ),
+				// The reviewer's reason for a rejection or a return to draft
+				// (#2242); '' otherwise.
+				'review_reason'     => $submission ? self::review_reason( $submission ) : '',
 				// Approval instant, unix UTC (category A); null when the
 				// submission was never reviewed. The dashboard counts the
 				// approved banner's window from it (#1887).
@@ -444,6 +507,24 @@ class ReregistrationFrontend {
 		}
 
 		return $result;
+	}
+
+	/**
+	 * The reason the member reads on the banner, or ''.
+	 *
+	 * `notes` also holds "Auto-approved" on an approved row, so only a
+	 * rejected or returned row shows it: a returned row is the only draft
+	 * that carries notes.
+	 *
+	 * @param object $submission Submission row.
+	 * @phpstan-param ReregistrationSubmissionRow $submission
+	 * @return string
+	 */
+	private static function review_reason( object $submission ): string {
+		if ( ! in_array( (string) $submission->status, array( 'rejected', 'in_progress' ), true ) ) {
+			return '';
+		}
+		return is_string( $submission->notes ?? null ) ? trim( $submission->notes ) : '';
 	}
 
 	/**
@@ -508,6 +589,8 @@ class ReregistrationFrontend {
 				'submission_id'     => (int) $submission->id,
 				'can_submit'        => false,
 				'can_download'      => ! empty( $submission->auth_code ),
+				'can_retract'       => false,
+				'review_reason'     => '',
 				'reviewed_at'       => $reviewed_at,
 			);
 		}

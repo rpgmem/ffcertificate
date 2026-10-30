@@ -3402,9 +3402,6 @@ msgstr "Chamados por classificação #%d"
 msgid "Campaign"
 msgstr "Campanha"
 
-#: includes/settings/views/documentation/reference-emails.php:69
-msgid "Campaign invitation, reminder and confirmation"
-msgstr "Convite, lembrete e confirmação de campanha"
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:461
 msgid "Campaign lifecycle emails — text edited globally in the hub above; each still on/off per campaign."
@@ -4328,9 +4325,6 @@ msgstr "Configure como os calendários privados são exibidos para visitantes qu
 msgid "Configure recruitment"
 msgstr "Configurar recrutamento"
 
-#: includes/settings/views/documentation/feature-reregistration.php:28
-msgid "Configure the emails (invitation, reminder, confirmation) and whether submissions auto-approve."
-msgstr "Configure os e-mails (convite, lembrete, confirmação) e se as submissões são aprovadas automaticamente."
 
 #: templates/admin/settings/email-model-box.php:72
 msgid "Configure the single chrome (header, body, footer and outer container) that wraps every plugin email. The message content is injected into the body automatically."
@@ -14296,9 +14290,6 @@ msgstr "Retenção"
 msgid "Retention (days)"
 msgstr "Retenção (dias)"
 
-#: includes/reregistration/class-ffc-reregistration-admin.php:218
-msgid "Return this submission to draft? The user will be able to edit and resubmit."
-msgstr "Deseja enviar essa submissão para rascunho? O usuário poderá editar e reenviar."
 
 #: templates/admin/reregistration/submission-row.php:47 templates/admin/reregistration/submissions.php:82
 msgid "Return to Draft"
@@ -14371,9 +14362,6 @@ msgstr "Notas de Revisão"
 msgid "Reviewed"
 msgstr "Revisado"
 
-#: includes/settings/views/documentation/feature-reregistration.php:59
-msgid "reviewed (rejections can carry notes)."
-msgstr "analisado (rejeições podem incluir observações)."
 
 #: includes/reregistration/class-ffc-reregistration-export-source.php:183
 msgid "Reviewed At"
@@ -15159,9 +15147,6 @@ msgstr "A razão preliminar selecionada não existe mais."
 msgid "Selected submissions approved."
 msgstr "As propostas selecionadas foram aprovadas."
 
-#: includes/reregistration/class-ffc-reregistration-admin.php:310
-msgid "Selected submissions returned to draft."
-msgstr "As submissões selecionadas retornaram aos rascunhos."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:160
 msgid "Selected time is outside working hours."
@@ -16884,7 +16869,7 @@ msgstr "A seção \"Restrições e Tickets\" do editor de formulários controla 
 
 #: includes/settings/views/documentation/forms-email.php:27
 msgid "the form follows the shared certificate text edited once in Settings → Email texts. The per-form subject/body fields stay hidden behind a short note linking there — change the wording in one place and every Global form updates."
-msgstr "O formulário segue o texto do certificado compartilhado, editado uma única vez em Configurações → Textos de e-mail. Os campos de assunto e corpo específicos de cada formulário permanecem ocultos atrás de um breve aviso com link para essa configuração — basta alterar o texto em um só lugar para que todos os formulários globais sejam atualizados."
+msgstr "O formulário segue o texto do certificado compartilhado, editado uma única vez em Configurações → Textos dos e-mails. Os campos de assunto e corpo específicos de cada formulário permanecem ocultos atrás de um breve aviso com link para essa configuração — basta alterar o texto em um só lugar para que todos os formulários globais sejam atualizados."
 
 #: includes/frontend/class-ffc-public-csv-download.php:663
 msgid "The form has not started yet — wait until it opens before postponing the close."
@@ -28168,7 +28153,7 @@ msgstr "Ainda não"
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "Once an hour the plugin e-mails each eligible participant of a booking whose form has opened the personal link, once. The e-mail is \"Audience post-event form invitation\" under Settings → Email texts. It needs a published page that embeds the form, since the link points there; without one nothing is sent. The Attendance screen lists who was invited and when, who answered and whose certificate was issued, and while the form is open it resends to one person or to everyone who has not answered; this needs ffc_checkin_audiences."
-msgstr "Uma vez por hora o plugin envia por e-mail a cada participante elegível de um agendamento cujo formulário abriu o link pessoal, uma única vez. O e-mail é \"Convite para o formulário pós-evento de público\" em Configurações → Textos de e-mail. É preciso uma página publicada que contenha o formulário, pois o link aponta para ela; sem ela nada é enviado. A tela de Presença mostra quem foi convidado e quando, quem respondeu e de quem o certificado foi emitido, e enquanto o formulário estiver aberto reenvia a uma pessoa ou a todos que ainda não responderam; isso exige ffc_checkin_audiences."
+msgstr "Uma vez por hora o plugin envia por e-mail a cada participante elegível de um agendamento cujo formulário abriu o link pessoal, uma única vez. O e-mail é \"Convite para o formulário pós-evento de público\" em Configurações → Textos dos e-mails. É preciso uma página publicada que contenha o formulário, pois o link aponta para ela; sem ela nada é enviado. A tela de Presença mostra quem foi convidado e quando, quem respondeu e de quem o certificado foi emitido, e enquanto o formulário estiver aberto reenvia a uma pessoa ou a todos que ainda não responderam; isso exige ffc_checkin_audiences."
 
 #: templates/emails/audience-post-event-invite.php
 msgid "Open the form"
@@ -29798,3 +29783,105 @@ msgstr "Ative a campanha — um envio é criado na hora para cada membro dos pú
 
 msgid "A new reregistration campaign for your group opens on %s."
 msgstr "Uma nova campanha de recadastramento do seu grupo abre em %s."
+
+msgid "A submission returned to draft or retracted is in_progress again; a returned one shows the reviewer's reason on the banner."
+msgstr "Uma submissão devolvida para rascunho ou retirada volta a ficar em in_progress; a devolvida mostra o motivo do revisor no aviso."
+
+msgid "Campaign invitation, reminder, confirmation, not approved and returned for revision"
+msgstr "Convite, lembrete e confirmação da campanha, não aprovação e devolução para revisão"
+
+msgid "Configure the emails (invitation, reminder, confirmation) and whether submissions auto-approve. The not-approved and returned-for-revision e-mails are always sent and are edited in Settings → Email texts."
+msgstr "Configure os e-mails (convite, lembrete, confirmação) e se as submissões são aprovadas automaticamente. Os e-mails de não aprovação e de devolução para revisão são sempre enviados e são editados em Configurações → Textos dos e-mails."
+
+msgid "Could not retract the submission."
+msgstr "Não foi possível retirar a submissão."
+
+msgid "It reaches members who have not submitted and members whose submission was rejected; a rejection or a return to draft clears the stamp, so they are reminded again."
+msgstr "Ele alcança os membros que não enviaram e os membros cuja submissão foi rejeitada; uma rejeição ou uma devolução para rascunho limpa a marca, então eles são lembrados de novo."
+
+msgid "Nothing was changed: give the member a reason of at least %d characters."
+msgstr "Nada foi alterado: informe ao membro um motivo de pelo menos %d caracteres."
+
+msgid "Reason sent to the member"
+msgstr "Motivo enviado ao membro"
+
+msgid "Reject and Return to Draft, for one submission or a selection, open a dialog that asks for the reason, at least 10 characters; nothing changes without one. The member reads the reason on the dashboard banner and receives it by e-mail. Reject is for a submission awaiting review; Return to Draft also reopens an approved or rejected one, keeping its answers."
+msgstr "Rejeitar e Devolver ao Rascunho, para uma submissão ou uma seleção, abrem uma janela que pede o motivo, com pelo menos 10 caracteres; nada muda sem ele. O membro lê o motivo no aviso do painel e o recebe por e-mail. Rejeitar vale para uma submissão aguardando revisão; Devolver ao Rascunho também reabre uma aprovada ou rejeitada, mantendo as respostas."
+
+msgid "Reject submission"
+msgstr "Rejeitar submissão"
+
+msgid "Reregistration Submission Rejected"
+msgstr "Submissão de Recadastramento Rejeitada"
+
+msgid "Reregistration Submission Retracted"
+msgstr "Submissão de Recadastramento Retirada"
+
+msgid "Reregistration Submission Returned to Draft"
+msgstr "Submissão de Recadastramento Devolvida para Rascunho"
+
+msgid "Reregistration not approved"
+msgstr "Recadastramento não aprovado"
+
+msgid "Reregistration not approved: {{reregistration_title}}"
+msgstr "Recadastramento não aprovado: {{reregistration_title}}"
+
+msgid "Reregistration returned for revision"
+msgstr "Recadastramento devolvido para revisão"
+
+msgid "Reregistration returned for revision: {{reregistration_title}}"
+msgstr "Recadastramento devolvido para revisão: {{reregistration_title}}"
+
+msgid "Retract submission"
+msgstr "Retirar submissão"
+
+msgid "Retract your submission? It goes back to draft and leaves the review queue. Your answers are kept, and you must submit again before the deadline for it to be reviewed."
+msgstr "Retirar sua submissão? Ela volta para rascunho e sai da fila de revisão. Suas respostas são mantidas, e você precisa enviá-la de novo antes do prazo para que seja revisada."
+
+msgid "Return to draft"
+msgstr "Devolver para rascunho"
+
+msgid "Reviewer's note:"
+msgstr "Observação do revisor:"
+
+msgid "Selected: %d. The member is told the reason and can correct and resubmit until the deadline. The verification code is deleted."
+msgstr "Selecionadas: %d. O membro recebe o motivo e pode corrigir e reenviar até o prazo. O código de verificação é apagado."
+
+msgid "Selected: %d. The submission goes back to the member as a draft with its answers, and the member is told the reason."
+msgstr "Selecionadas: %d. A submissão volta ao membro como rascunho com as respostas, e o membro recebe o motivo."
+
+msgid "Submission retracted. It is a draft again: edit it and submit it before the deadline."
+msgstr "Submissão retirada. Ela é um rascunho de novo: edite e envie antes do prazo."
+
+msgid "The member reads it on the dashboard and receives it by e-mail. At least %d characters."
+msgstr "O membro o lê no painel e o recebe por e-mail. Pelo menos %d caracteres."
+
+msgid "This submission can no longer be retracted: it was already reviewed or the campaign is closed."
+msgstr "Esta submissão não pode mais ser retirada: ela já foi revisada ou a campanha está fechada."
+
+msgid "Until it is reviewed, the member can retract a submission from the dashboard banner while the campaign is open. After a warning it goes back to draft with its answers and leaves the review queue; it has to be submitted again to be reviewed."
+msgstr "Enquanto não for revisada, o membro pode retirar uma submissão pelo aviso do painel, com a campanha aberta. Depois de um aviso, ela volta para rascunho com as respostas e sai da fila de revisão; precisa ser enviada de novo para ser revisada."
+
+msgid "Your reregistration was returned to you for revision. Your answers were kept: review them and submit again before the deadline."
+msgstr "Seu recadastramento foi devolvido a você para revisão. Suas respostas foram mantidas: revise-as e envie de novo antes do prazo."
+
+msgid "Your reregistration was reviewed and was not approved. You can correct it and submit it again until the deadline."
+msgstr "Seu recadastramento foi revisado e não foi aprovado. Você pode corrigi-lo e enviá-lo de novo até o prazo."
+
+msgid "reviewed. A rejection always carries the reviewer's reason, which the member sees and can act on until the deadline."
+msgstr "revisada. Uma rejeição sempre traz o motivo do revisor, que o membro vê e pode atender até o prazo."
+
+msgid "%d submission rejected."
+msgid_plural "%d submissions rejected."
+msgstr[0] "%d submissão rejeitada."
+msgstr[1] "%d submissões rejeitadas."
+
+msgid "%d submission returned to draft."
+msgid_plural "%d submissions returned to draft."
+msgstr[0] "%d submissão devolvida ao rascunho."
+msgstr[1] "%d submissões devolvidas ao rascunho."
+
+msgid "%d selected submission was skipped because its status does not allow it."
+msgid_plural "%d selected submissions were skipped because their status does not allow it."
+msgstr[0] "%d submissão selecionada foi ignorada porque o status dela não permite."
+msgstr[1] "%d submissões selecionadas foram ignoradas porque o status delas não permite."

@@ -573,23 +573,21 @@ class ReregistrationAdminPageTest extends TestCase {
 		);
 		( new ReregistrationAdmin() )->handle_actions();
 
-		$_POST = array();
-		foreach ( array( 'reject', 'return_to_draft' ) as $action ) {
-			$_GET = array(
-				'page'     => 'ffc-reregistration',
-				'action'   => $action,
-				'sub_id'   => '3',
-				'id'       => '4',
-				'_wpnonce' => 'bad',
-			);
-			( new ReregistrationAdmin() )->handle_actions();
-		}
+		// Reject and Return to Draft post the review modal (#2242).
+		$_GET  = array( 'page' => 'ffc-reregistration' );
+		$_POST = array(
+			'ffc_action'        => 'review_decision',
+			'reregistration_id' => '4',
+			'ffc_review_nonce'  => 'bad',
+			'decision'          => 'reject',
+		);
+		( new ReregistrationAdmin() )->handle_actions();
 
 		$this->assertSame( array( array( 'Reminder emails sent.', 'success' ) ), $notices );
 		$this->assertSame(
-			array( 'approve_submission_3', 'bulk_submissions_4', 'reject_submission_3', 'return_to_draft_submission_3' ),
+			array( 'approve_submission_3', 'bulk_submissions_4', 'review_decision_4' ),
 			$nonces,
-			'Approve, bulk, reject and return-to-draft each reach their handler.'
+			'Approve, bulk and the review decision each reach their handler.'
 		);
 		$this->assertSame( array(), $this->writes );
 		$this->assertSame( array(), $this->redirects );

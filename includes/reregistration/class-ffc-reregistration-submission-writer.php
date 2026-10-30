@@ -239,15 +239,18 @@ class ReregistrationSubmissionWriter {
 		$format      = array();
 
 		$field_formats = array(
-			'data'         => '%s',
-			'status'       => '%s',
+			'data'             => '%s',
+			'status'           => '%s',
 			// `submitted_at`/`reviewed_at` are unix UTC int since 6.6.0 (#249 sub-escopos b/d).
-			'submitted_at' => '%d',
-			'reviewed_at'  => '%d',
-			'reviewed_by'  => '%d',
-			'notes'        => '%s',
-			'auth_code'    => '%s',
-			'magic_token'  => '%s',
+			'submitted_at'     => '%d',
+			'reviewed_at'      => '%d',
+			'reviewed_by'      => '%d',
+			'notes'            => '%s',
+			'auth_code'        => '%s',
+			'magic_token'      => '%s',
+			// Cleared by a reject or a return to draft, so the member is
+			// reminded again (#2242). Unix UTC int, like the stamp.
+			'reminder_sent_at' => '%d',
 		);
 
 		foreach ( $data as $key => $value ) {
@@ -320,10 +323,32 @@ class ReregistrationSubmissionWriter {
 	}
 
 	/**
+	 * Shortest reason a reviewer may give for a reject or a return (#2242).
+	 *
+	 * The same floor the manual grading uses: it refuses an empty or "ok"
+	 * reason, and is not a quality bar.
+	 *
+	 * @var int
+	 */
+	public const MIN_REASON_LENGTH = 10;
+
+	/**
+	 * Whether a reviewer's reason is long enough to send to the member.
+	 *
+	 * @param string $reason Reason as typed.
+	 * @return bool
+	 */
+	public static function is_valid_reason( string $reason ): bool {
+		return mb_strlen( trim( $reason ) ) >= self::MIN_REASON_LENGTH;
+	}
+
+	/**
 	 * Reject a submission awaiting review.
 	 *
 	 * The code is deleted (#2242): a rejected record must not verify, and a
-	 * later approval issues a new one.
+	 * later approval issues a new one. The reason is what the member reads on
+	 * the dashboard banner, and the reminder mark is cleared so a rejected
+	 * member is reminded again before the deadline.
 	 *
 	 * @param int    $id          Submission ID.
 	 * @param int    $reviewer_id Reviewer user ID.
@@ -334,11 +359,12 @@ class ReregistrationSubmissionWriter {
 		return self::update_if_status(
 			$id,
 			array(
-				'status'      => 'rejected',
-				'reviewed_at' => time(),
-				'reviewed_by' => $reviewer_id,
-				'notes'       => $notes,
-				'auth_code'   => null,
+				'status'           => 'rejected',
+				'reviewed_at'      => time(),
+				'reviewed_by'      => $reviewer_id,
+				'notes'            => $notes,
+				'auth_code'        => null,
+				'reminder_sent_at' => null,
 			),
 			self::REVIEWABLE_STATUSES
 		);
@@ -348,42 +374,52 @@ class ReregistrationSubmissionWriter {
 	 * Return a submission to draft (in_progress) so the user can revise it.
 	 *
 	 * Clears the review metadata and resets submitted_at so the user
-	 * sees it as an editable draft again. The code stays stored (#2242):
-	 * verification refuses it while the row is not approved, and approving
-	 * the revision brings the same code back, so a printed record still
-	 * matches.
+	 * sees it as an editable draft again. The reason goes in `notes`, which
+	 * the member reads on the dashboard banner (#2242), and the reminder mark
+	 * is cleared so the member is reminded again. The code stays stored
+	 * (#2242): verification refuses it while the row is not approved, and
+	 * approving the revision brings the same code back, so a printed record
+	 * still matches.
 	 *
-	 * @param int $id Submission ID.
-	 * @return bool
+	 * @param int    $id     Submission ID.
+	 * @param string $reason Why the submission goes back to the member.
+	 * @return bool Whether the row was returnable and is a draft now.
 	 */
-	public static function return_to_draft( int $id ): bool {
+	public static function return_to_draft( int $id, string $reason = '' ): bool {
 		return self::update_if_status(
 			$id,
 			array(
-				'status'       => 'in_progress',
-				'submitted_at' => null,
-				'reviewed_at'  => null,
-				'reviewed_by'  => null,
-				'notes'        => null,
+				'status'           => 'in_progress',
+				'submitted_at'     => null,
+				'reviewed_at'      => null,
+				'reviewed_by'      => null,
+				'notes'            => '' !== $reason ? $reason : null,
+				'reminder_sent_at' => null,
 			),
 			self::RETURNABLE_STATUSES
 		);
 	}
 
 	/**
-	 * Bulk return multiple submissions to draft.
+	 * The member takes back a submission nobody has reviewed yet (#2242).
 	 *
-	 * @param array<int> $ids Submission IDs.
-	 * @return int Number of submissions returned to draft.
+	 * Only a `submitted` row moves, in the same statement that tests it, so a
+	 * reviewer acting at the same moment wins or loses cleanly. The row leaves
+	 * the review queue as a draft; the answers stay.
+	 *
+	 * @param int $id Submission ID.
+	 * @return bool Whether the row was awaiting review and is a draft now.
 	 */
-	public static function bulk_return_to_draft( array $ids ): int {
-		$count = 0;
-		foreach ( $ids as $id ) {
-			if ( self::return_to_draft( (int) $id ) ) {
-				++$count;
-			}
-		}
-		return $count;
+	public static function retract( int $id ): bool {
+		return self::update_if_status(
+			$id,
+			array(
+				'status'       => 'in_progress',
+				'submitted_at' => null,
+				'notes'        => null,
+			),
+			self::REVIEWABLE_STATUSES
+		);
 	}
 
 	/**

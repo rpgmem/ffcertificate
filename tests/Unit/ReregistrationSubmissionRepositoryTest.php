@@ -979,6 +979,8 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$this->assertSame('Incomplete submission', $map['notes']);
 		$this->assertArrayHasKey('auth_code', $map);
 		$this->assertNull($map['auth_code'], 'A rejected record must not verify (#2242).');
+		$this->assertArrayHasKey('reminder_sent_at', $map);
+		$this->assertNull($map['reminder_sent_at'], 'A rejected member is reminded again (#2242).');
 		$this->assertSame(array('submitted'), $this->allowed_statuses($captured['writes'][0]));
 	}
 
@@ -1010,7 +1012,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
 		$map = $this->set_map($captured['writes'][0]);
 		$this->assertSame(
-			array('status' => 'in_progress', 'submitted_at' => null, 'reviewed_at' => null, 'reviewed_by' => null, 'notes' => null),
+			array('status' => 'in_progress', 'submitted_at' => null, 'reviewed_at' => null, 'reviewed_by' => null, 'notes' => null, 'reminder_sent_at' => null),
 			$map,
 			'The code is not touched: it stays stored and hidden until re-approval (#2242).'
 		);
@@ -1066,28 +1068,46 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$this->assertSame(0, ReregistrationSubmissionWriter::bulk_approve(array(1, 2), 99));
 	}
 
-	// ==================================================================
-	// bulk_return_to_draft()
-	// ==================================================================
+	public function test_return_to_draft_stores_the_reason_for_the_member(): void {
+		$captured = $this->capture_review_writes();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(1);
 
-	public function test_bulk_return_to_draft_returns_count(): void {
-		$this->capture_review_writes();
-		$this->wpdb->shouldReceive('query')->times(2)->andReturn(1);
+		$this->assertTrue(ReregistrationSubmissionWriter::return_to_draft(8, 'Attach the missing document.'));
 
-		$this->assertSame(2, ReregistrationSubmissionWriter::bulk_return_to_draft(array(10, 11)));
+		$this->assertSame('Attach the missing document.', $this->set_map($captured['writes'][0])['notes']);
 	}
 
-	public function test_bulk_return_to_draft_counts_only_successes(): void {
-		$this->capture_review_writes();
-		$this->wpdb->shouldReceive('query')->andReturn(1, false);
+	// ==================================================================
+	// retract() and the reason floor (#2242)
+	// ==================================================================
 
-		$this->assertSame(1, ReregistrationSubmissionWriter::bulk_return_to_draft(array(10, 11)));
+	public function test_retract_takes_back_only_a_submission_awaiting_review(): void {
+		$captured = $this->capture_review_writes();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(1);
+
+		$this->assertTrue(ReregistrationSubmissionWriter::retract(8));
+
+		$this->assertSame(
+			array('status' => 'in_progress', 'submitted_at' => null, 'notes' => null),
+			$this->set_map($captured['writes'][0])
+		);
+		$this->assertSame(array('submitted'), $this->allowed_statuses($captured['writes'][0]));
 	}
 
-	public function test_bulk_return_to_draft_returns_zero_for_empty_array(): void {
-		$count = ReregistrationSubmissionWriter::bulk_return_to_draft(array());
+	public function test_retract_refuses_a_reviewed_submission(): void {
+		$this->capture_review_writes();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(0);
+		$this->wpdb->shouldReceive('get_var')->once()->andReturn('approved');
 
-		$this->assertSame(0, $count);
+		$this->assertFalse(ReregistrationSubmissionWriter::retract(8));
+	}
+
+	public function test_a_reason_needs_ten_characters_after_trimming(): void {
+		$this->assertFalse(ReregistrationSubmissionWriter::is_valid_reason(''));
+		$this->assertFalse(ReregistrationSubmissionWriter::is_valid_reason('   short   '));
+		$this->assertFalse(ReregistrationSubmissionWriter::is_valid_reason('123456789'));
+		$this->assertTrue(ReregistrationSubmissionWriter::is_valid_reason('1234567890'));
+		$this->assertFalse(ReregistrationSubmissionWriter::is_valid_reason(str_repeat('ã', 9)), 'Characters, not bytes: nine accented letters are 18 bytes.');
 	}
 
 	// ==================================================================

@@ -216,6 +216,8 @@ class DashboardAssetManager {
 					'removeDay'         => __( 'Remove day', 'ffcertificate' ),
 					'dualPostShowValue' => __( 'I hold', 'ffcertificate' ),
 					'importLoading'     => __( 'Bringing previous answers…', 'ffcertificate' ),
+					'retractConfirm'    => __( 'Retract your submission? It goes back to draft and leaves the review queue. Your answers are kept, and you must submit again before the deadline for it to be reviewed.', 'ffcertificate' ),
+					'errorRetracting'   => __( 'Could not retract the submission.', 'ffcertificate' ),
 				),
 			)
 		);

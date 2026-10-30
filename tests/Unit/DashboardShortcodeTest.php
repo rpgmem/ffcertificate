@@ -311,7 +311,7 @@ class DashboardShortcodeTest extends TestCase {
 	 * Store an active campaign the user's audience reaches, and the user's
 	 * submission in it (none when $status is null).
 	 */
-	private function activeCampaign( int $id, string $title, string $end_date, ?string $status, ?int $reviewed_at = null ): void {
+	private function activeCampaign( int $id, string $title, string $end_date, ?string $status, ?int $reviewed_at = null, ?string $notes = null ): void {
 		$this->active_campaigns[] = (object) array(
 			'id'           => (string) $id,
 			'title'        => $title,
@@ -321,7 +321,8 @@ class DashboardShortcodeTest extends TestCase {
 			'auto_approve' => '0',
 		);
 		if ( null !== $status ) {
-			$this->submissions_by_campaign[ $id ] = $this->submission( $id, $status, $reviewed_at );
+			$this->submissions_by_campaign[ $id ]        = $this->submission( $id, $status, $reviewed_at );
+			$this->submissions_by_campaign[ $id ]->notes = $notes;
 		}
 	}
 
@@ -680,6 +681,25 @@ class DashboardShortcodeTest extends TestCase {
 		$this->assertStringContainsString( $this->recordButton( 10 ), $output, 'The approved banner offers the record.' );
 		$this->assertStringNotContainsString( $this->recordButton( 11 ), $output, 'A submission awaiting review has no record yet (#2242).' );
 		$this->assertStringNotContainsString( '#token=', $output, 'No public link to a record is drawn.' );
+	}
+
+	public function test_a_reviewed_banner_shows_the_reason_and_a_submitted_one_offers_retract(): void {
+		$this->wireFullRenderCollaborators( false );
+		// #2242: the reviewer's reason reaches the member, escaped; a
+		// submission nobody reviewed yet can be taken back.
+		$this->activeCampaign( 13, 'Rejected Campaign', '2030-01-01', 'rejected', null, 'Attach the <b>payslip</b>.' );
+		$this->activeCampaign( 12, 'Returned Campaign', '2030-01-01', 'in_progress', null, 'Fix the RF.' );
+		$this->activeCampaign( 11, 'Submitted Campaign', '2030-01-01', 'submitted' );
+		Functions\when( 'esc_html' )->alias( static fn ( $text ) => htmlspecialchars( (string) $text, ENT_NOQUOTES ) );
+
+		$output = DashboardShortcode::render();
+
+		$this->assertStringContainsString( 'Attach the &lt;b&gt;payslip&lt;/b&gt;.', $output );
+		$this->assertStringNotContainsString( '<b>payslip</b>', $output );
+		$this->assertStringContainsString( 'Fix the RF.', $output );
+		$this->assertSame( 2, substr_count( $output, "Reviewer's note:" ) );
+		$this->assertMatchesRegularExpression( '/<button[^>]*class="[^"]*ffc-rereg-retract[^"]*"[^>]*data-reregistration-id="11"/', $output );
+		$this->assertSame( 1, substr_count( $output, 'ffc-rereg-retract' ), 'Only the submission awaiting review can be retracted.' );
 	}
 
 	// ==================================================================
