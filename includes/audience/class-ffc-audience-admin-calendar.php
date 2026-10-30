@@ -128,6 +128,60 @@ class AudienceAdminCalendar {
 	}
 
 	/**
+	 * Add a closed date to a calendar (#2243).
+	 *
+	 * A date the calendar already closes is refused with a message; the
+	 * repository's unique key refused it before, and the screen said it was
+	 * added. A date that holds active bookings is not saved until the
+	 * request confirms it: the Closed dates tab lists those bookings, and the
+	 * confirmation saves the date and cancels each of them, telling their
+	 * participants.
+	 *
+	 * @param int    $schedule_id  Calendar ID.
+	 * @param string $holiday_date Date (Y-m-d).
+	 * @param string $description  Description, may be empty.
+	 * @param string $kind         Closed-date kind.
+	 * @return void
+	 */
+	private function add_holiday( int $schedule_id, string $holiday_date, string $description, string $kind ): void {
+		if ( ! empty( AudienceEnvironmentRepository::get_holidays( $schedule_id, $holiday_date, $holiday_date ) ) ) {
+			add_settings_error( 'ffc_audience', 'ffc_message', __( 'Not added: this calendar already closes on that date.', 'ffcertificate' ), 'error' );
+			return;
+		}
+
+		$bookings = AudienceClosedDay::bookings_on( $holiday_date, $schedule_id );
+		if ( ! empty( $bookings ) && ! AudienceClosedDay::confirmed() ) {
+			AudienceClosedDay::hold(
+				$holiday_date,
+				$kind,
+				$description,
+				$bookings,
+				array(
+					'ffc_action'          => 'add_holiday',
+					'ffc_holiday_nonce'   => wp_create_nonce( 'add_holiday' ),
+					'schedule_id'         => (string) $schedule_id,
+					'holiday_date'        => $holiday_date,
+					'holiday_description' => $description,
+					'holiday_kind'        => $kind,
+				)
+			);
+			return;
+		}
+
+		if ( ! AudienceEnvironmentRepository::add_holiday( $schedule_id, $holiday_date, $description, $kind ) ) {
+			add_settings_error( 'ffc_audience', 'ffc_message', __( 'Not added: the date is invalid or this calendar already closes on it.', 'ffcertificate' ), 'error' );
+			return;
+		}
+
+		$cancelled = AudienceClosedDay::cancel_bookings( $bookings, $holiday_date, $description );
+		$message   = 0 === $cancelled
+			? __( 'Holiday added successfully.', 'ffcertificate' )
+			/* translators: %d: number of bookings cancelled */
+			: sprintf( _n( 'Holiday added. %d booking was cancelled and its participants were e-mailed.', 'Holiday added. %d bookings were cancelled and their participants were e-mailed.', $cancelled, 'ffcertificate' ), $cancelled );
+		add_settings_error( 'ffc_audience', 'ffc_message', $message, 'success' );
+	}
+
+	/**
 	 * What keeps a calendar from being deleted: its environments, of any
 	 * status, and the bookings made in them (#2243).
 	 *
@@ -729,6 +783,7 @@ class AudienceAdminCalendar {
 
 			<?php AudienceEditorTabs::panel_open( $tabs[6], $active ); ?>
 			<p class="description"><?php esc_html_e( 'Add specific dates when the calendar will be closed (holidays, maintenance, etc.).', 'ffcertificate' ); ?></p>
+			<?php AudienceClosedDay::render_pending(); ?>
 
 			<?php if ( $can_manage ) : ?>
 			<form method="post" action="" class="ffc-holiday-form ffc-aud-panel">
@@ -1086,8 +1141,7 @@ class AudienceAdminCalendar {
 			$kind         = RequestInput::get_post_string( 'holiday_kind' );
 
 			if ( $schedule_id > 0 && $holiday_date ) {
-				AudienceEnvironmentRepository::add_holiday( $schedule_id, $holiday_date, $description, $kind );
-				add_settings_error( 'ffc_audience', 'ffc_message', __( 'Holiday added successfully.', 'ffcertificate' ), 'success' );
+				$this->add_holiday( $schedule_id, $holiday_date, $description, $kind );
 			}
 		}
 
