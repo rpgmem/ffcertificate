@@ -1233,12 +1233,12 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		);
 		$this->wpdb->shouldReceive('get_results')->andReturn(array());
 
-		ReregistrationSubmissionReader::get_by_reregistration(1, array('search' => '123.456.789-09'));
+		ReregistrationSubmissionReader::get_by_reregistration(1, array('search' => '518.178.420-80'));
 
 		$lookup = array_values(array_filter((array) $calls, static fn ($c) => false !== strpos($c[0], 'cpf_hash = %s')));
 		$this->assertNotEmpty($lookup, 'The identity index is asked by hash.');
-		$this->assertSame(\FreeFormCertificate\Core\Encryption::hash('12345678909'), $lookup[0][2], 'Asked by the digits\' hash, whatever the mask.');
-		$this->assertNotSame('12345678909', $lookup[0][2], 'The CPF is never sent in clear.');
+		$this->assertSame(\FreeFormCertificate\Core\Encryption::hash(\FreeFormCertificate\Tests\Support\Identifiers::CPF_A), $lookup[0][2], 'Asked by the digits\' hash, whatever the mask.');
+		$this->assertNotSame(\FreeFormCertificate\Tests\Support\Identifiers::CPF_A, $lookup[0][2], 'The CPF is never sent in clear.');
 
 		$list = array_values(array_filter((array) $calls, static fn ($c) => false !== strpos($c[0], 'SELECT s.*')));
 		$this->assertStringContainsString('(u.display_name LIKE %s OR u.user_email LIKE %s OR s.user_id = %d)', $list[0][0]);
@@ -1250,7 +1250,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive('get_var')->andReturn(null);
 		$this->wpdb->shouldReceive('get_results')->andReturn(array());
 
-		ReregistrationSubmissionReader::get_by_reregistration(1, array('search' => '1234567'));
+		ReregistrationSubmissionReader::get_by_reregistration(1, array('search' => \FreeFormCertificate\Tests\Support\Identifiers::RF_A));
 
 		$lookups = array_values(array_filter((array) $calls, static fn ($c) => false !== strpos($c[0], 'rf_hash = %s')));
 		$this->assertNotEmpty($lookups);
@@ -1262,7 +1262,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$calls = $this->recordPrepare();
 		$this->wpdb->shouldReceive('get_results')->andReturn(array());
 
-		ReregistrationSubmissionReader::get_by_reregistration(1, array('search' => 'Ana 1234567'));
+		ReregistrationSubmissionReader::get_by_reregistration(1, array('search' => 'Ana ' . \FreeFormCertificate\Tests\Support\Identifiers::RF_A));
 
 		$this->assertCount(1, $calls, 'Only the list query.');
 	}

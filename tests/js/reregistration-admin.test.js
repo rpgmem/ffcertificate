@@ -605,7 +605,7 @@ describe('rereg-admin — CSV export', () => {
 		const runSpy = vi.fn();
 		window.FFCBatchedExport = { run: runSpy };
 		document.body.innerHTML = `
-			<button type="button" id="ffc-rereg-export-btn" data-id="7" data-sub-status="not_finished" data-search="123.456.789-09" data-audience="3">Export CSV</button>
+			<button type="button" id="ffc-rereg-export-btn" data-id="7" data-sub-status="not_finished" data-search="518.178.420-80" data-audience="3">Export CSV</button>
 		`;
 		await reload();
 
@@ -614,7 +614,7 @@ describe('rereg-admin — CSV export', () => {
 		expect(runSpy.mock.calls[0][0].startData).toEqual({
 			id: 7,
 			sub_status: 'not_finished',
-			s: '123.456.789-09',
+			s: '518.178.420-80',
 			audience: '3'
 		});
 	});
