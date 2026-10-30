@@ -29,6 +29,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: a booking can be edited or moved without losing its attendance** (#2243). `PUT /audience/bookings/{id}` keeps the booking's id, moves it within its calendar through the checks a new booking passes, and sends one "Activity changed" e-mail with what it was. A started booking changes its text only.
 - **Audience Calendars: Edit in the day's list** (#2243). Who may cancel a booking may open it in the booking dialog, move it to another date, hours or space, or change its text; who it is for stays as booked.
 - **Personal Calendars: mark attendance on the Appointments list** (#2284). A confirmed appointment offers Attended and No-show from its date on, and either mark can be undone back to confirmed. Each write applies only over the status read, so a row changed meanwhile is left alone.
+- **Personal Calendars: old appointments close themselves** (#2285). Once a day, an appointment whose date passed a set number of days ago (default 7, 0 turns it off) is closed: confirmed becomes completed, pending is cancelled as never approved. No e-mail; the Appointments list offers the same close-out on demand.
 
 ### Changed
 

@@ -372,6 +372,37 @@ class AppointmentReader extends AbstractRepository {
 	}
 
 	/**
+	 * Count the appointments the close-out would change: confirmed and
+	 * pending ones dated on or before $cutoff.
+	 *
+	 * @param string $cutoff Last appointment date, `Y-m-d` (wall-clock).
+	 * @return array{confirmed: int, pending: int}
+	 */
+	public function countDueForCloseout( string $cutoff ): array {
+		$counts = array(
+			'confirmed' => 0,
+			'pending'   => 0,
+		);
+		$rows   = $this->wpdb->get_results(
+			$this->wpdb->prepare(
+				"SELECT status, COUNT(*) AS total FROM %i
+                 WHERE status IN ('confirmed', 'pending') AND appointment_date <= %s
+                 GROUP BY status",
+				$this->table,
+				$cutoff
+			),
+			ARRAY_A
+		);
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$status = isset( $row['status'] ) && is_string( $row['status'] ) ? $row['status'] : '';
+			if ( isset( $counts[ $status ] ) ) {
+				$counts[ $status ] = is_numeric( $row['total'] ?? null ) ? (int) $row['total'] : 0;
+			}
+		}
+		return $counts;
+	}
+
+	/**
 	 * Find the oldest waitlisted entry for a slot (#941 phase 2).
 	 *
 	 * FIFO by insertion order (`id ASC`, monotonic). Used by promotion when a

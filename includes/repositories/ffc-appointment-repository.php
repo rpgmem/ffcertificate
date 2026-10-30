@@ -459,6 +459,39 @@ class AppointmentRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Count the appointments the close-out would change.
+	 *
+	 * @param string $cutoff Last appointment date, `Y-m-d` (wall-clock).
+	 * @return array{confirmed: int, pending: int}
+	 */
+	public function countDueForCloseout( string $cutoff ): array {
+		return $this->reader->countDueForCloseout( $cutoff );
+	}
+
+	/**
+	 * Mark one batch of confirmed appointments up to $cutoff as completed.
+	 *
+	 * @param string $cutoff Last appointment date, `Y-m-d`.
+	 * @param int    $limit  Rows per batch.
+	 * @return int|false
+	 */
+	public function completeConfirmedUpTo( string $cutoff, int $limit ) {
+		return $this->writer->completeConfirmedUpTo( $cutoff, $limit );
+	}
+
+	/**
+	 * Cancel one batch of pending appointments up to $cutoff.
+	 *
+	 * @param string $cutoff Last appointment date, `Y-m-d`.
+	 * @param string $reason Cancellation reason.
+	 * @param int    $limit  Rows per batch.
+	 * @return int|false
+	 */
+	public function expirePendingUpTo( string $cutoff, string $reason, int $limit ) {
+		return $this->writer->expirePendingUpTo( $cutoff, $reason, $limit );
+	}
+
+	/**
 	 * Mark reminder as sent
 	 *
 	 * @param int $id Record ID.

@@ -608,6 +608,57 @@ class AudienceAdminSettingsTest extends TestCase {
 		$this->assertSame( array( 'Business hours restriction messages saved.' ), $notices->getArrayCopy() );
 	}
 
+	/**
+	 * @return array<string, array{0: string, 1: int|null}>
+	 */
+	public static function closeout_days(): array {
+		return array(
+			'a number'          => array( '14', 14 ),
+			'zero turns it off' => array( '0', 0 ),
+			'above the cap'     => array( '9999', 365 ),
+			'below zero'        => array( '-4', 0 ),
+			'empty keeps it'    => array( '', null ),
+			'not a number'      => array( 'abc', null ),
+		);
+	}
+
+	/**
+	 * @dataProvider closeout_days
+	 */
+	public function test_closeout_days_are_clamped_and_an_empty_field_writes_nothing( string $posted, ?int $expected ): void {
+		$written = $this->record_writes();
+		$notices = $this->record_notices();
+		$_POST   = array(
+			'ffc_action'            => 'save_ss_closeout_settings',
+			'ffc_ss_closeout_nonce' => 'n',
+			'ffc_ss_closeout_days'  => $posted,
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		if ( null === $expected ) {
+			$this->assertCount( 0, $written );
+			$this->assertSame( array( 'Not saved: enter a number of days from 0 to 365.' ), $notices->getArrayCopy() );
+			return;
+		}
+		$this->assertSame( array( 'ffc_ss_closeout_days' => $expected ), $written->getArrayCopy() );
+		$this->assertSame( array( 'Old appointment close-out saved.' ), $notices->getArrayCopy() );
+	}
+
+	public function test_closeout_days_without_a_nonce_are_ignored(): void {
+		$written = $this->record_writes();
+		$_POST   = array(
+			'ffc_action'           => 'save_ss_closeout_settings',
+			'ffc_ss_closeout_days' => '3',
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		$this->assertCount( 0, $written );
+	}
+
 	public function test_business_hours_messages_without_a_nonce_are_ignored(): void {
 		$written = $this->record_writes();
 		$_POST   = array( 'ffc_action' => 'save_ss_business_hours_settings' );

@@ -150,6 +150,7 @@ class ScheduledTasksTest extends TestCase {
 
 		foreach ( array(
 			\FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK,
+			\FreeFormCertificate\SelfScheduling\AppointmentCloseout::CRON_HOOK,
 			\FreeFormCertificate\Integrations\CloudflareCidrRefresh::CRON_HOOK,
 			\FreeFormCertificate\Audience\AudienceFormInviteScanner::CRON_HOOK,
 			\FreeFormCertificate\Admin\ExpiredTicketsCleanup::CRON_HOOK,

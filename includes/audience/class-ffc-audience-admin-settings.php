@@ -206,6 +206,8 @@ class AudienceAdminSettings {
 		/* translators: %hours% is replaced with today's working hours range */
 		$bh_booking_message = get_option( 'ffc_ss_business_hours_booking_message', __( 'Booking is available only during business hours (%hours%).', 'ffcertificate' ) );
 
+		$closeout_days = \FreeFormCertificate\SelfScheduling\AppointmentCloseout::days();
+
 		include FFC_PLUGIN_DIR . 'templates/admin/audience/self-scheduling-tab.php';
 	}
 
@@ -255,6 +257,24 @@ class AudienceAdminSettings {
 			update_option( 'ffc_ss_scheduling_message', self::rich_text_post( 'ffc_ss_scheduling_message' ) );
 
 			add_settings_error( 'ffc_audience', 'ffc_message', __( 'Personal Calendars visibility settings saved.', 'ffcertificate' ), 'success' );
+		}
+
+		// Save the old-appointment close-out days (#2285). An empty field is
+		// "not supplied" and keeps the stored value: (int) '' is 0, which here
+		// would silently turn the close-out off.
+		if ( isset( $_POST['ffc_action'] ) && 'save_ss_closeout_settings' === $_POST['ffc_action'] ) {
+			if ( ! isset( $_POST['ffc_ss_closeout_nonce'] ) ||
+				! wp_verify_nonce( RequestInput::get_post_string( 'ffc_ss_closeout_nonce' ), 'ffc_ss_closeout_settings' ) ) {
+				return;
+			}
+
+			$closeout_days = RequestInput::get_post_string( \FreeFormCertificate\SelfScheduling\AppointmentCloseout::OPTION, '' );
+			if ( '' !== $closeout_days && is_numeric( $closeout_days ) ) {
+				update_option( \FreeFormCertificate\SelfScheduling\AppointmentCloseout::OPTION, \FreeFormCertificate\SelfScheduling\AppointmentCloseout::clamp( $closeout_days ), false );
+				add_settings_error( 'ffc_audience', 'ffc_message', __( 'Old appointment close-out saved.', 'ffcertificate' ), 'success' );
+			} else {
+				add_settings_error( 'ffc_audience', 'ffc_message', __( 'Not saved: enter a number of days from 0 to 365.', 'ffcertificate' ), 'error' );
+			}
 		}
 
 		// Save Self-Scheduling business hours restriction messages.

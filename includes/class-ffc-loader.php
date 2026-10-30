@@ -508,6 +508,13 @@ class Loader {
 			wp_schedule_event( time(), 'hourly', \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK );
 		}
 
+		// Ensure the daily old-appointment close-out is scheduled (#2285). It
+		// stays scheduled with the setting at 0: the run reads the setting and
+		// returns, so turning it back on needs no reschedule.
+		if ( ! wp_next_scheduled( \FreeFormCertificate\SelfScheduling\AppointmentCloseout::CRON_HOOK ) ) {
+			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( \FreeFormCertificate\SelfScheduling\AppointmentCloseout::CRON_HOOK, time() ), 'daily', \FreeFormCertificate\SelfScheduling\AppointmentCloseout::CRON_HOOK );
+		}
+
 		// Ensure the hourly post-event form invitation run is scheduled (#1948).
 		\FreeFormCertificate\Audience\AudienceFormInviteScanner::schedule();
 
@@ -1269,6 +1276,7 @@ class Loader {
 		}
 		if ( SettingsReader::module_enabled( 'self_scheduling' ) ) {
 			add_action( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::class, 'run' ) );
+			add_action( \FreeFormCertificate\SelfScheduling\AppointmentCloseout::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentCloseout::class, 'run_scheduled' ) );
 		}
 		if ( SettingsReader::module_enabled( 'audiences' ) ) {
 			add_action( \FreeFormCertificate\Audience\AudienceFormInviteScanner::CRON_HOOK, array( \FreeFormCertificate\Audience\AudienceFormInviteScanner::class, 'run' ) );

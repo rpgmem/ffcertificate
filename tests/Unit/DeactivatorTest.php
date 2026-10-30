@@ -105,7 +105,9 @@ class DeactivatorTest extends TestCase {
 		// The bulk-issue purge of unfinished imports (#1945).
 		$this->assertContains( 'ffcertificate_bulk_issue_purge', $cleared );
 		$this->assertContains( 'ffcertificate_audience_post_event_invites', $cleared );
-		$this->assertCount( 14, $cleared );
+		// The old-appointment close-out (#2285).
+		$this->assertContains( 'ffcertificate_self_scheduling_closeout', $cleared );
+		$this->assertCount( 15, $cleared );
 	}
 
 	public function test_deactivate_flushes_rewrite_rules(): void {
@@ -214,7 +216,8 @@ class DeactivatorTest extends TestCase {
 		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $cleared );
 		$this->assertContains( 'ffc_cloudflare_cidr_refresh', $cleared );
 		$this->assertContains( 'ffcertificate_bulk_issue_purge', $cleared );
-		$this->assertCount( 7, $cleared );
+		$this->assertContains( 'ffcertificate_self_scheduling_closeout', $cleared );
+		$this->assertCount( 8, $cleared );
 	}
 
 	public function test_uninstall_cleanup_deletes_form_posts(): void {

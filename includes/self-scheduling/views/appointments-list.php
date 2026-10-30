@@ -27,6 +27,35 @@ $ffcertificate_appointments_url = add_query_arg( array( 'page' => 'ffc-appointme
 $ffc_self_scheduling_appointment_id = \FreeFormCertificate\Core\RequestInput::get_get_int( 'appointment' );
 $ffcertificate_action               = \FreeFormCertificate\Core\RequestInput::get_get_string( 'ffc_action' );
 
+// Close old appointments on demand (#2285) — same run as the daily cron.
+if ( 'close_old' === $ffcertificate_action ) {
+	if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_appointments' ) ) {
+		wp_die( esc_html__( 'You do not have permission to perform this action.', 'ffcertificate' ) );
+	}
+	check_admin_referer( 'ffc_close_old_appointments' );
+
+	$ffcertificate_closed = \FreeFormCertificate\SelfScheduling\AppointmentCloseout::run( get_current_user_id() );
+	set_transient(
+		'ffc_admin_notice_' . get_current_user_id(),
+		$ffcertificate_closed['failed']
+			? array(
+				'type'    => 'error',
+				'message' => __( 'The close-out stopped on a database error. Appointments changed before it stay changed; run it again.', 'ffcertificate' ),
+			)
+			: array(
+				'type'    => 'success',
+				'message' => sprintf(
+					/* translators: 1: appointments marked completed, 2: appointments cancelled */
+					__( 'Old appointments closed: %1$d marked completed, %2$d pending cancelled.', 'ffcertificate' ),
+					$ffcertificate_closed['completed'],
+					$ffcertificate_closed['cancelled']
+				),
+			),
+		30
+	);
+	wp_safe_redirect( $ffcertificate_appointments_url );
+	exit;
+}
 
 if ( $ffc_self_scheduling_appointment_id > 0 ) {
 
@@ -415,6 +444,50 @@ $ffcertificate_table->prepare_items();
 	endif;
 	?>
 	<hr class="wp-header-end">
+
+	<?php
+	// Old appointments still open past the close-out window (#2285).
+	if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_appointments' ) ) :
+		$ffc_closeout_due   = \FreeFormCertificate\SelfScheduling\AppointmentCloseout::due();
+		$ffc_closeout_total = $ffc_closeout_due['confirmed'] + $ffc_closeout_due['pending'];
+		if ( $ffc_closeout_total > 0 ) :
+			$ffc_closeout_days    = \FreeFormCertificate\SelfScheduling\AppointmentCloseout::days();
+			$ffc_closeout_message = sprintf(
+				/* translators: 1: number of days, 2: confirmed appointments, 3: pending appointments */
+				__( 'Appointments dated %1$d or more days ago are still open: %2$d confirmed (will be marked completed) and %3$d pending (will be cancelled). The daily run closes them; you can close them now.', 'ffcertificate' ),
+				$ffc_closeout_days,
+				$ffc_closeout_due['confirmed'],
+				$ffc_closeout_due['pending']
+			);
+			$ffc_closeout_button = \FreeFormCertificate\Core\Button::html(
+				array(
+					'label'    => __( 'Close old appointments now', 'ffcertificate' ),
+					'category' => 'caution',
+					'icon'     => 'calendar-check',
+					'href'     => wp_nonce_url(
+						add_query_arg(
+							array(
+								'page'       => 'ffc-appointments',
+								'ffc_action' => 'close_old',
+							),
+							admin_url( 'admin.php' )
+						),
+						'ffc_close_old_appointments'
+					),
+					'attrs'    => array(
+						/* translators: %d: number of appointments */
+						'data-confirm' => sprintf( _n( 'Close %d old appointment? This cannot be undone in bulk.', 'Close %d old appointments? This cannot be undone in bulk.', $ffc_closeout_total, 'ffcertificate' ), $ffc_closeout_total ),
+					),
+				)
+			);
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'warning',
+				esc_html( $ffc_closeout_message ) . ' ' . $ffc_closeout_button,
+				array( 'additional_classes' => array( 'inline' ) )
+			);
+		endif;
+	endif;
+	?>
 
 	<form method="get">
 		<input type="hidden" name="page" value="ffc-appointments" />
