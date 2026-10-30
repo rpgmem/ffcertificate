@@ -132,7 +132,7 @@ class UserAppointmentsRestControllerTest extends TestCase {
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing( function( $query, $output = null ) {
 			[ $sql, $args ] = $this->statement( $query );
 			$table          = $args[0] ?? null;
-			if ( ARRAY_A === $output && self::APPOINTMENTS_TABLE === $table && 1 === preg_match( '/WHERE (Q\d+) ORDER BY \w+ DESC$/', $sql, $m ) ) {
+			if ( ARRAY_A === $output && self::APPOINTMENTS_TABLE === $table && 1 === preg_match( '/WHERE (Q\d+) ORDER BY appointment_date DESC, start_time DESC, id DESC$/', $sql, $m ) ) {
 				[ $where_sql, $where_args ] = $this->statement( $m[1] );
 				if ( '%i = %s' === $where_sql && 'user_id' === $where_args[0] ) {
 					$this->appointment_reads[] = $where_args[1];

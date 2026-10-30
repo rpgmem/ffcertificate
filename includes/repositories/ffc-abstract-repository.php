@@ -197,8 +197,8 @@ abstract class AbstractRepository {
 	 */
 	public function findAll( array $conditions = array(), string $order_by = 'id', string $order = 'DESC', ?int $limit = null, int $offset = 0 ): array {
 		$where    = $this->build_where_clause( $conditions );
-		$order_by = $this->sanitize_order_column( $order_by );
 		$order    = strtoupper( $order ) === 'ASC' ? 'ASC' : 'DESC';
+		$order_by = $this->order_clause( $this->sanitize_order_column( $order_by ), $order );
 		if ( $limit ) {
 			$results = $this->wpdb->get_results(
 				/**
@@ -209,12 +209,12 @@ abstract class AbstractRepository {
 				 * values are *inside* the clause. Safety comes from there — each condition is
 				 * built as `prepare( '%i = %s', $key, $value )` over a column allowlisted by
 				 * `get_allowed_where_columns()` — not from this call. `{$order_by}` is
-				 * allowlisted by `sanitize_order_column()` and `{$order}` collapses to
-				 * `ASC`/`DESC`; the table is bound with `%i`.
+				 * `order_clause()` over a column allowlisted by `sanitize_order_column()`
+				 * and a direction collapsed to `ASC`/`DESC`; the table is bound with `%i`.
 				 *
 				 * @phpstan-ignore argument.type
 				 */
-				$this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} {$order} LIMIT %d OFFSET %d", $this->table, $limit, $offset ),
+				$this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} LIMIT %d OFFSET %d", $this->table, $limit, $offset ),
 				ARRAY_A
 			);
 			/**
@@ -234,12 +234,12 @@ abstract class AbstractRepository {
 			 * values are *inside* the clause. Safety comes from there — each condition is
 			 * built as `prepare( '%i = %s', $key, $value )` over a column allowlisted by
 			 * `get_allowed_where_columns()` — not from this call. `{$order_by}` is
-			 * allowlisted by `sanitize_order_column()` and `{$order}` collapses to
-			 * `ASC`/`DESC`; the table is bound with `%i`.
+			 * `order_clause()` over a column allowlisted by `sanitize_order_column()`
+			 * and a direction collapsed to `ASC`/`DESC`; the table is bound with `%i`.
 			 *
 			 * @phpstan-ignore argument.type
 			 */
-			$this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} {$order}", $this->table ),
+			$this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by}", $this->table ),
 			ARRAY_A
 		);
 		/**
@@ -337,6 +337,21 @@ abstract class AbstractRepository {
 	protected function sanitize_order_column( string $column ): string {
 		$allowed = $this->get_allowed_order_columns();
 		return in_array( $column, $allowed, true ) ? $column : 'id';
+	}
+
+	/**
+	 * The ORDER BY clause for an allowlisted column and a direction.
+	 *
+	 * Override to add tie-breakers to a column whose values repeat. Both
+	 * arguments are already safe: the column passed `sanitize_order_column()`
+	 * and the direction is `ASC` or `DESC`.
+	 *
+	 * @param string $column    Allowlisted column.
+	 * @param string $direction `ASC` or `DESC`.
+	 * @return string
+	 */
+	protected function order_clause( string $column, string $direction ): string {
+		return "{$column} {$direction}";
 	}
 
 	/**

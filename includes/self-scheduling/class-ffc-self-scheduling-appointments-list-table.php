@@ -349,6 +349,28 @@ class AppointmentsListTable extends \WP_List_Table {
 	}
 
 	/**
+	 * Date column, in the site's date format (#2288). The date is wall-clock
+	 * (Category B), so no timezone is applied.
+	 *
+	 * @param array<string, mixed> $item Row data.
+	 */
+	public function column_appointment_date( $item ): string {
+		$date = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) ( $item['appointment_date'] ?? '' ) );
+		return esc_html( '' !== $date ? $date : '-' );
+	}
+
+	/**
+	 * Created column, in the site's date and time formats (#2288). The value
+	 * is a housekeeping DATETIME shown as stored, so no timezone is applied.
+	 *
+	 * @param array<string, mixed> $item Row data.
+	 */
+	public function column_created_at( $item ): string {
+		$created = \FreeFormCertificate\Core\DateFormatter::format_datetime( (string) ( $item['created_at'] ?? '' ), 'default', ' ', new \DateTimeZone( 'UTC' ) );
+		return esc_html( '' !== $created ? $created : '-' );
+	}
+
+	/**
 	 * Time column
 	 *
 	 * @param array<string, mixed> $item Row data.
@@ -425,15 +447,16 @@ class AppointmentsListTable extends \WP_List_Table {
 	 * The ORDER BY column and direction the request asks for (#1770).
 	 *
 	 * `orderby` is resolved through `ORDER_COLUMNS`; anything else — absent,
-	 * unknown, or a column name the list does not sort by — gives the default
-	 * `created_at DESC`. The direction collapses to `ASC` / `DESC`.
+	 * unknown, or a column name the list does not sort by — gives the default:
+	 * the appointment date, newest first, which the repository breaks on the
+	 * start time (#2288). The direction collapses to `ASC` / `DESC`.
 	 *
 	 * @return array{0: string, 1: string}
 	 */
 	private function resolve_order(): array {
 		$requested = RequestInput::get_get_string( 'orderby' );
 		if ( ! isset( self::ORDER_COLUMNS[ $requested ] ) ) {
-			return array( 'created_at', 'DESC' );
+			return array( 'appointment_date', 'DESC' );
 		}
 
 		$order = 'asc' === strtolower( RequestInput::get_get_string( 'order' ) ) ? 'ASC' : 'DESC';

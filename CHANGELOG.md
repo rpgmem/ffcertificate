@@ -87,6 +87,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: participants see why a booking was cancelled and what joining or leaving a group changes; one conflict check tells everything** (#2243). The dashboard shows the cancellation reason; joining says how many upcoming bookings arrived, and leaving first says how many go. The check reports people and audience clashes with a room clash, naming up to ten people.
 - **Audience Calendars: the booking lock and the invitation scan use indexes; leaving a group updates what a member may book at once** (#2243). The conflict read is bounded to a year of starts, bookings are indexed on `(environment_id, status, booking_date)` and `(end_date, booking_date)`, the dashboard prints every booking field as text, and the audience bypass cancels others' bookings only where the calendar's switch allows it.
 - **Audience Calendars: a booking's creation and cancellation are stored as UTC seconds** (#2243). `created_at` came from the database session's zone and `cancelled_at` from the site's, so the two disagreed whenever those zones did. Both are now `BIGINT` instants, converted once by the zone that wrote each, and the details and the CSV render them in the site's zone and format.
+- **Personal Calendars: the Appointments list opens by appointment date and time** (#2288). Newest date first, latest time first within a day; a Date sort breaks ties on the time. Date, time and Created show in the site's formats, on the list and on the detail screen.
 
 ### Deprecated
 
