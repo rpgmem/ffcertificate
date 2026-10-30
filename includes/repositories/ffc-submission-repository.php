@@ -115,7 +115,7 @@ class SubmissionRepository extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function find_orphan_user_links( int $limit = 50 ): array {
-		return $this->reader->find_orphan_user_links( $limit );
+		return ( new SubmissionIdentityAudit() )->find_orphan_user_links( $limit );
 	}
 
 	/**
@@ -126,7 +126,7 @@ class SubmissionRepository extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function find_users_with_multiple_identities( int $limit = 50 ): array {
-		return $this->reader->find_users_with_multiple_identities( $limit );
+		return ( new SubmissionIdentityAudit() )->find_users_with_multiple_identities( $limit );
 	}
 
 	/**
@@ -136,7 +136,7 @@ class SubmissionRepository extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function find_unlinked_with_matching_identity( int $limit = 50 ): array {
-		return $this->reader->find_unlinked_with_matching_identity( $limit );
+		return ( new SubmissionIdentityAudit() )->find_unlinked_with_matching_identity( $limit );
 	}
 
 	/**
@@ -146,7 +146,7 @@ class SubmissionRepository extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function find_shared_identities( int $limit = 50 ): array {
-		return $this->reader->find_shared_identities( $limit );
+		return ( new SubmissionIdentityAudit() )->find_shared_identities( $limit );
 	}
 
 	/**

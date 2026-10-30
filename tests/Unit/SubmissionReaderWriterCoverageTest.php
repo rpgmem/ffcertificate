@@ -22,6 +22,7 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  * expectations can be asserted without a real connection.
  *
  * @covers \FreeFormCertificate\Repositories\SubmissionReader
+ * @covers \FreeFormCertificate\Repositories\SubmissionIdentityAudit
  * @covers \FreeFormCertificate\Repositories\SubmissionWriter
  */
 class SubmissionReaderWriterCoverageTest extends TestCase {
@@ -259,6 +260,35 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
 
 		$this->assertSame( array(), $this->repo()->find_shared_identities() );
+	}
+
+	public function test_the_reader_audit_methods_announce_the_move_and_answer_the_same(): void {
+		$rows = array( array( 'id' => 9, 'user_id' => 4, 'form_id' => 2 ) );
+		$this->wpdb->shouldReceive( 'get_results' )->times( 4 )->andReturn( $rows, array(), array(), array() );
+
+		$reader = new \FreeFormCertificate\Repositories\SubmissionReader();
+		$this->assertSame( $rows, $reader->find_orphan_user_links( 5 ) );
+		$this->assertSame( array(), $reader->find_users_with_multiple_identities() );
+		$this->assertSame( array(), $reader->find_unlinked_with_matching_identity() );
+		$this->assertSame( array(), $reader->find_shared_identities() );
+
+		$this->assertSame(
+			array(
+				'FreeFormCertificate\\Repositories\\SubmissionReader::find_orphan_user_links',
+				'FreeFormCertificate\\Repositories\\SubmissionReader::find_users_with_multiple_identities',
+				'FreeFormCertificate\\Repositories\\SubmissionReader::find_unlinked_with_matching_identity',
+				'FreeFormCertificate\\Repositories\\SubmissionReader::find_shared_identities',
+			),
+			$this->deprecated
+		);
+	}
+
+	public function test_the_facade_reads_the_audit_without_a_deprecation(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
+
+		$this->repo()->find_shared_identities();
+
+		$this->assertSame( array(), $this->deprecated );
 	}
 
 	public function test_count_by_status_maps_all_statuses(): void {
