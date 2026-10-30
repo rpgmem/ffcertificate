@@ -18065,10 +18065,6 @@ msgstr "Tokens"
 msgid "Tokens available in the body:"
 msgstr "Tokens disponíveis no corpo:"
 
-#: includes/frontend/class-ffc-verification-handler.php:707
-msgid "Too many attempts. Please try again in 1 minute."
-msgstr "Muitas tentativas. Por favor, tente novamente em 1 minuto."
-
 #. %s: formatted wait time
 #: includes/security/class-ffc-rate-limit-checker.php:607
 #, php-format
@@ -29735,3 +29731,7 @@ msgstr "Abrir o certificado ou o seu link exige permissão para revelar dados pe
 #. includes/admin/class-ffc-certificate-open-handler.php
 msgid "You do not have permission to open this certificate."
 msgstr "Você não tem permissão para abrir este certificado."
+
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "A form takes submissions only while it is published: a draft, a private or a trashed form refuses them, with a message asking the visitor to contact the organizer, even when its shortcode is still on a page. What a participant types prints in the certificate as text; markup typed into a field is shown as written, never drawn."
+msgstr "Um formulário recebe envios apenas enquanto está publicado: um formulário em rascunho, privado ou na lixeira os recusa, com uma mensagem pedindo ao visitante que procure o organizador, mesmo quando o shortcode continua numa página. O que o participante digita sai no certificado como texto; marcação digitada num campo aparece como foi escrita, nunca desenhada."

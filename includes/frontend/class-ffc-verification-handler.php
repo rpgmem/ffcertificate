@@ -509,6 +509,7 @@ class VerificationHandler {
 				'submission'  => null,
 				'data'        => array(),
 				'error'       => 'rate_limited',
+				'message'     => $rate_check['message'],
 				'magic_token' => '',
 			);
 		}
@@ -692,18 +693,11 @@ class VerificationHandler {
 		// No nonce check - magic token is the authentication.
 		// No captcha - token proves legitimacy.
 
-		$token   = RequestInput::get_post_string( 'token' );
-		$user_ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
+		$token = RequestInput::get_post_string( 'token' );
 
-		$rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );
-		if ( ! $rate_check['allowed'] ) {
-			wp_send_json_error(
-				array(
-					'message' => __( 'Too many verification attempts. Please try again later.', 'ffcertificate' ),
-				)
-			);
-		}
-
+		// The rate limit is counted once, by verify_by_magic_token(), before
+		// it reads the token: checking here too spent two attempts of the
+		// address's budget on every open (#2241).
 		if ( empty( $token ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid token.', 'ffcertificate' ) ) );
 		}
@@ -714,7 +708,7 @@ class VerificationHandler {
 		if ( isset( $result['error'] ) && 'rate_limited' === $result['error'] ) {
 			wp_send_json_error(
 				array(
-					'message' => __( 'Too many attempts. Please try again in 1 minute.', 'ffcertificate' ),
+					'message' => '' !== ( $result['message'] ?? '' ) ? $result['message'] : __( 'Too many verification attempts. Please try again later.', 'ffcertificate' ),
 				)
 			);
 		}

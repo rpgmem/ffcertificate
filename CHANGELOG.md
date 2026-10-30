@@ -101,6 +101,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **User dashboard: "View answers" takes the compact row size** (#2231). It drew at the full button size beside "Download Record"; it and the answers panel's Reveal now join the dashboard's compact row buttons.
 - **Reregistration: each e-mail takes a full row on the Record PDF, and the pool's default record is refreshed** (#2235). The @sme and @edu addresses no longer share a row, and a long address wraps instead of widening the table. The template seed version moves so an install using the pool's default record receives #2227's layout too.
 - **Certificates: quiz attempt limits hold, and a retry that passes is e-mailed** (#2241). With encryption on, every attempt read as the first, so Max attempts never stopped anyone; a retry stored a date string in the BIGINT issue date (the certificate showed 1970) and sent no certificate e-mail when it passed. A failed save is now reported.
+- **Certificates: clearing the form cache no longer flushes the whole object cache** (#2241). Only the plugin's cache group is flushed, or each form's keys where the cache cannot flush a group.
 
 ### Security
 
@@ -108,6 +109,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Client addresses are masked on the activity log and the Rate Limit tab** (#2109). The log's table, entry details and CSV, and the top blocked addresses, show an address masked; new capabilities `ffc_view_activity_log_pii` (FFC Administrator) and `ffc_view_settings_pii` (FFC Settings Manager and Administrator) reveal it, audited, and are seeded on upgrade to current viewers.
 - **Debug logs and geofence refusals no longer carry a recoverable address** (#2109). A geofence refusal's activity-log entry keeps the reason only, and a migration card removes the plaintext copy from older entries; the IP resolver and geolocation debug lines hash an address with the plugin's key instead of a bare SHA-256, and the debug log hashes `triggered_by_ip` and `bypassed_ip` too.
 - **Certificates: a certificate's personal data stays with whoever may reveal it** (#2241). Public verification no longer returns the raw answers; the list preview masks personal values; the PDF button and magic link show only to the PII tier, through an audited route; relinking an owner needs `ffc_manage_certificates`.
+- **Certificates: submitted values are text, and public endpoints hold their limits** (#2241). A participant's answer prints escaped in the certificate (no remote image or styling); a draft, private or trashed form refuses submissions; the public CSV actions check the hash and rate limit before the CPF; a magic link counts one attempt per open.
 
 ## [6.42.0] (2026-10-26) — `8241871c`
 

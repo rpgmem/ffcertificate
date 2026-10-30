@@ -908,12 +908,13 @@ class SettingsActionHandlerTest extends TestCase {
 	public function test_cache_actions_clear_cache_redirects(): void {
 		$_GET['action'] = 'clear_cache';
 		Functions\when( 'check_admin_referer' )->justReturn( true );
-		$flush = CallLog::record( 'wp_cache_flush', true );
+		Functions\when( 'wp_cache_supports' )->justReturn( true );
+		$flush = CallLog::record( 'wp_cache_flush_group', true );
 		$posts = CallLog::record( 'get_posts', array() );
 
 		$url = $this->redirect_of( 'handle_cache_actions' );
 
-		// The object cache is flushed once, and the published forms are looked
+		// The plugin's cache group is flushed once, and the published forms are looked
 		// up once to purge their external caches.
 		$this->assertSame( 1, $flush->count() );
 		$this->assertSame( 1, $posts->count() );

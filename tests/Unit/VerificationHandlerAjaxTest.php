@@ -578,10 +578,33 @@ class VerificationHandlerAjaxTest extends TestCase {
 		$this->assertSame( array(), $this->reads, 'A malformed token must not reach the repository.' );
 	}
 
-	public function test_magic_ajax_propagates_rate_limited_from_verify(): void {
-		// The AJAX gate takes the last attempt of the hour, so
-		// verify_by_magic_token's own check finds the cap reached.
+	/**
+	 * #2241 — an open spends one attempt of the address's budget, not two:
+	 * with one attempt left, the link still opens.
+	 */
+	public function test_magic_ajax_counts_one_attempt_per_open(): void {
+		$token = str_repeat( 'cd', 16 );
+		$this->store_certificate(
+			array(
+				'id'          => '13',
+				'auth_code'   => 'ONCE12345678',
+				'magic_token' => $token,
+			)
+		);
 		$this->store_verification_count( self::MAX_PER_HOUR - 1 );
+
+		$_POST = array( 'token' => $token );
+
+		try {
+			$this->handler->handle_magic_verification_ajax();
+			$this->fail( 'expected halt' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'wp_send_json_success', $e->getMessage(), 'The last attempt of the hour opens the link.' );
+		}
+	}
+
+	public function test_magic_ajax_rate_limited_carries_the_limiters_message(): void {
+		$this->store_verification_count( self::MAX_PER_HOUR );
 
 		$_POST = array( 'token' => str_repeat( 'cd', 16 ) );
 
@@ -589,7 +612,7 @@ class VerificationHandlerAjaxTest extends TestCase {
 			$this->handler->handle_magic_verification_ajax();
 			$this->fail( 'expected halt' );
 		} catch ( \RuntimeException $e ) {
-			$this->assertStringContainsString( '1 minute', $this->captured_error['message'] );
+			$this->assertStringContainsString( 'Too many verification attempts. Please wait', $this->captured_error['message'] );
 		}
 		$this->assertSame( array(), $this->reads, 'A throttled lookup must not reach the repository.' );
 	}

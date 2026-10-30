@@ -520,6 +520,58 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		$this->assertSame( '13:00', $this->meta[ self::FORM_ID ]['_ffc_geofence_config']['time_start'] );
 	}
 
+	/**
+	 * #2241 — the three actions check the access hash before the CPF, so a
+	 * caller without the hash cannot learn whether a CPF is authorised.
+	 *
+	 * @dataProvider provider_csv_actions
+	 */
+	public function test_an_action_refuses_a_wrong_hash_before_reading_the_cpf( string $method ): void {
+		$this->configure_form( array( 'time_start' => '13:00' ), array( PublicCsvDownload::META_CPF_MODE => 'whitelist' ) );
+		$this->valid_post();
+		$_POST['hash'] = 'wronghash';
+		$_POST['cpf']  = \FreeFormCertificate\Tests\Support\Identifiers::CPF_A;
+
+		try {
+			( new PublicCsvDownload() )->$method();
+			$this->fail( 'expected json_error' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 403, $this->captured['code'] );
+			$this->assertStringNotContainsString( 'CPF', $this->captured['payload']['message'], 'The answer says nothing about the CPF.' );
+		}
+		$this->assertSame( '13:00', $this->meta[ self::FORM_ID ]['_ffc_geofence_config']['time_start'] );
+	}
+
+	/**
+	 * #2241 — the actions take the address's rate limit, as the download does.
+	 *
+	 * @dataProvider provider_csv_actions
+	 */
+	public function test_an_action_is_refused_when_the_address_is_rate_limited( string $method ): void {
+		$this->configure_form( array( 'time_start' => '13:00' ), array( PublicCsvDownload::META_CPF_MODE => 'audit' ) );
+		$this->exhaust_ip_hour_limit();
+		$this->valid_post();
+
+		try {
+			( new PublicCsvDownload() )->$method();
+			$this->fail( 'expected json_error' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 429, $this->captured['code'] );
+			$this->assertSame( 'Limit reached. Please wait 1 hour.', $this->captured['payload']['message'] );
+		}
+	}
+
+	/**
+	 * @return array<string, array{string}>
+	 */
+	public static function provider_csv_actions(): array {
+		return array(
+			'open early'         => array( 'ajax_open_early' ),
+			'extend end'         => array( 'ajax_extend_end' ),
+			'schedule exception' => array( 'ajax_schedule_exception' ),
+		);
+	}
+
 	public function test_ajax_open_early_maps_reason_to_message_on_failure(): void {
 		// The form opened at 11:00 and it is noon.
 		$this->valid_post();
