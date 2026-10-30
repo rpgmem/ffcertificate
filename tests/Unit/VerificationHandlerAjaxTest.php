@@ -503,7 +503,7 @@ class VerificationHandlerAjaxTest extends TestCase {
 			'user_id'           => '5',
 			'auth_code'         => 'RRAJAX123456',
 			'status'            => 'approved',
-			'data'              => '{"fields":{"display_name":"RR Ajax","cpf":"12345678909"}}',
+			'data'              => '{"fields":{"display_name":"RR Ajax","cpf":"51817842080"}}',
 			'magic_token'       => '',
 			'submitted_at'      => '1769904000',
 		);
@@ -530,7 +530,7 @@ class VerificationHandlerAjaxTest extends TestCase {
 			$this->assertStringContainsString( 'RR Ajax Campaign', $this->captured_success['html'] );
 			$this->assertStringContainsString( 'RR Ajax', $this->captured_success['html'] );
 			$this->assertStringNotContainsString( 'rr@test.com', $this->captured_success['html'], 'The e-mail is masked.' );
-			$this->assertStringNotContainsString( '12345678909', $this->captured_success['html'], 'The CPF is masked.' );
+			$this->assertStringNotContainsString( '51817842080', $this->captured_success['html'], 'The CPF is masked.' );
 			$this->assertNull( $this->captured_success['pdf_data'], 'Public verification never hands out the Record (#2242).' );
 		}
 	}
