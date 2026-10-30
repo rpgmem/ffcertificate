@@ -22994,8 +22994,8 @@ msgstr "adia o horário de fechamento no dia previsto para o encerramento, depoi
 msgid "The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate's authentication code to confirm it is genuine and view its status. The same lookup and the magic link also verify appointment receipts and reregistration records by their own codes and links. This path is protected by a nonce, a honeypot + the configured captcha, and IP rate-limiting."
 msgstr "A página /valid (shortcode [ffc_verification]) também oferece uma consulta manual: qualquer pessoa pode digitar o código de autenticação de um certificado para confirmar que ele é autêntico e ver seu status. A mesma consulta e o link mágico também verificam comprovantes de agendamento e fichas de recadastramento pelos seus próprios códigos e links. Esse caminho é protegido por nonce, honeypot + o captcha configurado e limitação de taxa por IP."
 
-msgid "The edit screen lets you correct the participant email and the form's custom-field values, and, with ffc_manage_certificates, link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed)."
-msgstr "A tela de edição permite corrigir o e-mail do participante e os valores dos campos personalizados do formulário e, com ffc_manage_certificates, vincular, desvincular ou trocar o usuário do WordPress. O status de consentimento da LGPD é exibido apenas para consulta. Os campos de identidade e integridade são somente leitura: ID da submissão, data, status, token de link mágico, IP, CPF/RF e código de autenticação (garantindo que um certificado nunca possa ser redirecionado silenciosamente)."
+msgid "The edit screen lets you correct the participant email and, with ffc_manage_certificates, link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed). The form answers are read-only too, with one exception: a holder of ffc_manage_certificates can fix a typo in an issued certificate with Correct an answer. It changes one answer at a time, the name included but never CPF/RF or e-mail, asks for a reason of at least 10 characters, records the old value (masked when personal) and the new one in the Activity Log, marks the answer as corrected, and does not e-mail the participant. The certificate shows the new value the next time it is generated."
+msgstr "A tela de edição permite corrigir o e-mail do participante e, com ffc_manage_certificates, vincular, desvincular ou revincular o usuário do WordPress. O status do consentimento LGPD aparece apenas para referência. Os campos de identidade e integridade são somente leitura: id do envio, data, status, token do link mágico, IP, CPF/RF e o código de autenticação (para que um certificado nunca seja redirecionado em silêncio). As respostas do formulário também são somente leitura, com uma exceção: quem tem ffc_manage_certificates pode corrigir um erro de digitação num certificado emitido com Corrigir uma resposta. A correção muda uma resposta por vez, inclusive o nome, mas nunca CPF/RF ou e-mail, exige um motivo de pelo menos 10 caracteres, registra no Log de Atividades o valor antigo (mascarado quando pessoal) e o novo, marca a resposta como corrigida e não envia e-mail ao participante. O certificado mostra o novo valor na próxima vez que for gerado."
 
 msgid "Export the current (filtered) submissions to CSV in the background. The export contains decrypted personal data (email, IP, CPF/RF), the magic-link token and the consent record, so it is gated by its own capability."
 msgstr "Exporte as submissões atuais (filtradas) para CSV em segundo plano. A exportação contém dados pessoais descriptografados (e-mail, IP, CPF/RF), o token de link mágico e o registro de consentimento, por isso é controlada por uma permissão própria."
@@ -29735,6 +29735,66 @@ msgstr "Você não tem permissão para abrir este certificado."
 #: includes/settings/views/documentation/feature-certificates.php
 msgid "A form takes submissions only while it is published: a draft, a private or a trashed form refuses them, with a message asking the visitor to contact the organizer, even when its shortcode is still on a page. What a participant types prints in the certificate as text; markup typed into a field is shown as written, never drawn."
 msgstr "Um formulário recebe envios apenas enquanto está publicado: um formulário em rascunho, privado ou na lixeira os recusa, com uma mensagem pedindo ao visitante que procure o organizador, mesmo quando o shortcode continua numa página. O que o participante digita sai no certificado como texto; marcação digitada num campo aparece como foi escrita, nunca desenhada."
+
+#: includes/admin/class-ffc-answer-correction-handler.php
+msgid "You do not have permission to correct answers."
+msgstr "Você não tem permissão para corrigir respostas."
+
+#: includes/admin/class-ffc-admin.php
+msgid "Answer corrected and recorded in the activity log. The certificate shows it the next time it is generated."
+msgstr "Resposta corrigida e registrada no log de atividades. O certificado a mostra na próxima vez que for gerado."
+
+#: includes/admin/class-ffc-admin.php
+msgid "Say why the answer changes: the reason is required."
+msgstr "Diga por que a resposta muda: o motivo é obrigatório."
+
+#: includes/admin/class-ffc-admin.php
+msgid "The new value is the same as the stored one, so nothing changed."
+msgstr "O novo valor é igual ao guardado, então nada mudou."
+
+#: includes/admin/class-ffc-admin.php
+msgid "That answer cannot be corrected here. CPF/RF and e-mail are changed through identity resolution."
+msgstr "Essa resposta não pode ser corrigida aqui. CPF/RF e e-mail são alterados pela resolução de identidade."
+
+#: includes/admin/class-ffc-admin.php
+msgid "The answer could not be corrected. Reload the submission and try again."
+msgstr "Não foi possível corrigir a resposta. Recarregue o envio e tente de novo."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Answer Corrected"
+msgstr "Resposta corrigida"
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Corrected after issue; see the activity log."
+msgstr "Corrigida após a emissão; veja o log de atividades."
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Correct an answer"
+msgstr "Corrigir uma resposta"
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "For a typo in an issued certificate. The certificate shows the new value the next time it is generated, and the participant is not e-mailed. CPF/RF and e-mail are changed through identity resolution."
+msgstr "Para um erro de digitação num certificado emitido. O certificado mostra o novo valor na próxima vez que for gerado, e o participante não recebe e-mail. CPF/RF e e-mail são alterados pela resolução de identidade."
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Choose an answer"
+msgstr "Escolha uma resposta"
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "New value"
+msgstr "Novo valor"
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Reason for the correction"
+msgstr "Motivo da correção"
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Correct answer"
+msgstr "Corrigir resposta"
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Correct this answer? The old and new values and the reason are recorded in the activity log."
+msgstr "Corrigir esta resposta? Os valores antigo e novo e o motivo ficam registrados no log de atividades."
 
 #: includes/frontend/class-ffc-verification-handler.php
 msgid "This certificate was revoked."

@@ -405,7 +405,7 @@ class SubmissionsList extends \WP_List_Table {
 			return '<em class="ffc-empty-data">' . __( 'Only mandatory fields', 'ffcertificate' ) . '</em>';
 		}
 
-		$skip_fields   = array( 'email', 'user_email', 'e-mail', 'auth_code', 'cpf_rf', 'cpf', 'rf', 'is_edited', 'edited_at' );
+		$skip_fields   = array( 'email', 'user_email', 'e-mail', 'auth_code', 'cpf_rf', 'cpf', 'rf', 'is_edited', 'edited_at', AnswerCorrectionHandler::CORRECTED_KEY );
 		$preview_items = array();
 		$count         = 0;
 
