@@ -142,12 +142,29 @@ class AudienceBookingRepositoryTest extends TestCase {
 		});
 		$this->wpdb->shouldReceive('get_results')->twice()->andReturn([]);
 
-		// The admin bookings list reads newest first (#2288).
+		// The admin bookings list reads newest first (#2288). sanitize_sql_orderby()
+		// is made to refuse everything here, as core does for a `b.` prefix, so
+		// the order cannot come from it (#2290).
+		Functions\when('sanitize_sql_orderby')->justReturn(false);
 		AudienceBookingReader::get_all(['orderby' => 'booking_date', 'order' => 'DESC']);
 		AudienceBookingReader::get_all();
 
 		$this->assertStringContainsString('ORDER BY b.booking_date DESC, b.start_time DESC, b.id DESC', $captured[0]);
 		$this->assertStringContainsString('ORDER BY b.booking_date ASC, b.start_time ASC, b.id ASC', $captured[1]);
+	}
+
+	public function test_get_all_refuses_a_column_outside_the_allowlist(): void {
+		$captured = '';
+		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured) {
+			$captured = preg_replace('/\s+/', ' ', func_get_args()[0]);
+			return $captured;
+		});
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+
+		AudienceBookingReader::get_all(['orderby' => 'id; DROP TABLE x', 'order' => 'desc']);
+
+		$this->assertStringContainsString('ORDER BY b.booking_date DESC, b.start_time DESC, b.id DESC', $captured);
+		$this->assertStringNotContainsString('DROP', $captured);
 	}
 
 	public function test_get_all_filters_by_environment_id(): void {

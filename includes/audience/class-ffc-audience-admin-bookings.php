@@ -45,6 +45,37 @@ class AudienceAdminBookings {
 	public const PER_PAGE = 50;
 
 	/**
+	 * Columns the list sorts by → the direction of a first click on them
+	 * (#2291). Keys are AudienceBookingReader::ORDER_COLUMNS keys.
+	 *
+	 * @var array<string, string>
+	 */
+	public const SORTABLE = array(
+		'id'           => 'desc',
+		'booking_date' => 'desc',
+		'start_time'   => 'desc',
+		'environment'  => 'asc',
+		'description'  => 'asc',
+		'status'       => 'asc',
+	);
+
+	/**
+	 * The order the request asks for: a SORTABLE key and `asc` / `desc`.
+	 * No `orderby`, or one not listed, gives the newest date first; a
+	 * column with no `order` takes its first-click direction (#2291).
+	 *
+	 * @return array{0: string, 1: string}
+	 */
+	public static function resolve_order(): array {
+		$orderby = RequestInput::get_get_string( 'orderby' );
+		if ( ! isset( self::SORTABLE[ $orderby ] ) ) {
+			return array( 'booking_date', 'desc' );
+		}
+		$order = strtolower( RequestInput::get_get_string( 'order' ) );
+		return array( $orderby, in_array( $order, array( 'asc', 'desc' ), true ) ? $order : self::SORTABLE[ $orderby ] );
+	}
+
+	/**
 	 * Render bookings page
 	 *
 	 * The list pages through the bookings that match its filters (#2243): a
@@ -65,6 +96,8 @@ class AudienceAdminBookings {
 		$search         = RequestInput::get_get_string( 's' );
 		$current_page   = max( 1, RequestInput::get_get_int( 'paged', 1 ) );
 
+		list( $orderby, $order ) = self::resolve_order();
+
 		$filters = array_filter(
 			array(
 				'schedule_id'    => $schedule_id,
@@ -83,8 +116,8 @@ class AudienceAdminBookings {
 
 		$bookings = AudienceBookingReader::get_all(
 			$filters + array(
-				'orderby' => 'booking_date',
-				'order'   => 'DESC',
+				'orderby' => $orderby,
+				'order'   => strtoupper( $order ),
 				'limit'   => self::PER_PAGE,
 				'offset'  => ( $current_page - 1 ) * self::PER_PAGE,
 			)
@@ -138,10 +171,18 @@ class AudienceAdminBookings {
 			),
 			$base_url
 		);
-		$pagination   = $total_pages > 1
+		// Paging keeps the sort; the headers rebuild it from $filtered_url.
+		$sorted_url = add_query_arg(
+			array(
+				'orderby' => $orderby,
+				'order'   => $order,
+			),
+			$filtered_url
+		);
+		$pagination = $total_pages > 1
 			? (string) paginate_links(
 				array(
-					'base'      => add_query_arg( 'paged', '%#%', $filtered_url ),
+					'base'      => add_query_arg( 'paged', '%#%', $sorted_url ),
 					'format'    => '',
 					'prev_text' => '&laquo;',
 					'next_text' => '&raquo;',

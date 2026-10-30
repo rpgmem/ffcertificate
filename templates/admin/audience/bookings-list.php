@@ -6,7 +6,8 @@
  * $schedule_id, $environment_id, $audience_id, $status_filter, $date_from,
  * $date_to, $search, $total, $pagination, $bookings, $schedules,
  * $schedule_names, $environments, $audience_choices, $audiences, $present,
- * $creators_map, $can_manage, $can_checkin, $attendance.
+ * $creators_map, $can_manage, $can_checkin, $attendance, $orderby, $order,
+ * $filtered_url.
  *
  * @package FreeFormCertificate\Audience
  */
@@ -64,6 +65,9 @@ $ffc_env_label   = $schedule_id > 0
 	<div class="tablenav top">
 		<form method="get" action="" class="ffc-bookings-filters">
 			<input type="hidden" name="page" value="<?php echo esc_attr( $this->menu_slug ); ?>-bookings">
+			<?php // Filtering keeps the chosen sort (#2291). ?>
+			<input type="hidden" name="orderby" value="<?php echo esc_attr( $orderby ); ?>">
+			<input type="hidden" name="order" value="<?php echo esc_attr( $order ); ?>">
 
 			<select name="schedule_id" id="filter-schedule">
 				<option value=""><?php esc_html_e( 'All Schedules', 'ffcertificate' ); ?></option>
@@ -154,17 +158,24 @@ $ffc_env_label   = $schedule_id > 0
 						<input type="checkbox" id="ffc-bookings-select-all" aria-label="<?php esc_attr_e( 'Select all active bookings', 'ffcertificate' ); ?>">
 					</td>
 				<?php endif; ?>
-				<th scope="col" class="manage-column column-id"><?php esc_html_e( 'ID', 'ffcertificate' ); ?></th>
-				<th scope="col" class="manage-column column-date"><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th>
-				<th scope="col" class="manage-column column-time"><?php esc_html_e( 'Time', 'ffcertificate' ); ?></th>
-				<th scope="col" class="manage-column column-calendar"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?></th>
-				<th scope="col" class="manage-column column-environment"><?php echo esc_html( AudienceScheduleRepository::get_environment_label( null, true ) ); ?></th>
-				<th scope="col" class="manage-column column-description"><?php esc_html_e( 'Description', 'ffcertificate' ); ?></th>
-				<th scope="col" class="manage-column column-audiences"><?php esc_html_e( 'For', 'ffcertificate' ); ?></th>
-				<th scope="col" class="manage-column column-present"><?php esc_html_e( 'Present / reached', 'ffcertificate' ); ?></th>
-				<th scope="col" class="manage-column column-status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
-				<th scope="col" class="manage-column column-created_by"><?php esc_html_e( 'Created By', 'ffcertificate' ); ?></th>
-				<th scope="col" class="manage-column column-actions"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
+				<?php
+				// Sortable headers in core's list-table markup (#2291).
+				foreach ( array(
+					array( 'id', __( 'ID', 'ffcertificate' ), 'id' ),
+					array( 'booking_date', __( 'Date', 'ffcertificate' ), 'date' ),
+					array( 'start_time', __( 'Time', 'ffcertificate' ), 'time' ),
+					array( '', __( 'Calendar', 'ffcertificate' ), 'calendar' ),
+					array( 'environment', AudienceScheduleRepository::get_environment_label( null, true ), 'environment' ),
+					array( 'description', __( 'Description', 'ffcertificate' ), 'description' ),
+					array( '', __( 'For', 'ffcertificate' ), 'audiences' ),
+					array( '', __( 'Present / reached', 'ffcertificate' ), 'present' ),
+					array( 'status', __( 'Status', 'ffcertificate' ), 'status' ),
+					array( '', __( 'Created By', 'ffcertificate' ), 'created_by' ),
+					array( '', __( 'Actions', 'ffcertificate' ), 'actions' ),
+				) as $ffc_header ) {
+					echo \FreeFormCertificate\Admin\AdminUI::sortable_column_header( $ffc_header[0], $ffc_header[1], $ffc_header[2], AudienceAdminBookings::SORTABLE, $orderby, $order, $filtered_url ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- sortable_column_header() escapes every value it prints.
+				}
+				?>
 			</tr>
 		</thead>
 		<tbody>

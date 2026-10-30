@@ -30385,3 +30385,15 @@ msgstr[1] "Fechar %d agendamentos antigos? Isso não pode ser desfeito em lote."
 #: includes/settings/views/documentation/feature-self-scheduling.php:60
 msgid "The Appointments list opens sorted by appointment date, newest first, and by start time, latest first, within a day. Dates and times use the formats set on the General tab of FFC Settings."
 msgstr "A lista de Agendamentos abre ordenada pela data do agendamento, da mais recente para a mais antiga, e, dentro do dia, pelo horário de início, do mais tarde para o mais cedo. Datas e horários usam os formatos definidos na aba Geral das Configurações FFC."
+
+#: includes/admin/class-ffc-admin-ui.php:523
+msgid "Sort ascending."
+msgstr "Ordenar em ordem crescente."
+
+#: includes/admin/class-ffc-admin-ui.php:523
+msgid "Sort descending."
+msgstr "Ordenar em ordem decrescente."
+
+#: includes/settings/views/documentation/scheduling-audiences.php:80
+msgid "Within a day the latest time comes first. Click the ID, Date, Time, space, Description or Status header to sort by that column; a second click reverses it, and filtering or changing page keeps the sort."
+msgstr "Dentro de um dia, o horário mais tarde vem primeiro. Clique no cabeçalho ID, Data, Horário, espaço, Descrição ou Status para ordenar por essa coluna; um segundo clique inverte a ordem, e filtrar ou mudar de página mantém a ordenação."
