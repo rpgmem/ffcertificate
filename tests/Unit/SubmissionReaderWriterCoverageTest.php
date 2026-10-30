@@ -596,6 +596,71 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 		$this->assertSame( 0, $result['total'] );
 	}
 
+	/**
+	 * #2241 — the search the list runs, as SQL: indexed lookups first,
+	 * the full-table LIKE only when they find nothing on an install that
+	 * stores data in clear.
+	 *
+	 * @param string    $term      Search term.
+	 * @param bool      $encrypted Whether rows store data encrypted.
+	 * @param mixed     $probe     What the indexed probe query returns.
+	 * @return array{0: string, 1: array<int, string>} The fragment, and every SQL prepared.
+	 */
+	private function search_sql( string $term, bool $encrypted, $probe = null ): array {
+		$sql = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $query, ...$args ) use ( &$sql ) {
+				$flat  = 1 === count( $args ) && is_array( $args[0] ) ? $args[0] : $args;
+				// Sequential substitution: a literal `%` in a value or in an
+				// already-prepared fragment must not be read as a placeholder.
+				$out   = (string) preg_replace_callback(
+					'/%[isd]/',
+					static function ( array $m ) use ( &$flat ): string {
+						$v = array_shift( $flat );
+						return '%i' === $m[0] ? '`' . $v . '`' : ( '%d' === $m[0] ? (string) (int) $v : "'" . $v . "'" );
+					},
+					$query
+				);
+				$sql[] = $out;
+				return $out;
+			}
+		);
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( $probe );
+
+		$reader = new \FreeFormCertificate\Repositories\SubmissionReader();
+		$method = new \ReflectionMethod( $reader, 'search_condition' );
+		$method->setAccessible( true );
+		$fragment = $method->invoke( $reader, $term, array( "status = 'publish'" ), $encrypted );
+		return array( $fragment, $sql );
+	}
+
+	public function test_search_matches_the_auth_code_without_upper_and_strips_the_prefix(): void {
+		list( $fragment ) = $this->search_sql( 'c-abcd-1234-efgh', true );
+
+		$this->assertStringContainsString( "auth_code = 'ABCD1234EFGH'", $fragment );
+		$this->assertStringNotContainsString( 'UPPER(', $fragment, 'UPPER() kept the unique index from answering.' );
+	}
+
+	public function test_an_encrypted_install_never_scans_data(): void {
+		list( $fragment, $sql ) = $this->search_sql( 'maria silva', true );
+
+		$this->assertStringNotContainsString( 'data LIKE', $fragment );
+		$this->assertCount( 0, preg_grep( '/SELECT 1 FROM/', $sql ), 'No probe query either.' );
+	}
+
+	public function test_a_clear_install_scans_data_only_when_the_indexed_lookups_find_nothing(): void {
+		list( $hit ) = $this->search_sql( 'maria silva', false, '1' );
+		$this->assertStringNotContainsString( 'data LIKE', $hit );
+		$this->assertStringContainsString( 'magic_token LIKE', $hit );
+	}
+
+	public function test_a_clear_install_falls_back_to_the_data_scan(): void {
+		list( $miss, $sql ) = $this->search_sql( 'maria silva', false, null );
+		$this->assertStringContainsString( "data LIKE '%maria silva%'", $miss );
+		$this->assertCount( 1, preg_grep( "/SELECT 1 FROM .* status = 'publish' AND \\(/", $sql ), 'The probe keeps the list\'s filters.' );
+	}
+
 	// ==================================================================
 	// WRITER — insert / update / updateStatus (cache-invalidation paths)
 	// ==================================================================

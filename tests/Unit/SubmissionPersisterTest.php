@@ -75,8 +75,8 @@ class SubmissionPersisterTest extends TestCase {
 	/** @var bool Whether the one-use schedule-exception claim wins. */
 	private bool $claim_wins = true;
 
-	/** @var list<array{column: string, args: array<int, mixed>}> Quiz lookups, as prepared. */
-	private array $quiz_lookups = array();
+	/** @var list<array{column: string, args: array<int, mixed>}> CPF/RF lookups, as prepared. */
+	private array $id_lookups = array();
 
 	/** @var list<array<int, mixed>> Arguments of each one-use claim INSERT. */
 	private array $claims = array();
@@ -89,7 +89,7 @@ class SubmissionPersisterTest extends TestCase {
 		$this->reprint_row  = null;
 		$this->quiz_row     = null;
 		$this->claim_wins   = true;
-		$this->quiz_lookups = array();
+		$this->id_lookups = array();
 		$this->claims       = array();
 
 		$this->post_backup        = $_POST ?? array();
@@ -111,18 +111,17 @@ class SubmissionPersisterTest extends TestCase {
 		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => addcslashes( (string) $v, '_%\\' ) );
 		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
 			function ( $q ) {
-				if ( false !== strpos( $q['sql'], 'WHERE form_id = %d AND %i = %s ORDER BY id DESC LIMIT 1' ) ) {
-					return $this->reprint_row;
-				}
 				if ( false !== strpos( $q['sql'], 'ticket_hash = %s' ) || false !== strpos( $q['sql'], 'data LIKE %s' ) ) {
 					return null;
 				}
+				// The one CPF/RF lookup a submission runs (#2241), shared by
+				// the reprint and the quiz attempt count.
 				if ( preg_match( '/AND (cpf_hash|rf_hash) = %s ORDER BY id DESC LIMIT 1/', $q['sql'], $m ) ) {
-					$this->quiz_lookups[] = array(
+					$this->id_lookups[] = array(
 						'column' => $m[1],
 						'args'   => $q['args'],
 					);
-					return $this->quiz_row;
+					return $this->reprint_row ?? $this->quiz_row;
 				}
 				$this->fail( 'Unexpected get_row(): ' . $q['sql'] );
 			}
@@ -1044,11 +1043,11 @@ class SubmissionPersisterTest extends TestCase {
 		$persister = new SubmissionPersister( $this->bareHandler() );
 		$this->assertSame( $row, $persister->find_quiz_submission( 5, Identifiers::RF_A ) );
 
-		$this->assertCount( 1, $this->quiz_lookups );
-		$this->assertSame( 'rf_hash', $this->quiz_lookups[0]['column'] );
+		$this->assertCount( 1, $this->id_lookups );
+		$this->assertSame( 'rf_hash', $this->id_lookups[0]['column'] );
 		$this->assertSame(
 			array( 'wp_ffc_submissions', 5, Encryption::hash( Identifiers::RF_A ) ),
-			$this->quiz_lookups[0]['args'],
+			$this->id_lookups[0]['args'],
 			'The lookup runs on the submissions table by the RF\'s search hash.'
 		);
 	}
@@ -1067,7 +1066,7 @@ class SubmissionPersisterTest extends TestCase {
 
 		$persister = new SubmissionPersister( $this->bareHandler() );
 		$this->assertNull( $persister->find_quiz_submission( 5, Identifiers::CPF_A ) );
-		$this->assertSame( array(), $this->quiz_lookups, 'No lookup runs without encryption.' );
+		$this->assertSame( array(), $this->id_lookups, 'No lookup runs without encryption.' );
 	}
 
 	// =====================================================================

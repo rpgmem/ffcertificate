@@ -680,60 +680,7 @@ class SubmissionReader extends AbstractRepository {
 		}
 
 		if ( ! empty( $args['search'] ) ) {
-			$search_term       = $args['search'];
-			$search_conditions = array();
-
-			// 1. Search by ID (if numeric)
-			if ( is_numeric( $search_term ) ) {
-				$search_conditions[] = $this->wpdb->prepare( 'id = %d', intval( $search_term ) );
-			}
-
-			// 2. Search by auth_code (exact match, case insensitive)
-			$search_conditions[] = $this->wpdb->prepare(
-				'UPPER(auth_code) = UPPER(%s)',
-				$search_term
-			);
-
-			// 3. Search by email/CPF/RF hash (for encrypted data).
-			//
-			// One hash PER COLUMN, not one hash for all three (#1313): each
-			// identifier now has its own canonical form, so a single hash of
-			// the raw term can only ever match the column whose form happens
-			// to be the identity. That also repairs a defect this line carried
-			// -- an operator pasting `123.456.789-09` hashed the punctuation
-			// and matched no row, because `cpf_hash` holds the digits.
-			$email_hash = $this->hash( 'email', $search_term );
-			$id_hash    = $this->hash( 'cpf', $search_term );
-
-			if ( null !== $email_hash ) {
-				$search_conditions[] = $this->wpdb->prepare( 'email_hash = %s', $email_hash );
-			}
-			if ( null !== $id_hash ) {
-				$search_conditions[] = $this->wpdb->prepare( 'cpf_hash = %s', $id_hash );
-				$search_conditions[] = $this->wpdb->prepare( 'rf_hash = %s', $id_hash );
-			}
-
-			// 4. Search in unencrypted data field (legacy/fallback).
-			// Skipped for terms shorter than 4 chars: a leading-wildcard LIKE
-			// on a TEXT column triggers a full-table scan and cannot use any
-			// index, so short terms would scan millions of rows for little gain.
-			if ( strlen( $search_term ) >= 4 ) {
-				$search_conditions[] = $this->wpdb->prepare(
-					"(data IS NOT NULL AND data != '' AND data LIKE %s)",
-					'%' . $this->wpdb->esc_like( $search_term ) . '%'
-				);
-			}
-
-			// 5. Search by magic_token prefix. The KEY magic_token index is
-			// B-tree and can only accelerate leading-anchored LIKE patterns
-			// ('term%'), so we never use a leading wildcard here.
-			$search_conditions[] = $this->wpdb->prepare(
-				'magic_token LIKE %s',
-				$this->wpdb->esc_like( $search_term ) . '%'
-			);
-
-			// Combine all search conditions with OR.
-			$where[] = '(' . implode( ' OR ', $search_conditions ) . ')';
+			$where[] = $this->search_condition( (string) $args['search'], $where );
 		}
 
 		$where_clause = 'WHERE ' . implode( ' AND ', $where );
@@ -774,6 +721,77 @@ class SubmissionReader extends AbstractRepository {
 			'items' => $items,
 			'total' => (int) $total,
 			'pages' => ceil( $total / $args['per_page'] ),
+		);
+	}
+
+	/**
+	 * The WHERE fragment a search term adds (#2241).
+	 *
+	 * The indexed lookups come first: id, auth code, the e-mail/CPF/RF
+	 * hashes and a magic-token prefix, each answered by an index. The
+	 * leading-wildcard LIKE over `data` reads every row, so it runs only
+	 * when they find nothing, only on an install without encryption (with
+	 * it, `data` is NULL and the scan can match nothing), and only for a
+	 * term of 4 characters or more.
+	 *
+	 * @param string                  $search_term Search term as typed.
+	 * @param array<int, string|null> $where  The filters already applied (status, forms).
+	 * @param bool|null               $encrypted   Whether rows store their data encrypted; read from Encryption when null.
+	 * @return string
+	 */
+	private function search_condition( string $search_term, array $where, ?bool $encrypted = null ): string {
+		$conditions = array();
+
+		if ( is_numeric( $search_term ) ) {
+			$conditions[] = $this->wpdb->prepare( 'id = %d', intval( $search_term ) );
+		}
+
+		// The column compares case-insensitively, so the term is cleaned
+		// rather than wrapped in UPPER(), which kept the unique index from
+		// answering. Cleaning also strips the `C-` prefix and the hyphens a
+		// pasted code carries.
+		$code = \FreeFormCertificate\Core\DocumentFormatter::clean_auth_code( $search_term );
+		if ( '' !== $code ) {
+			$conditions[] = $this->wpdb->prepare( 'auth_code = %s', $code );
+		}
+
+		// One hash PER COLUMN, not one hash for all three (#1313): each
+		// identifier has its own canonical form, so `123.456.789-09` matches
+		// the digits `cpf_hash` holds.
+		$email_hash = $this->hash( 'email', $search_term );
+		$id_hash    = $this->hash( 'cpf', $search_term );
+		if ( null !== $email_hash ) {
+			$conditions[] = $this->wpdb->prepare( 'email_hash = %s', $email_hash );
+		}
+		if ( null !== $id_hash ) {
+			$conditions[] = $this->wpdb->prepare( 'cpf_hash = %s', $id_hash );
+			$conditions[] = $this->wpdb->prepare( 'rf_hash = %s', $id_hash );
+		}
+
+		// A B-tree index answers a leading-anchored prefix only.
+		$conditions[] = $this->wpdb->prepare( 'magic_token LIKE %s', $this->wpdb->esc_like( $search_term ) . '%' );
+
+		$indexed     = '(' . implode( ' OR ', $conditions ) . ')';
+		$encrypted ??= \FreeFormCertificate\Core\Encryption::is_configured();
+		if ( strlen( $search_term ) < 4 || $encrypted ) {
+			return $indexed;
+		}
+
+		$filters = implode( ' AND ', array_merge( $where, array( $indexed ) ) );
+		/**
+		 * `{$filters}` is imploded from literal fragments whose values were
+		 * bound by prepare() above; the table is bound with `%i`.
+		 *
+		 * @phpstan-ignore argument.type
+		 */
+		$hit = $this->wpdb->get_var( $this->wpdb->prepare( "SELECT 1 FROM %i WHERE {$filters} LIMIT 1", $this->table ) );
+		if ( null !== $hit ) {
+			return $indexed;
+		}
+
+		return (string) $this->wpdb->prepare(
+			"(data IS NOT NULL AND data != '' AND data LIKE %s)",
+			'%' . $this->wpdb->esc_like( $search_term ) . '%'
 		);
 	}
 
@@ -907,6 +925,66 @@ class SubmissionReader extends AbstractRepository {
 			)
 		);
 		return null === $count ? 0 : (int) $count;
+	}
+
+	/**
+	 * The latest submission of a form for the CPF/RF or ticket a participant
+	 * typed (#2241): the one lookup behind a reprint, the quiz attempt count
+	 * and the spent-ticket check.
+	 *
+	 * A ticket, when given, decides alone. It is read by its hash; on an
+	 * install without encryption no hash is ever written, so it is read by a
+	 * LIKE over the plaintext `data` instead (a compatibility shim, logged in
+	 * CLAUDE.md "Legacy and tech debt"). A CPF/RF is read by its hash only,
+	 * in the column its digit count selects.
+	 *
+	 * Never cached: it is a uniqueness probe, and a cached answer would
+	 * defeat the check it exists to perform.
+	 *
+	 * @since 6.43.0
+	 * @param int       $form_id   Form ID.
+	 * @param string    $cpf_rf    CPF/RF as typed, formatted or not.
+	 * @param string    $ticket    Normalised ticket code.
+	 * @param bool|null $encrypted Whether the install encrypts; read from Encryption when null.
+	 * @return object|null The row, or null when nothing matches.
+	 */
+	public function findForReprint( int $form_id, string $cpf_rf, string $ticket = '', ?bool $encrypted = null ): ?object {
+		$encrypted ??= \FreeFormCertificate\Core\Encryption::is_configured();
+
+		if ( '' !== $ticket ) {
+			if ( $encrypted ) {
+				$ticket_hash = $this->hash( 'ticket', $ticket );
+				return null === $ticket_hash ? null : $this->latest_row( 'SELECT * FROM %i WHERE form_id = %d AND ticket_hash = %s ORDER BY id DESC LIMIT 1', $form_id, $ticket_hash );
+			}
+			$like = '%' . $this->wpdb->esc_like( '"ticket":"' . $ticket . '"' ) . '%';
+			return $this->latest_row( 'SELECT * FROM %i WHERE form_id = %d AND data LIKE %s ORDER BY id DESC LIMIT 1', $form_id, $like );
+		}
+
+		$clean = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf_rf );
+		if ( '' === $clean || ! $encrypted ) {
+			return null;
+		}
+		$id_hash = $this->hash( 'cpf', $clean );
+		if ( null === $id_hash ) {
+			return null;
+		}
+		$query = 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $clean )
+			? 'SELECT * FROM %i WHERE form_id = %d AND rf_hash = %s ORDER BY id DESC LIMIT 1'
+			: 'SELECT * FROM %i WHERE form_id = %d AND cpf_hash = %s ORDER BY id DESC LIMIT 1';
+		return $this->latest_row( $query, $form_id, $id_hash );
+	}
+
+	/**
+	 * Run one `form_id` + value lookup and return its row.
+	 *
+	 * @param literal-string $query   Query with `%i`, `%d` and `%s` placeholders, in that order.
+	 * @param int            $form_id Form ID.
+	 * @param string         $value   The value matched.
+	 * @return object|null
+	 */
+	private function latest_row( string $query, int $form_id, string $value ): ?object {
+		$row = $this->wpdb->get_row( $this->wpdb->prepare( $query, $this->table, $form_id, $value ) );
+		return is_object( $row ) ? $row : null;
 	}
 
 	/**

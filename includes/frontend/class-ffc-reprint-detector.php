@@ -2,9 +2,9 @@
 /**
  * ReprintDetector
  *
- * Extracted from FormProcessor (Sprint 16 refactoring).
- * Detects existing submissions for reprint by ticket or CPF/RF,
- * supporting both encrypted and plaintext storage with JSON fallback.
+ * Detects an existing submission for a reprint, by ticket or CPF/RF. The
+ * lookup is the repository's (#2241); this class turns its row into the
+ * result the submission stages read.
  *
  * @package FreeFormCertificate\Frontend
  * @since 4.12.17
@@ -14,11 +14,12 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
+use FreeFormCertificate\Frontend\Submission\SubmissionContext;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Reprint Detector.
  *
@@ -42,76 +43,64 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ReprintDetector {
 
 	/**
-	 * Check for existing submission (reprint detection)
+	 * Check for an existing submission (reprint detection).
 	 *
-	 * V2.9.13: OPTIMIZED - Uses dedicated cpf_rf column with fallback to JSON
+	 * The lookup itself lives in the repository (#2241), shared with the quiz
+	 * attempt count and the spent-ticket check.
 	 *
-	 * @param int    $form_id Form ID.
-	 * @param string $val_cpf CPF/RF value.
+	 * @param int    $form_id    Form ID.
+	 * @param string $val_cpf    CPF/RF value.
 	 * @param string $val_ticket Ticket value.
 	 * @return ReprintResult
 	 */
 	public static function detect( int $form_id, string $val_cpf, string $val_ticket ): array {
-		global $wpdb;
-		$table_name          = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
-		$existing_submission = null;
+		$row = ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->findForReprint( $form_id, $val_cpf, $val_ticket );
+		return self::result( $row );
+	}
 
-		// Check by ticket first (if provided).
-		if ( ! empty( $val_ticket ) ) {
-			// Hash-based lookup (works with encrypted data).
-			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-				$ticket_hash         = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'ticket', $val_ticket );
-				$existing_submission = $wpdb->get_row(
-					$wpdb->prepare(
-						'SELECT * FROM %i WHERE form_id = %d AND ticket_hash = %s ORDER BY id DESC LIMIT 1',
-						$table_name,
-						$form_id,
-						$ticket_hash
-					)
-				);
-			}
-
-			// Fallback: LIKE on plaintext data (legacy / non-encrypted).
-			if ( ! $existing_submission ) {
-				$like_query          = '%' . $wpdb->esc_like( '"ticket":"' . $val_ticket . '"' ) . '%';
-				$existing_submission = $wpdb->get_row(
-					$wpdb->prepare(
-						'SELECT * FROM %i WHERE form_id = %d AND data LIKE %s ORDER BY id DESC LIMIT 1',
-						$table_name,
-						$form_id,
-						$like_query
-					)
-				);
-			}
-		} elseif ( ! empty( $val_cpf ) ) {
-			// Check by CPF/RF (if ticket not provided).
-			// Remove formatting for comparison.
-			$clean_cpf = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $val_cpf );
-
-			// Check if encryption is enabled.
-			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-				// Classify by digit count and search the specific split column.
-				// The ternary can only yield one of the two fixed literal column
-				// names ('rf_hash' / 'cpf_hash') — no request data reaches it —
-				// and %i quotes the identifier regardless, so no allowlist guard
-				// is needed here.
-				$id_hash     = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $clean_cpf );
-				$hash_column = 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $clean_cpf ) ? 'rf_hash' : 'cpf_hash';
-
-				$existing_submission = $wpdb->get_row(
-					$wpdb->prepare(
-						'SELECT * FROM %i WHERE form_id = %d AND %i = %s ORDER BY id DESC LIMIT 1',
-						$table_name,
-						$form_id,
-						$hash_column,
-						$id_hash
-					)
-				);
-			}
+	/**
+	 * The stored submission for a submission's form, CPF/RF and ticket,
+	 * looked up once per submission and kept on its context (#2241).
+	 *
+	 * The rate-limit guard, the spent-ticket check and the persister used to
+	 * run the same query two or three times per submission; each now reads
+	 * the row the first of them fetched. The values it is keyed on are fixed
+	 * by the field sanitizer before any of them runs.
+	 *
+	 * @param SubmissionContext $ctx Submission context.
+	 * @return object|null
+	 */
+	public static function row_for( SubmissionContext $ctx ): ?object {
+		if ( false === $ctx->existing_row ) {
+			$ctx->existing_row = ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->findForReprint( $ctx->form_id, $ctx->val_cpf, $ctx->val_ticket );
 		}
+		return is_object( $ctx->existing_row ) ? $ctx->existing_row : null;
+	}
 
-		if ( $existing_submission ) {
-			return self::build_reprint_result( $existing_submission );
+	/**
+	 * The reprint result for a submission, from its single lookup.
+	 *
+	 * @param SubmissionContext $ctx Submission context.
+	 * @return ReprintResult
+	 */
+	public static function for_context( SubmissionContext $ctx ): array {
+		return self::result( self::row_for( $ctx ) );
+	}
+
+	/**
+	 * The result for a looked-up row, or the "not a reprint" shape.
+	 *
+	 * @param object|null $row Stored row.
+	 * @return ReprintResult
+	 */
+	private static function result( ?object $row ): array {
+		if ( null !== $row ) {
+			/**
+			 * A submissions row as `$wpdb` returns it.
+			 *
+			 * @var \stdClass&object{id: numeric-string, submission_date: numeric-string|int, email_encrypted?: string|null, data?: string|null, user_id?: numeric-string|null, status?: string|null, revoked_at?: numeric-string|null} $row
+			 */
+			return self::build_reprint_result( $row );
 		}
 
 		return array(

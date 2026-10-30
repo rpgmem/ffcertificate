@@ -29,7 +29,16 @@ class AccessRestrictionGuard {
 	 * @throws SubmissionRejected When access is denied.
 	 */
 	public function apply( SubmissionContext $ctx ): void {
-		$restriction_result = \FreeFormCertificate\Frontend\AccessRestrictionChecker::check( $ctx->form_config, $ctx->val_cpf, $ctx->val_ticket, $ctx->form_id, $ctx->val_password );
+		// A spent ticket is checked against the submission's single lookup
+		// (#2241); the ticket it is keyed on is the one checked here.
+		$restriction_result = \FreeFormCertificate\Frontend\AccessRestrictionChecker::check(
+			$ctx->form_config,
+			$ctx->val_cpf,
+			$ctx->val_ticket,
+			$ctx->form_id,
+			$ctx->val_password,
+			static fn(): bool => \FreeFormCertificate\Frontend\ReprintDetector::for_context( $ctx )['is_reprint']
+		);
 
 		if ( ! $restriction_result['allowed'] ) {
 			throw new SubmissionRejected( array( 'message' => $restriction_result['message'] ) );
