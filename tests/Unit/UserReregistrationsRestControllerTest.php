@@ -183,12 +183,14 @@ class UserReregistrationsRestControllerTest extends TestCase {
 	// Route registration
 	// ------------------------------------------------------------------
 
-	public function test_register_routes_creates_the_list_and_answers_endpoints(): void {
+	public function test_register_routes_creates_the_list_answers_and_record_endpoints(): void {
 		$ctrl = new UserReregistrationsRestController( 'ffc/v1' );
 		$ctrl->register_routes();
 
-		$this->assertCount( 2, $this->registered_routes );
+		$this->assertCount( 3, $this->registered_routes );
 		$this->assertSame( '/user/reregistrations/(?P<id>\\d+)/answers', $this->registered_routes[1]['route'] );
+		$this->assertSame( '/user/reregistrations/(?P<id>\\d+)/record', $this->registered_routes[2]['route'] );
+		$this->assertSame( 'is_user_logged_in', $this->registered_routes[2]['args']['permission_callback'], 'The Record is a signed-in download (#2242).' );
 	}
 
 	public function test_reregistrations_route_registered(): void {
@@ -281,15 +283,13 @@ class UserReregistrationsRestControllerTest extends TestCase {
 		$this->assertSame( 'Annual Renewal', $formatted['title'] );
 		$this->assertSame( 'submitted', $formatted['status'] );
 		$this->assertSame( 'Submitted — Pending Review', $formatted['status_label'] );
-		$this->assertTrue( $formatted['can_download'] );
+		$this->assertFalse( $formatted['can_download'], 'A submission awaiting review has no Record yet (#2242).' );
+		$this->assertSame( '', $formatted['auth_code'], 'A code kept on a row returned to draft stays hidden until approval.' );
 		$this->assertFalse( $formatted['can_submit'] );
 		$this->assertTrue( $formatted['is_active'] );
-		$this->assertNotEmpty( $formatted['auth_code'] );
-		$this->assertStringContainsString( 'R-', $formatted['auth_code'] );
-		$this->assertSame( DocumentFormatter::format_auth_code( 'ABCD1234EFGH', DocumentFormatter::PREFIX_REREGISTRATION ), $formatted['auth_code'] );
 		$this->assertSame( 'January 1, 2026', $formatted['start_date_formatted'] );
-		$this->assertSame( 'https://example.com/valid/#token=magic-token-42', $formatted['magic_link'], 'The link is built from the stored token, on the fallback verification page.' );
-		$this->assertSame( array(), $this->updates, 'A stored token is reused, never rewritten.' );
+		$this->assertArrayNotHasKey( 'magic_link', $formatted, 'The Record is never offered through a public link.' );
+		$this->assertSame( array(), $this->updates, 'Listing writes nothing.' );
 	}
 
 	public function test_get_user_reregistrations_pending_submission_can_submit(): void {
@@ -311,47 +311,32 @@ class UserReregistrationsRestControllerTest extends TestCase {
 		$formatted = $result['reregistrations'][0];
 		$this->assertTrue( $formatted['can_submit'] );
 		$this->assertFalse( $formatted['can_download'] );
-		$this->assertSame( '', $formatted['magic_link'] );
 		$this->assertSame( '', $formatted['auth_code'] );
 	}
 
-	public function test_get_user_reregistrations_expired_submission_with_auth_code_can_download(): void {
-		// 6.7.2 — When a submission carries an `auth_code` it MUST be
-		// downloadable, even if the parent campaign expired and the
-		// submission status flipped to 'expired'. Pre-6.7.2 the
-		// controller hard-coded `status IN ('submitted', 'approved')`
-		// which excluded this perfectly valid post-approval state.
+	public function test_an_approved_submission_downloads_its_record_after_the_campaign_ends(): void {
+		// The daily run expires only rows that never submitted; an approved
+		// row stays approved, so its Record stays downloadable (#2242).
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
 		$sub = $this->make_submission( array(
 			'id'                    => 77,
-			'reregistration_id'     => 12,
-			'reregistration_title'  => 'Atualização Anual',
-			'status'                => 'expired',
+			'status'                => 'approved',
 			'reregistration_status' => 'expired',
 			'start_date'            => '2026-02-15',
 			'end_date'              => '2026-03-27',
-			'submitted_at'          => null,
+			'submitted_at'          => 1761000000,
 			'auth_code'             => 'ZSKDNN5895DU',
 		));
-
-		// No token stored yet: the writer generates one and saves it on the row.
 		$this->submissions = array( $sub );
 
-		$ctrl    = new UserReregistrationsRestController( 'ffc/v1' );
-		$request = $this->make_request();
-		$result  = $ctrl->get_user_reregistrations( $request );
+		$formatted = ( new UserReregistrationsRestController( 'ffc/v1' ) )->get_user_reregistrations( $this->make_request() )['reregistrations'][0];
 
-		$formatted = $result['reregistrations'][0];
-		$this->assertTrue( $formatted['can_download'], 'auth_code present → download MUST be available regardless of expired status' );
-		$this->assertCount( 1, $this->updates, 'The missing token is generated and saved once.' );
-		$this->assertSame( 'wp_ffc_reregistration_submissions', $this->updates[0][0] );
-		$this->assertSame( array( 'id' => 77 ), $this->updates[0][2] );
-		$token = $this->updates[0][1]['magic_token'];
-		$this->assertMatchesRegularExpression( '/^[a-f0-9]{64}$/', $token );
-		$this->assertSame( 'https://example.com/valid/#token=' . $token, $formatted['magic_link'] );
-		$this->assertFalse( $formatted['can_submit'], 'expired submissions cannot be re-submitted' );
+		$this->assertTrue( $formatted['can_download'] );
+		$this->assertSame( DocumentFormatter::format_auth_code( 'ZSKDNN5895DU', DocumentFormatter::PREFIX_REREGISTRATION ), $formatted['auth_code'] );
+		$this->assertFalse( $formatted['can_submit'] );
+		$this->assertSame( array(), $this->updates, 'No public token is minted for the list.' );
 	}
 
 	public function test_get_user_reregistrations_rejected_submission_no_download(): void {
@@ -374,7 +359,6 @@ class UserReregistrationsRestControllerTest extends TestCase {
 
 		$formatted = $result['reregistrations'][0];
 		$this->assertFalse( $formatted['can_download'] );
-		$this->assertSame( '', $formatted['magic_link'] );
 	}
 
 	public function test_get_user_reregistrations_exception_returns_wp_error(): void {
@@ -493,5 +477,36 @@ class UserReregistrationsRestControllerTest extends TestCase {
 		$result = $ctrl->get_user_reregistrations( $this->make_request() );
 
 		$this->assertSame( array( true, false ), array_column( $result['reregistrations'], 'can_view_answers' ) );
+	}
+
+	// ------------------------------------------------------------------
+	// GET /user/reregistrations/{id}/record (#2242)
+	// ------------------------------------------------------------------
+
+	public function test_the_record_is_refused_for_a_submission_not_approved(): void {
+		foreach ( array( 'submitted', 'rejected', 'in_progress' ) as $status ) {
+			$this->given_answers( array( 'status' => $status ) );
+
+			$result = ( new UserReregistrationsRestController( 'ffc/v1' ) )->get_submission_record( $this->make_request( array( 'id' => 3 ) ) );
+
+			$this->assertInstanceOf( \WP_Error::class, $result, $status );
+			$this->assertSame( 'ffc_submission_not_found', $result->get_error_code(), $status );
+		}
+	}
+
+	public function test_the_record_is_refused_for_another_persons_submission(): void {
+		$this->given_answers( array( 'user_id' => 8 ) );
+
+		$result = ( new UserReregistrationsRestController( 'ffc/v1' ) )->get_submission_record( $this->make_request( array( 'id' => 3 ) ) );
+
+		$this->assertSame( 'ffc_submission_not_found', $result->get_error_code() );
+	}
+
+	public function test_the_record_is_refused_when_logged_out(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+
+		$result = ( new UserReregistrationsRestController( 'ffc/v1' ) )->get_submission_record( $this->make_request( array( 'id' => 3 ) ) );
+
+		$this->assertSame( 'not_logged_in', $result->get_error_code() );
 	}
 }

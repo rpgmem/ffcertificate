@@ -457,6 +457,8 @@ class ReregistrationAdminTest extends TestCase {
 	public function test_ajax_generate_record_returns_error_for_missing_id(): void {
 		Functions\when( 'check_ajax_referer' )->justReturn( true );
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
 		$_POST['submission_id'] = 0;
 
 		$admin = new ReregistrationAdmin();

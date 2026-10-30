@@ -755,12 +755,14 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	// send_confirmation() — full success path with magic link + auth code
 	// ==================================================================
 
-	public function test_send_confirmation_success_with_magic_link(): void {
+	public function test_send_confirmation_leads_to_the_dashboard_not_a_public_link(): void {
+		// The Record downloads only signed in (#2242): the confirmation's
+		// button and `{{magic_link_url}}` both lead to the dashboard.
 		$this->submission(
 			1,
 			5,
 			10,
-			'submitted',
+			'approved',
 			array(
 				'magic_token' => 'tok123',
 				'auth_code'   => 'AC99',
@@ -784,10 +786,8 @@ class ReregistrationEmailHandlerTest extends TestCase {
 		$this->assertTrue( $result );
 		$this->assertSame( array( 'alice@example.com' ), $this->recipients() );
 		$body = $this->mails[0][2];
-		// The magic link is built from the submission's own token, on the
-		// verification page's fallback URL; the auth code carries the
-		// reregistration prefix.
-		$this->assertStringContainsString( 'https://example.com/valid/#token=tok123', $body );
+		$this->assertStringNotContainsString( 'tok123', $body, 'No public link to the record is mailed.' );
+		$this->assertStringContainsString( 'href="https://example.com/dashboard"', $body );
 		$this->assertStringContainsString( 'R-AC99', $body );
 	}
 }

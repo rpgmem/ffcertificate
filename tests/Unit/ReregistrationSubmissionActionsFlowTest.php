@@ -47,6 +47,18 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 	 */
 	private array $mailed = array();
 
+	/**
+	 * Submission statuses, by id. 21 and 3 await review; 5 was never
+	 * answered, which is the row a bulk "select all" must not approve.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $statuses = array(
+		21 => 'submitted',
+		3  => 'submitted',
+		5  => 'pending',
+	);
+
 	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
 	private $wpdb_backup;
 
@@ -105,6 +117,9 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 			return true;
 		} );
 
+		// Approval issues an authentication code (#2242).
+		Functions\when( 'wp_rand' )->alias( static fn ( $min, $max ) => random_int( $min, $max ) );
+
 		$this->updates   = array();
 		$GLOBALS['wpdb'] = $this->database();
 	}
@@ -133,13 +148,48 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 		$wpdb->users  = 'wp_users';
 
 		// Interpolates, so the reads below can dispatch on the query's intent.
+		// A conditional UPDATE (#2242) is kept as its parsed parts instead,
+		// and `query()` applies it against the status map.
+		$pending = array();
 		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
-			static function ( $sql, ...$args ) {
+			static function ( $sql, ...$args ) use ( &$pending ) {
 				$values = ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args;
+				if ( 0 === strpos( (string) $sql, 'UPDATE %i SET' ) ) {
+					$pending[] = array( (string) $sql, $values );
+					return 'COND:' . ( count( $pending ) - 1 );
+				}
 				foreach ( $values as $v ) {
 					$sql = (string) preg_replace( '/%[ids]/', (string) $v, (string) $sql, 1 );
 				}
 				return $sql;
+			}
+		);
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $marker ) use ( &$pending ) {
+				list( $sql, $values ) = $pending[ (int) substr( (string) $marker, 5 ) ];
+				$table                = array_shift( $values );
+				$set                  = substr( $sql, strlen( 'UPDATE %i SET ' ), strpos( $sql, ' WHERE ' ) - strlen( 'UPDATE %i SET ' ) );
+				$data                 = array();
+				foreach ( explode( ', ', $set ) as $part ) {
+					$column          = array_shift( $values );
+					$data[ $column ] = '%i = NULL' === $part ? null : array_shift( $values );
+				}
+				$id      = (int) array_shift( $values );
+				$allowed = $values;
+				if ( ! in_array( $this->statuses[ $id ] ?? '', $allowed, true ) ) {
+					return 0;
+				}
+				$this->statuses[ $id ] = (string) ( $data['status'] ?? $this->statuses[ $id ] );
+				$this->updates[]       = array( $table, $data, array( 'id' => $id ) );
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				if ( preg_match( '/^SELECT status FROM \\S+ WHERE id = (\\d+)/', (string) $sql, $m ) ) {
+					return $this->statuses[ (int) $m[1] ] ?? null;
+				}
+				return null;
 			}
 		);
 
@@ -224,6 +274,7 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 		$this->assertSame( 21, $writes[0][0] );
 		$this->assertSame( 'approved', $writes[0][1]['status'] );
 		$this->assertSame( 8, $writes[0][1]['reviewed_by'] );
+		$this->assertMatchesRegularExpression( '/^[A-Z0-9]{12}$/', (string) $writes[0][1]['auth_code'], 'Approval issues the code (#2242).' );
 		$this->assertSame( array( 'approve_submission_21' ), $this->nonces );
 		$this->assertSame( array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=submissions&id=4&message=approved' ), $this->redirects );
 	}
@@ -238,6 +289,8 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 		$this->assertSame( 21, $writes[0][0] );
 		$this->assertSame( 'rejected', $writes[0][1]['status'] );
 		$this->assertSame( 8, $writes[0][1]['reviewed_by'] );
+		$this->assertArrayHasKey( 'auth_code', $writes[0][1] );
+		$this->assertNull( $writes[0][1]['auth_code'], 'Reject deletes the code (#2242).' );
 		$this->assertSame( array( 'reject_submission_21' ), $this->nonces );
 		$this->assertSame( array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=submissions&id=4&message=rejected' ), $this->redirects );
 	}
@@ -267,19 +320,22 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 		);
 	}
 
-	public function test_bulk_approve_approves_every_selected_id(): void {
-		$this->bulk( 'approve', array( '3', '5' ) );
+	public function test_bulk_approve_approves_only_the_selected_rows_awaiting_review(): void {
+		// 5 was never answered: a "select all" must leave it alone and say so
+		// (#2242).
+		$this->bulk( 'approve', array( '3', '5', '21' ) );
 
 		$this->runHandler( 'handle_bulk' );
 
 		$writes = $this->submission_writes();
-		$this->assertSame( array( 3, 5 ), array_column( $writes, 0 ) );
+		$this->assertSame( array( 3, 21 ), array_column( $writes, 0 ) );
 		foreach ( $writes as $write ) {
 			$this->assertSame( 'approved', $write[1]['status'] );
 			$this->assertSame( 8, $write[1]['reviewed_by'] );
 		}
+		$this->assertSame( 'pending', $this->statuses[5] );
 		$this->assertSame( array( 'bulk_submissions_4' ), $this->nonces );
-		$this->assertStringEndsWith( '&message=bulk_approved', $this->redirects[0] );
+		$this->assertStringEndsWith( '&message=bulk_approved&count=2&skipped=1', $this->redirects[0] );
 	}
 
 	public function test_bulk_return_to_draft_reopens_every_selected_id(): void {

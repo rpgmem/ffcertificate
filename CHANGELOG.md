@@ -113,6 +113,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificates: an issued certificate no longer prints a literal `{{tag}}`** (#2241). A field the submission lacks prints blank and an unknown tag stays visible; a field's tag locks once the form has submissions, and the layout editor says how many issued certificates a change reaches.
 - **Certificates: a form shows the right message before it opens, after it closes and outside its hours** (#2241). One message served all three, so "Opens on…" still showed after the form closed. Each moment now has its own; an empty one shows that moment's default, and each form's message is copied into all three once.
 - **Reregistration: one status gate and the campaign window hold on the server** (#2242). Draft and submit accept only a pending, in-progress or rejected submission, in one conditional write, so a double submit changes one row and mails once; the form opens only between the start and end on the site clock; reminders and days-left count site days; an expired campaign drops its cached rows; the import treats a draft as open and never overwrites a submission made mid-job.
+- **Reregistration: bulk Approve acts only on submissions awaiting review** (#2242). A "select all" no longer approves members who never answered; the notice says how many of the selection were skipped. The authentication code is issued on approval, deleted on Reject, and kept but hidden on Return to draft, so re-approval restores the same code.
 - **Reregistration: late joiners and child audiences get their row, invitation and reminders** (#2242). The daily run creates the submission of anyone who joined a campaign's audience (or a child audience) after activation, and saving an active campaign seeds an added audience. An invitation sent before the start names the opening date; reminders wait for the opening.
 
 ### Security
@@ -125,7 +126,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificates: a reprint by CPF/RF never shows someone else's certificate** (#2241). Unless the logged-in owner asks, the link is e-mailed to the stored address (at most every 15 minutes) and the screen shows only that address, masked.
 - **Reregistration: drafts store sensitive answers encrypted** (#2242). The draft save encrypts every sensitive value as the submit does; the "Reregistration: Encrypt Draft Answers" migration card encrypts what earlier drafts stored in clear.
 - **Reregistration: no account takeover through the import or a profile key** (#2242). A custom field can no longer be mapped to the login e-mail, another `wp_users` key or the plugin's preferences; an import row that resolves to a WordPress administrator or a holder of any `_pii` capability fails and leaves that account untouched.
-
+- **Reregistration: the Record is a signed-in download** (#2242). Public verification confirms only an approved record, shows masked basics without the PDF and logs every check; the owner downloads from the dashboard, and staff need `ffc_view_reregistration_pii`, audited like "view as user". ⚠ The confirmation e-mail's `{{magic_link_url}}` now leads to the dashboard.
 
 ## [6.42.0] (2026-10-26) — `8241871c`
 

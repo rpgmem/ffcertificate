@@ -247,7 +247,7 @@ class VerificationSplitParityTest extends TestCase {
 	public function test_a_code_finds_the_same_document_through_the_same_reads( string $code, array $rows ): void {
 		list( $legacy, $current ) = $this->both( 'search_certificate', $code, $rows );
 
-		$this->assertSame( $legacy['result'], $current['result'] );
+		$this->assertSame( self::without_rereg_answers( $legacy['result'] ), $current['result'] );
 		$this->assertSame( $legacy['reads'], $current['reads'] );
 	}
 
@@ -283,8 +283,26 @@ class VerificationSplitParityTest extends TestCase {
 	public function test_a_magic_link_opens_the_same_document_through_the_same_reads( string $token, $token_row, array $rows ): void {
 		list( $legacy, $current ) = $this->both( 'verify_by_magic_token', $token, $rows, $token_row );
 
-		$this->assertSame( $legacy['result'], $current['result'] );
+		$this->assertSame( self::without_rereg_answers( $legacy['result'] ), $current['result'] );
 		$this->assertSame( $legacy['reads'], $current['reads'] );
+	}
+
+	/**
+	 * The legacy result with a reregistration's answers removed.
+	 *
+	 * The one intended divergence since the split (#2242): public
+	 * verification confirms a reregistration record from its basics and no
+	 * longer carries the decrypted answers in `data`, which only the Record
+	 * download used. Every other key, and every read, still has to match.
+	 *
+	 * @param array<string, mixed> $result Legacy result.
+	 * @return array<string, mixed>
+	 */
+	private static function without_rereg_answers( array $result ): array {
+		if ( 'reregistration' === ( $result['type'] ?? '' ) ) {
+			$result['data'] = array();
+		}
+		return $result;
 	}
 
 	public function test_the_scenarios_reach_every_kind(): void {

@@ -43,7 +43,7 @@ class ReregistrationVerificationLookup {
 
 		$submission = ReregistrationSubmissionReader::get_by_auth_code( $code );
 
-		return $submission ? $this->result( $submission, false ) : VerificationResult::not_found();
+		return $submission ? $this->result( $submission, false, 'auth_code' ) : VerificationResult::not_found();
 	}
 
 	/**
@@ -60,28 +60,51 @@ class ReregistrationVerificationLookup {
 
 		$submission = ReregistrationSubmissionReader::get_by_magic_token( $token );
 
-		return $submission ? $this->result( $submission, true ) : VerificationResult::not_found();
+		return $submission ? $this->result( $submission, true, 'magic_link' ) : VerificationResult::not_found();
 	}
 
 	/**
 	 * Build the result from a reregistration submission row.
 	 *
+	 * THE PUBLIC PAGE GETS THE BASICS, NOT THE RECORD (#2242)
+	 *
+	 * Verification confirms that an approved record exists and whose it is:
+	 * the campaign, the name, the masked CPF and e-mail. The answers stay out
+	 * of the result (`data` is empty), and the Record PDF is downloaded only
+	 * by a logged-in owner or staff member from the dashboard or the
+	 * submissions screen. Every hit writes its own reregistration log row, on
+	 * the code path and the magic-link path alike.
+	 *
 	 * @param object $submission       Submission row.
 	 * @param bool   $with_magic_token Whether the result carries the record's magic token (the magic-link path).
+	 * @param string $method           How the record was reached: `auth_code` or `magic_link`.
 	 * @phpstan-param ReregistrationSubmissionRow $submission
 	 * @return array<string, mixed>
 	 */
-	private function result( object $submission, bool $with_magic_token ): array {
+	private function result( object $submission, bool $with_magic_token, string $method ): array {
 		$rereg  = ReregistrationRepository::get_by_id( (int) $submission->reregistration_id );
 		$user   = get_userdata( (int) $submission->user_id );
 		$fields = $this->decode_submission_fields( $submission, $rereg );
 
 		$status_labels = ReregistrationSubmissionReader::get_status_labels();
 
+		if ( class_exists( '\\FreeFormCertificate\\Core\\ActivityLog' ) ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'reregistration_record_verified',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+				array(
+					'method'            => $method,
+					'reregistration_id' => (int) $submission->reregistration_id,
+				),
+				0,
+				(int) $submission->id
+			);
+		}
+
 		$result = array(
 			'found'      => true,
 			'submission' => $submission,
-			'data'       => $fields,
+			'data'       => array(),
 			'type'       => 'reregistration',
 		);
 		if ( $with_magic_token ) {
