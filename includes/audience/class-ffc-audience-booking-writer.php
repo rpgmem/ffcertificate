@@ -141,43 +141,13 @@ class AudienceBookingWriter {
 		// a friendly error, but this is the authoritative check.
 		$wpdb->query( 'START TRANSACTION' );
 
-		// Every day of the range is checked, and one clash refuses the whole
-		// booking, except a clash with a booking the caller confirmed it
-		// overrides: that one is cancelled below, in this same transaction,
-		// so the slot is never held by two active bookings.
 		$override_ids = is_array( $data['override_ids'] ) ? self::numeric_ids( $data['override_ids'] ) : array();
-		$rows         = array();
-		$clashes      = array();
-		foreach ( $plan['days'] as $day ) {
-			$conflicts = self::get_conflicts_for_update(
-				(int) $data['environment_id'],
-				$day['date'],
-				$day['start_time'],
-				$day['end_time']
-			);
-			foreach ( $conflicts as $conflict ) {
-				$conflict_id = (int) ( $conflict->id ?? 0 );
-				if ( ! in_array( $conflict_id, $override_ids, true ) ) {
-					$wpdb->query( 'ROLLBACK' );
-					return false;
-				}
-				$rows[ $conflict_id ]      = $conflict;
-				$clashes[ $conflict_id ][] = $day['date'];
-			}
+		$claimed      = self::claim_days( (int) $data['environment_id'], $plan['days'], $override_ids, (string) $data['override_note'], 0 );
+		if ( null === $claimed ) {
+			$wpdb->query( 'ROLLBACK' );
+			return false;
 		}
-
-		foreach ( $override_ids as $override_id ) {
-			if ( ! isset( $rows[ $override_id ] ) ) {
-				// It no longer clashes (cancelled meanwhile, or never did): nothing to take from it.
-				continue;
-			}
-			$lost = self::give_way( $rows[ $override_id ], array_values( array_unique( $clashes[ $override_id ] ) ), (string) $data['override_note'] );
-			if ( null === $lost ) {
-				$wpdb->query( 'ROLLBACK' );
-				return false;
-			}
-			$overrides[ $override_id ] = $lost;
-		}
+		$overrides = $claimed;
 
 		$result = $wpdb->insert(
 			$table,
@@ -232,6 +202,134 @@ class AudienceBookingWriter {
 		$wpdb->query( 'COMMIT' );
 
 		return $booking_id;
+	}
+
+	/**
+	 * Take a booking's days inside the open transaction (#2243).
+	 *
+	 * Every day is checked with the `FOR UPDATE` lock, and one clash refuses
+	 * the whole booking, except a clash with a booking the caller confirmed it
+	 * overrides: that one gives way on the days that clash, in this same
+	 * transaction, so the slot is never held by two active bookings.
+	 *
+	 * @param int                                                                   $environment_id The space.
+	 * @param array<int, array{date: string, start_time: string, end_time: string}> $days The days and hours taken.
+	 * @param array<int>                                                            $override_ids   The bookings the caller confirmed it overrides.
+	 * @param string                                                                $note           Why they give way.
+	 * @param int                                                                   $self_id        The booking being moved, which never clashes with itself; 0 on create.
+	 * @return array<int, list<string>>|null Each overridden booking and the days it lost (empty when cancelled whole), or NULL when a clash refuses the booking.
+	 */
+	private static function claim_days( int $environment_id, array $days, array $override_ids, string $note, int $self_id ): ?array {
+		$rows    = array();
+		$clashes = array();
+		foreach ( $days as $day ) {
+			foreach ( self::get_conflicts_for_update( $environment_id, $day['date'], $day['start_time'], $day['end_time'] ) as $conflict ) {
+				$conflict_id = (int) ( $conflict->id ?? 0 );
+				if ( $conflict_id === $self_id ) {
+					continue;
+				}
+				if ( ! in_array( $conflict_id, $override_ids, true ) ) {
+					return null;
+				}
+				$rows[ $conflict_id ]      = $conflict;
+				$clashes[ $conflict_id ][] = $day['date'];
+			}
+		}
+
+		$overrides = array();
+		foreach ( $override_ids as $override_id ) {
+			if ( ! isset( $rows[ $override_id ] ) ) {
+				// It no longer clashes (cancelled meanwhile, or never did): nothing to take from it.
+				continue;
+			}
+			$lost = self::give_way( $rows[ $override_id ], array_values( array_unique( $clashes[ $override_id ] ) ), $note );
+			if ( null === $lost ) {
+				return null;
+			}
+			$overrides[ $override_id ] = $lost;
+		}
+
+		return $overrides;
+	}
+
+	/**
+	 * Move a booking to a new date, hours or space, and set its description
+	 * (#2243).
+	 *
+	 * The row keeps its id, so its participants, attendance and invitations
+	 * stay where they are. The days are taken the way {@see self::create()}
+	 * takes them, in one transaction that first locks the row itself: a
+	 * booking cancelled meanwhile is not moved.
+	 *
+	 * @param int                           $id        The booking.
+	 * @param array<string, mixed>          $data      `environment_id`, `booking_date`, `end_date`, `start_time`, `end_time`, `is_all_day`, `time_mode`, `skip_blocked`, `description`, `override_ids`, `override_note`.
+	 * @param array<int, list<string>>|null $overrides Filled as in {@see self::create()}.
+	 * @phpstan-param array{environment_id: int, booking_date: string, end_date: string, start_time: string, end_time: string, is_all_day: int, time_mode: string, skip_blocked: bool, description: string, override_ids?: list<int>, override_note?: string} $data
+	 * @param-out array<int, list<string>> $overrides
+	 * @return bool Whether the booking was moved.
+	 */
+	public static function move( int $id, array $data, ?array &$overrides = null ): bool {
+		$overrides = array();
+		$wpdb      = self::db();
+		$table     = self::get_table_name();
+
+		$environment_id = $data['environment_id'];
+		$booking_date   = $data['booking_date'];
+		$start_time     = $data['start_time'];
+		$end_time       = $data['end_time'];
+		$description    = $data['description'];
+		if ( $id <= 0 || $environment_id <= 0 || '' === $booking_date || '' === $start_time || '' === $end_time || '' === $description ) {
+			return false;
+		}
+
+		$end_date     = '' !== $data['end_date'] ? $data['end_date'] : $booking_date;
+		$is_range     = $end_date !== $booking_date;
+		$time_mode    = $is_range ? $data['time_mode'] : 'daily';
+		$skip_blocked = $is_range && $data['skip_blocked'];
+		$plan         = AudienceBookingRules::occurrences( $environment_id, $booking_date, $end_date, $start_time, $end_time, $time_mode, $skip_blocked );
+
+		$wpdb->query( 'START TRANSACTION' );
+
+		$locked = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM %i WHERE id = %d AND status = 'active' FOR UPDATE", $table, $id ) );
+		if ( null === $locked ) {
+			$wpdb->query( 'ROLLBACK' );
+			return false;
+		}
+
+		$claimed = self::claim_days( $environment_id, $plan['days'], $data['override_ids'] ?? array(), $data['override_note'] ?? '', $id );
+		if ( null === $claimed ) {
+			$wpdb->query( 'ROLLBACK' );
+			return false;
+		}
+
+		$updated = $wpdb->update(
+			$table,
+			array(
+				'environment_id' => $environment_id,
+				'booking_date'   => $booking_date,
+				'start_time'     => $start_time,
+				'end_time'       => $end_time,
+				'is_all_day'     => $data['is_all_day'] ? 1 : 0,
+				'description'    => $description,
+				'end_date'       => $is_range ? $end_date : null,
+				'time_mode'      => $is_range ? $time_mode : null,
+				'skipped_dates'  => ! empty( $plan['skipped'] ) ? wp_json_encode( $plan['skipped'] ) : null,
+				'day_times'      => $is_range ? AudienceBookingRules::encode_day_times( $plan['days'], $time_mode ) : null,
+			),
+			array( 'id' => $id ),
+			array( '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s' ),
+			array( '%d' )
+		);
+		if ( false === $updated ) {
+			$wpdb->query( 'ROLLBACK' );
+			return false;
+		}
+
+		$wpdb->query( 'COMMIT' );
+		static::cache_delete( "id_{$id}" );
+		$overrides = $claimed;
+
+		return true;
 	}
 
 	/**

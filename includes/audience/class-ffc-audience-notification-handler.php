@@ -26,6 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Handler for audience notification operations.
  *
  * @phpstan-import-type ScheduleRow from AudienceScheduleRepository
+ * @phpstan-import-type EnvironmentRow from AudienceEnvironmentRepository
  * @phpstan-import-type BookingRow from AudienceBookingReader
  */
 class AudienceNotificationHandler {
@@ -55,6 +56,7 @@ class AudienceNotificationHandler {
 	public static function init(): void {
 		add_action( 'ffcertificate_audience_booking_created', array( __CLASS__, 'queue_booking_created' ) );
 		add_action( 'ffcertificate_audience_booking_cancelled', array( __CLASS__, 'queue_booking_cancelled' ), 10, 3 );
+		add_action( 'ffcertificate_audience_booking_changed', array( __CLASS__, 'queue_booking_changed' ), 10, 2 );
 		add_action( 'ffcertificate_audience_booking_overridden', array( __CLASS__, 'queue_booking_overridden' ), 10, 4 );
 		add_action( self::BATCH_HOOK, array( __CLASS__, 'run_batch' ) );
 	}
@@ -112,6 +114,26 @@ class AudienceNotificationHandler {
 	}
 
 	/**
+	 * Queue the e-mail of a booking that was edited or moved (#2243). Who
+	 * changed it is carried in the job, since the batch runs with nobody
+	 * signed in.
+	 *
+	 * @param int                  $booking_id The booking.
+	 * @param array<string, mixed> $before     Its date, hours, space and description before the change.
+	 * @return void
+	 */
+	public static function queue_booking_changed( int $booking_id, array $before ): void {
+		self::schedule_batch(
+			array(
+				'kind'       => 'changed',
+				'booking_id' => $booking_id,
+				'before'     => $before,
+				'actor'      => get_current_user_id(),
+			)
+		);
+	}
+
+	/**
 	 * Queue the e-mails of a booking that gave way to an override. The
 	 * operator is carried in the job, since the batch runs with nobody
 	 * signed in and a booking that lost only some days is not itself
@@ -164,6 +186,10 @@ class AudienceNotificationHandler {
 				$series_ids = isset( $job['series_ids'] ) && is_array( $job['series_ids'] ) ? array_values( array_map( 'intval', $job['series_ids'] ) ) : array( $booking_id );
 				$next       = self::send_series_cancelled_notification( $booking_id, $reason, $series_ids, $after );
 				break;
+			case 'changed':
+				$before = isset( $job['before'] ) && is_array( $job['before'] ) ? $job['before'] : array();
+				$next   = self::send_booking_changed_notification( $booking_id, $before, $after, $actor );
+				break;
 			case 'overridden':
 				$next = self::send_booking_overridden_notification( $booking_id, (int) ( $job['new_booking_id'] ?? 0 ), $reason, $lost_days, $after, $actor );
 				break;
@@ -180,7 +206,7 @@ class AudienceNotificationHandler {
 	/**
 	 * Schedule a batch to run on the next WP-Cron tick.
 	 *
-	 * @param array<string, mixed> $job Job: `kind`, `booking_id`, and per kind `reason`, `new_booking_id`, `lost_days`, `actor`, `series_ids`, `after`.
+	 * @param array<string, mixed> $job Job: `kind`, `booking_id`, and per kind `reason`, `new_booking_id`, `lost_days`, `actor`, `series_ids`, `before`, `after`.
 	 * @return void
 	 */
 	private static function schedule_batch( array $job ): void {
@@ -243,43 +269,10 @@ class AudienceNotificationHandler {
 			return null;
 		}
 
-		// Get booking creator info.
-		$creator      = get_user_by( 'id', $booking->created_by );
-		$creator_name = $creator ? $creator->display_name : __( 'Unknown', 'ffcertificate' );
-
-		// Prepare booking data (shared by the admin and user notifications).
-		$environment_label = AudienceScheduleRepository::get_environment_label( $schedule, true );
-		$booking_data      = array(
-			'booking_id'        => $booking_id,
-			'environment_name'  => $environment->name,
-			'environment_label' => $environment_label,
-			'schedule_name'     => $schedule->name,
-			'booking_date'      => self::booking_date_label( $booking ),
-			'booking_date_raw'  => $booking->booking_date,
-			'end_date_raw'      => $booking->end_date ?? null,
-			'time_mode'         => $booking->time_mode ?? null,
-			'skipped_raw'       => $booking->skipped_dates ?? null,
-			'start_time'        => self::format_time( $booking->start_time ),
-			'end_time'          => self::format_time( $booking->end_time ),
-			'time'              => \FreeFormCertificate\Audience\AudienceBookingRules::time_label( (string) $booking->start_time, (string) $booking->end_time, \FreeFormCertificate\Audience\AudienceBookingRules::is_span( $booking ), static fn( string $time ): string => self::format_time( $time ) ),
-			'start_time_raw'    => $booking->start_time,
-			'end_time_raw'      => $booking->end_time,
-			'description'       => $booking->description,
-			'creator_name'      => $creator_name,
-		);
+		$booking_data = self::booking_tokens( $booking, $environment, $schedule );
 		if ( count( $series ) > 1 ) {
 			$booking_data['booking_date'] = self::series_date_label( $series );
 		}
-
-		// Get audiences for the booking.
-		$audiences                 = AudienceBookingReader::get_booking_audiences( $booking_id );
-		$audience_names            = array_map(
-			function ( $a ) {
-				return $a->name;
-			},
-			$audiences
-		);
-		$booking_data['audiences'] = implode( ', ', $audience_names );
 
 		// Admin notification — opt-in (default off), independent of the
 		// per-schedule user toggle and of whether any users are affected.
@@ -316,6 +309,127 @@ class AudienceNotificationHandler {
 			self::send_email(
 				$user->user_email,
 				self::render_subject( \FreeFormCertificate\Core\EmailTemplates::effective_body( 'audience-booking', 'subject' ), $booking_data ),
+				self::render_template( $template, $booking_data, $user ),
+				$ics_content
+			);
+		}
+
+		return $next;
+	}
+
+	/**
+	 * The token values of an active booking, shared by the "created" and the
+	 * "changed" e-mails (#2243).
+	 *
+	 * @param object $booking     The booking.
+	 * @param object $environment Its space.
+	 * @param object $schedule    Its calendar.
+	 * @phpstan-param BookingRow $booking
+	 * @phpstan-param EnvironmentRow $environment
+	 * @phpstan-param ScheduleRow $schedule
+	 * @return array<string, mixed>
+	 */
+	private static function booking_tokens( object $booking, object $environment, object $schedule ): array {
+		// Get booking creator info.
+		$creator      = get_user_by( 'id', $booking->created_by );
+		$creator_name = $creator ? $creator->display_name : __( 'Unknown', 'ffcertificate' );
+
+		// Prepare booking data (shared by the admin and user notifications).
+		$environment_label = AudienceScheduleRepository::get_environment_label( $schedule, true );
+		$booking_data      = array(
+			'booking_id'        => (int) $booking->id,
+			'environment_name'  => $environment->name,
+			'environment_label' => $environment_label,
+			'schedule_name'     => $schedule->name,
+			'booking_date'      => self::booking_date_label( $booking ),
+			'booking_date_raw'  => $booking->booking_date,
+			'end_date_raw'      => $booking->end_date ?? null,
+			'time_mode'         => $booking->time_mode ?? null,
+			'skipped_raw'       => $booking->skipped_dates ?? null,
+			'start_time'        => self::format_time( $booking->start_time ),
+			'end_time'          => self::format_time( $booking->end_time ),
+			'time'              => \FreeFormCertificate\Audience\AudienceBookingRules::time_label( (string) $booking->start_time, (string) $booking->end_time, \FreeFormCertificate\Audience\AudienceBookingRules::is_span( $booking ), static fn( string $time ): string => self::format_time( $time ) ),
+			'start_time_raw'    => $booking->start_time,
+			'end_time_raw'      => $booking->end_time,
+			'description'       => $booking->description,
+			'creator_name'      => $creator_name,
+		);
+
+		// Get audiences for the booking.
+		$audiences                 = AudienceBookingReader::get_booking_audiences( (int) $booking->id );
+		$audience_names            = array_map(
+			function ( $a ) {
+				return $a->name;
+			},
+			$audiences
+		);
+		$booking_data['audiences'] = implode( ', ', $audience_names );
+
+		return $booking_data;
+	}
+
+	/**
+	 * Send one batch of the e-mail of a booking that was edited or moved
+	 * (#2243): the booking as it now stands, what it was before, and an
+	 * `.ics` that updates the event under the UID it was created with.
+	 *
+	 * Gated on the calendar's booking notices, the toggle that announced the
+	 * booking in the first place. A booking cancelled before the batch ran is
+	 * not announced.
+	 *
+	 * @param int                  $booking_id The booking.
+	 * @param array<string, mixed> $before     Its date, hours, space and description before the change.
+	 * @param int                  $after      The last participant id an earlier batch reached.
+	 * @param int                  $actor      Who changed it.
+	 * @return int|null The cursor of the next batch, or NULL when done.
+	 */
+	public static function send_booking_changed_notification( int $booking_id, array $before, int $after = 0, int $actor = 0 ): ?int {
+		$booking = AudienceBookingReader::get_by_id( $booking_id );
+		if ( ! $booking || 'active' !== ( $booking->status ?? 'active' ) ) {
+			return null;
+		}
+
+		$environment = AudienceEnvironmentRepository::get_by_id( (int) $booking->environment_id );
+		$schedule    = $environment ? AudienceScheduleRepository::get_by_id( (int) $environment->schedule_id ) : null;
+		if ( ! $environment || ! $schedule || ! $schedule->notify_on_booking ) {
+			return null;
+		}
+
+		list( $affected_users, $next ) = self::slice_batch( AudienceBookingReader::get_all_affected_users( $booking_id ), $after );
+		if ( empty( $affected_users ) ) {
+			return null;
+		}
+
+		$booking_data = self::booking_tokens( $booking, $environment, $schedule );
+
+		$changed_by                      = $actor > 0 ? get_user_by( 'id', $actor ) : false;
+		$booking_data['changed_by_name'] = $changed_by ? $changed_by->display_name : __( 'Unknown', 'ffcertificate' );
+
+		$previous_environment                 = AudienceEnvironmentRepository::get_by_id( (int) ( $before['environment_id'] ?? 0 ) );
+		$previous_start                       = (string) ( $before['start_time'] ?? '' );
+		$previous_end                         = (string) ( $before['end_time'] ?? '' );
+		$previous_span                        = (object) array(
+			'booking_date' => (string) ( $before['booking_date'] ?? '' ),
+			'end_date'     => $before['end_date'] ?? null,
+			'time_mode'    => $before['time_mode'] ?? null,
+		);
+		$booking_data['previous_environment'] = $previous_environment ? (string) $previous_environment->name : '';
+		$booking_data['previous_date']        = self::booking_date_label( $previous_span );
+		$booking_data['previous_time']        = \FreeFormCertificate\Audience\AudienceBookingRules::time_label( $previous_start, $previous_end, \FreeFormCertificate\Audience\AudienceBookingRules::is_span( $previous_span ), static fn( string $time ): string => self::format_time( $time ) );
+
+		$ics_content = $schedule->include_ics ? self::generate_ics( $booking_data, 'created' ) : null;
+		$template    = \FreeFormCertificate\Core\EmailTemplates::effective_body( 'audience-change' );
+		$subject     = \FreeFormCertificate\Core\EmailTemplates::effective_body( 'audience-change', 'subject' );
+
+		foreach ( $affected_users as $user_id ) {
+			$user = get_user_by( 'id', (int) $user_id );
+			if ( ! $user || ! $user->user_email ) {
+				continue;
+			}
+
+			self::send_email(
+				$user->user_email,
+				self::render_subject( $subject, $booking_data ),
 				self::render_template( $template, $booking_data, $user ),
 				$ics_content
 			);
@@ -743,22 +857,26 @@ class AudienceNotificationHandler {
 	 */
 	private static function render_template( string $template, array $booking_data, \WP_User $user ): string {
 		$replacements = array(
-			'{{user_name}}'           => \esc_html( (string) $user->display_name ),
-			'{{user_email}}'          => \esc_html( (string) $user->user_email ),
-			'{{environment_name}}'    => \esc_html( (string) $booking_data['environment_name'] ),
-			'{{environment_label}}'   => \esc_html( (string) ( $booking_data['environment_label'] ?? __( 'Environment', 'ffcertificate' ) ) ),
-			'{{schedule_name}}'       => \esc_html( (string) $booking_data['schedule_name'] ),
-			'{{booking_date}}'        => \esc_html( (string) $booking_data['booking_date'] ),
-			'{{start_time}}'          => \esc_html( (string) $booking_data['start_time'] ),
-			'{{end_time}}'            => \esc_html( (string) $booking_data['end_time'] ),
-			'{{time}}'                => \esc_html( (string) ( $booking_data['time'] ?? $booking_data['start_time'] . ' - ' . $booking_data['end_time'] ) ),
-			'{{description}}'         => \esc_html( (string) $booking_data['description'] ),
-			'{{audiences}}'           => \esc_html( (string) ( $booking_data['audiences'] ?? '' ) ),
-			'{{creator_name}}'        => \esc_html( (string) ( $booking_data['creator_name'] ?? '' ) ),
-			'{{cancelled_by_name}}'   => \esc_html( (string) ( $booking_data['cancelled_by_name'] ?? '' ) ),
-			'{{cancellation_reason}}' => \esc_html( (string) ( $booking_data['cancellation_reason'] ?? '' ) ),
-			'{{site_name}}'           => \esc_html( (string) get_bloginfo( 'name' ) ),
-			'{{site_url}}'            => esc_url( home_url() ),
+			'{{user_name}}'            => \esc_html( (string) $user->display_name ),
+			'{{user_email}}'           => \esc_html( (string) $user->user_email ),
+			'{{environment_name}}'     => \esc_html( (string) $booking_data['environment_name'] ),
+			'{{environment_label}}'    => \esc_html( (string) ( $booking_data['environment_label'] ?? __( 'Environment', 'ffcertificate' ) ) ),
+			'{{schedule_name}}'        => \esc_html( (string) $booking_data['schedule_name'] ),
+			'{{booking_date}}'         => \esc_html( (string) $booking_data['booking_date'] ),
+			'{{start_time}}'           => \esc_html( (string) $booking_data['start_time'] ),
+			'{{end_time}}'             => \esc_html( (string) $booking_data['end_time'] ),
+			'{{time}}'                 => \esc_html( (string) ( $booking_data['time'] ?? $booking_data['start_time'] . ' - ' . $booking_data['end_time'] ) ),
+			'{{description}}'          => \esc_html( (string) $booking_data['description'] ),
+			'{{audiences}}'            => \esc_html( (string) ( $booking_data['audiences'] ?? '' ) ),
+			'{{creator_name}}'         => \esc_html( (string) ( $booking_data['creator_name'] ?? '' ) ),
+			'{{cancelled_by_name}}'    => \esc_html( (string) ( $booking_data['cancelled_by_name'] ?? '' ) ),
+			'{{cancellation_reason}}'  => \esc_html( (string) ( $booking_data['cancellation_reason'] ?? '' ) ),
+			'{{changed_by_name}}'      => \esc_html( (string) ( $booking_data['changed_by_name'] ?? '' ) ),
+			'{{previous_environment}}' => \esc_html( (string) ( $booking_data['previous_environment'] ?? '' ) ),
+			'{{previous_date}}'        => \esc_html( (string) ( $booking_data['previous_date'] ?? '' ) ),
+			'{{previous_time}}'        => \esc_html( (string) ( $booking_data['previous_time'] ?? '' ) ),
+			'{{site_name}}'            => \esc_html( (string) get_bloginfo( 'name' ) ),
+			'{{site_url}}'             => esc_url( home_url() ),
 		);
 
 		return \FreeFormCertificate\Core\TokenResolver::resolve( $template, $replacements );

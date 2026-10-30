@@ -319,6 +319,12 @@ class AudienceNotificationHandlerFlowTest extends TestCase {
 			3
 		);
 		Functions\expect( 'add_action' )->once()->with(
+			'ffcertificate_audience_booking_changed',
+			array( AudienceNotificationHandler::class, 'queue_booking_changed' ),
+			10,
+			2
+		);
+		Functions\expect( 'add_action' )->once()->with(
 			'ffcertificate_audience_booking_overridden',
 			array( AudienceNotificationHandler::class, 'queue_booking_overridden' ),
 			10,
@@ -472,6 +478,61 @@ class AudienceNotificationHandlerFlowTest extends TestCase {
 		$this->store_series();
 
 		$this->assertNull( AudienceNotificationHandler::send_booking_created_notification( 2 ) );
+		$this->assertSame( array(), $this->mailed );
+	}
+
+	// ==================================================================
+	// A booking edited or moved (#2243)
+	// ==================================================================
+
+	/** What the booking was before it moved: room 8, a week earlier, in the morning. */
+	private const BEFORE = array(
+		'environment_id' => 8,
+		'booking_date'   => '2026-05-13',
+		'end_date'       => null,
+		'time_mode'      => null,
+		'start_time'     => '08:00:00',
+		'end_time'       => '09:00:00',
+		'description'    => 'Team meeting',
+	);
+
+	public function test_a_change_is_queued_with_who_made_it(): void {
+		$this->capture_batches();
+		Functions\when( 'get_current_user_id' )->justReturn( 9 );
+
+		AudienceNotificationHandler::queue_booking_changed( 1, self::BEFORE );
+
+		$this->assertSame( array( array( 'kind' => 'changed', 'booking_id' => 1, 'before' => self::BEFORE, 'actor' => 9, 'after' => 0 ) ), $this->scheduled );
+	}
+
+	public function test_a_change_is_one_e_mail_with_the_booking_as_it_stands_and_as_it_was(): void {
+		$this->store( $this->schedule( array( 'include_ics' => 1 ) ), array( 10 ) );
+		$this->environments[8] = (object) array( 'id' => 8, 'schedule_id' => 5, 'name' => 'Room Old' );
+		Functions\when( 'get_user_by' )->alias( fn( $field, $id ) => 9 === (int) $id ? $this->wp_user( 9, 'op@example.com', 'Olga' ) : $this->wp_user( (int) $id, 'a@example.com', 'Ana' ) );
+
+		AudienceNotificationHandler::run_batch( array( 'kind' => 'changed', 'booking_id' => 1, 'before' => self::BEFORE, 'actor' => 9 ) );
+
+		$this->assertSame( array( 'a@example.com' ), $this->recipients() );
+		$body = $this->mailed[0][2];
+		$this->assertStringContainsString( 'Activity changed', $body );
+		$this->assertStringContainsString( '2026-05-20', $body, 'The booking as it now stands.' );
+		$this->assertStringContainsString( 'Room Old, 2026-05-13, 08:00', $body, 'What it was before.' );
+		$this->assertStringContainsString( 'Olga', $body, 'Who changed it.' );
+		$this->assertStringContainsString( 'METHOD:REQUEST', $this->attached[0] );
+		$this->assertStringContainsString( 'UID:ffc-booking-1@example.com', $this->attached[0], 'The same UID updates the event already in the calendar.' );
+	}
+
+	public function test_a_change_follows_the_calendar_booking_notices_toggle(): void {
+		$this->store( $this->schedule( array( 'notify_on_booking' => 0 ) ), array( 10 ) );
+
+		$this->assertNull( AudienceNotificationHandler::send_booking_changed_notification( 1, self::BEFORE ) );
+		$this->assertSame( array(), $this->mailed );
+	}
+
+	public function test_a_booking_cancelled_before_its_change_was_sent_is_not_announced(): void {
+		$this->store( $this->schedule(), array( 10 ), array( 'status' => 'cancelled' ) );
+
+		$this->assertNull( AudienceNotificationHandler::send_booking_changed_notification( 1, self::BEFORE ) );
 		$this->assertSame( array(), $this->mailed );
 	}
 
