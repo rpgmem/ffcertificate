@@ -260,30 +260,30 @@ class AudienceBookingReader {
 
 		if ( ! empty( $args['environment_id'] ) ) {
 			$where[]  = 'b.environment_id = %d';
-			$values[] = (int) $args['environment_id'];
+			$values[] = \FreeFormCertificate\Core\ArrayValue::int( $args, 'environment_id' );
 		}
 		if ( ! empty( $args['schedule_id'] ) ) {
 			$where[]  = 'e.schedule_id = %d';
-			$values[] = (int) $args['schedule_id'];
+			$values[] = \FreeFormCertificate\Core\ArrayValue::int( $args, 'schedule_id' );
 		}
 		if ( ! empty( $args['status'] ) ) {
 			$where[]  = 'b.status = %s';
-			$values[] = (string) $args['status'];
+			$values[] = \FreeFormCertificate\Core\ArrayValue::string( $args, 'status' );
 		}
 		if ( ! empty( $args['start_date'] ) ) {
 			$where[]  = 'COALESCE(b.end_date, b.booking_date) >= %s';
-			$values[] = (string) $args['start_date'];
+			$values[] = \FreeFormCertificate\Core\ArrayValue::string( $args, 'start_date' );
 		}
 		if ( ! empty( $args['end_date'] ) ) {
 			$where[]  = 'b.booking_date <= %s';
-			$values[] = (string) $args['end_date'];
+			$values[] = \FreeFormCertificate\Core\ArrayValue::string( $args, 'end_date' );
 		}
 		if ( ! empty( $args['audience_id'] ) ) {
 			$where[]  = 'EXISTS (SELECT 1 FROM %i ba WHERE ba.booking_id = b.id AND ba.audience_id = %d)';
 			$values[] = self::get_booking_audiences_table_name();
-			$values[] = (int) $args['audience_id'];
+			$values[] = \FreeFormCertificate\Core\ArrayValue::int( $args, 'audience_id' );
 		}
-		$search = isset( $args['search'] ) ? trim( (string) $args['search'] ) : '';
+		$search = trim( \FreeFormCertificate\Core\ArrayValue::string( $args, 'search' ) );
 		if ( '' !== $search ) {
 			$like = '%' . self::db()->esc_like( $search ) . '%';
 			if ( ctype_digit( $search ) ) {
