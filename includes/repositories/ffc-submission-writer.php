@@ -163,7 +163,40 @@ class SubmissionWriter extends AbstractRepository {
 		if ( $result && array_key_exists( 'status', $data ) ) {
 			$this->invalidate_count_cache();
 		}
+		// Revoking or restoring changes what verification answers.
+		if ( $result && array_key_exists( 'revoked_at', $data ) ) {
+			$this->clear_lookup_cache( $id );
+		}
 		return $result;
+	}
+
+	/**
+	 * Drop the cached copies of a row that verification reads (#2241).
+	 *
+	 * The auth-code and magic-token lookups cache the row under their own
+	 * keys, which clearing `id_*` does not reach: with a persistent object
+	 * cache, a certificate moved to the trash kept verifying until its key
+	 * expired.
+	 *
+	 * @param int $id Record ID.
+	 */
+	private function clear_lookup_cache( int $id ): void {
+		$row = $this->wpdb->get_row(
+			$this->wpdb->prepare( 'SELECT auth_code, magic_token FROM %i WHERE id = %d', $this->table, $id ),
+			ARRAY_A
+		);
+		if ( ! is_array( $row ) ) {
+			return;
+		}
+		foreach ( array(
+			'auth_'  => 'auth_code',
+			'token_' => 'magic_token',
+		) as $prefix => $column ) {
+			$value = $row[ $column ] ?? '';
+			if ( is_string( $value ) && '' !== $value ) {
+				$this->clear_cache( $prefix . $value );
+			}
+		}
 	}
 
 	/**
@@ -174,7 +207,26 @@ class SubmissionWriter extends AbstractRepository {
 	 * @return int|false
 	 */
 	public function updateStatus( int $id, string $status ) {
-		return $this->update( $id, array( 'status' => $status ) );
+		$data = array( 'status' => $status );
+		// Trashing revokes and restoring lifts it; a quiz moving between its
+		// own statuses was never revoked, so it leaves the column alone.
+		if ( in_array( $status, array( \FreeFormCertificate\Core\SubmissionStatus::TRASH, \FreeFormCertificate\Core\SubmissionStatus::PUBLISH ), true ) ) {
+			$data['revoked_at'] = self::revoked_at( $status );
+		}
+		return $this->update( $id, $data );
+	}
+
+	/**
+	 * When a status change revokes the certificate (#2241).
+	 *
+	 * The trash is the revocation: moving a submission there records the
+	 * moment, and any other status lifts it.
+	 *
+	 * @param string $status New status.
+	 * @return int|null Unix UTC seconds, or null when the status does not revoke.
+	 */
+	public static function revoked_at( string $status ): ?int {
+		return \FreeFormCertificate\Core\SubmissionStatus::TRASH === $status ? time() : null;
 	}
 
 	/**
@@ -192,9 +244,10 @@ class SubmissionWriter extends AbstractRepository {
 		$safe_ids     = array_map( 'absint', $ids );
 		$placeholders = implode( ', ', array_fill( 0, count( $safe_ids ), '%d' ) );
 		$query        = $this->wpdb->prepare(
-			"UPDATE %i SET status = %s WHERE id IN ({$placeholders})",
+			"UPDATE %i SET status = %s, revoked_at = NULLIF( %d, 0 ) WHERE id IN ({$placeholders})",
 			$this->table,
 			$status,
+			(int) self::revoked_at( $status ),
 			...$safe_ids
 		);
 

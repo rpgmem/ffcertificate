@@ -52,7 +52,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<?php ob_start(); ?>
 		<p>
-			<?php esc_html_e( 'If someone submits again with a CPF/RF that already has a certificate, they are returned their existing certificate instead of generating a new one. This is always on — it is what keeps one person from issuing two certificates. On a form with the Ticket restriction, re-entering a ticket that already issued a certificate returns that certificate the same way; on a quiz form a used ticket is rejected, because there a new submission is a new attempt.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'If someone submits again with a CPF/RF that already has a certificate, no new one is generated. This is always on — it is what keeps one person from issuing two certificates. Since anyone can type a CPF/RF, the certificate is shown on screen only to its owner while logged in; anyone else is told that it exists, and its link is e-mailed to the address on record, at most once every 15 minutes, with that address shown masked. A certificate with no e-mail on record asks the visitor to contact the organizer. On a form with the Ticket restriction, re-entering a ticket that already issued a certificate returns that certificate; on a quiz form a used ticket is rejected, because there a new submission is a new attempt.', 'ffcertificate' ); ?>
 		</p>
 	<?php
 	\FreeFormCertificate\Core\AdminNotice::callout(
