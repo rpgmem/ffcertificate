@@ -29938,3 +29938,15 @@ msgstr ""
 
 msgid "You do not have permission to book for individual users."
 msgstr ""
+
+msgid "In use, kept"
+msgstr ""
+
+msgid "Not deleted: the calendar still has %1$d environment(s) and %2$d booking(s). It stays inactive, so it takes no new bookings; an environment without bookings can be deleted first."
+msgstr ""
+
+msgid "Not deleted: %d booking(s) name this audience or one of its groups. It stays inactive, so it takes no new bookings, and those bookings keep their participants."
+msgstr ""
+
+msgid "The same holds one level up. A calendar that still has environments or bookings cannot be deleted; the message names how many, and an environment without bookings can be deleted first. An audience that a booking names, directly or through one of its groups, cannot be deleted either, because deleting it would also remove its groups and memberships and shrink the participant list of those bookings after the fact. Deactivate it instead; the list shows \"Has bookings, kept\" in place of Delete."
+msgstr ""

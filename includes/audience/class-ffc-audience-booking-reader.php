@@ -563,6 +563,40 @@ class AudienceBookingReader {
 	}
 
 	/**
+	 * How many bookings, of any status or date, name any of these audiences (#2243).
+	 *
+	 * @param array<int> $audience_ids Audience IDs.
+	 * @return int
+	 */
+	public static function count_for_audiences( array $audience_ids ): int {
+		$audience_ids = array_values( array_unique( array_map( 'intval', $audience_ids ) ) );
+		if ( empty( $audience_ids ) ) {
+			return 0;
+		}
+
+		$wpdb         = self::db();
+		$placeholders = implode( ', ', array_fill( 0, count( $audience_ids ), '%d' ) );
+
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(DISTINCT booking_id) FROM %i WHERE audience_id IN ({$placeholders})",
+				...array_merge( array( self::get_booking_audiences_table_name() ), $audience_ids )
+			)
+		);
+	}
+
+	/**
+	 * How many bookings name an audience or one of its groups (#2243): what
+	 * deleting it would take from, since a delete takes the groups too.
+	 *
+	 * @param int $audience_id Audience ID.
+	 * @return int
+	 */
+	public static function count_for_audience_tree( int $audience_id ): int {
+		return self::count_for_audiences( array_merge( array( $audience_id ), AudienceReader::get_descendant_ids( $audience_id ) ) );
+	}
+
+	/**
 	 * Whether a booking exists and is cancelled.
 	 *
 	 * Read after a cancel that changed no row, to tell a request that lost

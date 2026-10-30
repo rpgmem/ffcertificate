@@ -46,6 +46,9 @@ class AudienceAdminAudienceTest extends TestCase {
 	/** @var array<int, list<int>> Member user ids by audience id. */
 	private array $members = array();
 
+	/** @var list<int> Audiences a booking names (#2243); empty means none is booked. */
+	private array $booked_audiences = array();
+
 	/** @var list<int> Member user ids whose WordPress account is gone. */
 	private array $deleted_users = array();
 
@@ -263,6 +266,9 @@ class AudienceAdminAudienceTest extends TestCase {
 		if ( 'get_var' === $method && self::MEMBERS === $table && 'SELECT COUNT(*) FROM %i WHERE audience_id = %d AND user_id = %d' === $text ) {
 			return in_array( (int) $args[1], $this->members[ (int) $args[0] ] ?? array(), true ) ? '1' : '0';
 		}
+		if ( 'get_var' === $method && 'wp_ffc_audience_booking_audiences' === $table && 0 === strpos( $text, 'SELECT COUNT(DISTINCT booking_id) FROM %i WHERE audience_id IN (' ) ) {
+			return (string) count( array_intersect( array_map( 'intval', $args ), $this->booked_audiences ) );
+		}
 		if ( 'get_col' === $method && self::FIELDS === $table && 'SELECT field_key FROM %i WHERE audience_id = %d' === $text ) {
 			// Every standard field is already stored, so the seeder inserts none.
 			return array_column( ReregistrationStandardFieldsSeeder::get_standard_fields_definition(), 'field_key' );
@@ -479,6 +485,14 @@ class AudienceAdminAudienceTest extends TestCase {
 		// Active parent shows Deactivate; inactive child shows Delete.
 		$this->assertStringContainsString( 'Deactivate', $output );
 		$this->assertStringContainsString( 'Delete', $output );
+
+		// Once a booking names the child, its row offers no Delete (#2243).
+		$this->booked_audiences = array( 2 );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+		$this->assertStringContainsString( 'Has bookings, kept', $output );
+		$this->assertStringNotContainsString( 'permanently delete this audience', $output );
 	}
 
 	/**
@@ -1307,6 +1321,27 @@ class AudienceAdminAudienceTest extends TestCase {
 			),
 			$this->writes
 		);
+	}
+
+	/**
+	 * Deleting an audience takes its groups and memberships, so the rosters
+	 * of its bookings would shrink after the fact: one that bookings name, or
+	 * whose group they name, stays inactive (#2243).
+	 */
+	public function test_an_audience_whose_tree_is_booked_is_not_deleted(): void {
+		$_GET = array(
+			'action'   => 'delete',
+			'id'       => '5',
+			'page'     => 'ffc-scheduling-audiences',
+			'_wpnonce' => 'n',
+		);
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		$this->audience( 5, array( 'status' => 'inactive' ) );
+		$this->audience( 6, array( 'status' => 'inactive', 'parent_id' => '5' ) );
+		$this->booked_audiences = array( 6 );
+
+		$this->assertStringContainsString( 'message=has_bookings&bookings=1', $this->handleUntilRedirect() );
+		$this->assertSame( array(), $this->writes );
 	}
 
 	public function test_handle_actions_delete_denied_without_cap(): void {

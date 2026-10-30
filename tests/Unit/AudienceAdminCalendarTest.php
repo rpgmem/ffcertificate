@@ -49,6 +49,9 @@ class AudienceAdminCalendarTest extends TestCase {
 	 */
 	private array $rows = array();
 
+	/** @var array<int, int> Bookings per calendar (#2243); a calendar not listed has none. */
+	private array $bookings_by_schedule = array();
+
 	/**
 	 * Every query the double answered, as `[ sql, args ]`.
 	 *
@@ -223,6 +226,10 @@ class AudienceAdminCalendarTest extends TestCase {
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			function ( $q ) {
 				$this->reads[] = array( $q['sql'], $q['args'] );
+				if ( false !== strpos( $q['sql'], 'INNER JOIN %i e ON b.environment_id = e.id' ) ) {
+					// AudienceBookingReader::count_for_export() by calendar.
+					return (string) ( $this->bookings_by_schedule[ (int) end( $q['args'] ) ] ?? 0 );
+				}
 				if ( 1 === preg_match( '/^SELECT COUNT\(\*\) FROM %i\s*(?:WHERE (.+))?$/', $q['sql'], $m ) ) {
 					return (string) count( $this->select( $q['args'], $m[1] ?? '' ) );
 				}
@@ -815,6 +822,35 @@ class AudienceAdminCalendarTest extends TestCase {
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
 		$this->assertStringContainsString( 'message=deleted', $this->redirect_of( $page ) );
 		$this->assertSame( array( array( 'delete', self::SCHEDULE_TABLE, array(), array( 'id' => 5 ) ) ), $this->writes );
+	}
+
+	/**
+	 * A calendar with spaces or bookings stays, as a space with bookings does (#2243).
+	 */
+	public function test_a_calendar_with_environments_or_bookings_is_not_deleted(): void {
+		$_GET = array( 'page' => 'ffc-scheduling-calendars', 'action' => 'delete', 'id' => '5', '_wpnonce' => 'n' );
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'admin_url' )->returnArg();
+		$this->schedule( array( 'id' => 5, 'status' => 'inactive' ) );
+		$this->store( self::ENV_TABLE, array( 'id' => 9, 'schedule_id' => 5 ) );
+		$this->bookings_by_schedule = array( 5 => 3 );
+
+		$page     = new AudienceAdminCalendar( 'ffc-scheduling' );
+		$redirect = $this->redirect_of( $page );
+
+		$this->assertStringContainsString( 'message=in_use&environments=1&bookings=3', $redirect );
+		$this->assertSame( array(), $this->writes );
+	}
+
+	public function test_a_calendar_with_only_bookings_is_not_deleted(): void {
+		$_GET = array( 'page' => 'ffc-scheduling-calendars', 'action' => 'delete', 'id' => '5', '_wpnonce' => 'n' );
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'admin_url' )->returnArg();
+		$this->schedule( array( 'id' => 5, 'status' => 'inactive' ) );
+		$this->bookings_by_schedule = array( 5 => 1 );
+
+		$this->assertStringContainsString( 'message=in_use&environments=0&bookings=1', $this->redirect_of( new AudienceAdminCalendar( 'ffc-scheduling' ) ) );
+		$this->assertSame( array(), $this->writes );
 	}
 
 	public function test_handle_actions_delete_denied_without_cap(): void {

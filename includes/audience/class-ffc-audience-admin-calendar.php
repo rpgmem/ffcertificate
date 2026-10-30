@@ -128,6 +128,20 @@ class AudienceAdminCalendar {
 	}
 
 	/**
+	 * What keeps a calendar from being deleted: its environments, of any
+	 * status, and the bookings made in them (#2243).
+	 *
+	 * @param int $schedule_id Calendar ID.
+	 * @return array{environments: int, bookings: int}
+	 */
+	private static function delete_blockers( int $schedule_id ): array {
+		return array(
+			'environments' => AudienceEnvironmentRepository::count( array( 'schedule_id' => $schedule_id ) ),
+			'bookings'     => AudienceBookingReader::count_for_export( array( 'schedule_id' => $schedule_id ) ),
+		);
+	}
+
+	/**
 	 * Render calendars list
 	 *
 	 * @return void
@@ -230,6 +244,9 @@ class AudienceAdminCalendar {
 									| <a href="<?php echo esc_url( $deactivate_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to deactivate this calendar?', 'ffcertificate' ); ?>');">
 										<?php esc_html_e( 'Deactivate', 'ffcertificate' ); ?>
 									</a>
+								<?php elseif ( ! $is_active && $can_delete && array_sum( self::delete_blockers( (int) $schedule->id ) ) > 0 ) : ?>
+									<?php echo $can_manage ? '|' : ''; ?>
+									<span class="description"><?php esc_html_e( 'In use, kept', 'ffcertificate' ); ?></span>
 								<?php elseif ( ! $is_active && $can_delete ) : ?>
 									<?php echo $can_manage ? '|' : ''; ?>
 									<a href="<?php echo esc_url( $delete_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to permanently delete this calendar?', 'ffcertificate' ); ?>');">
@@ -954,6 +971,18 @@ class AudienceAdminCalendar {
 			);
 			if ( isset( $messages[ $msg ] ) ) {
 				add_settings_error( 'ffc_audience', 'ffc_message', $messages[ $msg ], 'success' );
+			} elseif ( 'in_use' === $msg ) {
+				add_settings_error(
+					'ffc_audience',
+					'ffc_message',
+					sprintf(
+						/* translators: 1: number of environments, 2: number of bookings */
+						__( 'Not deleted: the calendar still has %1$d environment(s) and %2$d booking(s). It stays inactive, so it takes no new bookings; an environment without bookings can be deleted first.', 'ffcertificate' ),
+						RequestInput::get_get_int( 'environments' ),
+						RequestInput::get_get_int( 'bookings' )
+					),
+					'error'
+				);
 			} elseif ( 'holiday_not_updated' === $msg ) {
 				add_settings_error( 'ffc_audience', 'ffc_message', __( 'The holiday was not changed: the date is invalid or another holiday already uses it.', 'ffcertificate' ), 'error' );
 			}
@@ -1030,6 +1059,13 @@ class AudienceAdminCalendar {
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( RequestInput::get_get_string( '_wpnonce' ), 'delete_schedule_' . $id ) ) {
 				$schedule = AudienceScheduleRepository::get_by_id( $id );
+				// A calendar that still has spaces or bookings stays, as a space
+				// with bookings does (#2243): deleting the row alone orphaned them.
+				$in_use = self::delete_blockers( $id );
+				if ( $schedule && 'active' !== $schedule->status && array_sum( $in_use ) > 0 ) {
+					wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars&message=in_use&environments=' . $in_use['environments'] . '&bookings=' . $in_use['bookings'] ) );
+					exit;
+				}
 				if ( $schedule && 'active' !== $schedule->status ) {
 					AudienceScheduleRepository::delete( $id );
 					wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars&message=deleted' ) );
