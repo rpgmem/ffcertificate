@@ -43,6 +43,8 @@ beforeAll(async () => {
 			saving: 'Saving…',
 			saveDraft: 'Save Draft',
 			draftSaved: 'Draft saved.',
+			draftAutoSaved: 'Draft saved automatically.',
+			cancelConfirm: 'Close the form? Changes not saved yet will be lost.',
 			errorSaving: 'Error saving.',
 			submit: 'Send',
 			submitting: 'Sending…',
@@ -988,6 +990,141 @@ describe('rereg cancel', () => {
 		// synchronous, so the panel ends hidden and empty.
 		expect(window.$('#ffc-rereg-form-panel').css('display')).toBe('none');
 		expect(window.$('#ffc-rereg-form-panel').children().length).toBe(0);
+	});
+});
+
+// ----------------------------------------------------------------------
+// Autosave, the leave warning and the Cancel confirmation (#2242)
+// ----------------------------------------------------------------------
+
+describe('rereg autosave', () => {
+	let posts;
+
+	async function mountForm() {
+		document.body.innerHTML = `
+			<button class="ffc-rereg-open-form" data-reregistration-id="9"></button>
+		`;
+		posts = [];
+		vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
+			if (payload.action === 'ffc_get_reregistration_form') {
+				return postChain({ done: {
+					success: true,
+					data: {
+						html: `
+							<form id="ffc-rereg-form">
+								<input type="hidden" name="reregistration_id" value="9" />
+								<input name="fields[name]" value="Alice" />
+								<span class="ffc-rereg-status"></span>
+								<button type="button" class="ffc-rereg-draft-btn">Save Draft</button>
+								<button type="button" class="ffc-rereg-cancel-btn">Cancel</button>
+								<button type="submit" class="ffc-rereg-submit-btn">Send</button>
+							</form>
+						`,
+					},
+				} });
+			}
+			posts.push(payload);
+			return postChain({ done: { success: true, data: {} } });
+		});
+		window.$('.ffc-rereg-open-form').trigger('click');
+		await flush();
+	}
+
+	function leave() {
+		const e = new Event('beforeunload', { cancelable: true });
+		window.dispatchEvent(e);
+		return e.defaultPrevented;
+	}
+
+	beforeEach(() => { vi.useFakeTimers(); });
+	afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+
+	it('saves the draft 5 s after the last change, not on every keystroke', async () => {
+		await mountForm();
+
+		window.$('[name="fields[name]"]').val('Ali').trigger('input');
+		vi.advanceTimersByTime(4000);
+		window.$('[name="fields[name]"]').val('Alice B').trigger('input');
+		vi.advanceTimersByTime(4999);
+		expect(posts).toHaveLength(0);
+
+		vi.advanceTimersByTime(1);
+		await flush();
+
+		expect(posts).toHaveLength(1);
+		expect(posts[0].action).toBe('ffc_save_reregistration_draft');
+		expect(posts[0].fields.name).toBe('Alice B');
+		expect(window.$('.ffc-rereg-status').text()).toBe('Draft saved automatically.');
+	});
+
+	it('warns before leaving with unsaved changes, and not once they are saved', async () => {
+		await mountForm();
+		expect(leave()).toBe(false);
+
+		window.$('[name="fields[name]"]').val('Bob').trigger('change');
+		expect(leave()).toBe(true);
+
+		vi.advanceTimersByTime(5000);
+		await flush();
+		expect(leave()).toBe(false);
+	});
+
+	it('keeps the form unsaved when a change lands while the save is in flight', async () => {
+		await mountForm();
+		let release;
+		window.$.post.mockImplementation(() => ({
+			done(cb) { release = () => cb({ success: true, data: {} }); return this; },
+			fail() { return this; },
+		}));
+
+		window.$('[name="fields[name]"]').val('Bob').trigger('input');
+		vi.advanceTimersByTime(5000);
+		window.$('[name="fields[name]"]').val('Bobby').trigger('input');
+		release();
+		await flush();
+
+		expect(leave()).toBe(true);
+	});
+
+	it('asks before Cancel closes a form with unsaved changes', async () => {
+		await mountForm();
+		window.$('[name="fields[name]"]').val('Bob').trigger('input');
+
+		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		window.$('.ffc-rereg-cancel-btn').trigger('click');
+		expect(confirmSpy).toHaveBeenCalledWith('Close the form? Changes not saved yet will be lost.');
+		expect(window.$('#ffc-rereg-form-panel').children().length).toBe(1);
+
+		confirmSpy.mockReturnValue(true);
+		window.$('.ffc-rereg-cancel-btn').trigger('click');
+		expect(window.$('#ffc-rereg-form-panel').children().length).toBe(0);
+		expect(leave()).toBe(false);
+
+		vi.advanceTimersByTime(5000);
+		await flush();
+		expect(posts).toHaveLength(0);
+	});
+
+	it('closes without asking when nothing changed', async () => {
+		await mountForm();
+		const confirmSpy = vi.spyOn(window, 'confirm');
+
+		window.$('.ffc-rereg-cancel-btn').trigger('click');
+
+		expect(confirmSpy).not.toHaveBeenCalled();
+	});
+
+	it('drops a pending autosave when the form is submitted', async () => {
+		await mountForm();
+		window.$('[name="fields[name]"]').val('Bob').trigger('input');
+
+		window.$('#ffc-rereg-form').trigger('submit');
+		await flush();
+		vi.advanceTimersByTime(5000);
+		await flush();
+
+		expect(posts.map((p) => p.action)).toEqual(['ffc_submit_reregistration']);
+		expect(leave()).toBe(false);
 	});
 });
 

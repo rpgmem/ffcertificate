@@ -58,6 +58,11 @@ class ReregistrationLoader {
 			);
 		}
 
+		// The submit path keeps the campaign's field definitions for the
+		// request only (#2242); with a persistent object cache the group
+		// would otherwise outlive an edit to the fields.
+		wp_cache_add_non_persistent_groups( array( ReregistrationDataProcessor::REQUEST_CACHE_GROUP ) );
+
 		ReregistrationFrontend::init();
 
 		if ( class_exists( ReregistrationStandardFieldsSeeder::class ) ) {

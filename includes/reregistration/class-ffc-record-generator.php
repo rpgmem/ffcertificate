@@ -103,8 +103,7 @@ class RecordGenerator {
 		}
 
 		// Check if user has acúmulo de cargos.
-		$dual_post_value   = $decrypted_values['acumulo_cargos'] ?? __( 'I do not hold', 'ffcertificate' );
-		$holds_second_post = __( 'I hold', 'ffcertificate' ) === $dual_post_value;
+		$holds_second_post = ReregistrationDataProcessor::holds_second_post( $decrypted_values );
 
 		// 6.7.5 — Reference year for the record header. Pulled from the
 		// CAMPAIGN's start_date so the year matches the cycle of record
@@ -458,7 +457,7 @@ class RecordGenerator {
 			$value = $decrypted_values[ $key ] ?? '';
 
 			// Hide accumulation-related fields unless the user declared they hold another job.
-			if ( ! $holds_second_post && in_array( $key, array( 'jornada_acumulo', 'cargo_funcao_acumulo', 'horario_trabalho_acumulo' ), true ) ) {
+			if ( ! $holds_second_post && in_array( $key, ReregistrationDataProcessor::SECOND_POST_KEYS, true ) ) {
 				$vars[ $key ] = '';
 				continue;
 			}

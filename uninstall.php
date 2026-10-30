@@ -283,8 +283,13 @@ $ffcertificate_options = array(
 	// The chosen time of day of each daily task, written by Settings →
 	// Scheduled Tasks (#1538).
 	'ffc_cron_times',
+	// The version the seeded reregistration fields reached (#2242), written on
+	// the first admin request after the update. It replaced the six per-step
+	// flags below, which that request deletes; they stay listed for an install
+	// removed before it ran.
+	'ffc_rereg_fields_version',
 	// Flag of the one-shot "Estado" → "Union" relabel of the seeded `sindicato`
-	// fields, written on the first admin request after the update.
+	// fields.
 	'ffc_union_label_relabelled',
 	// Flag of the one-shot relabel and jornada-options update of the seeded
 	// schedule fields (#2225), written the same way.

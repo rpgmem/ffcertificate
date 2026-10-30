@@ -35,11 +35,20 @@ class ReregistrationLoaderTest extends TestCase {
 	 */
 	private array $actions = array();
 
+	/** @var list<string> Object-cache groups registered as non-persistent. */
+	private array $non_persistent = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
 		$this->actions = array();
+		$this->non_persistent = array();
+		Functions\when( 'wp_cache_add_non_persistent_groups' )->alias(
+			function ( $groups ): void {
+				$this->non_persistent = array_merge( $this->non_persistent, (array) $groups );
+			}
+		);
 		Functions\when( 'add_action' )->alias(
 			function ( $hook, $callback, $priority = 10, $args = 1 ): bool {
 				$this->actions[] = array(
@@ -82,6 +91,7 @@ class ReregistrationLoaderTest extends TestCase {
 		$this->assertInstanceOf( ReregistrationExportSource::class, SourceRegistry::get( ReregistrationExportSource::TYPE ) );
 
 		$this->assert_frontend_and_seeder_wired_once();
+		$this->assertSame( array( 'ffc_reregistration_request' ), $this->non_persistent, 'The per-request field cache never reaches a persistent cache (#2242).' );
 	}
 
 	public function test_init_skips_admin_on_frontend(): void {
@@ -134,37 +144,7 @@ class ReregistrationLoaderTest extends TestCase {
 				),
 				array(
 					'hook'     => 'admin_init',
-					'callback' => ReregistrationStandardFieldsSeeder::class . '::maybe_relabel_union',
-					'priority' => 10,
-					'args'     => 1,
-				),
-				array(
-					'hook'     => 'admin_init',
-					'callback' => ReregistrationStandardFieldsSeeder::class . '::maybe_update_schedule_fields',
-					'priority' => 10,
-					'args'     => 1,
-				),
-				array(
-					'hook'     => 'admin_init',
-					'callback' => ReregistrationStandardFieldsSeeder::class . '::maybe_add_edu_email_field',
-					'priority' => 10,
-					'args'     => 1,
-				),
-				array(
-					'hook'     => 'admin_init',
-					'callback' => ReregistrationStandardFieldsSeeder::class . '::maybe_validate_rf_fields',
-					'priority' => 10,
-					'args'     => 1,
-				),
-				array(
-					'hook'     => 'admin_init',
-					'callback' => ReregistrationStandardFieldsSeeder::class . '::maybe_validate_cep_fields',
-					'priority' => 10,
-					'args'     => 1,
-				),
-				array(
-					'hook'     => 'admin_init',
-					'callback' => ReregistrationStandardFieldsSeeder::class . '::maybe_move_cep_before_address',
+					'callback' => ReregistrationStandardFieldsSeeder::class . '::maybe_upgrade_seeded_fields',
 					'priority' => 10,
 					'args'     => 1,
 				),

@@ -29,11 +29,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ReregistrationSubmissionAnswers {
 
 	/**
-	 * Fields that belong to a second post, shown only when one is declared.
-	 */
-	private const SECOND_POST_KEYS = array( 'jornada_acumulo', 'cargo_funcao_acumulo', 'horario_trabalho_acumulo' );
-
-	/**
 	 * The answer rows of a submission, in the form's order.
 	 *
 	 * Personal data -- a key or mask {@see DocumentFormatter::kind_for_key()}
@@ -55,7 +50,7 @@ class ReregistrationSubmissionAnswers {
 		$raw    = is_array( $data ) && is_array( $data['fields'] ?? null ) ? $data['fields'] : array();
 		$values = RecordGenerator::decrypt_field_values( $fields, $raw );
 
-		$holds_second_post = __( 'I hold', 'ffcertificate' ) === ( $values['acumulo_cargos'] ?? '' );
+		$holds_second_post = ReregistrationDataProcessor::holds_second_post( $values );
 
 		$rows       = array();
 		$has_masked = false;
@@ -65,7 +60,7 @@ class ReregistrationSubmissionAnswers {
 			if ( in_array( $type, CustomFieldReader::DISPLAY_ONLY_TYPES, true ) ) {
 				continue;
 			}
-			if ( ! $holds_second_post && in_array( $key, self::SECOND_POST_KEYS, true ) ) {
+			if ( ! $holds_second_post && in_array( $key, ReregistrationDataProcessor::SECOND_POST_KEYS, true ) ) {
 				continue;
 			}
 

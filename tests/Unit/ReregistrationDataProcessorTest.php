@@ -723,6 +723,108 @@ class ReregistrationDataProcessorTest extends TestCase {
 	}
 
 	// ==================================================================
+	// The second post (#2242): hidden fields are neither required nor kept
+	// ==================================================================
+
+	/**
+	 * The accumulation question and the three fields it reveals, all required.
+	 *
+	 * @return array<object>
+	 */
+	private function second_post_fields(): array {
+		return array(
+			$this->make_field( array( 'id' => 1, 'field_key' => 'acumulo_cargos', 'field_type' => 'select', 'is_required' => 1, 'field_options' => json_encode( array( 'choices' => array( 'I hold', 'I do not hold' ) ) ) ) ),
+			$this->make_field( array( 'id' => 2, 'field_key' => 'jornada_acumulo', 'is_required' => 1 ) ),
+			$this->make_field( array( 'id' => 3, 'field_key' => 'cargo_funcao_acumulo', 'is_required' => 1 ) ),
+			$this->make_field( array( 'id' => 4, 'field_key' => 'horario_trabalho_acumulo', 'is_required' => 1 ) ),
+		);
+	}
+
+	public function test_a_hidden_second_post_field_is_not_required(): void {
+		$this->setup_wpdb_with_fields( $this->second_post_fields() );
+
+		$errors = ReregistrationDataProcessor::validate_submission(
+			array( 'fields' => array( 'acumulo_cargos' => 'I do not hold' ) ),
+			$this->make_rereg(),
+			1
+		);
+
+		$this->assertSame( array(), $errors );
+	}
+
+	public function test_a_declared_second_post_requires_its_fields(): void {
+		$this->setup_wpdb_with_fields( $this->second_post_fields() );
+
+		$errors = ReregistrationDataProcessor::validate_submission(
+			array( 'fields' => array( 'acumulo_cargos' => 'I hold' ) ),
+			$this->make_rereg(),
+			1
+		);
+
+		$this->assertSame( array( 'fields[jornada_acumulo]', 'fields[cargo_funcao_acumulo]', 'fields[horario_trabalho_acumulo]' ), array_keys( $errors ) );
+	}
+
+	public function test_a_stale_second_post_answer_is_not_stored(): void {
+		$this->setup_wpdb_with_fields( $this->second_post_fields() );
+
+		$data = ReregistrationDataProcessor::sanitize_values(
+			array(
+				'acumulo_cargos'       => 'I do not hold',
+				'jornada_acumulo'      => 'J30',
+				'cargo_funcao_acumulo' => 'Teacher',
+			),
+			$this->make_rereg()
+		);
+
+		$this->assertSame(
+			array( 'acumulo_cargos' => 'I do not hold', 'jornada_acumulo' => '', 'cargo_funcao_acumulo' => '', 'horario_trabalho_acumulo' => '' ),
+			$data['fields'],
+			'Typed and then hidden by the answer, so dropped.'
+		);
+	}
+
+	public function test_a_declared_second_post_keeps_its_answers(): void {
+		$this->setup_wpdb_with_fields( $this->second_post_fields() );
+
+		$data = ReregistrationDataProcessor::sanitize_values(
+			array( 'acumulo_cargos' => 'I hold', 'jornada_acumulo' => 'J30' ),
+			$this->make_rereg()
+		);
+
+		$this->assertSame( 'J30', $data['fields']['jornada_acumulo'] );
+	}
+
+	public function test_the_field_definitions_are_read_once_per_request(): void {
+		$this->setup_wpdb_with_fields( $this->second_post_fields() );
+		$cache = array();
+		Functions\when( 'wp_cache_get' )->alias(
+			static function ( $key, $group ) use ( &$cache ) {
+				return $cache[ $group ][ $key ] ?? false;
+			}
+		);
+		Functions\when( 'wp_cache_set' )->alias(
+			static function ( $key, $value, $group ) use ( &$cache ) {
+				$cache[ $group ][ $key ] = $value;
+				return true;
+			}
+		);
+		global $wpdb;
+		$reads = 0;
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			static function () use ( &$reads ) {
+				++$reads;
+				return array( '1' );
+			}
+		);
+
+		$data = ReregistrationDataProcessor::sanitize_values( array( 'acumulo_cargos' => 'I do not hold' ), $this->make_rereg() );
+		ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 );
+
+		$this->assertSame( 1, $reads, 'The campaign\'s audiences are walked once.' );
+		$this->assertArrayHasKey( 'fields_' . $this->make_rereg()->id, $cache[ ReregistrationDataProcessor::REQUEST_CACHE_GROUP ] );
+	}
+
+	// ==================================================================
 	// collect_form_data() — per-type sanitization branches
 	// ==================================================================
 

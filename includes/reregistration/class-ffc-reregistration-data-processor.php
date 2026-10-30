@@ -51,6 +51,35 @@ class ReregistrationDataProcessor {
 	private const POST_ROOT = 'fields';
 
 	/**
+	 * Fields that belong to a second post: shown, required and stored only
+	 * while the member declares one in `acumulo_cargos`. Field keys are stored
+	 * values, so they stay in Portuguese.
+	 *
+	 * @var array<int, string>
+	 */
+	public const SECOND_POST_KEYS = array( 'jornada_acumulo', 'cargo_funcao_acumulo', 'horario_trabalho_acumulo' );
+
+	/**
+	 * Object-cache group for the field definitions of one request (#2242).
+	 * Registered non-persistent by the module loader, so a definition an
+	 * operator edits is read fresh on the next request.
+	 */
+	public const REQUEST_CACHE_GROUP = 'ffc_reregistration_request';
+
+	/**
+	 * Whether the member declares a second post.
+	 *
+	 * The answer is the option's label, as the form stores it and the
+	 * dual-post toggle reads it.
+	 *
+	 * @param array<string, mixed> $values field_key => plain value.
+	 * @return bool
+	 */
+	public static function holds_second_post( array $values ): bool {
+		return __( 'I hold', 'ffcertificate' ) === ( $values['acumulo_cargos'] ?? '' );
+	}
+
+	/**
 	 * Sanitize a raw working_hours JSON string into canonical JSON.
 	 *
 	 * Delegates to {@see \FreeFormCertificate\Core\WorkingHours::sanitize()},
@@ -122,6 +151,17 @@ class ReregistrationDataProcessor {
 			$value = $raw[ $key ] ?? '';
 
 			$collected[ $key ] = self::sanitize_field_value( $field, $value );
+		}
+
+		// The second post's answers count only while one is declared (#2242):
+		// a value typed and then hidden by switching the answer to "I do not
+		// hold" is not stored.
+		if ( ! self::holds_second_post( $collected ) ) {
+			foreach ( self::SECOND_POST_KEYS as $key ) {
+				if ( array_key_exists( $key, $collected ) ) {
+					$collected[ $key ] = '';
+				}
+			}
 		}
 
 		return array( 'fields' => $collected );
@@ -196,6 +236,7 @@ class ReregistrationDataProcessor {
 		$errors = array();
 		$values = is_array( $data['fields'] ?? null ) ? $data['fields'] : array();
 		$fields = self::get_fields_for_reregistration( $rereg );
+		$second = self::holds_second_post( $values );
 
 		foreach ( $fields as $field ) {
 			// Display-only blocks (e.g. acknowledgment) have nothing to validate.
@@ -203,7 +244,12 @@ class ReregistrationDataProcessor {
 				continue;
 			}
 
-			$key   = (string) $field->field_key;
+			$key = (string) $field->field_key;
+			// A field the form hides is never required (#2242).
+			if ( ! $second && in_array( $key, self::SECOND_POST_KEYS, true ) ) {
+				continue;
+			}
+
 			$value = $values[ $key ] ?? '';
 			$name  = self::POST_ROOT . '[' . $key . ']';
 			$label = (string) $field->field_label;
@@ -515,7 +561,23 @@ class ReregistrationDataProcessor {
 	 * @return list<CustomFieldRow>
 	 */
 	private static function get_fields_for_reregistration( object $rereg ): array {
-		return CustomFieldReader::get_for_audiences( ReregistrationRepository::get_audience_ids( (int) $rereg->id ) );
+		// A submit reads them three times -- sanitize, validate, store -- and
+		// each read walks every audience's parents (#2242). Once per request.
+		$key = 'fields_' . (int) $rereg->id;
+		/**
+		 * The value written below, under this key in this group.
+		 *
+		 * @var list<CustomFieldRow>|false $cached
+		 */
+		$cached = wp_cache_get( $key, self::REQUEST_CACHE_GROUP );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
+		$fields = CustomFieldReader::get_for_audiences( ReregistrationRepository::get_audience_ids( (int) $rereg->id ) );
+		wp_cache_set( $key, $fields, self::REQUEST_CACHE_GROUP );
+
+		return $fields;
 	}
 
 	/**

@@ -88,6 +88,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</div>
 
 	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'Filling in the form', 'ffcertificate' ); ?></h4>
+		<ul>
+			<li><?php esc_html_e( 'The draft saves itself 5 seconds after the member stops typing; Save Draft still saves at once. Leaving the page or pressing Cancel with changes not saved yet asks first.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'When the member has an approved reregistration from an earlier campaign, the form offers "Bring previous answers". Nothing is fetched until it is clicked; it fills only the fields this campaign also has, and every field stays editable, so the member reviews what came from the previous cycle before submitting.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'The second post\'s fields (its workload, role and work hours) are asked, required and stored only while the member answers that they hold another post. Answers typed before switching to "I do not hold" are not kept.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'On a phone the work-hours table keeps its columns and scrolls sideways; a shadow at the edge shows there is more.', 'ffcertificate' ); ?></li>
+		</ul>
+	</div>
+
+	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Reviewing a large campaign', 'ffcertificate' ); ?></h4>
 		<ul>
 			<li><?php esc_html_e( 'The submissions list shows 50 per page. "Reveal this page" reveals the e-mails of the page on screen, never of the whole campaign.', 'ffcertificate' ); ?></li>
