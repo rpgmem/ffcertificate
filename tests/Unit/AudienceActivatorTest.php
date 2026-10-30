@@ -413,18 +413,29 @@ class AudienceActivatorTest extends TestCase {
 			}
 		);
 		// SHOW COLUMNS finds a column only once an ALTER added it: both start missing.
-		$added = array();
+		// The bookings indexes start as they were before #2243.
+		$added   = array();
+		$indexes = array( 'idx_environment', 'idx_env_date_status' );
 		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
-			static function ( $query ) use ( &$queries, &$added ) {
+			static function ( $query ) use ( &$queries, &$added, &$indexes ) {
 				$queries[] = $query;
+				if ( preg_match( "/SHOW INDEX FROM .* Key_name = '([^']+)'/", (string) $query, $m ) ) {
+					return in_array( $m[1], $indexes, true ) ? array( (object) array( 'Key_name' => $m[1] ) ) : array();
+				}
 				return preg_match( "/SHOW COLUMNS FROM .* LIKE '([^']+)'/", (string) $query, $m ) && in_array( stripslashes( $m[1] ), $added, true ) ? array( (object) array( 'Field' => $m[1] ) ) : array();
 			}
 		);
 		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
-			static function ( $query ) use ( &$queries, &$added ) {
+			static function ( $query ) use ( &$queries, &$added, &$indexes ) {
 				$queries[] = $query;
 				if ( preg_match( "/ADD COLUMN '([^']+)'/", (string) $query, $m ) ) {
 					$added[] = $m[1];
+				}
+				if ( preg_match( "/ADD INDEX '([^']+)'/", (string) $query, $m ) ) {
+					$indexes[] = $m[1];
+				}
+				if ( preg_match( "/DROP INDEX '([^']+)'/", (string) $query, $m ) ) {
+					$indexes = array_values( array_diff( $indexes, array( $m[1] ) ) );
 				}
 				return 1;
 			}
@@ -437,6 +448,15 @@ class AudienceActivatorTest extends TestCase {
 		$this->assertStringContainsString( 'require_membership', $alters );
 		$this->assertSame( AudienceActivator::SCHEMA_REVISION, $options[ AudienceActivator::SCHEMA_REVISION_OPTION ] );
 		$this->assertStringNotContainsString( 'allow_self_join', $alters, 'the FFC_VERSION chain stayed gated' );
+		// The bookings lock and invitation scan read their new indexes (#2243),
+		// added before the ones they replace are dropped.
+		$this->assertSame( array( 'idx_env_status_date', 'idx_end_booking_date' ), $indexes );
+		$this->assertLessThan(
+			strpos( $alters, "DROP INDEX 'idx_environment'" ),
+			strpos( $alters, "ADD INDEX 'idx_env_status_date'" ),
+			'the space keeps an index on environment_id throughout'
+		);
+		$this->assertStringContainsString( "ADD INDEX 'idx_end_booking_date' (end_date, booking_date)", $alters );
 
 		$queries = array();
 		AudienceActivator::maybe_migrate();

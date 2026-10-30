@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '8';
+	public const SCHEMA_REVISION = '9';
 
 	/**
 	 * Option holding the revision last applied.
@@ -365,11 +365,11 @@ class AudienceActivator {
             post_event_window_days smallint(5) unsigned DEFAULT NULL,
             post_event_attendees_only tinyint(1) DEFAULT NULL,
             PRIMARY KEY (id),
-            KEY idx_environment (environment_id),
             KEY idx_date (booking_date),
             KEY idx_status (status),
             KEY idx_created_by (created_by),
-            KEY idx_env_date_status (environment_id, booking_date, status)
+            KEY idx_env_status_date (environment_id, status, booking_date),
+            KEY idx_end_booking_date (end_date, booking_date)
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -915,6 +915,7 @@ class AudienceActivator {
 		$healed = self::migrate_audience_tree_access_columns();
 		$healed = self::migrate_booking_range_columns() && $healed;
 		$healed = self::migrate_booking_day_times_column() && $healed;
+		$healed = self::migrate_booking_indexes() && $healed;
 		$healed = self::migrate_booking_attendance_columns() && $healed;
 		$healed = self::migrate_post_event_form_columns() && $healed;
 		$healed = self::migrate_holiday_kind_column() && $healed;
@@ -1029,6 +1030,46 @@ class AudienceActivator {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Give bookings the two indexes their hot reads need, and drop the ones
+	 * they replace (#2243).
+	 *
+	 * The conflict read and the writer's `FOR UPDATE` filter on the space,
+	 * `status = 'active'` and a `booking_date` range, so the equality columns
+	 * come first: `(environment_id, status, booking_date)`. It replaces
+	 * `(environment_id, booking_date, status)`, whose range column in the
+	 * middle left `status` unused, and `(environment_id)`, a prefix of it.
+	 * The hourly invitation scan reads `end_date` in a range, or a NULL
+	 * `end_date` and `booking_date` in a range; `(end_date, booking_date)`
+	 * serves both halves. The new indexes are added before the old ones go,
+	 * so the space is never without an index on `environment_id`.
+	 *
+	 * @return bool Whether the table now has exactly these indexes, or does not exist yet.
+	 */
+	private static function migrate_booking_indexes(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_bookings';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_index_if_missing( $table_name, 'idx_env_status_date', '(environment_id, status, booking_date)' );
+		self::add_index_if_missing( $table_name, 'idx_end_booking_date', '(end_date, booking_date)' );
+		if ( ! self::index_exists( $table_name, 'idx_env_status_date' ) || ! self::index_exists( $table_name, 'idx_end_booking_date' ) ) {
+			return false;
+		}
+
+		foreach ( array( 'idx_env_date_status', 'idx_environment' ) as $replaced ) {
+			if ( self::index_exists( $table_name, $replaced ) ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema change on the plugin's own table; WordPress exposes no API for DROP INDEX.
+				$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table_name, $replaced ) );
+			}
+		}
+
+		return ! self::index_exists( $table_name, 'idx_env_date_status' ) && ! self::index_exists( $table_name, 'idx_environment' );
 	}
 
 	/**

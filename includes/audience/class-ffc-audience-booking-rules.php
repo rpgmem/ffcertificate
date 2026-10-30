@@ -271,6 +271,14 @@ final class AudienceBookingRules {
 	 * The skipped days are a JSON list in `skipped_dates`; the date is matched
 	 * with its quotes so `2026-10-2` never matches `2026-10-22`.
 	 *
+	 * A range never starts more than {@see self::MAX_RANGE_LIMIT} days before a
+	 * day it covers, so `booking_date` is bounded below as well (#2243). With
+	 * the `(environment_id, status, booking_date)` index the conflict read,
+	 * and the writer's `FOR UPDATE`, then touch a year of rows instead of
+	 * every past booking of the space. The ceiling, not the admin's current
+	 * limit, is the bound: lowering the setting must not hide a longer range
+	 * made before.
+	 *
 	 * @param string $date   Date (Y-m-d).
 	 * @param string $prefix Table alias with its dot (`b.`), or '' for none.
 	 * @return array{0: string, 1: list<string>} The SQL fragment and the values its placeholders take, in order.
@@ -278,9 +286,12 @@ final class AudienceBookingRules {
 	public static function occupies_day_clause( string $date, string $prefix = '' ): array {
 		global $wpdb;
 
+		$day      = \DateTimeImmutable::createFromFormat( '!Y-m-d', $date );
+		$earliest = false === $day ? $date : $day->modify( '-' . ( self::MAX_RANGE_LIMIT - 1 ) . ' days' )->format( 'Y-m-d' );
+
 		return array(
-			"{$prefix}booking_date <= %s AND COALESCE({$prefix}end_date, {$prefix}booking_date) >= %s AND ({$prefix}skipped_dates IS NULL OR {$prefix}skipped_dates NOT LIKE %s)",
-			array( $date, $date, '%' . $wpdb->esc_like( '"' . $date . '"' ) . '%' ),
+			"{$prefix}booking_date <= %s AND COALESCE({$prefix}end_date, {$prefix}booking_date) >= %s AND {$prefix}booking_date >= %s AND ({$prefix}skipped_dates IS NULL OR {$prefix}skipped_dates NOT LIKE %s)",
+			array( $date, $date, $earliest, '%' . $wpdb->esc_like( '"' . $date . '"' ) . '%' ),
 		);
 	}
 

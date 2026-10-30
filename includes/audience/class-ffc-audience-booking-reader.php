@@ -671,6 +671,11 @@ class AudienceBookingReader {
 	 * The post-event invitation scan reads it: a booking's form opens when its
 	 * last day ends, so only bookings that ended recently can owe invitations.
 	 *
+	 * The last day is `end_date` for a range and `booking_date` for one day.
+	 * It is read as those two halves rather than `COALESCE()`, which no index
+	 * can serve: `(end_date, booking_date)` takes the range of `end_date`, and
+	 * a NULL `end_date` with the range of `booking_date` (#2243).
+	 *
 	 * @param string $from First last-day to include (Y-m-d).
 	 * @param string $to   Last last-day to include (Y-m-d).
 	 * @return list<int> Booking IDs, oldest end first.
@@ -680,8 +685,10 @@ class AudienceBookingReader {
 
 		$ids = $wpdb->get_col(
 			$wpdb->prepare(
-				"SELECT id FROM %i WHERE status = 'active' AND COALESCE(end_date, booking_date) BETWEEN %s AND %s ORDER BY COALESCE(end_date, booking_date) ASC, id ASC",
+				"SELECT id FROM %i WHERE status = 'active' AND ((end_date BETWEEN %s AND %s) OR (end_date IS NULL AND booking_date BETWEEN %s AND %s)) ORDER BY COALESCE(end_date, booking_date) ASC, id ASC",
 				self::get_table_name(),
+				$from,
+				$to,
 				$from,
 				$to
 			)

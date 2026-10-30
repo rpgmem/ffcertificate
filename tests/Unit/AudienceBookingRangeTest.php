@@ -233,7 +233,21 @@ class AudienceBookingRangeTest extends TestCase {
 
 		$this->assertStringContainsString( 'booking_date <= %s AND COALESCE(end_date, booking_date) >= %s', $sql );
 		$this->assertStringContainsString( 'skipped_dates NOT LIKE %s', $sql );
-		$this->assertSame( array( '2026-10-22', '2026-10-22', '%"2026-10-22"%' ), $args );
+		$this->assertSame( array( '2026-10-22', '2026-10-22', '2025-10-23', '%"2026-10-22"%' ), $args );
+	}
+
+	public function test_occupies_day_clause_bounds_the_start_by_the_longest_range_possible(): void {
+		// A range of the ceiling's 365 days ending on the day still occupies it;
+		// one day earlier cannot (#2243).
+		list( $sql, $args ) = AudienceBookingRules::occupies_day_clause( '2028-03-01' );
+
+		$this->assertStringContainsString( 'AND booking_date >= %s', $sql );
+		$this->assertSame( '2027-03-03', $args[2], 'A leap year is counted in days, not in a calendar year.' );
+		$this->assertSame(
+			365,
+			(int) ( new \DateTimeImmutable( $args[2] ) )->diff( new \DateTimeImmutable( '2028-03-01' ) )->days + 1,
+			'The earliest start makes a range of exactly the ceiling.'
+		);
 	}
 
 	public function test_date_label_shows_one_date_for_a_single_day(): void {
