@@ -656,9 +656,9 @@ class AudienceRestController {
 				return self::refusal( 400, __( 'An all-day booking covers one day.', 'ffcertificate' ) );
 			}
 
-			if ( AudienceBookingRules::range_length( $booking_date, $end_date ) > AudienceBookingRules::MAX_RANGE_DAYS ) {
+			if ( AudienceBookingRules::range_length( $booking_date, $end_date ) > AudienceBookingRules::max_range_days() ) {
 				/* translators: %d: the most consecutive days one booking may cover. */
-				return self::refusal( 400, sprintf( __( 'A booking can cover at most %d consecutive days.', 'ffcertificate' ), AudienceBookingRules::MAX_RANGE_DAYS ) );
+				return self::refusal( 400, sprintf( __( 'A booking can cover at most %d consecutive days.', 'ffcertificate' ), AudienceBookingRules::max_range_days() ) );
 			}
 		} else {
 			$end_date = $booking_date;
@@ -1055,7 +1055,7 @@ class AudienceRestController {
 			|| ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $booking_date )
 			|| ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $end_date )
 			|| $end_date <= $booking_date
-			|| AudienceBookingRules::range_length( $booking_date, $end_date ) > AudienceBookingRules::MAX_RANGE_DAYS ) {
+			|| AudienceBookingRules::range_length( $booking_date, $end_date ) > AudienceBookingRules::max_range_days() ) {
 			return $booking_date;
 		}
 
@@ -1107,11 +1107,11 @@ class AudienceRestController {
 			if ( '' !== $end_date
 				&& \FreeFormCertificate\Core\DateFormatter::is_valid_date( $end_date )
 				&& $end_date > $booking_date
-				&& AudienceBookingRules::range_length( $booking_date, $end_date ) > AudienceBookingRules::MAX_RANGE_DAYS ) {
+				&& AudienceBookingRules::range_length( $booking_date, $end_date ) > AudienceBookingRules::max_range_days() ) {
 				return self::refusal(
 					400,
 					/* translators: %d: the most consecutive days one booking may cover. */
-					sprintf( __( 'A booking can cover at most %d consecutive days.', 'ffcertificate' ), AudienceBookingRules::MAX_RANGE_DAYS ),
+					sprintf( __( 'A booking can cover at most %d consecutive days.', 'ffcertificate' ), AudienceBookingRules::max_range_days() ),
 					'range_too_long'
 				);
 			}

@@ -1425,7 +1425,47 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( 400, $result->get_status() );
 		$data = $result->get_data();
 		$this->assertSame( 'range_too_long', $data['code'] );
-		$this->assertStringContainsString( (string) \FreeFormCertificate\Audience\AudienceBookingRules::MAX_RANGE_DAYS, $data['message'], 'The refusal names the limit, as the create step does (#2243).' );
+		$this->assertStringContainsString( (string) \FreeFormCertificate\Audience\AudienceBookingRules::DEFAULT_MAX_RANGE_DAYS, $data['message'], 'The refusal names the limit, as the create step does (#2243).' );
+	}
+
+	public function test_the_range_cap_is_the_configured_setting(): void {
+		Functions\when( 'get_option' )->alias(
+			function ( $key, $default = false ) {
+				if ( \FreeFormCertificate\Audience\AudienceBookingRules::MAX_RANGE_OPTION === $key ) {
+					return '60';
+				}
+				return 'ffc_settings' === $key ? ActivityLogBuffer::ENABLED_SETTINGS : $default;
+			}
+		);
+		$check = fn( string $end ) => ( new AudienceRestController() )->check_conflicts(
+			$this->make_request(
+				array(
+					'environment_id' => 10,
+					'booking_date'   => '2026-07-01',
+					'end_date'       => $end,
+					'start_time'     => '09:00',
+					'end_time'       => '10:00',
+				)
+			)
+		);
+
+		// 60 days pass the cap and reach the environment lookup (absent here).
+		$this->assertSame( 404, $check( '2026-08-29' )->get_status() );
+
+		$refused = $check( '2026-08-30' );
+		$this->assertSame( 400, $refused->get_status() );
+		$this->assertSame( 'range_too_long', $refused->get_data()['code'] );
+		$this->assertStringContainsString( '60', $refused->get_data()['message'] );
+	}
+
+	public function test_the_range_cap_defaults_to_30_and_stays_between_1_and_365(): void {
+		$rules = \FreeFormCertificate\Audience\AudienceBookingRules::class;
+
+		$this->assertSame( 30, $rules::max_range_days(), 'No setting saved: 30.' );
+		$this->assertSame( 1, $rules::clamp_max_range( '0' ) );
+		$this->assertSame( 365, $rules::clamp_max_range( 1000 ) );
+		$this->assertSame( 30, $rules::clamp_max_range( 'abc' ), 'Not a number is not a limit.' );
+		$this->assertSame( 120, $rules::clamp_max_range( '120' ) );
 	}
 
 	// ------------------------------------------------------------------
