@@ -1114,6 +1114,41 @@ class AudienceRestController {
 	}
 
 	/**
+	 * Display names of the people a booking would clash for (#2243): the
+	 * first ten in name order, and how many more there are. One query.
+	 *
+	 * @param int[] $user_ids User IDs.
+	 * @return array{names: list<string>, more: int}
+	 */
+	private static function affected_names( array $user_ids ): array {
+		$limit = 10;
+		if ( empty( $user_ids ) ) {
+			return array(
+				'names' => array(),
+				'more'  => 0,
+			);
+		}
+
+		$users = get_users(
+			array(
+				'include' => $user_ids,
+				'orderby' => 'display_name',
+				'number'  => $limit,
+				'fields'  => array( 'display_name' ),
+			)
+		);
+		$names = array();
+		foreach ( $users as $user ) {
+			$names[] = (string) $user->display_name;
+		}
+
+		return array(
+			'names' => $names,
+			'more'  => max( 0, count( $user_ids ) - count( $names ) ),
+		);
+	}
+
+	/**
 	 * Check conflicts
 	 *
 	 * @param \WP_REST_Request $request Request object.
@@ -1241,11 +1276,18 @@ class AudienceRestController {
 				$is_hard_conflict          = true;
 			}
 
-			// 2. Check same audience group on same day (soft conflict)
-			if ( ! $is_hard_conflict && ! empty( $audience_ids ) ) {
+			$env_ids = array_map( static fn( $conflict ): int => (int) $conflict->id, $env_conflicts );
+
+			// 2. Check same audience group on same day (soft conflict). Run
+			// with a room clash too, so a booker who overrides it learns
+			// everything in one round (#2243).
+			if ( ! empty( $audience_ids ) ) {
 				$same_day = array();
 				foreach ( $plan['days'] as $day ) {
 					foreach ( AudienceBookingReader::get_audience_same_day_bookings( $day['date'], $audience_ids, null, $scope_schedule_id, $readable_schedule_ids ) as $found ) {
+						if ( in_array( (int) $found->id, $env_ids, true ) ) {
+							continue;
+						}
 						$same_day[ (int) $found->id . '-' . (string) ( $found->audience_name ?? '' ) ] = $found;
 					}
 				}
@@ -1266,52 +1308,64 @@ class AudienceRestController {
 				}
 			}
 
-			// 3. Check user conflicts — members with overlapping bookings (soft conflict)
-			// Only check if no hard conflict detected.
-			if ( ! $is_hard_conflict ) {
-				$user_conflicts = array(
-					'bookings'       => array(),
-					'affected_users' => array(),
+			// 3. Check user conflicts — members with overlapping bookings (soft
+			// conflict), with or without a room clash (#2243).
+			$user_conflicts = array(
+				'bookings'       => array(),
+				'affected_users' => array(),
+			);
+			foreach ( $plan['days'] as $day ) {
+				$found = AudienceBookingReader::get_user_conflicts(
+					$day['date'],
+					$day['start_time'],
+					$day['end_time'],
+					$audience_ids,
+					$user_ids,
+					null,
+					$scope_schedule_id,
+					$readable_schedule_ids
 				);
-				foreach ( $plan['days'] as $day ) {
-					$found = AudienceBookingReader::get_user_conflicts(
-						$day['date'],
-						$day['start_time'],
-						$day['end_time'],
-						$audience_ids,
-						$user_ids,
-						null,
-						$scope_schedule_id,
-						$readable_schedule_ids
-					);
-					foreach ( $found['bookings'] as $booking ) {
+				foreach ( $found['bookings'] as $booking ) {
+					// A booking already reported as the room's clash is not
+					// reported a second time as the people's.
+					if ( ! in_array( (int) $booking->id, $env_ids, true ) ) {
 						$user_conflicts['bookings'][ (int) $booking->id ] = $booking;
 					}
-					$user_conflicts['affected_users'] = array_merge( $user_conflicts['affected_users'], $found['affected_users'] );
 				}
-				$user_conflicts['bookings']       = array_values( $user_conflicts['bookings'] );
-				$user_conflicts['affected_users'] = array_values( array_unique( $user_conflicts['affected_users'] ) );
+				$user_conflicts['affected_users'] = array_merge( $user_conflicts['affected_users'], $found['affected_users'] );
+			}
+			$user_conflicts['bookings']       = array_values( $user_conflicts['bookings'] );
+			$user_conflicts['affected_users'] = array_values( array_unique( $user_conflicts['affected_users'] ) );
 
-				if ( ! empty( $user_conflicts['bookings'] ) ) {
-					$response_data['type']           = 'user';
-					$response_data['bookings']       = array_map(
-						function ( $b ) {
-							return array(
-								'id'          => $b->id,
-								'start_time'  => $b->start_time,
-								'end_time'    => $b->end_time,
-								'description' => $b->description,
-							);
-						},
-						$user_conflicts['bookings']
-					);
-					$response_data['affected_users'] = $user_conflicts['affected_users'];
+			if ( ! empty( $user_conflicts['bookings'] ) ) {
+				// The people who clash, by name (#2243), so the booker knows
+				// whom to ask rather than only how many.
+				$names                           = self::affected_names( $user_conflicts['affected_users'] );
+				$response_data['affected_names'] = $names['names'];
+				$response_data['affected_more']  = $names['more'];
+				$response_data['affected_users'] = $user_conflicts['affected_users'];
+				$user_bookings                   = array_map(
+					function ( $b ) {
+						return array(
+							'id'          => $b->id,
+							'start_time'  => $b->start_time,
+							'end_time'    => $b->end_time,
+							'description' => $b->description,
+						);
+					},
+					$user_conflicts['bookings']
+				);
+				if ( $is_hard_conflict ) {
+					$response_data['user_bookings'] = $user_bookings;
+				} else {
+					$response_data['type']     = 'user';
+					$response_data['bookings'] = $user_bookings;
 				}
+			}
 
-				// Audience same-day is also a soft conflict.
-				if ( 'none' === $response_data['type'] && ! empty( $response_data['audience_same_day'] ) ) {
-					$response_data['type'] = 'audience_same_day';
-				}
+			// Audience same-day is also a soft conflict.
+			if ( 'none' === $response_data['type'] && ! empty( $response_data['audience_same_day'] ) ) {
+				$response_data['type'] = 'audience_same_day';
 			}
 
 			return new \WP_REST_Response(

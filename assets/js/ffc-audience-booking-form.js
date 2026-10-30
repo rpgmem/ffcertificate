@@ -553,6 +553,49 @@
     }
 
     /**
+     * The soft clashes a conflict check reports, one line each: audiences
+     * already booked that day, and the people booked elsewhere at the time,
+     * by name (#2243). Empty when there are none.
+     *
+     * @param {Object} conflicts The `conflicts` object of the check.
+     * @returns {string[]}
+     */
+    function softConflictLines(conflicts) {
+        var s = ffcAudience.strings;
+        var lines = [];
+
+        if (conflicts.audience_same_day && conflicts.audience_same_day.length > 0) {
+            var grouped = {};
+            conflicts.audience_same_day.forEach(function(b) {
+                if (!grouped[b.audience_name]) {
+                    grouped[b.audience_name] = [];
+                }
+                grouped[b.audience_name].push(b.start_time + '–' + b.end_time);
+            });
+            lines.push(s.audienceSameDayWarning || 'This audience group already has a booking on this day:');
+            for (var name in grouped) {
+                lines.push(name + ': ' + grouped[name].join(', '));
+            }
+        }
+
+        var peopleBookings = conflicts.type === 'user' ? conflicts.bookings : conflicts.user_bookings;
+        if (peopleBookings && peopleBookings.length > 0) {
+            var count = conflicts.affected_users ? conflicts.affected_users.length : 0;
+            lines.push(count + ' ' + (s.membersOverlapping || 'member(s) have overlapping bookings.'));
+            var names = conflicts.affected_names || [];
+            if (names.length > 0) {
+                var list = names.join(', ');
+                if (conflicts.affected_more > 0) {
+                    list += ' ' + (s.andMore || 'and %d more').replace('%d', conflicts.affected_more);
+                }
+                lines.push(list);
+            }
+        }
+
+        return lines;
+    }
+
+    /**
      * Check for conflicts
      */
     function checkConflicts() {
@@ -586,6 +629,9 @@
                     if (response && response.success) {
                         var conflicts = response.conflicts || {};
                         var isHardConflict = (conflicts.type === 'environment');
+                        // People and audience clashes come with a room clash
+                        // too, so one check tells everything (#2243).
+                        var softWarnings = softConflictLines(conflicts);
 
                         if (isHardConflict && conflicts.can_override) {
                             // HARD CONFLICT the person may override (#1859):
@@ -593,7 +639,7 @@
                             var overrideTimes = conflicts.bookings.map(function(b) { return b.start_time + '–' + b.end_time; }).join(', ');
                             $('#ffc-conflict-error')
                                 .empty()
-                                .append(FFC.notice('warning', 'warning', overrideTimes, ffcAudience.strings.hardConflict || 'This time slot is already booked for this environment.', { role: 'status', hook: 'conflict-error' }))
+                                .append(FFC.notice('warning', 'warning', [overrideTimes].concat(softWarnings), ffcAudience.strings.hardConflict || 'This time slot is already booked for this environment.', { role: 'status', hook: 'conflict-error' }))
                                 .prop('hidden', false);
                             setSubmitStep('create');
                         } else if (isHardConflict) {
@@ -603,37 +649,13 @@
 
                             $('#ffc-conflict-error')
                                 .empty()
-                                .append(FFC.notice('danger', 'error', times, errorMsg, { role: 'alert', hook: 'conflict-error' }))
+                                .append(FFC.notice('danger', 'error', [times].concat(softWarnings), errorMsg, { role: 'alert', hook: 'conflict-error' }))
                                 .prop('hidden', false);
 
                             // No booking here: the button stays a check, for
                             // after the time or the space has changed.
                             setSubmitStep('check');
                         } else {
-                            // Check for soft conflicts
-                            var softWarnings = [];
-
-                            // Same audience group already booked on this day
-                            if (conflicts.audience_same_day && conflicts.audience_same_day.length > 0) {
-                                var grouped = {};
-                                conflicts.audience_same_day.forEach(function(b) {
-                                    if (!grouped[b.audience_name]) {
-                                        grouped[b.audience_name] = [];
-                                    }
-                                    grouped[b.audience_name].push(b.start_time + '–' + b.end_time);
-                                });
-                                softWarnings.push(ffcAudience.strings.audienceSameDayWarning || 'This audience group already has a booking on this day:');
-                                for (var name in grouped) {
-                                    softWarnings.push(name + ': ' + grouped[name].join(', '));
-                                }
-                            }
-
-                            // User member overlap
-                            if (conflicts.bookings && conflicts.bookings.length > 0 && conflicts.type === 'user') {
-                                var count = conflicts.affected_users ? conflicts.affected_users.length : 0;
-                                softWarnings.push(count + ' ' + (ffcAudience.strings.membersOverlapping || 'member(s) have overlapping bookings.'));
-                            }
-
                             setSubmitStep('create');
 
                             if (softWarnings.length > 0) {

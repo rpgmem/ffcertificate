@@ -24071,8 +24071,8 @@ msgstr "Este plugin permite criar formulários de emissão de certificados, gera
 msgid "This text is suggested by the Free Form Certificate plugin to help you describe how it processes personal data. Review and adapt it to your organisation and to the modules you actually use (form submissions and certificates, appointment scheduling, audiences, re-registration and recruitment). Delete any section that does not apply."
 msgstr "Este texto é sugerido pelo plugin Free Form Certificate para ajudar você a descrever como ele processa dados pessoais. Revise-o e adapte-o à sua organização e aos módulos que você realmente utiliza (envio de formulários e certificados, agendamento de horários, públicos-alvo, recadastramento e recrutamento). Exclua qualquer seção que não se aplique."
 
-msgid "Unlike personal calendars, an audience booking has a free start/end time. Two bookings that overlap the same environment are a hard conflict (blocked); overlaps for the same audience or user are soft conflicts the booker can acknowledge. Each booking needs a short description (15–300 characters)."
-msgstr "Ao contrário das agendas pessoais, uma reserva de público-alvo não possui horários de início e término fixos. Duas reservas que se sobrepõem no mesmo ambiente geram um conflito crítico (bloqueio); sobreposições envolvendo o mesmo público-alvo ou usuário constituem conflitos leves, que podem ser validados por quem realiza a reserva. Cada reserva requer uma breve descrição (de 15 a 300 caracteres)."
+msgid "Unlike personal calendars, an audience booking has a free start/end time. Two bookings that overlap the same environment are a hard conflict (blocked); overlaps for the same audience or user are soft conflicts the booker can acknowledge. One check reports both kinds together, and names up to ten of the people who are booked elsewhere at that time, with how many more there are. Each booking needs a short description (15–300 characters)."
+msgstr "Ao contrário das agendas pessoais, uma reserva de público-alvo não possui horários de início e término fixos. Duas reservas que se sobrepõem no mesmo ambiente geram um conflito crítico (bloqueio); sobreposições envolvendo o mesmo público-alvo ou usuário constituem conflitos leves, que podem ser validados por quem realiza a reserva. Uma única verificação informa os dois tipos juntos e nomeia até dez das pessoas que já têm reserva em outro lugar nesse horário, com quantas mais existem. Cada reserva requer uma breve descrição (de 15 a 300 caracteres)."
 
 msgid "view the list and download QR codes."
 msgstr "Visualize a lista e baixe os QR Codes."
@@ -30134,3 +30134,22 @@ msgid "%s booking"
 msgid_plural "%s bookings"
 msgstr[0] "%s reserva"
 msgstr[1] "%s reservas"
+
+msgid "Reason: %s"
+msgstr "Motivo: %s"
+
+msgid "and %d more"
+msgstr "e mais %d"
+
+msgid "Joining a group brings its upcoming bookings into the user's list at once, and the dashboard says how many. Before leaving one, the confirmation says how many upcoming bookings leave the list with it: those that reach the user through that group alone, not those that also name them or another of their groups. A cancelled booking shows, under its description, the reason the person who cancelled it gave."
+msgstr "Entrar em um grupo traz de imediato as próximas reservas dele para a lista do usuário, e o painel informa quantas. Antes de sair de um grupo, a confirmação informa quantas próximas reservas saem da lista junto com ele: as que alcançam o usuário somente por esse grupo, e não as que também o nomeiam ou nomeiam outro grupo dele. Uma reserva cancelada mostra, abaixo da descrição, o motivo informado por quem a cancelou."
+
+msgid "Its %d upcoming booking is now in your list."
+msgid_plural "Its %d upcoming bookings are now in your list."
+msgstr[0] "A %d próxima reserva dele já está na sua lista."
+msgstr[1] "As %d próximas reservas dele já estão na sua lista."
+
+msgid "You will no longer see %d upcoming booking of this group, nor be expected at it."
+msgid_plural "You will no longer see %d upcoming bookings of this group, nor be expected at them."
+msgstr[0] "Você deixará de ver %d próxima reserva deste grupo e não será mais esperado nela."
+msgstr[1] "Você deixará de ver %d próximas reservas deste grupo e não será mais esperado nelas."

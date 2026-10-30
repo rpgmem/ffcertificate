@@ -144,6 +144,20 @@ describe('FFCDashboard.panels.audience.render', () => {
 		expect(rows[0].textContent).toContain('Beta hall');
 	});
 
+	it('shows a cancelled booking\'s reason, escaped (#2243)', () => {
+		panel().render([
+			makeBooking({ status: 'cancelled', description: 'Yoga', cancellation_reason: 'Room <b>flooded</b>' }),
+		], 1);
+		const reason = document.querySelector('#ffc-tabpanel-audience .ffc-booking-cancel-reason');
+		expect(reason.textContent).toBe('Reason: Room <b>flooded</b>');
+		expect(reason.querySelector('b')).toBeNull();
+	});
+
+	it('draws no reason line for a booking without one', () => {
+		panel().render([makeBooking({ description: 'Yoga' })], 1);
+		expect(document.querySelector('#ffc-tabpanel-audience .ffc-booking-cancel-reason')).toBeNull();
+	});
+
 	it('renders the schedule_name sub-label when present', () => {
 		panel().render([
 			makeBooking({ environment_name: 'Room A', schedule_name: 'Morning slot' }),

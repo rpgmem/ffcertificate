@@ -115,6 +115,9 @@ class UserAudienceRestControllerTest extends TestCase {
 		// AudienceWriter::add_member() grants the audience capability to the
 		// user it reads here; no account answers, so the grant does nothing.
 		Functions\when( 'get_userdata' )->justReturn( false );
+		// Joining counts the group's upcoming bookings from today (#2243).
+		Functions\when( 'current_time' )->justReturn( '2026-06-06' );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
 		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
 		Functions\when( 'wp_date' )->alias(
 			static fn( $format, $ts = null, $tz = null ) => ( new \DateTimeImmutable( '@' . (int) $ts ) )->setTimezone( $tz ?? new \DateTimeZone( 'UTC' ) )->format( $format )
@@ -288,6 +291,29 @@ class UserAudienceRestControllerTest extends TestCase {
 		if ( false !== strpos( $sql, 'WHERE m.user_id = %d AND a.allow_self_join = 1' ) && false !== strpos( $sql, 'COUNT(*)' ) ) {
 			// AudienceQueryService::count_user_self_join_memberships().
 			return (string) count( $this->self_join_memberships( (int) $bound[3] ) );
+		}
+		if ( false !== strpos( $sql, 'INNER JOIN %i ba ON b.id = ba.booking_id AND ba.audience_id = %d' ) ) {
+			// AudienceQueryService::count_upcoming_for_audience() and
+			// count_upcoming_lost_on_leave() (#2243).
+			$group = (int) $bound[3];
+			$today = (string) $bound[4];
+			$lost  = false !== strpos( $sql, 'NOT EXISTS' );
+			$user  = $lost ? (int) $bound[6] : 0;
+			$count = 0;
+			foreach ( $this->bookings as $booking ) {
+				$id      = (int) $booking['id'];
+				$groups  = array_map( static fn( array $a ): int => (int) $a['audience_id'], array_filter( $this->booking_audiences, static fn( array $a ): bool => (int) $a['booking_id'] === $id ) );
+				$last    = (string) ( $booking['end_date'] ?? '' );
+				$last    = '' !== $last ? $last : (string) $booking['booking_date'];
+				$reaches = 'active' === ( $booking['status'] ?? 'active' ) && $last >= $today && in_array( $group, $groups, true );
+				if ( $reaches && $lost ) {
+					$named   = in_array( $user, $this->participants[ $id ] ?? array(), true );
+					$through = array_filter( $groups, fn( int $other ): bool => $other !== $group && $this->holds( $other, $user ) );
+					$reaches = ! $named && empty( $through );
+				}
+				$count += $reaches ? 1 : 0;
+			}
+			return (string) $count;
 		}
 		return $this->unknown( 'get_var', $sql );
 	}
@@ -467,6 +493,30 @@ class UserAudienceRestControllerTest extends TestCase {
 	}
 
 	/**
+	 * Store a booking that names audiences, and users directly.
+	 *
+	 * @param list<int> $audience_ids Audiences the booking names.
+	 * @param list<int> $users        Users named directly.
+	 */
+	private function group_booking( int $id, string $date, array $audience_ids, ?string $end_date = null, string $status = 'active', array $users = array() ): void {
+		$this->stored_booking(
+			array(
+				'id'           => $id,
+				'booking_date' => $date,
+				'end_date'     => $end_date,
+				'status'       => $status,
+			),
+			$users
+		);
+		foreach ( $audience_ids as $audience_id ) {
+			$this->booking_audiences[] = array(
+				'booking_id'  => $id,
+				'audience_id' => $audience_id,
+			);
+		}
+	}
+
+	/**
 	 * Helper: create a mock WP_REST_Request with given params.
 	 */
 	private function make_request( array $params = [] ): object {
@@ -481,11 +531,12 @@ class UserAudienceRestControllerTest extends TestCase {
 	// Route registration
 	// ------------------------------------------------------------------
 
-	public function test_register_routes_creates_six_endpoints(): void {
+	public function test_register_routes_creates_seven_endpoints(): void {
 		$ctrl = new UserAudienceRestController( 'ffc/v1' );
 		$ctrl->register_routes();
 
-		$this->assertCount( 6, $this->registered_routes );
+		$this->assertCount( 7, $this->registered_routes );
+		$this->assertContains( '/user/audience-group/leave-impact', array_column( $this->registered_routes, 'route' ) );
 		$this->assertContains( '/user/audience-group/switch', array_column( $this->registered_routes, 'route' ) );
 	}
 
@@ -643,6 +694,7 @@ class UserAudienceRestControllerTest extends TestCase {
 				'environment_name' => 'Room',
 				'schedule_name'    => 'Sched',
 				'description'      => 'desc',
+				'cancellation_reason' => 'Room flooded',
 			)
 		);
 		$this->booking_audiences = array(
@@ -669,6 +721,8 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->assertSame( '2099-12-31', $row['booking_date'] );
 		$this->assertSame( '08:00:00', $row['start_time'] );
 		$this->assertSame( 'cancelled', $row['status'] );
+		// The canceller's reason reaches the participant (#2243).
+		$this->assertSame( 'Room flooded', $row['cancellation_reason'] );
 		$this->assertFalse( $row['is_past'], 'future date is not past' );
 		// Each audience carries the text colour computed over its own colour
 		// (#1826); a value that is not a hex colour never reaches the payload.
@@ -1195,6 +1249,84 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->assertTrue( $result['success'] );
 		$this->assertStringContainsString( 'My Group', $result['message'] );
 		$this->assertSame( array( array( 'audience_id' => 10, 'user_id' => 5 ) ), $this->inserts );
+	}
+
+	public function test_joining_says_how_many_of_the_groups_bookings_joined_the_list(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'current_time' )->justReturn( '2026-06-06' );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
+
+		$this->audience( 10, 'My Group', null, true );
+		$this->group_booking( 1, '2026-06-10', array( 10 ) );
+		$this->group_booking( 2, '2026-06-01', array( 10 ), '2026-06-08' ); // A range still running.
+		$this->group_booking( 3, '2026-06-01', array( 10 ) );                // Past.
+		$this->group_booking( 4, '2026-06-12', array( 10 ), null, 'cancelled' );
+		$this->group_booking( 5, '2026-06-12', array( 11 ) );                // Another group.
+
+		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
+			->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
+
+		$this->assertSame( 2, $result['upcoming'] );
+		$this->assertSame( 'You joined "My Group"! Its 2 upcoming bookings are now in your list.', $result['message'] );
+	}
+
+	public function test_joining_a_group_with_no_upcoming_booking_says_only_that_they_joined(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'current_time' )->justReturn( '2026-06-06' );
+
+		$this->audience( 10, 'My Group', null, true );
+
+		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
+			->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
+
+		$this->assertSame( 0, $result['upcoming'] );
+		$this->assertSame( 'You joined "My Group"!', $result['message'] );
+	}
+
+	public function test_the_leave_impact_counts_only_bookings_reached_through_that_group_alone(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'current_time' )->justReturn( '2026-06-06' );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
+
+		$this->audience( 10, 'My Group', null, true );
+		$this->audience( 20, 'Other', null, true );
+		$this->member( 10, 5 );
+		$this->member( 20, 5 );
+		$this->group_booking( 1, '2026-06-10', array( 10 ) );              // Lost.
+		$this->group_booking( 2, '2026-06-10', array( 10, 20 ) );          // Kept: also through Other.
+		$this->group_booking( 3, '2026-06-10', array( 10 ), null, 'active', array( 5 ) ); // Kept: named directly.
+		$this->group_booking( 4, '2026-06-01', array( 10 ) );              // Past.
+
+		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
+			->get_leave_impact( $this->make_request( array( 'group_id' => 10 ) ) );
+
+		$this->assertSame( 1, $result['bookings'] );
+		$this->assertSame( 'You will no longer see 1 upcoming booking of this group, nor be expected at it.', $result['message'] );
+		$this->assertSame( array(), $this->deletes, 'Asking changes nothing.' );
+	}
+
+	public function test_the_leave_impact_is_empty_when_nothing_is_lost(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'current_time' )->justReturn( '2026-06-06' );
+
+		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
+			->get_leave_impact( $this->make_request( array( 'group_id' => 10 ) ) );
+
+		$this->assertSame( array( 'bookings' => 0, 'message' => '' ), $result );
+	}
+
+	public function test_the_leave_impact_needs_a_signed_in_user_and_a_group(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		$ctrl = new UserAudienceRestController( 'ffc/v1' );
+		$this->assertSame( 'not_logged_in', $ctrl->get_leave_impact( $this->make_request( array( 'group_id' => 10 ) ) )->get_error_code() );
+
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		$this->assertSame( 'missing_group', $ctrl->get_leave_impact( $this->make_request() )->get_error_code() );
 	}
 
 	public function test_join_audience_group_succeeds_for_a_top_level_self_join_group(): void {

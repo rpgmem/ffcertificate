@@ -52,6 +52,9 @@ class AudienceRestControllerTest extends TestCase {
 	/** @var array<int, object> Booking rows by id. */
 	private array $bookings = array();
 
+	/** @var array<int, list<int>> Bookings the member-conflict query returns, by id, with the users each names directly. */
+	private array $member_clashes = array();
+
 	/** @var array<int, object> Audience rows by id. */
 	private array $audiences = array();
 
@@ -169,6 +172,7 @@ class AudienceRestControllerTest extends TestCase {
 		$this->environments    = array();
 		$this->holidays        = array();
 		$this->bookings        = array();
+		$this->member_clashes  = array();
 		$this->global_holidays = array();
 		// Audience 1 exists and user 5, the usual booker, belongs to it.
 		$this->audiences       = array( 1 => (object) array( 'id' => 1, 'name' => 'Teachers', 'color' => '#3788d8', 'parent_id' => null, 'status' => 'active' ) );
@@ -527,8 +531,12 @@ class AudienceRestControllerTest extends TestCase {
 			// every active row of the environment that occupies the day.
 			return $this->occupying( (int) $bound[2], (string) $bound[3] );
 		}
-		if ( false !== strpos( $sql, 'a.name AS audience_name' ) || false !== strpos( $sql, 'SELECT DISTINCT b.*' ) ) {
-			// Same-day audience bookings and member conflicts: none stored.
+		if ( false !== strpos( $sql, 'SELECT DISTINCT b.*' ) ) {
+			// Member conflicts: the stored bookings the test says clash.
+			return array_values( array_map( fn( int $id ) => clone $this->bookings[ $id ], array_keys( $this->member_clashes ) ) );
+		}
+		if ( false !== strpos( $sql, 'a.name AS audience_name' ) ) {
+			// Same-day audience bookings: none stored.
 			return array();
 		}
 		if ( 0 === strpos( preg_replace( '/^Q\d+:/', '', $sql ), 'SELECT * FROM %i' ) ) {
@@ -556,7 +564,8 @@ class AudienceRestControllerTest extends TestCase {
 	private function read_col( string $sql ) {
 		$this->ran[] = $sql;
 		if ( false !== strpos( $sql, 'SELECT user_id FROM %i WHERE booking_id = %d' ) ) {
-			return array();
+			$bound = $this->bound( $sql );
+			return array_map( 'strval', $this->member_clashes[ (int) $bound[2] ] ?? array() );
 		}
 		if ( false !== strpos( $sql, 'SELECT DISTINCT user_id FROM %i WHERE audience_id IN' ) ) {
 			// AudienceReader::get_members(): the audiences here have no members.
@@ -1414,6 +1423,85 @@ class AudienceRestControllerTest extends TestCase {
 			array_column( $result->get_data()['conflicts']['bookings'], 'id' ),
 			'A span is checked from its start on the first day to its end on the last.'
 		);
+	}
+
+	public function test_check_conflicts_reports_the_people_with_a_room_clash_in_one_round(): void {
+		// The people check used to run only without a room clash, so a booker
+		// who overrode the room met the people's clash on a second check (#2243).
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		$this->permit( 20, 3, array( 'can_override_conflicts' => 1 ) );
+		$this->environment( 10, 20 );
+		$this->environment( 11, 20, null, 'Hall' );
+		$this->booking( 5, 10, '2026-04-01', '09:00', '10:00' );
+		$this->booking( 6, 11, '2026-04-01', '09:30', '10:30', array( 'description' => 'Elsewhere' ) );
+		// Booking 5 is the room's clash and also names user 2; booking 6 is
+		// in another room and names users 2 and 4.
+		$this->member_clashes = array(
+			5 => array( 2 ),
+			6 => array( 2, 4 ),
+		);
+		$asked = null;
+		Functions\when( 'get_users' )->alias(
+			static function ( array $args ) use ( &$asked ) {
+				$asked = $args;
+				return array( (object) array( 'display_name' => 'Ana' ), (object) array( 'display_name' => 'Caio' ) );
+			}
+		);
+
+		$result = ( new AudienceRestController() )->check_conflicts(
+			$this->make_request(
+				array(
+					'environment_id' => 10,
+					'booking_date'   => '2026-04-01',
+					'start_time'     => '09:00',
+					'end_time'       => '10:00',
+					'audience_ids'   => array(),
+					'user_ids'       => array( 2, 4 ),
+				)
+			)
+		);
+
+		$conflicts = $result->get_data()['conflicts'];
+		$this->assertSame( 'environment', $conflicts['type'], 'The room clash still decides the type.' );
+		$this->assertSame( array( 5 ), array_column( $conflicts['bookings'], 'id' ) );
+		$this->assertSame( array( 6 ), array_column( $conflicts['user_bookings'], 'id' ), 'The room\'s own clash is not reported twice.' );
+		$this->assertSame( array( 'Ana', 'Caio' ), $conflicts['affected_names'] );
+		$this->assertSame( 0, $conflicts['affected_more'] );
+		$this->assertSame( array( 2, 4 ), $asked['include'] );
+		$this->assertSame( 10, $asked['number'], 'At most ten names.' );
+	}
+
+	public function test_check_conflicts_counts_the_people_beyond_the_names_it_shows(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		$this->permit( 20, 3 );
+		$this->environment( 10, 20 );
+		$this->environment( 11, 20, null, 'Hall' );
+		$this->booking( 6, 11, '2026-04-01', '09:30', '10:30' );
+		$people               = range( 100, 111 );
+		$this->member_clashes = array( 6 => $people );
+		Functions\when( 'get_users' )->alias(
+			static fn( array $args ) => array_map( static fn( int $id ) => (object) array( 'display_name' => 'User ' . $id ), array_slice( $args['include'], 0, $args['number'] ) )
+		);
+
+		$conflicts = ( new AudienceRestController() )->check_conflicts(
+			$this->make_request(
+				array(
+					'environment_id' => 10,
+					'booking_date'   => '2026-04-01',
+					'start_time'     => '09:00',
+					'end_time'       => '10:00',
+					'audience_ids'   => array(),
+					'user_ids'       => $people,
+				)
+			)
+		)->get_data()['conflicts'];
+
+		$this->assertSame( 'user', $conflicts['type'] );
+		$this->assertSame( array( 6 ), array_column( $conflicts['bookings'], 'id' ) );
+		$this->assertCount( 10, $conflicts['affected_names'] );
+		$this->assertSame( 2, $conflicts['affected_more'] );
 	}
 
 	public function test_check_conflicts_refuses_an_invalid_date(): void {
