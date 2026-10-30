@@ -1174,34 +1174,97 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	}
 
 	// ==================================================================
-	// count_by_reregistration()
+	// count_filtered() / filters (#2242)
 	// ==================================================================
 
-	public function test_count_by_reregistration_without_status_filter(): void {
-		$this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
+	/**
+	 * A prepare() that records its arguments, so a test reads the SQL and
+	 * the values the filters produced.
+	 *
+	 * @return \ArrayObject<int, array<int, mixed>>
+	 */
+	private function recordPrepare(): \ArrayObject {
+		$calls = new \ArrayObject();
+		$this->wpdb->shouldReceive('esc_like')->andReturnUsing(static fn ($v) => $v);
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(
+			static function (...$args) use ($calls) {
+				$flat    = 2 === count($args) && is_array($args[1]) ? array_merge(array($args[0]), $args[1]) : $args;
+				$calls[] = $flat;
+				return 'Q' . (count($calls) - 1);
+			}
+		);
+		return $calls;
+	}
+
+	public function test_count_filtered_counts_the_filtered_rows(): void {
+		$calls = $this->recordPrepare();
 		$this->wpdb->shouldReceive('get_var')->once()->andReturn('12');
 
-		$count = ReregistrationSubmissionReader::count_by_reregistration(1);
+		$count = ReregistrationSubmissionReader::count_filtered(1, array('status' => 'approved'));
 
 		$this->assertSame(12, $count);
+		$this->assertStringContainsString('SELECT COUNT(*) FROM %i s LEFT JOIN %i u', $calls[0][0]);
+		$this->assertSame(array('wp_ffc_reregistration_submissions', 'wp_users', 1, 'approved'), array_slice($calls[0], 1));
 	}
 
-	public function test_count_by_reregistration_with_status_filter(): void {
-		$this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
-		$this->wpdb->shouldReceive('get_var')->once()->andReturn('4');
-
-		$count = ReregistrationSubmissionReader::count_by_reregistration(1, 'approved');
-
-		$this->assertSame(4, $count);
-	}
-
-	public function test_count_by_reregistration_returns_zero_for_null(): void {
-		$this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
+	public function test_count_filtered_returns_zero_for_a_failed_query(): void {
+		$this->recordPrepare();
 		$this->wpdb->shouldReceive('get_var')->once()->andReturn(null);
 
-		$count = ReregistrationSubmissionReader::count_by_reregistration(1);
+		$this->assertSame(0, ReregistrationSubmissionReader::count_filtered(1));
+	}
 
-		$this->assertSame(0, $count);
+	public function test_normalize_filters_keeps_known_values_only(): void {
+		$this->assertSame(
+			array('status' => 'not_finished', 'search' => 'ana', 'audience_id' => 3),
+			ReregistrationSubmissionReader::normalize_filters('not_finished', ' ana ', 3)
+		);
+		$this->assertSame(
+			array('status' => null, 'search' => null, 'audience_id' => 0),
+			ReregistrationSubmissionReader::normalize_filters('nope', '  ', -4),
+			'An unknown status lists everything rather than nothing.'
+		);
+	}
+
+	public function test_a_cpf_search_also_matches_the_account_that_carries_it(): void {
+		$calls = $this->recordPrepare();
+		$this->wpdb->shouldReceive('get_var')->andReturnUsing(
+			static fn ($sql) => '42'
+		);
+		$this->wpdb->shouldReceive('get_results')->andReturn(array());
+
+		ReregistrationSubmissionReader::get_by_reregistration(1, array('search' => '123.456.789-09'));
+
+		$lookup = array_values(array_filter((array) $calls, static fn ($c) => false !== strpos($c[0], 'cpf_hash = %s')));
+		$this->assertNotEmpty($lookup, 'The identity index is asked by hash.');
+		$this->assertSame(\FreeFormCertificate\Core\Encryption::hash('12345678909'), $lookup[0][2], 'Asked by the digits\' hash, whatever the mask.');
+		$this->assertNotSame('12345678909', $lookup[0][2], 'The CPF is never sent in clear.');
+
+		$list = array_values(array_filter((array) $calls, static fn ($c) => false !== strpos($c[0], 'SELECT s.*')));
+		$this->assertStringContainsString('(u.display_name LIKE %s OR u.user_email LIKE %s OR s.user_id = %d)', $list[0][0]);
+		$this->assertSame(42, end($list[0]));
+	}
+
+	public function test_an_rf_search_asks_the_rf_column(): void {
+		$calls = $this->recordPrepare();
+		$this->wpdb->shouldReceive('get_var')->andReturn(null);
+		$this->wpdb->shouldReceive('get_results')->andReturn(array());
+
+		ReregistrationSubmissionReader::get_by_reregistration(1, array('search' => '1234567'));
+
+		$lookups = array_values(array_filter((array) $calls, static fn ($c) => false !== strpos($c[0], 'rf_hash = %s')));
+		$this->assertNotEmpty($lookups);
+		$list = array_values(array_filter((array) $calls, static fn ($c) => false !== strpos($c[0], 'SELECT s.*')));
+		$this->assertStringNotContainsString('s.user_id = %d', $list[0][0], 'No account carries it, so only the name and e-mail match.');
+	}
+
+	public function test_a_name_search_never_asks_the_identity_index(): void {
+		$calls = $this->recordPrepare();
+		$this->wpdb->shouldReceive('get_results')->andReturn(array());
+
+		ReregistrationSubmissionReader::get_by_reregistration(1, array('search' => 'Ana 1234567'));
+
+		$this->assertCount(1, $calls, 'Only the list query.');
 	}
 
 	// ==================================================================
@@ -1257,7 +1320,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 			->once()
 			->andReturnUsing(function () {
 				$sql = func_get_args()[0];
-				$this->assertStringContainsString('s.status = %s', $sql);
+				$this->assertStringContainsString('s.status IN (%s)', $sql);
 				return 'QUERY';
 			});
 		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array());

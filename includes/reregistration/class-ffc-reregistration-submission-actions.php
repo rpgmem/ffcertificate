@@ -176,16 +176,28 @@ class ReregistrationSubmissionActions {
 		}
 
 		if ( 'send_reminder' === $action ) {
-			// Collect user IDs from submission IDs.
+			$base = admin_url( 'admin.php?page=' . ReregistrationAdmin::MENU_SLUG . '&view=submissions&id=' . $rereg_id );
+
+			// A reason that stops every send is said instead of "0 sent" (#2242).
+			$blocked = ReregistrationEmailHandler::reminder_block_reason( $rereg_id );
+			if ( '' !== $blocked ) {
+				wp_safe_redirect( $base . '&message=reminders_blocked&reason=' . $blocked );
+				exit;
+			}
+
+			// Only a member who still has to answer is reminded; the rest of
+			// the selection is counted, never silently dropped.
 			$user_ids = array();
 			foreach ( $ids as $sub_id ) {
 				$sub = ReregistrationSubmissionReader::get_by_id( $sub_id );
-				if ( $sub ) {
+				if ( $sub && (int) $sub->reregistration_id === $rereg_id && in_array( $sub->status, ReregistrationSubmissionReader::REMINDABLE_STATUSES, true ) ) {
 					$user_ids[] = (int) $sub->user_id;
 				}
 			}
-			$sent = ReregistrationEmailHandler::send_reminders( $rereg_id, $user_ids );
-			wp_safe_redirect( admin_url( 'admin.php?page=' . ReregistrationAdmin::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=reminders_sent&count=' . $sent ) );
+			$sent    = array() === $user_ids ? 0 : ReregistrationEmailHandler::send_reminders( $rereg_id, $user_ids );
+			$skipped = count( $ids ) - count( $user_ids );
+			$failed  = count( $user_ids ) - $sent;
+			wp_safe_redirect( $base . '&message=reminders_sent&count=' . $sent . '&skipped=' . $skipped . '&failed=' . $failed );
 			exit;
 		}
 	}

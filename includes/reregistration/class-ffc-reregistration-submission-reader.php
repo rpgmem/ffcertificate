@@ -362,16 +362,60 @@ class ReregistrationSubmissionReader {
 	}
 
 	/**
+	 * The status filter value that stands for "has not finished" (#2242).
+	 *
+	 * Not a status: it selects {@see self::NOT_FINISHED_STATUSES} together, the
+	 * people the operator still has to chase.
+	 */
+	public const NOT_FINISHED_FILTER = 'not_finished';
+
+	/**
+	 * What the "not finished" filter selects: nothing submitted yet.
+	 *
+	 * Narrower than {@see self::UNFINISHED_STATUSES}, which decides who a
+	 * deadline extension re-invites: a rejected or expired submission was
+	 * already answered once, and the operator reads it under its own status.
+	 *
+	 * @var array<int, string>
+	 */
+	public const NOT_FINISHED_STATUSES = array( 'pending', 'in_progress' );
+
+	/**
+	 * The list filters in their one accepted shape (#2242).
+	 *
+	 * The submissions screen, its pagination links and the CSV export read the
+	 * same request keys, so they pass through here and cannot disagree about
+	 * what a value means. An unknown status is dropped rather than matched, so a
+	 * stale or hand-edited URL lists everything instead of nothing.
+	 *
+	 * @param string $status      A status, {@see self::NOT_FINISHED_FILTER} or ''.
+	 * @param string $search      Name, e-mail, CPF or RF; '' for none.
+	 * @param int    $audience_id Audience whose members (descendants included) to keep; 0 for all.
+	 * @return array{status: string|null, search: string|null, audience_id: int}
+	 */
+	public static function normalize_filters( string $status, string $search, int $audience_id ): array {
+		$status = trim( $status );
+		$search = trim( $search );
+
+		return array(
+			'status'      => ( self::NOT_FINISHED_FILTER === $status || in_array( $status, self::STATUSES, true ) ) ? $status : null,
+			'search'      => '' !== $search ? $search : null,
+			'audience_id' => max( 0, $audience_id ),
+		);
+	}
+
+	/**
 	 * Get submissions for a reregistration with optional filters.
 	 *
 	 * @param int                  $reregistration_id Reregistration ID.
 	 * @param array<string, mixed> $filters { Optional. Query filters.
-	 *     @type string $status  Filter by status.
-	 *     @type string $search  Search in user display_name or email.
-	 *     @type string $orderby Column to order by. Default 'created_at'.
-	 *     @type string $order   ASC or DESC. Default 'ASC'.
-	 *     @type int    $limit   Max results. Default 0.
-	 *     @type int    $offset  Offset. Default 0.
+	 *     @type string $status      A status, or {@see self::NOT_FINISHED_FILTER}.
+	 *     @type string $search      Name or e-mail, or a CPF / RF matched through its hash.
+	 *     @type int    $audience_id Keep members of this audience, descendants included.
+	 *     @type string $orderby     Column to order by. Default 'created_at'.
+	 *     @type string $order       ASC or DESC. Default 'ASC'.
+	 *     @type int    $limit       Max results. Default 0.
+	 *     @type int    $offset      Offset. Default 0.
 	 * }
 	 * @return list<ReregistrationSubmissionRow>
 	 */
@@ -380,8 +424,6 @@ class ReregistrationSubmissionReader {
 		$table = self::get_table_name();
 
 		$defaults = array(
-			'status'  => null,
-			'search'  => null,
 			'orderby' => 'created_at',
 			'order'   => 'ASC',
 			'limit'   => 0,
@@ -389,33 +431,21 @@ class ReregistrationSubmissionReader {
 		);
 		$filters  = wp_parse_args( $filters, $defaults );
 
-		$where  = array( 's.reregistration_id = %d' );
-		$values = array( $reregistration_id );
-
-		if ( null !== $filters['status'] ) {
-			$where[]  = 's.status = %s';
-			$values[] = $filters['status'];
-		}
-
-		if ( ! empty( $filters['search'] ) ) {
-			$like     = '%' . $wpdb->esc_like( $filters['search'] ) . '%';
-			$where[]  = '(u.display_name LIKE %s OR u.user_email LIKE %s)';
-			$values[] = $like;
-			$values[] = $like;
-		}
-
-		$where_clause = 'WHERE ' . implode( ' AND ', $where );
+		list( $where, $values ) = self::filter_where( $reregistration_id, $filters );
+		$where_clause           = 'WHERE ' . implode( ' AND ', $where );
 
 		$allowed_orderby = array( 'created_at', 'submitted_at', 'reviewed_at', 'status' );
 		$orderby         = in_array( $filters['orderby'], $allowed_orderby, true ) ? 's.' . $filters['orderby'] : 's.created_at';
 		$order           = strtoupper( $filters['order'] ) === 'DESC' ? 'DESC' : 'ASC';
 		$limit_clause    = $filters['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $filters['limit'], $filters['offset'] ) : '';
 
+		// `s.id` breaks ties in the order, so a page boundary between rows
+		// created in the same second never shows one twice or skips one.
 		$sql = "SELECT s.*, u.display_name AS user_name, u.user_email AS user_email
                 FROM %i s
                 LEFT JOIN %i u ON s.user_id = u.ID
                 {$where_clause}
-                ORDER BY {$orderby} {$order}
+                ORDER BY {$orderby} {$order}, s.id {$order}
                 {$limit_clause}";
 
 		$prepare_values = array_merge( array( $table, $wpdb->users ), $values );
@@ -441,6 +471,121 @@ class ReregistrationSubmissionReader {
 		 * @var list<ReregistrationSubmissionRow>
 		 */
 		return is_array( $results ) ? $results : array();
+	}
+
+	/**
+	 * How many submissions {@see self::get_by_reregistration()} would list
+	 * with these filters and no limit: the total the pagination pages through.
+	 *
+	 * @since 6.43.0
+	 * @param int                  $reregistration_id Reregistration ID.
+	 * @param array<string, mixed> $filters           `status`, `search`, `audience_id`.
+	 * @return int
+	 */
+	public static function count_filtered( int $reregistration_id, array $filters = array() ): int {
+		$wpdb = self::db();
+
+		list( $where, $values ) = self::filter_where( $reregistration_id, $filters );
+		$where_clause           = 'WHERE ' . implode( ' AND ', $where );
+
+		$sql = "SELECT COUNT(*) FROM %i s LEFT JOIN %i u ON s.user_id = u.ID {$where_clause}";
+
+		/**
+		 * Same runtime SQL as {@see self::get_by_reregistration()}; the WHERE
+		 * fragments are literals and every value is a placeholder.
+		 *
+		 * @phpstan-ignore argument.type
+		 */
+		return (int) $wpdb->get_var( $wpdb->prepare( $sql, array_merge( array( self::get_table_name(), $wpdb->users ), $values ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One count per screen render or export job, keyed on the request's filters.
+	}
+
+	/**
+	 * The WHERE fragments and their values for the list filters (#2242).
+	 *
+	 * One builder for the screen, its count and the CSV export, so the export
+	 * holds exactly the rows the operator filtered on screen. Every fragment is
+	 * a literal with placeholders; the values travel apart.
+	 *
+	 * A search that reads as a CPF (11 digits) or an RF (7 digits) is also
+	 * matched through the identifier hash: the submission stores the value
+	 * encrypted, so the hash is the only way to find it, and it resolves to the
+	 * one account that carries it. An audience narrows to its members,
+	 * descendants included -- the reach the campaign itself uses.
+	 *
+	 * @param int                  $reregistration_id Reregistration ID.
+	 * @param array<string, mixed> $filters           `status`, `search`, `audience_id`.
+	 * @return array{0: list<string>, 1: list<int|string>}
+	 */
+	private static function filter_where( int $reregistration_id, array $filters ): array {
+		$wpdb   = self::db();
+		$where  = array( 's.reregistration_id = %d' );
+		$values = array( $reregistration_id );
+
+		$status     = isset( $filters['status'] ) && is_string( $filters['status'] ) ? $filters['status'] : '';
+		$status_set = self::NOT_FINISHED_FILTER === $status ? self::NOT_FINISHED_STATUSES : ( '' !== $status ? array( $status ) : array() );
+		if ( array() !== $status_set ) {
+			$where[] = 's.status IN (' . implode( ', ', array_fill( 0, count( $status_set ), '%s' ) ) . ')';
+			array_push( $values, ...$status_set );
+		}
+
+		$search = isset( $filters['search'] ) && is_string( $filters['search'] ) ? trim( $filters['search'] ) : '';
+		if ( '' !== $search ) {
+			$like     = '%' . $wpdb->esc_like( $search ) . '%';
+			$by_id    = self::user_id_for_identifier( $search );
+			$where[]  = $by_id > 0
+				? '(u.display_name LIKE %s OR u.user_email LIKE %s OR s.user_id = %d)'
+				: '(u.display_name LIKE %s OR u.user_email LIKE %s)';
+			$values[] = $like;
+			$values[] = $like;
+			if ( $by_id > 0 ) {
+				$values[] = $by_id;
+			}
+		}
+
+		$audience_id = isset( $filters['audience_id'] ) ? (int) $filters['audience_id'] : 0;
+		if ( $audience_id > 0 ) {
+			$user_ids = array_values( array_map( 'intval', ReregistrationRepository::get_user_ids_for_audiences( array( $audience_id ) ) ) );
+			if ( array() === $user_ids ) {
+				$where[] = '1 = 0';
+			} else {
+				$where[] = 's.user_id IN (' . implode( ', ', array_fill( 0, count( $user_ids ), '%d' ) ) . ')';
+				array_push( $values, ...$user_ids );
+			}
+		}
+
+		return array( $where, $values );
+	}
+
+	/**
+	 * The account a CPF or RF search term belongs to, or 0.
+	 *
+	 * Only a term made of digits and the usual mask characters is tried, and
+	 * only at the lengths an identifier has, so a name search never pays for a
+	 * hash lookup.
+	 *
+	 * @param string $search The search term.
+	 * @return int
+	 */
+	private static function user_id_for_identifier( string $search ): int {
+		if ( 1 !== preg_match( '/^[\d.\-\/\s]+$/', $search ) ) {
+			return 0;
+		}
+		$digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $search );
+		if ( 7 !== strlen( $digits ) && 11 !== strlen( $digits ) ) {
+			return 0;
+		}
+
+		$kind = \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $digits );
+		$hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( $kind, $digits );
+		if ( null === $hash ) {
+			return 0;
+		}
+
+		return \FreeFormCertificate\UserDashboard\UserManager::resolve_existing_user(
+			'cpf' === $kind ? $hash : null,
+			'rf' === $kind ? $hash : null,
+			''
+		);
 	}
 
 	/**
@@ -540,30 +685,6 @@ class ReregistrationSubmissionReader {
 		}
 	}
 
-	/**
-	 * Count submissions for a reregistration.
-	 *
-	 * @param int         $reregistration_id Reregistration ID.
-	 * @param string|null $status            Optional status filter.
-	 * @return int
-	 */
-	public static function count_by_reregistration( int $reregistration_id, ?string $status = null ): int {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$where  = 'WHERE reregistration_id = %d';
-		$values = array( $reregistration_id );
-
-		if ( null !== $status ) {
-			$where   .= ' AND status = %s';
-			$values[] = $status;
-		}
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): a single caller, the export source, once per export job.
-		return (int) $wpdb->get_var(
-			$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where}", array_merge( array( $table ), $values ) )
-		);
-	}
 
 	/**
 	 * Keyset page for the batched CSV export: submissions of one reregistration
@@ -573,26 +694,40 @@ class ReregistrationSubmissionReader {
 	 * during a long export.
 	 *
 	 * @since 6.17.0
-	 * @param int $reregistration_id Reregistration ID.
-	 * @param int $cursor            Exclusive upper-bound id (PHP_INT_MAX on the first page).
-	 * @param int $size              Page size.
+	 * The filters are the screen's (#2242), through the same builder, so the
+	 * file holds exactly the rows the operator filtered on.
+	 *
+	 * @param int                  $reregistration_id Reregistration ID.
+	 * @param int                  $cursor            Exclusive upper-bound id (PHP_INT_MAX on the first page).
+	 * @param int                  $size              Page size.
+	 * @param array<string, mixed> $filters           `status`, `search`, `audience_id`.
 	 * @return list<ReregistrationSubmissionRow>
 	 */
-	public static function find_by_cursor_for_export( int $reregistration_id, int $cursor, int $size ): array {
+	public static function find_by_cursor_for_export( int $reregistration_id, int $cursor, int $size, array $filters = array() ): array {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		$sql = 'SELECT s.*, u.display_name AS user_name, u.user_email AS user_email
+		list( $where, $values ) = self::filter_where( $reregistration_id, $filters );
+		$where[]                = 's.id < %d';
+		$values[]               = $cursor;
+		$where_clause           = 'WHERE ' . implode( ' AND ', $where );
+
+		$sql = "SELECT s.*, u.display_name AS user_name, u.user_email AS user_email
                 FROM %i s
                 LEFT JOIN %i u ON s.user_id = u.ID
-                WHERE s.reregistration_id = %d AND s.id < %d
+                {$where_clause}
                 ORDER BY s.id DESC
-                LIMIT %d';
+                LIMIT %d";
 
-		$prepare_values = array( $table, $wpdb->users, $reregistration_id, $cursor, $size );
+		$prepare_values = array_merge( array( $table, $wpdb->users ), $values, array( $size ) );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset pagination over an export; each page is read exactly once, so there is nothing a cache could serve twice.
-		$results = $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ) );
+		/**
+		 * Same runtime SQL as {@see self::get_by_reregistration()}; the WHERE
+		 * fragments are literals and every value is a placeholder.
+		 *
+		 * @phpstan-ignore argument.type
+		 */
+		$results = $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset pagination over an export; each page is read exactly once, so there is nothing a cache could serve twice.
 		/**
 		 * Cast wpdb result to the typed row shape.
 		 *

@@ -14855,9 +14855,6 @@ msgstr "Formulários de Pesquisa"
 msgid "Search logs..."
 msgstr "Registros de pesquisa..."
 
-#: templates/admin/reregistration/submissions.php:58
-msgid "Search name or email..."
-msgstr "Pesquisar nome ou e-mail..."
 
 #: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:113
 msgid "Search notices"
@@ -29897,3 +29894,63 @@ msgstr "Depois que alguém responde a um campo personalizado, em um recadastrame
 
 msgid "This field already has answers and cannot be deleted. Deactivate it instead; its answers stay in review, the Record and the export."
 msgstr "Este campo já tem respostas e não pode ser excluído. Desative-o; as respostas continuam na análise, na Ficha e na exportação."
+
+msgid "Name, email, CPF or RF"
+msgstr "Nome, e-mail, CPF ou RF"
+
+msgid "No reminder was sent: every plugin e-mail is disabled in the settings."
+msgstr "Nenhum lembrete foi enviado: todos os e-mails do plugin estão desativados nas configurações."
+
+msgid "No reminder was sent: reminders are turned off for this campaign."
+msgstr "Nenhum lembrete foi enviado: os lembretes estão desativados nesta campanha."
+
+msgid "No reminder was sent: the reminder e-mail text is empty."
+msgstr "Nenhum lembrete foi enviado: o texto do e-mail de lembrete está vazio."
+
+msgid "Not finished (pending or in progress)"
+msgstr "Não concluídos (pendentes ou em andamento)"
+
+#. translators: %d: number of reminder e-mails sent.
+msgid "%d reminder sent."
+msgid_plural "%d reminders sent."
+msgstr[0] "%d lembrete enviado."
+msgstr[1] "%d lembretes enviados."
+
+#. translators: %d: number of selected submissions that were not awaiting an answer.
+msgid "%d selected submission was skipped because it is not awaiting an answer."
+msgid_plural "%d selected submissions were skipped because they are not awaiting an answer."
+msgstr[0] "%d envio selecionado foi ignorado porque não aguarda resposta."
+msgstr[1] "%d envios selecionados foram ignorados porque não aguardam resposta."
+
+#. translators: %d: number of reminders the mailer did not send.
+msgid "%d reminder could not be sent (the member has no account or e-mail, or the mailer refused it)."
+msgid_plural "%d reminders could not be sent (the member has no account or e-mail, or the mailer refused it)."
+msgstr[0] "%d lembrete não pôde ser enviado (o membro não tem conta ou e-mail, ou o envio foi recusado)."
+msgstr[1] "%d lembretes não puderam ser enviados (o membro não tem conta ou e-mail, ou o envio foi recusado)."
+
+#. translators: %s: number of submissions listed.
+msgid "%s submission"
+msgid_plural "%s submissions"
+msgstr[0] "%s envio"
+msgstr[1] "%s envios"
+
+msgid "Only members who still have to answer (pending, in progress or rejected) are reminded. The notice counts the selected members who were skipped and the reminders that could not be sent, and says why nothing went out when reminders are off or every plugin e-mail is disabled."
+msgstr "Só recebe lembrete quem ainda precisa responder (pendente, em andamento ou rejeitado). O aviso conta os membros selecionados que foram ignorados e os lembretes que não puderam ser enviados, e diz por que nada saiu quando os lembretes estão desativados ou todos os e-mails do plugin estão desligados."
+
+msgid "Reviewing a large campaign"
+msgstr "Analisando uma campanha grande"
+
+msgid "The submissions list shows 50 per page. \"Reveal this page\" reveals the e-mails of the page on screen, never of the whole campaign."
+msgstr "A lista de envios mostra 50 por página. \"Revelar esta página\" revela os e-mails da página na tela, nunca os da campanha inteira."
+
+msgid "The search box takes a name, an e-mail, a CPF or an RF. A CPF or RF is matched through its hash, so the member is found although the value is stored encrypted."
+msgstr "A busca aceita nome, e-mail, CPF ou RF. O CPF ou RF é comparado pelo hash, então o membro é encontrado mesmo com o valor gravado criptografado."
+
+msgid "Filter by status, by \"not finished\" (pending or in progress: the members still to chase) or, when the campaign reaches several audiences, by audience, child audiences included."
+msgstr "Filtre por status, por \"não concluídos\" (pendentes ou em andamento: os membros que ainda precisam ser cobrados) ou, quando a campanha alcança vários públicos, por público, incluindo os públicos filhos."
+
+msgid "Each status card links to the list filtered by that status; the Total card clears every filter."
+msgstr "Cada cartão de status leva à lista filtrada por aquele status; o cartão Total limpa todos os filtros."
+
+msgid "Export CSV exports what the list shows: the same filters, every page."
+msgstr "Exportar CSV exporta o que a lista mostra: os mesmos filtros, todas as páginas."

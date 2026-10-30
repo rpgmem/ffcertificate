@@ -601,6 +601,24 @@ describe('rereg-admin — CSV export', () => {
 		delete window.FFCBatchedExport;
 	});
 
+	it('sends the filters the list was drawn with (#2242)', async () => {
+		const runSpy = vi.fn();
+		window.FFCBatchedExport = { run: runSpy };
+		document.body.innerHTML = `
+			<button type="button" id="ffc-rereg-export-btn" data-id="7" data-sub-status="not_finished" data-search="123.456.789-09" data-audience="3">Export CSV</button>
+		`;
+		await reload();
+
+		window.$('#ffc-rereg-export-btn').trigger('click');
+
+		expect(runSpy.mock.calls[0][0].startData).toEqual({
+			id: 7,
+			sub_status: 'not_finished',
+			s: '123.456.789-09',
+			audience: '3'
+		});
+	});
+
 	it('drives window.FFCBatchedExport.run with type + campaign id + job nonce', async () => {
 		const runSpy = vi.fn();
 		window.FFCBatchedExport = { run: runSpy };
@@ -619,7 +637,7 @@ describe('rereg-admin — CSV export', () => {
 		expect(arg.type).toBe('reregistration');
 		expect(arg.ajaxUrl).toBe('/wp-admin/admin-ajax.php');
 		expect(arg.nonce).toBe('export-nonce');
-		expect(arg.startData).toEqual({ id: 7 });
+		expect(arg.startData).toEqual({ id: 7, sub_status: '', s: '', audience: '' });
 		// Progress is now driven by the shared overlay (#786): the caller passes
 		// overlay:true + the button, not per-call callbacks.
 		expect(arg.overlay).toBe(true);

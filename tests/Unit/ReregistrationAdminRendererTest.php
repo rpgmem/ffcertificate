@@ -61,6 +61,9 @@ class ReregistrationAdminRendererTest extends TestCase {
 	/** @var list<object> Rows the submissions query answers. */
 	private array $submissions = array();
 
+	/** @var int|null What the count query answers; null counts the rows above. */
+	private ?int $submission_total = null;
+
 	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
 	private $wpdb_backup;
 
@@ -95,6 +98,23 @@ class ReregistrationAdminRendererTest extends TestCase {
 			return $url . '&_wpnonce=' . $action;
 		} );
 		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'add_query_arg' )->alias(
+			static function ( ...$args ) {
+				$params = is_array( $args[0] ) ? $args[0] : array( $args[0] => $args[1] );
+				$url    = (string) ( is_array( $args[0] ) ? $args[1] : $args[2] );
+				foreach ( $params as $key => $value ) {
+					$url .= '&' . $key . '=' . $value;
+				}
+				return $url;
+			}
+		);
+		// paginate_links(): one marker naming the page count and the base, so
+		// a test reads what the pagination was asked for.
+		Functions\when( 'paginate_links' )->alias(
+			static fn ( array $args ) => '<span class="pages" data-total="' . $args['total'] . '" data-current="' . $args['current'] . '" data-base="' . $args['base'] . '"></span>'
+		);
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->alias( function ( $action ) {
 			echo '<input type="hidden" data-nonce="' . $action . '">';
@@ -144,6 +164,7 @@ class ReregistrationAdminRendererTest extends TestCase {
 		$this->audiences          = array();
 		$this->members            = array();
 		$this->submissions        = array();
+		$this->submission_total   = null;
 
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
@@ -209,6 +230,17 @@ class ReregistrationAdminRendererTest extends TestCase {
 					return array_map( 'strval', $users );
 				}
 				$this->fail( 'Unexpected get_col(): ' . $sql . ' with ' . var_export( $bound, true ) );
+			}
+		);
+		// count_filtered() (#2242): the list's total, which drives the pages.
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				$bound       = $this->boundTo( (string) $sql );
+				$this->ran[] = array( 'get_var', $bound );
+				if ( false !== strpos( (string) $sql, 'SELECT COUNT(*) FROM %i s LEFT JOIN %i u' ) ) {
+					return (string) ( $this->submission_total ?? count( $this->submissions ) );
+				}
+				$this->fail( 'Unexpected get_var(): ' . $sql . ' with ' . var_export( $bound, true ) );
 			}
 		);
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
@@ -467,9 +499,10 @@ class ReregistrationAdminRendererTest extends TestCase {
 
 		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submissions( 'ffc-reregistration', 7, true ) );
 
-		$query = $this->preparedWith( 'LEFT JOIN %i u' );
+		$query = $this->preparedWith( 'SELECT s.*' );
 		$this->assertCount( 1, $query, 'The submissions are read once.' );
 		$this->assertSame( array( 'wp_ffc_reregistration_submissions', 'wp_users', 7, 'submitted', '%maria%', '%maria%' ), array_slice( $query[0], 1 ) );
+		$this->assertStringContainsString( 'LIMIT 50 OFFSET 0', (string) $query[0][0], 'The first page of fifty (#2242).' );
 
 		$this->assertSame( 'Submissions: Census 2026', trim( strip_tags( explode( '</h1>', $html )[0] ) ) );
 		$this->assertStringContainsString( 'No submissions found.', $html );
@@ -477,7 +510,7 @@ class ReregistrationAdminRendererTest extends TestCase {
 		$this->assertStringContainsString( 'value="maria"', $html );
 
 		preg_match_all(
-			'#<div class="ffc-stat-card"><span class="ffc-stat-card__icon ([^"]*)" aria-hidden="true"></span><span class="ffc-stat-card__value">([^<]*)</span><span class="ffc-stat-card__label">([^<]*)</span></div>#',
+			'#<div class="ffc-stat-card"><span class="ffc-stat-card__icon ([^"]*)" aria-hidden="true"></span><span class="ffc-stat-card__value">([^<]*)</span><span class="ffc-stat-card__label">([^<]*)</span><a class="ffc-stat-card__link" href="[^"]*">Show &rarr;</a></div>#',
 			$html,
 			$cards,
 			PREG_SET_ORDER
@@ -515,7 +548,7 @@ class ReregistrationAdminRendererTest extends TestCase {
 
 		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submissions( 'ffc-reregistration', 7, false ) );
 
-		$query = $this->preparedWith( 'LEFT JOIN %i u' );
+		$query = $this->preparedWith( 'SELECT s.*' );
 		$this->assertCount( 1, $query );
 		$this->assertSame( array( 'wp_ffc_reregistration_submissions', 'wp_users', 7 ), array_slice( $query[0], 1 ), 'No filter reaches the query.' );
 		$this->assertStringNotContainsString( 'name="bulk_action"', $html );
@@ -523,6 +556,125 @@ class ReregistrationAdminRendererTest extends TestCase {
 		$this->assertStringContainsString( 'm***@example.org', $html );
 		$this->assertStringNotContainsString( 'return_to_draft', $html, 'A viewer cannot send it back.' );
 		$this->assertStringNotContainsString( 'ffc-record-btn', $html, 'A viewer the Record endpoint refuses is not offered the button (#1815).' );
+	}
+
+	// ==================================================================
+	// render_submissions() — review at scale (#2242)
+	// ==================================================================
+
+	public function test_render_submissions_pages_through_the_filtered_total(): void {
+		$_GET['paged']          = '2';
+		$_GET['sub_status']     = 'approved';
+		$this->campaigns[7]     = $this->campaign();
+		$this->status_counts[7] = array();
+		$this->submission_total = 120;
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submissions( 'ffc-reregistration', 7, true ) );
+
+		$count = $this->preparedWith( 'SELECT COUNT(*)' );
+		$this->assertCount( 1, $count );
+		$this->assertSame( array( 'wp_ffc_reregistration_submissions', 'wp_users', 7, 'approved' ), array_slice( $count[0], 1 ), 'The total counts the filtered rows.' );
+
+		$query = $this->preparedWith( 'SELECT s.*' );
+		$this->assertStringContainsString( 'LIMIT 50 OFFSET 50', (string) $query[0][0] );
+		$this->assertStringContainsString( 'ORDER BY s.created_at ASC, s.id ASC', (string) $query[0][0], 'The id breaks ties, so no row repeats across pages.' );
+
+		$this->assertSame( 2, substr_count( $html, 'data-total="3" data-current="2"' ), 'Pages at the top and the bottom.' );
+		$this->assertStringContainsString( 'data-base="https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=submissions&id=7&sub_status=approved&paged=%#%"', $html, 'A page link keeps the filter.' );
+		$this->assertSame( 2, substr_count( $html, '120 submissions' ) );
+	}
+
+	public function test_render_submissions_clamps_a_page_beyond_the_last(): void {
+		$_GET['paged']          = '9';
+		$this->campaigns[7]     = $this->campaign();
+		$this->submission_total = 51;
+
+		$this->capture( fn () => ReregistrationAdminRenderer::render_submissions( 'ffc-reregistration', 7, true ) );
+
+		$this->assertStringContainsString( 'LIMIT 50 OFFSET 50', (string) $this->preparedWith( 'SELECT s.*' )[0][0] );
+	}
+
+	public function test_render_submissions_one_page_draws_no_page_links(): void {
+		$this->campaigns[7] = $this->campaign();
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submissions( 'ffc-reregistration', 7, true ) );
+
+		$this->assertStringNotContainsString( 'data-total=', $html );
+		$this->assertStringContainsString( '0 submissions', $html );
+	}
+
+	public function test_not_finished_filter_selects_pending_and_in_progress(): void {
+		$_GET['sub_status'] = 'not_finished';
+		$this->campaigns[7] = $this->campaign();
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submissions( 'ffc-reregistration', 7, true ) );
+
+		$query = $this->preparedWith( 'SELECT s.*' );
+		$this->assertStringContainsString( 's.status IN (%s, %s)', (string) $query[0][0] );
+		$this->assertSame( array( 'wp_ffc_reregistration_submissions', 'wp_users', 7, 'pending', 'in_progress' ), array_slice( $query[0], 1 ) );
+		$this->assertStringContainsString( 'value="not_finished"', $html );
+	}
+
+	public function test_an_unknown_status_is_dropped_rather_than_matched(): void {
+		$_GET['sub_status'] = 'bogus';
+		$this->campaigns[7] = $this->campaign();
+
+		$this->capture( fn () => ReregistrationAdminRenderer::render_submissions( 'ffc-reregistration', 7, true ) );
+
+		$this->assertSame( array( 'wp_ffc_reregistration_submissions', 'wp_users', 7 ), array_slice( $this->preparedWith( 'SELECT s.*' )[0], 1 ) );
+	}
+
+	public function test_audience_filter_keeps_the_members_and_is_offered_for_several_audiences(): void {
+		$_GET['audience']       = '3';
+		$this->campaigns[7]     = $this->campaign();
+		$this->audience_ids[7]  = array( '3', '4' );
+		$this->audiences[3]     = (object) array( 'id' => 3, 'name' => 'Teachers', 'parent_id' => null );
+		$this->audiences[4]     = (object) array( 'id' => 4, 'name' => 'Staff', 'parent_id' => null );
+		$this->members[3]       = array( 11, 12 );
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submissions( 'ffc-reregistration', 7, true ) );
+
+		$query = $this->preparedWith( 'SELECT s.*' );
+		$this->assertStringContainsString( 's.user_id IN (%d, %d)', (string) $query[0][0] );
+		$this->assertSame( array( 'wp_ffc_reregistration_submissions', 'wp_users', 7, 11, 12 ), array_slice( $query[0], 1 ) );
+		$this->assertStringContainsString( '<select name="audience"', $html );
+		$this->assertStringContainsString( '>Teachers</option>', $html );
+		$this->assertStringContainsString( '>Staff</option>', $html );
+		$this->assertStringContainsString( 'data-audience="3"', $html, 'The export carries the audience.' );
+	}
+
+	public function test_audience_with_no_members_lists_nothing(): void {
+		$_GET['audience']      = '3';
+		$this->campaigns[7]    = $this->campaign();
+		$this->audience_ids[7] = array( '3' );
+		$this->audiences[3]    = (object) array( 'id' => 3, 'name' => 'Teachers', 'parent_id' => null );
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submissions( 'ffc-reregistration', 7, true ) );
+
+		$this->assertStringContainsString( '1 = 0', (string) $this->preparedWith( 'SELECT s.*' )[0][0] );
+		$this->assertStringNotContainsString( '<select name="audience"', $html, 'One audience is not worth a filter.' );
+	}
+
+	public function test_stat_cards_link_to_their_status_and_the_total_to_everything(): void {
+		$_GET['s']              = 'maria';
+		$this->campaigns[7]     = $this->campaign();
+		$this->status_counts[7] = array( $this->countRow( 'pending', 2 ) );
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submissions( 'ffc-reregistration', 7, true ) );
+
+		$base = 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=submissions&id=7';
+		$this->assertStringContainsString( '<a class="ffc-stat-card__link" href="' . $base . '&sub_status=pending">', $html );
+		$this->assertStringContainsString( '<a class="ffc-stat-card__link" href="' . $base . '">', $html, 'The total clears every filter.' );
+	}
+
+	public function test_export_button_carries_the_applied_filters(): void {
+		$_GET['sub_status'] = 'submitted';
+		$_GET['s']          = 'maria';
+		$this->campaigns[7] = $this->campaign();
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submissions( 'ffc-reregistration', 7, true ) );
+
+		$this->assertMatchesRegularExpression( '#id="ffc-rereg-export-btn"[^>]*data-id="7" data-sub-status="submitted" data-search="maria" data-audience="0"#', $html );
 	}
 
 	// ==================================================================

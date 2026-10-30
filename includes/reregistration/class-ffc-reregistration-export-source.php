@@ -133,9 +133,14 @@ class ReregistrationExportSource implements BatchedExportSourceInterface {
 	 */
 	public function sanitize_filters(): array {
 		// The nonce is verified in authorize_start(); RequestInput wraps + sanitizes.
-		return array(
-			'reregistration_id' => RequestInput::get_post_int( 'id' ),
-		);
+		// The screen's filters ride along (#2242) and are normalised by the same
+		// reader method the screen uses, so the file matches the filtered list.
+		return array( 'reregistration_id' => RequestInput::get_post_int( 'id' ) )
+			+ ReregistrationSubmissionReader::normalize_filters(
+				RequestInput::get_post_string( 'sub_status' ),
+				RequestInput::get_post_string( 's' ),
+				RequestInput::get_post_int( 'audience' )
+			);
 	}
 
 	/**
@@ -145,7 +150,7 @@ class ReregistrationExportSource implements BatchedExportSourceInterface {
 	 * @return int
 	 */
 	public function count( array $filters ): int {
-		return ReregistrationSubmissionReader::count_by_reregistration( (int) $filters['reregistration_id'] );
+		return ReregistrationSubmissionReader::count_filtered( (int) $filters['reregistration_id'], $filters );
 	}
 
 	/**
@@ -218,7 +223,7 @@ class ReregistrationExportSource implements BatchedExportSourceInterface {
 	 */
 	public function fetch_page( array $filters, array $context, int $cursor, int $size ): array {
 		unset( $context );
-		$rows = ReregistrationSubmissionReader::find_by_cursor_for_export( (int) $filters['reregistration_id'], $cursor, $size );
+		$rows = ReregistrationSubmissionReader::find_by_cursor_for_export( (int) $filters['reregistration_id'], $cursor, $size, $filters );
 		return array_map( static fn( $row ): array => (array) $row, $rows );
 	}
 
