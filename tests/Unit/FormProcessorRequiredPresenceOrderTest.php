@@ -118,6 +118,8 @@ class FormProcessorRequiredPresenceOrderTest extends TestCase {
 			$p = new \stdClass();
 			$p->ID = 1;
 			$p->post_title = 'Form';
+			$p->post_type   = 'ffc_form';
+			$p->post_status = 'publish';
 			return $p;
 		} );
 

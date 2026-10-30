@@ -36,6 +36,13 @@ class FormConfigResolver {
 			throw new SubmissionRejected( array( 'message' => __( 'Invalid Form ID.', 'ffcertificate' ) ) );
 		}
 
+		// Only a published form takes submissions: a draft, private or trashed
+		// one keeps its fields and was accepted here, while REST refused it (#2241).
+		$form = get_post( $form_id );
+		if ( ! $form || 'ffc_form' !== $form->post_type || 'publish' !== $form->post_status ) {
+			throw new SubmissionRejected( array( 'message' => __( 'This form is not available right now. Please contact the organizer.', 'ffcertificate' ) ) );
+		}
+
 		$form_config = get_post_meta( $form_id, '_ffc_form_config', true );
 		if ( ! is_array( $form_config ) ) {
 			$form_config = array();

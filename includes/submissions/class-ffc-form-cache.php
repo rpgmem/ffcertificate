@@ -416,7 +416,26 @@ class FormCache {
 			return false;
 		}
 
-		return wp_cache_flush();
+		// Only the plugin's own group: `wp_cache_flush()` empties the whole
+		// object cache, every other plugin's entries and, on a multisite with a
+		// persistent cache, every site's (#2241). Without group flushing the
+		// forms' keys are deleted one by one.
+		if ( function_exists( 'wp_cache_supports' ) && wp_cache_supports( 'flush_group' ) ) {
+			return wp_cache_flush_group( self::CACHE_GROUP );
+		}
+
+		$form_ids = get_posts(
+			array(
+				'post_type'      => 'ffc_form',
+				'post_status'    => 'any',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+			)
+		);
+		foreach ( $form_ids as $form_id ) {
+			self::clear_form_cache( (int) $form_id );
+		}
+		return true;
 	}
 
 	/**
