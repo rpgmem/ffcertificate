@@ -722,8 +722,10 @@
 }
 
 /* The schedule under an environment's name: secondary text, which was a
-   fixed `#666` that dropped to about 2.6:1 in the dark theme (#1826). */
-.ffc-audience-bookings-table .ffc-booking-schedule {
+   fixed `#666` that dropped to about 2.6:1 in the dark theme (#1826). The
+   reason under a cancelled booking's description reads the same (#2243). */
+.ffc-audience-bookings-table .ffc-booking-schedule,
+.ffc-audience-bookings-table .ffc-booking-cancel-reason {
     color: var(--ffc-text-muted);
     /* The step below the cell's, which is what `small` drew relative to it
        before the root gave `small` the `sm` step (#1832). */

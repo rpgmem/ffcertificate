@@ -23989,7 +23989,7 @@ msgstr ""
 msgid "This text is suggested by the Free Form Certificate plugin to help you describe how it processes personal data. Review and adapt it to your organisation and to the modules you actually use (form submissions and certificates, appointment scheduling, audiences, re-registration and recruitment). Delete any section that does not apply."
 msgstr ""
 
-msgid "Unlike personal calendars, an audience booking has a free start/end time. Two bookings that overlap the same environment are a hard conflict (blocked); overlaps for the same audience or user are soft conflicts the booker can acknowledge. Each booking needs a short description (15–300 characters)."
+msgid "Unlike personal calendars, an audience booking has a free start/end time. Two bookings that overlap the same environment are a hard conflict (blocked); overlaps for the same audience or user are soft conflicts the booker can acknowledge. One check reports both kinds together, and names up to ten of the people who are booked elsewhere at that time, with how many more there are. Each booking needs a short description (15–300 characters)."
 msgstr ""
 
 msgid "view the list and download QR codes."
@@ -30049,5 +30049,24 @@ msgstr[1] ""
 
 msgid "%s booking"
 msgid_plural "%s bookings"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Reason: %s"
+msgstr ""
+
+msgid "and %d more"
+msgstr ""
+
+msgid "Joining a group brings its upcoming bookings into the user's list at once, and the dashboard says how many. Before leaving one, the confirmation says how many upcoming bookings leave the list with it: those that reach the user through that group alone, not those that also name them or another of their groups. A cancelled booking shows, under its description, the reason the person who cancelled it gave."
+msgstr ""
+
+msgid "Its %d upcoming booking is now in your list."
+msgid_plural "Its %d upcoming bookings are now in your list."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "You will no longer see %d upcoming booking of this group, nor be expected at it."
+msgid_plural "You will no longer see %d upcoming bookings of this group, nor be expected at them."
 msgstr[0] ""
 msgstr[1] ""

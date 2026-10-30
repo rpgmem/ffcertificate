@@ -395,6 +395,42 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		expect(window.$('#ffc-conflict-warning .ffc-notice-text').text()).toContain('2 member(s) overlap.');
 	});
 
+	it('names the people who clash, and how many more (#2243)', async () => {
+		vi.spyOn(window.FFC, 'rest').mockResolvedValue({
+			success: true,
+			conflicts: { type: 'user', bookings: [{}], affected_users: [1, 2, 3], affected_names: ['Ana', '<b>Bia</b>'], affected_more: 1 },
+		});
+		api.checkConflicts();
+		await Promise.resolve().then(() => Promise.resolve());
+		const lines = Array.from(document.querySelectorAll('#ffc-conflict-warning .ffc-notice-text')).map((p) => p.textContent);
+		expect(lines).toContain('Ana, <b>Bia</b> and 1 more');
+		expect(document.querySelector('#ffc-conflict-warning b')).toBeNull();
+	});
+
+	it('reports the people and the audiences with a room clash, in one round (#2243)', async () => {
+		vi.spyOn(window.FFC, 'rest').mockResolvedValue({
+			success: true,
+			conflicts: {
+				type: 'environment',
+				can_override: true,
+				bookings: [{ start_time: '09:00', end_time: '10:00' }],
+				user_bookings: [{}],
+				affected_users: [4],
+				affected_names: ['Caio'],
+				affected_more: 0,
+				audience_same_day: [{ audience_name: 'Sub', start_time: '11:00', end_time: '12:00' }],
+			},
+		});
+		api.checkConflicts();
+		await Promise.resolve().then(() => Promise.resolve());
+		const lines = Array.from(document.querySelectorAll('#ffc-conflict-error .ffc-notice-text')).map((p) => p.textContent);
+		expect(lines[0]).toBe('09:00–10:00');
+		expect(lines).toContain('Sub: 11:00–12:00');
+		expect(lines).toContain('1 member(s) overlap.');
+		expect(lines).toContain('Caio');
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('create');
+	});
+
 	it('prints audience names and times as text, never as markup, on a re-check too', async () => {
 		const rest = vi.spyOn(window.FFC, 'rest').mockResolvedValue({
 			success: true,

@@ -78,6 +78,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: an override takes only the days that clash, with the operator's reason** (#2243). The earlier booking keeps its other days, attendance and post-event invitations, and is cancelled only when no day is left; the confirmation asks why, and the e-mails name the days lost. A booking over several days now stores each day's hours, so editing a space's working hours no longer moves it.
 - **Audience Calendars: booking e-mails leave in batches from WP-Cron** (#2243). Creating, cancelling or overriding a booking only queues its e-mails, so a booking for thousands of members returns at once; each batch of 50 goes through `wp_mail()` (and Total Mail Queue when active), each person is mailed once, and a failed send never holds the job.
 - **Audience Calendars: the bookings list pages, filters by audience, searches and cancels in bulk** (#2243). 50 per page with the calendar, who each booking is for and present/reached; filter by audience or search the description or number, with the CSV taking the same filters; tick active bookings and cancel them with one reason.
+- **Audience Calendars: participants see why a booking was cancelled and what joining or leaving a group changes; one conflict check tells everything** (#2243). The dashboard shows the cancellation reason; joining says how many upcoming bookings arrived, and leaving first says how many go. The check reports people and audience clashes with a room clash, naming up to ten people.
 
 ### Deprecated
 

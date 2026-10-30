@@ -365,6 +365,79 @@ final class AudienceQueryService {
 	}
 
 	/**
+	 * Active bookings that name an audience and have a day from `$today` on
+	 * (#2243): what a member sees in their list the moment they join it.
+	 *
+	 * @param int    $audience_id Audience ID.
+	 * @param string $today       Site-local date, Y-m-d.
+	 * @return int
+	 */
+	public static function count_upcoming_for_audience( int $audience_id, string $today ): int {
+		if ( $audience_id <= 0 ) {
+			return 0;
+		}
+
+		global $wpdb;
+		$count = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(DISTINCT b.id)
+				FROM %i b
+				INNER JOIN %i ba ON b.id = ba.booking_id AND ba.audience_id = %d
+				WHERE b.status = 'active' AND COALESCE(b.end_date, b.booking_date) >= %s",
+				$wpdb->prefix . 'ffc_audience_bookings',
+				$wpdb->prefix . 'ffc_audience_booking_audiences',
+				$audience_id,
+				$today
+			)
+		);
+		return null === $count ? 0 : (int) $count;
+	}
+
+	/**
+	 * Active upcoming bookings that reach a user only through one group
+	 * (#2243): the ones that leave their list when they leave it. A booking
+	 * that also names them, or names another group they belong to, stays.
+	 *
+	 * @param int    $audience_id Group the user would leave.
+	 * @param int    $user_id     WordPress user ID.
+	 * @param string $today       Site-local date, Y-m-d.
+	 * @return int
+	 */
+	public static function count_upcoming_lost_on_leave( int $audience_id, int $user_id, string $today ): int {
+		if ( $audience_id <= 0 || $user_id <= 0 ) {
+			return 0;
+		}
+
+		global $wpdb;
+		$booking_audiences_table = $wpdb->prefix . 'ffc_audience_booking_audiences';
+		$count                   = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(DISTINCT b.id)
+				FROM %i b
+				INNER JOIN %i ba ON b.id = ba.booking_id AND ba.audience_id = %d
+				WHERE b.status = 'active' AND COALESCE(b.end_date, b.booking_date) >= %s
+				AND NOT EXISTS (SELECT 1 FROM %i bu WHERE bu.booking_id = b.id AND bu.user_id = %d)
+				AND NOT EXISTS (
+					SELECT 1 FROM %i ba2
+					INNER JOIN %i am ON am.audience_id = ba2.audience_id AND am.user_id = %d
+					WHERE ba2.booking_id = b.id AND ba2.audience_id <> %d
+				)",
+				$wpdb->prefix . 'ffc_audience_bookings',
+				$booking_audiences_table,
+				$audience_id,
+				$today,
+				$wpdb->prefix . 'ffc_audience_booking_users',
+				$user_id,
+				$booking_audiences_table,
+				$wpdb->prefix . 'ffc_audience_members',
+				$user_id,
+				$audience_id
+			)
+		);
+		return null === $count ? 0 : (int) $count;
+	}
+
+	/**
 	 * Translate the public `find_user_bookings` / `count_user_bookings`
 	 * filter array into `[where_sql_fragment, where_args]`. Returns an
 	 * empty pair when no filter keys are set — the SQL fragment is

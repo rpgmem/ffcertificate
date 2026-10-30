@@ -205,7 +205,14 @@
         if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
 
         FFC.rest(url, { method: 'POST', data: { group_id: groupId }, nonce: ffcDashboard.nonce })
-            .then(function () { FFCDashboard.panels.profile.reload(); })
+            .then(function (response) {
+                // The group's bookings already made are now the member's
+                // too (#2243): say so before the panel redraws.
+                if (response && response.upcoming > 0 && response.message) {
+                    alert(response.message);
+                }
+                FFCDashboard.panels.profile.reload();
+            })
             .catch(function (err) {
                 var msg = (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
                 alert(msg);
@@ -213,9 +220,23 @@
             });
     }
 
+    // Ask what leaving takes out of the list first (#2243); a failed
+    // question still lets the person leave, with the plain confirmation.
     function leaveGroup(groupId) {
-        if (!confirm(ffcDashboard.strings.confirmLeaveGroup || 'Leave this group?')) return;
+        var query = { group_id: groupId };
+        if (ffcDashboard.viewAsUserId) query.viewAsUserId = ffcDashboard.viewAsUserId;
 
+        FFC.rest(ffcDashboard.restUrl + 'user/audience-group/leave-impact', { method: 'GET', data: query, nonce: ffcDashboard.nonce })
+            .then(function (response) { return (response && response.message) || ''; })
+            .catch(function () { return ''; })
+            .then(function (impact) {
+                var question = ffcDashboard.strings.confirmLeaveGroup || 'Leave this group?';
+                if (!confirm(impact ? impact + '\n\n' + question : question)) return;
+                sendLeave(groupId);
+            });
+    }
+
+    function sendLeave(groupId) {
         var $btn = $('.ffc-audience-leave-btn[data-id="' + groupId + '"]');
         $btn.prop('disabled', true).text(ffcDashboard.strings.saving || 'Saving...');
 

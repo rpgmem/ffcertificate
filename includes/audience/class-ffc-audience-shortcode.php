@@ -1043,6 +1043,8 @@ class AudienceShortcode {
 						'conflictWarning'        => __( 'Warning: Conflicts detected with existing bookings.', 'ffcertificate' ),
 						'audienceSameDayWarning' => __( 'Warning: The following groups already have bookings on this day:', 'ffcertificate' ),
 						'membersOverlapping'     => __( 'member(s) have overlapping bookings.', 'ffcertificate' ),
+						/* translators: %d: number of further people not named */
+						'andMore'                => __( 'and %d more', 'ffcertificate' ),
 						'hardConflict'           => __( 'This time slot is already booked for this environment. You cannot create a booking at this time.', 'ffcertificate' ),
 						'noConflicts'            => __( 'No conflicts found. You may proceed.', 'ffcertificate' ),
 						'months'                 => array(

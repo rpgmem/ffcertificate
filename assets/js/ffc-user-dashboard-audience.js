@@ -68,7 +68,12 @@
         html += '</td>';
         html += '<td>' + booking.booking_date + '</td>';
         html += '<td>' + (booking.time_label || (booking.start_time + ' - ' + booking.end_time)) + '</td>';
-        html += '<td>' + (booking.description || '') + '</td>';
+        html += '<td>' + (booking.description || '');
+        // Why it was cancelled, in the canceller's words (#2243).
+        if (booking.cancellation_reason) {
+            html += '<br><small class="ffc-booking-cancel-reason">' + helpers.esc((ffcDashboard.strings.cancelReason || 'Reason: %s').replace('%s', booking.cancellation_reason)) + '</small>';
+        }
+        html += '</td>';
         html += '<td>';
         if (booking.audiences && booking.audiences.length > 0) {
             booking.audiences.forEach(function (audience) {

@@ -254,6 +254,8 @@ class DashboardAssetManager {
 					'fillPostEventForm'        => __( 'Fill in the form', 'ffcertificate' ),
 					/* translators: %s: date and time the form closes */
 					'postEventCloses'          => __( 'Open until %s', 'ffcertificate' ),
+					/* translators: %s: why the booking was cancelled */
+					'cancelReason'             => __( 'Reason: %s', 'ffcertificate' ),
 					/* translators: %s: form title */
 					'postEventWaiting'         => __( 'Form waiting: %s', 'ffcertificate' ),
 					'downloadPdf'              => __( 'View PDF', 'ffcertificate' ),
