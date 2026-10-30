@@ -22843,7 +22843,7 @@ msgstr ""
 msgid "retries allowed per CPF/RF (0 = unlimited)."
 msgstr ""
 
-msgid "An attempt below the passing score is kept as a \"Quiz: Retry\" submission while attempts remain, and as \"Quiz: Failed\" once they run out; no certificate is issued for either."
+msgid "An attempt below the passing score is kept as a \"Quiz: Retry\" submission while attempts remain, and as \"Quiz: Failed\" once they run out; no certificate is issued for either. Attempts are counted per CPF/RF and form, and a new attempt replaces the previous one; when a later attempt passes, the certificate is issued and emailed as on a first attempt."
 msgstr ""
 
 msgid "Validation page:"
@@ -25413,7 +25413,7 @@ msgid "Your score was %d%%, below the passing score."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-quiz.php:33
-msgid "an attempt with an open answer graded by a person shows no result: it is stored as \"Quiz: Awaiting Grading\", the participant is told the result will be emailed, and no certificate exists yet. While it waits, the same CPF/RF cannot start another attempt. Grading it on the submission edit screen decides it and emails the participant: the document link on a pass; otherwise the result, with the score only when the form shows it, and how many attempts are left."
+msgid "an attempt with an open answer graded by a person shows no result: it is stored as \"Quiz: Awaiting Grading\", the participant is told the result will be emailed, and no certificate exists yet. While it waits, the same CPF/RF cannot start another attempt. Grading it on the submission edit screen decides it and emails the participant: the document link on a pass; otherwise the result, with the score only when the form shows it, and how many attempts are left. A grade already sent can be changed on the same screen by whoever may grade, to correct a mistake: a reason is required, the old and new grades are recorded in the activity log, and the participant is emailed again only when the result changes between passed and not passed."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:221
@@ -29605,4 +29605,45 @@ msgstr ""
 
 #. includes/settings/views/documentation/feature-reregistration.php
 msgid "The CEP comes right before the address, and audiences created before this order are reordered once on the first admin request after the update; the Record PDF keeps its layout. When the address lookup is on (Settings → General), a CEP that passes the check is looked up: the address fields wait read-only for at least 3 seconds and at most 5, then street, neighbourhood, city and UF are filled with what the service returned. An empty answer never erases what was typed, and number and complement are never touched. A CEP the service does not know is reported at once and the address is typed by hand; the submit is never blocked."
+msgstr ""
+
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Change grades"
+msgstr ""
+
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Change the grades? The change is recorded in the activity log, and the participant is e-mailed only if the result changes between passed and not passed."
+msgstr ""
+
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Graded answers"
+msgstr ""
+
+#. includes/admin/class-ffc-admin.php
+msgid "Grades changed and recorded in the activity log. The participant is e-mailed only when the result changes between passed and not passed."
+msgstr ""
+
+#. includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Quiz Regraded"
+msgstr ""
+
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Reason for the change"
+msgstr ""
+
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Save the grades and send the result to the participant? This decides the attempt."
+msgstr ""
+
+#. includes/admin/class-ffc-admin.php
+msgid "Say why the grade changes: the reason is required."
+msgstr ""
+
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+#, php-format
+msgid "The attempt scored %1$d%%. The passing score is %2$d%%. Change a grade only to correct a mistake."
+msgstr ""
+
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "The reason and both grades are recorded in the activity log."
 msgstr ""

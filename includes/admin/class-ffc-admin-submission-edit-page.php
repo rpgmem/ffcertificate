@@ -193,12 +193,27 @@ class AdminSubmissionEditPage {
 	 * Whether this attempt waits for grading and the current user may grade it.
 	 */
 	private function shows_grading(): bool {
-		return \FreeFormCertificate\Core\SubmissionStatus::QUIZ_PENDING === ( $this->sub_array['status'] ?? '' )
-			&& QuizGradingHandler::current_user_can_grade();
+		return QuizGradingHandler::current_user_can_grade()
+			&& ( $this->awaits_grading() || $this->can_regrade() );
 	}
 
 	/**
-	 * Main column: the open answers waiting for a grade (#1732).
+	 * Whether the attempt waits for a person's grade (#1732).
+	 */
+	private function awaits_grading(): bool {
+		return \FreeFormCertificate\Core\SubmissionStatus::QUIZ_PENDING === ( $this->sub_array['status'] ?? '' );
+	}
+
+	/**
+	 * Whether the attempt was graded by a person and its grades may change (#2241).
+	 */
+	private function can_regrade(): bool {
+		return ! $this->awaits_grading() && QuizGradingHandler::has_grades( $this->data );
+	}
+
+	/**
+	 * Main column: the open answers waiting for a grade (#1732), or the grades
+	 * already given, to correct (#2241).
 	 *
 	 * Its inputs belong to the grading form printed after the edit form, through
 	 * their `form` attribute: forms cannot nest, and the edit form's save must
@@ -208,30 +223,45 @@ class AdminSubmissionEditPage {
 		if ( ! $this->shows_grading() ) {
 			return;
 		}
-		$pending = QuizGrading::pending_questions( $this->data, (array) $this->fields );
+		$regrade = $this->can_regrade();
 		$config  = get_post_meta( (int) $this->sub_array['form_id'], '_ffc_form_config', true );
 		$passing = \FreeFormCertificate\Core\ArrayValue::int( is_array( $config ) ? $config : array(), 'quiz_passing_score', 70 );
 
-		self::card_open( __( 'Grade open answers', 'ffcertificate' ), 'edit' );
-		echo '<p class="description">' . esc_html(
-			sprintf(
-				/* translators: 1: points earned by the automatically scored questions, 2: maximum points, 3: passing percentage */
-				__( 'The automatically scored questions earned %1$d of %2$d points. The passing score is %3$d%%.', 'ffcertificate' ),
-				\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_score', 0 ),
-				\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_max_score', 0 ),
-				$passing
-			)
-		) . '</p>';
+		if ( $regrade ) {
+			$questions = QuizGrading::graded_questions( $this->data, (array) $this->fields );
+			self::card_open( __( 'Graded answers', 'ffcertificate' ), 'edit' );
+			echo '<p class="description">' . esc_html(
+				sprintf(
+					/* translators: 1: the attempt's percentage, 2: passing percentage */
+					__( 'The attempt scored %1$d%%. The passing score is %2$d%%. Change a grade only to correct a mistake.', 'ffcertificate' ),
+					\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_percent', 0 ),
+					$passing
+				)
+			) . '</p>';
+		} else {
+			$questions = QuizGrading::pending_questions( $this->data, (array) $this->fields );
+			self::card_open( __( 'Grade open answers', 'ffcertificate' ), 'edit' );
+			echo '<p class="description">' . esc_html(
+				sprintf(
+					/* translators: 1: points earned by the automatically scored questions, 2: maximum points, 3: passing percentage */
+					__( 'The automatically scored questions earned %1$d of %2$d points. The passing score is %3$d%%.', 'ffcertificate' ),
+					\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_score', 0 ),
+					\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_max_score', 0 ),
+					$passing
+				)
+			) . '</p>';
+		}
 
-		foreach ( $pending as $name => $question ) {
-			$id = 'ffc-grade-' . sanitize_key( $name );
+		foreach ( $questions as $name => $question ) {
+			$id    = 'ffc-grade-' . sanitize_key( $name );
+			$value = $regrade && isset( $question['given'] ) ? (string) $question['given'] : '';
 			?>
 			<div class="ffc-grade-question">
 				<p><strong><?php echo esc_html( $question['label'] ); ?></strong></p>
 				<blockquote class="ffc-grade-answer"><?php echo '' !== $question['answer'] ? nl2br( esc_html( $question['answer'] ) ) : esc_html__( '(no answer)', 'ffcertificate' ); ?></blockquote>
 				<p>
 					<label for="<?php echo esc_attr( $id ); ?>"><?php esc_html_e( 'Points', 'ffcertificate' ); ?></label>
-					<input type="number" id="<?php echo esc_attr( $id ); ?>" name="ffc_grade[<?php echo esc_attr( $name ); ?>]" form="ffc-grade-form" min="0" max="<?php echo esc_attr( (string) $question['worth'] ); ?>" step="1" required class="small-text">
+					<input type="number" id="<?php echo esc_attr( $id ); ?>" name="ffc_grade[<?php echo esc_attr( $name ); ?>]" form="ffc-grade-form" value="<?php echo esc_attr( $value ); ?>" min="0" max="<?php echo esc_attr( (string) $question['worth'] ); ?>" step="1" required class="small-text">
 					<?php
 					/* translators: %d: points the question is worth */
 					echo esc_html( sprintf( __( 'of %d', 'ffcertificate' ), $question['worth'] ) );
@@ -240,23 +270,41 @@ class AdminSubmissionEditPage {
 			</div>
 			<?php
 		}
+
+		if ( $regrade ) {
+			?>
+			<p>
+				<label for="ffc-grade-reason"><strong><?php esc_html_e( 'Reason for the change', 'ffcertificate' ); ?></strong></label><br>
+				<textarea id="ffc-grade-reason" name="ffc_grade_reason" form="ffc-grade-form" rows="3" class="large-text" required minlength="<?php echo esc_attr( (string) QuizGradingHandler::MIN_REASON_LENGTH ); ?>"></textarea>
+			</p>
+			<?php
+		}
 		?>
 		<p class="ffc-edit-actions">
 			<?php
 			AdminUI::render_button(
 				array(
-					'label'    => __( 'Save grades and send the result', 'ffcertificate' ),
-					'category' => 'primary',
+					'label'    => $regrade ? __( 'Change grades', 'ffcertificate' ) : __( 'Save grades and send the result', 'ffcertificate' ),
+					'category' => $regrade ? 'caution' : 'primary',
 					'icon'     => 'save',
 					'type'     => 'submit',
 					'attrs'    => array(
-						'form' => 'ffc-grade-form',
+						'form'         => 'ffc-grade-form',
+						'data-confirm' => $regrade
+							? __( 'Change the grades? The change is recorded in the activity log, and the participant is e-mailed only if the result changes between passed and not passed.', 'ffcertificate' )
+							: __( 'Save the grades and send the result to the participant? This decides the attempt.', 'ffcertificate' ),
 					),
 				)
 			);
 			?>
 		</p>
-		<p class="description"><?php esc_html_e( 'Saving decides the attempt: a pass issues the document, and the participant is emailed the result either way.', 'ffcertificate' ); ?></p>
+		<p class="description">
+			<?php
+			echo $regrade
+				? esc_html__( 'The reason and both grades are recorded in the activity log.', 'ffcertificate' )
+				: esc_html__( 'Saving decides the attempt: a pass issues the document, and the participant is emailed the result either way.', 'ffcertificate' );
+			?>
+		</p>
 		</div>
 		<?php
 	}

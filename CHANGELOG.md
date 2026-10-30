@@ -18,6 +18,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Reregistration: the participant reads their answers on the dashboard, and the form has an @edu e-mail** (#2227). View answers opens a sent submission's answers under its row, even after the campaign closed, with personal data masked behind Reveal (audited when viewing as a user). A new standard field, Institutional Email (@edu), reaches existing audiences after the @sme one.
 - **Reregistration: an impossible CEP is refused without any lookup** (#2233). The CEP must have eight digits, cannot repeat one digit, and must fall in the Correios range of the UF chosen in the form; the browser and the server read the same range table. Existing audiences' CEP fields take the rule once.
 - **Reregistration: the address is filled from the CEP** (#2234). Off by default; Settings → General turns it on, picks ViaCEP or BrasilAPI as primary and tests both. The server asks, caches 30 days and limits each address; the form waits 3 to 5 seconds and never blocks. The CEP moves before the address in every audience.
+- **Certificates: a grade already sent can be corrected** (#2241). The submission edit screen lists a graded quiz attempt's grades for whoever may grade; a change needs a reason, both grades go to the activity log, and the participant is e-mailed only when the result flips between passed and not passed. Saving a first grade now asks for confirmation.
 
 ### Changed
 
@@ -99,6 +100,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Reregistration: the Record PDF prints documents in their shape and fits one A4 page** (#2227). CPF, RF, RG and CEP are masked for print, the birth date follows the PDF date format, number, complement and CEP get their own cells, the three e-mails print, second-post rows print only when one is held, the schedule runs days across, and the notice is numbered "1-". Form masks now shape a loaded value too, and the RF field is checked with the plugin's RF rule.
 - **User dashboard: "View answers" takes the compact row size** (#2231). It drew at the full button size beside "Download Record"; it and the answers panel's Reveal now join the dashboard's compact row buttons.
 - **Reregistration: each e-mail takes a full row on the Record PDF, and the pool's default record is refreshed** (#2235). The @sme and @edu addresses no longer share a row, and a long address wraps instead of widening the table. The template seed version moves so an install using the pool's default record receives #2227's layout too.
+- **Certificates: quiz attempt limits hold, and a retry that passes is e-mailed** (#2241). With encryption on, every attempt read as the first, so Max attempts never stopped anyone; a retry stored a date string in the BIGINT issue date (the certificate showed 1970) and sent no certificate e-mail when it passed. A failed save is now reported.
 
 ### Security
 

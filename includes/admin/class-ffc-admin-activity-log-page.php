@@ -224,6 +224,7 @@ class AdminActivityLogPage {
 			'submission_updated'                           => __( 'Submission Updated', 'ffcertificate' ),
 			'submission_deleted'                           => __( 'Submission Deleted', 'ffcertificate' ),
 			'quiz_graded'                                  => __( 'Quiz Graded', 'ffcertificate' ),
+			'quiz_regraded'                                => __( 'Quiz Regraded', 'ffcertificate' ),
 			'data_accessed'                                => __( 'Data Accessed', 'ffcertificate' ),
 			'access_denied'                                => __( 'Access Denied', 'ffcertificate' ),
 			'settings_changed'                             => __( 'Settings Changed', 'ffcertificate' ),

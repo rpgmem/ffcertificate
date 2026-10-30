@@ -344,15 +344,26 @@ class SubmissionHandler {
 		// `dispatch_async_pipeline()` rehydrates the eight values from the row
 		// and the form and fires the public hook with them, so no external
 		// listener notices the change.
-		if ( $send_email && function_exists( 'wp_schedule_single_event' ) ) {
-			wp_schedule_single_event(
-				time() + 1,
-				self::ASYNC_PIPELINE_HOOK,
-				array( (int) $submission_id )
-			);
+		if ( $send_email ) {
+			$this->schedule_async_pipeline( (int) $submission_id );
 		}
 
 		return $submission_id;
+	}
+
+	/**
+	 * Schedules the e-mail pipeline for one submission, one second from now.
+	 *
+	 * Public because a quiz retry that passes updates its row instead of
+	 * inserting one, and is e-mailed its certificate the same way (#2241).
+	 *
+	 * @param int $submission_id Submission ID.
+	 * @return void
+	 */
+	public function schedule_async_pipeline( int $submission_id ): void {
+		if ( $submission_id > 0 && function_exists( 'wp_schedule_single_event' ) ) {
+			wp_schedule_single_event( time() + 1, self::ASYNC_PIPELINE_HOOK, array( $submission_id ) );
+		}
 	}
 
 	/**

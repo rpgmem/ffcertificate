@@ -243,4 +243,69 @@ class QuizGradingTest extends TestCase {
 		$this->assertSame( 10, $result['data']['_quiz_score'] );
 		$this->assertSame( array( 'essay' => 4 ), $result['data']['_quiz_grades'] );
 	}
+	/**
+	 * The essay graded 4 of 4: score 10 of 10.
+	 */
+	private function graded( int $given = 4 ): array {
+		$data = $this->attempt(
+			array(
+				'_quiz_score'         => 6 + $given,
+				'_quiz_percent'       => ( 6 + $given ) * 10,
+				'_quiz_passed'        => '1',
+				'_quiz_correct_count' => 4 === $given ? 3 : 2,
+				'_quiz_grades'        => array( 'essay' => $given ),
+			)
+		);
+		unset( $data['_quiz_pending'] );
+		return $data;
+	}
+
+	public function test_graded_questions_read_the_worth_from_the_form_and_keep_a_departed_one(): void {
+		$data                          = $this->graded();
+		$data['_quiz_grades']['gone']  = 2;
+		$data['gone']                  = 'An answer to a question since removed.';
+
+		$graded = QuizGrading::graded_questions( $data, array( $this->essay() ) );
+
+		$this->assertSame( array( 'label' => 'Explain', 'worth' => 4, 'answer' => "Line one\nLine two", 'given' => 4 ), $graded['essay'] );
+		$this->assertSame( 2, $graded['gone']['worth'], 'A question that left the form is worth what it was given: it can be lowered, not raised.' );
+	}
+
+	public function test_regrade_moves_the_score_by_the_difference_and_recounts_right_answers(): void {
+		$data   = $this->graded( 4 );
+		$result = QuizGrading::regrade( $data, QuizGrading::graded_questions( $data, array( $this->essay() ) ), array( 'quiz_passing_score' => 70 ), array( 'essay' => 1 ) );
+
+		$this->assertSame( 7, $result['data']['_quiz_score'] );
+		$this->assertSame( 10, $result['data']['_quiz_max_score'], 'The maximum stays where grading left it.' );
+		$this->assertSame( 70, $result['percent'] );
+		$this->assertTrue( $result['passed'] );
+		$this->assertSame( 2, $result['data']['_quiz_correct_count'], 'The essay is no longer full marks.' );
+		$this->assertSame( 2, $result['data']['_quiz_question_count'], 'Regrading counts no question twice.' );
+		$this->assertSame( array( 'essay' => 1 ), $result['data']['_quiz_grades'] );
+	}
+
+	public function test_regrade_caps_a_grade_at_the_worth_and_needs_every_question(): void {
+		$data   = $this->graded( 0 );
+		$graded = QuizGrading::graded_questions( $data, array( $this->essay() ) );
+
+		$this->assertSame( 10, QuizGrading::regrade( $data, $graded, array(), array( 'essay' => 99 ) )['data']['_quiz_score'] );
+		$this->assertInstanceOf( \WP_Error::class, QuizGrading::regrade( $data, $graded, array(), array() ) );
+	}
+
+	public function test_regrade_below_the_passing_score_on_the_last_attempt_fails_it(): void {
+		$data   = $this->graded( 4 );
+		$result = QuizGrading::regrade(
+			$data,
+			QuizGrading::graded_questions( $data, array( $this->essay() ) ),
+			array(
+				'quiz_passing_score' => 70,
+				'quiz_max_attempts'  => 1,
+			),
+			array( 'essay' => 0 )
+		);
+
+		$this->assertFalse( $result['passed'] );
+		$this->assertSame( SubmissionStatus::QUIZ_FAILED, $result['status'] );
+		$this->assertSame( 0, $result['remaining'] );
+	}
 }
