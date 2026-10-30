@@ -74,6 +74,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificates: the PDF libraries load when a page is about to need them** (#2241). jsPDF and html2canvas (about 700 KB) are fetched on the first focus in a form field, and right after the verification page or a magic link loads; a submit that arrives first waits for them. The script handles are unchanged.
 - **Certificates: verification is one lookup per kind** (#2241). `VerificationHandler` routes between `CertificateVerificationLookup`, `AppointmentVerificationLookup` and `ReregistrationVerificationLookup`; the identity-audit queries left `SubmissionReader` for `SubmissionIdentityAudit`. A parity test pins the same answers and reads.
 - **Reregistration: fewer reads per request** (#2242). A submit reads the campaign's field definitions once instead of three times, and the six one-shot steps on seeded fields read one autoloaded version option instead of six options on every admin request.
+- **Audience Calendars: a booking covers at most 30 consecutive days** (#2243). The cap was 31 and was checked by listing every day of the range, so an absurd end date built millions of strings before it was refused; it is now a date difference, and the message names the limit.
 
 ### Deprecated
 
@@ -122,6 +123,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Reregistration: late joiners and child audiences get their row, invitation and reminders** (#2242). The daily run creates the submission of anyone who joined a campaign's audience (or a child audience) after activation, and saving an active campaign seeds an added audience. An invitation sent before the start names the opening date; reminders wait for the opening.
 - **Reregistration: hidden second-post fields no longer block the submit** (#2242). The workload, role and work hours of a second post are required and stored only while one is declared; a value typed before switching to "I do not hold" is dropped.
 - **A repository write no longer flushes the whole object cache** (#2241). An insert, a bulk status change or delete, a profile save or a QR-code cache write emptied every plugin's cache and, on a multisite with a persistent cache, every site's; it now flushes only the repository's group, with the full flush kept for a cache that cannot flush one.
+- **Audience Calendars: the audience tree keeps three levels and no cycles; a booking cancels once and saves with its participants** (#2243). Every writer path refuses a parent that is the audience itself, one of its groups or a fourth level, and the tree walks stop on a cycle already stored. A second cancel answers "already cancelled" and sends nothing, and a booking whose participant links fail is rolled back. `GET /audience/bookings` refuses a span above 62 days, filters calendars in the query and reads every booking's audiences in one query.
 
 ### Security
 
@@ -134,6 +136,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Reregistration: drafts store sensitive answers encrypted** (#2242). The draft save encrypts every sensitive value as the submit does; the "Reregistration: Encrypt Draft Answers" migration card encrypts what earlier drafts stored in clear.
 - **Reregistration: no account takeover through the import or a profile key** (#2242). A custom field can no longer be mapped to the login e-mail, another `wp_users` key or the plugin's preferences; an import row that resolves to a WordPress administrator or a holder of any `_pii` capability fails and leaves that account untouched.
 - **Reregistration: the Record is a signed-in download** (#2242). Public verification confirms only an approved record, shows masked basics without the PDF and logs every check; the owner downloads from the dashboard, and staff need `ffc_view_reregistration_pii`, audited like "view as user". ⚠ The confirmation e-mail's `{{magic_link_url}}` now leads to the dashboard.
+- **Audience Calendars: a booking names only audiences the booker may reach** (#2243). The create route took any `audience_ids` and `user_ids`, so a booker could reach every member of any audience by e-mail, dashboard, check-in and post-event invite. A member now books their own audiences (or their parents), an individual booking needs `ffc_manage_audiences`, and every id must exist; administrators and `ffc_bypass_audiences` holders may book any audience.
 
 ## [6.42.0] (2026-10-26) — `8241871c`
 

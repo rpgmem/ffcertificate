@@ -41,6 +41,12 @@ class AudienceRestController {
 	private const REST_BASE = 'audience';
 
 	/**
+	 * Most days one `GET /bookings` may cover, both ends included (#2243).
+	 * The month view shows up to six weeks, so 62 leaves room for both.
+	 */
+	public const MAX_READ_SPAN_DAYS = 62;
+
+	/**
 	 * Register REST routes
 	 *
 	 * @return void
@@ -386,16 +392,31 @@ class AudienceRestController {
 	 * @return \WP_REST_Response
 	 */
 	public function get_bookings( \WP_REST_Request $request ): \WP_REST_Response {
-		$start_date     = $request->get_param( 'start_date' );
-		$end_date       = $request->get_param( 'end_date' );
+		$start_date     = (string) $request->get_param( 'start_date' );
+		$end_date       = (string) $request->get_param( 'end_date' );
 		$schedule_id    = $request->get_param( 'schedule_id' );
 		$environment_id = $request->get_param( 'environment_id' );
 
-		// Build query args.
+		// The read is public, so its span is bounded (#2243): the month view
+		// asks for at most six weeks, and anything wider is refused rather
+		// than read.
+		if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $start_date )
+			|| ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $end_date )
+			|| $end_date < $start_date ) {
+			return self::refusal( 400, __( 'Invalid date range.', 'ffcertificate' ) );
+		}
+		if ( AudienceBookingRules::range_length( $start_date, $end_date ) > self::MAX_READ_SPAN_DAYS ) {
+			/* translators: %d: the most days one calendar read may cover. */
+			return self::refusal( 400, sprintf( __( 'A calendar read can cover at most %d days.', 'ffcertificate' ), self::MAX_READ_SPAN_DAYS ) );
+		}
+
+		// Build query args. The calendars the caller may read are filtered
+		// in the query, so a private calendar's rows are never fetched.
 		$args = array(
-			'start_date' => $start_date,
-			'end_date'   => $end_date,
-			'status'     => null, // Get all statuses.
+			'start_date'   => $start_date,
+			'end_date'     => $end_date,
+			'status'       => null, // Get all statuses.
+			'schedule_ids' => $this->readable_schedule_ids(),
 		);
 
 		if ( $schedule_id ) {
@@ -406,26 +427,12 @@ class AudienceRestController {
 			$args['environment_id'] = $environment_id;
 		}
 
-		// Get bookings.
 		$bookings = AudienceBookingReader::get_all( $args );
 
-		// Enforce schedule visibility: drop any booking whose owning schedule
-		// the caller may not read. Covers both the scoped request (a private
-		// schedule_id/environment_id the caller can't see yields no rows) and
-		// the unscoped request (which otherwise returns every schedule's
-		// bookings, including private ones). Each row carries `schedule_id`
-		// from the reader's INNER JOIN on the environments table.
-		$readable_schedule_ids = $this->readable_schedule_ids();
-		if ( null !== $readable_schedule_ids ) {
-			$bookings = array_values(
-				array_filter(
-					$bookings,
-					static function ( $booking ) use ( $readable_schedule_ids ) {
-						return in_array( (int) $booking->schedule_id, $readable_schedule_ids, true );
-					}
-				)
-			);
-		}
+		// Every booking's audiences, in one query.
+		$audiences_by_booking = AudienceBookingReader::get_audiences_for_bookings(
+			array_map( static fn( $booking ): int => (int) $booking->id, $bookings )
+		);
 
 		// Get user info for each booking.
 		$user_id      = get_current_user_id();
@@ -434,8 +441,8 @@ class AudienceRestController {
 
 		// Transform bookings for response.
 		$bookings_data = array_map(
-			function ( $booking ) use ( $user_id, $is_logged_in, $has_bypass ) {
-				$audiences = AudienceBookingReader::get_booking_audiences( (int) $booking->id );
+			function ( $booking ) use ( $user_id, $is_logged_in, $has_bypass, $audiences_by_booking ) {
+				$audiences = $audiences_by_booking[ (int) $booking->id ] ?? array();
 
 				// Non-logged-in users get public data (no personal details like created_by).
 				if ( ! $is_logged_in ) {
@@ -649,9 +656,9 @@ class AudienceRestController {
 				return self::refusal( 400, __( 'An all-day booking covers one day.', 'ffcertificate' ) );
 			}
 
-			if ( count( AudienceBookingRules::range_days( $booking_date, $end_date ) ) > AudienceBookingRules::MAX_RANGE_DAYS ) {
-				/* translators: %d: the most days one booking may cover. */
-				return self::refusal( 400, sprintf( __( 'A booking can cover at most %d days.', 'ffcertificate' ), AudienceBookingRules::MAX_RANGE_DAYS ) );
+			if ( AudienceBookingRules::range_length( $booking_date, $end_date ) > AudienceBookingRules::MAX_RANGE_DAYS ) {
+				/* translators: %d: the most consecutive days one booking may cover. */
+				return self::refusal( 400, sprintf( __( 'A booking can cover at most %d consecutive days.', 'ffcertificate' ), AudienceBookingRules::MAX_RANGE_DAYS ) );
 			}
 		} else {
 			$end_date = $booking_date;
@@ -690,6 +697,14 @@ class AudienceRestController {
 
 		if ( 'individual' === $booking_type && empty( $user_ids ) ) {
 			return self::refusal( 400, __( 'At least one user must be selected.', 'ffcertificate' ) );
+		}
+
+		// Only the participants the caller may book for (#2243).
+		$audience_ids = self::positive_ids( $audience_ids );
+		$user_ids     = self::positive_ids( $user_ids );
+		$refused      = self::participant_refusal( (string) $booking_type, $audience_ids, $user_ids, $user_id );
+		if ( null !== $refused ) {
+			return $refused;
 		}
 
 		$has_bypass = AudienceScheduleRepository::user_has_bypass( $schedule_id, $user_id );
@@ -851,6 +866,77 @@ class AudienceRestController {
 	}
 
 	/**
+	 * The distinct positive integers of a request's id list.
+	 *
+	 * @param mixed $ids The raw parameter.
+	 * @return list<int>
+	 */
+	private static function positive_ids( $ids ): array {
+		if ( ! is_array( $ids ) ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $ids as $id ) {
+			if ( is_numeric( $id ) && (int) $id > 0 ) {
+				$out[ (int) $id ] = (int) $id;
+			}
+		}
+
+		return array_values( $out );
+	}
+
+	/**
+	 * Why the caller may not book these participants, or null when it may (#2243).
+	 *
+	 * The calendar only offers a booker their own audiences, but the route
+	 * took any ids, so a caller who could book anywhere could reach every
+	 * member of any audience: the e-mail, the dashboard, the check-in and the
+	 * post-event invite. A WordPress administrator or a holder of the
+	 * audience bypass may book any audience; everyone else books the
+	 * audiences they belong to, or one of those audiences' ancestors, as the
+	 * calendar offers them. An individual booking names people directly, so
+	 * it takes the right to manage audiences. Every id must exist.
+	 *
+	 * @param string     $booking_type `audience` or `individual`.
+	 * @param array<int> $audience_ids Requested audiences.
+	 * @param array<int> $user_ids     Requested people.
+	 * @param int        $user_id      The caller.
+	 * @return \WP_REST_Response|null
+	 */
+	private static function participant_refusal( string $booking_type, array $audience_ids, array $user_ids, int $user_id ): ?\WP_REST_Response {
+		$privileged = AudienceScheduleRepository::user_has_bypass_capability();
+
+		if ( 'individual' === $booking_type && ! AudienceBookingRules::can_book_individuals() ) {
+			return self::refusal( 403, __( 'You do not have permission to book for individual users.', 'ffcertificate' ) );
+		}
+
+		foreach ( $user_ids as $id ) {
+			if ( ! get_userdata( $id ) ) {
+				return self::refusal( 400, __( 'One of the selected users does not exist.', 'ffcertificate' ) );
+			}
+		}
+
+		$own_ids = null;
+		foreach ( $audience_ids as $id ) {
+			if ( null === AudienceReader::get_by_id( $id ) ) {
+				return self::refusal( 400, __( 'One of the selected audiences does not exist.', 'ffcertificate' ) );
+			}
+			if ( $privileged ) {
+				continue;
+			}
+			if ( null === $own_ids ) {
+				$own_ids = array_map( static fn( $audience ): int => (int) $audience->id, AudienceReader::get_user_audiences( $user_id, true ) );
+			}
+			if ( ! in_array( $id, $own_ids, true ) ) {
+				return self::refusal( 403, __( 'You can only book for audiences you belong to.', 'ffcertificate' ) );
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * A refused booking, in the response shape the calendar reads.
 	 *
 	 * @param int                                             $status  HTTP status.
@@ -916,8 +1002,19 @@ class AudienceRestController {
 			);
 		}
 
-		// Cancel the booking.
+		// Cancel the booking. A request that lost the race to another one
+		// changes nothing and is told so, without a second e-mail (#2243).
 		$result = AudienceBookingWriter::cancel( $booking_id, $reason );
+
+		if ( ! $result && AudienceBookingReader::is_cancelled( (int) $booking_id ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'Booking is already cancelled.', 'ffcertificate' ),
+				),
+				400
+			);
+		}
 
 		if ( ! $result ) {
 			return new \WP_REST_Response(
@@ -958,7 +1055,7 @@ class AudienceRestController {
 			|| ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $booking_date )
 			|| ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $end_date )
 			|| $end_date <= $booking_date
-			|| count( AudienceBookingRules::range_days( $booking_date, $end_date ) ) > AudienceBookingRules::MAX_RANGE_DAYS ) {
+			|| AudienceBookingRules::range_length( $booking_date, $end_date ) > AudienceBookingRules::MAX_RANGE_DAYS ) {
 			return $booking_date;
 		}
 

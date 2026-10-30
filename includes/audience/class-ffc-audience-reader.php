@@ -72,6 +72,12 @@ class AudienceReader {
 	public const DESCENDANTS_SELF_JOIN_MIXED = 'mixed';
 
 	/**
+	 * Levels the audience tree may have: a top-level audience, its groups
+	 * and their sub-groups (#2243).
+	 */
+	public const MAX_LEVELS = 3;
+
+	/**
 	 * Get audiences table name
 	 *
 	 * @return string
@@ -721,17 +727,95 @@ class AudienceReader {
 	/**
 	 * Get all descendant IDs of an audience (children, grandchildren, etc.)
 	 *
+	 * Walked breadth-first with a visited set (#2243): a cycle stored before
+	 * the writer refused one would otherwise recurse until the request died.
+	 *
 	 * @param int $audience_id Audience ID.
 	 * @return array<int>
 	 */
 	public static function get_descendant_ids( int $audience_id ): array {
-		$children = self::get_children( $audience_id );
-		$ids      = array();
-		foreach ( $children as $child ) {
-			$ids[] = (int) $child->id;
-			$ids   = array_merge( $ids, self::get_descendant_ids( (int) $child->id ) );
+		return array_column( self::descendant_rows( $audience_id ), 'id' );
+	}
+
+	/**
+	 * Every descendant row of an audience, breadth-first, each once.
+	 *
+	 * @param int $audience_id Audience ID.
+	 * @return list<array{id: int, depth: int, allow_self_join: int}>
+	 */
+	private static function descendant_rows( int $audience_id ): array {
+		$rows    = array();
+		$visited = array( $audience_id => true );
+		$queue   = array( array( $audience_id, 0 ) );
+		while ( array() !== $queue ) {
+			list( $current, $depth ) = array_shift( $queue );
+			foreach ( self::get_children( (int) $current ) as $child ) {
+				$child_id = (int) $child->id;
+				if ( isset( $visited[ $child_id ] ) ) {
+					continue;
+				}
+				$visited[ $child_id ] = true;
+				$rows[]               = array(
+					'id'              => $child_id,
+					'depth'           => $depth + 1,
+					'allow_self_join' => empty( $child->allow_self_join ) ? 0 : 1,
+				);
+				$queue[]              = array( $child_id, $depth + 1 );
+			}
 		}
-		return $ids;
+		return $rows;
+	}
+
+	/**
+	 * How many levels sit above an audience: 0 for a top-level one.
+	 *
+	 * @param int $audience_id Audience ID.
+	 * @return int
+	 */
+	public static function depth( int $audience_id ): int {
+		return count( self::get_ancestor_ids( $audience_id ) ) - 1;
+	}
+
+	/**
+	 * How many levels sit below an audience: 0 when it has no children.
+	 *
+	 * @param int $audience_id Audience ID.
+	 * @return int
+	 */
+	public static function subtree_height( int $audience_id ): int {
+		$depths = array_column( self::descendant_rows( $audience_id ), 'depth' );
+		return array() === $depths ? 0 : max( $depths );
+	}
+
+	/**
+	 * Why an audience may not sit under a parent, or null when it may (#2243).
+	 *
+	 * The tree is three levels deep at most and has no cycles: a parent may
+	 * not be the audience itself or one of its descendants, and moving an
+	 * audience moves its whole subtree, so the parent's level plus the
+	 * subtree's height must stay within three levels. The writer asks this
+	 * on every path, so no screen, import or autosave can store a cycle.
+	 *
+	 * @param int      $audience_id The audience being saved, 0 for a new one.
+	 * @param int|null $parent_id   The parent asked for, null or 0 for none.
+	 * @return string|null
+	 */
+	public static function parent_refusal( int $audience_id, ?int $parent_id ): ?string {
+		if ( null === $parent_id || $parent_id <= 0 ) {
+			return null;
+		}
+		if ( null === self::get_by_id( $parent_id ) ) {
+			return __( 'The parent audience does not exist.', 'ffcertificate' );
+		}
+		if ( $audience_id > 0 && ( $parent_id === $audience_id || in_array( $parent_id, self::get_descendant_ids( $audience_id ), true ) ) ) {
+			return __( 'An audience cannot be placed under itself or one of its own groups.', 'ffcertificate' );
+		}
+		$height = $audience_id > 0 ? self::subtree_height( $audience_id ) : 0;
+		if ( self::depth( $parent_id ) + 1 + $height >= self::MAX_LEVELS ) {
+			/* translators: %d: the most levels the audience tree may have. */
+			return sprintf( __( 'Audiences can be nested at most %d levels deep.', 'ffcertificate' ), self::MAX_LEVELS );
+		}
+		return null;
 	}
 
 	/**
@@ -794,12 +878,7 @@ class AudienceReader {
 	 * @return list<int>
 	 */
 	private static function descendant_self_join_values( int $audience_id ): array {
-		$values = array();
-		foreach ( self::get_children( $audience_id ) as $child ) {
-			$values[] = empty( $child->allow_self_join ) ? 0 : 1;
-			$values   = array_merge( $values, self::descendant_self_join_values( (int) $child->id ) );
-		}
-		return $values;
+		return array_column( self::descendant_rows( $audience_id ), 'allow_self_join' );
 	}
 
 	/**
@@ -811,10 +890,18 @@ class AudienceReader {
 	 * @return array<int>
 	 */
 	public static function get_ancestor_ids( int $audience_id ): array {
-		$ids      = array( $audience_id );
-		$audience = self::get_by_id( $audience_id );
-		if ( $audience && ! empty( $audience->parent_id ) ) {
-			$ids = array_merge( $ids, self::get_ancestor_ids( (int) $audience->parent_id ) );
+		// A visited set stops a stored cycle from walking forever (#2243).
+		$ids     = array( $audience_id );
+		$visited = array( $audience_id => true );
+		$current = self::get_by_id( $audience_id );
+		while ( $current && ! empty( $current->parent_id ) ) {
+			$parent_id = (int) $current->parent_id;
+			if ( isset( $visited[ $parent_id ] ) ) {
+				break;
+			}
+			$visited[ $parent_id ] = true;
+			$ids[]                 = $parent_id;
+			$current               = self::get_by_id( $parent_id );
 		}
 		return $ids;
 	}
@@ -871,9 +958,11 @@ class AudienceReader {
 	public static function get_ancestors( int $audience_id ): array {
 		$ancestors = array();
 		$current   = self::get_by_id( $audience_id );
+		$visited   = array( $audience_id => true );
 
-		while ( $current && ! empty( $current->parent_id ) ) {
-			$parent = self::get_by_id( (int) $current->parent_id );
+		while ( $current && ! empty( $current->parent_id ) && ! isset( $visited[ (int) $current->parent_id ] ) ) {
+			$visited[ (int) $current->parent_id ] = true;
+			$parent                               = self::get_by_id( (int) $current->parent_id );
 			if ( ! $parent ) {
 				break;
 			}

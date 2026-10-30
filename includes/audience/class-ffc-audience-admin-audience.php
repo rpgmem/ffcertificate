@@ -138,6 +138,13 @@ class AudienceAdminAudience {
 				? array( ! empty( $_POST['audience_members_only'] ), ! empty( $_POST['audience_require_membership'] ) )
 				: null;
 
+			// The writer refuses a cycle or a fourth level (#2243); say why here.
+			$parent_refusal = AudienceReader::parent_refusal( $id, $data['parent_id'] );
+			if ( null !== $parent_refusal ) {
+				add_settings_error( 'ffc_audience', 'ffc_message', $parent_refusal, 'error' );
+				return;
+			}
+
 			if ( $id > 0 ) {
 				AudienceWriter::update( $id, $data );
 

@@ -445,7 +445,10 @@ class AudienceRepositoryTest extends TestCase {
 	}
 
 	public function test_create_under_a_parent_keeps_an_explicit_self_join(): void {
-		$this->wpdb->shouldNotReceive('get_row');
+		// The parent is read to check the tree (#2243); the inherited value,
+		// which walks the parent's descendants, is never asked for.
+		$this->wpdb->shouldReceive('get_row')->andReturn( (object) array( 'id' => 1, 'parent_id' => null ) );
+		$this->wpdb->shouldNotReceive('get_results');
 		$this->wpdb->insert_id = 9;
 		$this->wpdb->shouldReceive('insert')->once()->with(
 			'wp_ffc_audiences',

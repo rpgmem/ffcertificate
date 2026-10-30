@@ -116,6 +116,14 @@ class AudienceBookingRangeTest extends TestCase {
 		$this->assertSame( array( '2026-03-15' ), AudienceBookingRules::range_days( '2026-03-15', '2026-03-15' ) );
 	}
 
+	public function test_range_length_counts_both_ends_without_walking_the_days(): void {
+		$this->assertSame( 1, AudienceBookingRules::range_length( '2026-03-15', '2026-03-15' ) );
+		$this->assertSame( 3, AudienceBookingRules::range_length( '2028-02-28', '2028-03-01' ) );
+		$this->assertSame( 30, AudienceBookingRules::range_length( '2026-03-01', '2026-03-30' ) );
+		// An absurd end date is a number, not millions of strings (#2243).
+		$this->assertGreaterThan( 2000000, AudienceBookingRules::range_length( '2026-03-01', '9999-12-31' ) );
+	}
+
 	public function test_daily_repeats_the_chosen_hours_on_every_day(): void {
 		$times = AudienceBookingRules::day_times( 'daily', false, false, '09:00', '12:00', array( 'start' => '08:00', 'end' => '18:00' ) );
 

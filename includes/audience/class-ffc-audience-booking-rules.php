@@ -45,11 +45,44 @@ final class AudienceBookingRules {
 	public const CONFLICT      = 'conflict';
 
 	/**
-	 * Longest range one booking may cover, in days, inclusive of both ends.
-	 * A cap keeps one request from writing a month of conflict checks, and a
-	 * course or event that runs longer is two bookings.
+	 * Longest range one booking may cover, in consecutive days, inclusive of
+	 * both ends (#2243). A cap keeps one request from writing a month of
+	 * conflict checks, and a course or event that runs longer is two bookings.
 	 */
-	public const MAX_RANGE_DAYS = 31;
+	public const MAX_RANGE_DAYS = 30;
+
+	/**
+	 * Whether the current user may book for people named one by one (#2243).
+	 *
+	 * An individual booking reaches whoever it names, so it takes the right
+	 * to manage audiences, the audience bypass or WordPress administration.
+	 * The booking route enforces it and the calendar offers the choice only
+	 * to those who hold it.
+	 *
+	 * @return bool
+	 */
+	public static function can_book_individuals(): bool {
+		return AudienceScheduleRepository::user_has_bypass_capability()
+			|| \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
+	}
+
+	/**
+	 * Days a range covers, both ends included: 1 for one day.
+	 *
+	 * A date difference, never an enumeration, so an absurd end date costs
+	 * nothing to refuse. Both dates must already be valid.
+	 *
+	 * @param string $start_date First date (Y-m-d).
+	 * @param string $end_date   Last date (Y-m-d), on or after the first.
+	 * @return int
+	 */
+	public static function range_length( string $start_date, string $end_date ): int {
+		$utc   = new \DateTimeZone( 'UTC' );
+		$start = new \DateTimeImmutable( $start_date, $utc );
+		$end   = new \DateTimeImmutable( $end_date, $utc );
+
+		return (int) $start->diff( $end )->days + 1;
+	}
 
 	/**
 	 * Every date from `$start_date` to `$end_date`, both included.

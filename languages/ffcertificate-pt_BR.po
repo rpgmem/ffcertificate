@@ -6973,9 +6973,6 @@ msgstr "O mesmo horário todos os dias"
 msgid "Already booked on: %s"
 msgstr "Já reservado em: %s"
 
-#: includes/settings/views/documentation/scheduling-audiences.php
-msgid "A booking can cover a range of days: set an end date in the booking form and the booking takes every day from its date to that one. The hours on each day are either the same every day, or run from the start time on the first day to the end time on the last, with the whole opening window in between. Every day is checked against the rules and for conflicts; a clash on any day refuses the whole booking, and the form lists the days already taken. A holiday or a weekday the space is closed inside the range refuses the booking unless \"Skip blocked days\" is ticked, and then those days are left out without a warning and recorded as skipped. A range covers at most 31 days, and an all-day booking covers one day."
-msgstr "Um agendamento pode cobrir um intervalo de dias: informe uma data final no formulário de agendamento e ele ocupa todos os dias da data inicial até essa. Os horários de cada dia são iguais todos os dias, ou vão do horário inicial no primeiro dia ao horário final no último, com a janela de funcionamento inteira entre eles. Cada dia é verificado contra as regras e quanto a conflitos; um conflito em qualquer dia recusa o agendamento inteiro, e o formulário lista os dias já ocupados. Um feriado ou um dia da semana em que o espaço fecha dentro do intervalo recusa o agendamento, a menos que \"Pular dias bloqueados\" esteja marcado; nesse caso esses dias ficam de fora sem aviso e são registrados como pulados. Um intervalo cobre no máximo 31 dias, e um agendamento de dia inteiro cobre apenas um dia."
 
 #: includes/frontend/class-ffc-frontend.php:464
 msgid "End date"
@@ -9467,9 +9464,6 @@ msgstr "A data final precisa ser uma data válida, igual ou posterior à data in
 msgid "An all-day booking covers one day."
 msgstr "Uma reserva de dia inteiro cobre apenas um dia."
 
-#: includes/audience/class-ffc-audience-rest-controller.php
-msgid "A booking can cover at most %d days."
-msgstr "Uma reserva pode cobrir no máximo %d dias."
 
 #: includes/audience/class-ffc-audience-rest-controller.php
 msgid "Invalid time mode."
@@ -29975,3 +29969,54 @@ msgstr "Os campos do segundo cargo (jornada, cargo e horário de trabalho) só s
 
 msgid "On a phone the work-hours table keeps its columns and scrolls sideways; a shadow at the edge shows there is more."
 msgstr "No celular, a tabela de horários mantém as colunas e rola para o lado; uma sombra na borda mostra que há mais."
+
+msgid "A booking can cover a range of days: set an end date in the booking form and the booking takes every day from its date to that one. The hours on each day are either the same every day, or run from the start time on the first day to the end time on the last, with the whole opening window in between. Every day is checked against the rules and for conflicts; a clash on any day refuses the whole booking, and the form lists the days already taken. A holiday or a weekday the space is closed inside the range refuses the booking unless \"Skip blocked days\" is ticked, and then those days are left out without a warning and recorded as skipped. A range covers at most 30 consecutive days, and a longer one is refused with a message naming the limit; an all-day booking covers one day."
+msgstr "Um agendamento pode cobrir um intervalo de dias: informe uma data final no formulário de agendamento e ele ocupa todos os dias da data inicial até essa. Os horários de cada dia são iguais todos os dias, ou vão do horário inicial no primeiro dia ao horário final no último, com a janela de funcionamento inteira entre eles. Cada dia é verificado contra as regras e quanto a conflitos; um conflito em qualquer dia recusa o agendamento inteiro, e o formulário lista os dias já ocupados. Um feriado ou um dia da semana em que o espaço fecha dentro do intervalo recusa o agendamento, a menos que \"Pular dias bloqueados\" esteja marcado; nesse caso esses dias ficam de fora sem aviso e são registrados como pulados. Um intervalo cobre no máximo 30 dias consecutivos, e um intervalo maior é recusado com uma mensagem que informa o limite; um agendamento de dia inteiro cobre apenas um dia."
+
+msgid "A booking can cover at most %d consecutive days."
+msgstr "Um agendamento pode cobrir no máximo %d dias consecutivos."
+
+msgid "A booking is cancelled once. A second request for the same booking, from another tab or another person, answers that it is already cancelled and sends no e-mail. A booking and its participants are saved together: if one of them cannot be written, nothing is saved and the person sees an error."
+msgstr "Um agendamento é cancelado uma única vez. Um segundo pedido para o mesmo agendamento, de outra aba ou de outra pessoa, responde que ele já está cancelado e não envia e-mail. Um agendamento e seus participantes são salvos juntos: se algum deles não puder ser gravado, nada é salvo e a pessoa vê um erro."
+
+msgid "A booking names only audiences the caller belongs to, unless the caller holds manage_options or ffc_bypass_audiences; an individual booking needs ffc_manage_audiences."
+msgstr "Um agendamento só indica públicos aos quais quem chama pertence, a menos que tenha manage_options ou ffc_bypass_audiences; um agendamento individual exige ffc_manage_audiences."
+
+msgid "A booking reaches its audiences' members: the e-mail, the dashboard, the check-in and the post-event form. So the server checks who it names. A member books only for the audiences they belong to, or for one of those audiences' parents, which is what the dialog offers. Booking for individual users takes ffc_manage_audiences, and only those who hold it see the choice. A WordPress administrator or a holder of ffc_bypass_audiences may book any audience. Every audience and user named must exist."
+msgstr "Um agendamento alcança os membros dos seus públicos: o e-mail, o painel, o check-in e o formulário pós-evento. Por isso o servidor verifica quem ele indica. Um membro agenda apenas para os públicos aos quais pertence, ou para um dos públicos acima deles, que é o que o diálogo oferece. Agendar para usuários individuais exige ffc_manage_audiences, e só quem a tem vê essa opção. Um administrador do WordPress ou quem tem ffc_bypass_audiences pode agendar para qualquer público. Todo público e usuário indicado precisa existir."
+
+msgid "A calendar read can cover at most %d days."
+msgstr "Uma leitura do calendário pode cobrir no máximo %d dias."
+
+msgid "An audience cannot be placed under itself or one of its own groups."
+msgstr "Um público não pode ficar sob si mesmo nem sob um dos seus próprios grupos."
+
+msgid "Audiences can be nested at most %d levels deep."
+msgstr "Os públicos podem ter no máximo %d níveis."
+
+msgid "Invalid date range."
+msgstr "Intervalo de datas inválido."
+
+msgid "One of the selected audiences does not exist."
+msgstr "Um dos públicos selecionados não existe."
+
+msgid "One of the selected users does not exist."
+msgstr "Um dos usuários selecionados não existe."
+
+msgid "Row %1$d: %2$s"
+msgstr "Linha %1$d: %2$s"
+
+msgid "The parent audience does not exist."
+msgstr "O público superior não existe."
+
+msgid "The start and end dates must be valid and at most 62 days apart."
+msgstr "As datas inicial e final precisam ser válidas e estar a no máximo 62 dias uma da outra."
+
+msgid "The tree has at most three levels: a top-level audience, its groups and their sub-groups. An audience cannot be placed under itself or one of its own groups, and moving an audience moves its groups with it, so a move that would push one of them to a fourth level is refused with the reason. The same rule holds for the CSV import, where such a row is skipped with the reason."
+msgstr "A árvore tem no máximo três níveis: um público principal, seus grupos e os subgrupos deles. Um público não pode ficar sob si mesmo nem sob um dos seus próprios grupos, e mover um público move seus grupos junto, então uma mudança que levaria algum deles a um quarto nível é recusada com o motivo. A mesma regra vale para a importação CSV, em que uma linha assim é pulada com o motivo."
+
+msgid "You can only book for audiences you belong to."
+msgstr "Você só pode agendar para públicos aos quais pertence."
+
+msgid "You do not have permission to book for individual users."
+msgstr "Você não tem permissão para agendar para usuários individuais."
