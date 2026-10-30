@@ -121,6 +121,7 @@
                     attrs: {
                         'data-id': booking.id,
                         'data-days': (booking.days || []).length,
+                        'data-series': parseInt(booking.series_id, 10) > 0 ? '1' : '',
                         'data-date-label': booking.date_label || booking.booking_date
                     }
                 });
@@ -148,11 +149,14 @@
         FFC.confirmRangeCancel({
             count: $button.attr('data-days'),
             label: $button.attr('data-date-label'),
+            series: $button.attr('data-series') === '1',
             strings: ffcAudience.strings.cancelConfirm
         }).then(function(agreed) {
             if (!agreed) {
                 return;
             }
+            // A date of a weekly series may take the later dates with it (#2243).
+            var scope = (agreed && agreed.choice === 'following') ? 'following' : 'this';
 
             var reason = prompt(ffcAudience.strings.cancelReason);
             if (!reason || reason.trim() === '') {
@@ -161,12 +165,12 @@
 
             FFC.rest(ffcAudience.restUrl + 'bookings/' + bookingId, {
                 method: 'DELETE',
-                data: { reason: reason },
+                data: { reason: reason, scope: scope },
                 nonce: ffcAudience.nonce
             })
                 .then(function(response) {
                     if (response && response.success) {
-                        alert(ffcAudience.strings.bookingCancelled);
+                        alert(response.cancelled ? response.message : ffcAudience.strings.bookingCancelled);
                         api.renderCalendar();
                         loadDayBookings(date);
                     } else {

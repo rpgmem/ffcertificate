@@ -189,6 +189,11 @@ class AudienceRestController {
 						'required'          => true,
 						'sanitize_callback' => 'sanitize_textarea_field',
 					),
+					'scope'  => array(
+						'type'    => 'string',
+						'enum'    => array( 'this', AudienceBookingSeries::SCOPE_FOLLOWING ),
+						'default' => 'this',
+					),
 				),
 			)
 		);
@@ -544,6 +549,7 @@ class AudienceRestController {
 					'description'      => $booking->description,
 					'status'           => $booking->status,
 					'created_by'       => (int) $booking->created_by,
+					'series_id'        => (int) ( $booking->series_id ?? 0 ),
 					'can_cancel'       => $has_bypass( $booking ) || (int) $booking->created_by === $user_id,
 					'audiences'        => array_map(
 						function ( $a ) {
@@ -1279,6 +1285,34 @@ class AudienceRestController {
 			);
 		}
 
+		// A date of a weekly series may take every later date with it, and
+		// the series is told in one e-mail (#2243).
+		if ( AudienceBookingSeries::SCOPE_FOLLOWING === $request->get_param( 'scope' ) && (int) ( $booking->series_id ?? 0 ) > 0 ) {
+			$cancelled = AudienceBookingSeries::cancel_following( $booking, $reason );
+			if ( array() === $cancelled ) {
+				return new \WP_REST_Response(
+					array(
+						'success' => false,
+						'message' => __( 'Booking is already cancelled.', 'ffcertificate' ),
+					),
+					400
+				);
+			}
+
+			return new \WP_REST_Response(
+				array(
+					'success'   => true,
+					'cancelled' => $cancelled,
+					'message'   => sprintf(
+						/* translators: %d: how many dates of the series were cancelled. */
+						_n( '%d date of the series cancelled.', '%d dates of the series cancelled.', count( $cancelled ), 'ffcertificate' ),
+						count( $cancelled )
+					),
+				),
+				200
+			);
+		}
+
 		// Cancel the booking. A request that lost the race to another one
 		// changes nothing and is told so, without a second e-mail (#2243).
 		$result = AudienceBookingWriter::cancel( $booking_id, $reason );
@@ -1303,8 +1337,16 @@ class AudienceRestController {
 			);
 		}
 
-		// Trigger notification hook.
-		do_action( 'ffcertificate_audience_booking_cancelled', $booking_id, $reason );
+		/**
+		 * Fires after an audience booking is cancelled.
+		 *
+		 * @param int                  $booking_id The cancelled booking.
+		 * @param string               $reason     The cancellation reason.
+		 * @param array<string, mixed> $context    Empty for one booking; for dates of a weekly
+		 *                                         series cancelled together, `series_lead` (the
+		 *                                         first id), `series_ids` and `series_dates`.
+		 */
+		do_action( 'ffcertificate_audience_booking_cancelled', $booking_id, $reason, array() );
 
 		return new \WP_REST_Response(
 			array(

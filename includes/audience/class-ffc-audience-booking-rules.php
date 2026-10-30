@@ -453,20 +453,24 @@ final class AudienceBookingRules {
 	 */
 	public static function cancel_strings(): array {
 		return array(
-			'title'          => __( 'Cancel this booking?', 'ffcertificate' ),
-			'intro'          => __( 'Read before you confirm:', 'ffcertificate' ),
-			'agree'          => __( 'Cancel booking', 'ffcertificate' ),
+			'title'           => __( 'Cancel this booking?', 'ffcertificate' ),
+			'intro'           => __( 'Read before you confirm:', 'ffcertificate' ),
+			'agree'           => __( 'Cancel booking', 'ffcertificate' ),
 			/* translators: %d: seconds left before the confirm button is enabled. */
-			'agreeIn'        => __( 'Cancel booking (%d)', 'ffcertificate' ),
-			'cancel'         => __( 'Keep booking', 'ffcertificate' ),
+			'agreeIn'         => __( 'Cancel booking (%d)', 'ffcertificate' ),
+			'cancel'          => __( 'Keep booking', 'ffcertificate' ),
 			/* translators: %d: seconds left before the confirm button is enabled. */
-			'countdownStart' => __( 'You can confirm in %d seconds.', 'ffcertificate' ),
-			'countdownEnd'   => __( 'You can confirm now.', 'ffcertificate' ),
+			'countdownStart'  => __( 'You can confirm in %d seconds.', 'ffcertificate' ),
+			'countdownEnd'    => __( 'You can confirm now.', 'ffcertificate' ),
 			/* translators: %s: the date of the booking being cancelled. */
-			'single'         => __( 'This cancels the booking on %s.', 'ffcertificate' ),
+			'single'          => __( 'This cancels the booking on %s.', 'ffcertificate' ),
 			/* translators: 1: number of days the booking covers, 2: the first and last dates of it. */
-			'range'          => __( 'This booking covers %1$d days (%2$s). Cancelling it cancels every one of them.', 'ffcertificate' ),
-			'seconds'        => \FreeFormCertificate\Core\ConfirmCountdown::SECONDS,
+			'range'           => __( 'This booking covers %1$d days (%2$s). Cancelling it cancels every one of them.', 'ffcertificate' ),
+			'seconds'         => \FreeFormCertificate\Core\ConfirmCountdown::SECONDS,
+			'seriesNote'      => __( 'This date is part of a weekly series. Choose whether the later dates are cancelled too; earlier dates stay.', 'ffcertificate' ),
+			'seriesLegend'    => __( 'Cancel', 'ffcertificate' ),
+			'seriesThis'      => __( 'This date', 'ffcertificate' ),
+			'seriesFollowing' => __( 'This and following', 'ffcertificate' ),
 		);
 	}
 

@@ -903,7 +903,9 @@
          * @param {number}   options.count    Days the booking covers (1 for a single day).
          * @param {string}   options.label    The booking's dates, already formatted.
          * @param {Object}   options.strings  `AudienceBookingRules::cancel_strings()`.
-         * @return {Promise<boolean>} True when the person agreed.
+         * @param {boolean}  [options.series] The booking is a date of a weekly series: the
+         *                   dialog asks whether the later dates go too.
+         * @return {Promise<boolean|Object>} True when the person agreed; `{choice}` for a series.
          */
         confirmRangeCancel: function(options) {
             var opts = options || {};
@@ -913,12 +915,27 @@
             var sentence = count > 1
                 ? String(s.range || '').replace('%1$d', count).replace('%2$s', label)
                 : String(s.single || '').replace('%s', label);
-
-            return core.overrideConfirm({
+            var confirm = {
                 reasons: [sentence],
                 strings: s,
                 agreeCategory: 'danger'
-            });
+            };
+
+            // A date of a weekly series (#2243): cancel it alone, or with
+            // every later date of its series.
+            if (opts.series) {
+                confirm.reasons.push(String(s.seriesNote || ''));
+                confirm.choiceField = {
+                    legend: s.seriesLegend || '',
+                    value: 'this',
+                    options: [
+                        { value: 'this', label: s.seriesThis || 'This date' },
+                        { value: 'following', label: s.seriesFollowing || 'This and following' }
+                    ]
+                };
+            }
+
+            return core.overrideConfirm(confirm);
         },
 
         /**
@@ -944,7 +961,10 @@
          * @param {Object}   [options.reasonField] Ask why (#2243): `{label, hint, min, max}`. The
          *                   confirm then also waits for a reason of that length, and the
          *                   promise resolves with the reason instead of `true`.
-         * @return {Promise<boolean|string>} True (or the reason) when the person agreed.
+         * @param {Object}   [options.choiceField] A choice to make before confirming (#2243):
+         *                   `{legend, value, options: [{value, label}]}`, drawn as the segmented
+         *                   control. The promise then resolves with `{choice, reason}`.
+         * @return {Promise<boolean|string|Object>} True (or the reason, or the choice) when the person agreed.
          */
         overrideConfirm: function(options) {
             var opts = options || {};
@@ -1038,6 +1058,36 @@
                 body.appendChild(group);
             }
 
+            var choices = [];
+            if (opts.choiceField && opts.choiceField.options) {
+                var choiceSet = document.createElement('fieldset');
+                choiceSet.className = 'ffc-control-segmented ffc-control-segmented-fluid ffc-override-choice';
+                var legend = document.createElement('legend');
+                legend.textContent = String(opts.choiceField.legend || '');
+                choiceSet.appendChild(legend);
+                var track = document.createElement('span');
+                track.className = 'ffc-control-segmented-track';
+                opts.choiceField.options.forEach(function(option, i) {
+                    var optionLabel = document.createElement('label');
+                    optionLabel.className = 'ffc-control-segmented-option';
+                    var radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = uid + '-choice';
+                    radio.id = uid + '-choice-' + (i + 1);
+                    radio.value = String(option.value);
+                    radio.checked = String(option.value) === String(opts.choiceField.value);
+                    var optionText = document.createElement('span');
+                    optionText.className = 'ffc-control-segmented-label';
+                    optionText.textContent = String(option.label || option.value);
+                    optionLabel.appendChild(radio);
+                    optionLabel.appendChild(optionText);
+                    track.appendChild(optionLabel);
+                    choices.push(radio);
+                });
+                choiceSet.appendChild(track);
+                body.appendChild(choiceSet);
+            }
+
             var live = document.createElement('p');
             live.className = 'ffc-override-countdown';
             live.setAttribute('role', 'status');
@@ -1118,7 +1168,7 @@
                     if (e.key !== 'Tab') {
                         return;
                     }
-                    var focusable = [field, cancel, agree].filter(function(el) { return el && !el.disabled; });
+                    var focusable = choices.concat([field, cancel, agree]).filter(function(el) { return el && !el.disabled; });
                     var first = focusable[0];
                     var last = focusable[focusable.length - 1];
                     if (focusable.indexOf(document.activeElement) === -1) {
@@ -1135,10 +1185,20 @@
 
                 cancel.addEventListener('click', function() { finish(false); });
                 backdrop.addEventListener('click', function() { finish(false); });
+                function chosen() {
+                    var picked = choices.filter(function(radio) { return radio.checked; })[0];
+                    return picked ? picked.value : '';
+                }
+
                 agree.addEventListener('click', function() {
-                    if (!agree.disabled) {
-                        finish(field ? reasonText() : true);
+                    if (agree.disabled) {
+                        return;
                     }
+                    if (choices.length) {
+                        finish({ choice: chosen(), reason: reasonText() });
+                        return;
+                    }
+                    finish(field ? reasonText() : true);
                 });
                 if (field) {
                     field.addEventListener('input', label);

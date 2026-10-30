@@ -78,6 +78,27 @@ final class AudienceAjaxController {
 				wp_send_json_error( array( 'message' => __( 'Booking is already cancelled.', 'ffcertificate' ) ) );
 			}
 
+			// A date of a weekly series may take every later date with it,
+			// told in one e-mail (#2243).
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via verify_ajax_nonce() above.
+			$scope = isset( $_POST['scope'] ) ? sanitize_key( wp_unslash( $_POST['scope'] ) ) : '';
+			if ( AudienceBookingSeries::SCOPE_FOLLOWING === $scope && (int) ( $booking->series_id ?? 0 ) > 0 ) {
+				$cancelled = AudienceBookingSeries::cancel_following( $booking, $reason );
+				if ( array() === $cancelled ) {
+					wp_send_json_error( array( 'message' => __( 'Booking is already cancelled.', 'ffcertificate' ) ) );
+				}
+				wp_send_json_success(
+					array(
+						'cancelled' => $cancelled,
+						'message'   => sprintf(
+							/* translators: %d: how many dates of the series were cancelled. */
+							_n( '%d date of the series cancelled.', '%d dates of the series cancelled.', count( $cancelled ), 'ffcertificate' ),
+							count( $cancelled )
+						),
+					)
+				);
+			}
+
 			// A request that lost the race to another one changes nothing (#2243).
 			$result = AudienceBookingWriter::cancel( $booking_id, $reason );
 			if ( ! $result && AudienceBookingReader::is_cancelled( $booking_id ) ) {

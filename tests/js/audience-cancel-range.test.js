@@ -88,3 +88,36 @@ describe('FFC.confirmRangeCancel — the countdown', () => {
 		expect(dialog()).toBeNull();
 	});
 });
+
+// A date of a weekly series (#2243): the dialog asks whether the later dates
+// go too, with the segmented control, and resolves with the choice.
+describe('FFC.confirmRangeCancel — a date of a weekly series', () => {
+	const seriesStrings = Object.assign({}, strings, {
+		seriesNote: 'This date is part of a weekly series.',
+		seriesLegend: 'Cancel',
+		seriesThis: 'This date',
+		seriesFollowing: 'This and following',
+	});
+
+	it('offers this date or this and the following, with this date chosen', () => {
+		window.FFC.confirmRangeCancel({ count: 1, label: '08/04', series: true, strings: seriesStrings });
+		const radios = Array.from(dialog().querySelectorAll('.ffc-override-choice input[type="radio"]'));
+		expect(radios.map((r) => r.value)).toEqual(['this', 'following']);
+		expect(radios[0].checked).toBe(true);
+		expect(dialog().querySelector('.ffc-override-choice legend').textContent).toBe('Cancel');
+		expect(dialog().textContent).toContain('This date is part of a weekly series.');
+	});
+
+	it('resolves with the choice made', async () => {
+		const promise = window.FFC.confirmRangeCancel({ count: 1, label: '08/04', series: true, strings: seriesStrings });
+		dialog().querySelector('.ffc-override-choice input[value="following"]').click();
+		vi.advanceTimersByTime(5000);
+		dialog().querySelector('[data-ffc-override="agree"]').click();
+		await expect(promise).resolves.toEqual({ choice: 'following', reason: '' });
+	});
+
+	it('asks nothing for a booking outside a series', () => {
+		window.FFC.confirmRangeCancel({ count: 1, label: '08/04', strings: seriesStrings });
+		expect(dialog().querySelector('.ffc-override-choice')).toBeNull();
+	});
+});

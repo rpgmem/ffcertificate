@@ -509,6 +509,12 @@ class AudienceRestControllerTest extends TestCase {
 			usort( $rows, static fn( $a, $b ) => strcmp( $a->name, $b->name ) );
 			return $rows;
 		}
+		if ( false !== strpos( $sql, "WHERE series_id = %d AND status = 'active'" ) ) {
+			// AudienceBookingReader::get_series() (#2243): first date first.
+			$rows = array_values( array_filter( $this->bookings, static fn( $b ) => (int) ( $b->series_id ?? 0 ) === (int) $bound[2] && 'active' === $b->status ) );
+			usort( $rows, static fn( $a, $b ) => strcmp( $a->booking_date, $b->booking_date ) ?: (int) $a->id <=> (int) $b->id );
+			return array_map( static fn( $b ) => clone $b, $rows );
+		}
 		if ( false !== strpos( $sql, 'SELECT b.*, e.name as environment_name' ) ) {
 			// AudienceBookingReader::get_all().
 			$rows = array();
@@ -1496,6 +1502,107 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( array( 'id' => 1 ), $updates[0]['where'] );
 		$this->assertSame( 'cancelled', $updates[0]['data']['status'] );
 		$this->assertSame( 'Cannot attend the meeting anymore', $updates[0]['data']['cancellation_reason'] );
+	}
+
+	/**
+	 * Booking 1 starts a four-week series; 2, 3 and 4 follow it (#2243).
+	 */
+	private function series_bookings(): void {
+		$this->environment( 10, 20 );
+		foreach ( array( 1 => '2026-04-01', 2 => '2026-04-08', 3 => '2026-04-15', 4 => '2026-04-22' ) as $id => $date ) {
+			$this->booking( $id, 10, $date, '09:00', '10:00', array( 'series_id' => 1 ) );
+		}
+	}
+
+	/**
+	 * The cancellation hooks a request fired, as `[booking_id, reason, context]`.
+	 *
+	 * @return \ArrayObject<int, array<int, mixed>>
+	 */
+	private function cancel_hooks(): \ArrayObject {
+		$fired = new \ArrayObject();
+		Functions\when( 'do_action' )->alias(
+			static function ( ...$args ) use ( $fired ) {
+				if ( 'ffcertificate_audience_booking_cancelled' === $args[0] ) {
+					$fired[] = array_slice( $args, 1 );
+				}
+			}
+		);
+		return $fired;
+	}
+
+	public function test_cancelling_a_series_date_and_the_following_ones_keeps_the_earlier_dates(): void {
+		$this->series_bookings();
+		$fired = $this->cancel_hooks();
+
+		$result = ( new AudienceRestController() )->cancel_booking(
+			$this->make_request( array( 'id' => 2, 'reason' => 'The course ended early', 'scope' => 'following' ) )
+		);
+
+		$this->assertSame( 200, $result->get_status() );
+		$this->assertSame( array( 2, 3, 4 ), $result->get_data()['cancelled'] );
+		$this->assertSame( 'active', $this->bookings[1]->status );
+		foreach ( array( 2, 3, 4 ) as $id ) {
+			$this->assertSame( 'cancelled', $this->bookings[ $id ]->status );
+		}
+
+		// Every date announces itself to other listeners; the context names
+		// the first, which is the one that sends the series e-mail.
+		$context = array(
+			'series_lead'  => 2,
+			'series_ids'   => array( 2, 3, 4 ),
+			'series_dates' => array( '2026-04-08', '2026-04-15', '2026-04-22' ),
+		);
+		$this->assertSame(
+			array(
+				array( 2, 'The course ended early', $context ),
+				array( 3, 'The course ended early', $context ),
+				array( 4, 'The course ended early', $context ),
+			),
+			$fired->getArrayCopy()
+		);
+	}
+
+	public function test_a_series_date_already_cancelled_is_left_out_of_the_following(): void {
+		$this->series_bookings();
+		$this->bookings[3]->status = 'cancelled';
+		$fired                     = $this->cancel_hooks();
+
+		$result = ( new AudienceRestController() )->cancel_booking(
+			$this->make_request( array( 'id' => 2, 'reason' => 'The course ended early', 'scope' => 'following' ) )
+		);
+
+		$this->assertSame( array( 2, 4 ), $result->get_data()['cancelled'] );
+		$this->assertCount( 2, $fired );
+		$this->assertSame( array( '2026-04-08', '2026-04-22' ), $fired[0][2]['series_dates'] );
+	}
+
+	public function test_the_default_scope_cancels_only_the_series_date_named(): void {
+		$this->series_bookings();
+		$fired = $this->cancel_hooks();
+
+		$result = ( new AudienceRestController() )->cancel_booking(
+			$this->make_request( array( 'id' => 2, 'reason' => 'Cannot attend that week' ) )
+		);
+
+		$this->assertSame( 200, $result->get_status() );
+		$this->assertSame( 'cancelled', $this->bookings[2]->status );
+		$this->assertSame( 'active', $this->bookings[3]->status );
+		$this->assertSame( array( array( 2, 'Cannot attend that week', array() ) ), $fired->getArrayCopy() );
+	}
+
+	public function test_following_on_a_booking_outside_a_series_cancels_that_booking_alone(): void {
+		$this->environment( 10, 20 );
+		$this->booking( 1, 10, '2026-04-01', '09:00', '10:00' );
+		$fired = $this->cancel_hooks();
+
+		$result = ( new AudienceRestController() )->cancel_booking(
+			$this->make_request( array( 'id' => 1, 'reason' => 'Cannot attend the meeting anymore', 'scope' => 'following' ) )
+		);
+
+		$this->assertSame( 200, $result->get_status() );
+		$this->assertArrayNotHasKey( 'cancelled', $result->get_data() );
+		$this->assertCount( 1, $fired );
 	}
 
 	/**

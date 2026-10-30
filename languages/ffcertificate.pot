@@ -23006,7 +23006,7 @@ msgstr ""
 msgid "After a submission is edited — args ( submission_id, update_data ) — or deleted — args ( submission_id )."
 msgstr ""
 
-msgid "Audience booking lifecycle — args ( booking_id ) on create, ( booking_id, reason ) on cancel."
+msgid "Audience booking lifecycle — args ( booking_id ) on create, ( booking_id, reason, context ) on cancel; context is empty for one booking and names the ids and dates of a weekly series cancelled together."
 msgstr ""
 
 msgid "Before a short-URL redirect is sent — args ( record, target_url, redirect_type )."
@@ -30125,3 +30125,20 @@ msgstr ""
 
 msgid "Weekly repeats one day: the same day of the week, space, hours and people every week until the \"Repeat until\" date, for up to 52 weeks. The check runs the rules and the room's conflicts on each date and lists the dates that cannot be booked, with why; those dates are left out, and the rest are booked. A date in a weekly series is never booked over a conflict or a closed day, even by someone who may override: that stays a decision about one booking. Each date is an ordinary booking, with its own attendance, post-event form and cancellation, and the participants receive one e-mail that lists every date, with a calendar file holding them all."
 msgstr ""
+
+msgid "This date is part of a weekly series. Choose whether the later dates are cancelled too; earlier dates stay."
+msgstr ""
+
+msgid "This date"
+msgstr ""
+
+msgid "This and following"
+msgstr ""
+
+msgid "Cancelling a date of a series asks whether to cancel this date only or this date and every later one; earlier dates stay. The participants receive one cancellation e-mail that lists the dates cancelled, with a calendar file that takes each of them off their calendar. The bookings list asks the same."
+msgstr ""
+
+msgid "%d date of the series cancelled."
+msgid_plural "%d dates of the series cancelled."
+msgstr[0] ""
+msgstr[1] ""

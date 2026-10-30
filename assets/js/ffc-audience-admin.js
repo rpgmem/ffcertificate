@@ -356,11 +356,14 @@
                 FFC.confirmRangeCancel({
                     count: $link.attr('data-days'),
                     label: $link.attr('data-date-label'),
+                    series: $link.attr('data-series') === '1',
                     strings: typeof ffcAudienceAdmin !== 'undefined' ? ffcAudienceAdmin.cancelConfirm : {}
                 }).then(function(agreed) {
                     if (!agreed) {
                         return;
                     }
+                    // A date of a weekly series may take the later dates with it (#2243).
+                    var following = agreed && agreed.choice === 'following';
 
                     var reason = prompt(strings.cancelReason || 'Please provide a reason for cancellation:');
                     if (reason === null) {
@@ -369,8 +372,13 @@
 
                     $link.css('pointer-events', 'none').css('opacity', '0.5');
 
-                    FFC.request('ffc_audience_cancel_booking', { booking_id: bookingId, reason: reason }, { nonce: adminNonce })
+                    FFC.request('ffc_audience_cancel_booking', { booking_id: bookingId, reason: reason, scope: following ? 'following' : 'this' }, { nonce: adminNonce })
                         .then(function() {
+                            // The later dates sit on other rows, maybe other pages: reload.
+                            if (following) {
+                                window.location.reload();
+                                return;
+                            }
                             // Update the row status and remove cancel link
                             var $row = $link.closest('tr');
                             $row.find('.ffc-booking-status-active').removeClass('ffc-booking-status-active').addClass('ffc-booking-status-cancelled').text(strings.cancelled || 'Cancelled');
