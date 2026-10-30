@@ -627,6 +627,29 @@ class AdminAjaxTest extends TestCase {
 		$this->assertAuditedOnce( 'submission_pii_revealed', array( 'field_key' => 'ip' ), self::VIEWER, 5 );
 	}
 
+	/**
+	 * #2241 — the certificate's magic link opens all it prints, so it is a
+	 * reveal: served to the PII tier and audited.
+	 */
+	public function test_reveal_pii_magic_link_is_served_and_audited(): void {
+		$this->post_reveal( null, 5, 'magic_link' );
+		$this->store(
+			'wp_ffc_submissions',
+			5,
+			array(
+				'magic_token' => '0123456789abcdef0123456789abcdef',
+				'user_id'     => '9',
+			)
+		);
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
+		Functions\when( 'home_url' )->alias( static fn( $path = '' ) => 'https://example.test' . $path );
+
+		$revealed = $this->reveal();
+		$this->assertSame( 'magic_link', $revealed['field'] );
+		$this->assertStringContainsString( '#token=0123456789abcdef0123456789abcdef', $revealed['value'] );
+		$this->assertAuditedOnce( 'submission_pii_revealed', array( 'field_key' => 'magic_link' ), self::VIEWER, 5 );
+	}
+
 	public function test_reveal_pii_ip_denied_for_masked_tier(): void {
 		$this->post_reveal( null, 5, 'ip' );
 		$this->store(

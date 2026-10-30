@@ -11619,9 +11619,6 @@ msgstr ""
 msgid "no title"
 msgstr ""
 
-#: includes/admin/class-ffc-submissions-list.php:254
-msgid "No token"
-msgstr ""
 
 #: includes/settings/views/documentation/operations-updates.php:33
 msgid "No token or licence key."
@@ -15115,7 +15112,7 @@ msgid "See the REST API"
 msgstr ""
 
 #: includes/settings/views/documentation/submissions-list.php:40
-msgid "See the submissions list and the PDF button (read-only)."
+msgid "See the submissions list (read-only). Its data preview masks personal values such as phone and birth date."
 msgstr ""
 
 #: includes/settings/views/documentation/submissions-download.php:32
@@ -22918,16 +22915,16 @@ msgstr ""
 msgid "The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate's authentication code to confirm it is genuine and view its status. The same lookup and the magic link also verify appointment receipts and reregistration records by their own codes and links. This path is protected by a nonce, a honeypot + the configured captcha, and IP rate-limiting."
 msgstr ""
 
-msgid "The edit screen lets you correct the participant email and the form's custom-field values, and link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed)."
+msgid "The edit screen lets you correct the participant email and the form's custom-field values, and, with ffc_manage_certificates, link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed)."
 msgstr ""
 
 msgid "Export the current (filtered) submissions to CSV in the background. The export contains decrypted personal data (email, IP, CPF/RF), the magic-link token and the consent record, so it is gated by its own capability."
 msgstr ""
 
-msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form) and \"Send link by e-mail\", which sends a link only to the submissions that never received one."
+msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form) and \"Send link by e-mail\", which sends a link only to the submissions that never received one. Also changing which WordPress user owns a submission."
 msgstr ""
 
-msgid "Reveal the decrypted CPF / RF / email, and the IP on the edit screen, on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
+msgid "Reveal the decrypted CPF / RF / email, and the IP on the edit screen, on demand instead of the masked values; every reveal is audited. It also shows the list's PDF button and the edit screen's magic link and Open certificate button, each opening audited, because the certificate PDF is not masked: it prints CPF/RF formatted with punctuation. Without it the list and the edit screen stay masked, whatever else the operator holds."
 msgstr ""
 
 msgid "Minimum interval between bookings"
@@ -23668,7 +23665,7 @@ msgstr ""
 msgid "Whether the operator can use Start Form Early or Postpone Close right now."
 msgstr ""
 
-msgid "Anyone with this link can download the certificate."
+msgid "Anyone with this link can download the certificate. Revealing it or opening the certificate is recorded in the activity log."
 msgstr ""
 
 msgid "Form answers"
@@ -24377,7 +24374,7 @@ msgstr ""
 msgid "Certificates → Dashboard opens with a summary row (forms in the month shown, submissions today and over the last 7 days, GeoFence windows open now) above a calendar of forms by GeoFence start date, or by publication date when a form has none. Picking a day lists its forms beside the calendar. It needs ffc_view_certificates."
 msgstr ""
 
-msgid "The record sits beside a side panel with Save, the magic link with a Copy button, an Open certificate button that opens the public certificate page in a new tab, and the linked user."
+msgid "The record sits beside a side panel with Save, the magic link, masked behind its own Reveal button, an Open certificate button that opens the certificate in a new tab, and the linked user. The certificate prints the holder's name and CPF/RF and its link opens all of it, so both are shown only to whoever may reveal personal data, and each reveal or opening writes an Activity Log entry."
 msgstr ""
 
 msgid "Body appearance"
@@ -29646,4 +29643,12 @@ msgstr ""
 
 #. includes/admin/class-ffc-admin-submission-edit-page.php
 msgid "The reason and both grades are recorded in the activity log."
+msgstr ""
+
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Opening the certificate or its link needs permission to reveal personal data."
+msgstr ""
+
+#. includes/admin/class-ffc-certificate-open-handler.php
+msgid "You do not have permission to open this certificate."
 msgstr ""

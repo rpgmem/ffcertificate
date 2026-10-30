@@ -176,13 +176,15 @@ class PdfGenerator {
 			)
 		);
 
+		// The payload reaches the browser, the public verification page
+		// included, so it carries only what the PDF needs: the rendered HTML.
+		// The decrypted answers stay on the server (#2241).
 		$pdf_data = array(
 			'html'          => $html,
 			'filename'      => $filename,
 			'form_title'    => $form_title,
 			'auth_code'     => $auth_code,
 			'submission_id' => $submission_id,
-			'submission'    => $data,
 			'bg_image'      => $bg_image_url,
 			'bg_color'      => \FreeFormCertificate\Core\FormBackground::color( $form_id ),
 		);
@@ -190,11 +192,14 @@ class PdfGenerator {
 		/**
 		 * Fires after PDF data is fully generated.
 		 *
+		 * `submission` carries the decrypted answers for listeners only; it is
+		 * not part of the payload returned to the browser.
+		 *
 		 * @since 4.6.4
 		 * @param array $pdf_data     Complete PDF data array.
 		 * @param int   $submission_id Submission ID.
 		 */
-		do_action( 'ffcertificate_after_pdf_generation', $pdf_data, $submission_id );
+		do_action( 'ffcertificate_after_pdf_generation', $pdf_data + array( 'submission' => $data ), $submission_id );
 
 		return $pdf_data;
 	}
@@ -308,7 +313,6 @@ class PdfGenerator {
 			'html'       => $html,
 			'filename'   => $filename,
 			'form_title' => $form_title,
-			'submission' => $submission_data,
 			'bg_image'   => $bg_image_url,
 			'bg_color'   => \FreeFormCertificate\Core\FormBackground::color( (int) $form_id ),
 		);

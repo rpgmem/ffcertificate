@@ -81,6 +81,8 @@ class AdminSubmissionEditPageTest extends TestCase {
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce123' );
 		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
+		Functions\when( 'wp_nonce_url' )->alias( static fn( $url, $action ) => $url . '&_wpnonce=' . $action );
 		Functions\when( 'get_post_meta' )->justReturn( array() );
 		Functions\when( 'get_userdata' )->justReturn( false );
 		Functions\when( 'get_avatar' )->justReturn( '<img>' );
@@ -244,10 +246,13 @@ class AdminSubmissionEditPageTest extends TestCase {
 		// System info section.
 		$this->assertStringContainsString( 'System Information', $html );
 		$this->assertStringContainsString( 'Magic Link Token', $html );
-		// Magic link card in the side panel: the link, Copy and Open certificate (#1614).
+		// Magic link card in the side panel (#1614): the link is masked behind an
+		// audited Reveal and the certificate opens through the audited route (#2241).
 		$this->assertStringContainsString( 'class="ffc-edit-layout"', $html );
-		$this->assertStringContainsString( 'data-url="https://example.org/valid/#token=TOKEN"', $html );
-		$this->assertMatchesRegularExpression( '#<a href="https://example.org/valid/\#token=TOKEN" class="ffc-btn ffc-btn-neutral ffc-icon-external" target="_blank" rel="noopener">Open certificate</a>#', $html );
+		$this->assertStringNotContainsString( '#token=TOKEN', $html, 'The bearer link is never in the page.' );
+		$this->assertStringContainsString( 'class="ffc-pii-value ffc-magic-link" data-field="magic_link"', $html );
+		$this->assertStringContainsString( 'data-field="magic_link"', $html );
+		$this->assertStringContainsString( 'href="admin-post.php?action=ffc_open_certificate&submission_id=42&_wpnonce=ffc_open_certificate_42" class="ffc-btn ffc-btn-neutral ffc-icon-external" target="_blank" rel="noopener">Open certificate</a>', $html );
 		$this->assertStringNotContainsString( 'style="display', $html, 'visibility is the shared class, never an inline style' );
 		// Encrypted IP notice.
 		$this->assertStringContainsString( 'User IP', $html );
@@ -480,8 +485,9 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/<input type="email" name="user_email"[^>]*data-ffc-pii-editable="1" disabled required>/', $html, 'the masked email is not posted until revealed' );
 		$this->assertStringContainsString( 'data-field="email"', $html );
 		$this->assertStringContainsString( 'data-field="cpf"', $html );
-		// Email, CPF and the IP under System Information and under the consent.
-		$this->assertSame( 4, substr_count( $html, 'class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii"' ) );
+		// Email, CPF, the IP under System Information and under the consent, and
+		// the certificate's magic link (#2241).
+		$this->assertSame( 5, substr_count( $html, 'class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii"' ) );
 		$this->assertStringContainsString( 'data-submission-id="42"', $html );
 		$this->assertStringContainsString( 'Reveal the email to edit it.', $html );
 	}
@@ -692,6 +698,61 @@ class AdminSubmissionEditPageTest extends TestCase {
 
 		$msg = $this->capture( fn () => $this->page()->handle_save() );
 		$this->assertStringStartsWith( 'REDIRECT:', $msg );
+	}
+
+	/**
+	 * #2241 — changing the owner hands the certificate to an account of the
+	 * editor's choosing, so an editor without the manage capability cannot.
+	 */
+	public function test_handle_save_ignores_a_link_change_without_the_manage_capability(): void {
+		$this->denied            = array( 'manage_options', 'ffc_manage_certificates' );
+		$_POST['ffc_save_edit']  = '1';
+		$_POST['submission_id']  = '42';
+		$_POST['linked_user_id'] = '15';
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 15 ) );
+
+		$this->handler->shouldReceive( 'update_submission' )->once();
+		$this->handler->shouldNotReceive( 'update_user_link' );
+
+		$msg = $this->capture( fn () => $this->page()->handle_save() );
+		$this->assertStringStartsWith( 'REDIRECT:', $msg );
+	}
+
+	public function test_render_offers_no_relink_without_the_manage_capability(): void {
+		$this->denied = array( 'manage_options', 'ffc_manage_certificates' );
+		Functions\when( 'get_userdata' )->justReturn(
+			(object) array(
+				'ID'           => 7,
+				'display_name' => 'Ana',
+				'user_email'   => 'ana@example.test',
+			)
+		);
+		Functions\when( 'get_avatar' )->justReturn( '' );
+		Functions\when( 'get_edit_user_link' )->justReturn( 'user-edit.php?user_id=7' );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'user_id' => 7 ) ) );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Ana', $html );
+		$this->assertStringNotContainsString( 'ffc-unlink-user-btn', $html );
+		$this->assertStringNotContainsString( 'ffc-relink-user-btn', $html );
+		$this->assertStringNotContainsString( 'ffc-user-search-input', $html );
+	}
+
+	public function test_render_hides_the_magic_link_from_a_user_who_cannot_reveal(): void {
+		$this->denied = array( 'manage_options', 'ffc_view_certificates_pii' );
+		Functions\when( 'user_can' )->alias( fn( $uid, $cap ) => ! in_array( $cap, $this->denied, true ) );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Opening the certificate or its link needs permission to reveal personal data.', $html );
+		$this->assertStringNotContainsString( 'ffc_open_certificate', $html );
+		$this->assertStringNotContainsString( 'data-field="magic_link"', $html );
 	}
 
 	public function test_handle_save_skips_link_for_invalid_user(): void {
