@@ -596,6 +596,21 @@ class SubmissionReader extends AbstractRepository {
 	}
 
 	/**
+	 * How many submissions a form holds outside the trash (#2241).
+	 *
+	 * Once there is one, the form's field names are stored in its rows and
+	 * its layout regenerates certificates already issued.
+	 *
+	 * @param int $form_id Form ID.
+	 * @return int
+	 */
+	public function countLiveByForm( int $form_id ): int {
+		return (int) $this->wpdb->get_var(
+			$this->wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE form_id = %d AND status <> %s', $this->table, $form_id, \FreeFormCertificate\Core\SubmissionStatus::TRASH )
+		);
+	}
+
+	/**
 	 * Count total matching rows for export progress reporting.
 	 *
 	 * @since 5.0.0

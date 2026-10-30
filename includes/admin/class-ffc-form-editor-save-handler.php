@@ -209,6 +209,7 @@ class FormEditorSaveHandler {
 		$clean_fields  = array();
 		$quiz_warnings = array();
 		$stored_types  = self::stored_field_types( $post_id );
+		$names_locked  = ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->countLiveByForm( $post_id ) > 0;
 		foreach ( $rows as $index => $field ) {
 			// A row that is not an array is not a row. The `empty()` chain
 			// below already skipped it — `empty( $string['label'] )` is
@@ -225,6 +226,13 @@ class FormEditorSaveHandler {
 
 			$type = sanitize_key( ArrayValue::string( $field, 'type' ) );
 			$name = sanitize_key( ArrayValue::string( $field, 'name' ) );
+			// Once the form has submissions, a stored field keeps its tag
+			// (#2241): the rows hold its value under that name. The row
+			// carries the name it was rendered with, so a rename is undone.
+			$original = sanitize_key( ArrayValue::string( $field, 'original_name' ) );
+			if ( $names_locked && '' !== $original && isset( $stored_types[ $original ] ) ) {
+				$name = $original;
+			}
 			// A field the form already has keeps its type (#1756): the editor
 			// no longer offers the choice, and the submissions stored under it
 			// hold values of that type. Matched by name, because a row's index

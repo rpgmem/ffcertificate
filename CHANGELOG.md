@@ -104,6 +104,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificates: quiz attempt limits hold, and a retry that passes is e-mailed** (#2241). With encryption on, every attempt read as the first, so Max attempts never stopped anyone; a retry stored a date string in the BIGINT issue date (the certificate showed 1970) and sent no certificate e-mail when it passed. A failed save is now reported.
 - **Certificates: clearing the form cache no longer flushes the whole object cache** (#2241). Only the plugin's cache group is flushed, or each form's keys where the cache cannot flush a group.
 - **Certificates: a trashed certificate is revoked** (#2241). Verification, its QR code, the magic link and REST say when it was revoked, with no data or PDF, and the same CPF/RF cannot issue another; restoring lifts it. REST keeps the `certificate_deleted` code and adds `revoked_at`.
+- **Certificates: an issued certificate no longer prints a literal `{{tag}}`** (#2241). A field the submission lacks prints blank and an unknown tag stays visible; a field's tag locks once the form has submissions, and the layout editor says how many issued certificates a change reaches.
 
 ### Security
 
