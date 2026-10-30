@@ -51,6 +51,10 @@ class SuccessResponder {
 			$ctx->response = self::awaiting_grading_response();
 			return;
 		}
+		if ( null !== $ctx->reprint_notice ) {
+			$ctx->response = self::reprint_notice_response( $ctx->reprint_notice );
+			return;
+		}
 
 		$form_config = $ctx->form_config;
 		$is_reprint  = $ctx->is_reprint;
@@ -110,6 +114,31 @@ class SuccessResponder {
 		}
 
 		$ctx->response = $response;
+	}
+
+	/**
+	 * The response to a reprint whose link went by e-mail (#2241): a notice
+	 * in place of the form, with no PDF and none of the certificate's data.
+	 *
+	 * @param string $message What the screen says.
+	 * @return array{message: string, pdf_data: null, html: string, notice: true}
+	 */
+	public static function reprint_notice_response( string $message ): array {
+		return array(
+			'message'  => $message,
+			'pdf_data' => null,
+			'html'     => \FreeFormCertificate\Core\Notice::render(
+				'info',
+				'email',
+				$message,
+				'',
+				array(
+					'role' => 'status',
+					'hook' => 'reprint-link',
+				)
+			),
+			'notice'   => true,
+		);
 	}
 
 	/**

@@ -33,7 +33,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     data: array<string, mixed>,
  *     id: numeric-string|int,
  *     email: string,
- *     date: int
+ *     date: int,
+ *     user_id: int,
+ *     status: string,
+ *     revoked_at: int
  * }
  */
 class ReprintDetector {
@@ -120,6 +123,9 @@ class ReprintDetector {
 			// contract whose type depends on the branch cannot be checked.
 			// Only the persister reads this key, and only when is_reprint.
 			'date'       => 0,
+			'user_id'    => 0,
+			'status'     => '',
+			'revoked_at' => 0,
 		);
 	}
 
@@ -127,7 +133,7 @@ class ReprintDetector {
 	 * Build reprint result from a database row
 	 *
 	 * @param object $existing_submission Database row.
-	 * @phpstan-param \stdClass&object{id: numeric-string, submission_date: numeric-string|int, email_encrypted?: string|null, data?: string|null} $existing_submission
+	 * @phpstan-param \stdClass&object{id: numeric-string, submission_date: numeric-string|int, email_encrypted?: string|null, data?: string|null, user_id?: numeric-string|null, status?: string|null, revoked_at?: numeric-string|null} $existing_submission
 	 * @return ReprintResult
 	 */
 	private static function build_reprint_result( object $existing_submission ): array {
@@ -170,6 +176,12 @@ class ReprintDetector {
 			'email'      => $email,
 			// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
 			'date'       => (int) $existing_submission->submission_date,
+			// Who owns it, and whether it was revoked (#2241): a reprint is
+			// handed over on screen only to its logged-in owner, and never
+			// once the certificate is in the trash.
+			'user_id'    => (int) ( $existing_submission->user_id ?? 0 ),
+			'status'     => (string) ( $existing_submission->status ?? '' ),
+			'revoked_at' => (int) ( $existing_submission->revoked_at ?? 0 ),
 		);
 	}
 }

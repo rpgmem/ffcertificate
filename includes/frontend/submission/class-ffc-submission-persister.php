@@ -302,6 +302,28 @@ class SubmissionPersister {
 				$submission_id        = (int) $reprint_result['id'];
 				$real_submission_date = $reprint_result['date'];
 
+				// A certificate in the trash is revoked (#2241): it is not
+				// handed back, and a new one is not issued in its place.
+				if ( SubmissionStatus::TRASH === $reprint_result['status'] ) {
+					throw new SubmissionRejected(
+						array(
+							'code'    => 'certificate_revoked',
+							'message' => \FreeFormCertificate\Frontend\VerificationHandler::revoked_message( $reprint_result['revoked_at'] ),
+						)
+					);
+				}
+
+				// Anyone can type a CPF/RF, so only its logged-in owner gets
+				// the certificate on screen; anyone else gets its link sent to
+				// the address stored on it (#2241). A ticket is a code its
+				// holder was given, and keeps handing the certificate over.
+				$owner = $reprint_result['user_id'];
+				if ( '' === $val_ticket && ( $owner <= 0 || get_current_user_id() !== $owner ) ) {
+					$stored_email        = '' !== $reprint_result['email'] ? $reprint_result['email'] : ArrayValue::string( $reprint_result['data'], 'email' );
+					$sent                = ( new \FreeFormCertificate\Submissions\ReprintLinkMailer() )->send( $submission_id, $stored_email );
+					$ctx->reprint_notice = \FreeFormCertificate\Submissions\ReprintLinkMailer::message( $sent );
+				}
+
 				// Surface the existing auth_code so the success card and message can show it.
 				if ( isset( $reprint_result['data']['auth_code'] ) && empty( $submission_data['auth_code'] ) ) {
 					$submission_data['auth_code'] = $reprint_result['data']['auth_code'];

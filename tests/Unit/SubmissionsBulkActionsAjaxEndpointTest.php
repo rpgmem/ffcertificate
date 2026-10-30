@@ -171,10 +171,12 @@ class SubmissionsBulkActionsAjaxEndpointTest extends TestCase {
 
 		$message = $this->handle_and_capture();
 
-		$this->assertSame(
-			array( 'UPDATE wp_ffc_submissions SET status = trash WHERE id IN (1, 2, 3)' ),
-			$this->queries,
-			'trash must run one bulk status UPDATE over exactly the posted ids.'
+		$this->assertCount( 1, $this->queries, 'trash must run one bulk status UPDATE.' );
+		// Trashing records when the certificates were revoked (#2241).
+		$this->assertMatchesRegularExpression(
+			'/^UPDATE wp_ffc_submissions SET status = trash, revoked_at = NULLIF\( [1-9]\d+, 0 \) WHERE id IN \(1, 2, 3\)$/',
+			$this->queries[0],
+			'trash must run over exactly the posted ids.'
 		);
 		$this->assertStringStartsWith( 'json_success', $message );
 		$this->assertStringContainsString( '"action":"trash"', $message );
@@ -191,7 +193,7 @@ class SubmissionsBulkActionsAjaxEndpointTest extends TestCase {
 		$message = $this->handle_and_capture();
 
 		$this->assertSame(
-			array( 'UPDATE wp_ffc_submissions SET status = publish WHERE id IN (42)' ),
+			array( 'UPDATE wp_ffc_submissions SET status = publish, revoked_at = NULLIF( 0, 0 ) WHERE id IN (42)' ),
 			$this->queries,
 			'restore must run one bulk status UPDATE back to publish.'
 		);

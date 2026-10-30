@@ -577,8 +577,9 @@
                     // title, outside the form the response replaces; it is
                     // done once the attempt is in (#1842).
                     $form.closest('.ffc-form-wrapper').find('[data-ffc-notice="quiz-leave"]').remove();
-                    if (data.html && data.quiz && data.quiz.pending) {
-                        // An attempt a person has still to grade (#1732) is
+                    if (data.html && (data.notice || (data.quiz && data.quiz.pending))) {
+                        // An attempt a person has still to grade (#1732), or
+                        // a reprint whose link went by e-mail (#2241), is
                         // a system notice: it takes the place of the form
                         // and sits above the title, like the form's other
                         // notices (#1842).

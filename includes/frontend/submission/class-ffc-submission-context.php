@@ -179,6 +179,15 @@ class SubmissionContext {
 	public bool $awaiting_grading = false;
 
 	/**
+	 * What the screen says instead of handing over a reprint (#2241): the
+	 * certificate's link went to its stored address. Null when the
+	 * certificate is shown.
+	 *
+	 * @var string|null
+	 */
+	public ?string $reprint_notice = null;
+
+	/**
 	 * Generated PDF payload handed back to the client.
 	 *
 	 * @var mixed
