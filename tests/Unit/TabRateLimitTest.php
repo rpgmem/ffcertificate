@@ -387,7 +387,7 @@ class TabRateLimitTest extends TestCase {
 		$this->stub_save_funcs();
 		$out = $this->invoke_private( 'parse_read_endpoints_post', array( array() ) );
 
-		$this->assertSame( array( 'calendar_slots', 'calendar_list', 'calendar_detail' ), array_keys( $out ) );
+		$this->assertSame( array( 'calendar_slots', 'calendar_list', 'calendar_detail', 'audience_bookings' ), array_keys( $out ) );
 		foreach ( $out as $endpoint ) {
 			$this->assertFalse( $endpoint['enabled'] );
 			$this->assertSame( 0, $endpoint['max_per_minute'] );

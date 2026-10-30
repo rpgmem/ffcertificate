@@ -27,6 +27,7 @@ class TabRateLimit extends SettingsTab {
 	 */
 	public const PII_CAP = 'ffc_view_settings_pii';
 
+
 	/**
 	 * Lines of the address lists the last save refused.
 	 *
@@ -167,28 +168,9 @@ class TabRateLimit extends SettingsTab {
 				'respect_whitelist' => true,
 				'bypass_logged_in'  => true,
 				'message'           => __( 'Too many requests. Please wait {time}.', 'ffcertificate' ),
-				// Per-endpoint thresholds (#259). Keys match the
-				// `endpoint_key` strings the ReadRateLimitGuardTrait
-				// passes through; defaults below are calibrated for the
-				// 3 calendar GETs but new endpoints can append their
-				// own sub-array following the same shape.
-				'endpoints'         => array(
-					'calendar_slots'  => array(
-						'enabled'        => true,
-						'max_per_minute' => 60,
-						'max_per_hour'   => 1000,
-					),
-					'calendar_list'   => array(
-						'enabled'        => true,
-						'max_per_minute' => 30,
-						'max_per_hour'   => 500,
-					),
-					'calendar_detail' => array(
-						'enabled'        => true,
-						'max_per_minute' => 60,
-						'max_per_hour'   => 1000,
-					),
-				),
+				// Per-endpoint thresholds (#259), owned by the checker so
+				// an endpoint never saved here still reads its default.
+				'endpoints'         => \FreeFormCertificate\Security\RateLimitChecker::READ_ENDPOINT_DEFAULTS,
 			),
 		);
 		// wp_parse_args only merges TOP-LEVEL keys; with the nested
@@ -531,7 +513,7 @@ class TabRateLimit extends SettingsTab {
 	 */
 	private function parse_read_endpoints_post( array $stored ): array {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified by save_settings() caller.
-		$known     = array( 'calendar_slots', 'calendar_list', 'calendar_detail' );
+		$known     = array_keys( \FreeFormCertificate\Security\RateLimitChecker::READ_ENDPOINT_DEFAULTS );
 		$endpoints = $stored['read']['endpoints'] ?? array();
 		$endpoints = is_array( $endpoints ) ? $endpoints : array();
 		$out       = array();

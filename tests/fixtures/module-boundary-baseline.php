@@ -36,6 +36,7 @@ return array(
 	'Admin>Settings',
 	'Admin>Submissions',
 	'Admin>UserDashboard',
+	'Audience>API',
 	'Audience>Admin',
 	'Audience>Core',
 	'Audience>Frontend',

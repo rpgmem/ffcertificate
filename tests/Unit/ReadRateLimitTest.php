@@ -157,6 +157,45 @@ class ReadRateLimitTest extends TestCase {
 		$this->assertTrue( $allowed_for_b['allowed'] );
 	}
 
+	public function test_a_read_counted_by_account_does_not_cap_the_shared_address(): void {
+		// Two members behind one institutional address (#2243).
+		RateLimitChecker::record_read_attempt( '1.1.1.1', 'calendar_slots', 7 );
+		RateLimitChecker::record_read_attempt( '1.1.1.1', 'calendar_slots', 7 );
+
+		$this->assertFalse( RateLimitChecker::check_read_limit( '1.1.1.1', 'calendar_slots', 7 )['allowed'] );
+		$this->assertTrue( RateLimitChecker::check_read_limit( '1.1.1.1', 'calendar_slots', 8 )['allowed'], 'Another account on the same address.' );
+		$this->assertTrue( RateLimitChecker::check_read_limit( '1.1.1.1', 'calendar_slots' )['allowed'], 'The anonymous pool of that address.' );
+	}
+
+	public function test_the_guard_counts_a_logged_in_caller_only_when_the_endpoint_asks(): void {
+		$this->settings['read']['bypass_logged_in'] = true;
+		$_SERVER['REMOTE_ADDR']                     = '1.1.1.1';
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+
+		$guard = new class() {
+			use \FreeFormCertificate\API\ReadRateLimitGuardTrait;
+
+			public function run( bool $count ): ?\WP_Error {
+				return $this->guard_read( 'calendar_slots', $count );
+			}
+		};
+
+		for ( $i = 0; $i < 3; $i++ ) {
+			$this->assertNull( $guard->run( false ), 'Bypassed: logged in.' );
+		}
+		$this->assertNull( $guard->run( true ) );
+		$this->assertNull( $guard->run( true ) );
+		$blocked = $guard->run( true );
+		$this->assertInstanceOf( \WP_Error::class, $blocked, 'Counted by account, the third read in the minute is refused.' );
+		$this->assertSame( 429, $blocked->get_error_data()['status'] );
+
+		unset( $_SERVER['REMOTE_ADDR'] );
+	}
+
 	public function test_check_read_limit_skips_minute_gate_when_threshold_zero(): void {
 		// max_per_minute=0 means "no per-minute cap"; the hour gate still applies.
 		$this->settings['read']['endpoints']['calendar_slots']['max_per_minute'] = 0;

@@ -96,6 +96,9 @@ class AudienceRestControllerTest extends TestCase {
 	/** @var bool Whether `$wpdb` was set before this test. */
 	private bool $had_wpdb = false;
 
+	/** @var bool Whether the month read's rate limit is on. */
+	private bool $read_limit_on = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -123,6 +126,13 @@ class AudienceRestControllerTest extends TestCase {
 		Functions\when( 'sanitize_sql_orderby' )->returnArg();
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		// The month read takes the read rate limit (#2243): counters start empty.
+		$this->read_limit_on = false;
+		$memo                = new \ReflectionProperty( \FreeFormCertificate\Security\RateLimitChecker::class, 'settings_cache' );
+		$memo->setAccessible( true );
+		$memo->setValue( null, null );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 0 );
 		Functions\when( 'current_user_can' )->alias( fn( $cap ) => in_array( $cap, $this->caps, true ) );
 		Functions\when( 'user_can' )->alias( fn( $user, $cap ) => in_array( $cap, $this->user_caps[ (int) $user ] ?? array(), true ) );
@@ -134,6 +144,13 @@ class AudienceRestControllerTest extends TestCase {
 				}
 				if ( 'ffc_global_holidays' === $key ) {
 					return $this->global_holidays;
+				}
+				if ( 'ffc_rate_limit_settings' === $key ) {
+					// The month read's rate limit is off unless a test turns it on (#2243).
+					return array(
+						'logging' => array( 'enabled' => false, 'log_allowed' => false ),
+						'read'    => array( 'endpoints' => array( 'audience_bookings' => array( 'enabled' => $this->read_limit_on, 'max_per_minute' => 30, 'max_per_hour' => 500 ) ) ),
+					);
 				}
 				return $default;
 			}
@@ -259,7 +276,7 @@ class AudienceRestControllerTest extends TestCase {
 					$this->wpdb->insert_id = $id;
 					return 1;
 				}
-				if ( in_array( $table, array( 'wp_ffc_audience_booking_audiences', 'wp_ffc_audience_booking_users' ), true ) ) {
+				if ( in_array( $table, array( 'wp_ffc_audience_booking_audiences', 'wp_ffc_audience_booking_users', 'wp_ffc_rate_limits' ), true ) ) {
 					return 1;
 				}
 				return $this->unknown( 'insert', (string) $table );
@@ -429,6 +446,10 @@ class AudienceRestControllerTest extends TestCase {
 					return clone $permission;
 				}
 			}
+			return null;
+		}
+		if ( false !== strpos( $sql, 'SELECT id,count FROM %i WHERE type=%s' ) ) {
+			// The month read's day counter (#2243): no row yet.
 			return null;
 		}
 		if ( false !== strpos( $sql, 'WHERE b.id = %d' ) ) {
@@ -1948,6 +1969,32 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( 400, $result->get_status() );
 		$this->assertStringContainsString( 'already cancelled', $result->get_data()['message'] );
 		$this->assertSame( 0, $actions->count() );
+	}
+
+	public function test_the_month_read_is_rate_limited_for_a_logged_in_member_too(): void {
+		$this->read_limit_on = true;
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		// The account's minute counter already holds the default cap.
+		Functions\when( 'get_transient' )->alias( static fn( $key ) => str_ends_with( (string) $key, '_minute' ) ? 30 : false );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'wp_unslash' )->returnArg();
+		$_SERVER['REMOTE_ADDR'] = '203.0.113.5';
+
+		$result = ( new AudienceRestController() )->get_bookings(
+			$this->make_request(
+				array(
+					'start_date' => '2026-07-01',
+					'end_date'   => '2026-07-31',
+				)
+			)
+		);
+		unset( $_SERVER['REMOTE_ADDR'] );
+
+		$this->assertSame( 429, $result->get_status() );
+		$this->assertSame( 'rate_limit_exceeded', $result->get_data()['code'] );
+		$this->assertSame( '60', $result->get_headers()['Retry-After'] );
+		$this->assertSame( array(), $this->preparedWith( 'ffc_audience_bookings' ), 'A refused read reaches no booking.' );
 	}
 
 	public function test_the_month_read_refuses_a_span_above_sixty_two_days(): void {

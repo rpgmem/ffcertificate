@@ -52,6 +52,40 @@ final class RateLimitChecker {
 	private static ?array $settings_cache = null;
 
 	/**
+	 * The read endpoints and their limits before an administrator saves the
+	 * Rate Limit tab (#259, #2243). The tab shows and saves these; a stored
+	 * endpoint overrides its entry here, and an endpoint never saved reads
+	 * this one, so a limit the tab shows as on is on.
+	 *
+	 * @var array<string, array{enabled: bool, max_per_minute: int, max_per_hour: int}>
+	 */
+	public const READ_ENDPOINT_DEFAULTS = array(
+		'calendar_slots'    => array(
+			'enabled'        => true,
+			'max_per_minute' => 60,
+			'max_per_hour'   => 1000,
+		),
+		'calendar_list'     => array(
+			'enabled'        => true,
+			'max_per_minute' => 30,
+			'max_per_hour'   => 500,
+		),
+		'calendar_detail'   => array(
+			'enabled'        => true,
+			'max_per_minute' => 60,
+			'max_per_hour'   => 1000,
+		),
+		// The audience calendar's month read: one request per month
+		// navigated, so these leave a person untouched and stop a loop.
+		// Counted for logged-in callers too, by account.
+		'audience_bookings' => array(
+			'enabled'        => true,
+			'max_per_minute' => 30,
+			'max_per_hour'   => 500,
+		),
+	);
+
+	/**
 	 * Get settings.
 	 *
 	 * @return array<string, mixed>
@@ -626,12 +660,17 @@ final class RateLimitChecker {
 	 * without an object cache, #1861); their TTLs mirror the window length
 	 * (60 / 3600 seconds).
 	 *
+	 * A logged-in caller can be counted by account instead of by address
+	 * (#2243): many members of an institution share one address, and a
+	 * per-address cap would then cap the whole building.
+	 *
 	 * @since 6.6.2
 	 * @param string $ip            Client IP.
 	 * @param string $endpoint_key  Endpoint identifier (e.g. `calendar_slots`).
+	 * @param int    $user_id       Account to count instead of the address, or 0.
 	 * @return RateLimitVerdict
 	 */
-	public static function check_read_limit( string $ip, string $endpoint_key ): array {
+	public static function check_read_limit( string $ip, string $endpoint_key, int $user_id = 0 ): array {
 		$s        = self::get_settings();
 		$endpoint = self::read_endpoint_settings( $s, $endpoint_key );
 		if ( null === $endpoint || empty( $endpoint['enabled'] ) ) {
@@ -643,7 +682,7 @@ final class RateLimitChecker {
 		$message  = (string) ( $s['read']['message'] ?? __( 'Too many requests. Please wait {time}.', 'ffcertificate' ) );
 
 		if ( $max_min > 0 ) {
-			$mc = RateCounter::get( 'ffc_rate_read_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $ip ) . '|' . $endpoint_key ) . '_minute' );
+			$mc = RateCounter::get( 'ffc_rate_read_' . md5( self::read_subject( $ip, $user_id ) . '|' . $endpoint_key ) . '_minute' );
 			if ( $mc >= $max_min ) {
 				return array(
 					'allowed'      => false,
@@ -655,7 +694,7 @@ final class RateLimitChecker {
 		}
 
 		if ( $max_hour > 0 ) {
-			$hc = RateCounter::get( 'ffc_rate_read_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $ip ) . '|' . $endpoint_key ) . '_hour' );
+			$hc = RateCounter::get( 'ffc_rate_read_' . md5( self::read_subject( $ip, $user_id ) . '|' . $endpoint_key ) . '_hour' );
 			if ( $hc >= $max_hour ) {
 				return array(
 					'allowed'      => false,
@@ -679,10 +718,11 @@ final class RateLimitChecker {
 	 * @since 6.6.2
 	 * @param string $ip           Client IP.
 	 * @param string $endpoint_key Endpoint identifier.
+	 * @param int    $user_id      Account to count instead of the address, or 0.
 	 * @return void
 	 */
-	public static function record_read_attempt( string $ip, string $endpoint_key ): void {
-		$identifier = \FreeFormCertificate\Core\IpAddress::fingerprint( $ip ) . '|' . $endpoint_key;
+	public static function record_read_attempt( string $ip, string $endpoint_key, int $user_id = 0 ): void {
+		$identifier = self::read_subject( $ip, $user_id ) . '|' . $endpoint_key;
 
 		RateCounter::increment( 'ffc_rate_read_' . md5( $identifier ) . '_minute', 60 );
 		RateCounter::increment( 'ffc_rate_read_' . md5( $identifier ) . '_hour', 3600 );
@@ -693,6 +733,18 @@ final class RateLimitChecker {
 		// `'read'` short-circuits all of them and reuses just the day
 		// counter persistence at the end.
 		self::record_attempt( 'read', $identifier );
+	}
+
+	/**
+	 * Who a read is counted against: the account when one is given, the
+	 * address's keyed fingerprint otherwise.
+	 *
+	 * @param string $ip      Client IP.
+	 * @param int    $user_id Account, or 0.
+	 * @return string
+	 */
+	private static function read_subject( string $ip, int $user_id ): string {
+		return $user_id > 0 ? 'user:' . $user_id : \FreeFormCertificate\Core\IpAddress::fingerprint( $ip );
 	}
 
 	/**
@@ -726,9 +778,11 @@ final class RateLimitChecker {
 			return null;
 		}
 		$endpoints = $read['endpoints'] ?? array();
-		if ( ! is_array( $endpoints ) || ! isset( $endpoints[ $endpoint_key ] ) || ! is_array( $endpoints[ $endpoint_key ] ) ) {
-			return null;
+		$stored    = is_array( $endpoints ) && isset( $endpoints[ $endpoint_key ] ) && is_array( $endpoints[ $endpoint_key ] ) ? $endpoints[ $endpoint_key ] : null;
+		$default   = self::READ_ENDPOINT_DEFAULTS[ $endpoint_key ] ?? null;
+		if ( null === $default ) {
+			return $stored;
 		}
-		return $endpoints[ $endpoint_key ];
+		return null === $stored ? $default : array_replace( $default, $stored );
 	}
 }
