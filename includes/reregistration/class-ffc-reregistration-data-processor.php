@@ -277,20 +277,22 @@ class ReregistrationDataProcessor {
 
 		$persisted_data = array( 'fields' => self::persistable_fields( $fields, $values ) );
 
-		// Auth code + magic token for the approval link.
-		$auth_code   = \FreeFormCertificate\Core\AuthCodeService::generate_globally_unique_auth_code();
-		$magic_token = bin2hex( random_bytes( 32 ) );
-
 		$update_data = array(
 			'data'         => $persisted_data,
 			'status'       => $new_status,
 			// `submitted_at` is unix UTC int since 6.6.0 (#249 sub-escopo b).
 			'submitted_at' => time(),
-			'auth_code'    => $auth_code,
-			'magic_token'  => $magic_token,
+			'magic_token'  => bin2hex( random_bytes( 32 ) ),
 		);
 
 		if ( 'approved' === $new_status ) {
+			// The code exists only for an approved record (#2242), so a plain
+			// submit issues none — approval does. A row that already holds one
+			// (approved, returned to draft, submitted again) keeps it.
+			$update_data['auth_code'] = ! empty( $submission->auth_code )
+				? (string) $submission->auth_code
+				: \FreeFormCertificate\Core\AuthCodeService::generate_globally_unique_auth_code();
+
 			// `reviewed_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
 			$update_data['reviewed_at'] = time();
 			$update_data['reviewed_by'] = 0;

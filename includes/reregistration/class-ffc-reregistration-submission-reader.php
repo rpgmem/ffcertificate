@@ -160,14 +160,12 @@ class ReregistrationSubmissionReader {
 		 * @var ReregistrationSubmissionRow|null $row
 		 */
 		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Token lookup: a consumed or revoked auth code must never be served from cache, so this read is deliberately uncached.
-			// 6.7.4 — Include `expired` so a submission that was approved
-			// before the campaign closed still surfaces from its auth code.
-			// The status flip approved → expired happens for housekeeping
-			// when the campaign window ends; the auth code stays valid and
-			// the participant must keep the ability to reach the record
-			// they earned. `rejected` / `pending` / `in_progress` still
-			// excluded — those never had a code generated anyway.
-			$wpdb->prepare( "SELECT * FROM %i WHERE auth_code = %s AND status IN ('submitted', 'approved', 'expired')", $table, $auth_code )
+			// Only an APPROVED record verifies (#2242). The code is kept on a
+			// row returned to draft, so the same code returns on re-approval;
+			// until then it must not confirm anything. An approved row keeps
+			// `approved` when its campaign ends — the daily run expires only
+			// rows that never submitted — so the record stays verifiable.
+			$wpdb->prepare( "SELECT * FROM %i WHERE auth_code = %s AND status = 'approved'", $table, $auth_code )
 		);
 		return $row;
 	}
@@ -193,10 +191,8 @@ class ReregistrationSubmissionReader {
 		 * @var ReregistrationSubmissionRow|null $row
 		 */
 		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Token lookup: a consumed or revoked magic token must never be served from cache, so this read is deliberately uncached.
-			// 6.7.4 — Same `expired` inclusion as get_by_auth_code() above.
-			// Magic links printed on (or emailed about) an approved record
-			// must keep working after the parent campaign ends.
-			$wpdb->prepare( "SELECT * FROM %i WHERE magic_token = %s AND status IN ('submitted', 'approved', 'expired')", $table, $token )
+			// Approved only, as get_by_auth_code() above (#2242).
+			$wpdb->prepare( "SELECT * FROM %i WHERE magic_token = %s AND status = 'approved'", $table, $token )
 		);
 		return $row;
 	}

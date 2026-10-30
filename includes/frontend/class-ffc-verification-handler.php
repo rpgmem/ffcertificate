@@ -270,7 +270,9 @@ class VerificationHandler {
 		}
 
 		$result = $this->search_certificate( $auth_code );
-		if ( $result['found'] && isset( $result['submission']->id ) ) {
+		// A reregistration record writes its own log row from its lookup
+		// (#2242); this one logs a certificate or an appointment.
+		if ( $result['found'] && isset( $result['submission']->id ) && 'reregistration' !== ( $result['type'] ?? '' ) ) {
 			// Log access for LGPD compliance.
 			if ( class_exists( '\\FreeFormCertificate\\Core\\ActivityLog' ) ) {
 				\FreeFormCertificate\Core\ActivityLog::log_data_accessed(
@@ -472,8 +474,10 @@ class VerificationHandler {
 		if ( 'appointment' === $type && ! empty( $result['appointment'] ) ) {
 			return $this->renderer->generate_appointment_verification_pdf( $result, new \FreeFormCertificate\Generators\PdfGenerator() );
 		}
+		// A reregistration record is downloaded only by a logged-in owner or
+		// staff member (#2242): public verification confirms it, nothing more.
 		if ( 'reregistration' === $type ) {
-			return \FreeFormCertificate\Reregistration\RecordGenerator::generate_record_data( (int) $result['reregistration']['submission_id'] );
+			return null;
 		}
 		return ( new \FreeFormCertificate\Generators\PdfGenerator() )->generate_pdf_data(
 			(int) $result['submission']->id,

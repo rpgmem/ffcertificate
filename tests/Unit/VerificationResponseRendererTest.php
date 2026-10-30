@@ -75,6 +75,8 @@ class VerificationResponseRendererTest extends TestCase {
 		Functions\when( 'wp_timezone' )->alias( function () {
 			return new \DateTimeZone( 'UTC' );
 		} );
+		// The reregistration response links the dashboard (#2242).
+		Functions\when( 'home_url' )->alias( static fn ( $path = '' ) => 'https://example.com' . $path );
 		Functions\when( 'is_email' )->alias( function ( $email ) {
 			return false !== filter_var( (string) $email, FILTER_VALIDATE_EMAIL );
 		} );
@@ -335,8 +337,12 @@ class VerificationResponseRendererTest extends TestCase {
 		$this->assertStringContainsString( '@example.com', $html );
 		$this->assertStringContainsString( '*', $html );
 		$this->assertStringContainsString( 'Rematrícula 2025', $html );
-		$this->assertStringContainsString( 'Download Record (PDF)', $html );
-		$this->assert_download_family_button( $html );
+		// The Record is a signed-in download (#2242): the page offers the
+		// dashboard, never the PDF.
+		$this->assertStringNotContainsString( 'Download Record (PDF)', $html );
+		$this->assertStringNotContainsString( 'ffc-download-pdf-btn', $html );
+		$this->assertStringContainsString( 'Sign in to download', $html );
+		$this->assertStringContainsString( 'href="https://example.com/dashboard"', $html );
 		// 6.7.5 — Status row in body (not header anymore) with colored pill.
 		$this->assertStringContainsString( 'ffc-verification-status-approved', $html );
 		$this->assertStringContainsString( 'Approved', $html );

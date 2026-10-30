@@ -583,7 +583,7 @@ class ReregistrationFrontendFlowTest extends TestCase {
 		$this->assertSame( 'Ana', $stored['fields']['name'] );
 		$this->assertSame( '', $stored['fields']['phone'] );
 		$this->assertSame( self::masked( Identifiers::CPF_A ), Encryption::decrypt( $stored['fields']['cpf'] ), 'The sensitive value is stored encrypted.' );
-		$this->assertNotSame( '', $data['auth_code'] );
+		$this->assertArrayNotHasKey( 'auth_code', $data, 'A plain submit issues no code: approval does (#2242).' );
 		$this->assertMatchesRegularExpression( '/^[0-9a-f]{64}$/', $data['magic_token'] );
 		$this->assertSame( 'Ana', $this->meta['ffc_custom_fields_data']['field_503'], 'The values are kept for the current user\'s next form.' );
 	}

@@ -412,7 +412,7 @@ class ReregistrationFrontend {
 	 * Get active reregistrations for a user with submission status.
 	 *
 	 * Aggregates `ReregistrationRepository`, `ReregistrationSubmissionReader`,
-	 * and `MagicLinkHelper` into a flat array consumed by the dashboard
+	 * into a flat array consumed by the dashboard
 	 * shortcode, the REST `/user-data/reregistrations` endpoint, and the
 	 * user-summary REST endpoint. Not a delegate — owns the join logic.
 	 *
@@ -427,13 +427,6 @@ class ReregistrationFrontend {
 			$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( (int) $rereg->id, $user_id );
 			$sub_status = $submission ? $submission->status : self::STATUS_NO_SUBMISSION;
 
-			// Build magic link for submitted/approved submissions.
-			$magic_link = '';
-			if ( $submission && in_array( $sub_status, array( 'submitted', 'approved' ), true ) ) {
-				$token      = ReregistrationSubmissionWriter::ensure_magic_token( $submission );
-				$magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $token );
-			}
-
 			$result[] = array(
 				'id'                => (int) $rereg->id,
 				'title'             => $rereg->title,
@@ -444,7 +437,8 @@ class ReregistrationFrontend {
 				'submission_status' => $sub_status,
 				'submission_id'     => $submission ? (int) $submission->id : 0,
 				'can_submit'        => in_array( $sub_status, self::SUBMITTABLE_STATUSES, true ) && ReregistrationWindow::is_open( (string) $rereg->start_date, (string) $rereg->end_date ),
-				'magic_link'        => $magic_link,
+				// The Record downloads, signed in, only while approved (#2242).
+				'can_download'      => $submission && 'approved' === $sub_status && ! empty( $submission->auth_code ),
 				// Approval instant, unix UTC (category A); null when the
 				// submission was never reviewed. The dashboard counts the
 				// approved banner's window from it (#1887).
@@ -506,8 +500,6 @@ class ReregistrationFrontend {
 				continue;
 			}
 
-			$token = ReregistrationSubmissionWriter::ensure_magic_token( $submission );
-
 			$result[] = array(
 				'id'                => (int) $rereg->id,
 				'title'             => $rereg->title,
@@ -518,7 +510,7 @@ class ReregistrationFrontend {
 				'submission_status' => 'approved',
 				'submission_id'     => (int) $submission->id,
 				'can_submit'        => false,
-				'magic_link'        => \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $token ),
+				'can_download'      => ! empty( $submission->auth_code ),
 				'reviewed_at'       => $reviewed_at,
 			);
 		}

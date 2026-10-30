@@ -64,7 +64,6 @@ function makeRereg(over = {}) {
 		is_active: true,
 		can_submit: true,
 		can_download: false,
-		magic_link: '',
 	}, over);
 }
 
@@ -118,17 +117,21 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 		expect(buttons[0].classList.contains('ffc-icon-edit')).toBe(true);
 	});
 
-	it('renders the Download Record link only when both can_download and magic_link present', () => {
+	it('renders the Download Record button only when can_download, with no public link (#2242)', () => {
 		panel().render([
-			makeRereg({ can_download: true, magic_link: 'https://x.test/m' }),
-			makeRereg({ can_download: false, magic_link: 'https://x.test/m' }),
-			makeRereg({ can_download: true, magic_link: '' }),
+			makeRereg({ can_download: true, submission_id: 7 }),
+			makeRereg({ can_download: false, submission_id: 8 }),
 		], 1);
 		const buttons = document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-btn-pdf');
 		expect(buttons.length).toBe(1);
+		expect(buttons[0].tagName).toBe('BUTTON');
+		expect(buttons[0].getAttribute('href')).toBeNull();
+		expect(buttons[0].classList.contains('ffc-rereg-download-record')).toBe(true);
+		expect(buttons[0].getAttribute('data-submission-id')).toBe('7');
 		// The icon is the registry's download class (#1826), not a data: mask.
 		expect(buttons[0].classList.contains('ffc-icon-download')).toBe(true);
 	});
+
 
 	it('attaches the prefixed status class with the status value', () => {
 		panel().render([
@@ -390,5 +393,38 @@ describe('FFCDashboard.panels.reregistrations answers', () => {
 		await flushPromises();
 
 		expect(document.querySelector('.ffc-rereg-answers-row').innerHTML).toContain('Error');
+	});
+
+	it('downloads the Record from the signed-in route and builds the PDF (#2242)', async () => {
+		window.ffcDashboard.viewAsUserId = 0;
+		const urls = mockAnswers([{ pdf_data: { html: '<p>x</p>', filename: 'record.pdf' } }]);
+		window.ffcGeneratePDF = vi.fn();
+		panel().render([makeRereg({ submission_id: 9, can_download: true })], 1);
+
+		window.$('.ffc-rereg-download-record').trigger('click');
+		await flushPromises();
+
+		expect(urls[0]).toBe('https://x.test/wp-json/ffc/v1/user/reregistrations/9/record');
+		expect(window.ffcGeneratePDF).toHaveBeenCalledWith({ html: '<p>x</p>', filename: 'record.pdf' }, 'record.pdf');
+		const btn = document.querySelector('.ffc-rereg-download-record');
+		expect(btn.disabled).toBe(false);
+		expect(btn.classList.contains('ffc-btn-loading')).toBe(false);
+		delete window.ffcGeneratePDF;
+	});
+
+	it('shows an error beside the button when the Record is refused', async () => {
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
+			opts.error();
+			return {};
+		});
+		window.ffcGeneratePDF = vi.fn();
+		panel().render([makeRereg({ submission_id: 9, can_download: true })], 1);
+
+		window.$('.ffc-rereg-download-record').trigger('click');
+		await flushPromises();
+
+		expect(window.ffcGeneratePDF).not.toHaveBeenCalled();
+		expect(document.querySelector('.ffc-rereg-download-record').nextElementSibling.textContent).toContain('Error');
+		delete window.ffcGeneratePDF;
 	});
 });

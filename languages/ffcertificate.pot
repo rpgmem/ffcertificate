@@ -1624,9 +1624,6 @@ msgstr ""
 msgid "Admins can enable \"bypass\" for date/time and geolocation to test (Settings → Geolocation)"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-reregistration.php:31
-msgid "Admins review and approve or reject each submission (unless auto-approve is on)."
-msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:834
 msgid "Adopt decoupled secrets"
@@ -4083,9 +4080,6 @@ msgstr ""
 msgid "Cleared plaintext context on %d activity log rows."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-record.php:26
-msgid "Click \"Download Record\" on the reregistration banner after submitting"
-msgstr ""
 
 #. %s: number of pending records
 #: includes/settings/views/ffc-tab-migrations.php:258
@@ -4093,13 +4087,7 @@ msgstr ""
 msgid "Click once to process all records automatically. %s records remaining."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-record.php:25
-msgid "Click the \"Record\" button next to any submission in the Reregistration > Submissions list"
-msgstr ""
 
-#: templates/emails/reregistration-confirmation.php:38
-msgid "Click the button above to verify and download your reregistration record (PDF). You can also review your submission details in your dashboard at any time."
-msgstr ""
 
 #: templates/emails/certificate-user.php:31
 msgid "Click the button below to download it."
@@ -6178,9 +6166,6 @@ msgstr ""
 msgid "Download Record"
 msgstr ""
 
-#: includes/frontend/class-ffc-verification-response-renderer.php:443
-msgid "Download Record (PDF)"
-msgstr ""
 
 #: includes/frontend/class-ffc-public-csv-download.php:159
 msgid "Download form submissions (CSV)"
@@ -8479,9 +8464,6 @@ msgstr ""
 msgid "Generate a new short code? The old one will stop working."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-record.php:20
-msgid "Generate a PDF record (record) for reregistration submissions. Available for submitted and approved submissions."
-msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:848 includes/settings/views/ffc-tab-advanced.php:904
 msgid "Generate another"
@@ -15277,9 +15259,6 @@ msgstr ""
 msgid "Sensitive identifiers such as e-mail addresses and CPF/RF numbers are stored encrypted at rest. Where consent is required, the date and time you gave it are recorded. One-way hashes of some identifiers are kept so records can be located without exposing the original values."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-reregistration.php:41
-msgid "sent after a member submits; carries the Record magic link."
-msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:437
 msgid "Sent automatically when a full slot queues or frees up — text edited globally in the hub above."
@@ -18752,9 +18731,6 @@ msgstr ""
 msgid "View All Calendars"
 msgstr ""
 
-#: templates/emails/reregistration-confirmation.php:36
-msgid "View and Download Record"
-msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:219
 msgid "View appointments"
@@ -22677,8 +22653,6 @@ msgstr ""
 msgid "Validation page:"
 msgstr ""
 
-msgid "The public /valid page also finds a record by its authentication code or its magic link"
-msgstr ""
 
 msgid "Account email"
 msgstr ""
@@ -22820,8 +22794,6 @@ msgstr ""
 msgid "A campaign shows the union of the custom fields of its linked audiences (standard identity/contact fields plus any custom ones). Each submission can be exported as a Record PDF. The standard birth-date field reads and writes the single encrypted birth date on the user profile, which Date Messages uses."
 msgstr ""
 
-msgid "create/edit campaigns, approve/reject, generate Records. Editing the field definitions needs ffc_manage_custom_fields."
-msgstr ""
 
 msgid "Candidates are imported from CSV (headers: name, cpf, rf, email, adjutancy, rank, score, pcd, plus optional phone, time_points, hab_emebs) into either the preliminary or the definitive list. Call-ups are recorded per candidate; calling out of rank order requires a reason. Outcomes move a candidate through called → accepted / not_shown / hired / withdrew. Importing a candidate also links or creates their WordPress account (matched by CPF, RF or e-mail), which is what lets them follow their own call-ups."
 msgstr ""
@@ -24049,8 +24021,6 @@ msgstr ""
 msgid "The QR code embedded in the PDF points at the same magic link."
 msgstr ""
 
-msgid "There is no separate reregistration shortcode. Active campaigns appear as a banner on the member's personal dashboard (the user_dashboard_personal shortcode); the form loads and submits there over AJAX. Members are targeted by audience membership, not by matching a CPF/RF. On submit, the plugin generates an authentication code and a Record magic link, syncs mapped fields to the user profile, and sends the confirmation email."
-msgstr ""
 
 msgid "This plugin allows you to create certificate issuance forms, generate PDFs automatically, and verify authenticity with QR codes."
 msgstr ""
@@ -25756,9 +25726,6 @@ msgstr ""
 msgid "Reregistration Details Viewed"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-reregistration.php:152
-msgid "reveal a submitter's email on the submissions list and open View Details, which shows the decrypted CPF, RF and RG. Without it the email stays masked and View Details is not offered, even to someone who can manage campaigns. Existing managers received it automatically on update."
-msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:895
 msgid "FFC Reregistration - Administrator"
@@ -29523,6 +29490,7 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php
 msgid "Correct this answer? The old and new values and the reason are recorded in the activity log."
+msgstr ""
 
 #: includes/frontend/class-ffc-verification-handler.php
 msgid "This certificate was revoked."
@@ -29607,6 +29575,7 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-cache.php
 msgid "asks the page-cache plugins, and any integration listening on the ffc_form_cache_purged hook, to drop their copies of every page that shows a published form. Saving a form already does this for that form."
+msgstr ""
 
 #. translators: %d: minimum character count
 #, php-format
@@ -29674,6 +29643,60 @@ msgid "This reregistration was already submitted and is awaiting review."
 msgstr ""
 
 msgid "a draft was saved but not submitted. Sensitive answers are stored encrypted in a draft, as in a submission."
+msgstr ""
+
+msgid "Once your reregistration is approved, sign in to your dashboard to download your record (PDF). You can review your submission there at any time."
+msgstr ""
+
+msgid "Reregistration Record Downloaded"
+msgstr ""
+
+msgid "Reregistration Record Verified"
+msgstr ""
+
+msgid "Sign in to download"
+msgstr ""
+
+msgid "The record itself is available to its owner, signed in, from the dashboard."
+msgstr ""
+
+#. translators: %d: number of submissions approved.
+msgid "%d submission approved."
+msgid_plural "%d submissions approved."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: number of selected submissions that were not awaiting review.
+msgid "%d selected submission was skipped because it was not awaiting review."
+msgid_plural "%d selected submissions were skipped because they were not awaiting review."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Generate a PDF record for an approved reregistration submission. Only its owner, signed in, and staff with the module's personal-data capability can download it."
+msgstr ""
+
+msgid "Click the \"Record\" button next to a submission in the Reregistration > Submissions list. It needs ffc_view_reregistration_pii (or administrator), and every download writes an activity-log entry"
+msgstr ""
+
+msgid "Click \"Download Record\" on the reregistration banner or in the Reregistration tab once the submission is approved. An administrator in \"view as user\" downloads it audited"
+msgstr ""
+
+msgid "The public /valid page confirms an approved record by its authentication code or its magic link, showing the campaign, the name and the masked CPF and e-mail, and never the PDF. A submission that is not approved does not verify. Every check writes an activity-log entry"
+msgstr ""
+
+msgid "Admins review and approve or reject each submission (unless auto-approve is on). Bulk Approve acts only on submissions awaiting review and says how many of the selection it skipped."
+msgstr ""
+
+msgid "sent after a member submits; its button leads to the dashboard, where the Record downloads once the submission is approved."
+msgstr ""
+
+msgid "create/edit campaigns, approve/reject. Editing the field definitions needs ffc_manage_custom_fields."
+msgstr ""
+
+msgid "reveal a submitter's email on the submissions list, open View Details, which shows the decrypted CPF, RF and RG, and download the Record. Without it the email stays masked and neither View Details nor the Record is offered, even to someone who can manage campaigns. Existing managers received it automatically on update."
+msgstr ""
+
+msgid "There is no separate reregistration shortcode. Active campaigns appear as a banner on the member's personal dashboard (the user_dashboard_personal shortcode); the form loads and submits there over AJAX. Members are targeted by audience membership, not by matching a CPF/RF. On submit, the plugin syncs mapped fields to the user profile and sends the confirmation email. The authentication code is issued on approval: Reject deletes it, Return to draft keeps it stored but hidden, and approving again brings back the same code, so a printed Record still matches."
 msgstr ""
 
 msgid "A row that matches a staff account fails the file."

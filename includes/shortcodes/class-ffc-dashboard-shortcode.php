@@ -464,20 +464,20 @@ class DashboardShortcode {
 		foreach ( $reregistrations as $rereg ) {
 			$title    = (string) $rereg['title'];
 			$pdf_link = '';
-			if ( ! empty( $rereg['magic_link'] ) ) {
+			if ( ! empty( $rereg['can_download'] ) ) {
+				// Built in the browser from the signed-in REST route (#2242),
+				// by the same handler as the table's button.
 				$pdf_link = Button::html(
 					array(
 						'label'    => __( 'Download Record', 'ffcertificate' ),
 						'category' => 'neutral',
 						'icon'     => 'download',
-						'href'     => (string) $rereg['magic_link'],
 						// Not `ffc-btn-pdf`: that class takes the dashboard's
 						// compact table-row size, and a banner action has the
 						// family's standard size like its siblings (#1887).
-						'class'    => 'ffc-rereg-banner-record',
+						'class'    => 'ffc-rereg-banner-record ffc-rereg-download-record',
 						'attrs'    => array(
-							'target' => '_blank',
-							'rel'    => 'noopener',
+							'data-submission-id' => (string) (int) $rereg['submission_id'],
 						),
 					)
 				);

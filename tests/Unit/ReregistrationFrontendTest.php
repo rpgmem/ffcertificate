@@ -634,7 +634,8 @@ class ReregistrationFrontendTest extends TestCase {
 		$this->assertSame(5, $result[0]['id']);
 		$this->assertSame('pending', $result[0]['submission_status']);
 		$this->assertTrue($result[0]['can_submit']);
-		$this->assertSame('', $result[0]['magic_link']);
+		$this->assertFalse($result[0]['can_download'], 'Only an approved record downloads (#2242).');
+		$this->assertArrayNotHasKey('magic_link', $result[0], 'The Record is never offered through a public link.');
 	}
 
 	// ==================================================================
@@ -688,7 +689,7 @@ class ReregistrationFrontendTest extends TestCase {
 		$end = gmdate('Y-m-d 17:00:00', time() - (3 * 86400));
 		$wpdb->shouldReceive('get_results')->andReturn(array($this->expiredCampaign(7, $end)));
 		$wpdb->shouldReceive('get_row')->andReturn(
-			(object) array('id' => 70, 'status' => 'approved', 'user_id' => 1, 'magic_token' => 'tok', 'reviewed_at' => (string) (time() - (5 * 86400)))
+			(object) array('id' => 70, 'status' => 'approved', 'user_id' => 1, 'magic_token' => 'tok', 'auth_code' => 'ABCD1234EFGH', 'reviewed_at' => (string) (time() - (5 * 86400)))
 		);
 
 		$result = ReregistrationFrontend::get_recently_expired_approved(1);
@@ -697,7 +698,8 @@ class ReregistrationFrontendTest extends TestCase {
 		$this->assertSame(7, $result[0]['id']);
 		$this->assertSame('approved', $result[0]['submission_status']);
 		$this->assertFalse($result[0]['can_submit'], 'An expired campaign is never offered as submittable.');
-		$this->assertSame('https://example.test/valid/#token=tok', $result[0]['magic_link']);
+		$this->assertTrue($result[0]['can_download'], 'An approved record stays downloadable after the campaign ends.');
+		$this->assertArrayNotHasKey('magic_link', $result[0]);
 
 		$query = implode(' ', array_map(static fn($args) => (string) $args[0], $prepared->getArrayCopy()));
 		$this->assertStringContainsString("s.status = 'approved'", $query);

@@ -337,15 +337,18 @@ class DashboardShortcodeTest extends TestCase {
 			'status'            => $status,
 			'reviewed_at'       => null === $reviewed_at ? null : (string) $reviewed_at,
 			'magic_token'       => 'tok' . $campaign_id,
+			// The code exists only on an approved record (#2242).
+			'auth_code'         => 'approved' === $status ? 'CODE' . $campaign_id : null,
 		);
 	}
 
 	/**
-	 * The record link MagicLinkHelper builds for a token, with no
-	 * verification page configured.
+	 * The banner's Record button for a campaign's submission (#2242): a
+	 * button the dashboard script answers from the signed-in REST route,
+	 * never a public link.
 	 */
-	private function magicLink( int $campaign_id ): string {
-		return 'https://example.com/valid/#token=tok' . $campaign_id;
+	private function recordButton( int $campaign_id ): string {
+		return 'data-submission-id="' . ( 100 + $campaign_id ) . '"';
 	}
 
 	// ==================================================================
@@ -674,7 +677,9 @@ class DashboardShortcodeTest extends TestCase {
 		$this->assertStringContainsString( 'class="ffc-notice ffc-notice-warning" role="note" data-ffc-notice="rereg-banner" data-reregistration-id="12"', $output );
 		$this->assertStringContainsString( 'New Campaign', $output );
 		$this->assertStringContainsString( 'Complete Reregistration', $output );
-		$this->assertStringContainsString( $this->magicLink( 10 ), $output, 'The approved banner links the record.' );
+		$this->assertStringContainsString( $this->recordButton( 10 ), $output, 'The approved banner offers the record.' );
+		$this->assertStringNotContainsString( $this->recordButton( 11 ), $output, 'A submission awaiting review has no record yet (#2242).' );
+		$this->assertStringNotContainsString( '#token=', $output, 'No public link to a record is drawn.' );
 	}
 
 	// ==================================================================
@@ -729,16 +734,17 @@ class DashboardShortcodeTest extends TestCase {
 		libxml_clear_errors();
 		$xpath = new \DOMXPath( $doc );
 
-		$links = $xpath->query( '//*[@data-ffc-notice="rereg-banner"]//a[@href="' . $this->magicLink( 30 ) . '"]' );
-		$this->assertSame( 1, $links->length, 'The banner carries its Record link.' );
+		$links = $xpath->query( '//*[@data-ffc-notice="rereg-banner"]//button[@data-submission-id="130"]' );
+		$this->assertSame( 1, $links->length, 'The banner carries its Record button.' );
 		$classes = preg_split( '/\s+/', trim( $links->item( 0 )->getAttribute( 'class' ) ) );
 		$this->assertContains( 'ffc-rereg-banner-record', $classes );
+		$this->assertContains( 'ffc-rereg-download-record', $classes, 'The dashboard script downloads it.' );
 		$this->assertNotContains( 'ffc-btn-pdf', $classes, 'The compact table-row class stays off the banner.' );
 	}
 
 	/**
 	 * An expired campaign reaches the dashboard only as the approved banner
-	 * with its Record link, never as an actionable one (#1887).
+	 * with its Record button, never as an actionable one (#1887).
 	 */
 	public function test_render_shows_an_expired_campaign_from_the_approved_source_as_the_approved_banner(): void {
 		$this->wireFullRenderCollaborators( false );
@@ -758,7 +764,7 @@ class DashboardShortcodeTest extends TestCase {
 
 		$this->assertStringContainsString( 'Ended Last Week Campaign', $output );
 		$this->assertStringContainsString( 'has been approved', $output );
-		$this->assertStringContainsString( $this->magicLink( 40 ), $output );
+		$this->assertStringContainsString( $this->recordButton( 40 ), $output );
 		$this->assertStringNotContainsString( 'data-reregistration-id="40"', $output, 'No form to open: it is not the actionable banner.' );
 		$this->assertSame( 1, $this->preparedWith( "r.status = 'expired'" )[0][3] ?? null, 'The expired source is read for the current user.' );
 	}

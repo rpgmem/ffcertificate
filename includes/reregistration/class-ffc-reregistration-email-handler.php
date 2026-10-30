@@ -517,11 +517,10 @@ class ReregistrationEmailHandler {
 
 		$status_label = ReregistrationSubmissionReader::get_status_label( $submission->status );
 
-		// Build magic link URL for direct verification.
-		$magic_link_url = '';
-		if ( ! empty( $submission->magic_token ) ) {
-			$magic_link_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $submission->magic_token );
-		}
+		// The Record downloads only signed in (#2242), so the e-mail's link
+		// leads to the dashboard, which asks for the login. `magic_link_url`
+		// keeps its name because an edited body may still use the token.
+		$magic_link_url = \FreeFormCertificate\Core\PasswordInvite::dashboard_url();
 
 		$auth_code_formatted = ! empty( $submission->auth_code )
 			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $submission->auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )

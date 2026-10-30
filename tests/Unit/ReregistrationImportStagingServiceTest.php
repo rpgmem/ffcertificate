@@ -1248,7 +1248,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 *
 	 * With the real processor running, the only write carrying `data` is its
 	 * own — the submission row, written together with the status and the
-	 * auth code it generates — and the import's own tables never carry one.
+	 * status it sets — and the import's own tables never carry one.
 	 */
 	public function test_the_import_never_writes_the_submission_json_itself(): void {
 		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
@@ -1262,7 +1262,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$this->assertCount( 1, $writes );
 		$this->assertArrayHasKey( 'data', $writes[0] );
 		$this->assertSame( 'submitted', $writes[0]['status'], 'The body arrives with the processor\'s own status change.' );
-		$this->assertArrayHasKey( 'auth_code', $writes[0], 'The body arrives with the auth code the processor generates.' );
+		$this->assertArrayNotHasKey( 'auth_code', $writes[0], 'A submitted row has no code: approval issues it (#2242).' );
 	}
 
 	/**
