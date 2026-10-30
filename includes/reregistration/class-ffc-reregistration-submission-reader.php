@@ -542,7 +542,8 @@ class ReregistrationSubmissionReader {
 			}
 		}
 
-		$audience_id = isset( $filters['audience_id'] ) ? (int) $filters['audience_id'] : 0;
+		$audience_raw = $filters['audience_id'] ?? 0;
+		$audience_id  = is_numeric( $audience_raw ) ? (int) $audience_raw : 0;
 		if ( $audience_id > 0 ) {
 			$user_ids = array_values( array_map( 'intval', ReregistrationRepository::get_user_ids_for_audiences( array( $audience_id ) ) ) );
 			if ( array() === $user_ids ) {
