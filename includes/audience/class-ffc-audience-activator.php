@@ -1081,9 +1081,9 @@ class AudienceActivator {
 	 * database session's zone, and `cancelled_at` was `current_time()`, in
 	 * the site's. Each converts by the rule of the zone that wrote it:
 	 * `UNIX_TIMESTAMP()` reads `created_at` in the same session zone that
-	 * stamped it, and {@see self::migrate_datetime_column_to_unix()} reads
-	 * `cancelled_at` in `wp_timezone()`. Filling the staging column first
-	 * leaves that helper only the swap for `created_at`.
+	 * stamped it, so that column is staged, filled and swapped here; and
+	 * {@see self::migrate_datetime_column_to_unix()} reads `cancelled_at` in
+	 * `wp_timezone()`.
 	 *
 	 * @return bool Whether both columns are now BIGINT, or the table does not exist yet.
 	 */
@@ -1098,9 +1098,11 @@ class AudienceActivator {
 		$created_type = strtolower( (string) self::column_type( $table_name, 'created_at' ) );
 		if ( '' !== $created_type && 0 !== strpos( $created_type, 'bigint' ) ) {
 			self::add_column_if_missing( $table_name, 'created_at_ts', 'BIGINT UNSIGNED NOT NULL DEFAULT 0', 'created_at' );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot schema migration on the plugin's own table.
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- One-shot schema migration on the plugin's own table.
 			$wpdb->query( $wpdb->prepare( 'UPDATE %i SET created_at_ts = UNIX_TIMESTAMP(created_at) WHERE created_at_ts = 0 AND created_at IS NOT NULL', $table_name ) );
-			self::migrate_datetime_column_to_unix( $table_name, 'created_at', false );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table_name, 'created_at' ) );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i CHANGE %i %i BIGINT UNSIGNED NOT NULL DEFAULT 0', $table_name, 'created_at_ts', 'created_at' ) );
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 		}
 		self::migrate_datetime_column_to_unix( $table_name, 'cancelled_at', true );
 
