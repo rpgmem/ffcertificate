@@ -626,6 +626,29 @@ class ReregistrationSubmissionReader {
 	public const REMINDABLE_STATUSES = array( 'pending', 'in_progress' );
 
 	/**
+	 * Statuses in which the member may still save a draft or submit (#2242).
+	 *
+	 * The one list the dashboard button, the REST `can_submit` and the three
+	 * frontend handlers all read, and the one the conditional write in
+	 * {@see ReregistrationSubmissionWriter::update_if_status()} tests. Before,
+	 * the handlers refused only `approved` and `expired`, so a stale tab could
+	 * pull a `submitted` row back into a draft or submit it twice.
+	 *
+	 * @var array<int, string>
+	 */
+	public const OPEN_STATUSES = array( 'pending', 'in_progress', 'rejected' );
+
+	/**
+	 * Statuses the CSV import may write over (#2242): nothing submitted yet.
+	 *
+	 * Narrower than {@see self::OPEN_STATUSES}: a rejected submission was
+	 * reviewed, and the import does not replace a reviewed answer.
+	 *
+	 * @var array<int, string>
+	 */
+	public const IMPORTABLE_STATUSES = array( 'pending', 'in_progress' );
+
+	/**
 	 * Submissions the invitation should reach right now.
 	 *
 	 * Two populations, and they are different questions:
@@ -712,7 +735,7 @@ class ReregistrationSubmissionReader {
 	 * WHAT THIS FIXES
 	 *
 	 * Until now there was no mark at all, and the cron is DAILY while the
-	 * campaign query uses `DATEDIFF(end_date, CURDATE()) <= reminder_days` -- a
+	 * campaign query uses `DATEDIFF(end_date, <site date>) <= reminder_days` -- a
 	 * WINDOW, not a day. With `reminder_days = 7`, every pending participant
 	 * received seven emails, one a day (#1232).
 	 *

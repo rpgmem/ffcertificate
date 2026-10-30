@@ -53,6 +53,14 @@ class ReregistrationFrontendTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The campaign window is read on the site's clock (#2242); pin it
+		// inside the fixtures' campaigns.
+		Functions\when( 'current_time' )->alias(
+			static function ( $type ) {
+				return 'Y-m-d' === $type ? '2026-06-15' : ( 'mysql' === $type ? '2026-06-15 12:00:00' : 0 );
+			}
+		);
+
 
 		// Translation stubs
 		Functions\when('__')->returnArg();
@@ -346,7 +354,7 @@ class ReregistrationFrontendTest extends TestCase {
 
 		$_POST['reregistration_id'] = 5;
 
-		$rereg      = (object) array('id' => 5, 'status' => 'active', 'title' => 'Campaign');
+		$rereg      = (object) array('id' => 5, 'status' => 'active', 'title' => 'Campaign', 'start_date' => '2026-01-01 00:00:00', 'end_date' => '2026-06-30 23:59:00');
 		$audience   = (object) array('id' => 3, 'parent_id' => null, 'name' => 'Audience');
 		$created    = (object) array('id' => 42, 'reregistration_id' => '5', 'user_id' => '7', 'status' => 'pending');
 		$lookups    = 0;
@@ -406,6 +414,8 @@ class ReregistrationFrontendTest extends TestCase {
 			}
 		);
 		$wpdb->insert_id = 42;
+		// The draft write tests the row's status in the same statement (#2242).
+		$wpdb->shouldReceive('query')->once()->andReturn(1);
 
 		$ex = null;
 		try {
@@ -582,7 +592,7 @@ class ReregistrationFrontendTest extends TestCase {
 		}
 
 		$this->assertNotNull($ex);
-		$this->assertStringContainsString('Cannot save draft', $ex->payload['message']);
+		$this->assertStringContainsString('already been completed', $ex->payload['message'], 'An approved submission is refused before any write, and the message says why.');
 	}
 
 	// ==================================================================
@@ -792,6 +802,33 @@ class ReregistrationFrontendTest extends TestCase {
 		$expected_status = '' === $status ? 'no_submission' : $status;
 		$this->assertSame($expected_status, $result[0]['submission_status']);
 		$this->assertSame($can_submit, $result[0]['can_submit'], "can_submit wrong for {$expected_status}");
+	}
+
+	/**
+	 * The button follows the window as well as the status (#2242): a pending
+	 * member of a campaign the site clock has passed is not offered a form
+	 * the server would refuse.
+	 */
+	public function test_can_submit_is_false_outside_the_window(): void {
+		global $wpdb;
+
+		Functions\when('current_time')->justReturn('2026-07-01 00:00:01');
+		$rereg = (object) array(
+			'id'            => 5,
+			'title'         => 'Campaign 2026',
+			'audience_name' => 'Teachers',
+			'start_date'    => '2026-01-01',
+			'end_date'      => '2026-06-30',
+			'auto_approve'  => 0,
+		);
+		$wpdb->shouldReceive('get_results')->andReturn(array($rereg));
+		$audience = (object) array('id' => 5, 'name' => 'Teachers', 'parent_id' => 0);
+		$wpdb->shouldReceive('get_row')->andReturnValues(array($audience, (object) array('id' => 20, 'status' => 'pending', 'user_id' => 1, 'magic_token' => '')));
+
+		$result = ReregistrationFrontend::get_user_reregistrations(1);
+
+		$this->assertSame('pending', $result[0]['submission_status']);
+		$this->assertFalse($result[0]['can_submit']);
 	}
 
 	/**

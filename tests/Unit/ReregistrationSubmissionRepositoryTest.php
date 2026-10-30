@@ -561,6 +561,91 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	// update()
 	// ==================================================================
 
+	// ==================================================================
+	// update_if_status() — the status test and the write in one statement (#2242)
+	// ==================================================================
+
+	/**
+	 * The template and values of the conditional UPDATE, captured from prepare()
+	 * under the keys `sql` and `values`.
+	 *
+	 * @return \ArrayObject<string, mixed>
+	 */
+	private function capture_conditional_write(): \ArrayObject {
+		$captured = new \ArrayObject();
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function ($sql, ...$args) use ($captured) {
+			if (0 === strpos($sql, 'UPDATE %i SET')) {
+				$captured['sql']    = $sql;
+				$captured['values'] = (1 === count($args) && is_array($args[0])) ? $args[0] : $args;
+			}
+			return $sql;
+		});
+		return $captured;
+	}
+
+	public function test_update_if_status_writes_only_while_the_status_is_allowed(): void {
+		$captured = $this->capture_conditional_write();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(1);
+
+		$this->assertTrue(ReregistrationSubmissionWriter::update_if_status(10, array('status' => 'submitted', 'notes' => null, 'submitted_at' => 1700000000), array('pending', 'in_progress')));
+
+		$this->assertSame('UPDATE %i SET %i = %s, %i = NULL, %i = %d WHERE id = %d AND status IN (%s,%s)', $captured['sql']);
+		$this->assertSame(
+			array('wp_ffc_reregistration_submissions', 'status', 'submitted', 'notes', 'submitted_at', 1700000000, 10, 'pending', 'in_progress'),
+			$captured['values'],
+			'Every value travels as a placeholder argument, the statuses last.'
+		);
+	}
+
+	public function test_update_if_status_refuses_a_row_that_moved_on(): void {
+		// The second of two submits: the row is already `submitted`, so the
+		// UPDATE matches nothing and the re-read says why.
+		$this->capture_conditional_write();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(0);
+		$this->wpdb->shouldReceive('get_var')->once()->andReturn('submitted');
+
+		$this->assertFalse(ReregistrationSubmissionWriter::update_if_status(10, array('status' => 'in_progress'), array('pending', 'in_progress', 'rejected')));
+	}
+
+	public function test_update_if_status_accepts_a_write_that_changed_nothing(): void {
+		// A draft saved twice in the same second with the same values: MySQL
+		// reports zero rows changed, but the row is still open and holds them.
+		$this->capture_conditional_write();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(0);
+		$this->wpdb->shouldReceive('get_var')->once()->andReturn('in_progress');
+
+		$this->assertTrue(ReregistrationSubmissionWriter::update_if_status(10, array('status' => 'in_progress'), array('pending', 'in_progress', 'rejected')));
+	}
+
+	public function test_update_if_status_reports_a_failed_query(): void {
+		$this->capture_conditional_write();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(false);
+		$this->wpdb->shouldNotReceive('get_var');
+
+		$this->assertFalse(ReregistrationSubmissionWriter::update_if_status(10, array('status' => 'submitted'), array('pending')));
+	}
+
+	public function test_update_if_status_writes_nothing_without_columns_or_statuses(): void {
+		$this->wpdb->shouldNotReceive('query');
+
+		$this->assertFalse(ReregistrationSubmissionWriter::update_if_status(10, array('user_id' => 3), array('pending')), 'Only immutable columns: nothing to write.');
+		$this->assertFalse(ReregistrationSubmissionWriter::update_if_status(10, array('status' => 'submitted'), array()), 'No allowed status: nothing may be written.');
+	}
+
+	public function test_update_if_status_drops_the_cached_row(): void {
+		$this->capture_conditional_write();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(1);
+		$deleted = array();
+		Functions\when('wp_cache_delete')->alias(function ($key, $group) use (&$deleted) {
+			$deleted[] = $group . ':' . $key;
+			return true;
+		});
+
+		ReregistrationSubmissionWriter::update_if_status(10, array('status' => 'submitted'), array('pending'));
+
+		$this->assertSame(array('ffc_rereg_submissions:id_10'), $deleted);
+	}
+
 	public function test_update_returns_true_on_success(): void {
 		$this->wpdb->shouldReceive('update')
 			->once()

@@ -88,6 +88,14 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The campaign window is read on the site's clock (#2242); pin it
+		// inside the fixtures' campaigns.
+		Functions\when( 'current_time' )->alias(
+			static function ( $type ) {
+				return 'Y-m-d' === $type ? '2026-06-15' : ( 'mysql' === $type ? '2026-06-15 12:00:00' : 0 );
+			}
+		);
+
 
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
@@ -489,6 +497,21 @@ class ReregistrationEmailHandlerTest extends TestCase {
 
 		$this->assertCount( 1, $this->queries, 'Only the sweep runs: no campaign means no per-campaign read.' );
 		$this->assertStringContainsString( 'DATEDIFF(end_date', $this->queries[0] );
+	}
+
+	/**
+	 * The campaign dates are wall-clock values in the site's calendar, so the
+	 * sweep compares them with the site's date, never the database server's
+	 * `CURDATE()`, whose zone is whatever the host set (#2242).
+	 */
+	public function test_the_reminder_sweep_counts_days_from_the_site_date(): void {
+		$this->due_campaigns = array();
+
+		ReregistrationEmailHandler::run_automated_reminders();
+
+		$this->assertStringNotContainsString( 'CURDATE', $this->queries[0] );
+		$this->assertStringContainsString( "DATEDIFF(end_date, '2026-06-15') <= reminder_days", $this->queries[0] );
+		$this->assertStringContainsString( "DATEDIFF(end_date, '2026-06-15') >= 0", $this->queries[0] );
 	}
 
 	public function test_run_automated_reminders_returns_early_when_campaigns_null(): void {

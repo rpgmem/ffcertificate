@@ -27,6 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Reregistration Frontend.
  *
  * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
+ * @phpstan-import-type ReregistrationRow from ReregistrationRepository
  */
 class ReregistrationFrontend {
 
@@ -51,9 +52,7 @@ class ReregistrationFrontend {
 	 */
 	public const SUBMITTABLE_STATUSES = array(
 		self::STATUS_NO_SUBMISSION,
-		'pending',
-		'in_progress',
-		'rejected',
+		...ReregistrationSubmissionReader::OPEN_STATUSES,
 	);
 
 	/**
@@ -145,6 +144,46 @@ class ReregistrationFrontend {
 	}
 
 	/**
+	 * Why the member may not open, save or submit the form now, or null.
+	 *
+	 * One gate for the three handlers (#2242): the submission must be in
+	 * {@see ReregistrationSubmissionReader::OPEN_STATUSES}, and the site's
+	 * clock inside the campaign window. Before, the handlers refused only
+	 * `approved` and `expired`, so a `submitted` row could be pulled back into
+	 * a draft, and the window held only after the daily run expired the
+	 * campaign.
+	 *
+	 * @param object $rereg      Campaign.
+	 * @phpstan-param ReregistrationRow $rereg
+	 * @param object $submission Submission row.
+	 * @phpstan-param ReregistrationSubmissionRow $submission
+	 * @return string|null
+	 */
+	private static function refusal( object $rereg, object $submission ): ?string {
+		if ( ! in_array( (string) $submission->status, ReregistrationSubmissionReader::OPEN_STATUSES, true ) ) {
+			return in_array( (string) $submission->status, array( 'approved', 'expired' ), true )
+				? __( 'This reregistration has already been completed or expired.', 'ffcertificate' )
+				: self::already_submitted_message();
+		}
+
+		$state = ReregistrationWindow::state( (string) $rereg->start_date, (string) $rereg->end_date );
+		if ( ReregistrationWindow::OPEN !== $state ) {
+			return ReregistrationWindow::closed_message( $state );
+		}
+
+		return null;
+	}
+
+	/**
+	 * The message for a submission that already went in.
+	 *
+	 * @return string
+	 */
+	private static function already_submitted_message(): string {
+		return __( 'This reregistration was already submitted and is awaiting review.', 'ffcertificate' );
+	}
+
+	/**
 	 * AJAX: Get reregistration form HTML.
 	 *
 	 * @return void
@@ -169,8 +208,9 @@ class ReregistrationFrontend {
 			wp_send_json_error( array( 'message' => __( 'You are not part of this reregistration.', 'ffcertificate' ) ) );
 		}
 
-		if ( in_array( $submission->status, array( 'approved', 'expired' ), true ) ) {
-			wp_send_json_error( array( 'message' => __( 'This reregistration has already been completed or expired.', 'ffcertificate' ) ) );
+		$refusal = self::refusal( $rereg, $submission );
+		if ( null !== $refusal ) {
+			wp_send_json_error( array( 'message' => $refusal ) );
 		}
 
 		$html = ReregistrationFormRenderer::render( $rereg, $submission, $user_id );
@@ -292,8 +332,9 @@ class ReregistrationFrontend {
 			wp_send_json_error( array( 'message' => __( 'You are not part of this reregistration.', 'ffcertificate' ) ) );
 		}
 
-		if ( in_array( $submission->status, array( 'approved', 'expired' ), true ) ) {
-			wp_send_json_error( array( 'message' => __( 'This reregistration has already been completed or expired.', 'ffcertificate' ) ) );
+		$refusal = self::refusal( $rereg, $submission );
+		if ( null !== $refusal ) {
+			wp_send_json_error( array( 'message' => $refusal ) );
 		}
 
 		// Collect and validate fields.
@@ -309,8 +350,12 @@ class ReregistrationFrontend {
 			);
 		}
 
-		// Process submission.
-		ReregistrationDataProcessor::process_submission( $submission, $rereg, $data, $user_id );
+		// The write tests the status in the same statement, so the second of
+		// two concurrent submits finds the row already submitted and stops
+		// here: one state change, one confirmation e-mail.
+		if ( ! ReregistrationDataProcessor::process_submission( $submission, $rereg, $data, $user_id ) ) {
+			wp_send_json_error( array( 'message' => self::already_submitted_message() ) );
+		}
 
 		wp_send_json_success( array( 'message' => __( 'Reregistration submitted successfully!', 'ffcertificate' ) ) );
 	}
@@ -341,19 +386,20 @@ class ReregistrationFrontend {
 		}
 
 		$submission = self::submission_for( $reregistration_id, $user_id );
-		if ( ! $submission || in_array( $submission->status, array( 'approved', 'expired' ), true ) ) {
+		if ( ! $submission ) {
 			wp_send_json_error( array( 'message' => __( 'Cannot save draft.', 'ffcertificate' ) ) );
+		}
+
+		$refusal = self::refusal( $rereg, $submission );
+		if ( null !== $refusal ) {
+			wp_send_json_error( array( 'message' => $refusal ) );
 		}
 
 		$data = ReregistrationDataProcessor::collect_form_data( $rereg );
 
-		ReregistrationSubmissionWriter::update(
-			(int) $submission->id,
-			array(
-				'data'   => $data,
-				'status' => 'in_progress',
-			)
-		);
+		if ( ! ReregistrationDataProcessor::save_draft( $submission, $rereg, $data ) ) {
+			wp_send_json_error( array( 'message' => self::already_submitted_message() ) );
+		}
 
 		wp_send_json_success( array( 'message' => __( 'Draft saved.', 'ffcertificate' ) ) );
 	}
@@ -397,7 +443,7 @@ class ReregistrationFrontend {
 				'auto_approve'      => ! empty( $rereg->auto_approve ),
 				'submission_status' => $sub_status,
 				'submission_id'     => $submission ? (int) $submission->id : 0,
-				'can_submit'        => in_array( $sub_status, self::SUBMITTABLE_STATUSES, true ),
+				'can_submit'        => in_array( $sub_status, self::SUBMITTABLE_STATUSES, true ) && ReregistrationWindow::is_open( (string) $rereg->start_date, (string) $rereg->end_date ),
 				'magic_link'        => $magic_link,
 				// Approval instant, unix UTC (category A); null when the
 				// submission was never reviewed. The dashboard counts the

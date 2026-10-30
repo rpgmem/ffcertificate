@@ -87,6 +87,13 @@ class DashboardShortcodeTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The campaign window is read on the site's clock (#2242).
+		Functions\when( 'current_time' )->alias(
+			static function ( $type ) {
+				return 'Y-m-d' === $type ? gmdate( 'Y-m-d' ) : ( 'mysql' === $type ? gmdate( 'Y-m-d H:i:s' ) : time() );
+			}
+		);
+
 
 		$this->get_backup  = $_GET ?? array();
 		$_GET              = array();
