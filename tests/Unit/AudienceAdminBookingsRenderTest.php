@@ -356,6 +356,20 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 	 * lists say, and every header carries a `column-*` class so the shared
 	 * Scheduling column rules apply (#1787).
 	 */
+	public function test_the_order_follows_the_request_and_refuses_an_unlisted_column(): void {
+		foreach ( array(
+			array( array(), array( 'booking_date', 'desc' ) ),
+			array( array( 'orderby' => 'status' ), array( 'status', 'asc' ) ),
+			array( array( 'orderby' => 'start_time', 'order' => 'ASC' ), array( 'start_time', 'asc' ) ),
+			array( array( 'orderby' => 'environment', 'order' => 'sideways' ), array( 'environment', 'asc' ) ),
+			array( array( 'orderby' => 'b.id; DROP', 'order' => 'asc' ), array( 'booking_date', 'desc' ) ),
+		) as $case ) {
+			$_GET = $case[0];
+			$this->assertSame( $case[1], AudienceAdminBookings::resolve_order(), (string) json_encode( $case[0] ) );
+		}
+		$_GET = array();
+	}
+
 	public function test_title_filter_label_and_header_classes_match_the_other_lists(): void {
 		$this->store( array( $this->active_booking() ), false );
 		$this->grant_all( false );
@@ -370,18 +384,22 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 		$this->assertStringContainsString( '<option value="">All Statuses</option>', $output );
 		$this->assertStringNotContainsString( 'All Status<', $output );
 
+		// Filtering keeps the sort the list is in (#2291).
+		$this->assertStringContainsString( '<input type="hidden" name="orderby" value="booking_date">', $output );
+		$this->assertStringContainsString( '<input type="hidden" name="order" value="desc">', $output );
+
 		preg_match_all( '#<th scope="col" class="([^"]*)"#', $output, $headers );
 		$this->assertSame(
 			array(
-				'manage-column column-id',
-				'manage-column column-date',
-				'manage-column column-time',
+				'manage-column column-id sortable asc',
+				'manage-column column-date sorted desc',
+				'manage-column column-time sortable asc',
 				'manage-column column-calendar',
-				'manage-column column-environment',
-				'manage-column column-description',
+				'manage-column column-environment sortable desc',
+				'manage-column column-description sortable desc',
 				'manage-column column-audiences',
 				'manage-column column-present',
-				'manage-column column-status',
+				'manage-column column-status sortable desc',
 				'manage-column column-created_by',
 				'manage-column column-actions',
 			),

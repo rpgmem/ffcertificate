@@ -30302,3 +30302,15 @@ msgstr[1] ""
 #: includes/settings/views/documentation/feature-self-scheduling.php:60
 msgid "The Appointments list opens sorted by appointment date, newest first, and by start time, latest first, within a day. Dates and times use the formats set on the General tab of FFC Settings."
 msgstr ""
+
+#: includes/admin/class-ffc-admin-ui.php:523
+msgid "Sort ascending."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-ui.php:523
+msgid "Sort descending."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:80
+msgid "Within a day the latest time comes first. Click the ID, Date, Time, space, Description or Status header to sort by that column; a second click reverses it, and filtering or changing page keeps the sort."
+msgstr ""

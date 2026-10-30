@@ -484,6 +484,56 @@ class AdminUI {
 	}
 
 	/**
+	 * A column header for a table drawn by hand, in the markup
+	 * `WP_List_Table::print_column_headers()` prints (#2291).
+	 *
+	 * A list built on WP_List_Table gets its sortable headers from core; a
+	 * hand-drawn one (the Audience bookings list) calls this, so both look
+	 * and behave alike: the same classes, arrows, `aria-sort` and the same
+	 * flip on a second click. A column not in `$sortable` prints plain text.
+	 *
+	 * @param string                $key      The column's sort key, '' when it does not sort.
+	 * @param string                $label    Header text.
+	 * @param string                $column   The `column-*` class suffix.
+	 * @param array<string, string> $sortable Sort key → direction of a first click (`asc` / `desc`).
+	 * @param string                $orderby  The sort key in effect.
+	 * @param string                $order    The direction in effect, `asc` or `desc`.
+	 * @param string                $base_url The list URL with its filters, without paging or sorting.
+	 * @return string
+	 */
+	public static function sortable_column_header( string $key, string $label, string $column, array $sortable, string $orderby, string $order, string $base_url ): string {
+		if ( '' === $key || ! isset( $sortable[ $key ] ) ) {
+			return sprintf( '<th scope="col" class="manage-column column-%s">%s</th>', esc_attr( $column ), esc_html( $label ) );
+		}
+		$current = $key === $orderby;
+		$next    = $current ? ( 'asc' === $order ? 'desc' : 'asc' ) : ( 'desc' === $sortable[ $key ] ? 'desc' : 'asc' );
+		// Core marks an unsorted column with the arrow it does NOT start on.
+		$class = $current ? 'sorted ' . ( 'asc' === $order ? 'asc' : 'desc' ) : 'sortable ' . ( 'asc' === $next ? 'desc' : 'asc' );
+		$url   = add_query_arg(
+			array(
+				'orderby' => $key,
+				'order'   => $next,
+			),
+			$base_url
+		);
+		// Core tells a screen reader what a click on an unsorted column does;
+		// the sorted one announces itself through `aria-sort`.
+		$hint = '';
+		if ( ! $current ) {
+			$hint = ' <span class="screen-reader-text">' . esc_html( 'asc' === $next ? __( 'Sort ascending.', 'ffcertificate' ) : __( 'Sort descending.', 'ffcertificate' ) ) . '</span>';
+		}
+		return sprintf(
+			'<th scope="col" class="manage-column column-%1$s %2$s"%3$s><a href="%4$s"><span>%5$s</span><span class="sorting-indicators"><span class="sorting-indicator asc" aria-hidden="true"></span><span class="sorting-indicator desc" aria-hidden="true"></span></span>%6$s</a></th>',
+			esc_attr( $column ),
+			esc_attr( $class ),
+			$current ? ' aria-sort="' . ( 'asc' === $order ? 'ascending' : 'descending' ) . '"' : '',
+			esc_url( $url ),
+			esc_html( $label ),
+			$hint
+		);
+	}
+
+	/**
 	 * Print {@see self::button()}.
 	 *
 	 * @param array<string, mixed> $args See {@see \FreeFormCertificate\Core\Button::html()}.

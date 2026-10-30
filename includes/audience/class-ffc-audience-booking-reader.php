@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- {$where_clause}/{$exclude_clause}/{$env_join}/{$env_where}/{$limit_clause} are fragments assembled here and {$placeholders} is %d repeated to match the bound array — prepare() takes them as one argument, which is what ReplacementsWrongNumber trips on. {$orderby} comes from sanitize_sql_orderby(), {$tie_direction} from a two-way ternary and {$id} from an int cast.
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- {$where_clause}/{$exclude_clause}/{$env_join}/{$env_where}/{$limit_clause} are fragments assembled here and {$placeholders} is %d repeated to match the bound array — prepare() takes them as one argument, which is what ReplacementsWrongNumber trips on. {$orderby} is built from ORDER_COLUMNS values and a two-way ternary and {$id} from an int cast.
 // phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Read queries for audience booking records.
@@ -30,6 +30,23 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @phpstan-type BookingRow \stdClass&object{id: numeric-string, environment_id: numeric-string, booking_date: string, start_time: string, end_time: string, booking_type: string, description: string, status: string, created_by: numeric-string, created_at: numeric-string, cancelled_by: numeric-string|null, cancelled_at: numeric-string|null, cancellation_reason: string|null, series_id?: numeric-string|null, is_all_day?: numeric-string, end_date?: string|null, time_mode?: string|null, skipped_dates?: string|null, attendance_mode?: string|null, attendance_min_percent?: numeric-string|null, post_event_custom?: numeric-string|null, post_event_form_id?: numeric-string|null, post_event_window_days?: numeric-string|null, post_event_attendees_only?: numeric-string|null, environment_name?: string|null, schedule_id?: numeric-string|null, audience_name?: string, audience_id?: numeric-string, title?: string, audiences?: array<int, mixed>, users?: array<int, int>}
  */
 class AudienceBookingReader {
+
+	/**
+	 * What get_all() may order by: the request's key → the SQL it orders on.
+	 * Anything else orders by the date (#2290).
+	 *
+	 * @var array<string, string>
+	 */
+	public const ORDER_COLUMNS = array(
+		'booking_date' => 'b.booking_date',
+		'start_time'   => 'b.start_time',
+		'created_at'   => 'b.created_at',
+		'id'           => 'b.id',
+		'status'       => 'b.status',
+		'description'  => 'b.description',
+		'environment'  => 'e.name',
+	);
+
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
 	/**
@@ -137,18 +154,24 @@ class AudienceBookingReader {
 
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
-		$orderby_sanitized = sanitize_sql_orderby( 'b.' . $args['orderby'] . ' ' . $args['order'] );
-		$orderby           = $orderby_sanitized ? $orderby_sanitized : 'b.booking_date ASC';
-		// The time and the id break ties in the direction asked for, so a list
-		// read newest first stays newest first inside a day (#2288).
-		$tie_direction = 'DESC' === strtoupper( (string) $args['order'] ) ? 'DESC' : 'ASC';
-		$limit_clause  = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
+		// An allowlist, not sanitize_sql_orderby(): core's pattern refuses the
+		// `b.` prefix, so every order fell back to `booking_date ASC` and the
+		// admin list's newest-first read never took effect (#2290). The date,
+		// the time and the id break ties in the same direction (#2288).
+		$direction = 'DESC' === strtoupper( (string) $args['order'] ) ? 'DESC' : 'ASC';
+		$order_key = is_string( $args['orderby'] ) && isset( self::ORDER_COLUMNS[ $args['orderby'] ] ) ? $args['orderby'] : 'booking_date';
+		$order_by  = array();
+		foreach ( array( self::ORDER_COLUMNS[ $order_key ], 'b.booking_date', 'b.start_time', 'b.id' ) as $order_sql ) {
+			$order_by[ $order_sql ] = "{$order_sql} {$direction}";
+		}
+		$orderby      = implode( ', ', $order_by );
+		$limit_clause = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
 		$sql = "SELECT b.*, e.name as environment_name, e.schedule_id
                 FROM %i b
                 INNER JOIN %i e ON b.environment_id = e.id
                 {$where_clause}
-                ORDER BY {$orderby}, b.start_time {$tie_direction}, b.id {$tie_direction}
+                ORDER BY {$orderby}
                 {$limit_clause}";
 
 		$prepare_args = array_merge( array( $table, $env_table ), $values );

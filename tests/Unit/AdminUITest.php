@@ -811,4 +811,47 @@ class AdminUITest extends TestCase {
 		$this->assertStringStartsWith( '<div class="ffc-aud-editor__tabs ffc-vtabs" data-ffc-vtabs><ul class="ffc-vtabs__nav" role="tablist" aria-orientation="vertical"><li', $html );
 		$this->assertStringContainsString( '<h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-users" aria-hidden="true"></span>Members</h2>', $html, 'Without a title the panel heading is the label.' );
 	}
+
+	// ==================================================================
+	// sortable_column_header() (#2291)
+	// ==================================================================
+
+	/**
+	 * Render one header of a list sorted by `$orderby` / `$order`.
+	 */
+	private function sortable_header( string $key, string $orderby, string $order ): string {
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'add_query_arg' )->alias(
+			static fn( array $args, string $url ) => $url . '&orderby=' . $args['orderby'] . '&order=' . $args['order']
+		);
+		return AdminUI::sortable_column_header( $key, 'Date', 'date', array( 'booking_date' => 'desc', 'status' => 'asc' ), $orderby, $order, 'list?page=x' );
+	}
+
+	public function test_the_sorted_column_flips_on_the_next_click_and_announces_its_order(): void {
+		$html = $this->sortable_header( 'booking_date', 'booking_date', 'desc' );
+
+		$this->assertStringContainsString( 'class="manage-column column-date sorted desc" aria-sort="descending"', $html );
+		$this->assertStringContainsString( 'href="list?page=x&orderby=booking_date&order=asc"', $html );
+		$this->assertStringNotContainsString( 'screen-reader-text', $html, 'The sorted column speaks through aria-sort.' );
+	}
+
+	public function test_an_unsorted_column_starts_on_its_own_first_direction(): void {
+		$desc_first = $this->sortable_header( 'booking_date', 'status', 'asc' );
+		$asc_first  = $this->sortable_header( 'status', 'booking_date', 'desc' );
+
+		// Core marks it with the arrow it does NOT start on.
+		$this->assertStringContainsString( 'class="manage-column column-date sortable asc"', $desc_first );
+		$this->assertStringContainsString( '&order=desc"', $desc_first );
+		$this->assertStringContainsString( '<span class="screen-reader-text">Sort descending.</span>', $desc_first );
+		$this->assertStringContainsString( 'class="manage-column column-date sortable desc"', $asc_first );
+		$this->assertStringContainsString( '&order=asc"', $asc_first );
+		$this->assertStringNotContainsString( 'aria-sort', $asc_first );
+		$this->assertStringContainsString( '<span class="sorting-indicator asc" aria-hidden="true"></span><span class="sorting-indicator desc" aria-hidden="true"></span>', $asc_first );
+	}
+
+	public function test_a_column_that_does_not_sort_is_plain_text(): void {
+		foreach ( array( '', 'calendar' ) as $key ) {
+			$this->assertSame( '<th scope="col" class="manage-column column-date">Date</th>', $this->sortable_header( $key, 'booking_date', 'desc' ), $key );
+		}
+	}
 }
