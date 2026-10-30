@@ -89,7 +89,10 @@ final class AssetRegistry {
 		// cache plugins that would otherwise drop it from the chain (#367).
 		'ffc-url-shortener-admin'   => array( 'assets/js/ffc-url-shortener-admin', array( 'jquery', 'ffc-core', 'ffc-admin-js', 'ffc-qr-raster' ) ),
 		// ffc-core dep: the PDF path asks FFC.Platform which browser it is in (#2030).
-		'ffc-pdf-generator'         => array( 'assets/js/ffc-pdf-generator', array( 'jquery', 'ffc-core', 'html2canvas', 'jspdf' ) ),
+		// The two bundles are not dependencies: the generator fetches them
+		// when a page is about to need them, from `ffcPdfLibraries` (#2241).
+		// A screen that wants them at load enqueues `html2canvas` and `jspdf`.
+		'ffc-pdf-generator'         => array( 'assets/js/ffc-pdf-generator', array( 'jquery', 'ffc-core' ) ),
 		'ffc-layout-preview'        => array( 'assets/js/ffc-layout-preview', array( 'html2canvas' ) ),
 		'ffc-bulk-issue'            => array( 'assets/js/ffc-bulk-issue', array() ),
 		// The boot watchdog of the certificate form (#2030). No dependencies:
@@ -308,9 +311,30 @@ final class AssetRegistry {
 			self::register( $dep, $s );
 		}
 
-		if ( \wp_register_script( $handle, FFC_PLUGIN_URL . $path . "{$s}.js", $deps, FFC_VERSION, true ) && 'ffc-core' === $handle ) {
+		if ( ! \wp_register_script( $handle, FFC_PLUGIN_URL . $path . "{$s}.js", $deps, FFC_VERSION, true ) ) {
+			return;
+		}
+		if ( 'ffc-core' === $handle ) {
 			\wp_localize_script( 'ffc-core', 'ffcCoreConfig', AssetHelper::core_script_config() );
 		}
+		if ( 'ffc-pdf-generator' === $handle ) {
+			\wp_localize_script( 'ffc-pdf-generator', 'ffcPdfLibraries', self::pdf_library_urls() );
+		}
+	}
+
+	/**
+	 * Where the generator fetches the PDF bundles from: handle => URL, with
+	 * the version as the query string WordPress would have added (#2241).
+	 *
+	 * @return array<string, string>
+	 */
+	public static function pdf_library_urls(): array {
+		$urls = array();
+		foreach ( self::bundles() as $handle => $bundle ) {
+			// The bundle URL carries no query string of its own.
+			$urls[ $handle ] = $bundle[0] . '?ver=' . rawurlencode( $bundle[1] );
+		}
+		return $urls;
 	}
 
 	/**

@@ -4,7 +4,7 @@
 // Full PDF generation pulls in html2canvas + jsPDF and a long async
 // chain that's out of scope here; we cover the load-time contract and
 // the library-availability guard.
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
 // The PDF path asks FFC.Platform which browser it is in (#2030).
@@ -17,6 +17,8 @@ function reset() {
 	delete window.html2canvas;
 	delete window.jspdf;
 	delete window.ffc_ajax;
+	delete window.ffcPdfLibraries;
+	document.head.querySelectorAll('script[data-test-lib]').forEach((n) => n.remove());
 }
 
 describe('ffc-pdf-generator.js — public API', () => {
@@ -423,5 +425,103 @@ describe('ffc-pdf-generator.js — actionable error panel (Sprint 3)', () => {
 		// DOM during the fade-out animation; we just assert the call
 		// path doesn't throw.
 		expect(typeof close).toBe('object');
+	});
+});
+
+// #2241 — the bundles are fetched when a page is about to need them.
+describe('ffc-pdf-generator.js — load()', () => {
+	beforeEach(reset);
+	afterEach(() => vi.restoreAllMocks());
+
+	// Stand in for the network: answer each injected <script> by defining
+	// the global its bundle would define, or by failing.
+	function serveScripts(behaviour) {
+		const urls = [];
+		const original = document.head.appendChild.bind(document.head);
+		vi.spyOn(document.head, 'appendChild').mockImplementation((node) => {
+			if (node.tagName !== 'SCRIPT') {
+				return original(node);
+			}
+			urls.push(node.getAttribute('src'));
+			node.setAttribute('data-test-lib', '1');
+			original(node);
+			setTimeout(() => {
+				if (behaviour === 'fail') {
+					node.onerror();
+					return;
+				}
+				const src = node.getAttribute('src');
+				if (src.includes('html2canvas') || src === '/a.js') {
+					window.html2canvas = function () {};
+				}
+				if (src.includes('jspdf') || src === '/b.js') {
+					window.jspdf = { jsPDF: function () {} };
+				}
+				node.onload();
+			}, 0);
+			return node;
+		});
+		return urls;
+	}
+
+	it('injects both bundles once and resolves true', async () => {
+		window.ffcPdfLibraries = { html2canvas: '/libs/html2canvas.js?ver=1', jspdf: '/libs/jspdf.js?ver=2' };
+		const urls = serveScripts('ok');
+		loadScript('assets/js/ffc-pdf-generator.js');
+
+		const first = window.ffcPdfGenerator.load();
+		const second = window.ffcPdfGenerator.load();
+
+		expect(await first).toBe(true);
+		expect(await second).toBe(true);
+		expect(urls).toEqual(['/libs/html2canvas.js?ver=1', '/libs/jspdf.js?ver=2']);
+	});
+
+	it('injects nothing when a page already enqueued the bundles', async () => {
+		window.html2canvas = function () {};
+		window.jspdf = { jsPDF: function () {} };
+		window.ffcPdfLibraries = { html2canvas: '/a.js', jspdf: '/b.js' };
+		const urls = serveScripts('ok');
+		loadScript('assets/js/ffc-pdf-generator.js');
+
+		expect(await window.ffcPdfGenerator.load()).toBe(true);
+		expect(urls).toEqual([]);
+	});
+
+	it('resolves false on a failed fetch, and a later call tries again', async () => {
+		window.ffcPdfLibraries = { html2canvas: '/a.js', jspdf: '/b.js' };
+		const urls = serveScripts('fail');
+		loadScript('assets/js/ffc-pdf-generator.js');
+
+		expect(await window.ffcPdfGenerator.load()).toBe(false);
+		expect(await window.ffcPdfGenerator.load()).toBe(false);
+		expect(urls).toHaveLength(4);
+	});
+
+	it('a submit before the bundles arrive waits for them, then generates', async () => {
+		window.ffcPdfLibraries = { html2canvas: '/a.js', jspdf: '/b.js' };
+		serveScripts('ok');
+		loadScript('assets/js/ffc-pdf-generator.js');
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		window.ffcGeneratePDF({ html: '<p>hi</p>' }, 'x.pdf');
+
+		// The overlay opens at once; no "libraries failed" error.
+		expect(document.querySelector('#ffc-pdf-overlay')).not.toBeNull();
+		await new Promise((r) => setTimeout(r, 5));
+		expect(typeof window.html2canvas).toBe('function');
+		expect(document.querySelector('#ffc-pdf-overlay').textContent).not.toMatch(/PDF libraries/i);
+	});
+
+	it('a submit whose bundles never arrive shows the libraries error', async () => {
+		window.ffcPdfLibraries = { html2canvas: '/a.js', jspdf: '/b.js' };
+		serveScripts('fail');
+		loadScript('assets/js/ffc-pdf-generator.js');
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		window.ffcGeneratePDF({ html: '<p>hi</p>' }, 'x.pdf');
+		await new Promise((r) => setTimeout(r, 5));
+
+		expect(document.querySelector('#ffc-pdf-overlay').textContent).toMatch(/PDF libraries/i);
 	});
 });
