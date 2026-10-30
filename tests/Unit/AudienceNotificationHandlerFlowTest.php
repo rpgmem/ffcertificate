@@ -315,7 +315,7 @@ class AudienceNotificationHandlerFlowTest extends TestCase {
 			'ffcertificate_audience_booking_overridden',
 			array( AudienceNotificationHandler::class, 'send_booking_overridden_notification' ),
 			10,
-			3
+			4
 		);
 
 		AudienceNotificationHandler::init();
@@ -524,6 +524,43 @@ class AudienceNotificationHandlerFlowTest extends TestCase {
 		$this->assertStringContainsString( 'Overridden by a priority booking', $this->mailed[0][2] );
 		$this->assertStringContainsString( 'Room A', $this->mailed[0][2] );
 		$this->assertStringNotContainsString( 'cancelled by an administrator', $this->mailed[1][1], 'The other participants get the usual cancellation notice.' );
+	}
+
+	public function test_a_booking_that_lost_some_days_is_told_which_and_gets_no_cancellation_ics(): void {
+		// An override took one day of a range (#2243): the e-mails name that
+		// day, say the rest stands, and carry no .ics that would take the
+		// whole booking off a calendar.
+		$this->store(
+			$this->schedule(
+				array(
+					'notify_on_cancellation' => 1,
+					'include_ics'            => 1,
+				)
+			),
+			array( 2, 20 ),
+			array(
+				'created_by'   => 2,
+				'booking_date' => '2026-03-16',
+				'end_date'     => '2026-03-18',
+				'time_mode'    => 'daily',
+			)
+		);
+		$this->audiences = array();
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		Functions\when( 'get_user_by' )->alias(
+			fn( $field, $id ) => $this->wp_user( (int) $id, 'u' . (int) $id . '@example.com', 'User ' . (int) $id )
+		);
+
+		AudienceNotificationHandler::send_booking_overridden_notification( 1, 2, 'The visiting committee needs the room.', array( '2026-03-17' ) );
+
+		$this->assertSame( array( 'u2@example.com', 'u20@example.com' ), $this->recipients() );
+		foreach ( $this->mailed as $mail ) {
+			$this->assertStringContainsString( '2026-03-17', $mail[2] );
+			$this->assertStringNotContainsString( '2026-03-16', $mail[2], 'Only the day lost is named.' );
+			$this->assertStringContainsString( 'the rest of the booking stands', $mail[2] );
+			$this->assertSame( array(), (array) $mail[4], 'No cancellation .ics.' );
+		}
+		$this->assertStringContainsString( 'User 3', $this->mailed[0][2], 'The operator is who cancelled the day.' );
 	}
 
 	public function test_cancelled_returns_when_booking_missing(): void {

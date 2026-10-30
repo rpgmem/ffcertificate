@@ -75,12 +75,21 @@ class AudienceBookingWriter {
 	/**
 	 * Create a booking
 	 *
-	 * @param array<string, mixed> $data Booking data.
+	 * A booking the caller confirmed it overrides (`override_ids`) gives way
+	 * only on the days that clash (#2243): those days leave it, its other
+	 * days stay booked with their attendance and invitations, and only a
+	 * booking left with no day is cancelled whole. `$overrides` reports
+	 * which, so the caller can tell the people concerned.
+	 *
+	 * @param array<string, mixed>          $data      Booking data.
+	 * @param array<int, list<string>>|null $overrides Filled with each overridden booking and the days it lost; an empty list means it was cancelled whole.
+	 * @param-out array<int, list<string>> $overrides
 	 * @return int|false Booking ID or false on failure
 	 */
-	public static function create( array $data ) {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
+	public static function create( array $data, ?array &$overrides = null ) {
+		$overrides = array();
+		$wpdb      = self::db();
+		$table     = self::get_table_name();
 
 		$defaults = array(
 			'environment_id' => 0,
@@ -137,6 +146,8 @@ class AudienceBookingWriter {
 		// overrides: that one is cancelled below, in this same transaction,
 		// so the slot is never held by two active bookings.
 		$override_ids = is_array( $data['override_ids'] ) ? self::numeric_ids( $data['override_ids'] ) : array();
+		$rows         = array();
+		$clashes      = array();
 		foreach ( $plan['days'] as $day ) {
 			$conflicts = self::get_conflicts_for_update(
 				(int) $data['environment_id'],
@@ -145,18 +156,27 @@ class AudienceBookingWriter {
 				$day['end_time']
 			);
 			foreach ( $conflicts as $conflict ) {
-				if ( ! in_array( (int) ( $conflict->id ?? 0 ), $override_ids, true ) ) {
+				$conflict_id = (int) ( $conflict->id ?? 0 );
+				if ( ! in_array( $conflict_id, $override_ids, true ) ) {
 					$wpdb->query( 'ROLLBACK' );
 					return false;
 				}
+				$rows[ $conflict_id ]      = $conflict;
+				$clashes[ $conflict_id ][] = $day['date'];
 			}
 		}
 
 		foreach ( $override_ids as $override_id ) {
-			if ( ! self::cancel( $override_id, (string) $data['override_note'] ) ) {
+			if ( ! isset( $rows[ $override_id ] ) ) {
+				// It no longer clashes (cancelled meanwhile, or never did): nothing to take from it.
+				continue;
+			}
+			$lost = self::give_way( $rows[ $override_id ], array_values( array_unique( $clashes[ $override_id ] ) ), (string) $data['override_note'] );
+			if ( null === $lost ) {
 				$wpdb->query( 'ROLLBACK' );
 				return false;
 			}
+			$overrides[ $override_id ] = $lost;
 		}
 
 		$result = $wpdb->insert(
@@ -174,8 +194,11 @@ class AudienceBookingWriter {
 				'end_date'       => $is_range ? $end_date : null,
 				'time_mode'      => $is_range ? $time_mode : null,
 				'skipped_dates'  => ! empty( $plan['skipped'] ) ? wp_json_encode( $plan['skipped'] ) : null,
+				// A span's hours are frozen per day (#2243): editing the space's
+				// working hours later must not move a booking already made.
+				'day_times'      => $is_range ? AudienceBookingRules::encode_day_times( $plan['days'], $time_mode ) : null,
 			),
-			array( '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s' )
+			array( '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s' )
 		);
 
 		if ( ! $result ) {
@@ -245,7 +268,7 @@ class AudienceBookingWriter {
 				 *
 				 * @phpstan-ignore argument.type
 				 */
-				"SELECT id, environment_id, booking_date, end_date, time_mode, skipped_dates, start_time, end_time FROM %i
+				"SELECT id, environment_id, booking_date, end_date, time_mode, skipped_dates, day_times, start_time, end_time FROM %i
                 WHERE environment_id = %d
                 AND {$day_sql}
                 AND status = 'active'
@@ -407,6 +430,67 @@ class AudienceBookingWriter {
 		static::cache_delete( "id_{$id}" );
 
 		return false !== $written;
+	}
+
+	/**
+	 * Take the clashing days from a booking an override wins over (#2243).
+	 *
+	 * The days are added to the row's skipped days, so every reader that
+	 * walks the booked days (conflicts, attendance, invitations, the .ics)
+	 * stops counting them, and the days it keeps carry the hours they had:
+	 * a span's are frozen before its first or last day can move. A booking
+	 * left with no day is cancelled whole, with the operator's reason.
+	 *
+	 * Runs inside {@see self::create()}'s transaction, on a row it locked.
+	 *
+	 * @param object   $row    The locked row ({@see self::get_conflicts_for_update()}).
+	 * @param string[] $dates  The days that clash (Y-m-d).
+	 * @param string   $reason The operator's reason, for a whole cancellation.
+	 * @return list<string>|null The days taken, an empty list when it was cancelled whole, NULL when the write failed.
+	 */
+	private static function give_way( object $row, array $dates, string $reason ): ?array {
+		$id      = (int) ( $row->id ?? 0 );
+		$booked  = AudienceBookingRules::booked_days( (string) ( $row->booking_date ?? '' ), isset( $row->end_date ) ? (string) $row->end_date : null, isset( $row->skipped_dates ) ? (string) $row->skipped_dates : null );
+		$keeps   = array_values( array_diff( $booked, $dates ) );
+		$is_span = 'span' === ( $row->time_mode ?? '' );
+
+		if ( empty( $keeps ) ) {
+			return self::cancel( $id, $reason ) ? array() : null;
+		}
+
+		// Freeze every day's hours from the row as it stands, before a day leaves it.
+		$hours = array();
+		foreach ( $booked as $day ) {
+			$hours[ $day ] = AudienceBookingRules::stored_day_times( $row, $day );
+		}
+
+		$skipped = isset( $row->skipped_dates ) && '' !== (string) $row->skipped_dates ? json_decode( (string) $row->skipped_dates, true ) : array();
+		$skipped = is_array( $skipped ) ? array_values( array_filter( $skipped, 'is_string' ) ) : array();
+		$skipped = array_values( array_unique( array_merge( $skipped, array_values( array_intersect( $dates, $booked ) ) ) ) );
+		sort( $skipped );
+
+		$update = array( 'skipped_dates' => wp_json_encode( $skipped ) );
+		$format = array( '%s' );
+		if ( $is_span ) {
+			$kept_days = array();
+			foreach ( $keeps as $day ) {
+				$kept_days[] = array( 'date' => $day ) + $hours[ $day ];
+			}
+			$update['day_times'] = AudienceBookingRules::encode_day_times( $kept_days, 'span' );
+			$format[]            = '%s';
+			if ( 1 === count( $keeps ) ) {
+				// One day left: its hours become the row's, as a single day's are.
+				$update['start_time'] = $hours[ $keeps[0] ]['start_time'];
+				$update['end_time']   = $hours[ $keeps[0] ]['end_time'];
+				$format[]             = '%s';
+				$format[]             = '%s';
+			}
+		}
+
+		$changed = self::db()->update( self::get_table_name(), $update, array( 'id' => $id ), $format, array( '%d' ) );
+		static::cache_delete( "id_{$id}" );
+
+		return false === $changed ? null : array_values( array_intersect( $dates, $booked ) );
 	}
 
 	/**

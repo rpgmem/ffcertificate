@@ -63,6 +63,18 @@ final class AudienceBookingRules {
 	public const MAX_RANGE_LIMIT = 365;
 
 	/**
+	 * Fewest characters of the reason an override gives the people who lose
+	 * days to it (#2243).
+	 */
+	public const OVERRIDE_REASON_MIN = 10;
+
+	/**
+	 * Most characters of that reason: it is stored in `cancellation_reason`
+	 * when a booking is cancelled whole, which holds 500.
+	 */
+	public const OVERRIDE_REASON_MAX = 300;
+
+	/**
 	 * The longest range one booking may cover, clamped on read as well as on
 	 * save, so a value written by hand still lands between 1 and a year.
 	 *
@@ -440,11 +452,20 @@ final class AudienceBookingRules {
 	 * `start_time` and `end_time` of a span are therefore not one day's hours,
 	 * and comparing them as if they were misses every clash on a middle day.
 	 *
-	 * @param object $row  Booking row with `environment_id`, `booking_date`, `start_time`, `end_time` and, for a range, `end_date`, `time_mode` and `skipped_dates`.
+	 * A span written since #2243 carries those hours frozen in `day_times`,
+	 * so editing the space's working hours later changes no booking; a row
+	 * without them (written before) still reads the window of today.
+	 *
+	 * @param object $row  Booking row with `environment_id`, `booking_date`, `start_time`, `end_time` and, for a range, `end_date`, `time_mode`, `skipped_dates` and `day_times`.
 	 * @param string $date A day the row occupies (Y-m-d).
 	 * @return array{start_time: string, end_time: string} Both in H:i.
 	 */
 	public static function stored_day_times( object $row, string $date ): array {
+		$frozen = self::frozen_day_times( $row );
+		if ( isset( $frozen[ $date ] ) ) {
+			return $frozen[ $date ];
+		}
+
 		$start = substr( (string) ( $row->start_time ?? '' ), 0, 5 );
 		$end   = substr( (string) ( $row->end_time ?? '' ), 0, 5 );
 		$days  = self::booked_days( (string) ( $row->booking_date ?? '' ), isset( $row->end_date ) ? (string) $row->end_date : null, isset( $row->skipped_dates ) ? (string) $row->skipped_dates : null );
@@ -467,6 +488,59 @@ final class AudienceBookingRules {
 		}
 
 		return self::day_times( 'span', $is_first, $is_last, $start, $end, $window );
+	}
+
+	/**
+	 * The hours each day of a span takes, as stored when it was created
+	 * (#2243): `{"Y-m-d": ["H:i", "H:i"], …}`. NULL for a single day or a
+	 * `daily` range, whose stored hours are already every day's hours.
+	 *
+	 * @param list<array{date: string, start_time: string, end_time: string}> $days The planned days ({@see occurrences()}).
+	 * @param string                                                          $time_mode `daily` or `span`.
+	 * @return string|null JSON, or NULL when there is nothing to freeze.
+	 */
+	public static function encode_day_times( array $days, string $time_mode ): ?string {
+		if ( 'span' !== $time_mode || count( $days ) < 2 ) {
+			return null;
+		}
+
+		$map = array();
+		foreach ( $days as $day ) {
+			$map[ $day['date'] ] = array( substr( $day['start_time'], 0, 5 ), substr( $day['end_time'], 0, 5 ) );
+		}
+
+		$json = wp_json_encode( $map );
+		return false === $json ? null : $json;
+	}
+
+	/**
+	 * The hours frozen on a row, by date; empty when it carries none or the
+	 * stored value is not the shape {@see encode_day_times()} writes.
+	 *
+	 * @param object $row Booking row.
+	 * @return array<string, array{start_time: string, end_time: string}>
+	 */
+	public static function frozen_day_times( object $row ): array {
+		$raw = isset( $row->day_times ) ? (string) $row->day_times : '';
+		if ( '' === $raw ) {
+			return array();
+		}
+
+		$decoded = json_decode( $raw, true );
+		if ( ! is_array( $decoded ) ) {
+			return array();
+		}
+
+		$map = array();
+		foreach ( $decoded as $date => $hours ) {
+			if ( is_string( $date ) && is_array( $hours ) && isset( $hours[0], $hours[1] ) && is_string( $hours[0] ) && is_string( $hours[1] ) ) {
+				$map[ $date ] = array(
+					'start_time' => $hours[0],
+					'end_time'   => $hours[1],
+				);
+			}
+		}
+		return $map;
 	}
 
 	/**

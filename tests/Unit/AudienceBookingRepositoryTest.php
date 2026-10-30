@@ -703,6 +703,151 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$this->assertSame(array( 'START TRANSACTION', 'COMMIT' ), $queries);
 	}
 
+	public function test_an_override_takes_only_the_clashing_day_of_a_span_and_freezes_the_hours_it_keeps(): void {
+		// Booking 99 spans 16-18 March; the new booking clashes on the 17th
+		// only. The 17th leaves it, and the days it keeps carry the hours they
+		// had, so its first and last days do not move (#2243).
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array(
+			(object) array(
+				'id'             => 99,
+				'environment_id' => 5,
+				'booking_date'   => '2026-03-16',
+				'end_date'       => '2026-03-18',
+				'time_mode'      => 'span',
+				'skipped_dates'  => null,
+				'day_times'      => '{"2026-03-16":["14:00","18:00"],"2026-03-17":["08:00","18:00"],"2026-03-18":["08:00","10:00"]}',
+				'start_time'     => '14:00:00',
+				'end_time'       => '10:00:00',
+			),
+		));
+		$updates = array();
+		$this->wpdb->shouldReceive('update')->andReturnUsing(function ($table, $data, $where) use (&$updates) {
+			$updates[] = array( $table, $data, $where );
+			return 1;
+		});
+		$this->wpdb->shouldReceive('insert')->once()->andReturn(1);
+		$this->wpdb->insert_id = 120;
+		$this->wpdb->shouldReceive('query')->andReturnUsing(function ($sql) {
+			$this->assertStringNotContainsString("SET status = 'cancelled'", (string) $sql, 'The booking is not cancelled whole.');
+			return 1;
+		});
+
+		$overrides = null;
+		$result    = AudienceBookingWriter::create([
+			'environment_id' => 5,
+			'booking_date'   => '2026-03-17',
+			'start_time'     => '09:00',
+			'end_time'       => '10:00',
+			'description'    => 'Priority booking',
+			'override_ids'   => array( 99 ),
+			'override_note'  => 'The visiting committee needs the room.',
+		], $overrides);
+
+		$this->assertSame(120, $result);
+		$this->assertSame(array( 99 => array( '2026-03-17' ) ), $overrides);
+		$this->assertCount(1, $updates);
+		$this->assertSame(array( 'id' => 99 ), $updates[0][2]);
+		$this->assertSame(
+			array(
+				'skipped_dates' => '["2026-03-17"]',
+				'day_times'     => '{"2026-03-16":["14:00","18:00"],"2026-03-18":["08:00","10:00"]}',
+			),
+			$updates[0][1]
+		);
+	}
+
+	public function test_an_override_that_leaves_a_span_one_day_makes_that_day_s_hours_the_row_s(): void {
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array(
+			(object) array(
+				'id'             => 99,
+				'environment_id' => 5,
+				'booking_date'   => '2026-03-16',
+				'end_date'       => '2026-03-17',
+				'time_mode'      => 'span',
+				'skipped_dates'  => null,
+				'day_times'      => '{"2026-03-16":["14:00","18:00"],"2026-03-17":["08:00","10:00"]}',
+				'start_time'     => '14:00:00',
+				'end_time'       => '10:00:00',
+			),
+		));
+		$updates = array();
+		$this->wpdb->shouldReceive('update')->andReturnUsing(function ($table, $data) use (&$updates) {
+			$updates[] = $data;
+			return 1;
+		});
+		$this->wpdb->shouldReceive('insert')->once()->andReturn(1);
+		$this->wpdb->insert_id = 120;
+
+		AudienceBookingWriter::create([
+			'environment_id' => 5,
+			'booking_date'   => '2026-03-17',
+			'start_time'     => '09:00',
+			'end_time'       => '10:00',
+			'description'    => 'Priority booking',
+			'override_ids'   => array( 99 ),
+			'override_note'  => 'The visiting committee needs the room.',
+		]);
+
+		$this->assertSame(
+			array(
+				'skipped_dates' => '["2026-03-17"]',
+				'day_times'     => null,
+				'start_time'    => '14:00',
+				'end_time'      => '18:00',
+			),
+			$updates[0]
+		);
+	}
+
+	public function test_a_failed_partial_override_rolls_the_booking_back(): void {
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array(
+			(object) array( 'id' => 99, 'booking_date' => '2026-03-16', 'end_date' => '2026-03-18', 'time_mode' => 'daily', 'skipped_dates' => null, 'start_time' => '09:00:00', 'end_time' => '10:00:00' ),
+		));
+		$this->wpdb->shouldReceive('update')->andReturn(false);
+		$this->wpdb->shouldNotReceive('insert');
+		$queries = array();
+		$this->wpdb->shouldReceive('query')->andReturnUsing(function ($sql) use (&$queries) {
+			$queries[] = (string) $sql;
+			return 1;
+		});
+
+		$result = AudienceBookingWriter::create([
+			'environment_id' => 5,
+			'booking_date'   => '2026-03-17',
+			'start_time'     => '09:00',
+			'end_time'       => '10:00',
+			'description'    => 'Priority booking',
+			'override_ids'   => array( 99 ),
+			'override_note'  => 'The visiting committee needs the room.',
+		]);
+
+		$this->assertFalse($result);
+		$this->assertSame(array( 'START TRANSACTION', 'ROLLBACK' ), $queries);
+	}
+
+	public function test_a_span_booking_is_written_with_its_hours_frozen(): void {
+		// No environment row: the window is the whole day.
+		$this->wpdb->shouldReceive('get_row')->andReturn(null);
+		$inserted = array();
+		$this->wpdb->shouldReceive('insert')->andReturnUsing(function ($table, $data) use (&$inserted) {
+			$inserted[] = $data;
+			return 1;
+		});
+		$this->wpdb->insert_id = 120;
+
+		AudienceBookingWriter::create([
+			'environment_id' => 5,
+			'booking_date'   => '2026-03-16',
+			'end_date'       => '2026-03-17',
+			'time_mode'      => 'span',
+			'start_time'     => '14:00',
+			'end_time'       => '10:00',
+			'description'    => 'Two-day workshop',
+		]);
+
+		$this->assertSame('{"2026-03-16":["14:00","23:59"],"2026-03-17":["00:00","10:00"]}', $inserted[0]['day_times']);
+	}
+
 	public function test_create_writes_the_participants_before_it_commits(): void {
 		// A booking whose links were written after COMMIT held the slot with
 		// nobody on it when a link failed (#2243).

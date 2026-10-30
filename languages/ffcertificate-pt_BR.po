@@ -26187,9 +26187,6 @@ msgstr "enviar o teste de uma regra, com valores de exemplo, para o seu próprio
 msgid "A booking that breaks one of those rules first opens a warning listing every rule it breaks; its \"I agree\" button unlocks after 15 seconds, the server saves nothing without that confirmation, and each confirmed booking is written to the Activity Log. Capacity is never bypassed."
 msgstr "Um agendamento que viola uma dessas regras abre antes um aviso que lista todas as regras violadas; o botão \"Concordo\" é liberado após 15 segundos, o servidor não salva nada sem essa confirmação e cada agendamento confirmado é registrado no Registro de Atividades. A capacidade nunca é ignorada."
 
-#: includes/settings/views/documentation/scheduling-audiences.php
-msgid "A user whose User access row carries Override Conflicts, or a bypass holder, may book over an occupied slot. The earlier booking is then cancelled entirely, on every day it covers even when only one of them clashed, and its owner receives the \"booking cancelled by an administrator\" email with the reason."
-msgstr "Um usuário cuja linha em Acesso de usuários tem Sobrescrever Conflitos, ou quem tem a exceção, pode reservar sobre um horário ocupado. A reserva anterior é então cancelada por inteiro, em todos os dias que cobre, mesmo que só um deles tenha conflito, e seu responsável recebe o e-mail \"reserva cancelada por um administrador\" com o motivo."
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "Admin bypass and Override Conflicts"
@@ -26279,9 +26276,6 @@ msgstr "Nenhum espaço está aberto nesta data."
 msgid "Outside hours"
 msgstr "Fora do horário"
 
-#: includes/audience/class-ffc-audience-rest-controller.php
-msgid "Overridden by a priority booking: the space is no longer available at this time."
-msgstr "Substituída por uma reserva prioritária: o espaço não está mais disponível neste horário."
 
 #: includes/audience/class-ffc-audience-shortcode.php
 msgid "Past date"
@@ -27477,9 +27471,6 @@ msgstr "Esta submissão está na lixeira, por isso o link não é enviado."
 msgid "From %1$s on the first day to %2$s on the last day"
 msgstr "De %1$s no primeiro dia até %2$s no último dia"
 
-#: includes/audience/class-ffc-audience-rest-controller.php
-msgid "This time slot is already booked for this environment. Confirming cancels that booking entirely, on every day it covers."
-msgstr "Este horário já está reservado para este ambiente. Confirmar cancela essa reserva por inteiro, em todos os dias que ela cobre."
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "When the hours run from the first day to the last, the calendar, the booking details, the user dashboard and the emails show the hours each day actually takes, and the calendar file covers every booked day. Cancelling a range cancels every day it covers; the confirmation names them and enables its button after a short countdown."
@@ -30073,6 +30064,24 @@ msgstr "Intervalo mais longo"
 
 msgid "The most consecutive days one booking may cover, from 1 to %1$d (default %2$d). The conflict check and the booking both refuse a longer range, naming the limit. Saved with the Save Settings button below."
 msgstr "O máximo de dias consecutivos que um agendamento pode cobrir, de 1 a %1$d (padrão %2$d). A verificação de conflitos e o agendamento recusam um intervalo maior, informando o limite. Salvo com o botão Salvar Configurações abaixo."
+
+msgid "A user whose User access row carries Override Conflicts, or a bypass holder, may book over an occupied slot, after writing why. The earlier booking loses only the days that clash: its other days stay booked, with their attendance and post-event invitations, and a booking left with no day is cancelled. Its owner receives the \"booking cancelled by an administrator\" email naming the days and the reason, and its participants the usual cancellation notice. The hours of each day of a booking that spans several days are stored when it is made, so editing a space's working hours later does not move bookings already made."
+msgstr "Um usuário cuja linha em Acesso de usuários tem Sobrescrever Conflitos, ou quem tem o bypass, pode reservar sobre um horário ocupado, depois de escrever o motivo. A reserva anterior perde só os dias em conflito: os outros dias continuam reservados, com a presença e os convites pós-evento, e uma reserva que fica sem nenhum dia é cancelada. O dono recebe o e-mail \"reserva cancelada por um administrador\" com os dias e o motivo, e os participantes o aviso de cancelamento de sempre. O horário de cada dia de uma reserva de vários dias é gravado quando ela é feita, então editar depois o horário de funcionamento de um espaço não altera reservas já feitas."
+
+msgid "This time slot is already booked for this environment. Confirming cancels that booking on the days that clash; its other days stay booked."
+msgstr "Este horário já está reservado neste ambiente. Confirmar cancela essa reserva nos dias em conflito; os outros dias continuam reservados."
+
+msgid "Write why the other booking gives way, between %1$d and %2$d characters. It is sent to the people who lose those days."
+msgstr "Escreva por que a outra reserva cede o lugar, entre %1$d e %2$d caracteres. O motivo é enviado às pessoas que perdem esses dias."
+
+msgid "%s Only the days listed were cancelled; the rest of the booking stands."
+msgstr "%s Só os dias listados foram cancelados; o restante da reserva continua valendo."
+
+msgid "Reason, sent to the people whose days are cancelled"
+msgstr "Motivo, enviado às pessoas cujos dias são cancelados"
+
+msgid "Between %1$d and %2$d characters."
+msgstr "Entre %1$d e %2$d caracteres."
 
 msgid "Audience calendar — Bookings (GET /audience/bookings), counted for logged-in users too"
 msgstr "Calendário de público-alvo — Agendamentos (GET /audience/bookings), contado também para usuários logados"

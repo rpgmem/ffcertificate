@@ -301,6 +301,36 @@ describe('FFC.overrideConfirm — the warning', () => {
 		await expect(promise).resolves.toBe(false);
 	});
 
+	it('asks for a reason when told to, and resolves with it once it is long enough', async () => {
+		vi.useFakeTimers();
+		const promise = window.FFC.overrideConfirm({
+			reasons: ['R'],
+			strings: { seconds: 0 },
+			reasonField: { label: 'Reason', hint: 'Between 10 and 300 characters.', min: 10, max: 300 },
+		});
+		const dialog = document.querySelector('.ffc-override-dialog');
+		const field = dialog.querySelector('.ffc-override-reason textarea');
+		const agree = dialog.querySelector('[data-ffc-override="agree"]');
+
+		expect(field.required).toBe(true);
+		expect(field.maxLength).toBe(300);
+		expect(document.activeElement).toBe(field);
+		expect(dialog.querySelector('label').getAttribute('for')).toBe(field.id);
+		expect(document.getElementById(field.getAttribute('aria-describedby')).textContent).toBe('Between 10 and 300 characters.');
+		expect(agree.disabled).toBe(true);
+
+		field.value = 'Too short';
+		field.dispatchEvent(new Event('input'));
+		expect(agree.disabled).toBe(true);
+
+		field.value = '  The visiting committee needs the room.  ';
+		field.dispatchEvent(new Event('input'));
+		expect(agree.disabled).toBe(false);
+
+		agree.click();
+		await expect(promise).resolves.toBe('The visiting committee needs the room.');
+	});
+
 	it('cancels at once, with Cancel or Escape, and gives the focus back', async () => {
 		vi.useFakeTimers();
 		const trigger = document.createElement('button');
@@ -346,6 +376,33 @@ describe('the audience booking resubmits with the confirmation', () => {
 		expect(rest).toHaveBeenCalledTimes(2);
 		expect(rest.mock.calls[0][1].data.confirm_override).toBeUndefined();
 		expect(rest.mock.calls[1][1].data.confirm_override).toBe(true);
+	});
+
+	it('asks for a reason when the 409 says days would be taken, and sends it', async () => {
+		api.state.config = config(true);
+		window.$('#booking-environment-id').html('<option value="10">Hall</option>').val('10');
+		window.$('#booking-date').val(ymd(nextWeekday(0)));
+		window.$('#booking-audiences input[value="3"]').prop('checked', true);
+
+		const rest = vi.spyOn(window.FFC, 'rest')
+			.mockImplementationOnce(() => {
+				const err = new Error('409');
+				err.xhr = { responseJSON: { code: 'override_confirmation_required', reasons: ['Booked.'], reason_required: { min: 10, max: 300 } } };
+				return Promise.reject(err);
+			})
+			.mockResolvedValueOnce({ success: true });
+		const confirm = vi.spyOn(window.FFC, 'overrideConfirm').mockResolvedValue('The visiting committee needs the room.');
+		vi.spyOn(window, 'alert').mockImplementation(() => {});
+		api.renderCalendar = vi.fn();
+
+		api.createBooking();
+		await flush();
+		await flush();
+
+		const asked = confirm.mock.calls[0][0].reasonField;
+		expect(asked.min).toBe(10);
+		expect(asked.max).toBe(300);
+		expect(rest.mock.calls[1][1].data.override_reason).toBe('The visiting committee needs the room.');
 	});
 
 	it('sends nothing more when the warning is cancelled', async () => {

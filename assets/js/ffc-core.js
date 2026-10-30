@@ -941,7 +941,10 @@
          * @param {Object}   [options.strings] Localized words (`OverrideWarning::strings()`).
          * @param {number}   [options.seconds] Countdown length; `strings.seconds`, else 15.
          * @param {string}   [options.agreeCategory] Button category of the confirm; `primary` by default.
-         * @return {Promise<boolean>} True when the person agreed.
+         * @param {Object}   [options.reasonField] Ask why (#2243): `{label, hint, min, max}`. The
+         *                   confirm then also waits for a reason of that length, and the
+         *                   promise resolves with the reason instead of `true`.
+         * @return {Promise<boolean|string>} True (or the reason) when the person agreed.
          */
         overrideConfirm: function(options) {
             var opts = options || {};
@@ -1004,6 +1007,37 @@
                 children: [list]
             }));
 
+            var field = null;
+            var reasonMin = 0;
+            var reasonMax = 0;
+            if (opts.reasonField) {
+                reasonMin = parseInt(opts.reasonField.min, 10) || 1;
+                reasonMax = parseInt(opts.reasonField.max, 10) || 0;
+                var group = document.createElement('div');
+                group.className = 'ffc-form-group ffc-override-reason';
+                var fieldLabel = document.createElement('label');
+                fieldLabel.setAttribute('for', uid + '-reason');
+                fieldLabel.textContent = String(opts.reasonField.label || '');
+                field = document.createElement('textarea');
+                field.id = uid + '-reason';
+                field.rows = 3;
+                field.required = true;
+                if (reasonMax > 0) {
+                    field.maxLength = reasonMax;
+                }
+                group.appendChild(fieldLabel);
+                group.appendChild(field);
+                if (opts.reasonField.hint) {
+                    var hint = document.createElement('p');
+                    hint.className = 'ffc-field-hint';
+                    hint.id = uid + '-reason-hint';
+                    hint.textContent = String(opts.reasonField.hint);
+                    field.setAttribute('aria-describedby', hint.id);
+                    group.appendChild(hint);
+                }
+                body.appendChild(group);
+            }
+
             var live = document.createElement('p');
             live.className = 'ffc-override-countdown';
             live.setAttribute('role', 'status');
@@ -1040,10 +1074,20 @@
                 var timer = null;
                 var done = false;
 
+                function reasonText() {
+                    return field ? field.value.trim() : '';
+                }
+
+                function reasonOk() {
+                    var length = reasonText().length;
+                    return !field || (length >= reasonMin && (reasonMax === 0 || length <= reasonMax));
+                }
+
                 function label() {
+                    var blocked = left > 0 || !reasonOk();
                     agree.textContent = left > 0 ? words.agreeIn.replace('%d', left) : words.agree;
-                    agree.disabled = left > 0;
-                    agree.setAttribute('aria-disabled', left > 0 ? 'true' : 'false');
+                    agree.disabled = blocked;
+                    agree.setAttribute('aria-disabled', blocked ? 'true' : 'false');
                 }
 
                 function finish(answer) {
@@ -1074,7 +1118,7 @@
                     if (e.key !== 'Tab') {
                         return;
                     }
-                    var focusable = [cancel, agree].filter(function(el) { return !el.disabled; });
+                    var focusable = [field, cancel, agree].filter(function(el) { return el && !el.disabled; });
                     var first = focusable[0];
                     var last = focusable[focusable.length - 1];
                     if (focusable.indexOf(document.activeElement) === -1) {
@@ -1093,9 +1137,12 @@
                 backdrop.addEventListener('click', function() { finish(false); });
                 agree.addEventListener('click', function() {
                     if (!agree.disabled) {
-                        finish(true);
+                        finish(field ? reasonText() : true);
                     }
                 });
+                if (field) {
+                    field.addEventListener('input', label);
+                }
                 document.addEventListener('keydown', onKey, true);
 
                 label();
@@ -1114,7 +1161,7 @@
                     live.textContent = words.countdownEnd;
                 }
 
-                cancel.focus();
+                (field || cancel).focus();
             });
         },
 

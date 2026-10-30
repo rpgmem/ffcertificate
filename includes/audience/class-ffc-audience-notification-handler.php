@@ -38,7 +38,7 @@ class AudienceNotificationHandler {
 	public static function init(): void {
 		add_action( 'ffcertificate_audience_booking_created', array( __CLASS__, 'send_booking_created_notification' ) );
 		add_action( 'ffcertificate_audience_booking_cancelled', array( __CLASS__, 'send_booking_cancelled_notification' ), 10, 2 );
-		add_action( 'ffcertificate_audience_booking_overridden', array( __CLASS__, 'send_booking_overridden_notification' ), 10, 3 );
+		add_action( 'ffcertificate_audience_booking_overridden', array( __CLASS__, 'send_booking_overridden_notification' ), 10, 4 );
 	}
 
 	/**
@@ -144,10 +144,11 @@ class AudienceNotificationHandler {
 	 * @param int        $booking_id       Booking ID.
 	 * @param string     $reason           Cancellation reason.
 	 * @param array<int> $exclude_user_ids Users told some other way, skipped here.
+	 * @param string[]   $lost_days        Only these days were cancelled (#2243); empty for the whole booking.
 	 * @return void
 	 */
-	public static function send_booking_cancelled_notification( int $booking_id, string $reason, array $exclude_user_ids = array() ): void {
-		$context = self::cancelled_booking_context( $booking_id, $reason );
+	public static function send_booking_cancelled_notification( int $booking_id, string $reason, array $exclude_user_ids = array(), array $lost_days = array() ): void {
+		$context = self::cancelled_booking_context( $booking_id, $reason, $lost_days );
 		if ( null === $context ) {
 			return;
 		}
@@ -169,9 +170,11 @@ class AudienceNotificationHandler {
 			return;
 		}
 
-		// Generate ICS cancellation if enabled.
+		// Generate ICS cancellation if enabled. A booking that lost only some
+		// days is still on: a cancellation .ics would take all of it off the
+		// participant's calendar.
 		$ics_content = null;
-		if ( $schedule->include_ics ) {
+		if ( $schedule->include_ics && empty( $lost_days ) ) {
 			$ics_content = self::generate_ics( $booking_data, 'cancelled' );
 		}
 
@@ -209,13 +212,18 @@ class AudienceNotificationHandler {
 	 * for then receive the calendar's ordinary cancellation notice, under its
 	 * toggle, the owner excepted so nobody gets both.
 	 *
-	 * @param int    $booking_id     The booking that gave way.
-	 * @param int    $new_booking_id The booking that took the slot (carried for other listeners; the e-mail does not name it).
-	 * @param string $reason         Cancellation reason.
+	 * A booking that gave way only on the days that clashed (#2243) is told
+	 * the same way, the e-mails naming those days and saying the rest of it
+	 * stands, with no cancellation `.ics`.
+	 *
+	 * @param int      $booking_id     The booking that gave way.
+	 * @param int      $new_booking_id The booking that took the slot (carried for other listeners; the e-mail does not name it).
+	 * @param string   $reason         The operator's reason.
+	 * @param string[] $lost_days      The days it lost (Y-m-d); empty when it was cancelled whole.
 	 * @return void
 	 */
-	public static function send_booking_overridden_notification( int $booking_id, int $new_booking_id, string $reason ): void {
-		$context = self::cancelled_booking_context( $booking_id, $reason );
+	public static function send_booking_overridden_notification( int $booking_id, int $new_booking_id, string $reason, array $lost_days = array() ): void {
+		$context = self::cancelled_booking_context( $booking_id, $reason, $lost_days );
 		if ( null === $context ) {
 			return;
 		}
@@ -225,7 +233,7 @@ class AudienceNotificationHandler {
 
 		if ( $owner && $owner->user_email ) {
 			$booking_data = $context['data'];
-			$ics_content  = $context['schedule']->include_ics ? self::generate_ics( $booking_data, 'cancelled' ) : null;
+			$ics_content  = $context['schedule']->include_ics && empty( $lost_days ) ? self::generate_ics( $booking_data, 'cancelled' ) : null;
 
 			self::send_email(
 				$owner->user_email,
@@ -235,18 +243,23 @@ class AudienceNotificationHandler {
 			);
 		}
 
-		self::send_booking_cancelled_notification( $booking_id, $reason, $owner_id > 0 ? array( $owner_id ) : array() );
+		self::send_booking_cancelled_notification( $booking_id, $reason, $owner_id > 0 ? array( $owner_id ) : array(), $lost_days );
 	}
 
 	/**
 	 * Load a cancelled booking with its space and calendar, and the token
 	 * values its e-mails read.
 	 *
-	 * @param int    $booking_id Booking ID.
-	 * @param string $reason     Cancellation reason.
+	 * When only some days were cancelled, the date names those days, the
+	 * reason says the rest of the booking stands, and "cancelled by" is the
+	 * operator, since the row itself was not cancelled.
+	 *
+	 * @param int      $booking_id Booking ID.
+	 * @param string   $reason     Cancellation reason.
+	 * @param string[] $lost_days  The days cancelled (Y-m-d); empty for the whole booking.
 	 * @return array{booking: BookingRow, schedule: ScheduleRow, data: array<string, mixed>}|null
 	 */
-	private static function cancelled_booking_context( int $booking_id, string $reason ): ?array {
+	private static function cancelled_booking_context( int $booking_id, string $reason, array $lost_days = array() ): ?array {
 		$booking = AudienceBookingReader::get_by_id( $booking_id );
 		if ( ! $booking ) {
 			return null;
@@ -263,8 +276,16 @@ class AudienceNotificationHandler {
 		}
 
 		// Get cancelled by info.
-		$cancelled_by      = $booking->cancelled_by ? get_user_by( 'id', (int) $booking->cancelled_by ) : false;
+		$cancelled_by_id   = empty( $lost_days ) ? (int) $booking->cancelled_by : get_current_user_id();
+		$cancelled_by      = $cancelled_by_id > 0 ? get_user_by( 'id', $cancelled_by_id ) : false;
 		$cancelled_by_name = $cancelled_by ? $cancelled_by->display_name : __( 'Unknown', 'ffcertificate' );
+
+		$date_label = self::booking_date_label( $booking );
+		if ( ! empty( $lost_days ) ) {
+			$date_label = implode( ', ', array_map( static fn( string $day ): string => self::format_date( $day ), $lost_days ) );
+			/* translators: %s: the operator's reason for taking some days of a booking. */
+			$reason = sprintf( __( '%s Only the days listed were cancelled; the rest of the booking stands.', 'ffcertificate' ), $reason );
+		}
 
 		// Prepare booking data.
 		$environment_label = AudienceScheduleRepository::get_environment_label( $schedule, true );
@@ -273,7 +294,7 @@ class AudienceNotificationHandler {
 			'environment_name'    => $environment->name,
 			'environment_label'   => $environment_label,
 			'schedule_name'       => $schedule->name,
-			'booking_date'        => self::booking_date_label( $booking ),
+			'booking_date'        => $date_label,
 			'booking_date_raw'    => $booking->booking_date,
 			'end_date_raw'        => $booking->end_date ?? null,
 			'time_mode'           => $booking->time_mode ?? null,

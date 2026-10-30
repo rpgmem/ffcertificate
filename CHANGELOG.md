@@ -75,6 +75,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificates: verification is one lookup per kind** (#2241). `VerificationHandler` routes between `CertificateVerificationLookup`, `AppointmentVerificationLookup` and `ReregistrationVerificationLookup`; the identity-audit queries left `SubmissionReader` for `SubmissionIdentityAudit`. A parity test pins the same answers and reads.
 - **Reregistration: fewer reads per request** (#2242). A submit reads the campaign's field definitions once instead of three times, and the six one-shot steps on seeded fields read one autoloaded version option instead of six options on every admin request.
 - **Audience Calendars: a booking covers at most 30 consecutive days** (#2243). The cap was 31 and was checked by listing every day of the range, so an absurd end date built millions of strings before it was refused; it is now a date difference, and the message names the limit. The conflict check refuses such a range too, inside the dialog, and the limit is a setting: Scheduling → Settings → Audience Calendars, "Longest range", 1 to 365 days, 30 by default.
+- **Audience Calendars: an override takes only the days that clash, with the operator's reason** (#2243). The earlier booking keeps its other days, attendance and post-event invitations, and is cancelled only when no day is left; the confirmation asks why, and the e-mails name the days lost. A booking over several days now stores each day's hours, so editing a space's working hours no longer moves it.
 
 ### Deprecated
 
