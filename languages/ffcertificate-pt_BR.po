@@ -30225,3 +30225,48 @@ msgid "%d date of the series cancelled."
 msgid_plural "%d dates of the series cancelled."
 msgstr[0] "%d data da série cancelada."
 msgstr[1] "%d datas da série canceladas."
+
+msgid "A booking can only move to a space of its own calendar."
+msgstr "Uma reserva só pode ser movida para um espaço da sua própria agenda."
+
+msgid "A scheduled activity you were included in has changed. This is how it stands now."
+msgstr "Uma atividade agendada da qual você participa foi alterada. Veja como ela ficou."
+
+msgid "Activity changed"
+msgstr "Atividade alterada"
+
+msgid "Activity changed: {{schedule_name}}"
+msgstr "Atividade alterada: {{schedule_name}}"
+
+msgid "After an audience booking is edited or moved, under the same id — args ( booking_id, before ); before holds its space, dates, hours and description as they were."
+msgstr "Depois que uma reserva de público-alvo é editada ou movida, com o mesmo id — argumentos ( booking_id, before ); before traz o espaço, as datas, o horário e a descrição como eram."
+
+msgid "Audience booking changed"
+msgstr "Reserva de público-alvo alterada"
+
+msgid "Before the change:"
+msgstr "Antes da alteração:"
+
+msgid "Booking changed. Its participants will be told."
+msgstr "Reserva alterada. Os participantes serão avisados."
+
+msgid "Changed by:"
+msgstr "Alterada por:"
+
+msgid "Editing needs what cancelling needs. Without a date it changes the description; with one it moves the booking within its calendar through the checks a new booking passes. A booking whose first day has come changes its description only."
+msgstr "Editar exige o mesmo que cancelar. Sem data, altera a descrição; com data, move a reserva dentro da sua agenda, pelas mesmas verificações de uma reserva nova. Uma reserva cujo primeiro dia já chegou só altera a descrição."
+
+msgid "Failed to change booking."
+msgstr "Falha ao alterar a reserva."
+
+msgid "Nothing changed."
+msgstr "Nada foi alterado."
+
+msgid "Only an active booking can be changed."
+msgstr "Só uma reserva ativa pode ser alterada."
+
+msgid "The attached calendar file updates the event already in your calendar."
+msgstr "O arquivo de calendário anexo atualiza o evento que já está na sua agenda."
+
+msgid "This booking has started: only its description can change."
+msgstr "Esta reserva já começou: só a descrição pode ser alterada."

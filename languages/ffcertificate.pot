@@ -30142,3 +30142,48 @@ msgid "%d date of the series cancelled."
 msgid_plural "%d dates of the series cancelled."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "A booking can only move to a space of its own calendar."
+msgstr ""
+
+msgid "A scheduled activity you were included in has changed. This is how it stands now."
+msgstr ""
+
+msgid "Activity changed"
+msgstr ""
+
+msgid "Activity changed: {{schedule_name}}"
+msgstr ""
+
+msgid "After an audience booking is edited or moved, under the same id — args ( booking_id, before ); before holds its space, dates, hours and description as they were."
+msgstr ""
+
+msgid "Audience booking changed"
+msgstr ""
+
+msgid "Before the change:"
+msgstr ""
+
+msgid "Booking changed. Its participants will be told."
+msgstr ""
+
+msgid "Changed by:"
+msgstr ""
+
+msgid "Editing needs what cancelling needs. Without a date it changes the description; with one it moves the booking within its calendar through the checks a new booking passes. A booking whose first day has come changes its description only."
+msgstr ""
+
+msgid "Failed to change booking."
+msgstr ""
+
+msgid "Nothing changed."
+msgstr ""
+
+msgid "Only an active booking can be changed."
+msgstr ""
+
+msgid "The attached calendar file updates the event already in your calendar."
+msgstr ""
+
+msgid "This booking has started: only its description can change."
+msgstr ""

@@ -479,6 +479,14 @@ class AudienceRestControllerTest extends TestCase {
 	private function read_var( string $sql ) {
 		$this->ran[] = $sql;
 		$bound       = $this->bound( $sql );
+		if ( false !== strpos( $sql, "WHERE id = %d AND status = 'active' FOR UPDATE" ) ) {
+			// AudienceBookingWriter::move() locks the row it moves (#2243).
+			$booking = $this->bookings[ (int) $bound[2] ] ?? null;
+			if ( null !== $booking && $this->cancelled_by_another_request ) {
+				$booking->status = 'cancelled';
+			}
+			return null !== $booking && 'active' === $booking->status ? (string) $booking->id : null;
+		}
 		if ( false !== strpos( $sql, 'WHERE schedule_id = %d AND holiday_date = %s' ) ) {
 			$count = 0;
 			foreach ( $this->holidays as $holiday ) {
@@ -546,8 +554,14 @@ class AudienceRestControllerTest extends TestCase {
 		}
 		if ( false !== strpos( $sql, 'FOR UPDATE' ) || false !== strpos( $sql, 'WHERE environment_id = %d' ) ) {
 			// The writer's locking read and AudienceBookingReader::get_conflicts():
-			// every active row of the environment that occupies the day.
-			return $this->occupying( (int) $bound[2], (string) $bound[3] );
+			// every active row of the environment that occupies the day, less
+			// the booking being moved when the read names it (#2243).
+			$rows = $this->occupying( (int) $bound[2], (string) $bound[3] );
+			if ( preg_match( '/(Q\d+):AND id != %d/', $sql, $excluded ) ) {
+				$skip = (int) ( $this->bound( $excluded[1] . ':' )[1] ?? 0 );
+				$rows = array_values( array_filter( $rows, static fn( $row ) => (int) $row->id !== $skip ) );
+			}
+			return $rows;
 		}
 		if ( false !== strpos( $sql, 'SELECT DISTINCT b.*' ) ) {
 			// Member conflicts: the stored bookings the test says clash.
@@ -681,11 +695,11 @@ class AudienceRestControllerTest extends TestCase {
 	// Route registration
 	// ------------------------------------------------------------------
 
-	public function test_register_routes_creates_four_endpoints(): void {
+	public function test_register_routes_creates_five_endpoints(): void {
 		$ctrl = new AudienceRestController();
 		$ctrl->register_routes();
 
-		$this->assertCount( 4, $this->registered_routes );
+		$this->assertCount( 5, $this->registered_routes );
 	}
 
 	public function test_bookings_get_route_registered(): void {
@@ -715,11 +729,21 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( array( $ctrl, 'check_cancel_permission' ), $route['args']['permission_callback'] );
 	}
 
-	public function test_conflicts_route_registered(): void {
+	public function test_bookings_edit_route_takes_the_cancel_permission(): void {
 		$ctrl = new AudienceRestController();
 		$ctrl->register_routes();
 
 		$route = $this->registered_routes[3];
+		$this->assertSame( '/audience/bookings/(?P<id>\d+)', $route['route'] );
+		$this->assertSame( array( $ctrl, 'update_booking' ), $route['args']['callback'] );
+		$this->assertSame( array( $ctrl, 'check_cancel_permission' ), $route['args']['permission_callback'], 'Who may edit is who may cancel.' );
+	}
+
+	public function test_conflicts_route_registered(): void {
+		$ctrl = new AudienceRestController();
+		$ctrl->register_routes();
+
+		$route = $this->registered_routes[4];
 		$this->assertSame( '/audience/conflicts', $route['route'] );
 		$this->assertSame( array( $ctrl, 'check_conflicts_permission' ), $route['args']['permission_callback'] );
 	}
@@ -1603,6 +1627,190 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( 200, $result->get_status() );
 		$this->assertArrayNotHasKey( 'cancelled', $result->get_data() );
 		$this->assertCount( 1, $fired );
+	}
+
+	// ------------------------------------------------------------------
+	// update_booking() (#2243)
+	// ------------------------------------------------------------------
+
+	/**
+	 * Booking 1, owned by user 5, on 2026-04-01 09:00-10:00 in room 10;
+	 * room 11 is the same calendar's other space.
+	 */
+	private function given_a_booking_to_edit(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		$this->environment( 10, 20 );
+		$this->environment( 11, 20, null, 'Room B' );
+		$this->booking( 1, 10, '2026-04-01', '09:00', '10:00', array( 'created_by' => 5, 'description' => 'The weekly planning meeting' ) );
+	}
+
+	/**
+	 * The `changed` hooks a request fired, as `[booking_id, before]`.
+	 *
+	 * @return \ArrayObject<int, array<int, mixed>>
+	 */
+	private function change_hooks(): \ArrayObject {
+		$fired = new \ArrayObject();
+		Functions\when( 'do_action' )->alias(
+			static function ( ...$args ) use ( $fired ) {
+				if ( 'ffcertificate_audience_booking_changed' === $args[0] ) {
+					$fired[] = array_slice( $args, 1 );
+				}
+			}
+		);
+		return $fired;
+	}
+
+	private function move_request( array $overrides = array() ): object {
+		return $this->make_request(
+			array_merge(
+				array(
+					'id'             => 1,
+					'environment_id' => 11,
+					'booking_date'   => '2026-04-08',
+					'start_time'     => '14:00',
+					'end_time'       => '15:00',
+					'description'    => 'The weekly planning meeting',
+				),
+				$overrides
+			)
+		);
+	}
+
+	public function test_moving_a_booking_keeps_its_id_and_tells_its_participants_once(): void {
+		$this->given_a_booking_to_edit();
+		$fired = $this->change_hooks();
+
+		$result = ( new AudienceRestController() )->update_booking( $this->move_request() );
+
+		$this->assertSame( 200, $result->get_status() );
+		$this->assertTrue( $result->get_data()['changed'] );
+		$moved = $this->bookings[1];
+		$this->assertSame( array( 11, '2026-04-08', '14:00', '15:00', 'active' ), array( $moved->environment_id, $moved->booking_date, $moved->start_time, $moved->end_time, $moved->status ) );
+		$this->assertSame( array(), $this->written( 'insert', 'wp_ffc_audience_bookings' ), 'Moved in place: no new booking, so attendance and invitations stay with it.' );
+		$this->assertSame(
+			array(
+				array(
+					1,
+					array(
+						'environment_id' => 10,
+						'booking_date'   => '2026-04-01',
+						'end_date'       => null,
+						'time_mode'      => null,
+						'start_time'     => '09:00',
+						'end_time'       => '10:00',
+						'description'    => 'The weekly planning meeting',
+					),
+				),
+			),
+			$fired->getArrayCopy()
+		);
+		$order = array_map( static fn( array $w ): string => 'query' === $w[0] ? (string) $w[2] : $w[0] . ' ' . $w[1], $this->writes );
+		$this->assertSame( array( 'START TRANSACTION', 'update wp_ffc_audience_bookings', 'COMMIT' ), $order );
+	}
+
+	public function test_a_booking_never_clashes_with_itself_when_its_hours_shift(): void {
+		$this->given_a_booking_to_edit();
+		$this->change_hooks();
+
+		$result = ( new AudienceRestController() )->update_booking( $this->move_request( array( 'environment_id' => 10, 'booking_date' => '2026-04-01', 'start_time' => '09:30', 'end_time' => '10:30' ) ) );
+
+		$this->assertSame( 200, $result->get_status() );
+		$this->assertSame( '09:30', $this->bookings[1]->start_time );
+	}
+
+	public function test_moving_onto_another_booking_is_refused_without_the_override(): void {
+		$this->given_a_booking_to_edit();
+		$this->booking( 2, 11, '2026-04-08', '14:00', '15:00', array( 'created_by' => 9 ) );
+		$fired = $this->change_hooks();
+
+		$result = ( new AudienceRestController() )->update_booking( $this->move_request() );
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertSame( AudienceBookingRules::CONFLICT, $result->get_data()['code'] );
+		$this->assertSame( '2026-04-01', $this->bookings[1]->booking_date, 'Nothing moved.' );
+		$this->assertCount( 0, $fired );
+	}
+
+	public function test_a_text_only_edit_changes_the_description_and_nothing_else(): void {
+		$this->given_a_booking_to_edit();
+		$fired = $this->change_hooks();
+
+		$result = ( new AudienceRestController() )->update_booking(
+			$this->make_request( array( 'id' => 1, 'booking_date' => '', 'description' => 'The weekly planning meeting, room 2' ) )
+		);
+
+		$this->assertSame( 200, $result->get_status() );
+		$this->assertSame( 'The weekly planning meeting, room 2', $this->bookings[1]->description );
+		$this->assertSame( '2026-04-01', $this->bookings[1]->booking_date );
+		$this->assertCount( 1, $fired );
+	}
+
+	public function test_an_unchanged_description_sends_nothing(): void {
+		$this->given_a_booking_to_edit();
+		$fired = $this->change_hooks();
+
+		$result = ( new AudienceRestController() )->update_booking(
+			$this->make_request( array( 'id' => 1, 'booking_date' => '', 'description' => 'The weekly planning meeting' ) )
+		);
+
+		$this->assertSame( 200, $result->get_status() );
+		$this->assertFalse( $result->get_data()['changed'] );
+		$this->assertSame( array(), $this->writes );
+		$this->assertCount( 0, $fired );
+	}
+
+	public function test_a_started_booking_keeps_its_date_hours_and_space(): void {
+		$this->given_a_booking_to_edit();
+		Functions\when( 'current_time' )->justReturn( '2026-04-01' );
+		$fired = $this->change_hooks();
+
+		$moved = ( new AudienceRestController() )->update_booking( $this->move_request() );
+		$text  = ( new AudienceRestController() )->update_booking(
+			$this->make_request( array( 'id' => 1, 'booking_date' => '', 'description' => 'The weekly planning meeting, moved online' ) )
+		);
+
+		$this->assertSame( 400, $moved->get_status() );
+		$this->assertSame( 'booking_started', $moved->get_data()['code'] );
+		$this->assertSame( 200, $text->get_status(), 'Its description still changes.' );
+		$this->assertSame( array( '2026-04-01', 10 ), array( $this->bookings[1]->booking_date, $this->bookings[1]->environment_id ) );
+		$this->assertCount( 1, $fired );
+	}
+
+	public function test_a_booking_moves_only_within_its_own_calendar(): void {
+		$this->given_a_booking_to_edit();
+		$this->environment( 30, 40, null, 'Other calendar' );
+		$this->schedules[40] = (object) ( array( 'id' => 40, 'name' => 'Other' ) + (array) $this->schedules[20] );
+		$this->permit( 40, 5 );
+
+		$result = ( new AudienceRestController() )->update_booking( $this->move_request( array( 'environment_id' => 30 ) ) );
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertStringContainsString( 'its own calendar', $result->get_data()['message'] );
+		$this->assertSame( array(), $this->writes );
+	}
+
+	public function test_a_cancelled_booking_cannot_be_changed(): void {
+		$this->given_a_booking_to_edit();
+		$this->bookings[1]->status = 'cancelled';
+
+		$result = ( new AudienceRestController() )->update_booking( $this->move_request() );
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertSame( array(), $this->writes );
+	}
+
+	public function test_a_booking_cancelled_while_it_was_being_moved_is_not_moved(): void {
+		$this->given_a_booking_to_edit();
+		// The other request lands between the read and the writer's lock.
+		$this->cancelled_by_another_request = true;
+		$fired                              = $this->change_hooks();
+
+		$result = ( new AudienceRestController() )->update_booking( $this->move_request() );
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertSame( '2026-04-01', $this->bookings[1]->booking_date );
+		$this->assertCount( 0, $fired );
 	}
 
 	/**

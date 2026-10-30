@@ -237,6 +237,11 @@ class TabEmailTexts extends SettingsTab {
 				'label'  => __( 'Audience booking cancelled by an administrator', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'user_email', 'environment_name', 'environment_label', 'schedule_name', 'booking_date', 'time', 'start_time', 'end_time', 'description', 'audiences', 'cancelled_by_name', 'cancellation_reason', 'site_name', 'site_url' ),
 			),
+			'audience-change'               => array(
+				'label'  => __( 'Audience booking changed', 'ffcertificate' ),
+				// The booking as it now stands, then what it was (#2243).
+				'tokens' => array( 'user_name', 'user_email', 'environment_name', 'environment_label', 'schedule_name', 'booking_date', 'time', 'start_time', 'end_time', 'description', 'audiences', 'changed_by_name', 'previous_environment', 'previous_date', 'previous_time', 'site_name', 'site_url' ),
+			),
 			'audience-post-event-invite'    => array(
 				'label'  => __( 'Audience post-event form invitation', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'event', 'schedule_name', 'form_title', 'form_link', 'closes_at', 'site_name' ),
@@ -346,7 +351,7 @@ class TabEmailTexts extends SettingsTab {
 				'reregistration-rejected',
 				'reregistration-returned',
 			),
-			__( 'Audience Calendars', 'ffcertificate' ) => array( 'audience-booking', 'audience-cancellation', 'audience-admin-cancellation', 'audience-post-event-invite' ),
+			__( 'Audience Calendars', 'ffcertificate' ) => array( 'audience-booking', 'audience-cancellation', 'audience-admin-cancellation', 'audience-change', 'audience-post-event-invite' ),
 			__( 'Account access', 'ffcertificate' )     => array( 'access-granted' ),
 			__( 'Date Messages', 'ffcertificate' )      => array( 'date-message-birthday', 'date-message-announcement' ),
 		);
