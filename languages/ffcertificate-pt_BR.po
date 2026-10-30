@@ -17960,10 +17960,6 @@ msgstr "Total de Submissões:"
 msgid "Total:"
 msgstr "Total:"
 
-#. %d: number of bookings
-#: includes/audience/class-ffc-audience-admin-bookings.php:251
-msgid "Total: %d bookings"
-msgstr "Total: %d reservas"
 
 #: includes/settings/views/ffc-tab-advanced.php:48
 msgid "Track activities for audit trail"
@@ -22834,8 +22830,6 @@ msgstr "O menu Agendamento lista Painel, Calendários Pessoais, Agendamentos, Ca
 msgid "Audience Calendars has two views, switched by the links under its heading: Calendars and Environments (named with the label you give environments). The environment count in a calendar's row opens that calendar's environments."
 msgstr "Calendários de Público-alvo tem duas visões, alternadas pelos links abaixo do título: Calendários e Ambientes (com o nome que você dá aos ambientes). A contagem de ambientes na linha de um calendário abre os ambientes desse calendário."
 
-msgid "Audience Bookings lists every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates."
-msgstr "Agendamentos de Público-alvo lista todos os agendamentos (exportável em CSV com ffc_export_audiences). Os feriados globais, definidos na aba Agendamento → Configurações → Geral, bloqueiam agendamentos nessas datas."
 
 msgid "The Scheduling → Settings → Import & Export tab imports and exports audiences (name, color, parent) and members (email, name, audience) as CSV, optionally creating WordPress users for imported members."
 msgstr "A aba Agendamento → Configurações → Importar e Exportar importa e exporta públicos-alvo (nome, cor, pai) e membros (e-mail, nome, público-alvo) em CSV, criando opcionalmente usuários do WordPress para os membros importados."
@@ -30097,3 +30091,46 @@ msgstr "E-mails das reservas de público-alvo (um por lote)"
 
 msgid "These e-mails leave in the background: saving or cancelling a booking only queues them, and WP-Cron sends them in batches of 50, each person once. With Total Mail Queue active they join its queue, attributed to Audience Calendars. On a site whose WP-Cron runs only on visits, set the server cron line from Settings → Scheduled Tasks so they do not wait for traffic."
 msgstr "Esses e-mails saem em segundo plano: salvar ou cancelar uma reserva apenas os enfileira, e o WP-Cron os envia em lotes de 50, uma vez para cada pessoa. Com o Total Mail Queue ativo, eles entram na fila dele, atribuídos aos Calendários de Público-alvo. Num site cujo WP-Cron só roda com visitas, configure a linha de cron do servidor em Configurações → Tarefas Agendadas para que não dependam de tráfego."
+
+msgid "Audience Bookings lists the bookings 50 to a page, newest first, with their calendar, who each is for and how many people checked in out of how many it reaches. Filter by calendar, space, audience, status and dates, or search the description or the booking number; the CSV export (ffc_export_audiences) takes the same filters. Holders of ffc_manage_audiences can tick active bookings and cancel them together with one reason; each cancelled booking e-mails its participants as a single cancellation does. Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates."
+msgstr "Agendamentos de Público-alvo lista as reservas 50 por página, das mais recentes para as mais antigas, com o calendário, para quem é cada uma e quantas pessoas fizeram check-in em relação a quantas ela alcança. Filtre por calendário, espaço, público-alvo, situação e datas, ou busque pela descrição ou pelo número da reserva; a exportação CSV (ffc_export_audiences) usa os mesmos filtros. Quem tem ffc_manage_audiences pode marcar reservas ativas e cancelá-las juntas com um único motivo; cada reserva cancelada envia e-mail aos participantes como um cancelamento individual. Feriados globais, definidos na aba Agendamento → Configurações → Geral, bloqueiam reservas nessas datas."
+
+msgid "%d bookings will be cancelled and their participants e-mailed."
+msgstr "%d reservas serão canceladas e seus participantes receberão e-mail."
+
+msgid "Cancel selected"
+msgstr "Cancelar selecionadas"
+
+msgid "Description or number"
+msgstr "Descrição ou número"
+
+msgid "For"
+msgstr "Para"
+
+msgid "Present / reached"
+msgstr "Presentes / alcançados"
+
+msgid "Search bookings"
+msgstr "Buscar reservas"
+
+msgid "Select all active bookings"
+msgstr "Selecionar todas as reservas ativas"
+
+msgid "Select booking %d"
+msgstr "Selecionar a reserva %d"
+
+msgid "Select the bookings to cancel."
+msgstr "Selecione as reservas a cancelar."
+
+msgid "Write the reason for the cancellation."
+msgstr "Escreva o motivo do cancelamento."
+
+msgid "%1$d of %2$d booking cancelled."
+msgid_plural "%1$d of %2$d bookings cancelled."
+msgstr[0] "%1$d de %2$d reserva cancelada."
+msgstr[1] "%1$d de %2$d reservas canceladas."
+
+msgid "%s booking"
+msgid_plural "%s bookings"
+msgstr[0] "%s reserva"
+msgstr[1] "%s reservas"

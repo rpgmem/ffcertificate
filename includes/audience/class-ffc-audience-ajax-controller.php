@@ -37,6 +37,7 @@ final class AudienceAjaxController {
 	public function register(): void {
 		// AJAX handlers.
 		add_action( 'wp_ajax_ffc_audience_cancel_booking', array( $this, 'ajax_cancel_booking' ) );
+		add_action( 'wp_ajax_ffc_audience_cancel_bookings', array( $this, 'ajax_cancel_bookings' ) );
 		add_action( 'wp_ajax_ffc_audience_get_booking', array( $this, 'ajax_get_booking' ) );
 		add_action( 'wp_ajax_ffc_search_users', array( $this, 'ajax_search_users' ) );
 		add_action( 'wp_ajax_ffc_audience_get_environments', array( $this, 'ajax_get_environments' ) );
@@ -89,6 +90,60 @@ final class AudienceAjaxController {
 			do_action( 'ffcertificate_audience_booking_cancelled', $booking_id, $reason );
 
 			wp_send_json_success( array( 'message' => __( 'Booking cancelled successfully.', 'ffcertificate' ) ) );
+		} catch ( \Throwable $e ) {
+			$this->handle_ajax_exception( $e );
+		}
+	}
+
+	/**
+	 * The most bookings one bulk cancel takes: a list page holds 50.
+	 */
+	private const BULK_CANCEL_LIMIT = 100;
+
+	/**
+	 * AJAX: Cancel the bookings ticked on the list, with one reason (#2243).
+	 *
+	 * Each goes through the same conditional cancel as a single one, so a
+	 * booking cancelled meanwhile is skipped, not cancelled twice, and each
+	 * one cancelled queues its participants' e-mails.
+	 *
+	 * @return void
+	 */
+	public function ajax_cancel_bookings(): void {
+		try {
+			$this->verify_ajax_nonce( 'ffc_admin_nonce' );
+			$this->check_ajax_admin_or( 'ffc_manage_audiences' );
+
+			$ids = array_values( array_unique( array_filter( array_map( 'intval', $this->get_post_array( 'booking_ids' ) ) ) ) );
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via verify_ajax_nonce() above.
+			$reason = isset( $_POST['reason'] ) ? trim( sanitize_textarea_field( wp_unslash( $_POST['reason'] ) ) ) : '';
+
+			if ( array() === $ids || count( $ids ) > self::BULK_CANCEL_LIMIT ) {
+				wp_send_json_error( array( 'message' => __( 'Select the bookings to cancel.', 'ffcertificate' ) ) );
+			}
+			if ( '' === $reason ) {
+				wp_send_json_error( array( 'message' => __( 'Write the reason for the cancellation.', 'ffcertificate' ) ) );
+			}
+
+			$cancelled = array();
+			foreach ( $ids as $booking_id ) {
+				if ( AudienceBookingWriter::cancel( $booking_id, $reason ) ) {
+					$cancelled[] = $booking_id;
+					do_action( 'ffcertificate_audience_booking_cancelled', $booking_id, $reason );
+				}
+			}
+
+			wp_send_json_success(
+				array(
+					'cancelled' => $cancelled,
+					'message'   => sprintf(
+						/* translators: 1: bookings cancelled, 2: bookings selected. */
+						_n( '%1$d of %2$d booking cancelled.', '%1$d of %2$d bookings cancelled.', count( $ids ), 'ffcertificate' ),
+						count( $cancelled ),
+						count( $ids )
+					),
+				)
+			);
 		} catch ( \Throwable $e ) {
 			$this->handle_ajax_exception( $e );
 		}

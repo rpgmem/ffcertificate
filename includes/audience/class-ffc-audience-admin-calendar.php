@@ -191,7 +191,7 @@ class AudienceAdminCalendar {
 	private static function delete_blockers( int $schedule_id ): array {
 		return array(
 			'environments' => AudienceEnvironmentRepository::count( array( 'schedule_id' => $schedule_id ) ),
-			'bookings'     => AudienceBookingReader::count_for_export( array( 'schedule_id' => $schedule_id ) ),
+			'bookings'     => AudienceBookingReader::count_filtered( array( 'schedule_id' => $schedule_id ) ),
 		);
 	}
 

@@ -143,6 +143,24 @@ class AudienceAttendanceRepositoryTest extends TestCase {
 		$this->assertTrue( AudienceAttendanceWriter::remove( 123, 42, '2027-01-15' ) );
 	}
 
+	public function test_present_counts_reads_every_booking_in_one_query(): void {
+		// The bookings list shows who checked in beside who it reaches (#2243).
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
+			function ( string $sql, array $args ): string {
+				$this->assertStringContainsString( 'COUNT(DISTINCT user_id)', $sql );
+				$this->assertStringContainsString( 'booking_id IN (%d, %d)', $sql );
+				$this->assertSame( array( 'wp_ffc_audience_attendance', 5, 6 ), $args );
+				return 'SQL';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
+			array( array( 'booking_id' => '5', 'present' => '3' ) )
+		);
+
+		$this->assertSame( array( 5 => 3 ), AudienceAttendanceReader::present_counts( array( 5, '6', 5, 0 ) ) );
+		$this->assertSame( array(), AudienceAttendanceReader::present_counts( array() ), 'No query without a booking.' );
+	}
+
 	public function test_days_present_and_one_day_list(): void {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
 		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( '2027-01-15', '2027-01-16' ) );

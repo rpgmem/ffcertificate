@@ -2022,10 +2022,10 @@ class AudienceBookingRepositoryTest extends TestCase {
 	}
 
 	// ==================================================================
-	// count_for_export() — JOINs the environment table so schedule_id filters
+	// count_filtered() — JOINs the environment table so schedule_id filters
 	// ==================================================================
 
-	public function test_count_for_export_joins_environment_and_counts(): void {
+	public function test_count_filtered_joins_environment_and_counts(): void {
 		$captured_sql = '';
 		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
 			$captured_sql = func_get_args()[0];
@@ -2033,14 +2033,14 @@ class AudienceBookingRepositoryTest extends TestCase {
 		});
 		$this->wpdb->shouldReceive('get_var')->once()->andReturn('9');
 
-		$result = AudienceBookingReader::count_for_export([]);
+		$result = AudienceBookingReader::count_filtered([]);
 
 		$this->assertSame(9, $result);
 		$this->assertStringContainsString('SELECT COUNT(*)', $captured_sql);
 		$this->assertStringContainsString('INNER JOIN', $captured_sql);
 	}
 
-	public function test_count_for_export_filters_by_schedule_id(): void {
+	public function test_count_filtered_filters_by_schedule_id(): void {
 		$captured_sql = '';
 		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
 			$captured_sql = func_get_args()[0];
@@ -2048,13 +2048,13 @@ class AudienceBookingRepositoryTest extends TestCase {
 		});
 		$this->wpdb->shouldReceive('get_var')->once()->andReturn('2');
 
-		$result = AudienceBookingReader::count_for_export(['schedule_id' => 4]);
+		$result = AudienceBookingReader::count_filtered(['schedule_id' => 4]);
 
 		$this->assertSame(2, $result);
 		$this->assertStringContainsString('e.schedule_id = %d', $captured_sql);
 	}
 
-	public function test_count_for_export_combines_filters(): void {
+	public function test_count_filtered_combines_filters(): void {
 		$captured_sql = '';
 		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
 			$captured_sql = func_get_args()[0];
@@ -2062,7 +2062,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 		});
 		$this->wpdb->shouldReceive('get_var')->once()->andReturn('1');
 
-		AudienceBookingReader::count_for_export([
+		AudienceBookingReader::count_filtered([
 			'environment_id' => 3,
 			'status'         => 'active',
 			'start_date'     => '2026-05-01',

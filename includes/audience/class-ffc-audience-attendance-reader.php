@@ -91,6 +91,36 @@ class AudienceAttendanceReader {
 	}
 
 	/**
+	 * How many people checked in at least once, per booking, in one query
+	 * (#2243): the bookings list shows it beside who the booking reaches.
+	 *
+	 * @param int[] $booking_ids Booking IDs.
+	 * @return array<int, int> Booking ID => people present; a booking nobody attended is absent.
+	 */
+	public static function present_counts( array $booking_ids ): array {
+		$ids = array_values( array_unique( array_filter( array_map( 'intval', $booking_ids ) ) ) );
+		if ( array() === $ids ) {
+			return array();
+		}
+
+		$wpdb = self::db();
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				// The IN list is one %d per id, built here; the table is bound with %i.
+				'SELECT booking_id, COUNT(DISTINCT user_id) AS present FROM %i WHERE user_id IS NOT NULL AND booking_id IN (' . implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) . ') GROUP BY booking_id',
+				array_merge( array( self::get_table_name() ), $ids )
+			),
+			ARRAY_A
+		);
+
+		$counts = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$counts[ ArrayValue::int( $row, 'booking_id' ) ] = ArrayValue::int( $row, 'present' );
+		}
+		return $counts;
+	}
+
+	/**
 	 * Whether a person is already recorded present on one day of a booking.
 	 *
 	 * @param int    $booking_id Booking ID.

@@ -235,7 +235,7 @@ class AudienceAdminCalendarTest extends TestCase {
 			function ( $q ) {
 				$this->reads[] = array( $q['sql'], $q['args'] );
 				if ( false !== strpos( $q['sql'], 'INNER JOIN %i e ON b.environment_id = e.id' ) ) {
-					// AudienceBookingReader::count_for_export() by calendar.
+					// AudienceBookingReader::count_filtered() by calendar.
 					return (string) ( $this->bookings_by_schedule[ (int) end( $q['args'] ) ] ?? 0 );
 				}
 				if ( 1 === preg_match( '/^SELECT COUNT\(\*\) FROM %i\s*(?:WHERE (.+))?$/', $q['sql'], $m ) ) {

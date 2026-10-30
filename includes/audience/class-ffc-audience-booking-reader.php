@@ -99,18 +99,7 @@ class AudienceBookingReader {
 		);
 		$args     = wp_parse_args( $args, $defaults );
 
-		$where  = array();
-		$values = array();
-
-		if ( $args['environment_id'] ) {
-			$where[]  = 'b.environment_id = %d';
-			$values[] = $args['environment_id'];
-		}
-
-		if ( $args['schedule_id'] ) {
-			$where[]  = 'e.schedule_id = %d';
-			$values[] = $args['schedule_id'];
-		}
+		list( $where, $values ) = self::list_filters( $args );
 
 		// A list of calendars the caller may read (#2243): filtered here, so
 		// a month read never fetches the rows of a calendar it then drops.
@@ -134,21 +123,6 @@ class AudienceBookingReader {
 			list( $day_sql, $day_args ) = AudienceBookingRules::occupies_day_clause( (string) $args['booking_date'], 'b.' );
 			$where[]                    = $day_sql;
 			$values                     = array_merge( $values, $day_args );
-		}
-
-		if ( $args['start_date'] ) {
-			$where[]  = 'COALESCE(b.end_date, b.booking_date) >= %s';
-			$values[] = $args['start_date'];
-		}
-
-		if ( $args['end_date'] ) {
-			$where[]  = 'b.booking_date <= %s';
-			$values[] = $args['end_date'];
-		}
-
-		if ( $args['status'] ) {
-			$where[]  = 'b.status = %s';
-			$values[] = $args['status'];
 		}
 
 		if ( $args['booking_type'] ) {
@@ -198,45 +172,22 @@ class AudienceBookingReader {
 	}
 
 	/**
-	 * Count bookings for the batched CSV export, applying the same filters +
-	 * environment JOIN as {@see self::get_all()} so the export progress total
-	 * matches the rows {@see self::find_by_cursor()} actually yields. The shared
-	 * {@see self::count()} can't be reused because it queries the bookings table
-	 * alone and so can't honour the `schedule_id` filter (which lives on the
-	 * joined environment row).
+	 * Count bookings under the filters {@see self::list_filters()} reads: the
+	 * total of the bookings list's pages, of the batched CSV export, and of a
+	 * calendar's bookings. It JOINs the environment like {@see self::get_all()},
+	 * so a `schedule_id` filter counts what the list shows; the shared
+	 * {@see self::count()} queries the bookings table alone and cannot.
 	 *
 	 * @since 6.17.0
-	 * @param array<string, mixed> $args Filters: environment_id / schedule_id / status / start_date / end_date.
+	 * @param array<string, mixed> $args Filters ({@see self::list_filters()}).
 	 * @return int
 	 */
-	public static function count_for_export( array $args = array() ): int {
+	public static function count_filtered( array $args = array() ): int {
 		$wpdb      = self::db();
 		$table     = self::get_table_name();
 		$env_table = AudienceEnvironmentRepository::get_table_name();
 
-		$where  = array();
-		$values = array();
-
-		if ( ! empty( $args['environment_id'] ) ) {
-			$where[]  = 'b.environment_id = %d';
-			$values[] = $args['environment_id'];
-		}
-		if ( ! empty( $args['schedule_id'] ) ) {
-			$where[]  = 'e.schedule_id = %d';
-			$values[] = $args['schedule_id'];
-		}
-		if ( ! empty( $args['status'] ) ) {
-			$where[]  = 'b.status = %s';
-			$values[] = $args['status'];
-		}
-		if ( ! empty( $args['start_date'] ) ) {
-			$where[]  = 'COALESCE(b.end_date, b.booking_date) >= %s';
-			$values[] = $args['start_date'];
-		}
-		if ( ! empty( $args['end_date'] ) ) {
-			$where[]  = 'b.booking_date <= %s';
-			$values[] = $args['end_date'];
-		}
+		list( $where, $values ) = self::list_filters( $args );
 
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
@@ -258,7 +209,7 @@ class AudienceBookingReader {
 	 * environment JOIN mirror {@see self::get_all()}.
 	 *
 	 * @since 6.17.0
-	 * @param array<string, mixed> $args   Filters: environment_id / schedule_id / status / start_date / end_date.
+	 * @param array<string, mixed> $args   Filters ({@see self::list_filters()}).
 	 * @param int                  $cursor Exclusive upper-bound id (PHP_INT_MAX on the first page).
 	 * @param int                  $size   Page size.
 	 * @return list<BookingRow>
@@ -268,29 +219,9 @@ class AudienceBookingReader {
 		$table     = self::get_table_name();
 		$env_table = AudienceEnvironmentRepository::get_table_name();
 
-		$where  = array( 'b.id < %d' );
-		$values = array( $cursor );
-
-		if ( ! empty( $args['environment_id'] ) ) {
-			$where[]  = 'b.environment_id = %d';
-			$values[] = $args['environment_id'];
-		}
-		if ( ! empty( $args['schedule_id'] ) ) {
-			$where[]  = 'e.schedule_id = %d';
-			$values[] = $args['schedule_id'];
-		}
-		if ( ! empty( $args['status'] ) ) {
-			$where[]  = 'b.status = %s';
-			$values[] = $args['status'];
-		}
-		if ( ! empty( $args['start_date'] ) ) {
-			$where[]  = 'COALESCE(b.end_date, b.booking_date) >= %s';
-			$values[] = $args['start_date'];
-		}
-		if ( ! empty( $args['end_date'] ) ) {
-			$where[]  = 'b.booking_date <= %s';
-			$values[] = $args['end_date'];
-		}
+		list( $where, $values ) = self::list_filters( $args );
+		array_unshift( $where, 'b.id < %d' );
+		array_unshift( $values, $cursor );
 
 		$where_clause = 'WHERE ' . implode( ' AND ', $where );
 
@@ -311,6 +242,60 @@ class AudienceBookingReader {
 		 * @var list<BookingRow>
 		 */
 		return is_array( $results ) ? $results : array();
+	}
+
+	/**
+	 * The filters the bookings list, its CSV export and its count share
+	 * (#2243), so the three can never disagree about which rows match.
+	 *
+	 * `audience_id` keeps the bookings made for that audience; `search`
+	 * matches the description, and a number matches the booking id too.
+	 *
+	 * @param array<string, mixed> $args environment_id / schedule_id / status / start_date / end_date / audience_id / search.
+	 * @return array{0: list<literal-string>, 1: list<int|string>} The WHERE fragments (literals with placeholders) and their values, in order.
+	 */
+	private static function list_filters( array $args ): array {
+		$where  = array();
+		$values = array();
+
+		if ( ! empty( $args['environment_id'] ) ) {
+			$where[]  = 'b.environment_id = %d';
+			$values[] = (int) $args['environment_id'];
+		}
+		if ( ! empty( $args['schedule_id'] ) ) {
+			$where[]  = 'e.schedule_id = %d';
+			$values[] = (int) $args['schedule_id'];
+		}
+		if ( ! empty( $args['status'] ) ) {
+			$where[]  = 'b.status = %s';
+			$values[] = (string) $args['status'];
+		}
+		if ( ! empty( $args['start_date'] ) ) {
+			$where[]  = 'COALESCE(b.end_date, b.booking_date) >= %s';
+			$values[] = (string) $args['start_date'];
+		}
+		if ( ! empty( $args['end_date'] ) ) {
+			$where[]  = 'b.booking_date <= %s';
+			$values[] = (string) $args['end_date'];
+		}
+		if ( ! empty( $args['audience_id'] ) ) {
+			$where[]  = 'EXISTS (SELECT 1 FROM %i ba WHERE ba.booking_id = b.id AND ba.audience_id = %d)';
+			$values[] = self::get_booking_audiences_table_name();
+			$values[] = (int) $args['audience_id'];
+		}
+		$search = isset( $args['search'] ) ? trim( (string) $args['search'] ) : '';
+		if ( '' !== $search ) {
+			$like = '%' . self::db()->esc_like( $search ) . '%';
+			if ( ctype_digit( $search ) ) {
+				$where[]  = '(b.id = %d OR b.description LIKE %s)';
+				$values[] = (int) $search;
+			} else {
+				$where[] = 'b.description LIKE %s';
+			}
+			$values[] = $like;
+		}
+
+		return array( $where, $values );
 	}
 
 	/**

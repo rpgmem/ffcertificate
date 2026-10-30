@@ -393,6 +393,8 @@ class AudienceLoader {
 			'audiences'            => __( 'Audiences', 'ffcertificate' ),
 			'users'                => __( 'Users', 'ffcertificate' ),
 			'cancelReasonLabel'    => __( 'Cancel Reason', 'ffcertificate' ),
+			/* translators: %d: number of bookings selected for cancellation. */
+			'bulkCancelSentence'   => __( '%d bookings will be cancelled and their participants e-mailed.', 'ffcertificate' ),
 			'close'                => __( 'Close', 'ffcertificate' ),
 			'allDay'               => __( 'All Day', 'ffcertificate' ),
 			'audience'             => __( 'Audience', 'ffcertificate' ),
