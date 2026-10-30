@@ -163,7 +163,40 @@ class SubmissionWriter extends AbstractRepository {
 		if ( $result && array_key_exists( 'status', $data ) ) {
 			$this->invalidate_count_cache();
 		}
+		// Revoking or restoring changes what verification answers.
+		if ( $result && array_key_exists( 'revoked_at', $data ) ) {
+			$this->clear_lookup_cache( $id );
+		}
 		return $result;
+	}
+
+	/**
+	 * Drop the cached copies of a row that verification reads (#2241).
+	 *
+	 * The auth-code and magic-token lookups cache the row under their own
+	 * keys, which clearing `id_*` does not reach: with a persistent object
+	 * cache, a certificate moved to the trash kept verifying until its key
+	 * expired.
+	 *
+	 * @param int $id Record ID.
+	 */
+	private function clear_lookup_cache( int $id ): void {
+		$row = $this->wpdb->get_row(
+			$this->wpdb->prepare( 'SELECT auth_code, magic_token FROM %i WHERE id = %d', $this->table, $id ),
+			ARRAY_A
+		);
+		if ( ! is_array( $row ) ) {
+			return;
+		}
+		foreach ( array(
+			'auth_'  => 'auth_code',
+			'token_' => 'magic_token',
+		) as $prefix => $column ) {
+			$value = $row[ $column ] ?? '';
+			if ( is_string( $value ) && '' !== $value ) {
+				$this->clear_cache( $prefix . $value );
+			}
+		}
 	}
 
 	/**

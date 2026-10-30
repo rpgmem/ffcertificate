@@ -288,6 +288,31 @@ class SubmissionRepositoryTest extends TestCase {
 		$this->assertSame( 1, $result );
 	}
 
+	public function test_a_status_change_drops_the_cached_lookups_verification_reads(): void {
+		global $wpdb;
+		$deleted = array();
+		Functions\when( 'wp_cache_delete' )->alias(
+			static function ( $key, $group ) use ( &$deleted ) {
+				$deleted[] = $group . ':' . $key;
+				return true;
+			}
+		);
+		$wpdb->shouldReceive( 'update' )->once()->andReturn( 1 );
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql ) => $sql );
+		$wpdb->shouldReceive( 'get_row' )->once()->andReturn(
+			array(
+				'auth_code'   => 'ABCD1234EFGH',
+				'magic_token' => str_repeat( 'ab', 16 ),
+			)
+		);
+
+		$this->repo->updateStatus( 5, 'trash' );
+
+		// Without these, a trashed certificate kept verifying from the cache (#2241).
+		$this->assertContains( 'ffc_submissions:auth_ABCD1234EFGH', $deleted );
+		$this->assertContains( 'ffc_submissions:token_' . str_repeat( 'ab', 16 ), $deleted );
+	}
+
 	public function test_restoring_lifts_the_revocation(): void {
 		global $wpdb;
 
