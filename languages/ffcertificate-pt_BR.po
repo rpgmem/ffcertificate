@@ -1620,9 +1620,6 @@ msgstr "Administradores ignoram restrições de geolocalização"
 msgid "Admins can enable \"bypass\" for date/time and geolocation to test (Settings → Geolocation)"
 msgstr "Administradores podem ativar o \"bypass\" para data/hora e geolocalização para fins de teste (Configurações → Geolocalização)."
 
-#: includes/settings/views/documentation/feature-reregistration.php:31
-msgid "Admins review and approve or reject each submission (unless auto-approve is on)."
-msgstr "Os administradores analisam e aprovam ou rejeitam cada envio (a menos que a aprovação automática esteja ativada)."
 
 #: includes/settings/views/ffc-tab-advanced.php:834
 msgid "Adopt decoupled secrets"
@@ -4082,9 +4079,6 @@ msgstr "Limpar cache do WordPress"
 msgid "Cleared plaintext context on %d activity log rows."
 msgstr "Contexto de texto simples e linhas de registro de atividades foram limpas."
 
-#: includes/settings/views/documentation/feature-record.php:26
-msgid "Click \"Download Record\" on the reregistration banner after submitting"
-msgstr "Após o envio, clique em \"Baixar Ficha\" no banner de recadastramento."
 
 #. %s: number of pending records
 #: includes/settings/views/ffc-tab-migrations.php:258
@@ -4092,13 +4086,7 @@ msgstr "Após o envio, clique em \"Baixar Ficha\" no banner de recadastramento."
 msgid "Click once to process all records automatically. %s records remaining."
 msgstr "Clique uma vez para processar todos os registros automaticamente. %s registros restantes."
 
-#: includes/settings/views/documentation/feature-record.php:25
-msgid "Click the \"Record\" button next to any submission in the Reregistration > Submissions list"
-msgstr "Clique no botão \"Ficha\" ao lado de qualquer inscrição na lista de Recadastramento > Inscrições"
 
-#: templates/emails/reregistration-confirmation.php:38
-msgid "Click the button above to verify and download your reregistration record (PDF). You can also review your submission details in your dashboard at any time."
-msgstr "Clique no botão acima para verificar e baixar o seu comprovante de recadastramento (PDF). Você também pode consultar os detalhes do seu envio no painel a qualquer momento."
 
 #: templates/emails/certificate-user.php:31
 msgid "Click the button below to download it."
@@ -6186,9 +6174,6 @@ msgstr "Baixar exemplo de CSV"
 msgid "Download Record"
 msgstr "Baixar Ficha"
 
-#: includes/frontend/class-ffc-verification-response-renderer.php:443
-msgid "Download Record (PDF)"
-msgstr "Baixar Ficha (PDF)"
 
 #: includes/frontend/class-ffc-public-csv-download.php:159
 msgid "Download form submissions (CSV)"
@@ -8477,9 +8462,6 @@ msgstr "Arquivo de visualização das configurações gerais não encontrado."
 msgid "Generate a new short code? The old one will stop working."
 msgstr "Gerar um novo código curto? O antigo deixará de funcionar."
 
-#: includes/settings/views/documentation/feature-record.php:20
-msgid "Generate a PDF record (record) for reregistration submissions. Available for submitted and approved submissions."
-msgstr "Gere um registro em PDF (ficha) para solicitações de recadastramento. Disponível para solicitações enviadas e aprovadas."
 
 #: includes/settings/views/ffc-tab-advanced.php:848 includes/settings/views/ffc-tab-advanced.php:904
 msgid "Generate another"
@@ -15323,9 +15305,6 @@ msgstr "Os campos sensíveis são ocultados por padrão. Clique em \"Revelar\" p
 msgid "Sensitive identifiers such as e-mail addresses and CPF/RF numbers are stored encrypted at rest. Where consent is required, the date and time you gave it are recorded. One-way hashes of some identifiers are kept so records can be located without exposing the original values."
 msgstr "Identificadores sensíveis, como endereços de e-mail e números de CPF, são armazenados de forma criptografada em repouso. Nos casos em que o consentimento é exigido, registram-se a data e a hora em que ele foi concedido. São mantidos *hashes* unidirecionais de alguns identificadores para permitir a localização de registros sem expor os valores originais."
 
-#: includes/settings/views/documentation/feature-reregistration.php:41
-msgid "sent after a member submits; carries the Record magic link."
-msgstr "enviado após o envio pelo membro; contém o link de acesso direto (magic link) do formulário."
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:437
 msgid "Sent automatically when a full slot queues or frees up — text edited globally in the hub above."
@@ -18807,9 +18786,6 @@ msgstr "Ver Todos os Agendamentos"
 msgid "View All Calendars"
 msgstr "Ver Todos os Calendários"
 
-#: templates/emails/reregistration-confirmation.php:36
-msgid "View and Download Record"
-msgstr "Veja e Baixe a Ficha."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:219
 msgid "View appointments"
@@ -22759,8 +22735,6 @@ msgstr "Uma tentativa abaixo da nota de aprovação é mantida como submissão \
 msgid "Validation page:"
 msgstr "Página de validação:"
 
-msgid "The public /valid page also finds a record by its authentication code or its magic link"
-msgstr "A página pública /valid também localiza uma ficha pelo código de autenticação ou pelo link mágico"
 
 msgid "Account email"
 msgstr "E-mail da conta"
@@ -22902,8 +22876,6 @@ msgstr "A aba Agendamento → Configurações → Importar e Exportar importa e 
 msgid "A campaign shows the union of the custom fields of its linked audiences (standard identity/contact fields plus any custom ones). Each submission can be exported as a Record PDF. The standard birth-date field reads and writes the single encrypted birth date on the user profile, which Date Messages uses."
 msgstr "Uma campanha exibe a união dos campos personalizados dos públicos-alvo vinculados (os campos padrão de identidade/contato e os personalizados). Cada envio pode ser exportado como PDF da Ficha. O campo padrão de data de nascimento lê e grava a data de nascimento única e criptografada do perfil do usuário, usada pelas Mensagens por Data."
 
-msgid "create/edit campaigns, approve/reject, generate Records. Editing the field definitions needs ffc_manage_custom_fields."
-msgstr "criar/editar campanhas, aprovar/rejeitar, gerar Fichas. Editar as definições dos campos exige ffc_manage_custom_fields."
 
 msgid "Candidates are imported from CSV (headers: name, cpf, rf, email, adjutancy, rank, score, pcd, plus optional phone, time_points, hab_emebs) into either the preliminary or the definitive list. Call-ups are recorded per candidate; calling out of rank order requires a reason. Outcomes move a candidate through called → accepted / not_shown / hired / withdrew. Importing a candidate also links or creates their WordPress account (matched by CPF, RF or e-mail), which is what lets them follow their own call-ups."
 msgstr "Os candidatos são importados de CSV (cabeçalhos: name, cpf, rf, email, adjutancy, rank, score, pcd, além dos opcionais phone, time_points, hab_emebs) para a lista preliminar ou para a definitiva. As convocações são registradas por candidato; convocar fora da ordem de classificação exige um motivo. Os resultados levam o candidato por called → accepted / not_shown / hired / withdrew. Importar um candidato também vincula ou cria a sua conta do WordPress (localizada por CPF, RF ou e-mail), o que permite que ele acompanhe as próprias convocações."
@@ -24131,8 +24103,6 @@ msgstr "O QR Code pode ser personalizado com diversos atributos:"
 msgid "The QR code embedded in the PDF points at the same magic link."
 msgstr "O QR Code incorporado ao PDF aponta para o mesmo link mágico."
 
-msgid "There is no separate reregistration shortcode. Active campaigns appear as a banner on the member's personal dashboard (the user_dashboard_personal shortcode); the form loads and submits there over AJAX. Members are targeted by audience membership, not by matching a CPF/RF. On submit, the plugin generates an authentication code and a Record magic link, syncs mapped fields to the user profile, and sends the confirmation email."
-msgstr "Não existe um shortcode separado para o recadastramento. Campanhas ativas aparecem como um banner no painel pessoal do membro (o shortcode `user_dashboard_personal`); o formulário é carregado e enviado nesse local via AJAX. A segmentação dos membros baseia-se na participação em públicos-alvo, e não na correspondência de CPF/RF. Ao realizar o envio, o plugin gera um código de autenticação e um link mágico da Ficha, sincroniza os campos mapeados com o perfil do usuário e envia o e-mail de confirmação."
 
 msgid "This plugin allows you to create certificate issuance forms, generate PDFs automatically, and verify authenticity with QR codes."
 msgstr "Este plugin permite criar formulários de emissão de certificados, gerar PDFs automaticamente e verificar a autenticidade com QR Codes."
@@ -25838,9 +25808,6 @@ msgstr "Dados Pessoais do Recadastramento Revelados"
 msgid "Reregistration Details Viewed"
 msgstr "Detalhes do Recadastramento Visualizados"
 
-#: includes/settings/views/documentation/feature-reregistration.php:152
-msgid "reveal a submitter's email on the submissions list and open View Details, which shows the decrypted CPF, RF and RG. Without it the email stays masked and View Details is not offered, even to someone who can manage campaigns. Existing managers received it automatically on update."
-msgstr "revelar o e-mail de quem enviou na lista de submissões e abrir Ver Detalhes, que mostra CPF, RF e RG descriptografados. Sem ela, o e-mail permanece mascarado e Ver Detalhes não é oferecido, nem mesmo a quem gerencia campanhas. Quem já gerenciava recebeu a capacidade automaticamente na atualização."
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:895
 msgid "FFC Reregistration - Administrator"
@@ -29759,3 +29726,57 @@ msgstr "Este recadastramento já foi enviado e aguarda análise."
 
 msgid "a draft was saved but not submitted. Sensitive answers are stored encrypted in a draft, as in a submission."
 msgstr "um rascunho foi salvo, mas não enviado. As respostas sensíveis ficam criptografadas no rascunho, como no envio."
+
+msgid "Once your reregistration is approved, sign in to your dashboard to download your record (PDF). You can review your submission there at any time."
+msgstr "Assim que seu recadastramento for aprovado, entre no seu painel para baixar sua ficha (PDF). Você pode revisar seu envio lá a qualquer momento."
+
+msgid "Reregistration Record Downloaded"
+msgstr "Ficha de recadastramento baixada"
+
+msgid "Reregistration Record Verified"
+msgstr "Ficha de recadastramento verificada"
+
+msgid "Sign in to download"
+msgstr "Entrar para baixar"
+
+msgid "The record itself is available to its owner, signed in, from the dashboard."
+msgstr "A ficha em si fica disponível ao titular, conectado, no painel."
+
+#. translators: %d: number of submissions approved.
+msgid "%d submission approved."
+msgid_plural "%d submissions approved."
+msgstr[0] "%d envio aprovado."
+msgstr[1] "%d envios aprovados."
+
+#. translators: %d: number of selected submissions that were not awaiting review.
+msgid "%d selected submission was skipped because it was not awaiting review."
+msgid_plural "%d selected submissions were skipped because they were not awaiting review."
+msgstr[0] "%d envio selecionado foi ignorado porque não estava aguardando análise."
+msgstr[1] "%d envios selecionados foram ignorados porque não estavam aguardando análise."
+
+msgid "Generate a PDF record for an approved reregistration submission. Only its owner, signed in, and staff with the module's personal-data capability can download it."
+msgstr "Gere a ficha em PDF de um recadastramento aprovado. Só o titular, conectado, e a equipe com a capacidade de dados pessoais do módulo podem baixá-la."
+
+msgid "Click the \"Record\" button next to a submission in the Reregistration > Submissions list. It needs ffc_view_reregistration_pii (or administrator), and every download writes an activity-log entry"
+msgstr "Clique no botão \"Ficha\" ao lado de um envio na lista Recadastramento > Envios. Exige ffc_view_reregistration_pii (ou administrador), e cada download grava uma entrada no log de atividades"
+
+msgid "Click \"Download Record\" on the reregistration banner or in the Reregistration tab once the submission is approved. An administrator in \"view as user\" downloads it audited"
+msgstr "Clique em \"Baixar ficha\" no aviso de recadastramento ou na aba Recadastramento depois que o envio for aprovado. Um administrador em \"ver como usuário\" baixa com registro no log"
+
+msgid "The public /valid page confirms an approved record by its authentication code or its magic link, showing the campaign, the name and the masked CPF and e-mail, and never the PDF. A submission that is not approved does not verify. Every check writes an activity-log entry"
+msgstr "A página pública /valid confirma uma ficha aprovada pelo código de autenticação ou pelo link mágico, mostrando a campanha, o nome e o CPF e o e-mail mascarados, nunca o PDF. Um envio não aprovado não é validado. Cada consulta grava uma entrada no log de atividades"
+
+msgid "Admins review and approve or reject each submission (unless auto-approve is on). Bulk Approve acts only on submissions awaiting review and says how many of the selection it skipped."
+msgstr "Os administradores analisam e aprovam ou recusam cada envio (a menos que a aprovação automática esteja ativa). Aprovar em massa atua só nos envios aguardando análise e informa quantos da seleção foram ignorados."
+
+msgid "sent after a member submits; its button leads to the dashboard, where the Record downloads once the submission is approved."
+msgstr "enviado depois que o membro envia; o botão leva ao painel, onde a ficha é baixada depois que o envio for aprovado."
+
+msgid "create/edit campaigns, approve/reject. Editing the field definitions needs ffc_manage_custom_fields."
+msgstr "criar/editar campanhas, aprovar/recusar. Editar as definições de campos exige ffc_manage_custom_fields."
+
+msgid "reveal a submitter's email on the submissions list, open View Details, which shows the decrypted CPF, RF and RG, and download the Record. Without it the email stays masked and neither View Details nor the Record is offered, even to someone who can manage campaigns. Existing managers received it automatically on update."
+msgstr "revelar o e-mail de quem enviou na lista de envios, abrir Ver detalhes, que mostra CPF, RF e RG decifrados, e baixar a ficha. Sem ela o e-mail fica mascarado e nem Ver detalhes nem a ficha são oferecidos, mesmo a quem gerencia campanhas. Os gestores existentes a receberam automaticamente na atualização."
+
+msgid "There is no separate reregistration shortcode. Active campaigns appear as a banner on the member's personal dashboard (the user_dashboard_personal shortcode); the form loads and submits there over AJAX. Members are targeted by audience membership, not by matching a CPF/RF. On submit, the plugin syncs mapped fields to the user profile and sends the confirmation email. The authentication code is issued on approval: Reject deletes it, Return to draft keeps it stored but hidden, and approving again brings back the same code, so a printed Record still matches."
+msgstr "Não existe um shortcode separado para o recadastramento. Campanhas ativas aparecem como um banner no painel pessoal do membro (o shortcode `user_dashboard_personal`); o formulário é carregado e enviado nesse local via AJAX. A segmentação dos membros baseia-se na participação em públicos-alvo, e não na correspondência de CPF/RF. No envio, o plugin sincroniza os campos mapeados com o perfil do usuário e envia o e-mail de confirmação. O código de autenticação é emitido na aprovação: Recusar o apaga, Devolver para rascunho o mantém guardado mas oculto, e aprovar de novo traz de volta o mesmo código, para que uma ficha impressa continue valendo."

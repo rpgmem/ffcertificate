@@ -617,12 +617,24 @@ class ReregistrationAdminRendererTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc-reveal-pii', $html );
 	}
 
-	public function test_the_record_button_is_drawn_for_a_manager(): void {
-		Functions\when( 'current_user_can' )->alias( static fn ( $cap ) => 'ffc_manage_reregistration' === $cap );
+	public function test_the_record_button_is_drawn_for_a_holder_of_the_personal_data_capability(): void {
+		// The Record prints the whole submission unmasked, so the button
+		// follows the personal-data policy (#2242).
+		Functions\when( 'current_user_can' )->alias( static fn ( $cap ) => 'ffc_view_reregistration' === $cap );
+		Functions\when( 'user_can' )->alias( static fn ( $uid, $cap ) => 'ffc_view_reregistration_pii' === $cap );
 
 		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $this->piiRow(), 7, true ) );
 
 		$this->assertStringContainsString( 'ffc-record-btn', $html );
+	}
+
+	public function test_the_record_button_is_not_drawn_for_a_manager_without_the_personal_data_capability(): void {
+		Functions\when( 'current_user_can' )->alias( static fn ( $cap ) => in_array( $cap, array( 'ffc_view_reregistration', 'ffc_manage_reregistration' ), true ) );
+		Functions\when( 'user_can' )->justReturn( false );
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $this->piiRow(), 7, true ) );
+
+		$this->assertStringNotContainsString( 'ffc-record-btn', $html );
 	}
 
 	public function test_the_record_button_is_not_drawn_for_a_view_only_user(): void {

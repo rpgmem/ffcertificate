@@ -211,7 +211,8 @@ class VerificationHandlerAjaxTest extends TestCase {
 	 *
 	 * `prepare()` binds `%i` as the bare name, `%s` quoted and `%d` as an
 	 * integer; `get_row()` answers `SELECT * FROM <table> WHERE <col> = <v>`,
-	 * honouring a trailing `status IN (...)`, from the rows the test stored.
+	 * honouring a trailing `status IN (...)` or `status = '...'`, from the
+	 * rows the test stored.
 	 *
 	 * @return \Mockery\MockInterface
 	 */
@@ -237,10 +238,10 @@ class VerificationHandlerAjaxTest extends TestCase {
 		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
 			function ( $q, $output = 'OBJECT' ) {
 				$this->reads[] = $q;
-				if ( 1 !== preg_match( "/^SELECT \\* FROM wp_(\\w+) WHERE (\\w+) = '?([^'\\s]*)'?(?: AND status IN \\(([^)]*)\\))?$/", $q, $m ) ) {
+				if ( 1 !== preg_match( "/^SELECT \\* FROM wp_(\\w+) WHERE (\\w+) = '?([^'\\s]*)'?(?: AND status (?:IN \\(([^)]*)\\)|= '(\\w+)'))?$/", $q, $m ) ) {
 					$this->fail( 'Unexpected get_row(): ' . $q );
 				}
-				$statuses = isset( $m[4] ) ? str_replace( "'", '', explode( ', ', $m[4] ) ) : null;
+				$statuses = ! empty( $m[4] ) ? str_replace( "'", '', explode( ', ', $m[4] ) ) : ( ! empty( $m[5] ) ? array( $m[5] ) : null );
 				foreach ( $this->tables[ $m[1] ] ?? array() as $row ) {
 					if ( (string) ( $row[ $m[2] ] ?? '' ) !== $m[3] ) {
 						continue;
@@ -495,14 +496,14 @@ class VerificationHandlerAjaxTest extends TestCase {
 		}
 	}
 
-	public function test_verification_ajax_reregistration_success(): void {
+	public function test_verification_ajax_reregistration_confirms_an_approved_record_without_the_pdf(): void {
 		$this->tables['ffc_reregistration_submissions'][] = array(
 			'id'                => '41',
 			'reregistration_id' => '9',
 			'user_id'           => '5',
 			'auth_code'         => 'RRAJAX123456',
-			'status'            => 'submitted',
-			'data'              => '{"fields":{"display_name":"RR Ajax"}}',
+			'status'            => 'approved',
+			'data'              => '{"fields":{"display_name":"RR Ajax","cpf":"12345678909"}}',
 			'magic_token'       => '',
 			'submitted_at'      => '1769904000',
 		);
@@ -528,12 +529,35 @@ class VerificationHandlerAjaxTest extends TestCase {
 			$this->assertSame( 'wp_send_json_success', $e->getMessage() );
 			$this->assertStringContainsString( 'RR Ajax Campaign', $this->captured_success['html'] );
 			$this->assertStringContainsString( 'RR Ajax', $this->captured_success['html'] );
-			$pdf = $this->captured_success['pdf_data'];
-			$this->assertSame( 'ficha', $pdf['type'] );
-			$this->assertStringContainsString( 'RRAJAX123456', $pdf['filename'] );
-			// The campaign has no audience fields, so the record names the account.
-			$this->assertSame( 'RR Account', $pdf['user']['name'] );
-			$this->assertSame( 'rr@test.com', $pdf['user']['email'] );
+			$this->assertStringNotContainsString( 'rr@test.com', $this->captured_success['html'], 'The e-mail is masked.' );
+			$this->assertStringNotContainsString( '12345678909', $this->captured_success['html'], 'The CPF is masked.' );
+			$this->assertNull( $this->captured_success['pdf_data'], 'Public verification never hands out the Record (#2242).' );
+		}
+	}
+
+	public function test_verification_ajax_refuses_a_reregistration_that_is_not_approved(): void {
+		// A submission awaiting review, or returned to draft with its code
+		// kept, must not verify as valid (#2242).
+		$this->tables['ffc_reregistration_submissions'][] = array(
+			'id'                => '41',
+			'reregistration_id' => '9',
+			'user_id'           => '5',
+			'auth_code'         => 'RRAJAX123456',
+			'status'            => 'in_progress',
+			'data'              => '{"fields":{}}',
+			'magic_token'       => '',
+			'submitted_at'      => null,
+		);
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+
+		$_POST = $this->answered_post( array( 'ffc_auth_code' => 'RRAJAX123456' ) );
+
+		try {
+			$this->handler->handle_verification_ajax();
+			$this->fail( 'expected halt' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'wp_send_json_error', $e->getMessage() );
+			$this->assertStringContainsString( 'not found', $this->captured_error['message'] );
 		}
 	}
 

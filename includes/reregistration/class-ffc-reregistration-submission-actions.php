@@ -113,8 +113,11 @@ class ReregistrationSubmissionActions {
 		}
 
 		if ( 'approve' === $action ) {
-			ReregistrationSubmissionWriter::bulk_approve( $ids, get_current_user_id() );
-			wp_safe_redirect( admin_url( 'admin.php?page=' . ReregistrationAdmin::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=bulk_approved' ) );
+			// Only rows awaiting review are approved (#2242); the rest of the
+			// selection is reported, never silently changed.
+			$approved = ReregistrationSubmissionWriter::bulk_approve( $ids, get_current_user_id() );
+			$skipped  = count( $ids ) - $approved;
+			wp_safe_redirect( admin_url( 'admin.php?page=' . ReregistrationAdmin::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=bulk_approved&count=' . $approved . '&skipped=' . $skipped ) );
 			exit;
 		}
 

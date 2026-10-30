@@ -1123,7 +1123,7 @@ class ReregistrationDataProcessorTest extends TestCase {
 		$this->assertNotSame( Identifiers::CPF_A, $stored['fields']['cpf'], 'The sensitive field is not stored in clear.' );
 		$this->assertSame( Identifiers::CPF_A, \FreeFormCertificate\Core\Encryption::decrypt( $stored['fields']['cpf'] ) );
 		$this->assertSame( 'Jo', $stored['fields']['nickname'] );
-		$this->assertMatchesRegularExpression( '/^[A-Z0-9]{12}$/', $written['auth_code'] );
+		$this->assertArrayNotHasKey( 'auth_code', $written, 'A plain submit issues no code: approval does (#2242).' );
 		$this->assertArrayNotHasKey( 'reviewed_at', $written );
 
 		// The profile sync carried the plain CPF and treated it as sensitive:
@@ -1163,6 +1163,21 @@ class ReregistrationDataProcessorTest extends TestCase {
 		$this->assertArrayHasKey( 'reviewed_at', $written );
 		$this->assertSame( 0, $written['reviewed_by'] );
 		$this->assertArrayHasKey( 'notes', $written );
+		$this->assertMatchesRegularExpression( '/^[A-Z0-9]{12}$/', $written['auth_code'], 'Auto-approval is an approval: it issues the code (#2242).' );
+	}
+
+	public function test_auto_approve_keeps_the_code_a_returned_record_already_holds(): void {
+		// Approved, returned to draft, submitted again: the printed record's
+		// code comes back instead of a new one (#2242).
+		$this->stub_persistence_functions();
+		$this->persistence_database( array(), array() );
+
+		$submission = (object) array( 'id' => 5, 'auth_code' => 'KEEPTHISCODE' );
+		$rereg      = (object) array( 'id' => 1, 'auto_approve' => 1 );
+
+		ReregistrationDataProcessor::process_submission( $submission, $rereg, array( 'fields' => array() ), 3 );
+
+		$this->assertSame( 'KEEPTHISCODE', $this->the_submission_write()[1]['auth_code'] );
 	}
 
 	/**

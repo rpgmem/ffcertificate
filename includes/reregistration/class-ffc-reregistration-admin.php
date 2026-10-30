@@ -395,6 +395,9 @@ class ReregistrationAdmin {
 				'bulk_returned_to_draft' => __( 'Selected submissions returned to draft.', 'ffcertificate' ),
 				'reminders_sent'         => __( 'Reminder emails sent.', 'ffcertificate' ),
 			);
+			if ( 'bulk_approved' === $msg && RequestInput::has_get( 'skipped' ) ) {
+				$messages[ $msg ] = self::bulk_approved_message( RequestInput::get_get_int( 'count' ), RequestInput::get_get_int( 'skipped' ) );
+			}
 			if ( isset( $messages[ $msg ] ) ) {
 				add_settings_error( 'ffc_reregistration', 'ffc_message', $messages[ $msg ], 'success' );
 			}
@@ -429,6 +432,29 @@ class ReregistrationAdmin {
 	 */
 	private static function invitations_notice_arg( array $data ): string {
 		return empty( $data['email_invitation_enabled'] ) ? '' : '&invitations=scheduled';
+	}
+
+	/**
+	 * The bulk-approval notice (#2242).
+	 *
+	 * Bulk approval acts only on submissions awaiting review, so the notice
+	 * says how many of the selection it left alone.
+	 *
+	 * @param int $approved Rows approved.
+	 * @param int $skipped  Selected rows not awaiting review.
+	 * @return string
+	 */
+	public static function bulk_approved_message( int $approved, int $skipped ): string {
+		/* translators: %d: number of submissions approved. */
+		$message = sprintf( _n( '%d submission approved.', '%d submissions approved.', $approved, 'ffcertificate' ), $approved );
+		if ( $skipped > 0 ) {
+			$message .= ' ' . sprintf(
+				/* translators: %d: number of selected submissions that were not awaiting review. */
+				_n( '%d selected submission was skipped because it was not awaiting review.', '%d selected submissions were skipped because they were not awaiting review.', $skipped, 'ffcertificate' ),
+				$skipped
+			);
+		}
+		return $message;
 	}
 
 	/**

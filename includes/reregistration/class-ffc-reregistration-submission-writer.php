@@ -271,66 +271,94 @@ class ReregistrationSubmissionWriter {
 	}
 
 	/**
-	 * Approve a submission.
+	 * The status a reviewer acts on (#2242).
+	 *
+	 * Approve and Reject are offered only on a submission awaiting review, and
+	 * the write is conditional on it, so a stale screen or a bulk "select all"
+	 * cannot approve a member who never answered, or re-review a decided row.
+	 *
+	 * @var list<string>
+	 */
+	public const REVIEWABLE_STATUSES = array( 'submitted' );
+
+	/**
+	 * The statuses a reviewer may send back to draft.
+	 *
+	 * @var list<string>
+	 */
+	public const RETURNABLE_STATUSES = array( 'submitted', 'approved', 'rejected' );
+
+	/**
+	 * Approve a submission awaiting review.
+	 *
+	 * THE CODE IS BORN HERE (#2242)
+	 *
+	 * The authentication code exists only for an approved record: verification
+	 * confirms nothing else. A row that already carries one — approved before,
+	 * then returned to draft and submitted again — keeps it, so a record
+	 * printed under the first approval still verifies. Only a row without one
+	 * gets a new code.
 	 *
 	 * @param int $id          Submission ID.
 	 * @param int $reviewer_id Reviewer user ID.
-	 * @return bool
+	 * @return bool Whether the row was awaiting review and is approved now.
 	 */
 	public static function approve( int $id, int $reviewer_id ): bool {
-		$result = self::update(
+		$wpdb = self::db();
+		$code = $wpdb->get_var( $wpdb->prepare( 'SELECT auth_code FROM %i WHERE id = %d', self::get_table_name(), $id ) );
+
+		return self::update_if_status(
 			$id,
 			array(
 				'status'      => 'approved',
 				'reviewed_at' => time(),
 				'reviewed_by' => $reviewer_id,
-			)
+				'auth_code'   => is_string( $code ) ? $code : \FreeFormCertificate\Core\AuthCodeService::generate_globally_unique_auth_code(),
+			),
+			self::REVIEWABLE_STATUSES
 		);
-
-		static::cache_delete( "id_{$id}" );
-
-		return $result;
 	}
 
 	/**
-	 * Reject a submission.
+	 * Reject a submission awaiting review.
+	 *
+	 * The code is deleted (#2242): a rejected record must not verify, and a
+	 * later approval issues a new one.
 	 *
 	 * @param int    $id          Submission ID.
 	 * @param int    $reviewer_id Reviewer user ID.
 	 * @param string $notes       Rejection reason.
-	 * @return bool
+	 * @return bool Whether the row was awaiting review and is rejected now.
 	 */
 	public static function reject( int $id, int $reviewer_id, string $notes = '' ): bool {
-		$result = self::update(
+		return self::update_if_status(
 			$id,
 			array(
 				'status'      => 'rejected',
 				'reviewed_at' => time(),
 				'reviewed_by' => $reviewer_id,
 				'notes'       => $notes,
-			)
+				'auth_code'   => null,
+			),
+			self::REVIEWABLE_STATUSES
 		);
-
-		static::cache_delete( "id_{$id}" );
-
-		return $result;
 	}
 
 	/**
 	 * Return a submission to draft (in_progress) so the user can revise it.
 	 *
 	 * Clears the review metadata and resets submitted_at so the user
-	 * sees it as an editable draft again.
+	 * sees it as an editable draft again. The code stays stored (#2242):
+	 * verification refuses it while the row is not approved, and approving
+	 * the revision brings the same code back, so a printed record still
+	 * matches.
 	 *
 	 * @param int $id Submission ID.
 	 * @return bool
 	 */
 	public static function return_to_draft( int $id ): bool {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$result = $wpdb->update(
-			$table,
+		return self::update_if_status(
+			$id,
 			array(
 				'status'       => 'in_progress',
 				'submitted_at' => null,
@@ -338,14 +366,8 @@ class ReregistrationSubmissionWriter {
 				'reviewed_by'  => null,
 				'notes'        => null,
 			),
-			array( 'id' => $id ),
-			array( '%s', '%s', '%s', '%s', '%s' ),
-			array( '%d' )
+			self::RETURNABLE_STATUSES
 		);
-
-		static::cache_delete( "id_{$id}" );
-
-		return false !== $result;
 	}
 
 	/**
@@ -365,7 +387,11 @@ class ReregistrationSubmissionWriter {
 	}
 
 	/**
-	 * Bulk approve multiple submissions.
+	 * Bulk approve the selected submissions that await review.
+	 *
+	 * A selected row in any other status is skipped, not approved (#2242):
+	 * the list is a whole campaign, so "select all" also selects every member
+	 * who has not answered yet.
 	 *
 	 * @param array<int> $ids         Submission IDs.
 	 * @param int        $reviewer_id Reviewer user ID.

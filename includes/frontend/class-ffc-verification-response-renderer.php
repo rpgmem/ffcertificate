@@ -455,13 +455,18 @@ class VerificationResponseRenderer {
 
 		$html .= '</div>'; // .ffc-preview-body
 
+		// The Record PDF is not offered here (#2242): verification confirms
+		// the record, and only its owner — or staff with the module's
+		// personal-data capability — downloads it, signed in, from the
+		// dashboard.
 		$html .= '<div class="ffc-preview-actions">';
+		$html .= '<p>' . esc_html__( 'The record itself is available to its owner, signed in, from the dashboard.', 'ffcertificate' ) . '</p>';
 		$html .= \FreeFormCertificate\Core\Button::html(
 			array(
-				'label'    => __( 'Download Record (PDF)', 'ffcertificate' ),
-				'category' => 'primary',
-				'icon'     => 'download',
-				'class'    => 'ffc-download-btn ffc-download-pdf-btn',
+				'label'    => __( 'Sign in to download', 'ffcertificate' ),
+				'category' => 'neutral',
+				'icon'     => 'login',
+				'href'     => \FreeFormCertificate\Core\PasswordInvite::dashboard_url(),
 			)
 		);
 		$html .= '</div>';

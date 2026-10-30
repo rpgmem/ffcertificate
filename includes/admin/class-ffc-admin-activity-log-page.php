@@ -290,6 +290,8 @@ class AdminActivityLogPage {
 			'reregistration_reminders_sent'                => __( 'Reregistration Reminders Sent', 'ffcertificate' ),
 			'reregistration_pii_revealed'                  => __( 'Reregistration Personal Data Revealed', 'ffcertificate' ),
 			'reregistration_details_viewed'                => __( 'Reregistration Details Viewed', 'ffcertificate' ),
+			'reregistration_record_verified'               => __( 'Reregistration Record Verified', 'ffcertificate' ),
+			'reregistration_record_downloaded'             => __( 'Reregistration Record Downloaded', 'ffcertificate' ),
 			'date_messages_pii_revealed'                   => __( 'Date Messages Personal Data Revealed', 'ffcertificate' ),
 			'activity_log_ip_revealed'                     => __( 'Activity Log Address Revealed', 'ffcertificate' ),
 			'rate_limit_ip_revealed'                       => __( 'Rate Limit Address Revealed', 'ffcertificate' ),

@@ -276,10 +276,26 @@ class ReregistrationAjaxHandlerTest extends TestCase {
 		$this->invoke( new ReregistrationAjaxHandler(), 'ajax_generate_record' );
 		$this->assertSame( 'error', $this->last()['type'] );
 		$this->assertSame( 'Permission denied.', $this->lastData()['message'] );
+		$this->assertSame( array( 403 ), $this->statuses );
+	}
+
+	public function test_generate_record_denies_a_viewer_without_the_personal_data_capability(): void {
+		// The Record prints the whole submission unmasked, so it follows the
+		// personal-data policy, not the screen's surface cap (#2242).
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'user_can' )->justReturn( false );
+		$_POST = array( 'submission_id' => '15' );
+
+		$this->invoke( new ReregistrationAjaxHandler(), 'ajax_generate_record' );
+
+		$this->assertSame( 'Permission denied.', $this->lastData()['message'] );
+		$this->assertSame( array( 403 ), $this->statuses );
+		$this->assertSame( array(), $this->tables_read(), 'Nothing is read before the gate.' );
 	}
 
 	public function test_generate_record_rejects_missing_submission_id(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'user_can' )->justReturn( true );
 		$_POST = array(); // no submission_id
 		$this->invoke( new ReregistrationAjaxHandler(), 'ajax_generate_record' );
 		$this->assertSame( 'error', $this->last()['type'] );
@@ -338,6 +354,7 @@ class ReregistrationAjaxHandlerTest extends TestCase {
 
 	public function test_generate_record_reports_a_record_that_cannot_be_built(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'user_can' )->justReturn( true );
 		$_POST = array( 'submission_id' => '15' );
 		// Submission 15 is not stored, so the real generator answers null.
 
@@ -349,6 +366,7 @@ class ReregistrationAjaxHandlerTest extends TestCase {
 
 	public function test_generate_record_returns_the_pdf_data(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'user_can' )->justReturn( true ); // A site admin: the reveal tier.
 		$this->stub_record_rendering();
 		$masked = self::mask_cpf( Identifiers::CPF_A );
 		$cipher = Encryption::encrypt( $masked );
@@ -374,6 +392,7 @@ class ReregistrationAjaxHandlerTest extends TestCase {
 		$this->assertStringContainsString( 'Document number', $pdf['html'], 'The campaign field is in the custom section.' );
 		$this->assertStringContainsString( $masked, $pdf['html'], 'The stored value is printed decrypted.' );
 		$this->assertStringNotContainsString( $cipher, $pdf['html'] );
+		$this->assertSame( array( 'reregistration_record_downloaded' ), array_column( ActivityLogBuffer::entries(), 'action' ), 'Every staff download is audited (#2242).' );
 	}
 
 	public function test_view_details_reports_an_unknown_submission(): void {
