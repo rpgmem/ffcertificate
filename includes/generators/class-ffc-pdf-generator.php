@@ -50,6 +50,24 @@ class PdfGenerator {
 	}
 
 	/**
+	 * The tag names of a form's input fields.
+	 *
+	 * @param int $form_id Form ID.
+	 * @return array<int, string>
+	 */
+	public static function field_names( int $form_id ): array {
+		$fields = get_post_meta( $form_id, '_ffc_form_fields', true );
+		$names  = array();
+		foreach ( is_array( $fields ) ? $fields : array() as $field ) {
+			$name = is_array( $field ) && is_string( $field['name'] ?? null ) ? $field['name'] : '';
+			if ( '' !== $name ) {
+				$names[] = $name;
+			}
+		}
+		return $names;
+	}
+
+	/**
 	 * Generate PDF data for any context
 	 *
 	 * @param int    $submission_id Submission ID.
@@ -121,6 +139,14 @@ class PdfGenerator {
 		list( $sched_start, $sched_end ) = $this->resolve_effective_schedule( $form_id, $sub_array );
 		$data['schedule']                = \FreeFormCertificate\Core\DateFormatter::format_schedule( $sched_start, $sched_end );
 		$data['schedule_total']          = \FreeFormCertificate\Core\DateFormatter::format_schedule_total( $sched_start, $sched_end );
+
+		// A field the form has but this submission lacks prints blank, not as
+		// a literal `{{tag}}` (#2241): the layout is regenerated from its
+		// current version, so a field added later, or an optional one left
+		// empty, would otherwise show its tag on certificates already issued.
+		// An unknown tag is not a field and stays visible, so a typo in the
+		// layout is still noticed.
+		$data += array_fill_keys( self::field_names( $form_id ), '' );
 
 		// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
 		$submission_ts = isset( $sub_array['submission_date'] ) ? (int) $sub_array['submission_date'] : null;

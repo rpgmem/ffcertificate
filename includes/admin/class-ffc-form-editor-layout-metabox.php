@@ -111,6 +111,29 @@ class FormEditorLayoutMetabox {
 			<tr>
 				<td colspan="2">
 					<label class="ffc-block-label"><strong><?php esc_html_e( 'Certificate HTML Editor', 'ffcertificate' ); ?></strong></label>
+					<?php
+					// Certificates are regenerated from the current layout, so
+					// an edit reaches the ones already issued (#2241).
+					$issued = 'auto-draft' === $post->post_status ? 0 : ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->countLiveByForm( (int) $post->ID );
+					if ( $issued > 0 ) {
+						\FreeFormCertificate\Core\AdminNotice::callout(
+							'warning',
+							'<p>' . esc_html(
+								sprintf(
+									/* translators: %s: number of certificates the form has issued */
+									_n(
+										'This form has %s issued certificate; layout changes apply to it the next time it is generated or verified.',
+										'This form has %s issued certificates; layout changes apply to them the next time they are generated or verified.',
+										$issued,
+										'ffcertificate'
+									),
+									number_format_i18n( $issued )
+								)
+							) . '</p>',
+							array( 'classes' => array( 'ffc-layout-issued-notice', 'inline' ) )
+						);
+					}
+					?>
 					<div class="ffc-code-editor-wrapper">
 						<textarea name="ffc_config[pdf_layout]" id="ffc_pdf_layout" class="ffc-w100" rows="12"><?php echo esc_textarea( $layout ); ?></textarea>
 					</div>

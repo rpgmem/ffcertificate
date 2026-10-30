@@ -692,6 +692,42 @@ class PdfGeneratorTest extends TestCase {
 		$this->assertSame( 'user@example.com', $hooked['submission']['email'] );
 	}
 
+	public function test_a_field_the_submission_lacks_prints_blank_and_an_unknown_tag_stays(): void {
+		$this->stub_generate_pdf_data_funcs();
+		Functions\when( 'esc_html' )->alias( static fn( $v ) => htmlspecialchars( (string) $v, ENT_QUOTES ) );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id, $key ) {
+				if ( '_ffc_form_config' === $key ) {
+					return array( 'pdf_layout' => '<p>[{{name}}][{{course}}][{{typo_tag}}]</p>' );
+				}
+				if ( '_ffc_form_fields' === $key ) {
+					return array(
+						array( 'name' => 'name', 'type' => 'text' ),
+						array( 'name' => 'course', 'type' => 'text' ),
+						array( 'type' => 'info', 'content' => 'No name.' ),
+					);
+				}
+				return '';
+			}
+		);
+		$row = (object) array(
+			'id'              => '55',
+			'email'           => 'user@example.com',
+			'auth_code'       => 'AUTH-77',
+			'data'            => json_encode( array( 'name' => 'Marina' ) ),
+			'form_id'         => '10',
+			'submission_date' => (string) 1_700_000_000,
+			'magic_token'     => 'mtok',
+		);
+
+		$result = $this->generator->generate_pdf_data( 55, $this->make_submission_handler( $row ) );
+
+		// A field added after this certificate was issued prints blank (#2241).
+		$this->assertStringContainsString( '[Marina][]', $result['html'] );
+		// A tag that is no field of the form is a typo, so it stays visible.
+		$this->assertStringContainsString( '[{{typo_tag}}]', $result['html'] );
+	}
+
 	public function test_generate_pdf_data_handles_slashed_json_and_missing_optionals(): void {
 		$this->stub_generate_pdf_data_funcs();
 

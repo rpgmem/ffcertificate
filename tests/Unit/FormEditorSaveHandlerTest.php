@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FormSubmissionCountWpdb;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -57,6 +58,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
+		FormSubmissionCountWpdb::install();
 		Monkey\setUp();
 		// SettingsReader reads the required certificate tags (#1734).
 		Functions\when( 'get_option' )->alias( static fn( $key ) => 'ffc_settings' === $key ? self::REQUIRED_TAGS_SETTINGS : array() );
@@ -94,6 +96,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		FormSubmissionCountWpdb::restore();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -229,6 +232,42 @@ class FormEditorSaveHandlerTest extends TestCase {
 	 * name: the editor offers no type select, and an edited request cannot
 	 * turn stored answers into another type. A new name takes the posted type.
 	 */
+	/**
+	 * #2241 — once the form has submissions, a stored field keeps its tag:
+	 * the rows hold its value under that name. Without submissions a rename
+	 * goes through.
+	 *
+	 * @dataProvider provider_live_submissions
+	 */
+	public function test_save_fields_meta_keeps_a_stored_tag_once_the_form_has_submissions( int $live, string $expected ): void {
+		FormSubmissionCountWpdb::restore();
+		FormSubmissionCountWpdb::install( $live );
+		Functions\when( 'get_post_meta' )->alias(
+			static fn( $id, $key ) => '_ffc_form_fields' === $key ? array( array( 'name' => 'course', 'type' => 'text' ) ) : ''
+		);
+		$_POST['ffc_fields'] = array(
+			array(
+				'label'         => 'Course',
+				'name'          => 'course_title',
+				'original_name' => 'course',
+				'type'          => 'text',
+			),
+		);
+
+		$out = $this->capture_meta_writes( 'save_fields_meta' );
+		unset( $_POST['ffc_fields'] );
+
+		$this->assertSame( $expected, $out['written']['_ffc_form_fields'][0]['name'] );
+	}
+
+	/** @return array<string, array{int, string}> */
+	public static function provider_live_submissions(): array {
+		return array(
+			'with submissions, the tag is kept' => array( 3, 'course' ),
+			'without, a rename goes through'    => array( 0, 'course_title' ),
+		);
+	}
+
 	public function test_save_fields_meta_keeps_the_stored_type_of_an_existing_field(): void {
 		Functions\when( 'get_post_meta' )->alias(
 			static fn( $id, $key ) => '_ffc_form_fields' === $key
