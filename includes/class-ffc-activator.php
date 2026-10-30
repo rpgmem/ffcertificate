@@ -181,6 +181,7 @@ class Activator {
             schedule_start_override time NULL DEFAULT NULL,
             schedule_end_override time NULL DEFAULT NULL,
             audience_booking_id bigint(20) unsigned DEFAULT NULL,
+            revoked_at bigint(20) unsigned DEFAULT NULL,
             PRIMARY KEY (id),
             KEY form_id (form_id),
             KEY user_id (user_id),
@@ -337,6 +338,13 @@ class Activator {
 				'type'  => 'BIGINT(20) UNSIGNED NULL DEFAULT NULL',
 				'after' => 'schedule_end_override',
 				'index' => 'audience_booking_id',
+			),
+			// When the submission went to the trash, which revokes the
+			// certificate (#2241): Category A (unix UTC). NULL while it is not
+			// revoked, and for a row trashed before the column existed.
+			'revoked_at'              => array(
+				'type'  => 'BIGINT(20) UNSIGNED NULL DEFAULT NULL',
+				'after' => 'audience_booking_id',
 			),
 		);
 	}

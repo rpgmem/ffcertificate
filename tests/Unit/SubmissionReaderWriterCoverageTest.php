@@ -649,6 +649,24 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 		$this->assertSame( 3, $this->repo()->bulkUpdateStatus( array( 1, 2, 3 ), 'trash' ) );
 	}
 
+	public function test_bulk_trash_records_the_revocation_and_restore_lifts_it(): void {
+		$args = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( ...$a ) use ( &$args ) {
+				$args[] = $a;
+				return 'SQL';
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 2 );
+
+		$this->repo()->bulkUpdateStatus( array( 1, 2 ), 'trash' );
+		$this->repo()->bulkUpdateStatus( array( 1, 2 ), 'publish' );
+
+		$this->assertStringContainsString( 'revoked_at = NULLIF( %d, 0 )', $args[0][0] );
+		$this->assertLessThanOrEqual( 2, abs( $args[0][3] - time() ), 'Trashing records when.' );
+		$this->assertSame( 0, $args[1][3], 'Restoring writes 0, which NULLIF turns into NULL.' );
+	}
+
 	public function test_bulk_update_status_returns_false_when_prepare_fails(): void {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( null );
 		$this->wpdb->shouldNotReceive( 'query' );

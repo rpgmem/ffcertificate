@@ -272,12 +272,42 @@ class SubmissionRepositoryTest extends TestCase {
 
 		$wpdb->shouldReceive( 'update' )
 			->once()
-			->with( 'wp_ffc_submissions', array( 'status' => 'trash' ), array( 'id' => 5 ) )
+			->with(
+				'wp_ffc_submissions',
+				Mockery::on(
+					static function ( $data ): bool {
+						return 'trash' === $data['status'] && abs( $data['revoked_at'] - time() ) <= 2;
+					}
+				),
+				array( 'id' => 5 )
+			)
 			->andReturn( 1 );
 
 		$result = $this->repo->updateStatus( 5, 'trash' );
 
 		$this->assertSame( 1, $result );
+	}
+
+	public function test_restoring_lifts_the_revocation(): void {
+		global $wpdb;
+
+		$wpdb->shouldReceive( 'update' )
+			->once()
+			->with( 'wp_ffc_submissions', array( 'status' => 'publish', 'revoked_at' => null ), array( 'id' => 5 ) )
+			->andReturn( 1 );
+
+		$this->assertSame( 1, $this->repo->updateStatus( 5, 'publish' ) );
+	}
+
+	public function test_a_quiz_status_change_leaves_the_revocation_alone(): void {
+		global $wpdb;
+
+		$wpdb->shouldReceive( 'update' )
+			->once()
+			->with( 'wp_ffc_submissions', array( 'status' => 'quiz_failed' ), array( 'id' => 5 ) )
+			->andReturn( 1 );
+
+		$this->assertSame( 1, $this->repo->updateStatus( 5, 'quiz_failed' ) );
 	}
 
 	// ------------------------------------------------------------------

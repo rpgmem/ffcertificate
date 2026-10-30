@@ -141,6 +141,10 @@ class VerificationHandler {
 			}
 		}
 
+		if ( self::is_revoked( $submission ) ) {
+			return self::revoked_result( $submission );
+		}
+
 		// Decrypt.
 		$submission = $this->submission_handler()->decrypt_submission_data( $submission );
 
@@ -195,6 +199,55 @@ class VerificationHandler {
 			return null;
 		}
 		return $submission;
+	}
+
+	/**
+	 * Whether a certificate row was revoked (#2241).
+	 *
+	 * The trash is the revocation: a trashed certificate is still found, so
+	 * the page can say it was revoked instead of that it never existed.
+	 *
+	 * @param array<string, mixed> $submission Submission row.
+	 * @return bool
+	 */
+	private static function is_revoked( array $submission ): bool {
+		return \FreeFormCertificate\Core\SubmissionStatus::TRASH === ( $submission['status'] ?? '' );
+	}
+
+	/**
+	 * The result for a revoked certificate: no data, no PDF.
+	 *
+	 * @param array<string, mixed> $submission Submission row.
+	 * @return array<string, mixed>
+	 */
+	private static function revoked_result( array $submission ): array {
+		return array(
+			'found'      => false,
+			'submission' => null,
+			'data'       => array(),
+			'revoked'    => true,
+			'revoked_at' => is_numeric( $submission['revoked_at'] ?? null ) ? (int) $submission['revoked_at'] : 0,
+		);
+	}
+
+	/**
+	 * What the page says about a revoked certificate.
+	 *
+	 * A certificate trashed before the date was recorded is said to be revoked
+	 * with no date.
+	 *
+	 * @param int $revoked_at Unix UTC seconds, or 0 when unknown.
+	 * @return string
+	 */
+	public static function revoked_message( int $revoked_at ): string {
+		if ( $revoked_at <= 0 ) {
+			return __( 'This certificate was revoked.', 'ffcertificate' );
+		}
+		return sprintf(
+			/* translators: %s: the date the certificate was revoked */
+			__( 'This certificate was revoked on %s.', 'ffcertificate' ),
+			\FreeFormCertificate\Core\DateFormatter::format_date( $revoked_at )
+		);
 	}
 
 	/**
@@ -531,6 +584,9 @@ class VerificationHandler {
 		if ( \FreeFormCertificate\Core\SubmissionStatus::is_unpassed_quiz( $submission ) ) {
 			$submission = null;
 		}
+		if ( is_array( $submission ) && self::is_revoked( $submission ) ) {
+			return self::revoked_result( $submission ) + array( 'magic_token' => '' );
+		}
 
 		\FreeFormCertificate\Core\Debug::log_frontend(
 			'Magic token lookup result',
@@ -658,6 +714,14 @@ class VerificationHandler {
 			}
 		}
 
+		if ( ! empty( $result['revoked'] ) ) {
+			return array(
+				'success' => false,
+				'html'    => '',
+				'message' => self::revoked_message( (int) $result['revoked_at'] ),
+			);
+		}
+
 		if ( ! $result['found'] ) {
 			return array(
 				'success' => false,
@@ -709,6 +773,15 @@ class VerificationHandler {
 			wp_send_json_error(
 				array(
 					'message' => '' !== ( $result['message'] ?? '' ) ? $result['message'] : __( 'Too many verification attempts. Please try again later.', 'ffcertificate' ),
+				)
+			);
+		}
+
+		if ( ! empty( $result['revoked'] ) ) {
+			wp_send_json_error(
+				array(
+					'message' => self::revoked_message( (int) $result['revoked_at'] ),
+					'revoked' => true,
 				)
 			);
 		}
@@ -810,6 +883,17 @@ class VerificationHandler {
 
 		$auth_code = RequestInput::get_post_string( 'ffc_auth_code' );
 		$result    = $this->search_certificate( $auth_code );
+
+		if ( ! empty( $result['revoked'] ) ) {
+			wp_send_json_error(
+				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+					array(
+						'message' => self::revoked_message( (int) $result['revoked_at'] ),
+						'revoked' => true,
+					)
+				)
+			);
+		}
 
 		if ( ! $result['found'] ) {
 			wp_send_json_error(

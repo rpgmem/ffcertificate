@@ -97,6 +97,24 @@ class SuccessResponderTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc-form-info-block', $ctx->response['html'] );
 	}
 
+	public function test_a_reprint_sent_by_email_is_a_notice_with_no_certificate(): void {
+		$ctx                  = new SubmissionContext();
+		$ctx->is_reprint      = true;
+		$ctx->reprint_notice  = 'A certificate already exists for this CPF/RF. We sent the link to the registered e-mail (f***@example.com).';
+		$ctx->submission_data = array( 'name' => 'Ana', 'auth_code' => 'ABCD1234EFGH' );
+		Functions\when( 'esc_attr' )->returnArg();
+
+		$this->responder()->apply( $ctx );
+
+		$this->assertNull( $ctx->response['pdf_data'] );
+		$this->assertTrue( $ctx->response['notice'] );
+		$this->assertSame( $ctx->reprint_notice, $ctx->response['message'] );
+		$this->assertStringContainsString( 'data-ffc-notice="reprint-link"', $ctx->response['html'] );
+		$this->assertStringContainsString( 'ffc-icon-email', $ctx->response['html'] );
+		$this->assertStringNotContainsString( 'Ana', $ctx->response['html'], 'None of the certificate\'s data reaches the screen.' );
+		$this->assertStringNotContainsString( 'ABCD', $ctx->response['html'] );
+	}
+
 	public function test_custom_success_message_used_and_trimmed(): void {
 		$ctx              = new SubmissionContext();
 		$ctx->form_config = array( 'success_message' => '  Well done!  ' );

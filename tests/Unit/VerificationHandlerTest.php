@@ -788,6 +788,69 @@ class VerificationHandlerTest extends TestCase {
 		$this->assertFalse( $result['found'] );
 	}
 
+	/**
+	 * #2241 — the trash is the revocation: a trashed certificate is found as
+	 * revoked, with no data and no PDF, on both verification paths.
+	 */
+	public function test_a_trashed_certificate_reads_as_revoked_by_auth_code(): void {
+		global $wpdb;
+		$wpdb->shouldReceive( 'get_row' )->once()->andReturn(
+			array(
+				'id'         => '9',
+				'email'      => 'x@example.com',
+				'auth_code'  => 'ABCD1234EFGH',
+				'data'       => '{"name":"Ana"}',
+				'status'     => 'trash',
+				'revoked_at' => '1767225600',
+			)
+		);
+		$this->submission_handler->shouldNotReceive( 'decrypt_submission_data' );
+
+		$result = $this->invokePrivate( 'search_certificate', [ 'ABCD-1234-EFGH' ] );
+
+		$this->assertFalse( $result['found'] );
+		$this->assertTrue( $result['revoked'] );
+		$this->assertSame( 1767225600, $result['revoked_at'] );
+		$this->assertSame( array(), $result['data'], 'A revoked certificate carries none of its data.' );
+	}
+
+	public function test_a_trashed_certificate_reads_as_revoked_by_magic_token(): void {
+		$this->submission_handler
+			->shouldReceive( 'get_submission_by_token' )
+			->andReturn( array( 'id' => 9, 'status' => 'trash', 'revoked_at' => null, 'email' => 'x@example.com', 'magic_token' => str_repeat( 'ee', 16 ) ) );
+
+		$result = $this->handler->verify_by_magic_token( str_repeat( 'ee', 16 ) );
+
+		$this->assertFalse( $result['found'] );
+		$this->assertTrue( $result['revoked'] );
+		$this->assertSame( 0, $result['revoked_at'], 'A row trashed before the date was recorded has none.' );
+		$this->assertArrayNotHasKey( 'email', $result['data'] );
+	}
+
+	public function test_verify_certificate_says_when_it_was_revoked(): void {
+		global $wpdb;
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts ) => gmdate( 'd/m/Y', $ts ) );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		$wpdb->shouldReceive( 'get_row' )->once()->andReturn(
+			array(
+				'id'         => '9',
+				'auth_code'  => 'ABCD1234EFGH',
+				'status'     => 'trash',
+				'revoked_at' => '1767225600',
+			)
+		);
+		$this->renderer->shouldNotReceive( 'format_verification_response' );
+
+		$result = $this->handler->verify_certificate( 'ABCD-1234-EFGH' );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertSame( 'This certificate was revoked on 01/01/2026.', $result['message'] );
+	}
+
+	public function test_a_revocation_with_no_date_says_so_without_one(): void {
+		$this->assertSame( 'This certificate was revoked.', VerificationHandler::revoked_message( 0 ) );
+	}
+
 	public function test_magic_token_falls_back_to_appointment(): void {
 		$valid_token = str_repeat( 'dd', 16 );
 

@@ -48,7 +48,8 @@ class PdfStage {
 	 */
 	public function apply( SubmissionContext $ctx ): void {
 		// An attempt awaiting grading is not a certificate yet (#1732).
-		if ( $ctx->awaiting_grading ) {
+		// Nor is a reprint whose link was sent by e-mail (#2241).
+		if ( $ctx->awaiting_grading || null !== $ctx->reprint_notice ) {
 			return;
 		}
 		$pdf_generator = new \FreeFormCertificate\Generators\PdfGenerator();

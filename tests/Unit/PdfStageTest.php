@@ -127,6 +127,20 @@ class PdfStageTest extends TestCase {
 		$this->assertNull( $ctx->pdf_data );
 	}
 
+	public function test_a_reprint_sent_by_email_gets_no_pdf(): void {
+		$handler = Mockery::mock( SubmissionHandler::class );
+		$handler->shouldReceive( 'get_submission' )->never();
+
+		$ctx                 = new SubmissionContext();
+		$ctx->submission_id  = 7;
+		$ctx->is_reprint     = true;
+		$ctx->reprint_notice = 'Sent.';
+
+		( new PdfStage( $handler ) )->apply( $ctx );
+
+		$this->assertNull( $ctx->pdf_data );
+	}
+
 	public function test_rejects_when_generator_returns_wp_error(): void {
 		// The real generator refuses a submission that does not exist.
 		Functions\when( '__' )->returnArg();

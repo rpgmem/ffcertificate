@@ -368,6 +368,51 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertSame( 'AUTH-XYZ', $ctx->submission_data['auth_code'] );
 	}
 
+	public function test_a_reprint_for_someone_else_sends_the_link_instead_of_the_certificate(): void {
+		$this->reprint_row = $this->storedRow( array( 'id' => '321', 'user_id' => '9' ) );
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+
+		$handler = $this->handlerWithRepo();
+		$handler->shouldReceive( 'process_submission' )->never();
+
+		$ctx = $this->ctx();
+		( new SubmissionPersister( $handler ) )->apply( $ctx );
+
+		$this->assertTrue( $ctx->is_reprint );
+		$this->assertNotNull( $ctx->reprint_notice, 'Whoever types a CPF/RF does not get the certificate on screen.' );
+		// The row has no e-mail on record, so the notice says to contact the organizer.
+		$this->assertStringContainsString( 'contact the organizer', (string) $ctx->reprint_notice );
+	}
+
+	public function test_a_reprint_for_its_logged_in_owner_hands_the_certificate_over(): void {
+		$this->reprint_row = $this->storedRow( array( 'id' => '321', 'user_id' => '9' ) );
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( 'get_current_user_id' )->justReturn( 9 );
+
+		$ctx = $this->ctx();
+		( new SubmissionPersister( $this->handlerWithRepo() ) )->apply( $ctx );
+
+		$this->assertTrue( $ctx->is_reprint );
+		$this->assertNull( $ctx->reprint_notice );
+	}
+
+	public function test_a_revoked_certificate_is_not_reprinted_nor_issued_again(): void {
+		$this->reprint_row = $this->storedRow( array( 'id' => '321', 'status' => 'trash' ) );
+		Functions\when( 'get_post' )->justReturn( null );
+
+		$handler = $this->handlerWithRepo();
+		$handler->shouldReceive( 'process_submission' )->never();
+
+		try {
+			( new SubmissionPersister( $handler ) )->apply( $this->ctx() );
+			$this->fail( 'A revoked certificate must be refused.' );
+		} catch ( SubmissionRejected $e ) {
+			$this->assertSame( 'certificate_revoked', $e->get_payload()['code'] );
+			$this->assertSame( 'This certificate was revoked.', $e->get_payload()['message'] );
+		}
+	}
+
 	public function test_normal_flow_db_failure_throws_rejected(): void {
 		Functions\when( 'get_post' )->justReturn( null );
 		Functions\when( 'is_wp_error' )->justReturn( true );

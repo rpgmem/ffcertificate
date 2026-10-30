@@ -21,6 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'The list', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The table shows the id, form, email, a short preview of non-sensitive fields, status and date. You can filter by one or more forms and switch between Published, Trash, and the quiz states (Retry, Failed, Awaiting Grading). The search box matches a submission id, an auth code, or an exact email, CPF or RF. Personal columns are decrypted only for the row display; the preview never includes email, CPF/RF or the auth code.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Trash means revoked. A certificate moved to the trash stops verifying: the verification page, its QR code, its magic link and the REST API say it was revoked and on which day, with none of its data and no PDF, and a new submission with the same CPF/RF is refused instead of issuing another. Restoring it from the trash lifts the revocation.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Editing a submission', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The edit screen lets you correct the participant email and the form\'s custom-field values, and, with ffc_manage_certificates, link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed).', 'ffcertificate' ); ?></p>

@@ -366,6 +366,25 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 		$result = $ctrl->verify_certificate( $request );
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'certificate_deleted', $result->get_error_code() );
+		$this->assertSame( 'This certificate was revoked.', $result->get_error_message() );
+	}
+
+	public function test_a_revoked_certificate_carries_its_revocation_date(): void {
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts ) => gmdate( 'd/m/Y', $ts ) );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		$repo = Mockery::mock( SubmissionRepository::class );
+		$repo->shouldReceive( 'findByAuthCode' )->once()->andReturn(
+			array( 'id' => 1, 'form_id' => 1, 'status' => 'trash', 'revoked_at' => '1767225600' )
+		);
+
+		$ctrl    = new SubmissionRestController( 'ffc/v1', $repo );
+		$request = Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_param' )->with( 'auth_code' )->andReturn( 'CLEANCODE123' );
+
+		$result = $ctrl->verify_certificate( $request );
+		$this->assertSame( 'This certificate was revoked on 01/01/2026.', $result->get_error_message() );
+		$this->assertSame( 410, $result->get_error_data()['status'] );
+		$this->assertSame( 1767225600, $result->get_error_data()['revoked_at'] );
 	}
 
 	/**

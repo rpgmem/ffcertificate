@@ -102,6 +102,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Reregistration: each e-mail takes a full row on the Record PDF, and the pool's default record is refreshed** (#2235). The @sme and @edu addresses no longer share a row, and a long address wraps instead of widening the table. The template seed version moves so an install using the pool's default record receives #2227's layout too.
 - **Certificates: quiz attempt limits hold, and a retry that passes is e-mailed** (#2241). With encryption on, every attempt read as the first, so Max attempts never stopped anyone; a retry stored a date string in the BIGINT issue date (the certificate showed 1970) and sent no certificate e-mail when it passed. A failed save is now reported.
 - **Certificates: clearing the form cache no longer flushes the whole object cache** (#2241). Only the plugin's cache group is flushed, or each form's keys where the cache cannot flush a group.
+- **Certificates: a trashed certificate is revoked** (#2241). Verification, its QR code, the magic link and REST say when it was revoked, with no data or PDF, and the same CPF/RF cannot issue another; restoring lifts it. REST keeps the `certificate_deleted` code and adds `revoked_at`.
 
 ### Security
 
@@ -110,6 +111,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Debug logs and geofence refusals no longer carry a recoverable address** (#2109). A geofence refusal's activity-log entry keeps the reason only, and a migration card removes the plaintext copy from older entries; the IP resolver and geolocation debug lines hash an address with the plugin's key instead of a bare SHA-256, and the debug log hashes `triggered_by_ip` and `bypassed_ip` too.
 - **Certificates: a certificate's personal data stays with whoever may reveal it** (#2241). Public verification no longer returns the raw answers; the list preview masks personal values; the PDF button and magic link show only to the PII tier, through an audited route; relinking an owner needs `ffc_manage_certificates`.
 - **Certificates: submitted values are text, and public endpoints hold their limits** (#2241). A participant's answer prints escaped in the certificate (no remote image or styling); a draft, private or trashed form refuses submissions; the public CSV actions check the hash and rate limit before the CPF; a magic link counts one attempt per open.
+- **Certificates: a reprint by CPF/RF never shows someone else's certificate** (#2241). Unless the logged-in owner asks, the link is e-mailed to the stored address (at most every 15 minutes) and the screen shows only that address, masked.
 
 ## [6.42.0] (2026-10-26) — `8241871c`
 

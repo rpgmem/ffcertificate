@@ -174,7 +174,26 @@ class SubmissionWriter extends AbstractRepository {
 	 * @return int|false
 	 */
 	public function updateStatus( int $id, string $status ) {
-		return $this->update( $id, array( 'status' => $status ) );
+		$data = array( 'status' => $status );
+		// Trashing revokes and restoring lifts it; a quiz moving between its
+		// own statuses was never revoked, so it leaves the column alone.
+		if ( in_array( $status, array( \FreeFormCertificate\Core\SubmissionStatus::TRASH, \FreeFormCertificate\Core\SubmissionStatus::PUBLISH ), true ) ) {
+			$data['revoked_at'] = self::revoked_at( $status );
+		}
+		return $this->update( $id, $data );
+	}
+
+	/**
+	 * When a status change revokes the certificate (#2241).
+	 *
+	 * The trash is the revocation: moving a submission there records the
+	 * moment, and any other status lifts it.
+	 *
+	 * @param string $status New status.
+	 * @return int|null Unix UTC seconds, or null when the status does not revoke.
+	 */
+	public static function revoked_at( string $status ): ?int {
+		return \FreeFormCertificate\Core\SubmissionStatus::TRASH === $status ? time() : null;
 	}
 
 	/**
@@ -192,9 +211,10 @@ class SubmissionWriter extends AbstractRepository {
 		$safe_ids     = array_map( 'absint', $ids );
 		$placeholders = implode( ', ', array_fill( 0, count( $safe_ids ), '%d' ) );
 		$query        = $this->wpdb->prepare(
-			"UPDATE %i SET status = %s WHERE id IN ({$placeholders})",
+			"UPDATE %i SET status = %s, revoked_at = NULLIF( %d, 0 ) WHERE id IN ({$placeholders})",
 			$this->table,
 			$status,
+			(int) self::revoked_at( $status ),
 			...$safe_ids
 		);
 
