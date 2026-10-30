@@ -113,8 +113,16 @@ class SubmissionPersister {
 				$submission_data['_quiz_pending'] = $quiz_score['pending'];
 			}
 
-			// Find existing quiz submission for this CPF + form.
-			$existing = $this->find_quiz_submission( $form_id, $val_cpf );
+			// Find existing quiz submission for this CPF + form. Without a
+			// ticket it is the row the rate-limit guard already fetched (#2241).
+			/**
+			 * A submissions row as `$wpdb` returns it.
+			 *
+			 * @var (\stdClass&object{id: numeric-string, status: string, data: string|null, submission_date: string, auth_code?: string|null})|null $existing
+			 */
+			$existing = '' === $val_ticket
+				? \FreeFormCertificate\Frontend\ReprintDetector::row_for( $ctx )
+				: $this->find_quiz_submission( $form_id, $val_cpf );
 
 			// While an attempt waits to be graded, its result is not known, so
 			// neither is whether another attempt is needed (#1732).
@@ -293,8 +301,8 @@ class SubmissionPersister {
 		} else {
 			// === Normal (non-quiz) flow ===.
 
-			// Detect reprint — delegated to ReprintDetector.
-			$reprint_result = \FreeFormCertificate\Frontend\ReprintDetector::detect( $form_id, $val_cpf, $val_ticket );
+			// Detect reprint, from the submission's single lookup (#2241).
+			$reprint_result = \FreeFormCertificate\Frontend\ReprintDetector::for_context( $ctx );
 			$is_reprint     = $reprint_result['is_reprint'];
 
 			if ( $is_reprint ) {
@@ -461,39 +469,16 @@ class SubmissionPersister {
 	 * @return (\stdClass&object{id: numeric-string, status: string, data: string|null, submission_date: string})|null
 	 */
 	public function find_quiz_submission( int $form_id, string $cpf ): ?object {
-		if ( empty( $cpf ) ) {
+		if ( '' === $cpf ) {
 			return null;
 		}
-
-		global $wpdb;
-		$table     = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
-		$clean_cpf = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
-
-		if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-			$id_hash     = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $clean_cpf );
-			$hash_column = 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $clean_cpf ) ? 'rf_hash' : 'cpf_hash';
-
-			// Search the specific split column based on digit count.
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $hash_column is derived from strlen() check, not user input.
-			/**
-			 * Cast wpdb result to typed shape.
-			 *
-			 * @var (\stdClass&object{id: numeric-string, status: string, data: string|null, submission_date: string})|null $result
-			 */
-			$result = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uniqueness probe — serving this from cache would defeat the check it exists to perform.
-				$wpdb->prepare(
-					"SELECT * FROM %i WHERE form_id = %d AND {$hash_column} = %s ORDER BY id DESC LIMIT 1",
-					$table,
-					$form_id,
-					$id_hash
-				)
-			);
-			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-			return $result;
-		}
-
-		return null;
+		/**
+		 * A submissions row as `$wpdb` returns it.
+		 *
+		 * @var (\stdClass&object{id: numeric-string, status: string, data: string|null, submission_date: string})|null $row
+		 */
+		$row = ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->findForReprint( $form_id, $cpf );
+		return $row;
 	}
 
 	/**

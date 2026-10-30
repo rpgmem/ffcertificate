@@ -68,6 +68,12 @@ class FormRestControllerTest extends TestCase {
 	/** @var list<string> Queries the double did not expect. */
 	private array $unexpected = array();
 
+	/** @var int CPF/RF lookups of an earlier submission the controller ran. */
+	private int $id_lookups = 0;
+
+	/** @var object|null The earlier submission that lookup finds. */
+	private $earlier_row = null;
+
 	/** @var int|false The id the submissions insert answers; false makes it fail. */
 	private $submission_id = 1;
 
@@ -96,6 +102,8 @@ class FormRestControllerTest extends TestCase {
 		$this->inserts           = array();
 		$this->updates           = array();
 		$this->unexpected        = array();
+		$this->id_lookups        = 0;
+		$this->earlier_row       = null;
 		$this->submission_id     = 1;
 		$this->transients        = array();
 
@@ -226,9 +234,10 @@ class FormRestControllerTest extends TestCase {
 				if ( false !== strpos( $sql, 'SELECT id,count FROM %i WHERE type=%s' ) ) {
 					return null;
 				}
-				if ( false !== strpos( $sql, 'SELECT * FROM %i WHERE form_id = %d AND %i = %s' ) ) {
-					// No earlier submission of this CPF: not a reprint.
-					return null;
+				if ( preg_match( '/^SELECT \* FROM %i WHERE form_id = %d AND (cpf_hash|rf_hash) = %s ORDER BY id DESC LIMIT 1$/', $sql ) ) {
+					++$this->id_lookups;
+					// By default no earlier submission of this CPF: not a reprint.
+					return $this->earlier_row;
 				}
 				$this->unexpected[] = 'get_row(): ' . $sql;
 				return null;
@@ -1234,6 +1243,39 @@ class FormRestControllerTest extends TestCase {
 			$recorded,
 			'One attempt is recorded for the address and one for the e-mail, against the form.'
 		);
+	}
+
+	public function test_submit_form_looks_an_earlier_submission_up_once(): void {
+		// The rate-limit guard and the persister both ask whether this CPF
+		// already has a certificate; they share one lookup (#2241). The
+		// certificate is its logged-in owner's, so the reprint is handed over.
+		$fields   = $this->plain_fields();
+		$fields[] = array( 'type' => 'text', 'name' => 'cpf_rf', 'label' => 'CPF' );
+		$this->serve_form( array(), $fields );
+		Functions\when( 'get_current_user_id' )->justReturn( 9 );
+		$this->earlier_row = (object) array(
+			'id'              => '44',
+			'user_id'         => '9',
+			'status'          => 'publish',
+			'submission_date' => '1750000000',
+			'data'            => '{}',
+			'auth_code'       => 'ABCD1234EFGH',
+		);
+
+		$ctrl   = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+		$result = $ctrl->submit_form(
+			$this->make_request(
+				array( 'id' => 1 ),
+				array(
+					'email'            => 'jane@example.com',
+					'cpf_rf'           => self::masked( Identifiers::CPF_A ),
+					'ffc_lgpd_consent' => '1',
+				)
+			)
+		);
+
+		$this->assertNotInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 1, $this->id_lookups );
 	}
 
 	public function test_submit_form_answers_429_when_rate_limited(): void {
