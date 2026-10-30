@@ -514,6 +514,16 @@ class ReregistrationEmailHandlerTest extends TestCase {
 		$this->assertStringContainsString( "DATEDIFF(end_date, '2026-06-15') >= 0", $this->queries[0] );
 	}
 
+	public function test_the_reminder_sweep_skips_a_campaign_that_has_not_opened(): void {
+		// An invitation may go out before the opening date; a reminder may
+		// not (#2242).
+		$this->due_campaigns = array();
+
+		ReregistrationEmailHandler::run_automated_reminders();
+
+		$this->assertStringContainsString( "DATE(start_date) <= '2026-06-15'", $this->queries[0] );
+	}
+
 	public function test_run_automated_reminders_returns_early_when_campaigns_null(): void {
 		$this->due_campaigns = null;
 

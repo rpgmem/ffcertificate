@@ -1402,6 +1402,65 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	}
 
 	/**
+	 * The daily run creates the missing rows of every active campaign (#2242):
+	 * whoever joined an audience after activation, or one of its children,
+	 * gets a row and so an invitation and reminders. Each campaign is seeded
+	 * from its own audiences, through the same `INSERT IGNORE`.
+	 */
+	public function test_seed_active_campaigns_seeds_each_active_campaign_from_its_own_audiences(): void {
+		$last = array('', array());
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(
+			function ($sql, ...$args) use (&$last) {
+				if (1 === count($args) && is_array($args[0])) {
+					$args = $args[0];
+				}
+				$last = array((string) $sql, array_values($args));
+				return (string) $sql;
+			}
+		);
+		$this->wpdb->shouldReceive('get_results')->andReturn(array()); // No child audiences.
+		$this->wpdb->shouldReceive('get_col')->andReturnUsing(
+			function () use (&$last) {
+				[$sql, $args] = $last;
+				if (0 === strpos($sql, "SELECT id FROM %i WHERE status = 'active'")) {
+					return array('3', '5');
+				}
+				if (0 === strpos($sql, 'SELECT audience_id FROM %i WHERE reregistration_id')) {
+					return 3 === (int) $args[1] ? array('100') : array('200');
+				}
+				// Members: 100 has a newcomer; 200 has none new.
+				return 100 === (int) $args[1] ? array('10', '11') : array('20');
+			}
+		);
+		$seeded = array();
+		$this->wpdb->shouldReceive('query')->andReturnUsing(
+			function () use (&$last, &$seeded) {
+				[$sql, $args] = $last;
+				$this->assertStringStartsWith('INSERT IGNORE INTO %i', $sql);
+				$seeded[] = array_slice($args, 1);
+				return 1;
+			}
+		);
+
+		ReregistrationSubmissionWriter::seed_active_campaigns();
+
+		$this->assertSame(
+			array(
+				array(3, 10, 'pending', 3, 11, 'pending'),
+				array(5, 20, 'pending'),
+			),
+			$seeded
+		);
+	}
+
+	public function test_seed_active_campaigns_does_nothing_without_an_active_campaign(): void {
+		$this->wpdb->shouldReceive('get_col')->once()->andReturn(array());
+		$this->wpdb->shouldNotReceive('query');
+
+		ReregistrationSubmissionWriter::seed_active_campaigns();
+	}
+
+	/**
 	 * A single INSERT covers the whole page, and the count comes from the database.
 	 *
 	 * This is #1234's central assertion: it used to be two statements PER USER

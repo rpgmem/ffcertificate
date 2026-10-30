@@ -78,15 +78,12 @@ class ReregistrationFrontend {
 	 *
 	 * Three populations reach it, not the two the constant's docblock names:
 	 *
-	 *  - a user added to an audience **after** the campaign went active, since
-	 *    seeding is a one-shot on that transition;
+	 *  - a user added to an audience **after** the campaign went active, until
+	 *    the next daily run seeds them (#2242);
 	 *  - a submission an administrator deleted;
-	 *  - a member of a **child** audience of one attached to the campaign —
-	 *    `get_active_for_audience()` walks UP to parents, so the campaign is
-	 *    visible to them, while seeding reads `get_members()` without
-	 *    `include_children`, so they are never seeded. That asymmetry is
-	 *    systematic in any hierarchy and is tracked apart; creating on demand
-	 *    covers it without touching the seeding side.
+	 *  - a member of a **child** audience added after the activation — the
+	 *    seeding includes child audiences, but only from the moment it runs.
+	 *    Creating on demand covers the gap until the daily run does.
 	 *
 	 * Entitlement is not re-derived: it asks the **same query that decided the
 	 * user could see the campaign at all** (`get_active_for_user`), so no new

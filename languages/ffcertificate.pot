@@ -15268,9 +15268,6 @@ msgstr ""
 msgid "sent automatically when the deadline is within N days (default 7)."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-reregistration.php:40
-msgid "sent automatically when the deadline is within N days (default 7). Each member receives it ONCE per campaign, not once a day: the send is stamped on the submission, and the daily sweep skips whoever already has that stamp."
-msgstr ""
 
 #: includes/core/class-ffc-email-template-options.php:93
 msgid "Sent by {{site_title}}"
@@ -25399,13 +25396,7 @@ msgstr ""
 msgid "Send invitation email (daily run after activation)"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-reregistration.php
-msgid "sent by the daily run to every member who has not received one yet, starting with the first run after the campaign is activated. Members who join later get theirs on the following run. The Send invitations button sends them right away."
-msgstr ""
 
-#: includes/settings/views/documentation/feature-reregistration.php
-msgid "Activate the campaign — a submission is created for every audience member at once. Invitation emails are not sent at that moment: they go out with the next daily run, in batches, so a campaign activated by mistake can still be deactivated before anybody is mailed. The screen says when that run is."
-msgstr ""
 
 #: templates/admin/reregistration/form.php
 msgid "Sends the invitation now, without waiting for the daily run, to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished."
@@ -29712,4 +29703,16 @@ msgid "Field \"%1$s\" cannot write to the profile key \"%2$s\": the account e-ma
 msgstr ""
 
 msgid "Matches a staff account (an administrator, or someone who can see personal data). An import never changes a staff account; they update their own profile in wp-admin."
+msgstr ""
+
+msgid "sent by the daily run to every member who has not received one yet, starting with the first run after the campaign is activated. The same run creates the submission of anyone who joined one of the campaign's audiences, or one of their child audiences, since the activation, so late joiners get their invitation, their reminders and their place in the totals. An invitation can go out before the start date; it then names the day the form opens. The Send invitations button sends them right away."
+msgstr ""
+
+msgid "sent automatically when the deadline is within N days (default 7) and the campaign has already opened. Each member receives it ONCE per campaign, not once a day: the send is stamped on the submission, and the daily sweep skips whoever already has that stamp."
+msgstr ""
+
+msgid "Activate the campaign — a submission is created for every member of its audiences and of their child audiences at once. Saving an active campaign creates the submissions of an audience added to it. Invitation emails are not sent at that moment: they go out with the next daily run, in batches, so a campaign activated by mistake can still be deactivated before anybody is mailed. The screen says when that run is."
+msgstr ""
+
+msgid "A new reregistration campaign for your group opens on %s."
 msgstr ""
