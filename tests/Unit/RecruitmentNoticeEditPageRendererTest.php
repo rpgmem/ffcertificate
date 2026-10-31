@@ -218,6 +218,18 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 				throw new \LogicException( 'Unexpected get_results: ' . $sql );
 			}
 		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = array( 'get_var', $sql, $this->bound );
+				if ( str_contains( (string) $sql, 'WHERE notice_id = %d AND list_type = %s' ) && 'wp_ffc_recruitment_classification' === $this->bound[0] ) {
+					return 7 === (int) $this->bound[1] ? (string) count( $this->classifications[ (string) $this->bound[2] ] ?? array() ) : '0';
+				}
+				if ( str_contains( (string) $sql, 'INNER JOIN' ) ) {
+					return '0';
+				}
+				throw new \LogicException( 'Unexpected get_var: ' . $sql );
+			}
+		);
 		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
 			function ( $sql ) {
 				$this->queries[] = array( 'get_col', $sql, $this->bound );
@@ -368,6 +380,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_render_csv_import_section_preliminary_shows_import_form(): void {
+		$this->store_classifications( array( $this->cls_row( 50, 1, 'empty', 1, 500 ) ), array() );
 		ob_start();
 		RecruitmentNoticeEditPageRenderer::render_csv_import_section( $this->notice( array( 'status' => 'preliminary' ) ) );
 		$html = (string) ob_get_clean();
@@ -376,6 +389,16 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'name="csv_file"', $html );
 		// preliminary status exposes the "definitive" radio path.
 		$this->assertStringContainsString( 'value="definitive"', $html );
+	}
+
+	public function test_a_preliminary_notice_without_a_preliminary_list_offers_no_definitive_import(): void {
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_csv_import_section( $this->notice( array( 'status' => 'preliminary' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'name="csv_file"', $html, 'The preliminary import stays available.' );
+		$this->assertStringNotContainsString( 'value="definitive"', $html, 'The definitive list needs a preliminary one first (#2245).' );
+		$this->assertStringContainsString( 'once the preliminary list has been imported', $html );
 	}
 
 	public function test_render_csv_import_section_definitive_disables_import(): void {
@@ -518,6 +541,47 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'No adjutancies attached yet', $html );
 	}
 
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function adjutancy_locked_statuses(): array {
+		return array(
+			'definitive' => array( 'definitive' ),
+			'closed'     => array( 'closed' ),
+		);
+	}
+
+	/**
+	 * @dataProvider adjutancy_locked_statuses
+	 */
+	public function test_adjutancies_are_read_only_once_the_notice_is_past_preliminary( string $status ): void {
+		$this->store_adjutancy( 1, 'A1', 'Alpha' );
+		$this->store_adjutancy( 2, 'B2', 'Bravo' );
+		$this->attached = array( 1 );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_adjutancies_section( $this->notice( array( 'status' => $status ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'A1', $html, 'The attached adjutancies still show.' );
+		$this->assertStringNotContainsString( 'ffcDetachAdjutancy', $html );
+		$this->assertStringNotContainsString( 'ffcAttachAdjutancy', $html );
+		$this->assertStringContainsString( 'only while the notice is in draft or preliminary', $html );
+	}
+
+	public function test_a_draft_notice_takes_adjutancy_changes(): void {
+		$this->store_adjutancy( 1, 'A1', 'Alpha' );
+		$this->store_adjutancy( 2, 'B2', 'Bravo' );
+		$this->attached = array( 1 );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_adjutancies_section( $this->notice( array( 'status' => 'draft' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'ffcDetachAdjutancy', $html );
+		$this->assertStringContainsString( 'ffcAttachAdjutancy', $html );
+	}
+
 	// ------------------------------------------------------------------
 	// render_classifications_section() — full data-prep + table render
 	// ------------------------------------------------------------------
@@ -568,7 +632,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		);
 
 		ob_start();
-		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice() );
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'Classifications', $html );
@@ -601,11 +665,41 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->candidates[601]->email_hash = 'hash-601';
 
 		ob_start();
-		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice() );
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
 		$html = (string) ob_get_clean();
 
 		$this->assertSame( 1, substr_count( $html, 'No email — contact manually' ), 'Only the definitive row whose candidate has no address is flagged; the preview list takes no calls (#2245).' );
 		$this->assertMatchesRegularExpression( '/Cand 600 <span class="ffc-icon-warning ffc-icon-tone-warning ffc-rec-ml-half">No email/', $html );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: bool, 2: bool}>
+	 */
+	public static function notice_states(): array {
+		// status => [ preliminary statuses editable, definitive actions shown ].
+		return array(
+			'draft'       => array( 'draft', false, false ),
+			'preliminary' => array( 'preliminary', true, false ),
+			'definitive'  => array( 'definitive', false, true ),
+			'closed'      => array( 'closed', false, false ),
+		);
+	}
+
+	/**
+	 * @dataProvider notice_states
+	 */
+	public function test_the_lists_offer_only_what_the_notice_status_allows( string $status, bool $marks, bool $calls ): void {
+		$this->store_classifications(
+			array( $this->cls_row( 50, 1, 'empty', 1, 500 ) ),
+			array( $this->cls_row( 60, 1, 'hired', 1, 600 ) )
+		);
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => $status ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( $marks, 1 === preg_match( '/<select class="ffc-cls-preview-status" data-cls-id="50">/', $html ), 'Preliminary statuses change only while the notice is preliminary (#2245).' );
+		$this->assertSame( $calls, str_contains( $html, 'ffcRecruitmentClsAct' ), 'Call, outcomes, reopen and undo only on a definitive notice.' );
 	}
 
 	public function test_cancel_names_the_rows_active_call(): void {
@@ -626,7 +720,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		);
 
 		ob_start();
-		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice() );
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
 		$html = (string) ob_get_clean();
 
 		$this->assertMatchesRegularExpression( '/data-cls-action="cancel" data-call-id="91"/', $html );
@@ -671,7 +765,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		);
 
 		ob_start();
-		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice() );
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'ffc-cls-bulk-toolbar', $html, 'The Operator calls.' );

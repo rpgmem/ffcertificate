@@ -30804,3 +30804,27 @@ msgstr ""
 #: includes/settings/views/documentation/feature-recruitment.php
 msgid "The call e-mail gives the presentation date and time in the site's formats, attaches the call's .ics, links to \"My calls\" and asks the candidate to confirm by replying. The \"Days to answer a call\" option of the Recruitment settings adds a deadline, counted from the day of the call and never later than the presentation; 0 names none. The e-mail also carries a link to define a password, which is how a candidate whose account the import created signs in for the first time. A candidate with no e-mail on file is marked \"No email — contact manually\" on the definitive list, and calling one says so, since nobody was notified."
 msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "Adjutancies are attached or detached only while the notice is in draft or preliminary."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "Preliminary statuses and reasons are set only while the notice is preliminary."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "What a notice takes depends on its status. A draft takes adjutancy changes but no preliminary statuses, since nothing is published yet. A preliminary notice takes both, and takes the definitive list only once it has a preliminary one. From definitive on, adjutancies are no longer attached or detached, no candidate moves to another adjutancy, and the preliminary list keeps the statuses and reasons it was published with. A closed notice changes no more: no call, outcome, cancel, reopen or undo. The screen shows each list read-only where its status allows no change, and the REST API refuses the same changes."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "A candidate moves to another adjutancy only while the notice is in draft or preliminary."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "Import the preliminary list first: the definitive list is imported only on a notice that has one. Nothing was imported."
+msgstr ""
+
+#: templates/admin/recruitment/notice-edit/csv-import-section.php
+msgid "The definitive list can be imported once the preliminary list has been imported."
+msgstr ""

@@ -621,7 +621,7 @@ final class RecruitmentClassificationsRestController {
 		if ( ! $result['success'] ) {
 			// A notice in the wrong state is a conflict; a bad file is not.
 			$code     = (string) ( $result['errors'][0] ?? '' );
-			$conflict = in_array( $code, array( 'recruitment_definitive_import_requires_preliminary', 'recruitment_definitive_import_blocked_by_calls', 'recruitment_transition_race_lost' ), true )
+			$conflict = in_array( $code, array( 'recruitment_definitive_import_requires_preliminary', 'recruitment_definitive_import_requires_preliminary_list', 'recruitment_definitive_import_blocked_by_calls', 'recruitment_transition_race_lost' ), true )
 				|| 0 === strpos( $code, 'recruitment_invalid_transition' );
 			return $this->wp_error_from_envelope( $result['errors'], $conflict ? 409 : 400 );
 		}
@@ -847,6 +847,10 @@ final class RecruitmentClassificationsRestController {
 		if ( 'preview' !== (string) $cls->list_type ) {
 			return new \WP_Error( 'recruitment_preview_status_only_on_preview_list', __( 'Preliminary status can only be set on classifications in the preview list.', 'ffcertificate' ), array( 'status' => 409 ) );
 		}
+		$notice = RecruitmentNoticeReader::get_by_id( (int) $cls->notice_id );
+		if ( null === $notice || ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::PREVIEW_MARKS, (string) $notice->status ) ) {
+			return new \WP_Error( 'recruitment_preview_status_locked', RecruitmentErrorMessages::translate( 'recruitment_preview_status_locked' ), array( 'status' => 409 ) );
+		}
 
 		$valid_statuses = array( 'empty', 'denied', 'granted', 'appeal_denied', 'appeal_granted' );
 		if ( ! in_array( $preview_status, $valid_statuses, true ) ) {
@@ -917,6 +921,13 @@ final class RecruitmentClassificationsRestController {
 		$cls = RecruitmentClassificationRepository::get_by_id( $id );
 		if ( null === $cls ) {
 			return new \WP_Error( 'ffc_classification_not_found', __( 'Classification not found.', 'ffcertificate' ), array( 'status' => 404 ) );
+		}
+
+		// A published definitive list, and a closed notice, keep each row
+		// under the adjutancy it was published with (#2245).
+		$notice = RecruitmentNoticeReader::get_by_id( (int) $cls->notice_id );
+		if ( null === $notice || ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::ROW_ADJUTANCY, (string) $notice->status ) ) {
+			return new \WP_Error( 'recruitment_row_adjutancy_locked', RecruitmentErrorMessages::translate( 'recruitment_row_adjutancy_locked' ), array( 'status' => 409 ) );
 		}
 
 		$current_adjutancy = (int) $cls->adjutancy_id;

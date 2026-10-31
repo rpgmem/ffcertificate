@@ -354,7 +354,7 @@ final class RecruitmentAdminPageRenderer {
 		$eligible    = array();
 		foreach ( $all_notices as $row ) {
 			$status = isset( $row->status ) ? (string) $row->status : '';
-			if ( 'draft' === $status || 'preliminary' === $status ) {
+			if ( RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::IMPORT_PREVIEW, $status ) ) {
 				$eligible[] = $row;
 			}
 		}

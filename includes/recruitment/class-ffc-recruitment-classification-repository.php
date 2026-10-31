@@ -609,4 +609,24 @@ class RecruitmentClassificationRepository {
 
 		return $count;
 	}
+
+	/**
+	 * Count the rows of one of a notice's lists (#2245).
+	 *
+	 * @param int    $notice_id Notice ID.
+	 * @param string $list_type `preview` or `definitive`.
+	 * @return int
+	 */
+	public static function count_for_notice_list( int $notice_id, string $list_type ): int {
+		$wpdb = self::db();
+
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE notice_id = %d AND list_type = %s',
+				self::get_table_name(),
+				$notice_id,
+				$list_type
+			)
+		);
+	}
 }

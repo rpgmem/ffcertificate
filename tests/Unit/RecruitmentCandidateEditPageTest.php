@@ -374,6 +374,55 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 		$this->assertStringNotContainsString( 'Blocked:', $html );
 	}
 
+	/**
+	 * @return array<string, array{0: string, 1: bool}>
+	 */
+	public static function swap_by_status(): array {
+		return array(
+			'draft'       => array( 'draft', true ),
+			'preliminary' => array( 'preliminary', true ),
+			'definitive'  => array( 'definitive', false ),
+			'closed'      => array( 'closed', false ),
+		);
+	}
+
+	/**
+	 * @dataProvider swap_by_status
+	 */
+	public function test_the_adjutancy_swap_follows_the_notice_status( string $status, bool $swap ): void {
+		$_GET['candidate_id']    = '5';
+		$this->candidates[5]     = $this->candidate();
+		$this->classifications[] = (object) array(
+			'id'           => 10,
+			'candidate_id' => 5,
+			'notice_id'    => 3,
+			'adjutancy_id' => 7,
+			'list_type'    => 'definitive',
+			'rank'         => 1,
+			'score'        => '9.5',
+			'status'       => 'empty',
+		);
+		$this->junction[3]    = array( 7, 8 );
+		$this->notices[3]     = (object) array(
+			'id'     => 3,
+			'code'   => 'ED-01',
+			'status' => $status,
+		);
+		$this->adjutancies[7] = (object) array(
+			'id'   => 7,
+			'slug' => 'mat',
+		);
+		$this->adjutancies[8] = (object) array(
+			'id'   => 8,
+			'slug' => 'hist',
+		);
+
+		$html = $this->capture_output( array( RecruitmentCandidateEditPage::class, 'render' ) );
+
+		$this->assertSame( $swap, str_contains( $html, 'ffc-adjutancy-swap-select' ), 'A row moves to another adjutancy only in draft or preliminary (#2245).' );
+		$this->assertStringContainsString( 'mat', $html );
+	}
+
 	public function test_render_populates_classification_and_history_tables(): void {
 		$_GET['candidate_id'] = '5';
 		$this->candidates[5]  = $this->candidate();
@@ -410,8 +459,9 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 		// The notice has two adjutancies attached ⇒ the swap <select>.
 		$this->junction[3]    = array( 7, 8 );
 		$this->notices[3]     = (object) array(
-			'id'   => 3,
-			'code' => 'ED-01',
+			'id'     => 3,
+			'code'   => 'ED-01',
+			'status' => 'preliminary',
 		);
 		$this->adjutancies[7] = (object) array(
 			'id'   => 7,

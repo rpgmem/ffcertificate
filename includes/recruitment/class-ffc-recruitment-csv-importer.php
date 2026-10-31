@@ -82,7 +82,7 @@ final class RecruitmentCsvImporter {
 		}
 
 		$status = $notice->status;
-		if ( 'draft' !== $status && 'preliminary' !== $status ) {
+		if ( ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::IMPORT_PREVIEW, (string) $status ) ) {
 			return self::failure( 'recruitment_invalid_state_for_preview_import' );
 		}
 
@@ -128,8 +128,13 @@ final class RecruitmentCsvImporter {
 	 * @return string|null Error code, or null.
 	 */
 	public static function definitive_import_block( int $notice_id, string $status ): ?string {
-		if ( 'preliminary' !== $status ) {
+		if ( ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::IMPORT_DEFINITIVE, $status ) ) {
 			return 'recruitment_definitive_import_requires_preliminary';
+		}
+		// The definitive list is drawn from a published preliminary one: with
+		// no preliminary list there is nothing it can be the outcome of (#2245).
+		if ( 0 === RecruitmentClassificationRepository::count_for_notice_list( $notice_id, 'preview' ) ) {
+			return 'recruitment_definitive_import_requires_preliminary_list';
 		}
 		if ( RecruitmentClassificationRepository::count_calls_for_notice( $notice_id ) > 0 ) {
 			return 'recruitment_definitive_import_blocked_by_calls';

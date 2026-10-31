@@ -123,6 +123,13 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	 */
 	private int $notice_calls = 0;
 
+	/**
+	 * Rows of the notice's preliminary list, as `count_for_notice_list()` reads them.
+	 *
+	 * @var int
+	 */
+	private int $preview_rows = 1;
+
 	/** @var array<string, mixed> The stored `ffc_settings` option. */
 	private array $ffc_settings = array();
 
@@ -412,6 +419,9 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		}
 		if ( 0 === strpos( $sql, 'SHOW TABLES LIKE ' ) ) {
 			return null;
+		}
+		if ( 1 === preg_match( "/^SELECT COUNT\\(\\*\\) FROM " . self::T_CLASSIFICATION . " WHERE notice_id = \\d+ AND list_type = '?preview'?$/", $sql ) ) {
+			return (string) $this->preview_rows;
 		}
 		if ( 0 === strpos( $sql, 'SELECT COUNT(*) FROM ' . self::T_CALL . ' c' ) ) {
 			return (string) $this->notice_calls;
@@ -802,6 +812,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_change_classification_adjutancy_returns_409_when_unchanged(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 7, array( 'adjutancy_id' => 5 ) );
 
 		$result = $this->controller->change_classification_adjutancy(
@@ -813,6 +824,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_change_classification_adjutancy_rejects_when_not_attached_to_notice(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 7, array( 'adjutancy_id' => 3 ) );
 
 		$result = $this->controller->change_classification_adjutancy(
@@ -826,6 +838,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_change_classification_adjutancy_success_path_returns_envelope(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 7, array( 'adjutancy_id' => 3 ) );
 		$this->attached[1] = array( 9 );
 
@@ -857,7 +870,36 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @dataProvider adjutancy_row_locked_statuses
+	 */
+	public function test_change_classification_adjutancy_is_refused_once_the_notice_is_past_preliminary( string $status ): void {
+		$this->notice( 1, $status );
+		$this->classification( 7, array( 'adjutancy_id' => 3 ) );
+		$this->attached[1] = array( 9 );
+
+		$result = $this->controller->change_classification_adjutancy(
+			$this->make_request( array( 'id' => 7, 'adjutancy_id' => 9 ) )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_row_adjutancy_locked', $result->get_error_code() );
+		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->writes_to( 'update', self::T_CLASSIFICATION ), 'A published row keeps its adjutancy (#2245).' );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function adjutancy_row_locked_statuses(): array {
+		return array(
+			'definitive' => array( 'definitive' ),
+			'closed'     => array( 'closed' ),
+		);
+	}
+
 	public function test_change_classification_adjutancy_returns_500_when_update_fails(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 7, array( 'adjutancy_id' => 3 ) );
 		$this->attached[1] = array( 9 );
 		$this->update_result[ self::T_CLASSIFICATION ] = false;
@@ -1337,6 +1379,21 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->assertSame( array(), $this->writes_to( 'delete', self::T_CLASSIFICATION ) );
 	}
 
+	public function test_promote_preview_definitive_import_refuses_a_notice_without_a_preliminary_list(): void {
+		$this->notice( 7, 'preliminary' );
+		$this->attach( 7, 3, 'teacher' );
+		$this->preview_rows = 0;
+
+		$result = $this->controller->promote_preview(
+			$this->make_request( array( 'id' => 7, 'mode' => 'definitive_import' ), $this->csv_files( $this->valid_csv() ) )
+		);
+
+		$this->assertSame( 'recruitment_definitive_import_requires_preliminary_list', $result->get_error_code() );
+		$this->assertSame( 409, $result->get_error_data()['status'], 'Nothing to draw a definitive list from (#2245).' );
+		$this->assertSame( array(), $this->writes_to( 'delete', self::T_CLASSIFICATION ) );
+		$this->assertSame( array(), $this->writes_to( 'insert', self::T_CLASSIFICATION ) );
+	}
+
 	public function test_promote_preview_definitive_import_full_success(): void {
 		$this->notice( 7, 'preliminary' );
 		$this->attach( 7, 3, 'teacher' );
@@ -1624,6 +1681,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_preview_status_400_when_status_invalid(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 5, array( 'list_type' => 'preview' ) );
 
 		$result = $this->controller->change_classification_preview_status(
@@ -1636,6 +1694,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_preview_status_400_when_reason_required_but_missing(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 5, array( 'list_type' => 'preview' ) );
 		$this->recruitment_settings = array( 'preview_reason_required_granted' => true );
 
@@ -1649,6 +1708,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_preview_status_404_when_reason_not_found(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 5, array( 'list_type' => 'preview' ) );
 
 		$result = $this->controller->change_classification_preview_status(
@@ -1663,6 +1723,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_preview_status_400_when_reason_status_mismatch(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 5, array( 'list_type' => 'preview' ) );
 		$this->store( self::T_REASON, array( 'id' => 8, 'applies_to' => 'denied' ) );
 
@@ -1678,6 +1739,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_preview_status_400_when_update_fails(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 5, array( 'list_type' => 'preview' ) );
 		$this->update_result[ self::T_CLASSIFICATION ] = false;
 
@@ -1696,6 +1758,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_preview_status_success_with_valid_reason(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 5, array( 'list_type' => 'preview' ) );
 		$this->store( self::T_REASON, array( 'id' => 8, 'applies_to' => 'granted' ) );
 
@@ -1713,6 +1776,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_preview_status_empty_clears_reason_and_succeeds(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 5, array( 'list_type' => 'preview', 'preview_reason_id' => 8 ) );
 
 		$response = $this->controller->change_classification_preview_status(
@@ -1727,6 +1791,34 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->assertCount( 1, $updates );
 		$this->assertSame( 'empty', $updates[0][2]['preview_status'] );
 		$this->assertNull( $updates[0][2]['preview_reason_id'] );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function preview_locked_statuses(): array {
+		return array(
+			'draft'      => array( 'draft' ),
+			'definitive' => array( 'definitive' ),
+			'closed'     => array( 'closed' ),
+		);
+	}
+
+	/**
+	 * @dataProvider preview_locked_statuses
+	 */
+	public function test_preview_status_is_refused_outside_a_preliminary_notice( string $status ): void {
+		$this->notice( 1, $status );
+		$this->classification( 5, array( 'list_type' => 'preview' ) );
+
+		$result = $this->controller->change_classification_preview_status(
+			$this->make_request( array( 'id' => 5, 'preview_status' => 'empty' ) )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_preview_status_locked', $result->get_error_code() );
+		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->writes_to( 'update', self::T_CLASSIFICATION ), 'A draft, definitive or closed notice keeps its preliminary statuses.' );
 	}
 
 	// ------------------------------------------------------------------

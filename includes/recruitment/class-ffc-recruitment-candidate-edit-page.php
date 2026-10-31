@@ -857,7 +857,11 @@ final class RecruitmentCandidateEditPage {
 		$current_obj    = RecruitmentAdjutancyReader::get_by_id( $current_adj_id );
 		$current_label  = null !== $current_obj ? (string) $current_obj->slug : '#' . $current_adj_id;
 
-		if ( count( $candidates ) < 2 ) {
+		// Read-only once the notice has published its definitive list (#2245).
+		$notice   = RecruitmentNoticeReader::get_by_id( $notice_id );
+		$editable = null !== $notice && RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::ROW_ADJUTANCY, (string) $notice->status );
+
+		if ( count( $candidates ) < 2 || ! $editable ) {
 			return '<code>' . esc_html( $current_label ) . '</code>';
 		}
 

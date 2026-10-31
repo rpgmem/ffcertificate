@@ -56,6 +56,9 @@ final class RecruitmentNoticeEditPageRenderer {
 	public static function render_csv_import_section( object $notice ): void {
 		$notice_id = (int) $notice->id;
 		$status    = (string) $notice->status;
+		// The same check the import runs (#2245): the definitive option is
+		// offered only where the import would accept it.
+		$definitive_block = RecruitmentCsvImporter::definitive_import_block( $notice_id, $status );
 
 		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/csv-import-section.php';
 	}
@@ -381,6 +384,9 @@ final class RecruitmentNoticeEditPageRenderer {
 			)
 		);
 
+		// Attach and detach only while the notice may change them (#2245).
+		$editable = RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::ADJUTANCIES, (string) $notice->status );
+
 		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/adjutancies-section.php';
 	}
 
@@ -496,12 +502,17 @@ final class RecruitmentNoticeEditPageRenderer {
 		self::render_classification_filters_form( $notice_id, $filters );
 		$filters_form_html = (string) ob_get_clean();
 
+		// The screen offers only what the notice's status allows (#2245), the
+		// same rules the REST routes enforce: preliminary statuses while the
+		// notice is preliminary, calls and outcomes while it is definitive.
+		$status = (string) $notice->status;
+
 		ob_start();
-		self::render_classifications_table( $preview, false, 'preliminary' );
+		self::render_classifications_table( $preview, false, 'preliminary', RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::PREVIEW_MARKS, $status ) );
 		$preliminary_table_html = (string) ob_get_clean();
 
 		ob_start();
-		self::render_classifications_table( $definitive_rows, RecruitmentNoticeEditPage::can_call(), 'definitive' );
+		self::render_classifications_table( $definitive_rows, RecruitmentNoticeEditPage::can_call() && RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::CALLS, $status ), 'definitive' );
 		$definitive_table_html = (string) ob_get_clean();
 
 		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/classifications-section.php';
@@ -648,9 +659,10 @@ final class RecruitmentNoticeEditPageRenderer {
 	 *                                          to scope the `ffc_cls_paged_<key>`
 	 *                                          URL param so each tab paginates
 	 *                                          independently.
+	 * @param bool               $preview_editable Whether the notice's status takes preliminary status changes.
 	 * @return void
 	 */
-	private static function render_classifications_table( array $rows, bool $with_actions, string $tab_key = 'preliminary' ): void {
+	private static function render_classifications_table( array $rows, bool $with_actions, string $tab_key = 'preliminary', bool $preview_editable = true ): void {
 		if ( empty( $rows ) ) {
 			echo '<p><em>' . esc_html__( '(no rows)', 'ffcertificate' ) . '</em></p>';
 			return;
@@ -684,6 +696,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		// existing Status badge.
 		$is_preview_tab = 'preliminary' === $tab_key;
 		$can_manage     = RecruitmentNoticeEditPage::can_manage();
+		$can_mark       = $can_manage && $preview_editable;
 
 		// The active call of each row that has one, so Cancel and Reopen name
 		// the call they end (#2245). One query for the page.
@@ -747,9 +760,9 @@ final class RecruitmentNoticeEditPageRenderer {
 				$current_preview = isset( $row->preview_status ) ? (string) $row->preview_status : 'empty';
 				$current_reason  = isset( $row->preview_reason_id ) ? (int) $row->preview_reason_id : 0;
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
-				echo '<td>' . self::render_preview_status_select( (int) $row->id, $current_preview, $can_manage ) . '</td>';
+				echo '<td>' . self::render_preview_status_select( (int) $row->id, $current_preview, $can_mark ) . '</td>';
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
-				echo '<td>' . self::render_preview_reason_select( (int) $row->id, $current_preview, $current_reason, $reasons, $can_manage ) . '</td>';
+				echo '<td>' . self::render_preview_reason_select( (int) $row->id, $current_preview, $current_reason, $reasons, $can_mark ) . '</td>';
 			} else {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
 				echo '<td>' . RecruitmentAdminPage::classification_status_badge( (string) $row->status ) . '</td>';

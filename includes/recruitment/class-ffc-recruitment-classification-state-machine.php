@@ -205,7 +205,7 @@ final class RecruitmentClassificationStateMachine {
 			return 'recruitment_call_requires_definitive_list';
 		}
 		$notice = RecruitmentNoticeReader::get_by_id( (int) $classification->notice_id );
-		if ( null === $notice || 'definitive' !== (string) $notice->status ) {
+		if ( null === $notice || ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::CALLS, (string) $notice->status ) ) {
 			return 'recruitment_call_requires_definitive_notice';
 		}
 		return null;
@@ -245,6 +245,13 @@ final class RecruitmentClassificationStateMachine {
 		$classification = RecruitmentClassificationRepository::get_by_id( $classification_id );
 		if ( null === $classification ) {
 			return self::failure( 'recruitment_classification_not_found' );
+		}
+
+		// Undoing a decision is a change to the live list like any outcome
+		// (#2245): a closed notice changes no more.
+		$block = self::live_block( $classification );
+		if ( null !== $block ) {
+			return self::failure( $block );
 		}
 
 		$current = $classification->status;

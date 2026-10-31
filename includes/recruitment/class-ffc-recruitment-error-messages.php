@@ -120,6 +120,7 @@ final class RecruitmentErrorMessages {
 			'recruitment_invalid_state_for_preview_import' => __( 'CSV imports for the preliminary list are only allowed while the notice is in `draft` or `preliminary`.', 'ffcertificate' ),
 			'recruitment_definitive_to_preliminary_blocked_by_calls' => __( 'Cannot move back to preliminary: at least one call has already been issued. Cancel pending calls before reverting.', 'ffcertificate' ),
 			'recruitment_definitive_import_requires_preliminary' => __( 'The definitive list can only be imported while the notice is in `preliminary`. Nothing was imported.', 'ffcertificate' ),
+			'recruitment_definitive_import_requires_preliminary_list' => __( 'Import the preliminary list first: the definitive list is imported only on a notice that has one. Nothing was imported.', 'ffcertificate' ),
 			'recruitment_definitive_import_blocked_by_calls' => __( 'The definitive list cannot be replaced: this notice already has calls. Nothing was imported.', 'ffcertificate' ),
 			'recruitment_state_locked'                     => __( 'This action is not allowed in the notice\'s current state.', 'ffcertificate' ),
 			'recruitment_state_terminal_hired'             => __( 'This candidate has already been hired and cannot be modified.', 'ffcertificate' ),
@@ -170,6 +171,11 @@ final class RecruitmentErrorMessages {
 			'recruitment_cancel_reason_required'           => __( 'A reason is required to cancel this call.', 'ffcertificate' ),
 			'recruitment_out_of_order_requires_reason'     => __( 'Calling out of rank order requires a reason.', 'ffcertificate' ),
 			'recruitment_bulk_call_empty_id_list'          => __( 'Select at least one classification to call in bulk.', 'ffcertificate' ),
+
+			// Notice-status locks (#2245).
+			'recruitment_notice_adjutancies_locked'        => __( 'Adjutancies are attached or detached only while the notice is in draft or preliminary.', 'ffcertificate' ),
+			'recruitment_row_adjutancy_locked'             => __( 'A candidate moves to another adjutancy only while the notice is in draft or preliminary.', 'ffcertificate' ),
+			'recruitment_preview_status_locked'            => __( 'Preliminary statuses and reasons are set only while the notice is preliminary.', 'ffcertificate' ),
 
 			// Preview status / reasons.
 			'recruitment_preview_status_invalid'           => __( 'Invalid preliminary status.', 'ffcertificate' ),
