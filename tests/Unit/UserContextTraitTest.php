@@ -24,6 +24,9 @@ class UserContextTraitTest extends TestCase {
 		Monkey\setUp();
 
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
+		Functions\when( '__' )->returnArg();
+		// The view-as gate asks whether the target account exists (#2246).
+		Functions\when( 'get_userdata' )->alias( static fn( $id ) => 42 === (int) $id ? (object) array( 'ID' => 42 ) : false );
 	}
 
 	protected function tearDown(): void {
@@ -149,5 +152,74 @@ class UserContextTraitTest extends TestCase {
 		$obj = $this->make_trait_user();
 
 		$this->assertFalse( $obj->call_has_capability( 'ffc_view_certificates', 5, false ) );
+	}
+
+	// ==================================================================
+	// rest_permission() — the page's gate on every route (#2246)
+	// ==================================================================
+
+	/**
+	 * Who the current user is, for the view-as gate.
+	 *
+	 * @param array<int, string> $caps Capabilities the current user holds.
+	 */
+	private function as_user_with( array $caps ): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => in_array( $cap, $caps, true ) );
+	}
+
+	public function test_permission_refuses_a_logged_out_caller(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+
+		$this->assertFalse( $this->make_trait_user()->rest_permission( $this->mock_request( null ) ) );
+	}
+
+	public function test_permission_lets_a_signed_in_caller_read_their_own_data(): void {
+		$this->as_user_with( array() );
+
+		$this->assertTrue( $this->make_trait_user()->rest_permission( $this->mock_request( null ) ) );
+		$this->assertTrue( $this->make_trait_user()->rest_permission( $this->mock_request( '' ) ) );
+	}
+
+	/**
+	 * @dataProvider gate_cases
+	 *
+	 * @param array<int, string> $caps     Capabilities held.
+	 * @param string             $target   Requested view-as id.
+	 * @param bool               $expected Whether the gate opens.
+	 */
+	public function test_permission_and_context_answer_the_same_gate( array $caps, string $target, bool $expected ): void {
+		$this->as_user_with( $caps );
+		$obj = $this->make_trait_user();
+
+		$permission = $obj->rest_permission( $this->mock_request( $target ) );
+		$ctx        = $obj->call_resolve( $this->mock_request( $target ) );
+
+		if ( $expected ) {
+			$this->assertTrue( $permission );
+			$this->assertTrue( $ctx['is_view_as'] );
+			$this->assertSame( (int) $target, $ctx['user_id'] );
+		} else {
+			$this->assertInstanceOf( \WP_Error::class, $permission );
+			$this->assertSame( 403, $permission->get_error_data()['status'] );
+			$this->assertFalse( $ctx['is_view_as'], 'A refused target is never read.' );
+			$this->assertSame( 1, $ctx['user_id'] );
+		}
+		// The page asks the same class, so it answers the same way.
+		$this->assertSame( $expected, \FreeFormCertificate\Core\ViewAs::can_view( (int) $target ) );
+	}
+
+	/**
+	 * @return array<string, array{0: array<int, string>, 1: string, 2: bool}>
+	 */
+	public static function gate_cases(): array {
+		return array(
+			'administrator who may edit the account' => array( array( 'manage_options', 'edit_user' ), '42', true ),
+			'delegated view-as who may edit it'      => array( array( 'ffc_view_as_user', 'edit_user' ), '42', true ),
+			'view-as without edit_user'              => array( array( 'ffc_view_as_user' ), '42', false ),
+			'edit_user without view-as'              => array( array( 'edit_user' ), '42', false ),
+			'an account that does not exist'         => array( array( 'manage_options', 'edit_user' ), '999', false ),
+		);
 	}
 }

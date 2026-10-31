@@ -223,8 +223,8 @@ class UserAppointmentsRestControllerTest extends TestCase {
 		$ctrl->register_routes();
 
 		$this->assertSame(
-			'is_user_logged_in',
-			$this->registered_routes[0]['args']['permission_callback']
+			'rest_permission',
+			$this->registered_routes[0]['args']['permission_callback'][1]
 		);
 	}
 
@@ -566,6 +566,8 @@ class UserAppointmentsRestControllerTest extends TestCase {
 	 * token, which opens their receipt unmasked and cancels as a guest.
 	 */
 	public function test_view_as_returns_no_receipt_url_and_masks_the_contact(): void {
+		// The view-as gate needs an account that exists (#2246).
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 5 ) );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );

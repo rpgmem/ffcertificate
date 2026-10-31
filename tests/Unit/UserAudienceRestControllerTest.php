@@ -570,8 +570,8 @@ class UserAudienceRestControllerTest extends TestCase {
 
 		foreach ( $this->registered_routes as $route ) {
 			$this->assertSame(
-				'is_user_logged_in',
-				$route['args']['permission_callback'],
+				'rest_permission',
+				$route['args']['permission_callback'][1],
 				"Route {$route['route']} should require authentication"
 			);
 		}
@@ -863,6 +863,8 @@ class UserAudienceRestControllerTest extends TestCase {
 	}
 
 	public function test_viewing_as_a_user_asks_for_the_post_event_form_without_its_link(): void {
+		// The view-as gate needs an account that exists (#2246).
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 5 ) );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'user_can' )->justReturn( true );

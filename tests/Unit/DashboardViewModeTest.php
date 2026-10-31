@@ -52,6 +52,7 @@ class DashboardViewModeTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'get_user_by' )->justReturn( false );
+		Functions\when( 'get_userdata' )->justReturn( false );
 	}
 
 	protected function tearDown(): void {
@@ -106,7 +107,7 @@ class DashboardViewModeTest extends TestCase {
 		$_GET['ffc_view_as_user'] = '999';
 		$_GET['ffc_view_nonce'] = 'valid_nonce';
 
-		Functions\when( 'get_user_by' )->justReturn( false );
+		Functions\when( 'get_userdata' )->justReturn( false );
 
 		$result = DashboardViewMode::get_view_as_user_id();
 
@@ -122,11 +123,42 @@ class DashboardViewModeTest extends TestCase {
 
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
-		Functions\when( 'get_user_by' )->justReturn( $user );
+		Functions\when( 'get_userdata' )->justReturn( $user );
 
 		$result = DashboardViewMode::get_view_as_user_id();
 
 		$this->assertSame( 42, $result );
+	}
+
+	/**
+	 * #2246 — the page needs edit_user on the account, like every route.
+	 */
+	public function test_get_view_as_returns_false_without_edit_user_on_the_target(): void {
+		$_GET['ffc_view_as_user'] = '42';
+		$_GET['ffc_view_nonce']   = 'valid_nonce';
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'edit_user' !== $cap );
+		Functions\when( 'get_userdata' )->justReturn( new \WP_User( 42 ) );
+
+		$this->assertFalse( DashboardViewMode::get_view_as_user_id() );
+		$this->assertTrue( DashboardViewMode::is_view_as_request(), 'The link is there, so the page says it is not valid.' );
+	}
+
+	public function test_a_request_without_the_link_is_not_a_view_as_request(): void {
+		$this->assertFalse( DashboardViewMode::is_view_as_request() );
+		$_GET['ffc_view_as_user'] = '42';
+		$this->assertFalse( DashboardViewMode::is_view_as_request(), 'Both halves of the link are needed.' );
+	}
+
+	public function test_the_invalid_link_notice_is_an_alert_naming_the_way_back(): void {
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+
+		$html = DashboardViewMode::render_invalid_link_notice();
+
+		$this->assertStringContainsString( 'role="alert"', $html );
+		$this->assertStringContainsString( 'data-ffc-notice="view-as-invalid"', $html );
+		$this->assertStringContainsString( 'Users screen', $html );
 	}
 
 	// ==================================================================

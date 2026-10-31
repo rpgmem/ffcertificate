@@ -532,6 +532,7 @@ class DashboardShortcodeTest extends TestCase {
 				? $this->user( 55, 'Viewed User', 'viewed@example.org' )
 				: $this->user( (int) $id, 'Member', 'member@example.org' )
 		);
+		Functions\when( 'get_userdata' )->alias( fn ( $id ) => $this->user( (int) $id, 'Member', 'member@example.org' ) );
 		Functions\when( 'wp_get_current_user' )->justReturn( $this->user( 1, 'Site Admin', 'admin@example.org' ) );
 		// Every capability check returns true so all cap-gated tabs render.
 		Functions\when( 'user_can' )->justReturn( true );
@@ -644,6 +645,21 @@ class DashboardShortcodeTest extends TestCase {
 		$this->assertStringContainsString( 'Admin View Mode', $output );
 		$this->assertStringContainsString( '<strong>Viewed User (v***@example.org)</strong>', $output, 'The viewed user is named, the address masked (#1863).' );
 		$this->assertSame( 55, $this->preparedWith( 'SELECT s.*, r.title AS reregistration_title' )[0][3] ?? null, 'The dashboard reads the viewed user\'s data.' );
+	}
+
+	/**
+	 * #2246 — a view-as link the gate refuses shows a notice instead of
+	 * falling back to the administrator's own dashboard.
+	 */
+	public function test_render_replaces_the_dashboard_with_a_notice_for_a_refused_view_as_link(): void {
+		$this->wireFullRenderCollaborators( true );
+		$_GET['ffc_view_nonce'] = 'expired-nonce';
+
+		$output = DashboardShortcode::render();
+
+		$this->assertStringContainsString( 'data-ffc-notice="view-as-invalid"', $output );
+		$this->assertStringNotContainsString( 'data-ffc-notice="admin-viewing"', $output );
+		$this->assertStringNotContainsString( 'ffc-tabpanel-', $output, 'No dashboard of anybody renders under the link.' );
 	}
 
 	// ==================================================================
