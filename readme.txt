@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.8
 Tested up to: 7.1.4
-Stable tag: 6.42.0
+Stable tag: 6.43.0
 Requires PHP: 8.3
 License: AGPLv3 or later
 License URI: https://www.gnu.org/licenses/agpl-3.0.html
@@ -279,8 +279,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.42.0 =
-⚠ GPS areas are decided by the server, per area, and "GPS or IP" passes on either. A form whose layout lacks a required tag no longer saves. New: bulk issue from CSV, announcements, multi-day audience bookings with QR attendance and post-event forms, a device test.
+= 6.43.0 =
+⚠ Four Encryption helpers are removed, the operator PDF route needs ffc_view_certificates_pii, and GET /candidates/{id} returns pcd per classification. New: weekly audience series, personal-calendar attendance and blocked dates, reregistration review reasons, address from CEP.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one

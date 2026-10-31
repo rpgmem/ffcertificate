@@ -5,7 +5,7 @@
  * Finds the published page that embeds a shortcode for one record.
  *
  * @package FreeFormCertificate\Core
- * @since 6.44.0
+ * @since 6.43.0
  */
 
 declare(strict_types=1);
