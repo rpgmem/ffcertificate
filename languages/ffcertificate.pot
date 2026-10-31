@@ -30835,5 +30835,5 @@ msgid "Hired, withdrew, did not show up, the presentation deadline passed, or th
 msgstr ""
 
 #: includes/settings/views/documentation/feature-user-dashboard.php
-msgid "When a notice is closed, its rows leave Called and Waiting and are listed under Closed. A row with no result yet reads \"Notice closed\"; a recorded result or a passed deadline keeps its own badge. Only the label changes: the candidate's status in the notice stays as it was."
+msgid "Closed shows each row's position and score, as Waiting does. When a notice is closed, its rows leave Called and Waiting and are listed under Closed. A row with no result yet reads \"Notice closed\"; a recorded result or a passed deadline keeps its own badge. Only the label changes: the candidate's status in the notice stays as it was."
 msgstr ""

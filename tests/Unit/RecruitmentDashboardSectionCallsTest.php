@@ -598,4 +598,18 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 		$this->assertStringNotContainsString( 'id="ffc-mycalls-waiting"', $html );
 		$this->assertStringContainsString( '<span class="ffc-pill ffc-mycalls-badge-notice-closed">Notice closed</span>', $this->section( $html, 'closed' ) );
 	}
+
+	public function test_a_closed_row_shows_its_position_and_score(): void {
+		$this->wire(
+			array( $this->cls( 7, 10, 'definitive', 'hired' ) ),
+			array( 10 => $this->notice( 10, 'definitive' ) ),
+			array( $this->call( 101, 7 ) )
+		);
+
+		$closed = $this->section( RecruitmentDashboardSection::render_for_user( 9, self::NOW ), 'closed' );
+
+		$this->assertStringContainsString( '<th scope="col">Position</th><th scope="col">Score</th><th scope="col">Status</th>', $closed );
+		$this->assertStringContainsString( 'data-label="Position">7</td>', $closed );
+		$this->assertStringContainsString( 'data-label="Score">87.50</td>', $closed );
+	}
 }
