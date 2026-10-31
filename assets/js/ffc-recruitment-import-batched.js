@@ -37,6 +37,9 @@
 	// Error code of an import that waits for the comparison to be confirmed (#2245).
 	var DIFF_CODE = 'recruitment_reimport_needs_confirmation';
 
+	// Seconds the replace button waits, the same as the promotion dialog's.
+	var DIFF_COUNTDOWN = 15;
+
 	/**
 	 * Run the staging-based import flow.
 	 *
@@ -365,7 +368,9 @@
 				body: s.body || '',
 				consequences: summary,
 				cta: s.cta || 'Replace list',
-				icon: 'upload'
+				icon: 'upload',
+				// The plugin's countdown, so the list is read before it is replaced.
+				countdown: DIFF_COUNTDOWN
 			}, function () { resolve(true); }, function () { resolve(false); });
 		});
 	}

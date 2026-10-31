@@ -458,6 +458,7 @@ describe('ffcRecruitmentImportBatched — re-import comparison (#2245)', () => {
 
 		expect(modal).toHaveBeenCalledTimes(1);
 		expect(modal.mock.calls[0][0].consequences).toEqual(['1 row enters the list.']);
+		expect(modal.mock.calls[0][0].countdown).toBe(15);
 		expect(list.textContent).toBe('Enters: Ana, Science, rank 1.');
 		expect(JSON.parse(fetchMock.mock.calls[3][1].body).confirm_reimport).toBeUndefined();
 		expect(JSON.parse(fetchMock.mock.calls[4][1].body)).toEqual({ job_id: 'JOB-1', confirm_reimport: true });
