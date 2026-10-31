@@ -190,8 +190,8 @@ class BlockedDateRepository extends AbstractRepository {
 	 * @return bool
 	 */
 	private static function overlaps( array $block, string $start, ?string $end_time ): bool {
-		$block_start = (string) ( $block['start_time'] ?? '' );
-		$block_end   = (string) ( $block['end_time'] ?? '' );
+		$block_start = ArrayValue::string( $block, 'start_time' );
+		$block_end   = ArrayValue::string( $block, 'end_time' );
 		if ( null === $end_time || '' === $end_time ) {
 			return $start >= $block_start && $start < $block_end;
 		}
@@ -213,14 +213,14 @@ class BlockedDateRepository extends AbstractRepository {
 	 */
 	public function isCovered( int $calendar_id, string $type, string $start_date, string $end_date, ?string $start_time = null, ?string $end_time = null ): bool {
 		foreach ( $this->findByCalendar( $calendar_id ) as $block ) {
-			$from = (string) ( $block['start_date'] ?? '' );
-			$to   = (string) ( $block['end_date'] ?? '' );
+			$from = ArrayValue::string( $block, 'start_date' );
+			$to   = ArrayValue::string( $block, 'end_date' );
 			$to   = '' === $to ? $from : $to;
 			if ( 'full_day' === ( $block['block_type'] ?? '' ) && $from <= $start_date && $to >= $end_date ) {
 				return true;
 			}
 			if ( 'time_range' === $type && 'time_range' === ( $block['block_type'] ?? '' ) && $from === $start_date
-				&& (string) ( $block['start_time'] ?? '' ) <= (string) $start_time && (string) ( $block['end_time'] ?? '' ) >= (string) $end_time ) {
+				&& ArrayValue::string( $block, 'start_time' ) <= (string) $start_time && ArrayValue::string( $block, 'end_time' ) >= (string) $end_time ) {
 				return true;
 			}
 		}
