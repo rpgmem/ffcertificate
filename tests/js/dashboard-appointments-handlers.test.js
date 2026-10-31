@@ -10,6 +10,10 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { installDashboardFixtures, loadDashboardCore, loadPanel, flushPromises } from './dashboard-fixtures.js';
 
+// What the dashboard's message region says: alerts left for it (#2246).
+const flashText = () => (document.getElementById('ffc-dashboard-flash') || { textContent: '' }).textContent;
+afterEach(() => { const el = document.getElementById('ffc-dashboard-flash'); if (el) el.remove(); });
+
 beforeAll(() => {
 	installDashboardFixtures();
 	Object.assign(window.ffcDashboard.strings, {
@@ -343,7 +347,6 @@ describe('appointments cancellation dialog', () => {
 
 	it('on success: closes the dialog, alerts, clears state, repaints and reloads', async () => {
 		mountCancelButton();
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		const loadSpy = vi.spyOn(panel(), 'load').mockImplementation(() => {});
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
 
@@ -352,7 +355,7 @@ describe('appointments cancellation dialog', () => {
 		await flushPromises();
 
 		expect(dialog()).toBeNull();
-		expect(alertSpy).toHaveBeenCalledWith('Cancelled OK');
+		expect(flashText()).toBe('Cancelled OK');
 		expect(panel().state).toBeNull();
 		expect(document.getElementById('ffc-tabpanel-appointments').innerHTML).toContain('Loading');
 		expect(loadSpy).toHaveBeenCalled();
@@ -360,7 +363,6 @@ describe('appointments cancellation dialog', () => {
 
 	it('on response.success=false: alerts the server message and leaves the dialog open', async () => {
 		mountCancelButton();
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({
 			done: { success: false, data: { message: 'Already cancelled' } },
 		}));
@@ -369,7 +371,7 @@ describe('appointments cancellation dialog', () => {
 		window.$('.ffc-cancel-confirm').trigger('click');
 		await flushPromises();
 
-		expect(alertSpy).toHaveBeenCalledWith('Already cancelled');
+		expect(flashText()).toBe('Already cancelled');
 		// Left open on purpose: the reason the person typed is still in the
 		// field, so a retry does not start from a blank form.
 		expect(dialog()).not.toBeNull();
@@ -377,7 +379,6 @@ describe('appointments cancellation dialog', () => {
 
 	it('on response.success=false without data.message: falls back to the localised error', async () => {
 		mountCancelButton();
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({
 			done: { success: false, data: {} },
 		}));
@@ -386,19 +387,18 @@ describe('appointments cancellation dialog', () => {
 		window.$('.ffc-cancel-confirm').trigger('click');
 		await flushPromises();
 
-		expect(alertSpy).toHaveBeenCalledWith('Cancel failed');
+		expect(flashText()).toBe('Cancel failed');
 	});
 
 	it('on network error: alerts the localised error', async () => {
 		mountCancelButton();
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
 		openDialog();
 		window.$('.ffc-cancel-confirm').trigger('click');
 		await flushPromises();
 
-		expect(alertSpy).toHaveBeenCalledWith('Cancel failed');
+		expect(flashText()).toBe('Cancel failed');
 	});
 });
 
@@ -470,7 +470,6 @@ describe('appointments reschedule', () => {
 
 	it('cancels with the fixed reason, then opens the calendar page instead of reloading', async () => {
 		mount(66);
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		const loadSpy = vi.spyOn(panel(), 'load').mockImplementation(() => {});
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
 
@@ -484,20 +483,19 @@ describe('appointments reschedule', () => {
 			reason: 'Rescheduled by the participant',
 		});
 		expect(assigned).toEqual([BOOK]);
-		expect(alertSpy).not.toHaveBeenCalled();
+		expect(flashText()).toBe('');
 		expect(loadSpy).not.toHaveBeenCalled();
 	});
 
 	it('stays on the dashboard when the cancellation is refused', async () => {
 		mount();
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Too late' } } }));
 
 		window.$('.ffc-reschedule-appointment').trigger('click');
 		window.$('.ffc-reschedule-confirm').trigger('click');
 		await flushPromises();
 
-		expect(alertSpy).toHaveBeenCalledWith('Too late');
+		expect(flashText()).toBe('Too late');
 		expect(assigned).toEqual([]);
 	});
 

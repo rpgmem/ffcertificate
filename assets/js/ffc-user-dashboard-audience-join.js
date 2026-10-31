@@ -209,13 +209,12 @@
                 // The group's bookings already made are now the member's
                 // too (#2243): say so before the panel redraws.
                 if (response && response.upcoming > 0 && response.message) {
-                    alert(response.message);
+                    FFCDashboard.helpers.flash('info', response.message);
                 }
                 FFCDashboard.panels.profile.reload();
             })
             .catch(function (err) {
-                var msg = (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
-                alert(msg);
+                FFCDashboard.helpers.flash('danger', FFCDashboard.helpers.errorMessage(err));
                 $btn.prop('disabled', false).text(ffcDashboard.strings.joinGroup || 'Join');
             });
     }
@@ -246,8 +245,7 @@
         FFC.rest(url, { method: 'POST', data: { group_id: groupId }, nonce: ffcDashboard.nonce })
             .then(function () { FFCDashboard.panels.profile.reload(); })
             .catch(function (err) {
-                var msg = (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
-                alert(msg);
+                FFCDashboard.helpers.flash('danger', FFCDashboard.helpers.errorMessage(err));
                 $btn.prop('disabled', false).text(ffcDashboard.strings.leaveGroup || 'Leave');
             });
     }
@@ -263,8 +261,7 @@
         FFC.rest(url, { method: 'POST', data: { from_group_id: fromId, group_id: toId }, nonce: ffcDashboard.nonce })
             .then(function () { FFCDashboard.panels.profile.reload(); })
             .catch(function (err) {
-                var msg = (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
-                alert(msg);
+                FFCDashboard.helpers.flash('danger', FFCDashboard.helpers.errorMessage(err));
                 $btn.prop('disabled', false);
             });
     }
@@ -331,8 +328,7 @@
                 FFCDashboard.panels.profile.reload();
             })
             .catch(function (err) {
-                var m = (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
-                alert(m);
+                FFCDashboard.helpers.flash('danger', FFCDashboard.helpers.errorMessage(err));
                 $btn.prop('disabled', false).text(ffcDashboard.strings.leaveAllGroups || 'Leave all groups');
             });
     }

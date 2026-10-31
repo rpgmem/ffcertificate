@@ -31341,3 +31341,39 @@ msgstr "Mensagens por data FFC"
 #: includes/privacy/class-ffc-privacy-exporters.php
 msgid "Date it was about"
 msgstr "Data a que se referia"
+
+#: includes/shortcodes/class-ffc-dashboard-shortcode.php
+msgid "This invitation link has expired or was already used. If you already chose a password, log in; otherwise ask for a new one."
+msgstr "Este link de convite expirou ou já foi usado. Se você já escolheu uma senha, faça login; caso contrário, peça uma nova."
+
+#: includes/api/class-ffc-user-summary-rest-controller.php
+msgid "Error loading the summary"
+msgstr "Erro ao carregar o resumo"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Search this list"
+msgstr "Pesquisar nesta lista"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "No results for these filters."
+msgstr "Nenhum resultado para estes filtros."
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Clear filters"
+msgstr "Limpar filtros"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Your session has expired. Reload the page to continue."
+msgstr "Sua sessão expirou. Recarregue a página para continuar."
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "The Certificates tab lists each certificate with its form, issue date, consent, e-mail, authentication code and a Download PDF button where the account may download. The From and To dates filter by the day the certificate was issued, in the site's timezone, and the search matches the form name and the code. The e-mail shows only as a placeholder until Reveal is pressed. Without the certificate history capability only the most recent certificate of each form is listed, and the Certificates card at the top counts the same certificates the tab lists."
+msgstr "A aba Certificados lista cada certificado com o formulário, a data de emissão, o consentimento, o e-mail, o código de autenticação e um botão Baixar PDF quando a conta pode baixar. As datas De e Até filtram pelo dia em que o certificado foi emitido, no fuso horário do site, e a pesquisa procura no nome do formulário e no código. O e-mail aparece só como um marcador até que se clique em Revelar. Sem a capacidade de histórico de certificados, só o certificado mais recente de cada formulário é listado, e o cartão Certificados no topo conta os mesmos certificados que a aba lista."
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "A tab appears only when the account holds its capability and its module is switched on in Settings → Modules; a link to a tab the account does not have opens the first tab it does have. A filter that matches nothing says so, with a button to clear it. When the session expires, the dashboard says so once, with a button to reload the page, and the browser's Back button returns to the previous tab."
+msgstr "Uma aba só aparece quando a conta tem a capacidade correspondente e o módulo dela está ligado em Configurações → Módulos; um link para uma aba que a conta não tem abre a primeira aba que ela tem. Um filtro que não encontra nada avisa, com um botão para limpá-lo. Quando a sessão expira, o painel avisa uma vez, com um botão para recarregar a página, e o botão Voltar do navegador retorna à aba anterior."
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "A link that has expired or was already used opens the login notice with a message saying so and a button to ask for a new password."
+msgstr "Um link que expirou ou já foi usado abre o aviso de login com uma mensagem dizendo isso e um botão para pedir uma nova senha."

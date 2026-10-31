@@ -140,10 +140,10 @@
                     window.location.assign(next);
                     return;
                 }
-                alert(ffcDashboard.strings.cancelSuccess);
+                helpers.flash('success', ffcDashboard.strings.cancelSuccess);
                 var panel = FFCDashboard.panels.appointments;
                 panel.state = null;
-                $('#ffc-tabpanel-appointments').html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
+                $('#ffc-tabpanel-appointments').html('<div class="ffc-loading" role="status">' + ffcDashboard.strings.loading + '</div>');
                 panel.load();
             })
             .catch(function (err) {
@@ -151,8 +151,7 @@
                 // caller-specific cancelError string when the server didn't
                 // include one or when the request failed at the network
                 // layer (err.fromServer === false in both cases).
-                var msg = (err && err.fromServer) ? err.message : ffcDashboard.strings.cancelError;
-                alert(msg);
+                helpers.flash('danger', (err && err.fromServer) ? err.message : ffcDashboard.strings.cancelError);
             });
     }
 
@@ -179,9 +178,12 @@
 
         var html = '<tr' + (rowClass ? ' class="' + rowClass + '"' : '') + '>';
         html += '<td>' + helpers.esc(apt.calendar_title) + '</td>';
-        html += '<td>' + apt.appointment_date + '</td>';
-        html += '<td>' + apt.start_time + '</td>';
-        html += '<td><span class="ffc-pill ffc-dashboard-status-' + apt.status + '">' + apt.status_label + '</span></td>';
+        // Every value is text, and the status names a class only once it is
+        // reduced to the characters a class may hold (#2246).
+        var statusSlug = helpers.classSlug(apt.status);
+        html += '<td>' + helpers.esc(apt.appointment_date) + '</td>';
+        html += '<td>' + helpers.esc(apt.start_time) + '</td>';
+        html += '<td><span class="ffc-pill ffc-dashboard-status-' + statusSlug + '">' + helpers.esc(apt.status_label) + '</span></td>';
         html += '<td>';
 
         if (apt.receipt_url) {
@@ -293,7 +295,7 @@
 
             if (this.state !== null) return;
 
-            $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
+            $container.html('<div class="ffc-loading" role="status">' + ffcDashboard.strings.loading + '</div>');
 
             var url = ffcDashboard.restUrl + 'user/appointments';
             if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
@@ -367,6 +369,7 @@
             this.sections = sections;
 
             var html = filterHtml;
+            if (filtered.length === 0) html += helpers.buildNoResults('appointments');
             var self = this;
             SECTION_ORDER.forEach(function (key) {
                 html += self.buildSectionHtml(key);

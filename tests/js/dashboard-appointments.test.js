@@ -183,3 +183,27 @@ describe('FFCDashboard.panels.appointments.render', () => {
 		expect(document.querySelectorAll('#ffc-tabpanel-appointments .status-confirmed').length).toBe(0);
 	});
 });
+
+describe('FFCDashboard.panels.appointments — escaping (#2246)', () => {
+	it('prints every value as text and keeps the status class to class characters', () => {
+		panel().render([makeAppt({
+			appointment_date: '<i>d</i>',
+			start_time: '<i>t</i>',
+			status: 'confirmed" onclick="x',
+			status_label: '<img src=x>',
+		})], 1);
+		const container = document.getElementById('ffc-tabpanel-appointments');
+		expect(container.querySelector('tbody i, tbody img')).toBeNull();
+		const pill = container.querySelector('.ffc-pill');
+		expect(pill.getAttribute('onclick')).toBeNull();
+		expect(pill.className).toContain('ffc-dashboard-status-confirmedonclickx');
+	});
+
+	it('says when a filter matches nothing', () => {
+		const appts = [makeAppt()];
+		panel().render(appts, 1);
+		document.querySelector('#ffc-tabpanel-appointments .ffc-filter-search').value = 'no-such-thing';
+		panel().render(appts, 1);
+		expect(document.querySelector('#ffc-tabpanel-appointments .ffc-empty-filtered')).not.toBeNull();
+	});
+});

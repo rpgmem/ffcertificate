@@ -31259,3 +31259,39 @@ msgstr ""
 #: includes/privacy/class-ffc-privacy-exporters.php
 msgid "Date it was about"
 msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-shortcode.php
+msgid "This invitation link has expired or was already used. If you already chose a password, log in; otherwise ask for a new one."
+msgstr ""
+
+#: includes/api/class-ffc-user-summary-rest-controller.php
+msgid "Error loading the summary"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Search this list"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "No results for these filters."
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Clear filters"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Your session has expired. Reload the page to continue."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "The Certificates tab lists each certificate with its form, issue date, consent, e-mail, authentication code and a Download PDF button where the account may download. The From and To dates filter by the day the certificate was issued, in the site's timezone, and the search matches the form name and the code. The e-mail shows only as a placeholder until Reveal is pressed. Without the certificate history capability only the most recent certificate of each form is listed, and the Certificates card at the top counts the same certificates the tab lists."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "A tab appears only when the account holds its capability and its module is switched on in Settings → Modules; a link to a tab the account does not have opens the first tab it does have. A filter that matches nothing says so, with a button to clear it. When the session expires, the dashboard says so once, with a button to reload the page, and the browser's Back button returns to the previous tab."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "A link that has expired or was already used opens the login notice with a message saying so and a button to ask for a new password."
+msgstr ""

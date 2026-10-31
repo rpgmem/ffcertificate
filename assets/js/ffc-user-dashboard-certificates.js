@@ -33,7 +33,7 @@
             })
             .catch(function () {
                 $btn.prop('disabled', false);
-                window.alert(ffcDashboard.strings.revealError || 'Unable to reveal this value.');
+                helpers.flash('danger', ffcDashboard.strings.revealError || 'Unable to reveal this value.');
             });
     }
 
@@ -60,7 +60,7 @@
 
             if (this.state !== null) return;
 
-            $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
+            $container.html('<div class="ffc-loading" role="status">' + ffcDashboard.strings.loading + '</div>');
 
             var url = ffcDashboard.restUrl + 'user/certificates';
             if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
@@ -98,10 +98,14 @@
             var filtered = certificates;
             if (fromVal || toVal || searchVal) {
                 filtered = certificates.filter(function (c) {
-                    if (fromVal && c.submission_date_raw < fromVal) return false;
-                    if (toVal && c.submission_date_raw > toVal) return false;
+                    // The site-timezone day against the two date inputs; the
+                    // raw value is a timestamp, which no date string orders
+                    // against (#2246).
+                    if (fromVal && (c.submission_day || '') < fromVal) return false;
+                    if (toVal && (c.submission_day || '') > toVal) return false;
                     if (searchVal) {
-                        var hay = (c.form_title + ' ' + c.email + ' ' + c.auth_code).toLowerCase();
+                        // The placeholder is not an address: only a revealed one is searched.
+                        var hay = (c.form_title + ' ' + (c.email_revealed ? c.email : '') + ' ' + c.auth_code).toLowerCase();
                         if (hay.indexOf(searchVal.toLowerCase()) === -1) return false;
                     }
                     return true;
@@ -112,6 +116,13 @@
             var pageItems = filtered.slice(start, start + pageSize);
 
             var html = filterHtml;
+            if (filtered.length === 0) {
+                $container.html(html + helpers.buildNoResults('certificates'));
+                $container.find('.ffc-filter-from').val(fromVal);
+                $container.find('.ffc-filter-to').val(toVal);
+                $container.find('.ffc-filter-search').val(searchVal);
+                return;
+            }
             html += '<table class="ffc-certificates-table">';
             html += '<thead><tr>';
             html += '<th>' + ffcDashboard.strings.eventName + '</th>';
@@ -125,7 +136,7 @@
             pageItems.forEach(function (cert) {
                 html += '<tr>';
                 html += '<td>' + helpers.esc(cert.form_title) + '</td>';
-                html += '<td>' + cert.submission_date + '</td>';
+                html += '<td>' + helpers.esc(cert.submission_date) + '</td>';
                 html += '<td><span class="' + (cert.consent_given ? 'ffc-consent-yes' : 'ffc-consent-no') + '">';
                 html += (cert.consent_given ? ffcDashboard.strings.yes : ffcDashboard.strings.no);
                 html += '</span></td>';

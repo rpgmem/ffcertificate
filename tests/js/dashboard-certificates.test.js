@@ -10,6 +10,10 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { installDashboardFixtures, loadDashboardCore, loadPanel, flushPromises } from './dashboard-fixtures.js';
 
+// What the dashboard's message region says: alerts left for it (#2246).
+const flashText = () => (document.getElementById('ffc-dashboard-flash') || { textContent: '' }).textContent;
+afterEach(() => { const el = document.getElementById('ffc-dashboard-flash'); if (el) el.remove(); });
+
 beforeAll(() => {
 	installDashboardFixtures();
 	Object.assign(window.ffcDashboard.strings, {
@@ -37,7 +41,8 @@ function makeCert(over = {}) {
 	return Object.assign({
 		form_title: 'Sample event',
 		submission_date: '01/01/2026',
-		submission_date_raw: '2026-01-01',
+		submission_date_raw: 1767225600,
+		submission_day: '2026-01-01',
 		consent_given: 1,
 		email: 'user@example.com',
 		auth_code: 'CODE123',
@@ -139,9 +144,9 @@ describe('FFCDashboard.panels.certificates.render', () => {
 
 	it('filters out rows outside the from/to date range', () => {
 		const certs = [
-			makeCert({ submission_date_raw: '2026-01-01', auth_code: 'EARLY' }),
-			makeCert({ submission_date_raw: '2026-06-15', auth_code: 'MID' }),
-			makeCert({ submission_date_raw: '2026-12-31', auth_code: 'LATE' }),
+			makeCert({ submission_day: '2026-01-01', auth_code: 'EARLY' }),
+			makeCert({ submission_day: '2026-06-15', auth_code: 'MID' }),
+			makeCert({ submission_day: '2026-12-31', auth_code: 'LATE' }),
 		];
 		panel().render(certs, 1);
 		document.querySelector('#ffc-tabpanel-certificates .ffc-filter-from').value = '2026-03-01';
@@ -156,6 +161,32 @@ describe('FFCDashboard.panels.certificates.render', () => {
 // ----------------------------------------------------------------------
 // load() — guard / AJAX flow
 // ----------------------------------------------------------------------
+
+describe('FFCDashboard.panels.certificates — filters (#2246)', () => {
+	it('says when a filter matches nothing, with a button to clear it', () => {
+		const certs = [makeCert({ submission_day: '2026-01-01' })];
+		panel().render(certs, 1);
+		document.querySelector('#ffc-tabpanel-certificates .ffc-filter-from').value = '2027-01-01';
+		panel().render(certs, 1);
+		const container = document.getElementById('ffc-tabpanel-certificates');
+		expect(container.querySelector('table')).toBeNull();
+		expect(container.querySelector('.ffc-empty-filtered .ffc-filter-clear')).not.toBeNull();
+		expect(container.querySelector('.ffc-filter-from').value).toBe('2027-01-01');
+	});
+
+	it('does not search the e-mail placeholder', () => {
+		const certs = [makeCert({ email: '***@***', email_revealed: false, auth_code: 'A1' })];
+		panel().render(certs, 1);
+		document.querySelector('#ffc-tabpanel-certificates .ffc-filter-search').value = '***';
+		panel().render(certs, 1);
+		expect(document.querySelectorAll('#ffc-tabpanel-certificates table tbody tr').length).toBe(0);
+	});
+
+	it('escapes the issue date', () => {
+		panel().render([makeCert({ submission_date: '<b>x</b>' })], 1);
+		expect(document.querySelector('#ffc-tabpanel-certificates tbody b')).toBeNull();
+	});
+});
 
 describe('FFCDashboard.panels.certificates.load', () => {
 	afterEach(() => {
@@ -352,12 +383,11 @@ describe('FFCDashboard.panels.certificates — reveal', () => {
 			opts.error({ status: 403, responseJSON: { message: 'No.' } }, 'error', 'Forbidden');
 			return {};
 		});
-		window.alert = vi.fn();
 
 		window.$('.ffc-certificate-reveal-btn[data-id="1"]').trigger('click');
 		await flushPromises();
 
-		expect(window.alert).toHaveBeenCalledWith('Unable to reveal this value.');
+		expect(flashText()).toBe('Unable to reveal this value.');
 		expect(window.$('.ffc-certificate-reveal-btn[data-id="1"]').prop('disabled')).toBe(false);
 	});
 });

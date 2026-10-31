@@ -399,6 +399,35 @@ class DashboardShortcodeTest extends TestCase {
 		$this->assertSame( array(), $this->prepared, 'A visitor costs no query.' );
 	}
 
+	/**
+	 * #2246 — an invitation link that no longer works says so on the login
+	 * notice, with the way to ask for a new password.
+	 */
+	public function test_render_says_an_invitation_link_expired(): void {
+		$_COOKIE[ \FreeFormCertificate\Core\PasswordInvite::COOKIE ] = 'member:stale-key';
+		Functions\when( 'add_filter' )->justReturn( true );
+		Functions\when( 'remove_filter' )->justReturn( true );
+		Functions\when( 'sanitize_user' )->returnArg();
+		Functions\when( 'check_password_reset_key' )->justReturn( new \WP_Error( 'expired_key', 'x' ) );
+
+		try {
+			$output = DashboardShortcode::render();
+		} finally {
+			unset( $_COOKIE[ \FreeFormCertificate\Core\PasswordInvite::COOKIE ] );
+		}
+
+		$this->assertStringContainsString( 'data-ffc-notice="invite-expired"', $output );
+		$this->assertStringContainsString( 'This invitation link has expired or was already used.', $output );
+		$this->assertStringContainsString( 'action=lostpassword', $output );
+		$this->assertStringContainsString( 'data-ffc-notice="login-required"', $output, 'The login notice still follows.' );
+	}
+
+	public function test_render_shows_no_invite_notice_without_a_link(): void {
+		$output = DashboardShortcode::render();
+
+		$this->assertStringNotContainsString( 'invite-expired', $output );
+	}
+
 	// ==================================================================
 	// render() — logged in, shows dashboard
 	// ==================================================================
@@ -593,6 +622,49 @@ class DashboardShortcodeTest extends TestCase {
 		// Reregistration form panel present when reregistrations tab visible.
 		$this->assertStringContainsString( 'ffc-rereg-form-panel', $output );
 		$this->assertSame( 1, $this->preparedWith( 'SELECT s.*, r.title AS reregistration_title' )[0][3] ?? null, 'The tab gate reads the current user\'s submissions.' );
+	}
+
+	/**
+	 * #2246 — a `?tab=` the account does not have opens the default tab
+	 * instead of a dashboard with no active panel.
+	 */
+	public function test_render_falls_back_to_the_default_tab_for_an_unknown_tab(): void {
+		$this->wireFullRenderCollaborators( false );
+		$_GET['tab'] = 'no-such-tab';
+
+		$output = DashboardShortcode::render();
+
+		$this->assertMatchesRegularExpression( '#class="ffc-tab is-active"\s+data-tab="certificates"#', $output );
+		$this->assertMatchesRegularExpression( '#class="ffc-tab-content is-active"\s+id="ffc-tabpanel-certificates"#', $output );
+	}
+
+	public function test_render_keeps_a_tab_the_account_has(): void {
+		$this->wireFullRenderCollaborators( false );
+		$_GET['tab'] = 'profile';
+
+		$output = DashboardShortcode::render();
+
+		$this->assertMatchesRegularExpression( '#class="ffc-tab is-active"\s+data-tab="profile"#', $output );
+	}
+
+	/**
+	 * #2246 — a module switched off takes its tab with it, whatever the
+	 * account holds, and a link to that tab falls back.
+	 */
+	public function test_render_hides_the_tabs_of_disabled_modules(): void {
+		$this->wireFullRenderCollaborators( false );
+		$this->settings['module_certificates_enabled']    = 0;
+		$this->settings['module_self_scheduling_enabled'] = 0;
+		$this->settings['module_recruitment_enabled']     = 0;
+		$_GET['tab'] = 'certificates';
+
+		$output = DashboardShortcode::render();
+
+		$this->assertStringNotContainsString( 'ffc-tab-certificates', $output );
+		$this->assertStringNotContainsString( 'ffc-tab-appointments', $output );
+		$this->assertStringNotContainsString( 'ffc-tab-recruitment', $output );
+		$this->assertStringContainsString( 'ffc-tab-audience', $output, 'A module left on keeps its tab.' );
+		$this->assertMatchesRegularExpression( '#class="ffc-tab is-active"\s+data-tab="audience"#', $output );
 	}
 
 	/**
