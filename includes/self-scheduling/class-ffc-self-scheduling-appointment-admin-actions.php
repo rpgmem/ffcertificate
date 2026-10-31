@@ -176,6 +176,39 @@ class AppointmentAdminActions {
 	}
 
 	/**
+	 * Mark several appointments as no-show at once (#2244).
+	 *
+	 * Each is marked under the same rule as the row action: it must be
+	 * confirmed and its date must have come, in the site time zone. The
+	 * write is conditional on the status, so a row another request changed
+	 * meanwhile is skipped rather than overwritten.
+	 *
+	 * @param array<int, int> $ids Appointment IDs.
+	 * @return array{marked: int, skipped: int}
+	 */
+	public function mark_no_show_many( array $ids ): array {
+		$today  = wp_date( 'Y-m-d' );
+		$result = array(
+			'marked'  => 0,
+			'skipped' => 0,
+		);
+		foreach ( array_unique( array_filter( array_map( 'intval', $ids ) ) ) as $id ) {
+			$appointment = $this->appointments->findById( $id );
+			$date        = is_array( $appointment ) ? \FreeFormCertificate\Core\ArrayValue::string( $appointment, 'appointment_date' ) : '';
+			if ( ! is_array( $appointment ) || 'confirmed' !== ( $appointment['status'] ?? '' ) || '' === $date || $date > $today ) {
+				++$result['skipped'];
+				continue;
+			}
+			if ( $this->appointments->markNoShow( $id ) ) {
+				++$result['marked'];
+			} else {
+				++$result['skipped'];
+			}
+		}
+		return $result;
+	}
+
+	/**
 	 * The notifier, built on first use.
 	 *
 	 * @return AppointmentHandler

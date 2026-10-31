@@ -141,6 +141,19 @@ class AppointmentsListTable extends \WP_List_Table {
 	}
 
 	/**
+	 * Bulk actions: no-show for the confirmed appointments whose date has
+	 * come (#2244), to the holders of the manage capability.
+	 *
+	 * @return array<string, string>
+	 */
+	protected function get_bulk_actions(): array {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_appointments' ) ) {
+			return array();
+		}
+		return array( 'bulk_no_show' => __( 'Mark as no-show', 'ffcertificate' ) );
+	}
+
+	/**
 	 * ID column
 	 *
 	 * @param array<string, mixed> $item Row data.

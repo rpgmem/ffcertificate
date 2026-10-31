@@ -19500,12 +19500,6 @@ msgstr "Sim! As migrações apenas copiam os dados para novas colunas; seus dado
 msgid "You (%1$s) are viewing the dashboard as: %2$s"
 msgstr "Você (%1$s) está visualizando o painel como: %2$s"
 
-#. %1$d: number of hours, %2$s: next available date/time
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:439
-#, php-format
-msgid "You already have an appointment scheduled within the next %1$d hours. You can book again after %2$s."
-msgstr "Você já possui um agendamento nos próximos %1$d horas. Você pode agendar novamente após %2$s."
-
 #: includes/security/class-ffc-rate-limit-checker.php:74 includes/settings/tabs/class-ffc-tab-rate-limit.php:74
 msgid "You already have {count} certificates."
 msgstr "Você já possui {count} certificados."
@@ -22765,9 +22759,6 @@ msgstr "Revelar sob demanda o CPF / RF / e-mail descriptografados, e o IP na tel
 
 msgid "Minimum interval between bookings"
 msgstr "Intervalo mínimo entre agendamentos"
-
-msgid "Stops a user from booking again within this many hours of their last booking (default 24; 0 disables it)."
-msgstr "Impede que um usuário agende novamente dentro desse número de horas após o seu último agendamento (padrão 24; 0 desativa)."
 
 msgid "Business-hours restrictions"
 msgstr "Restrições ao horário de funcionamento"
@@ -30612,3 +30603,58 @@ msgstr "Quando um calendário regular já tem agendamentos, salvar uma mudança 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php
 msgid "This calendar has bookings: a change to the duration, the break or the working hours that would move or remove the slot of an open appointment is refused on save, and the appointments that hold it are listed."
 msgstr "Este calendário tem agendamentos: uma mudança na duração, no intervalo ou nos horários de funcionamento que moveria ou removeria o horário de um agendamento aberto é recusada ao salvar, e os agendamentos que o seguram são listados."
+
+#. translators: 1: number marked, 2: number skipped.
+#: includes/self-scheduling/views/appointments-list.php:80
+msgid "%1$d marked as no-show; %2$d skipped (only confirmed appointments whose date has come can be marked)."
+msgstr "%1$d marcado(s) como não comparecimento; %2$d ignorado(s) (só agendamentos confirmados cuja data já chegou podem ser marcados)."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-cancellation-handler.php:336
+msgid "Cancel and book a new time"
+msgstr "Cancelar e agendar novo horário"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:153
+msgid "Mark as no-show"
+msgstr "Marcar como não comparecimento"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:300
+msgid "Reschedule"
+msgstr "Reagendar"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:301
+msgid "Reschedule appointment"
+msgstr "Reagendar agendamento"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-cancellation-handler.php:267
+msgid "Rescheduled by the participant"
+msgstr "Reagendado pelo participante"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-cancellation-handler.php:341
+msgid "This appointment is cancelled first, then the calendar opens so you can pick a new time. The old time is released at once and may be taken by someone else."
+msgstr "Este agendamento é cancelado primeiro e depois o calendário abre para você escolher um novo horário. O horário antigo é liberado na hora e pode ser ocupado por outra pessoa."
+
+#. translators: 1: date and time of the last appointment, 2: minimum hours between appointments.
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:607
+msgid "Your last appointment on this calendar is on %1$s. A new one must be at least %2$d hours before or after it."
+msgstr "Seu último agendamento neste calendário é em %1$s. Um novo precisa estar pelo menos %2$d horas antes ou depois dele."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:46
+msgid "A new booking must start at least this many hours before or after the person's last booking on the same calendar (default 24; 0 disables it). Cancelled bookings do not count, so cancelling to rebook is never blocked by the old time."
+msgstr "Um novo agendamento precisa começar pelo menos este número de horas antes ou depois do último agendamento da pessoa no mesmo calendário (padrão 24; 0 desativa). Agendamentos cancelados não contam, então cancelar para reagendar nunca é barrado pelo horário antigo."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:64
+msgid "Mark as no-show in the bulk actions does the same for several rows at once; a selected row that is not confirmed, or whose date has not come, is skipped and counted in the notice."
+msgstr "Marcar como não comparecimento, nas ações em massa, faz o mesmo em várias linhas de uma vez; uma linha selecionada que não esteja confirmada, ou cuja data ainda não chegou, é ignorada e contada no aviso."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:62
+msgid "Wherever cancelling is allowed and the calendar is published on a page, the dashboard offers Reschedule and the cancellation link offers Cancel and book a new time: the appointment is cancelled with the reason \"Rescheduled by the participant\" (unless the person typed one) and the calendar's page opens to pick a new time. The old time is released at once, so it is not held for the new booking."
+msgstr "Onde o cancelamento é permitido e o calendário está publicado em uma página, o painel oferece Reagendar e o link de cancelamento oferece Cancelar e agendar novo horário: o agendamento é cancelado com o motivo \"Reagendado pelo participante\" (a menos que a pessoa tenha digitado um) e a página do calendário abre para escolher um novo horário. O horário antigo é liberado na hora, então não fica reservado para o novo agendamento."
+
+#. translators: 1: date and time of the person's other appointment, 2: minimum hours between appointments
+#: includes/api/class-ffc-user-appointments-rest-controller.php:300
+msgid "You also have an appointment on this calendar on %1$s. The new time must be at least %2$d hours before or after it."
+msgstr "Você também tem um agendamento neste calendário em %1$s. O novo horário precisa estar pelo menos %2$d horas antes ou depois dele."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:62
+msgid "When the calendar sets a minimum interval and the person holds another appointment on it, the dashboard's Reschedule dialog names that appointment first, because the new time is measured from it."
+msgstr "Quando o calendário define um intervalo mínimo e a pessoa tem outro agendamento nele, o diálogo Reagendar do painel mostra esse agendamento antes, porque o novo horário é medido a partir dele."

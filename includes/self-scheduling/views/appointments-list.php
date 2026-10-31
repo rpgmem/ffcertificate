@@ -57,6 +57,37 @@ if ( 'close_old' === $ffcertificate_action ) {
 	exit;
 }
 
+// Bulk no-show (#2244): the list table's bulk-actions select, top or bottom.
+$ffcertificate_bulk = \FreeFormCertificate\Core\RequestInput::get_get_string( 'action' );
+if ( '' === $ffcertificate_bulk || '-1' === $ffcertificate_bulk ) {
+	$ffcertificate_bulk = \FreeFormCertificate\Core\RequestInput::get_get_string( 'action2' );
+}
+if ( 'bulk_no_show' === $ffcertificate_bulk ) {
+	if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_appointments' ) ) {
+		wp_die( esc_html__( 'You do not have permission to perform this action.', 'ffcertificate' ) );
+	}
+	check_admin_referer( 'bulk-appointments' );
+
+	$ffcertificate_bulk_result = ( new \FreeFormCertificate\SelfScheduling\AppointmentAdminActions() )->mark_no_show_many(
+		array_map( 'intval', \FreeFormCertificate\Core\RequestInput::get_get_raw_array( 'appointment' ) )
+	);
+	set_transient(
+		'ffc_admin_notice_' . get_current_user_id(),
+		array(
+			'type'    => $ffcertificate_bulk_result['marked'] > 0 ? 'success' : 'warning',
+			'message' => sprintf(
+				/* translators: 1: appointments marked no-show, 2: appointments skipped */
+				__( '%1$d marked as no-show; %2$d skipped (only confirmed appointments whose date has come can be marked).', 'ffcertificate' ),
+				$ffcertificate_bulk_result['marked'],
+				$ffcertificate_bulk_result['skipped']
+			),
+		),
+		30
+	);
+	wp_safe_redirect( $ffcertificate_appointments_url );
+	exit;
+}
+
 if ( $ffc_self_scheduling_appointment_id > 0 ) {
 
 	// Verify user has admin permissions.

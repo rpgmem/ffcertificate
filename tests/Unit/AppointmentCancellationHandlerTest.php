@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use FreeFormCertificate\Tests\Support\CallLog;
 use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -430,6 +431,103 @@ class AppointmentCancellationHandlerTest extends TestCase {
 		$this->assert_captured_contains( $captured, 'Appointment cancelled' );
 	}
 
+	/**
+	 * "Cancel and book a new time" (#2244): the reason is filled in when the
+	 * person typed none, and the browser goes to the calendar's page.
+	 */
+	public function test_process_cancellation_redirects_to_the_booking_page_on_reschedule(): void {
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'sanitize_textarea_field' )->returnArg();
+		$_POST['ffc_cancel_reason'] = '';
+		$redirected = array();
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( $url ) use ( &$redirected ) {
+				$redirected[] = $url;
+				throw new \RuntimeException( 'redirect' );
+			}
+		);
+
+		$appt_handler = Mockery::mock( 'FreeFormCertificate\SelfScheduling\AppointmentHandler' );
+		$appt_handler->shouldReceive( 'cancel_appointment' )->once()->with( 42, 'tok', 'Rescheduled by the participant' )->andReturn( true );
+
+		Functions\when( 'add_filter' )->justReturn( true );
+		Functions\when( 'add_action' )->justReturn( true );
+		$handler = new AppointmentCancellationHandler( $appt_handler );
+
+		try {
+			$this->invoke_process_cancellation( $handler, 42, 'tok', 'https://example.com/book/' );
+			$this->fail( 'Expected the redirect to end the request.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect', $e->getMessage() );
+		}
+
+		$this->assertSame( array( 'https://example.com/book/' ), $redirected );
+	}
+
+	/**
+	 * A refused cancellation does not redirect: the person stays to read why
+	 * and still holds the booking.
+	 */
+	public function test_process_cancellation_does_not_redirect_when_refused(): void {
+		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
+		Functions\when( 'sanitize_textarea_field' )->returnArg();
+		$log = CallLog::record( 'wp_safe_redirect', null );
+
+		$appt_handler = Mockery::mock( 'FreeFormCertificate\SelfScheduling\AppointmentHandler' );
+		$appt_handler->shouldReceive( 'cancel_appointment' )->andReturn( new \WP_Error( 'ffc_cancel_deadline', 'too late' ) );
+
+		Functions\when( 'add_filter' )->justReturn( true );
+		Functions\when( 'add_action' )->justReturn( true );
+		$handler  = new AppointmentCancellationHandler( $appt_handler );
+		$captured = $this->stub_render_capture();
+
+		try {
+			$this->invoke_process_cancellation( $handler, 42, 'tok', 'https://example.com/book/' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'render-page', $e->getMessage() );
+		}
+
+		$this->assert_captured_contains( $captured, 'too late' );
+		$this->assertSame( 0, $log->count() );
+	}
+
+	/**
+	 * The second button appears only when the calendar is published on a
+	 * page; the plain confirm is always there.
+	 */
+	public function test_confirm_form_offers_rebooking_only_when_the_calendar_is_on_a_page(): void {
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'get_post_field' )->justReturn( '[ffc_self_scheduling id="31"]' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/book/' );
+		$appointment = array(
+			'appointment_date' => '2026-05-20',
+			'start_time'       => '09:00:00',
+		);
+
+		foreach ( array( 'published' => array( 70 ), 'unpublished' => array() ) as $case => $pages ) {
+			Functions\when( 'get_posts' )->justReturn( $pages );
+			$captured = $this->stub_render_capture();
+			$handler  = $this->make_handler();
+			$ref      = new \ReflectionMethod( AppointmentCancellationHandler::class, 'render_confirm_form' );
+			$ref->setAccessible( true );
+			ob_start();
+			try {
+				$ref->invoke( $handler, $appointment, array( 'title' => 'Clinic', 'post_id' => 31 ) );
+			} catch ( \RuntimeException $e ) {
+				$this->assertSame( 'render-page', $e->getMessage() );
+			}
+			ob_end_clean();
+
+			$labels = $captured->getArrayCopy();
+			$this->assertContains( 'Confirm cancellation', $labels, $case );
+			if ( 'published' === $case ) {
+				$this->assertContains( 'Cancel and book a new time', $labels );
+			} else {
+				$this->assertNotContains( 'Cancel and book a new time', $labels );
+			}
+		}
+	}
+
 	// ---- the document head --------------------------------------------
 
 	/**
@@ -557,9 +655,9 @@ class AppointmentCancellationHandlerTest extends TestCase {
 	/**
 	 * Invoke the private process_cancellation().
 	 */
-	private function invoke_process_cancellation( AppointmentCancellationHandler $handler, int $id, string $token ): void {
+	private function invoke_process_cancellation( AppointmentCancellationHandler $handler, int $id, string $token, string $next = '' ): void {
 		$ref = new \ReflectionMethod( AppointmentCancellationHandler::class, 'process_cancellation' );
 		$ref->setAccessible( true );
-		$ref->invoke( $handler, $id, $token );
+		$ref->invoke( $handler, $id, $token, $next );
 	}
 }

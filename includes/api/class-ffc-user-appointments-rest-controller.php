@@ -118,6 +118,7 @@ class UserAppointmentsRestController {
 			$calendars_map = ! empty( $calendar_ids ) ? $calendar_repository->findByIds( $calendar_ids ) : array();
 
 			$appointments_formatted = array();
+			$booking_pages          = array();
 
 			foreach ( $appointments as $appointment ) {
 				if ( empty( $appointment['id'] ) ) {
@@ -208,6 +209,19 @@ class UserAppointmentsRestController {
 					}
 				}
 
+				// Reschedule is cancel-then-book (#2244): offered where cancelling
+				// is, and only when the calendar is published on a page the
+				// person can return to. One lookup per calendar.
+				$reschedule_url = '';
+				if ( $can_cancel && ! $ctx['is_view_as'] && $calendar && ! empty( $calendar['post_id'] ) ) {
+					$calendar_post = (int) $calendar['post_id'];
+					if ( ! isset( $booking_pages[ $calendar_post ] ) ) {
+						$booking_pages[ $calendar_post ] = \FreeFormCertificate\Core\ShortcodePage::url( 'ffc_self_scheduling', $calendar_post );
+					}
+					$reschedule_url = $booking_pages[ $calendar_post ];
+				}
+				$reschedule_note = ( '' !== $reschedule_url && is_array( $calendar ) ) ? self::interval_note( $appointment, $appointments, $calendar ) : '';
+
 				$appointments_formatted[] = array(
 					'id'                   => (int) $appointment['id'],
 					'calendar_id'          => (int) ( $appointment['calendar_id'] ?? 0 ),
@@ -227,6 +241,8 @@ class UserAppointmentsRestController {
 					'created_at'           => $appointment['created_at'] ?? '',
 					'can_cancel'           => $can_cancel,
 					'receipt_url'          => $receipt_url,
+					'reschedule_url'       => $reschedule_url,
+					'reschedule_note'      => $reschedule_note,
 				);
 			}
 
@@ -256,5 +272,49 @@ class UserAppointmentsRestController {
 				array( 'status' => 500 )
 			);
 		}
+	}
+
+	/**
+	 * What the interval rule will hold a rescheduled booking to (#2244).
+	 *
+	 * Once this appointment is cancelled, the validator measures the new time
+	 * from the person's last other non-cancelled appointment on the same
+	 * calendar (the highest id). Saying so before the cancellation keeps the
+	 * person from releasing a slot they then cannot replace.
+	 *
+	 * @param array<string, mixed>             $appointment  The row being rescheduled.
+	 * @param array<int, array<string, mixed>> $appointments Every row of the person.
+	 * @param array<string, mixed>             $calendar     Its calendar row.
+	 * @return string '' when the rule does not apply.
+	 */
+	private static function interval_note( array $appointment, array $appointments, array $calendar ): string {
+		$hours = isset( $calendar['minimum_interval_between_bookings'] ) && is_numeric( $calendar['minimum_interval_between_bookings'] ) ? (int) $calendar['minimum_interval_between_bookings'] : 0;
+		if ( $hours <= 0 ) {
+			return '';
+		}
+
+		$last = null;
+		foreach ( $appointments as $other ) {
+			if ( (int) ( $other['id'] ?? 0 ) === (int) ( $appointment['id'] ?? 0 )
+				|| 'cancelled' === ( $other['status'] ?? '' )
+				|| (int) ( $other['calendar_id'] ?? 0 ) !== (int) ( $appointment['calendar_id'] ?? 0 ) ) {
+				continue;
+			}
+			if ( null === $last || (int) ( $other['id'] ?? 0 ) > (int) ( $last['id'] ?? 0 ) ) {
+				$last = $other;
+			}
+		}
+		if ( null === $last ) {
+			return '';
+		}
+
+		$when = ( new \DateTimeImmutable( \FreeFormCertificate\Core\ArrayValue::string( $last, 'appointment_date' ) . ' ' . \FreeFormCertificate\Core\ArrayValue::string( $last, 'start_time' ), wp_timezone() ) )->getTimestamp();
+
+		return sprintf(
+			/* translators: 1: date and time of the person's other appointment, 2: minimum hours between appointments */
+			__( 'You also have an appointment on this calendar on %1$s. The new time must be at least %2$d hours before or after it.', 'ffcertificate' ),
+			\FreeFormCertificate\Core\DateFormatter::format_datetime( $when ),
+			$hours
+		);
 	}
 }
