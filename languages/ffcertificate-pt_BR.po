@@ -3321,10 +3321,6 @@ msgstr "Calendário — Detalhes (GET /calendars/{id})"
 msgid "Calendar — List (GET /calendars)"
 msgstr "Calendário — Lista (GET /calendars)"
 
-#: includes/settings/views/ffc-tab-rate-limit.php:234
-msgid "Calendar — Slots (GET /calendars/{id}/slots)"
-msgstr "Calendário — Vagas (GET /calendars/{id}/slots)"
-
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:442
 msgid "Calendar-deletion cancellation"
 msgstr "Cancelamento por exclusão de calendário"
@@ -30413,3 +30409,11 @@ msgstr "O agendamento terminaria depois da meia-noite."
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:224
 msgid "The selected time is not one of this calendar's slots."
 msgstr "O horário selecionado não é um dos horários deste calendário."
+
+#: includes/settings/views/ffc-tab-rate-limit.php:362
+msgid "Calendar — Slots (GET /calendars/{id}/slots, and the booking form's slot and month reads)"
+msgstr "Calendário — Vagas (GET /calendars/{id}/slots, e as leituras de vagas e do mês do formulário de agendamento)"
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:58
+msgid "The account is created or linked only once the booking is accepted, so a refused booking leaves no account and sends no e-mail. A guest booking files only itself under the account: older unlinked records carrying the same CPF/RF are claimed when the person logs in or through Identity Resolution, never from a public form. Booking counts against the IP limit on the Rate Limit tab, and the slot and month reads against the Calendar — Slots read limit."
+msgstr "A conta é criada ou vinculada só depois que o agendamento é aceito, então um agendamento recusado não deixa conta nem envia e-mail. Um agendamento de visitante vincula à conta apenas a si mesmo: registros antigos sem vínculo com o mesmo CPF/RF são associados quando a pessoa entra na conta ou pela Resolução de identidade, nunca a partir de um formulário público. O agendamento conta no limite por IP da aba Taxa Limite, e as leituras de vagas e do mês no limite de leitura Calendário — Vagas."

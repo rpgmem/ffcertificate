@@ -1123,6 +1123,18 @@ class AppointmentRestControllerTest extends TestCase {
 		$this->assertCount( 1, $this->appointment_inserts );
 	}
 
+	/**
+	 * The account an appointment was linked to after its insert (#2244), or null.
+	 */
+	private function linked_user( int $appointment_id ): ?int {
+		foreach ( $this->updates as $update ) {
+			if ( ( $update[1]['id'] ?? null ) === $appointment_id && isset( $update[0]['user_id'] ) ) {
+				return (int) $update[0]['user_id'];
+			}
+		}
+		return null;
+	}
+
 	public function test_create_appointment_files_the_booking_under_the_persons_existing_account(): void {
 		$this->sign_in_as_operator( 5 );
 		$this->settings['enable_activity_log'] = 1;
@@ -1143,7 +1155,8 @@ class AppointmentRestControllerTest extends TestCase {
 		$this->assertTrue( $result['success'] );
 		$this->assertCount( 1, $this->appointment_inserts );
 		$row = $this->appointment_inserts[0];
-		$this->assertSame( self::PERSON_ID, $row['user_id'], 'The booking belongs to the account the CPF resolves to.' );
+		$this->assertArrayNotHasKey( 'user_id', $row, 'The row is inserted before any account is touched (#2244).' );
+		$this->assertSame( self::PERSON_ID, $this->linked_user( self::FIRST_NEW_ID ), 'The booking belongs to the account the CPF resolves to.' );
 		$this->assertArrayNotHasKey( 'booked_by', $row, 'Who booked it is not a column.' );
 		$this->assertSame( array(), $this->created_accounts, 'A known person gets no second account.' );
 		$this->assertSame( array(), $this->profile_writes, 'The index already held the CPF, so nothing was rewritten.' );
@@ -1178,8 +1191,7 @@ class AppointmentRestControllerTest extends TestCase {
 		$this->assertTrue( $result['success'] );
 		$this->assertSame( array( array( 'ana', 'ana@example.com' ) ), $this->created_accounts, 'One account, for the e-mail the operator sent.' );
 		$row = $this->appointment_inserts[0];
-		$this->assertSame( self::NEW_ACCOUNT_ID, $row['user_id'], 'The booking belongs to the new account.' );
-		$this->assertNotSame( 5, $row['user_id'] );
+		$this->assertSame( self::NEW_ACCOUNT_ID, $this->linked_user( self::FIRST_NEW_ID ), 'The booking belongs to the new account.' );
 		$this->assertArrayNotHasKey( 'booked_by', $row, 'Who booked it is not a column.' );
 		$this->assertSame(
 			SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A ),

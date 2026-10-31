@@ -159,11 +159,6 @@ class AppointmentHandler {
 		$data['consent_date'] = time();
 		// consent_ip is stored via user_ip_encrypted (same IP, encrypted).
 
-		// Create or link user if CPF/RF is provided and user is not logged in.
-		if ( ! empty( $data['cpf_rf'] ) && empty( $data['user_id'] ) ) {
-			$this->create_or_link_user( $data );
-		}
-
 		// Set initial status.
 		$data['status'] = $calendar['requires_approval'] ? 'pending' : 'confirmed';
 
@@ -229,6 +224,21 @@ class AppointmentHandler {
 			return new \WP_Error( 'booking_error', __( 'An error occurred while booking. Please try again.', 'ffcertificate' ) );
 		}
 		// === END TRANSACTION ===.
+
+		// The account is created or linked only now, once the booking is real
+		// (#2244): a refused booking used to leave an account behind and send
+		// its welcome e-mail. The row was inserted without a user and is
+		// linked here.
+		if ( ! empty( $data['cpf_rf'] ) && empty( $data['user_id'] ) ) {
+			try {
+				$this->create_or_link_user( $data );
+				if ( ! empty( $data['user_id'] ) ) {
+					$this->appointment_repository->update( (int) $appointment_id, array( 'user_id' => (int) $data['user_id'] ) );
+				}
+			} catch ( \Throwable $e ) {
+				$this->log_post_commit_failure( 'user_link', (int) $appointment_id, $e );
+			}
+		}
 
 		// A booking confirmed over the calendar's rules is recorded (#1859).
 		if ( ! empty( $override_reasons ) ) {
@@ -841,7 +851,12 @@ class AppointmentHandler {
 					$rf_hash,
 					(string) $data['email'],
 					$submission_data,
-					\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_APPOINTMENT
+					\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_APPOINTMENT,
+					true,
+					// A public booking proves no identifier: it claims no one
+					// else's unlinked records (#2244). Staff booking on a
+					// person's behalf is logged in, and does.
+					is_user_logged_in()
 				);
 
 				if ( ! is_wp_error( $user_id ) && $user_id > 0 ) {

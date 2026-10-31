@@ -59,6 +59,8 @@ class SensitiveFieldPolicyTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The submission resolver asks who is submitting (#2244): an anonymous visitor.
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
 
 		$this->wpdb_backup = array( array_key_exists( 'wpdb', $GLOBALS ), $GLOBALS['wpdb'] ?? null );
 

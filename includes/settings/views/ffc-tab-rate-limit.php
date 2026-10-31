@@ -359,7 +359,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 
 	<?php
 	$ffc_read_endpoints = array(
-		'calendar_slots'    => __( 'Calendar — Slots (GET /calendars/{id}/slots)', 'ffcertificate' ),
+		'calendar_slots'    => __( 'Calendar — Slots (GET /calendars/{id}/slots, and the booking form\'s slot and month reads)', 'ffcertificate' ),
 		'calendar_list'     => __( 'Calendar — List (GET /calendars)', 'ffcertificate' ),
 		'calendar_detail'   => __( 'Calendar — Detail (GET /calendars/{id})', 'ffcertificate' ),
 		'audience_bookings' => __( 'Audience calendar — Bookings (GET /audience/bookings), counted for logged-in users too', 'ffcertificate' ),

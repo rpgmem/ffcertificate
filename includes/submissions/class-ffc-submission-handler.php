@@ -261,7 +261,12 @@ class SubmissionHandler {
 					$rf_hash_val,
 					$user_email,
 					$submission_data,
-					\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_CERTIFICATE
+					\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_CERTIFICATE,
+					true,
+					// An anonymous form proves no identifier, so it claims no
+					// one else's unlinked records (#2244); a logged-in person,
+					// or Identity Resolution, does.
+					is_user_logged_in()
 				);
 
 				if ( ! is_wp_error( $user_result ) ) {

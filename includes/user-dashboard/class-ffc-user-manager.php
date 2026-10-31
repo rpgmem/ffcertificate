@@ -56,10 +56,11 @@ class UserManager {
 	 * @param string               $context         Context.
 	 * @param bool                 $notify          Whether a CREATED user is sent
 	 *                                              the account notification.
+	 * @param bool                 $adopt           Whether the user claims unlinked records (#2244).
 	 * @return int|\WP_Error User ID on success, WP_Error on failure.
 	 */
-	public static function get_or_create_user_dual( ?string $cpf_hash, ?string $rf_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE, bool $notify = true ) {
-		return UserCreator::get_or_create_user_dual( $cpf_hash, $rf_hash, $email, $submission_data, $context, $notify );
+	public static function get_or_create_user_dual( ?string $cpf_hash, ?string $rf_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE, bool $notify = true, bool $adopt = true ) {
+		return UserCreator::get_or_create_user_dual( $cpf_hash, $rf_hash, $email, $submission_data, $context, $notify, $adopt );
 	}
 
 	/**
