@@ -24933,7 +24933,7 @@ msgid "The automatically scored questions earned %1$d of %2$d points. The passin
 msgstr ""
 
 #: includes/settings/views/documentation/submissions-list.php:23
-msgid "The table shows the id, form, email, a short preview of non-sensitive fields, status and date. You can filter by one or more forms and switch between Published, Trash, and the quiz states (Retry, Failed, Awaiting Grading). The search box matches a submission id, an auth code, or an exact email, CPF or RF. Personal columns are decrypted only for the row display; the preview never includes email, CPF/RF or the auth code."
+msgid "The table shows the id, form, email, a short preview of non-sensitive fields, status and date. You can filter by one or more forms and switch between Published, Trash, and the quiz states (Retry, Failed, Awaiting Grading). The search box matches a submission id, an auth code, an exact email, CPF or RF, or part of the name of the account a submission is linked to; a submission sent without an account is not found by name, because its name is stored only encrypted. Personal columns are decrypted only for the row display; the preview never includes email, CPF/RF or the auth code."
 msgstr ""
 
 #: includes/admin/class-ffc-quiz-grading-handler.php:291
