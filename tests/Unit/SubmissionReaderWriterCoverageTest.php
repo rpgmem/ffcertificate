@@ -59,6 +59,9 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 			}
 		);
 
+		// No account matches a name search unless a test says otherwise.
+		Functions\when( 'get_users' )->justReturn( array() );
+
 		class_exists( '\\FreeFormCertificate\\Repositories\\SubmissionReader' );
 		class_exists( '\\FreeFormCertificate\\Repositories\\SubmissionWriter' );
 
@@ -723,6 +726,52 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 		list( $miss, $sql ) = $this->search_sql( 'maria silva', false, null );
 		$this->assertStringContainsString( "data LIKE '%maria silva%'", $miss );
 		$this->assertCount( 1, preg_grep( "/SELECT 1 FROM .* status = 'publish' AND \\(/", $sql ), 'The probe keeps the list\'s filters.' );
+	}
+
+	public function test_a_name_finds_the_submissions_of_the_accounts_it_matches(): void {
+		$queries = array();
+		Functions\when( 'get_users' )->alias(
+			static function ( array $args ) use ( &$queries ): array {
+				$queries[] = $args;
+				return array( '7', '12' );
+			}
+		);
+
+		list( $fragment ) = $this->search_sql( 'maria silva', true );
+
+		$this->assertStringContainsString( 'user_id IN (7, 12)', $fragment );
+		$this->assertSame( '*maria silva*', $queries[0]['search'] );
+		$this->assertSame( array( 'display_name', 'user_login', 'user_nicename' ), $queries[0]['search_columns'] );
+		$this->assertSame( 'ID', $queries[0]['fields'] );
+		$this->assertSame( 200, $queries[0]['number'], 'A broad term must not expand into every account.' );
+	}
+
+	public function test_a_name_no_account_matches_adds_no_user_condition(): void {
+		list( $fragment ) = $this->search_sql( 'maria silva', true );
+
+		$this->assertStringNotContainsString( 'user_id IN', $fragment );
+	}
+
+	/**
+	 * @dataProvider terms_that_never_ask_for_accounts
+	 */
+	public function test_a_number_an_email_or_one_letter_never_asks_for_accounts( string $term ): void {
+		$log = \FreeFormCertificate\Tests\Support\CallLog::record( 'get_users', array() );
+
+		$this->search_sql( $term, true );
+
+		$this->assertSame( 0, $log->count() );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function terms_that_never_ask_for_accounts(): array {
+		return array(
+			'id'     => array( '42' ),
+			'e-mail' => array( 'maria@example.test' ),
+			'letter' => array( 'm' ),
+		);
 	}
 
 	// ==================================================================

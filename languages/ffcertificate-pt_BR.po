@@ -25015,8 +25015,8 @@ msgid "The automatically scored questions earned %1$d of %2$d points. The passin
 msgstr "As questões corrigidas automaticamente somaram %1$d de %2$d pontos. A nota de aprovação é %3$d%%."
 
 #: includes/settings/views/documentation/submissions-list.php:23
-msgid "The table shows the id, form, email, a short preview of non-sensitive fields, status and date. You can filter by one or more forms and switch between Published, Trash, and the quiz states (Retry, Failed, Awaiting Grading). The search box matches a submission id, an auth code, or an exact email, CPF or RF. Personal columns are decrypted only for the row display; the preview never includes email, CPF/RF or the auth code."
-msgstr "A tabela exibe o ID, o formulário, o e-mail, uma breve prévia de campos não sensíveis, o status e a data. É possível filtrar por um ou mais formulários e alternar entre Publicado, Lixeira e os estados do quiz (Tentando, Reprovado, Aguardando correção). A caixa de busca encontra um ID de submissão, um código de autenticação ou um e-mail, CPF ou RF exato. Colunas com dados pessoais são descriptografadas apenas para a exibição na linha; a prévia nunca inclui e-mail, CPF/RF ou código de autenticação."
+msgid "The table shows the id, form, email, a short preview of non-sensitive fields, status and date. You can filter by one or more forms and switch between Published, Trash, and the quiz states (Retry, Failed, Awaiting Grading). The search box matches a submission id, an auth code, an exact email, CPF or RF, or part of the name of the account a submission is linked to; a submission sent without an account is not found by name, because its name is stored only encrypted. Personal columns are decrypted only for the row display; the preview never includes email, CPF/RF or the auth code."
+msgstr "A tabela exibe o ID, o formulário, o e-mail, uma breve prévia de campos não sensíveis, o status e a data. É possível filtrar por um ou mais formulários e alternar entre Publicado, Lixeira e os estados do quiz (Tentando, Reprovado, Aguardando correção). A caixa de busca encontra um ID de submissão, um código de autenticação, um e-mail, CPF ou RF exato, ou parte do nome da conta à qual a submissão está vinculada; uma submissão enviada sem conta não é encontrada pelo nome, porque o nome fica guardado apenas criptografado. Colunas com dados pessoais são descriptografadas apenas para a exibição na linha; a prévia nunca inclui e-mail, CPF/RF ou código de autenticação."
 
 #: includes/admin/class-ffc-quiz-grading-handler.php:291
 msgid "You can submit the form again to try once more."
@@ -31240,3 +31240,35 @@ msgstr "Cancelar convocação, Reabrir e Desfazer decisão são três coisas dif
 #: includes/settings/views/documentation/feature-recruitment.php
 msgid "On the public list each table is named for a screen reader, its headers are column headers, and on a narrow screen each row reads as a card of \"column: value\" lines. The subscription badge reads PCD or General."
 msgstr "Na lista pública, cada tabela tem um nome para leitores de tela, seus cabeçalhos são cabeçalhos de coluna e, em telas estreitas, cada linha aparece como um cartão de linhas \"coluna: valor\". O selo de inscrição mostra PCD ou GERAL."
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Quiz score (points)"
+msgstr "Nota do quiz (pontos)"
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Quiz maximum score (points)"
+msgstr "Nota máxima do quiz (pontos)"
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Quiz score (%)"
+msgstr "Nota do quiz (%)"
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Quiz passed"
+msgstr "Aprovado no quiz"
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Questions answered correctly"
+msgstr "Questões respondidas corretamente"
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Scored questions"
+msgstr "Questões pontuadas"
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Quiz attempt"
+msgstr "Tentativa do quiz"
+
+#: includes/settings/views/documentation/submissions-list.php
+msgid "Under Form answers, the quiz result the plugin records is listed with readable names among the protected fields: the score in points and in percent, the maximum score, whether the quiz was passed, the questions answered correctly, the scored questions, the attempt number and the times the quiz window was left. None of them is an answer, so a correction cannot change them."
+msgstr "Em Respostas do formulário, o resultado do quiz que o plugin registra aparece com nomes legíveis entre os campos protegidos: a nota em pontos e em porcentagem, a nota máxima, se houve aprovação, as questões respondidas corretamente, as questões pontuadas, o número da tentativa e as vezes em que a janela do quiz foi deixada. Nenhum deles é uma resposta, por isso uma correção não pode alterá-los."

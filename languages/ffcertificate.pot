@@ -24933,7 +24933,7 @@ msgid "The automatically scored questions earned %1$d of %2$d points. The passin
 msgstr ""
 
 #: includes/settings/views/documentation/submissions-list.php:23
-msgid "The table shows the id, form, email, a short preview of non-sensitive fields, status and date. You can filter by one or more forms and switch between Published, Trash, and the quiz states (Retry, Failed, Awaiting Grading). The search box matches a submission id, an auth code, or an exact email, CPF or RF. Personal columns are decrypted only for the row display; the preview never includes email, CPF/RF or the auth code."
+msgid "The table shows the id, form, email, a short preview of non-sensitive fields, status and date. You can filter by one or more forms and switch between Published, Trash, and the quiz states (Retry, Failed, Awaiting Grading). The search box matches a submission id, an auth code, an exact email, CPF or RF, or part of the name of the account a submission is linked to; a submission sent without an account is not found by name, because its name is stored only encrypted. Personal columns are decrypted only for the row display; the preview never includes email, CPF/RF or the auth code."
 msgstr ""
 
 #: includes/admin/class-ffc-quiz-grading-handler.php:291
@@ -31156,4 +31156,36 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php
 msgid "On the public list each table is named for a screen reader, its headers are column headers, and on a narrow screen each row reads as a card of \"column: value\" lines. The subscription badge reads PCD or General."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Quiz score (points)"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Quiz maximum score (points)"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Quiz score (%)"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Quiz passed"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Questions answered correctly"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Scored questions"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "Quiz attempt"
+msgstr ""
+
+#: includes/settings/views/documentation/submissions-list.php
+msgid "Under Form answers, the quiz result the plugin records is listed with readable names among the protected fields: the score in points and in percent, the maximum score, whether the quiz was passed, the questions answered correctly, the scored questions, the attempt number and the times the quiz window was left. None of them is an answer, so a correction cannot change them."
 msgstr ""
