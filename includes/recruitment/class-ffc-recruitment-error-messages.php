@@ -171,6 +171,10 @@ final class RecruitmentErrorMessages {
 			'recruitment_out_of_order_requires_reason'     => __( 'Calling out of rank order requires a reason.', 'ffcertificate' ),
 			'recruitment_bulk_call_empty_id_list'          => __( 'Select at least one classification to call in bulk.', 'ffcertificate' ),
 
+			// Notice-status locks (#2245).
+			'recruitment_notice_adjutancies_locked'        => __( 'Adjutancies are attached or detached only while the notice is in draft or preliminary.', 'ffcertificate' ),
+			'recruitment_preview_status_locked'            => __( 'Preliminary statuses and reasons are set only while the notice is preliminary.', 'ffcertificate' ),
+
 			// Preview status / reasons.
 			'recruitment_preview_status_invalid'           => __( 'Invalid preliminary status.', 'ffcertificate' ),
 			'recruitment_preview_status_only_on_preview_list' => __( 'Preliminary status can only be set on the preliminary list.', 'ffcertificate' ),

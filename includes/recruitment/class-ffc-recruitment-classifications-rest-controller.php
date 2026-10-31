@@ -847,6 +847,10 @@ final class RecruitmentClassificationsRestController {
 		if ( 'preview' !== (string) $cls->list_type ) {
 			return new \WP_Error( 'recruitment_preview_status_only_on_preview_list', __( 'Preliminary status can only be set on classifications in the preview list.', 'ffcertificate' ), array( 'status' => 409 ) );
 		}
+		$notice = RecruitmentNoticeReader::get_by_id( (int) $cls->notice_id );
+		if ( null === $notice || ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::PREVIEW_MARKS, (string) $notice->status ) ) {
+			return new \WP_Error( 'recruitment_preview_status_locked', RecruitmentErrorMessages::translate( 'recruitment_preview_status_locked' ), array( 'status' => 409 ) );
+		}
 
 		$valid_statuses = array( 'empty', 'denied', 'granted', 'appeal_denied', 'appeal_granted' );
 		if ( ! in_array( $preview_status, $valid_statuses, true ) ) {

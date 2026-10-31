@@ -30887,3 +30887,15 @@ msgstr "Sem e-mail — contatar manualmente"
 #: includes/settings/views/documentation/feature-recruitment.php
 msgid "The call e-mail gives the presentation date and time in the site's formats, attaches the call's .ics, links to \"My calls\" and asks the candidate to confirm by replying. The \"Days to answer a call\" option of the Recruitment settings adds a deadline, counted from the day of the call and never later than the presentation; 0 names none. The e-mail also carries a link to define a password, which is how a candidate whose account the import created signs in for the first time. A candidate with no e-mail on file is marked \"No email — contact manually\" on the definitive list, and calling one says so, since nobody was notified."
 msgstr "O e-mail de convocação informa a data e a hora da apresentação nos formatos do site, anexa o .ics da convocação, leva a \"Minhas convocações\" e pede que o candidato confirme respondendo. A opção \"Dias para responder à convocação\" das configurações do Recrutamento acrescenta um prazo, contado a partir do dia da convocação e nunca posterior à apresentação; 0 não indica prazo. O e-mail traz também um link para definir a senha, que é como um candidato cuja conta foi criada pela importação entra pela primeira vez. Um candidato sem e-mail cadastrado aparece como \"Sem e-mail — contatar manualmente\" na lista definitiva, e convocá-lo avisa isso, pois ninguém foi notificado."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "Adjutancies are attached or detached only while the notice is in draft or preliminary."
+msgstr "Matérias só são vinculadas ou desvinculadas enquanto o edital está em rascunho ou preliminar."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "Preliminary statuses and reasons are set only while the notice is preliminary."
+msgstr "Situações e motivos da lista preliminar só são definidos enquanto o edital está em preliminar."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "What a notice takes depends on its status. A draft takes adjutancy changes but no preliminary statuses, since nothing is published yet. A preliminary notice takes both. From definitive on, adjutancies are no longer attached or detached and the preliminary list keeps the statuses and reasons it was published with. A closed notice changes no more: no call, outcome, cancel, reopen or undo. The screen shows each list read-only where its status allows no change, and the REST API refuses the same changes."
+msgstr "O que um edital aceita depende da sua situação. Um rascunho aceita mudanças de matérias, mas não situações preliminares, pois nada foi publicado ainda. Um edital preliminar aceita as duas. A partir de definitivo, matérias não são mais vinculadas nem desvinculadas e a lista preliminar mantém as situações e os motivos com que foi publicada. Um edital fechado não muda mais: nenhuma convocação, desfecho, cancelamento, reabertura ou desfazer. A tela mostra cada lista somente para leitura onde a situação não permite mudança, e a API REST recusa as mesmas mudanças."

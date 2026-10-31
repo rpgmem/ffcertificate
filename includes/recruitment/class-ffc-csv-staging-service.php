@@ -87,7 +87,7 @@ final class CsvStagingService {
 			);
 		}
 
-		if ( 'preview' === $list_type && 'draft' !== $notice->status && 'preliminary' !== $notice->status ) {
+		if ( 'preview' === $list_type && ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::IMPORT_PREVIEW, (string) $notice->status ) ) {
 			return array(
 				'ok'     => false,
 				'errors' => array( 'recruitment_invalid_state_for_preview_import' ),

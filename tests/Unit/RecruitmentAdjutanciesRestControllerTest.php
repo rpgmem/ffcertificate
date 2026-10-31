@@ -603,7 +603,7 @@ class RecruitmentAdjutanciesRestControllerTest extends TestCase {
 	}
 
 	public function test_attach_returns_404_when_adjutancy_missing(): void {
-		$this->seed( self::T_NOTICE, (object) array( 'id' => 1 ) );
+		$this->seed( self::T_NOTICE, (object) array( 'id' => 1, 'status' => 'draft' ) );
 
 		$result = $this->controller->attach_notice_adjutancy(
 			$this->make_request( array( 'id' => 1, 'adjutancy_id' => 2 ) )
@@ -616,7 +616,7 @@ class RecruitmentAdjutanciesRestControllerTest extends TestCase {
 	}
 
 	public function test_attach_returns_200_created_false_when_already_attached(): void {
-		$this->seed( self::T_NOTICE, (object) array( 'id' => 1 ) );
+		$this->seed( self::T_NOTICE, (object) array( 'id' => 1, 'status' => 'draft' ) );
 		$this->seed( self::T_ADJUTANCY, (object) array( 'id' => 2 ) );
 		$this->junction[] = array( 1, 2 );
 
@@ -631,7 +631,7 @@ class RecruitmentAdjutanciesRestControllerTest extends TestCase {
 	}
 
 	public function test_attach_returns_500_when_attach_fails(): void {
-		$this->seed( self::T_NOTICE, (object) array( 'id' => 1 ) );
+		$this->seed( self::T_NOTICE, (object) array( 'id' => 1, 'status' => 'draft' ) );
 		$this->seed( self::T_ADJUTANCY, (object) array( 'id' => 2 ) );
 		$this->insert_result = false;
 
@@ -649,7 +649,7 @@ class RecruitmentAdjutanciesRestControllerTest extends TestCase {
 	}
 
 	public function test_attach_returns_201_created_true_on_success(): void {
-		$this->seed( self::T_NOTICE, (object) array( 'id' => 1 ) );
+		$this->seed( self::T_NOTICE, (object) array( 'id' => 1, 'status' => 'draft' ) );
 		$this->seed( self::T_ADJUTANCY, (object) array( 'id' => 2 ) );
 
 		$response = $this->controller->attach_notice_adjutancy(
@@ -686,5 +686,58 @@ class RecruitmentAdjutanciesRestControllerTest extends TestCase {
 			array( array( self::T_JUNCTION, array( 'notice_id' => 1, 'adjutancy_id' => 2 ) ) ),
 			$this->deletes
 		);
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function locked_statuses(): array {
+		return array(
+			'definitive' => array( 'definitive' ),
+			'closed'     => array( 'closed' ),
+		);
+	}
+
+	/**
+	 * @dataProvider locked_statuses
+	 */
+	public function test_attach_is_refused_once_the_notice_is_past_preliminary( string $status ): void {
+		$this->seed( self::T_NOTICE, (object) array( 'id' => 1, 'status' => $status ) );
+		$this->seed( self::T_ADJUTANCY, (object) array( 'id' => 2 ) );
+
+		$result = $this->controller->attach_notice_adjutancy(
+			$this->make_request( array( 'id' => 1, 'adjutancy_id' => 2 ) )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_notice_adjutancies_locked', $result->get_error_code() );
+		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->inserts );
+	}
+
+	/**
+	 * @dataProvider locked_statuses
+	 */
+	public function test_detach_is_refused_once_the_notice_is_past_preliminary( string $status ): void {
+		$this->seed( self::T_NOTICE, (object) array( 'id' => 1, 'status' => $status ) );
+
+		$result = $this->controller->detach_notice_adjutancy(
+			$this->make_request( array( 'id' => 1, 'adjutancy_id' => 2 ) )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_notice_adjutancies_locked', $result->get_error_code() );
+		$this->assertSame( array(), $this->deletes, 'Nothing is detached from a published notice.' );
+	}
+
+	public function test_a_preliminary_notice_still_takes_a_detach(): void {
+		$this->seed( self::T_NOTICE, (object) array( 'id' => 1, 'status' => 'preliminary' ) );
+
+		$response = $this->controller->detach_notice_adjutancy(
+			$this->make_request( array( 'id' => 1, 'adjutancy_id' => 2 ) )
+		);
+
+		$this->assertNotInstanceOf( \WP_Error::class, $response );
+		$this->assertCount( 1, $this->deletes );
 	}
 }

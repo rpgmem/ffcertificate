@@ -116,7 +116,7 @@ final class RecruitmentDeleteService {
 			return self::failure( 'recruitment_notice_not_found' );
 		}
 
-		if ( 'draft' !== $notice->status ) {
+		if ( ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::DELETE, (string) $notice->status ) ) {
 			return self::failure( 'recruitment_notice_delete_requires_draft' );
 		}
 

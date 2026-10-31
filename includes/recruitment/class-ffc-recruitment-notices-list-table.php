@@ -95,7 +95,7 @@ class RecruitmentNoticesListTable extends AbstractRecruitmentListTable {
 		);
 
 		// Only a draft is deletable (#2245); a published notice is closed.
-		if ( 'draft' === (string) $item['status'] ) {
+		if ( RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::DELETE, (string) $item['status'] ) ) {
 			$delete_consequences = wp_json_encode(
 				array(
 					__( 'The draft notice, its imported lists and its adjutancy links will be permanently removed.', 'ffcertificate' ),

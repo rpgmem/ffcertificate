@@ -78,7 +78,7 @@ final class RecruitmentPromotionService {
 			return self::failure( 'recruitment_notice_not_found' );
 		}
 
-		if ( 'preliminary' !== $notice->status ) {
+		if ( ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::PROMOTE, (string) $notice->status ) ) {
 			return self::failure( 'recruitment_promotion_requires_preliminary_state' );
 		}
 

@@ -16,6 +16,7 @@
  * @var array<int, int>      $attached_set     Flip-map of attached adjutancy ids.
  * @var array<int, object>   $attached_objects Attached adjutancy rows.
  * @var array<int, object>   $detached_objects Detached adjutancy rows.
+ * @var bool                 $editable         Whether the notice's status takes attach/detach (#2245).
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.7.7
@@ -29,6 +30,9 @@ echo '<div class="card">';
 echo '<h2 class="ffc-icon-building">' . esc_html__( 'Adjutancies', 'ffcertificate' ) . '</h2>';
 echo '<div>';
 echo '<p>' . esc_html__( 'Adjutancies referenced by CSV imports must be attached to the notice via this section.', 'ffcertificate' ) . '</p>';
+if ( ! $editable ) {
+	echo '<p class="description">' . esc_html__( 'Adjutancies are attached or detached only while the notice is in draft or preliminary.', 'ffcertificate' ) . '</p>';
+}
 
 if ( empty( $attached_objects ) ) {
 	echo '<p><em>' . esc_html__( 'No adjutancies attached yet.', 'ffcertificate' ) . '</em></p>';
@@ -37,6 +41,10 @@ if ( empty( $attached_objects ) ) {
 	foreach ( $attached_objects as $a ) {
 		echo '<span class="ffc-attached">';
 		echo esc_html( (string) $a->slug );
+		if ( ! $editable ) {
+			echo '</span>';
+			continue;
+		}
 		// Written by hand with the family's classes: Core\Button refuses an
 		// `on*` attribute, and this link's handler is the inline one (#1879).
 		echo ' <a href="#" class="ffc-btn ffc-btn-danger ffc-btn-icon ffc-icon-cross" data-notice="' . esc_attr( (string) $notice_id ) . '" data-adjutancy="' . esc_attr( (string) $a->id ) . '" onclick="return ffcDetachAdjutancy(this);" aria-label="' . esc_attr__( 'Detach', 'ffcertificate' ) . '" title="' . esc_attr__( 'Detach', 'ffcertificate' ) . '"></a>';
@@ -45,7 +53,7 @@ if ( empty( $attached_objects ) ) {
 	echo '</span></p>';
 }
 
-if ( ! empty( $detached_objects ) ) {
+if ( $editable && ! empty( $detached_objects ) ) {
 	echo '<form onsubmit="return ffcAttachAdjutancy(this);" data-notice="' . esc_attr( (string) $notice_id ) . '">';
 	echo '<select name="adjutancy_id">';
 	foreach ( $detached_objects as $a ) {

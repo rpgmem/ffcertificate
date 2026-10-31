@@ -1624,6 +1624,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_preview_status_400_when_status_invalid(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 5, array( 'list_type' => 'preview' ) );
 
 		$result = $this->controller->change_classification_preview_status(
@@ -1636,6 +1637,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_preview_status_400_when_reason_required_but_missing(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 5, array( 'list_type' => 'preview' ) );
 		$this->recruitment_settings = array( 'preview_reason_required_granted' => true );
 
@@ -1649,6 +1651,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_preview_status_404_when_reason_not_found(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 5, array( 'list_type' => 'preview' ) );
 
 		$result = $this->controller->change_classification_preview_status(
@@ -1663,6 +1666,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_preview_status_400_when_reason_status_mismatch(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 5, array( 'list_type' => 'preview' ) );
 		$this->store( self::T_REASON, array( 'id' => 8, 'applies_to' => 'denied' ) );
 
@@ -1678,6 +1682,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_preview_status_400_when_update_fails(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 5, array( 'list_type' => 'preview' ) );
 		$this->update_result[ self::T_CLASSIFICATION ] = false;
 
@@ -1696,6 +1701,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_preview_status_success_with_valid_reason(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 5, array( 'list_type' => 'preview' ) );
 		$this->store( self::T_REASON, array( 'id' => 8, 'applies_to' => 'granted' ) );
 
@@ -1713,6 +1719,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_preview_status_empty_clears_reason_and_succeeds(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 5, array( 'list_type' => 'preview', 'preview_reason_id' => 8 ) );
 
 		$response = $this->controller->change_classification_preview_status(
@@ -1727,6 +1734,34 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->assertCount( 1, $updates );
 		$this->assertSame( 'empty', $updates[0][2]['preview_status'] );
 		$this->assertNull( $updates[0][2]['preview_reason_id'] );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function preview_locked_statuses(): array {
+		return array(
+			'draft'      => array( 'draft' ),
+			'definitive' => array( 'definitive' ),
+			'closed'     => array( 'closed' ),
+		);
+	}
+
+	/**
+	 * @dataProvider preview_locked_statuses
+	 */
+	public function test_preview_status_is_refused_outside_a_preliminary_notice( string $status ): void {
+		$this->notice( 1, $status );
+		$this->classification( 5, array( 'list_type' => 'preview' ) );
+
+		$result = $this->controller->change_classification_preview_status(
+			$this->make_request( array( 'id' => 5, 'preview_status' => 'empty' ) )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_preview_status_locked', $result->get_error_code() );
+		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->writes_to( 'update', self::T_CLASSIFICATION ), 'A draft, definitive or closed notice keeps its preliminary statuses.' );
 	}
 
 	// ------------------------------------------------------------------

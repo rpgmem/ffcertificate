@@ -307,6 +307,26 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @dataProvider not_live
+	 */
+	public function test_override_is_refused_off_a_definitive_notice( string $list, string $status ): void {
+		$classification            = $this->classification_stub( 'hired' );
+		$classification->list_type = $list;
+		$notice                    = $this->notice_stub( '0' );
+		$notice->status            = $status;
+		$this->rows( $classification, $notice );
+		$this->wpdb->shouldNotReceive( 'query' );
+
+		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( 10, 'Hired by mistake' );
+
+		$this->assertFalse( $result['success'], 'A closed notice changes no more, its decisions included (#2245).' );
+		$this->assertSame(
+			array( 'preview' === $list ? 'recruitment_call_requires_definitive_list' : 'recruitment_call_requires_definitive_notice' ),
+			$result['errors']
+		);
+	}
+
 	public function test_override_ends_the_active_call(): void {
 		$this->rows( $this->classification_stub( 'hired' ), null, (object) array( 'id' => '77', 'classification_id' => '10', 'cancelled_at' => null ) );
 		$queries = array();

@@ -25,7 +25,7 @@ echo '<div class="card">';
 echo '<h2 class="ffc-icon-upload">' . esc_html__( 'Import candidates (CSV)', 'ffcertificate' ) . '</h2>';
 echo '<div>';
 
-if ( 'definitive' === $status || 'closed' === $status ) {
+if ( ! \FreeFormCertificate\Recruitment\RecruitmentNoticeLocks::allows( \FreeFormCertificate\Recruitment\RecruitmentNoticeLocks::IMPORT_PREVIEW, $status ) ) {
 	echo '<p>' . esc_html__( 'Import is disabled for notices in `definitive` or `closed` status. Move the notice back to `preliminary` (allowed only when zero calls have been issued) to re-import.', 'ffcertificate' ) . '</p>';
 	echo '</div></div>';
 	return;
@@ -56,7 +56,7 @@ echo '<table class="form-table"><tbody>';
 
 echo '<tr><th><label>' . esc_html__( 'Target list', 'ffcertificate' ) . '</label></th><td>';
 echo '<label class="ffc-rec-mr-1"><input type="radio" name="list_target" value="preliminary" checked> ' . esc_html__( 'Preliminary list', 'ffcertificate' ) . '</label>';
-if ( 'preliminary' === $status ) {
+if ( \FreeFormCertificate\Recruitment\RecruitmentNoticeLocks::allows( \FreeFormCertificate\Recruitment\RecruitmentNoticeLocks::IMPORT_DEFINITIVE, $status ) ) {
 	echo '<label><input type="radio" name="list_target" value="definitive"> ' . esc_html__( 'Definitive list (also transitions notice to `definitive`)', 'ffcertificate' ) . '</label>';
 }
 echo '</td></tr>';
