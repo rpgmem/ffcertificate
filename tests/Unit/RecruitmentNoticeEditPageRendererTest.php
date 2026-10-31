@@ -79,6 +79,12 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	/** @var list<object> Call rows the active-call lookup answers. */
 	private array $calls = array();
 
+	/** @var list<object> Call rows the notice's calls record answers. */
+	private array $notice_calls = array();
+
+	/** @var array<int, string> Display names of the accounts that exist. */
+	private array $users = array();
+
 	/** @var array<string, bool> Capabilities the user holds; every one unless a test says otherwise. */
 	private array $caps = array();
 
@@ -154,6 +160,15 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => $n === 1 ? $single : $plural );
 		Functions\when( 'paginate_links' )->justReturn( '<a class="page-numbers">2</a>' );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts = null, $tz = null ) => gmdate( $format, $ts ?? time() ) );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'get_users' )->alias(
+			fn( $args ) => array_values(
+				array_filter(
+					array_map( fn( $id ) => isset( $this->users[ $id ] ) ? (object) array( 'ID' => $id, 'display_name' => $this->users[ $id ] ) : null, $args['include'] ?? array() )
+				)
+			)
+		);
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 
@@ -214,6 +229,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 				}
 				if ( 'wp_ffc_recruitment_call' === $table && str_contains( $sql, 'WHERE classification_id IN' ) ) {
 					return $this->calls;
+				}
+				if ( 'wp_ffc_recruitment_call' === $table && str_contains( $sql, 'WHERE cl.notice_id = %d' ) ) {
+					return 7 === (int) $this->bound[2] ? $this->notice_calls : array();
 				}
 				throw new \LogicException( 'Unexpected get_results: ' . $sql );
 			}
@@ -627,6 +645,33 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		);
 	}
 
+	/**
+	 * A call row as the table stores it.
+	 *
+	 * @param array<string, mixed> $overrides Columns to change.
+	 */
+	private function call( int $id, int $classification_id, int $created_by, array $overrides = array() ): object {
+		return (object) array_merge(
+			array(
+				'id'                  => (string) $id,
+				'classification_id'   => (string) $classification_id,
+				'called_at'           => '1780308000',
+				'date_to_assume'      => '2026-06-01',
+				'time_to_assume'      => '09:30:00',
+				'out_of_order'        => '0',
+				'out_of_order_reason' => null,
+				'cancellation_reason' => null,
+				'cancelled_at'        => null,
+				'cancelled_by'        => null,
+				'notes'               => null,
+				'created_by'          => (string) $created_by,
+				'created_at'          => '2026-06-01 09:00:00',
+				'updated_at'          => '2026-06-01 09:00:00',
+			),
+			$overrides
+		);
+	}
+
 	public function test_render_classifications_section_with_definitive_rows_renders_actions_table(): void {
 		$this->store_classifications(
 			array( $this->cls_row( 50, 1, 'empty', 1, 500 ) ),
@@ -710,18 +755,8 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	public function test_cancel_names_the_rows_active_call(): void {
 		$this->store_classifications( array(), array( $this->cls_row( 60, 1, 'called', 1, 600 ) ) );
 		$this->calls = array(
-			(object) array(
-				'id'                => '91',
-				'classification_id' => '60',
-				'cancelled_at'      => null,
-				'created_by'        => '3',
-			),
-			(object) array(
-				'id'                => '90',
-				'classification_id' => '60',
-				'cancelled_at'      => '1777968000',
-				'created_by'        => '3',
-			),
+			$this->call( 91, 60, 3 ),
+			$this->call( 90, 60, 3, array( 'cancelled_at' => '1777968000' ) ),
 		);
 
 		ob_start();
@@ -755,18 +790,8 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 			)
 		);
 		$this->calls = array(
-			(object) array(
-				'id'                => '91',
-				'classification_id' => '60',
-				'cancelled_at'      => null,
-				'created_by'        => '7',
-			),
-			(object) array(
-				'id'                => '92',
-				'classification_id' => '61',
-				'cancelled_at'      => null,
-				'created_by'        => '3',
-			),
+			$this->call( 91, 60, 7 ),
+			$this->call( 92, 61, 3 ),
 		);
 
 		ob_start();
@@ -839,5 +864,189 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'data-ffc-copy-target="#ffc-notice-shortcode"', $html );
 		// The bare shortcode is offered as the selector alternative.
 		$this->assertStringContainsString( '<code>[ffc_recruitment_queue]</code>', $html );
+	}
+
+	// ------------------------------------------------------------------
+	// Definitive list: call columns, status filter, select across pages,
+	// and the calls record (#2245)
+	// ------------------------------------------------------------------
+
+	public function test_the_definitive_list_shows_when_each_row_was_called_and_for_when(): void {
+		$this->store_classifications( array(), array( $this->cls_row( 60, 1, 'hired', 1, 600 ), $this->cls_row( 61, 2, 'empty', 1, 601 ) ) );
+		$this->calls = array( $this->call( 91, 60, 3 ) );
+		$this->users = array( 3 => 'Olga Operator' );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<th>Date to assume</th>', $html );
+		$this->assertStringContainsString( '<th>Called on</th>', $html );
+		$this->assertStringContainsString( '09:30', $html, 'The time to assume is shown as stored, with no time zone.' );
+		$this->assertStringContainsString( 'Olga Operator', $html, 'A WordPress administrator sees who called.' );
+	}
+
+	public function test_called_by_is_hidden_without_the_history_capability(): void {
+		$this->caps = array(
+			'manage_options'               => false,
+			'ffc_view_recruitment_history' => false,
+		);
+		$this->store_classifications( array(), array( $this->cls_row( 60, 1, 'called', 1, 600 ) ) );
+		$this->calls = array( $this->call( 91, 60, 3 ) );
+		$this->users = array( 3 => 'Olga Operator' );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<th>Called on</th>', $html );
+		$this->assertStringNotContainsString( 'Called by', $html );
+		$this->assertStringNotContainsString( 'Olga Operator', $html );
+	}
+
+	public function test_the_module_administrator_tier_sees_who_called(): void {
+		$this->caps = array(
+			'manage_options'               => false,
+			'ffc_view_recruitment_history' => true,
+		);
+		$this->store_classifications( array(), array( $this->cls_row( 60, 1, 'called', 1, 600 ) ) );
+		$this->calls = array( $this->call( 91, 60, 99 ) );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<th>Called by</th>', $html );
+		$this->assertStringContainsString( 'Deleted user #99', $html, 'An account that no longer exists is named by its ID.' );
+	}
+
+	public function test_the_status_filter_counts_each_status_and_narrows_the_list(): void {
+		$this->store_classifications(
+			array(),
+			array(
+				$this->cls_row( 60, 1, 'hired', 1, 600 ),
+				$this->cls_row( 61, 2, 'empty', 1, 601 ),
+				$this->cls_row( 62, 3, 'empty', 1, 602 ),
+			)
+		);
+		$_GET['ffc_cls_status'] = 'empty';
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'All <span class="ffc-rec-status-count">(3)</span>', $html, 'The counts are taken before the status narrows the list.' );
+		$this->assertStringContainsString( 'class="current" aria-current="page">Waiting <span class="ffc-rec-status-count">(2)</span>', $html );
+		$this->assertStringContainsString( 'Hired <span class="ffc-rec-status-count">(1)</span>', $html );
+		$this->assertStringNotContainsString( 'Withdrew <span', $html, 'A status no row holds is not offered.' );
+		$this->assertStringNotContainsString( 'data-cls-id="60"', $html, 'The hired row is filtered out.' );
+		$this->assertStringContainsString( 'data-cls-id="61"', $html );
+		$this->assertStringContainsString( 'name="ffc_cls_status" value="empty"', $html, 'The filter form keeps the status.' );
+	}
+
+	public function test_an_unknown_status_filter_shows_the_whole_list(): void {
+		$this->store_classifications( array(), array( $this->cls_row( 60, 1, 'hired', 1, 600 ) ) );
+		$_GET['ffc_cls_status'] = 'bogus';
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'data-cls-id="60"', $html );
+		$this->assertStringNotContainsString( 'name="ffc_cls_status"', $html );
+	}
+
+	public function test_select_all_across_pages_carries_every_waiting_row_of_the_filtered_list(): void {
+		$rows = array();
+		for ( $i = 1; $i <= 52; $i++ ) {
+			$rows[] = $this->cls_row( 100 + $i, $i, 51 === $i ? 'hired' : 'empty', 1, 500 + $i );
+		}
+		$this->store_classifications( array(), $rows );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, preg_match( '/data-ffc-waiting-ids="([^"]*)"/', $html, $m ) );
+		$ids = json_decode( html_entity_decode( $m[1] ), true );
+		$this->assertCount( 51, $ids, 'Every waiting row of every page, the hired one excluded.' );
+		$this->assertNotContains( 151, $ids );
+		$this->assertStringContainsString( 'All 50 waiting rows on this page are selected.', $html );
+		$this->assertStringContainsString( 'Select all 51 waiting rows on every page', $html );
+	}
+
+	public function test_select_all_across_pages_is_absent_when_one_page_holds_every_waiting_row(): void {
+		$this->store_classifications( array(), array( $this->cls_row( 60, 1, 'empty', 1, 600 ) ) );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'ffc-rec-select-all-pages', $html );
+	}
+
+	public function test_the_calls_record_is_absent_without_calls(): void {
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_calls_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$this->assertSame( '', (string) ob_get_clean() );
+	}
+
+	public function test_the_calls_record_lists_active_and_cancelled_calls_with_who_did_what(): void {
+		$this->store_classifications( array(), array( $this->cls_row( 60, 4, 'called', 1, 600 ) ) );
+		$this->users        = array(
+			3 => 'Olga Operator',
+			5 => 'Mara Manager',
+		);
+		$this->notice_calls = array(
+			(object) array_merge( (array) $this->call( 92, 60, 3, array( 'out_of_order' => '1', 'out_of_order_reason' => 'PCD reserve' ) ), array( 'candidate_id' => '600', 'adjutancy_id' => '1', 'rank' => '4' ) ),
+			(object) array_merge(
+				(array) $this->call(
+					91,
+					60,
+					3,
+					array(
+						'cancelled_at'        => '1780394400',
+						'cancelled_by'        => '5',
+						'cancellation_reason' => 'Wrong date',
+					)
+				),
+				array( 'candidate_id' => '600', 'adjutancy_id' => '1', 'rank' => '4' )
+			),
+		);
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_calls_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<h2 class="ffc-icon-user-call">Calls</h2>', $html );
+		$this->assertStringContainsString( 'Cand 600', $html );
+		$this->assertStringContainsString( 'PCD reserve', $html, 'The out-of-order justification is part of the record.' );
+		$this->assertStringContainsString( 'Active', $html );
+		$this->assertStringContainsString( 'Cancelled on', $html );
+		$this->assertStringContainsString( 'by Mara Manager', $html );
+		$this->assertStringContainsString( 'Wrong date', $html );
+		$this->assertStringContainsString( '<th scope="col">Called by</th>', $html );
+		$this->assertSame( 2, substr_count( $html, 'Olga Operator' ) );
+	}
+
+	public function test_the_calls_record_names_nobody_without_the_history_capability(): void {
+		$this->caps = array(
+			'manage_options'               => false,
+			'ffc_view_recruitment_history' => false,
+		);
+		$this->store_classifications( array(), array( $this->cls_row( 60, 4, 'called', 1, 600 ) ) );
+		$this->users        = array( 3 => 'Olga Operator', 5 => 'Mara Manager' );
+		$this->notice_calls = array(
+			(object) array_merge( (array) $this->call( 91, 60, 3, array( 'cancelled_at' => '1780394400', 'cancelled_by' => '5' ) ), array( 'candidate_id' => '600', 'adjutancy_id' => '1', 'rank' => '4' ) ),
+		);
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_calls_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Cancelled on', $html );
+		$this->assertStringNotContainsString( 'Called by', $html );
+		$this->assertStringNotContainsString( 'Olga Operator', $html );
+		$this->assertStringNotContainsString( 'Mara Manager', $html );
 	}
 }

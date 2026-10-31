@@ -166,6 +166,38 @@ class RecruitmentCallReaderTest extends TestCase {
 	}
 
 	// ------------------------------------------------------------------
+	// get_for_notice (#2245)
+	// ------------------------------------------------------------------
+
+	public function test_get_for_notice_skips_the_query_for_no_notice(): void {
+		$this->wpdb->shouldNotReceive( 'get_results' );
+
+		$this->assertSame( array(), RecruitmentCallReader::get_for_notice( 0 ) );
+	}
+
+	public function test_get_for_notice_joins_the_classifications_of_that_notice_newest_first(): void {
+		$rows = array( $this->row( 5, 2 ), $this->row( 4, 1 ) );
+		$seen = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) use ( &$seen ) {
+				$seen = array( $sql, $args );
+				return 'PREPARED';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->once()->with( 'PREPARED' )->andReturn( $rows );
+
+		$this->assertSame( $rows, RecruitmentCallReader::get_for_notice( 9 ) );
+		$this->assertStringContainsString( 'INNER JOIN %i cl ON cl.id = c.classification_id WHERE cl.notice_id = %d ORDER BY c.called_at DESC', $seen[0] );
+		$this->assertSame( array( 'wp_ffc_recruitment_call', 'wp_ffc_recruitment_classification', 9 ), $seen[1] );
+	}
+
+	public function test_get_for_notice_returns_empty_on_non_array_result(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
+
+		$this->assertSame( array(), RecruitmentCallReader::get_for_notice( 9 ) );
+	}
+
+	// ------------------------------------------------------------------
 	// count_for_classification
 	// ------------------------------------------------------------------
 

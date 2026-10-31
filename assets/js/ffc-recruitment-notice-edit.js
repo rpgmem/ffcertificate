@@ -201,10 +201,58 @@
 		return lowest;
 	}
 
+	// "Select all across pages" (#2245): the prompt shows once every waiting
+	// row of the page is checked, and its button extends the selection to the
+	// waiting rows of every page under the current filters.
+	var selectAllPages = false;
+
+	function ffcRecruitmentSelectAllBox() {
+		return document.querySelector('.ffc-rec-select-all-pages');
+	}
+
+	function ffcRecruitmentAllWaitingIds() {
+		var box = ffcRecruitmentSelectAllBox();
+		if (!box) { return []; }
+		try {
+			var ids = JSON.parse(box.getAttribute('data-ffc-waiting-ids') || '[]');
+			return Array.isArray(ids) ? ids.map(function (n) { return parseInt(n, 10); }).filter(function (n) { return n > 0; }) : [];
+		} catch (e) { return []; }
+	}
+
+	function ffcRecruitmentSyncSelectAll() {
+		var box = ffcRecruitmentSelectAllBox();
+		if (!box) { return; }
+		var boxes = document.querySelectorAll('.ffc-cls-bulk-cb:not([disabled])');
+		var all = boxes.length > 0;
+		for (var i = 0; i < boxes.length; i++) { if (!boxes[i].checked) { all = false; break; } }
+		if (!all) { selectAllPages = false; }
+		box.hidden = !all;
+		var pagePart = box.querySelector('[data-ffc-select-all-page]');
+		var everyPart = box.querySelector('[data-ffc-select-all-every]');
+		if (pagePart) { pagePart.hidden = selectAllPages; }
+		if (everyPart) { everyPart.hidden = !selectAllPages; }
+	}
+
+	window.ffcRecruitmentSelectAllPages = function (on) {
+		selectAllPages = !!on;
+		if (!on) {
+			var boxes = document.querySelectorAll('.ffc-cls-bulk-cb:not([disabled])');
+			for (var i = 0; i < boxes.length; i++) { boxes[i].checked = false; }
+			var head = document.getElementById('ffc-cls-bulk-all');
+			if (head) { head.checked = false; }
+		}
+		ffcRecruitmentSyncSelectAll();
+	};
+
 	window.ffcRecruitmentClsToggleAll = function (cb) {
 		var boxes = document.querySelectorAll('.ffc-cls-bulk-cb:not([disabled])');
 		for (var i = 0; i < boxes.length; i++) { boxes[i].checked = cb.checked; }
+		ffcRecruitmentSyncSelectAll();
 	};
+
+	document.addEventListener('change', function (e) {
+		if (e.target && e.target.classList && e.target.classList.contains('ffc-cls-bulk-cb')) { ffcRecruitmentSyncSelectAll(); }
+	});
 
 	window.ffcRecruitmentBulkCall = function () {
 		var status = document.getElementById('ffc-bulk-status');
@@ -212,8 +260,12 @@
 		var time = document.getElementById('ffc-bulk-time').value;
 		if (!date || !time) { window.FFC.status(status, 'warning', strings.bulkNoDate || ''); return; }
 		var ids = [];
-		var boxes = document.querySelectorAll('.ffc-cls-bulk-cb:checked');
-		for (var i = 0; i < boxes.length; i++) { ids.push(parseInt(boxes[i].value, 10)); }
+		if (selectAllPages) {
+			ids = ffcRecruitmentAllWaitingIds();
+		} else {
+			var boxes = document.querySelectorAll('.ffc-cls-bulk-cb:checked');
+			for (var i = 0; i < boxes.length; i++) { ids.push(parseInt(boxes[i].value, 10)); }
+		}
 		if (ids.length === 0) { window.FFC.status(status, 'warning', strings.bulkNoSel || ''); return; }
 		// Out-of-order detection: per adjutancy, find the lowest-rank empty
 		// row NOT in this selection (the "threshold"); any selected row with

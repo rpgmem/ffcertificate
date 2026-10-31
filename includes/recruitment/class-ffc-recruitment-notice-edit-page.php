@@ -149,6 +149,7 @@ final class RecruitmentNoticeEditPage {
 			RecruitmentNoticeEditPageRenderer::render_csv_import_section( $notice );
 		}
 		RecruitmentNoticeEditPageRenderer::render_classifications_section( $notice );
+		RecruitmentNoticeEditPageRenderer::render_calls_section( $notice );
 	}
 
 	/**
@@ -182,6 +183,16 @@ final class RecruitmentNoticeEditPage {
 	 */
 	public static function can_call(): bool {
 		return self::can_manage() || current_user_can( 'ffc_call_recruitment' );
+	}
+
+	/**
+	 * Whether the current user sees who made and cancelled each call: a
+	 * WordPress administrator or the module's Administrator tier (#2245).
+	 *
+	 * @return bool
+	 */
+	public static function can_see_callers(): bool {
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_recruitment_history' );
 	}
 
 	/**

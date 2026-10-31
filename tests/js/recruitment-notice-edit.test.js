@@ -374,6 +374,69 @@ describe('ffcRecruitmentClsToggleAll', () => {
 	});
 });
 
+describe('select all across pages (#2245)', () => {
+	function installPaged() {
+		document.body.innerHTML = `
+			<div data-ffc-clspanel="definitive" data-ffc-empties='${JSON.stringify({ 'adj-1': [{ id: 10, rank: 1 }, { id: 11, rank: 2 }, { id: 12, rank: 3 }] })}'></div>
+			<input id="ffc-bulk-date" value="2099-05-20"><input id="ffc-bulk-time" value="09:00">
+			<span id="ffc-bulk-status"></span>
+			<div class="ffc-rec-select-all-pages" data-ffc-waiting-ids="[10,11,12]" hidden>
+				<span data-ffc-select-all-page>page</span><span data-ffc-select-all-every hidden>every</span>
+			</div>
+			<input type="checkbox" id="ffc-cls-bulk-all">
+			<input type="checkbox" class="ffc-cls-bulk-cb" value="10">
+			<input type="checkbox" class="ffc-cls-bulk-cb" value="11">`;
+	}
+
+	it('offers the other pages only once every waiting row of the page is checked', () => {
+		installPaged();
+		loadScript(SCRIPT);
+		const box = document.querySelector('.ffc-rec-select-all-pages');
+
+		window.ffcRecruitmentClsToggleAll({ checked: true });
+		expect(box.hidden).toBe(false);
+
+		const one = document.querySelector('.ffc-cls-bulk-cb[value="11"]');
+		one.checked = false;
+		one.dispatchEvent(new Event('change', { bubbles: true }));
+		expect(box.hidden).toBe(true);
+	});
+
+	it('bulk-calls every waiting row of every page once extended', () => {
+		installPaged();
+		const openConfirmModal = vi.fn((cfg, cb) => cb(''));
+		window.ffcRecruitmentAdmin = { openConfirmModal };
+		loadScript(SCRIPT);
+
+		window.ffcRecruitmentClsToggleAll({ checked: true });
+		window.ffcRecruitmentSelectAllPages(true);
+		expect(document.querySelector('[data-ffc-select-all-every]').hidden).toBe(false);
+		expect(document.querySelector('[data-ffc-select-all-page]').hidden).toBe(true);
+
+		window.ffcRecruitmentBulkCall();
+
+		expect(openConfirmModal.mock.calls[0][0].body).toContain('3 call(s)');
+		expect(openConfirmModal.mock.calls[0][0].style).toBe('primary');
+		expect(JSON.parse(fetchSpy.mock.calls[0][1].body).classification_ids).toEqual([10, 11, 12]);
+	});
+
+	it('clearing the selection unchecks the page and goes back to the page rows', () => {
+		installPaged();
+		const openConfirmModal = vi.fn();
+		window.ffcRecruitmentAdmin = { openConfirmModal };
+		loadScript(SCRIPT);
+
+		window.ffcRecruitmentClsToggleAll({ checked: true });
+		window.ffcRecruitmentSelectAllPages(true);
+		window.ffcRecruitmentSelectAllPages(false);
+
+		expect(document.querySelectorAll('.ffc-cls-bulk-cb:checked').length).toBe(0);
+		expect(document.querySelector('.ffc-rec-select-all-pages').hidden).toBe(true);
+		window.ffcRecruitmentBulkCall();
+		expect(document.getElementById('ffc-bulk-status').textContent).toBe('NO_SEL');
+	});
+});
+
 describe('ffcRecruitmentClsAct', () => {
 	function installRow() {
 		document.body.innerHTML = `
