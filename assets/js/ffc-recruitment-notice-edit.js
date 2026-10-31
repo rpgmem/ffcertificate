@@ -277,6 +277,7 @@
 							localStorage.setItem('ffcRecruitmentLastBulkDate', date);
 							localStorage.setItem('ffcRecruitmentLastBulkTime', time);
 						} catch (e) {}
+						ffcRecruitmentWarnUnreached(o.body);
 						location.reload();
 					} else {
 						window.FFC.status(status, 'error', 'Error: ' + ((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)));
@@ -288,11 +289,20 @@
 	// Shared dispatch for a single-classification action: POST/PUT, reload
 	// on success, surface the error and re-enable the button on failure.
 	// Reused by the synchronous path and the ask-mode modal callback (#794).
+	// A call whose e-mail found no address on file (#2245): say so before the
+	// reload, so the operator knows to reach the candidate another way.
+	function ffcRecruitmentWarnUnreached(body) {
+		var n = (body && Array.isArray(body.unreached)) ? body.unreached.length : 0;
+		if (n > 0 && strings.noEmailContactManually) {
+			alert(strings.noEmailContactManually.replace('{count}', String(n)));
+		}
+	}
+
 	function ffcRecruitmentDispatchCls(btn, url, init) {
 		btn.disabled = true;
 		fetch(url, init).then(function (r) { return r.json().then(function (d) { return { status: r.status, body: d }; }); })
 			.then(function (o) {
-				if (o.status >= 200 && o.status < 300) { location.reload(); }
+				if (o.status >= 200 && o.status < 300) { ffcRecruitmentWarnUnreached(o.body); location.reload(); }
 				else { alert((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)); btn.disabled = false; }
 			}).catch(function (e) { alert((strings.networkError || 'Network error:') + ' ' + e.message); btn.disabled = false; });
 	}

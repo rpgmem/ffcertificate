@@ -49,9 +49,10 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 	private object $candidate;
 
 	/**
-	 * Every `wp_mail()` call, as `[ to, subject, body, headers ]`.
+	 * Every `wp_mail()` call, with the attachments' content read at send
+	 * time (the dispatcher deletes the temp file right after).
 	 *
-	 * @var list<array{to: string, subject: string, body: string, headers: array<int, string>}>
+	 * @var list<array{to: string, subject: string, body: string, headers: array<int, string>, attachments: list<string>, files: list<string>}>
 	 */
 	private array $mails = array();
 
@@ -72,7 +73,23 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'wp_kses_post' )->returnArg();
 		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
-		Functions\when( 'home_url' )->justReturn( 'https://example.test' );
+		Functions\when( 'home_url' )->alias( static fn ( $path = '' ) => 'https://example.test' . $path );
+		Functions\when( 'add_query_arg' )->alias(
+			static function ( $args, $value = null, $url = null ) {
+				if ( ! is_array( $args ) ) {
+					$args = array( $args => $value );
+				} else {
+					$url = $value;
+				}
+				return $url . ( str_contains( (string) $url, '?' ) ? '&' : '?' ) . http_build_query( $args );
+			}
+		);
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.test/painel/' );
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
+		// The dispatcher guards on function_exists( 'wp_tempnam' ), so the branch
+		// is chosen here rather than inherited from whichever test ran first.
+		Functions\when( 'wp_tempnam' )->alias( static fn ( $name = '' ) => (string) tempnam( sys_get_temp_dir(), 'ffc-test-' ) );
 		Functions\when( 'is_email' )->alias( static fn ( $email ) => false !== filter_var( $email, FILTER_VALIDATE_EMAIL ) );
 		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
@@ -98,8 +115,10 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 
 		$this->mails = array();
 		Functions\when( 'wp_mail' )->alias(
-			function ( $to, $subject, $body, $headers = array() ) {
-				$this->mails[] = compact( 'to', 'subject', 'body', 'headers' );
+			function ( $to, $subject, $body, $headers = array(), $attachments = array() ) {
+				$files         = array_map( static fn ( $f ) => (string) file_get_contents( $f ), (array) $attachments );
+				$attachments   = (array) $attachments;
+				$this->mails[] = compact( 'to', 'subject', 'body', 'headers', 'attachments', 'files' );
 				return true;
 			}
 		);
@@ -140,6 +159,7 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 
 		$this->candidate = (object) array(
 			'id'              => '100',
+			'user_id'         => null,
 			'name'            => 'Alice',
 			'cpf_encrypted'   => Encryption::encrypt( Identifiers::CPF_A ),
 			'rf_encrypted'    => Encryption::encrypt( Identifiers::RF_A ),
@@ -155,6 +175,7 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 				'date_to_assume'    => '2026-06-01',
 				'time_to_assume'    => '08:00:00',
 				'notes'             => 'Bring documents',
+				'cancelled_at'      => null,
 			),
 			'wp_ffc_recruitment_classification WHERE id = 10' => (object) array(
 				'id'           => '10',
@@ -166,9 +187,10 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 			),
 			'wp_ffc_recruitment_candidate WHERE id = 100'     => $this->candidate,
 			'wp_ffc_recruitment_notice WHERE id = 5'          => (object) array(
-				'id'   => '5',
-				'code' => 'EDITAL-2026-01',
-				'name' => 'Edital de 2026',
+				'id'     => '5',
+				'code'   => 'EDITAL-2026-01',
+				'name'   => 'Edital de 2026',
+				'status' => 'definitive',
 			),
 			'wp_ffc_recruitment_adjutancy WHERE id = 2'       => (object) array(
 				'id'   => '2',
@@ -198,7 +220,7 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 	 * @param array<string, string> $settings Subject, body and From settings.
 	 * @param bool                  $is_pcd   The candidate's stored PCD claim.
 	 */
-	private function configure( array $settings, bool $is_pcd ): void {
+	private function configure( array $settings, bool $is_pcd, int $response_days = 0 ): void {
 		$this->options['ffc_email_bodies']         = array(
 			'recruitment-convocation' => array(
 				'subject' => $settings['email_subject'],
@@ -208,6 +230,7 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 		$this->options['ffc_recruitment_settings'] = array(
 			'email_from_address' => $settings['email_from_address'],
 			'email_from_name'    => $settings['email_from_name'],
+			'response_days'      => $response_days,
 		);
 
 		$this->candidate->pcd_hash = RecruitmentPcdHasher::compute( 100, $is_pcd );
@@ -244,7 +267,7 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 		$this->assertStringContainsString( 'CPF ' . $masked_cpf, $captured['body'] );
 		$this->assertStringNotContainsString( Identifiers::CPF_A, $captured['body'], 'The clear CPF never reaches the body.' );
 		$this->assertStringContainsString( 'PCD Yes', $captured['body'] );
-		$this->assertStringContainsString( '2026-06-01', $captured['body'] );
+		$this->assertStringContainsString( 'em 01/06/2026 às 08:00', $captured['body'], 'The presentation date and time go through the site\'s formats.' );
 		$this->assertStringContainsString( 'Bring documents', $captured['body'] );
 		$this->assertStringContainsString( '05/05/2026 08:00', $captured['body'], 'called_at goes through the site\'s date format.' );
 		$this->assertStringContainsString( 'Test Site', $captured['body'] );
@@ -303,5 +326,125 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 
 		$this->assertTrue( RecruitmentEmailDispatcher::send_for_call( 7 ) );
 		$this->assertContains( 'From: noreply@example.test', $this->sent()['headers'] );
+	}
+
+	public function test_convocation_attaches_the_call_ics_and_removes_the_temp_file(): void {
+		$this->configure(
+			array(
+				'email_subject'      => 'Sub',
+				'email_body_html'    => '<p>body</p>',
+				'email_from_address' => '',
+				'email_from_name'    => '',
+			),
+			false
+		);
+
+		$this->assertTrue( RecruitmentEmailDispatcher::send_for_call( 7 ) );
+		$captured = $this->sent();
+		$this->assertCount( 1, $captured['attachments'], 'The call .ics travels with the convocation.' );
+		$this->assertStringContainsString( 'BEGIN:VCALENDAR', $captured['files'][0] );
+		$this->assertStringContainsString( 'UID:ffc-recruitment-call-7', $captured['files'][0] );
+		$this->assertFileDoesNotExist( $captured['attachments'][0], 'The temp file is deleted after the send.' );
+	}
+
+	public function test_cancellation_attaches_nothing(): void {
+		$this->options['ffc_email_bodies'] = array(
+			'recruitment-cancellation' => array(
+				'subject' => 'Cancelled',
+				'body'    => '<p>{{set_password_url}}|{{name}}</p>',
+			),
+		);
+		$this->candidate->pcd_hash         = RecruitmentPcdHasher::compute( 100, false );
+
+		$this->assertTrue( RecruitmentEmailDispatcher::send_for_cancellation( 7 ) );
+		$captured = $this->sent();
+		$this->assertSame( array(), $captured['attachments'] );
+		$this->assertStringContainsString( '<p>|Alice</p>', $captured['body'], 'A cancellation issues no password link.' );
+	}
+
+	public function test_links_to_my_calls_and_falls_back_there_without_an_account(): void {
+		$this->options['ffc_dashboard_page_id'] = 42;
+		$this->configure(
+			array(
+				'email_subject'      => 'Sub',
+				'email_body_html'    => '<p>{{my_calls_url}}|{{set_password_url}}</p>',
+				'email_from_address' => '',
+				'email_from_name'    => '',
+			),
+			false
+		);
+
+		$this->assertTrue( RecruitmentEmailDispatcher::send_for_call( 7 ) );
+		$this->assertStringContainsString(
+			'<p>https://example.test/painel/?tab=recruitment|https://example.test/painel/?tab=recruitment</p>',
+			$this->sent()['body'],
+			'A candidate with no account yet is sent to My calls, never to a dead link.'
+		);
+	}
+
+	public function test_respond_by_line_names_the_deadline_and_never_passes_the_presentation(): void {
+		// Called on 2026-05-05 (1777968000); the presentation is 2026-06-01.
+		$this->configure(
+			array(
+				'email_subject'      => 'Sub',
+				'email_body_html'    => '<p>[{{respond_by_line}}]</p>',
+				'email_from_address' => '',
+				'email_from_name'    => '',
+			),
+			false,
+			3
+		);
+		$this->assertTrue( RecruitmentEmailDispatcher::send_for_call( 7 ) );
+		$this->assertStringContainsString( '<p>[Please answer by 08/05/2026.]</p>', $this->sent()['body'] );
+
+		$this->mails = array();
+		$this->configure(
+			array(
+				'email_subject'      => 'Sub',
+				'email_body_html'    => '<p>[{{respond_by_line}}]</p>',
+				'email_from_address' => '',
+				'email_from_name'    => '',
+			),
+			false,
+			60
+		);
+		$this->assertTrue( RecruitmentEmailDispatcher::send_for_call( 7 ) );
+		$this->assertStringContainsString( '<p>[Please answer by 01/06/2026.]</p>', $this->sent()['body'], 'The deadline stops at the presentation date.' );
+	}
+
+	public function test_respond_by_line_is_empty_without_a_deadline(): void {
+		$this->configure(
+			array(
+				'email_subject'      => 'Sub',
+				'email_body_html'    => '<p>[{{respond_by_line}}]</p>',
+				'email_from_address' => '',
+				'email_from_name'    => '',
+			),
+			false
+		);
+		$this->assertTrue( RecruitmentEmailDispatcher::send_for_call( 7 ) );
+		$this->assertStringContainsString( '<p>[]</p>', $this->sent()['body'] );
+	}
+
+	public function test_issues_a_password_link_for_the_linked_account(): void {
+		$this->candidate->user_id = '55';
+		$user                     = new \WP_User( 55 );
+		$user->user_login         = 'alice';
+		Functions\when( 'get_userdata' )->justReturn( $user );
+		Functions\when( 'get_password_reset_key' )->justReturn( 'k3y' );
+		$this->configure(
+			array(
+				'email_subject'      => 'Sub',
+				'email_body_html'    => '<p>{{set_password_url}}</p>',
+				'email_from_address' => '',
+				'email_from_name'    => '',
+			),
+			false
+		);
+
+		$this->assertTrue( RecruitmentEmailDispatcher::send_for_call( 7 ) );
+		$body = $this->sent()['body'];
+		$this->assertStringContainsString( 'ffc_key=k3y', $body, 'An account the import created gets the link that sets its first password.' );
+		$this->assertStringContainsString( 'ffc_login=alice', $body );
 	}
 }

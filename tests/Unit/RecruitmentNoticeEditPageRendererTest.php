@@ -590,6 +590,24 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'Reason 1', $html );
 	}
 
+	public function test_flags_a_candidate_with_no_email_on_the_definitive_list_only(): void {
+		$this->store_classifications(
+			array( $this->cls_row( 50, 1, 'empty', 1, 500 ) ),
+			array(
+				$this->cls_row( 60, 1, 'empty', 1, 600 ),
+				$this->cls_row( 61, 2, 'empty', 1, 601 ),
+			)
+		);
+		$this->candidates[601]->email_hash = 'hash-601';
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice() );
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, substr_count( $html, 'No email — contact manually' ), 'Only the definitive row whose candidate has no address is flagged; the preview list takes no calls (#2245).' );
+		$this->assertMatchesRegularExpression( '/Cand 600 <span class="ffc-icon-warning ffc-icon-tone-warning ffc-rec-ml-half">No email/', $html );
+	}
+
 	public function test_cancel_names_the_rows_active_call(): void {
 		$this->store_classifications( array(), array( $this->cls_row( 60, 1, 'called', 1, 600 ) ) );
 		$this->calls = array(

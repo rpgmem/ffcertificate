@@ -33,6 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * records when to show up and not how long it takes.
  *
  * @phpstan-import-type CallRow from RecruitmentCallReader
+ * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
  */
 final class RecruitmentCallIcs {
 
@@ -137,6 +138,27 @@ final class RecruitmentCallIcs {
 		if ( ! $any_user && (int) $candidate->user_id !== $user_id ) {
 			return null;
 		}
+
+		return self::content( $call, $cls );
+	}
+
+	/**
+	 * The iCalendar body of an active call, with no owner check.
+	 *
+	 * Shared by the download, which checks the owner first, and the call
+	 * e-mail, which attaches it for the candidate it is addressed to (#2245).
+	 *
+	 * @param object $call Call row.
+	 * @param object $cls  Its classification row.
+	 * @phpstan-param CallRow $call
+	 * @phpstan-param ClassificationRow $cls
+	 * @return string|null Null for a cancelled call, a draft notice or an unreadable date.
+	 */
+	public static function content( object $call, object $cls ): ?string {
+		if ( null !== $call->cancelled_at ) {
+			return null;
+		}
+		$call_id = (int) $call->id;
 
 		$notice = RecruitmentNoticeReader::get_by_id( (int) $cls->notice_id );
 		if ( null === $notice || 'draft' === $notice->status ) {

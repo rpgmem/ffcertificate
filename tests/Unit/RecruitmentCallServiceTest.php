@@ -149,6 +149,27 @@ class RecruitmentCallServiceTest extends TestCase {
 		$this->assertSame( array( 7777 ), $result['call_ids'] );
 		$this->assertContains( 'START TRANSACTION', $query_log );
 		$this->assertContains( 'COMMIT', $query_log );
+		$this->assertSame( array( 10 ), $result['unreached'], 'A call whose e-mail found nobody to send to is reported, so the screen says to contact the candidate (#2245).' );
+	}
+
+	public function test_call_single_reports_nobody_unreached_when_no_email_is_sent(): void {
+		Functions\when( 'get_option' )->alias(
+			static fn ( $key, $default = false ) => 'ffc_recruitment_settings' === $key ? array( 'email_mode' => 'never' ) : array()
+		);
+		$classification = $this->classification_stub( 10, 'empty', 1 );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( $classification, $classification, null );
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
+		$this->wpdb->shouldReceive( 'insert' )->once()->andReturnUsing(
+			function () {
+				$GLOBALS['wpdb']->insert_id = 7777;
+				return 1;
+			}
+		);
+
+		$result = RecruitmentCallService::call_single( 10, '2026-06-01', '08:00', 1 );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( array(), $result['unreached'], 'In "never" mode nothing is sent, so nobody counts as unreached.' );
 	}
 
 	public function test_call_single_rejects_when_classification_not_empty(): void {
@@ -303,6 +324,7 @@ class RecruitmentCallServiceTest extends TestCase {
 		$this->assertTrue( $result['success'] );
 		$this->assertCount( 2, $result['call_ids'] );
 		$this->assertContains( 'COMMIT', $query_log );
+		$this->assertSame( array( 10, 11 ), $result['unreached'], 'Each row whose e-mail went nowhere is named by its classification.' );
 	}
 
 	public function test_call_bulk_rolls_back_when_one_row_fails(): void {

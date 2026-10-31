@@ -13,6 +13,8 @@
  *   - email_from_address         Override; falls back to `wp_mail` default.
  *   - email_from_name            Override; falls back to site name.
  *   - email_mode                 Convocation send mode (always/never/ask).
+ *   - response_days              Days the candidate has to answer a call, shown
+ *                                in the call e-mail; 0 names no deadline.
  *   - public_cache_seconds       TTL for the public shortcode transient
  *                                cache (default 60).
  *   - public_rate_limit_per_minute
@@ -48,6 +50,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   email_from_address:          string,
  *   email_from_name:             string,
  *   email_mode:                  string,
+ *   response_days:               int,
  *   public_cache_seconds:        int,
  *   public_rate_limit_per_minute: int,
  *   public_default_page_size:    int,
@@ -80,6 +83,11 @@ final class RecruitmentSettings {
 
 	/** Settings group used by the Settings API + admin Settings tab (sprint 12). */
 	public const OPTION_GROUP = 'ffc_recruitment_settings_group';
+
+	/**
+	 * The longest answer window a call e-mail may name, in days.
+	 */
+	public const MAX_RESPONSE_DAYS = 60;
 
 	/**
 	 * Register the option with the WordPress Settings API.
@@ -138,6 +146,10 @@ final class RecruitmentSettings {
 			// call), 'never' (never send), or 'ask' (per-call opt-in via a
 			// "Notify by email" checkbox on the call forms). Issue #794.
 			'email_mode'                             => RecruitmentEmailDispatcher::MODE_ALWAYS,
+			// Days the candidate has to answer a call, counted from the day it
+			// was made and never past the presentation date; 0 names no
+			// deadline in the e-mail (#2245).
+			'response_days'                          => 0,
 			// 12h default: the public listing only changes when admins
 			// edit a notice/classification/candidate/adjutancy/call, and
 			// every such write hits the cache invalidator on the public
@@ -259,6 +271,8 @@ final class RecruitmentSettings {
 			? (string) $value['email_mode']
 			: $defaults['email_mode'];
 
+		$out['response_days'] = self::clamp_int( $value['response_days'] ?? null, 0, self::MAX_RESPONSE_DAYS, $defaults['response_days'] );
+
 		$out['public_cache_seconds']         = self::clamp_int( $value['public_cache_seconds'] ?? null, 0, 86400, $defaults['public_cache_seconds'] );
 		$out['public_rate_limit_per_minute'] = self::clamp_int( $value['public_rate_limit_per_minute'] ?? null, 0, 6000, $defaults['public_rate_limit_per_minute'] );
 		$out['public_default_page_size']     = self::clamp_int( $value['public_default_page_size'] ?? null, 1, 1000, $defaults['public_default_page_size'] );
@@ -344,6 +358,7 @@ final class RecruitmentSettings {
 			'email_from_address'                     => is_string( $value['email_from_address'] ?? null ) ? $value['email_from_address'] : $defaults['email_from_address'],
 			'email_from_name'                        => is_string( $value['email_from_name'] ?? null ) ? $value['email_from_name'] : $defaults['email_from_name'],
 			'email_mode'                             => in_array( $value['email_mode'] ?? null, RecruitmentEmailDispatcher::valid_modes(), true ) ? $value['email_mode'] : $defaults['email_mode'],
+			'response_days'                          => is_int( $value['response_days'] ?? null ) ? min( max( 0, $value['response_days'] ), self::MAX_RESPONSE_DAYS ) : $defaults['response_days'],
 			'public_cache_seconds'                   => is_int( $value['public_cache_seconds'] ?? null ) ? $value['public_cache_seconds'] : $defaults['public_cache_seconds'],
 			'public_rate_limit_per_minute'           => is_int( $value['public_rate_limit_per_minute'] ?? null ) ? $value['public_rate_limit_per_minute'] : $defaults['public_rate_limit_per_minute'],
 			'public_default_page_size'               => is_int( $value['public_default_page_size'] ?? null ) ? $value['public_default_page_size'] : $defaults['public_default_page_size'],

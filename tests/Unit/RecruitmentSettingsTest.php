@@ -116,6 +116,16 @@ class RecruitmentSettingsTest extends TestCase {
 		$this->assertSame( 'always', RecruitmentSettings::defaults()['email_mode'] );
 	}
 
+	public function test_response_days_default_to_no_deadline_and_stay_in_range(): void {
+		Functions\when( 'sanitize_text_field' )->returnArg();
+
+		$this->assertSame( 0, RecruitmentSettings::defaults()['response_days'] );
+		$this->assertSame( 5, RecruitmentSettings::sanitize( array( 'response_days' => '5' ) )['response_days'] );
+		$this->assertSame( RecruitmentSettings::MAX_RESPONSE_DAYS, RecruitmentSettings::sanitize( array( 'response_days' => '999' ) )['response_days'], 'Above the bound clamps to it.' );
+		$this->assertSame( 0, RecruitmentSettings::sanitize( array( 'response_days' => '-3' ) )['response_days'], 'Below zero falls back to the default.' );
+		$this->assertSame( 0, RecruitmentSettings::sanitize( array( 'response_days' => '' ) )['response_days'], 'A cleared field is not a value.' );
+	}
+
 	public function test_sanitize_accepts_a_valid_email_mode(): void {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 
