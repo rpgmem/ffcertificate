@@ -2762,10 +2762,6 @@ msgstr ""
 msgid "Background color used for each preliminary-list visual status on the public shortcode. These statuses do not change the candidate flow; they only affect the badge color."
 msgstr ""
 
-#: templates/admin/recruitment/admin-page/settings-tab.php:168
-msgid "Background color used on the public + admin subscription-type badges. Each candidate is either PCD (pessoa com deficiência) or GERAL — these two knobs paint the corresponding pill."
-msgstr ""
-
 #: includes/admin/class-ffc-form-editor-layout-metabox.php:63 includes/admin/class-ffc-cert-template-admin-screen.php:745
 msgid "Background Image"
 msgstr ""
@@ -8503,14 +8499,6 @@ msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-geolocation.php:274
 msgid "Geolocation settings saved successfully!"
-msgstr ""
-
-#: includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:516 templates/public/recruitment/subscription-filter.php:25 templates/admin/recruitment/admin-page/settings-tab.php:173
-msgid "GERAL"
-msgstr ""
-
-#: templates/admin/recruitment/notice-edit/classification-filters-form.php:59
-msgid "GERAL only"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:280
@@ -16111,10 +16099,6 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:676 templates/public/recruitment/section-open.php:59
 msgid "Subscription"
-msgstr ""
-
-#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:174
-msgid "Subscription type (PCD / GERAL)"
 msgstr ""
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:167
@@ -31147,4 +31131,29 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php
 msgid "With the ffc_export_recruitment capability, Export definitive list (CSV) above the definitive list and Export calls (CSV) on the Calls record download the whole list or every call of the notice, whatever the filters on screen, ordered by row rather than by rank. Neither file carries CPF, RF or e-mail; who made and who cancelled a call is written only for a user who sees it on screen."
+msgstr ""
+
+#: templates/admin/recruitment/notice-edit/classification-filters-form.php
+msgid "General only"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Subscription type (PCD / General)"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Background color used on the public + admin subscription-type badges. Each candidate is either PCD (person with a disability) or General — these two knobs paint the corresponding pill."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php
+msgctxt "recruitment subscription type"
+msgid "General"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "Cancel call, Reopen and Undo decision are three different things. Cancel call ends a call that is still open (called or accepted) and returns the row to the waiting list; the candidate is told. Reopen ends the call behind a not shown row and returns it to the waiting list. Undo decision, for a Manager only, returns a hired, withdrawn or not shown row to the waiting list at its original position, without telling the candidate. All three ask for a reason, which is logged, and each ended call stays in the Calls record as cancelled. Once the notice is closed none of them is offered."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "On the public list each table is named for a screen reader, its headers are column headers, and on a narrow screen each row reads as a card of \"column: value\" lines. The subscription badge reads PCD or General."
 msgstr ""

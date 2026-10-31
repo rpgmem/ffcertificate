@@ -2757,10 +2757,6 @@ msgstr "A cor de segundo plano é usada para cada status do ciclo de vida do avi
 msgid "Background color used for each preliminary-list visual status on the public shortcode. These statuses do not change the candidate flow; they only affect the badge color."
 msgstr "Cor de segundo plano usada para cada status visual da lista preliminar no shortcode público. Esses status não alteram o fluxo de candidatos; eles afetam apenas a cor do selo."
 
-#: templates/admin/recruitment/admin-page/settings-tab.php:168
-msgid "Background color used on the public + admin subscription-type badges. Each candidate is either PCD (pessoa com deficiência) or GERAL — these two knobs paint the corresponding pill."
-msgstr "Cor de segundo plano usada nos emblemas de assinatura pública e administrativa. Cada candidato é PCD (pessoa com deficiência) ou GERAL — esses dois botões pintam a pílula correspondente."
-
 #: includes/admin/class-ffc-form-editor-layout-metabox.php:63 includes/admin/class-ffc-cert-template-admin-screen.php:745
 msgid "Background Image"
 msgstr "Imagem de Segundo Plano"
@@ -8502,14 +8498,6 @@ msgstr "Restrições de Geolocalização"
 #: includes/settings/tabs/class-ffc-tab-geolocation.php:274
 msgid "Geolocation settings saved successfully!"
 msgstr "Configurações de geolocalização salvas com sucesso!"
-
-#: includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:516 templates/public/recruitment/subscription-filter.php:25 templates/admin/recruitment/admin-page/settings-tab.php:173
-msgid "GERAL"
-msgstr "GERAL"
-
-#: templates/admin/recruitment/notice-edit/classification-filters-form.php:59
-msgid "GERAL only"
-msgstr "GERAL apenas"
 
 #: includes/settings/views/ffc-tab-geolocation.php:280
 msgid "Get your free API key"
@@ -16163,10 +16151,6 @@ msgstr "Enviando..."
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:676 templates/public/recruitment/section-open.php:59
 msgid "Subscription"
 msgstr "Inscrição"
-
-#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:174
-msgid "Subscription type (PCD / GERAL)"
-msgstr "Tipo de inscrição (PCD / GERAL)"
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:167
 msgid "Subscription type — badge colors"
@@ -31231,3 +31215,28 @@ msgstr "baixar a lista definitiva de um edital e suas convocações em CSV. Conc
 #: includes/settings/views/documentation/feature-recruitment.php
 msgid "With the ffc_export_recruitment capability, Export definitive list (CSV) above the definitive list and Export calls (CSV) on the Calls record download the whole list or every call of the notice, whatever the filters on screen, ordered by row rather than by rank. Neither file carries CPF, RF or e-mail; who made and who cancelled a call is written only for a user who sees it on screen."
 msgstr "Com a capacidade ffc_export_recruitment, Exportar lista definitiva (CSV), acima da lista definitiva, e Exportar convocações (CSV), no registro de Convocações, baixam a lista inteira ou todas as convocações do edital, independentemente dos filtros da tela, ordenadas pela linha e não pela classificação. Nenhum dos arquivos traz CPF, RF ou e-mail; quem fez e quem cancelou uma convocação só é escrito para quem vê isso na tela."
+
+#: templates/admin/recruitment/notice-edit/classification-filters-form.php
+msgid "General only"
+msgstr "Somente GERAL"
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Subscription type (PCD / General)"
+msgstr "Tipo de inscrição (PCD / GERAL)"
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Background color used on the public + admin subscription-type badges. Each candidate is either PCD (person with a disability) or General — these two knobs paint the corresponding pill."
+msgstr "Cor de fundo usada nos selos de tipo de inscrição, públicos e do admin. Cada candidato é PCD (pessoa com deficiência) ou GERAL — estes dois controles pintam o selo correspondente."
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php
+msgctxt "recruitment subscription type"
+msgid "General"
+msgstr "GERAL"
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "Cancel call, Reopen and Undo decision are three different things. Cancel call ends a call that is still open (called or accepted) and returns the row to the waiting list; the candidate is told. Reopen ends the call behind a not shown row and returns it to the waiting list. Undo decision, for a Manager only, returns a hired, withdrawn or not shown row to the waiting list at its original position, without telling the candidate. All three ask for a reason, which is logged, and each ended call stays in the Calls record as cancelled. Once the notice is closed none of them is offered."
+msgstr "Cancelar convocação, Reabrir e Desfazer decisão são três coisas diferentes. Cancelar convocação encerra uma convocação ainda aberta (convocado ou aceito) e devolve a linha à lista de espera; o candidato é avisado. Reabrir encerra a convocação de uma linha não compareceu e a devolve à lista de espera. Desfazer decisão, só para o Gestor, devolve uma linha contratada, desistente ou não compareceu à lista de espera na posição original, sem avisar o candidato. As três pedem um motivo, que fica registrado, e cada convocação encerrada permanece no registro de Convocações como cancelada. Com o edital encerrado, nenhuma delas é oferecida."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "On the public list each table is named for a screen reader, its headers are column headers, and on a narrow screen each row reads as a card of \"column: value\" lines. The subscription badge reads PCD or General."
+msgstr "Na lista pública, cada tabela tem um nome para leitores de tela, seus cabeçalhos são cabeçalhos de coluna e, em telas estreitas, cada linha aparece como um cartão de linhas \"coluna: valor\". O selo de inscrição mostra PCD ou GERAL."

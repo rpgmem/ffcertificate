@@ -42,6 +42,7 @@ class RecruitmentExportSourceTest extends BatchedExportSourceContractTestCase {
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
@@ -264,10 +265,10 @@ class RecruitmentExportSourceTest extends BatchedExportSourceContractTestCase {
 
 		$this->assertStringContainsString( 'AND id < %d ORDER BY id DESC LIMIT %d', $this->prepared[0][0] );
 		$this->assertSame( array( 'wp_ffc_recruitment_classification', 12, PHP_INT_MAX, 100 ), $this->prepared[0][1] );
-		$this->assertSame( array( '4', 'Ana', 'Math', 'GERAL', '88.5', 'Called' ), array_slice( $rows[0], 0, 6 ) );
+		$this->assertSame( array( '4', 'Ana', 'Math', 'General', '88.5', 'Called' ), array_slice( $rows[0], 0, 6 ) );
 		$this->assertStringContainsString( '09:30', $rows[0][7], 'The time to assume, as stored.' );
 		$this->assertSame( 'User 3', $rows[0][9], 'The active call names its caller; the cancelled one is not the active one.' );
-		$this->assertSame( array( '5', '', 'Math', 'GERAL', '80', 'Waiting', '', '', '', '' ), $rows[1], 'A waiting row has no call; an unknown candidate has no name.' );
+		$this->assertSame( array( '5', '', 'Math', 'General', '80', 'Waiting', '', '', '', '' ), $rows[1], 'A waiting row has no call; an unknown candidate has no name.' );
 		$this->assertSame( 60, $this->source->cursor_of( $this->source->fetch_page( array( 'notice_id' => 12, 'kind' => 'list' ), $context, PHP_INT_MAX, 100 )[0] ) );
 	}
 
