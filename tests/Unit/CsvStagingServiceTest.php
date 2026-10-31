@@ -249,7 +249,7 @@ class CsvStagingServiceTest extends TestCase {
 
 	/** @param mixed $query Statement. */
 	private function answerResults( $query ) {
-		[ $sql ] = $this->statement( $query );
+		[ $sql, $args ] = $this->statement( $query );
 		if ( false !== strpos( $sql, 'AND adjutancy_id = 0' ) ) {
 			return $this->rule_answers['not_in_notice'] ?? array();
 		}
@@ -258,6 +258,12 @@ class CsvStagingServiceTest extends TestCase {
 		}
 		if ( false !== strpos( $sql, 'COUNT(DISTINCT name)' ) ) {
 			return $this->rule_answers['divergence'] ?? array();
+		}
+		if ( 'SELECT line_no, cpf_normalized, rf_normalized, email, name FROM %i WHERE job_id = %s ORDER BY row_no' === $sql ) {
+			return $this->rule_answers['staged'] ?? array();
+		}
+		if ( false !== strpos( $sql, 'SELECT id, cpf_hash, rf_hash, email_hash, name FROM %i WHERE %i IN' ) ) {
+			return $this->rule_answers[ 'stored_' . $args[1] ] ?? array();
 		}
 		if ( false !== strpos( $sql, 'FROM ' . self::STAGING . ' WHERE job_id = %s AND processed = 0 ORDER BY row_no LIMIT %d' ) ) {
 			return $this->batch;
@@ -550,6 +556,105 @@ class CsvStagingServiceTest extends TestCase {
 	}
 
 	// ───────────────────────── promote_batch ─────────────────────────
+
+	/**
+	 * A staged row as the identity check reads it.
+	 *
+	 * @param int    $line Line number.
+	 * @param string $cpf  CPF.
+	 * @param string $rf   RF.
+	 * @param string $name Name.
+	 */
+	private function stagedIdentity( int $line, string $cpf, string $rf, string $name ): object {
+		return (object) array(
+			'line_no'        => (string) $line,
+			'cpf_normalized' => $cpf,
+			'rf_normalized'  => $rf,
+			'email'          => '',
+			'name'           => $name,
+		);
+	}
+
+	public function test_validate_parks_the_job_when_a_row_differs_from_a_stored_candidate(): void {
+		$this->storeJob( 'ingested' );
+		$cpf_hash                              = (string) \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A );
+		$this->rule_answers['staged']          = array( $this->stagedIdentity( 2, Identifiers::CPF_A, '', 'Somebody Else' ) );
+		$this->rule_answers['stored_cpf_hash'] = array(
+			(object) array(
+				'id'         => '9',
+				'cpf_hash'   => $cpf_hash,
+				'rf_hash'    => null,
+				'email_hash' => null,
+				'name'       => 'Ana Souza',
+			),
+		);
+
+		$r = CsvStagingService::validate_job( self::JOB_ID );
+
+		$this->assertTrue( $r['ok'] );
+		$this->assertSame( array(), $r['errors'] );
+		$this->assertSame(
+			array(
+				array(
+					'line'         => 2,
+					'candidate_id' => 9,
+					'fields'       => array( 'name' ),
+				),
+			),
+			$r['mismatches']
+		);
+		$this->assertSame( 'needs_ack', $this->to( $this->updates, self::JOBS )[0]['data']['status'] );
+	}
+
+	public function test_validate_refuses_a_cpf_and_an_rf_of_two_candidates(): void {
+		$this->storeJob( 'ingested' );
+		$cpf_hash                              = (string) \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A );
+		$rf_hash                               = (string) \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'rf', Identifiers::RF_A );
+		$this->rule_answers['staged']          = array( $this->stagedIdentity( 3, Identifiers::CPF_A, Identifiers::RF_A, 'Ana' ) );
+		$this->rule_answers['stored_cpf_hash'] = array(
+			(object) array(
+				'id'         => '9',
+				'cpf_hash'   => $cpf_hash,
+				'rf_hash'    => null,
+				'email_hash' => null,
+				'name'       => 'Ana',
+			),
+		);
+		$this->rule_answers['stored_rf_hash']  = array(
+			(object) array(
+				'id'         => '10',
+				'cpf_hash'   => null,
+				'rf_hash'    => $rf_hash,
+				'email_hash' => null,
+				'name'       => 'Bia',
+			),
+		);
+
+		$r = CsvStagingService::validate_job( self::JOB_ID );
+
+		$this->assertSame( array( 'line=3: recruitment_csv_identity_conflict' ), $r['errors'] );
+		$this->assertSame( 'invalid', $this->to( $this->updates, self::JOBS )[0]['data']['status'] );
+	}
+
+	public function test_promote_refuses_a_parked_job_until_the_operator_acknowledges(): void {
+		$this->storeJob(
+			'needs_ack',
+			array(
+				'processed_count' => 0,
+				'total'           => 1,
+			)
+		);
+		$this->batch = array( $this->stagedRow( 1, Identifiers::CPF_A, 0 ) );
+
+		$refused = CsvStagingService::promote_batch( self::JOB_ID, 50 );
+		$this->assertFalse( $refused['ok'] );
+		$this->assertSame( array( 'recruitment_import_identity_mismatch' ), $refused['errors'] );
+		$this->assertSame( array(), $this->inserts, 'Nothing is written before the acknowledgement.' );
+
+		$accepted = CsvStagingService::promote_batch( self::JOB_ID, 50, true );
+		$this->assertTrue( $accepted['ok'] );
+		$this->assertSame( 'promoting', $this->to( $this->updates, self::JOBS )[0]['data']['status'] );
+	}
 
 	public function test_promote_returns_error_when_job_missing(): void {
 		$r = CsvStagingService::promote_batch( self::JOB_ID, 50 );

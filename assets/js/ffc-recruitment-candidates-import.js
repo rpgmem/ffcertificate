@@ -54,14 +54,25 @@
 			return false;
 		}
 		var target = els.namedItem('list_target').value;
-		var fd = new FormData();
-		fd.append('csv_file', els.namedItem('csv_file').files[0]);
-		var url;
-		if (target === 'definitive') {
-			url = cfg.noticesRoot + nid + '/promote-preview';
-			fd.append('mode', 'definitive_import');
-		} else {
-			url = cfg.noticesRoot + nid + '/import';
+		var file = els.namedItem('csv_file').files[0];
+		var url = target === 'definitive'
+			? cfg.noticesRoot + nid + '/promote-preview'
+			: cfg.noticesRoot + nid + '/import';
+		// Lines that differ from a stored candidate are confirmed once, then
+		// the file is sent again with the acknowledgement (#2245).
+		function send(acknowledge) {
+			var fd = new FormData();
+			fd.append('csv_file', file);
+			if (target === 'definitive') { fd.append('mode', 'definitive_import'); }
+			if (acknowledge) { fd.append('acknowledge_identity', '1'); }
+			return fetch(url, {
+				method: 'POST',
+				headers: { 'X-WP-Nonce': cfg.nonce },
+				body: fd,
+				credentials: 'same-origin'
+			}).then(function (r) {
+				return r.json().then(function (d) { return { status: r.status, body: d }; });
+			});
 		}
 		var btn = document.getElementById('ffc-cand-csv-submit');
 		var status = document.getElementById('ffc-cand-csv-status');
@@ -82,17 +93,13 @@
 			progress.style.display = 'none';
 			btn.disabled = false;
 		}
-		fetch(url, {
-			method: 'POST',
-			headers: { 'X-WP-Nonce': cfg.nonce },
-			body: fd,
-			credentials: 'same-origin'
-		})
-			.then(function (r) {
-				return r.json().then(function (d) { return { status: r.status, body: d }; });
-			})
+		window.ffcRecruitmentImportBatched.sendWithIdentityAck(send, document.getElementById('ffc-cand-csv-errors'))
 			.then(function (o) {
 				cleanup();
+				if (o === null) {
+					window.FFC.status(status, 'warning', (window.ffcRecruitmentImportIdentity || {}).cancelled || '');
+					return;
+				}
 				if (o.status >= 200 && o.status < 300) {
 					window.FFC.status(status, 'success', 'OK (' + ((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)) + ')');
 					location.reload();

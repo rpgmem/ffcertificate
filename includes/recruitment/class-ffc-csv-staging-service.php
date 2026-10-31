@@ -294,9 +294,10 @@ final class CsvStagingService {
 	 * Job status transitions:
 	 *   ingested → validated  (no errors)
 	 *   ingested → invalid    (errors collected; staging preserved)
+	 *   ingested → needs_ack  (rows differ from stored candidates, #2245)
 	 *
 	 * @param string $job_id Job identifier.
-	 * @return array{ok: true, errors: list<string>}|array{ok: false, errors: list<string>}
+	 * @return array{ok: true, errors: list<string>, mismatches: list<array{line: int, candidate_id: int, fields: list<string>}>}|array{ok: false, errors: list<string>}
 	 */
 	public static function validate_job( string $job_id ) {
 		global $wpdb;
@@ -312,7 +313,7 @@ final class CsvStagingService {
 				'errors' => array( 'recruitment_import_job_not_found' ),
 			);
 		}
-		if ( ! in_array( $job->status, array( 'ingested', 'invalid' ), true ) ) {
+		if ( ! in_array( $job->status, array( 'ingested', 'invalid', 'needs_ack' ), true ) ) {
 			return array(
 				'ok'     => false,
 				'errors' => array( 'recruitment_import_job_invalid_state_for_validate' ),
@@ -428,9 +429,48 @@ final class CsvStagingService {
 			}
 		}
 
+		// Rule 6 — compare the rows with the stored candidates (#2245), the
+		// same check the single-request import runs. A conflict is an error;
+		// a mismatch parks the job in `needs_ack` until the operator accepts
+		// that the stored identity is kept.
+		$mismatches = array();
+		if ( empty( $errors ) ) {
+			/**
+			 * Staged identity columns.
+			 *
+			 * @var list<\stdClass&object{line_no: numeric-string, cpf_normalized: string|null, rf_normalized: string|null, email: string|null, name: string|null}>|null $staged
+			 */
+			$staged        = $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT line_no, cpf_normalized, rf_normalized, email, name FROM %i WHERE job_id = %s ORDER BY row_no',
+					$staging_table,
+					$job_id
+				)
+			);
+			$identity_rows = array();
+			foreach ( is_array( $staged ) ? $staged : array() as $r ) {
+				$identity_rows[] = array(
+					'line'  => (int) $r->line_no,
+					'cpf'   => (string) $r->cpf_normalized,
+					'rf'    => (string) $r->rf_normalized,
+					'email' => (string) $r->email,
+					'name'  => (string) $r->name,
+				);
+			}
+			$identity   = RecruitmentImportIdentityCheck::check( $identity_rows );
+			$errors     = $identity['conflicts'];
+			$mismatches = $identity['mismatches'];
+		}
+
 		// Transition the job. Status determines what /promote and
 		// /commit accept; staging rows stay put either way.
-		$next_status = empty( $errors ) ? 'validated' : 'invalid';
+		if ( ! empty( $errors ) ) {
+			$next_status = 'invalid';
+		} elseif ( ! empty( $mismatches ) ) {
+			$next_status = 'needs_ack';
+		} else {
+			$next_status = 'validated';
+		}
 		$wpdb->update(
 			$jobs_table,
 			array(
@@ -443,8 +483,9 @@ final class CsvStagingService {
 		);
 
 		return array(
-			'ok'     => true,
-			'errors' => $errors,
+			'ok'         => true,
+			'errors'     => $errors,
+			'mismatches' => $mismatches,
 		);
 	}
 
@@ -471,11 +512,15 @@ final class CsvStagingService {
 	 * just gets reused on retry because `upsert_candidate` is
 	 * lookup-then-create).
 	 *
-	 * @param string $job_id Job identifier.
-	 * @param int    $size   Rows to process in this batch (clamped to 10–100).
+	 * A job parked in `needs_ack` is promoted only when the operator
+	 * acknowledged the identity mismatches (#2245).
+	 *
+	 * @param string $job_id               Job identifier.
+	 * @param int    $size                 Rows to process in this batch (clamped to 10–100).
+	 * @param bool   $acknowledge_identity The operator accepted the identity mismatches.
 	 * @return array{ok: true, processed: int, total: int, done: bool}|array{ok: false, errors: list<string>}
 	 */
-	public static function promote_batch( string $job_id, int $size ) {
+	public static function promote_batch( string $job_id, int $size, bool $acknowledge_identity = false ) {
 		global $wpdb;
 		$jobs_table    = $wpdb->prefix . 'ffc_recruitment_import_jobs';
 		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
@@ -489,7 +534,13 @@ final class CsvStagingService {
 				'errors' => array( 'recruitment_import_job_not_found' ),
 			);
 		}
-		if ( ! in_array( $job->status, array( 'validated', 'promoting' ), true ) ) {
+		if ( 'needs_ack' === $job->status && ! $acknowledge_identity ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( RecruitmentImportIdentityCheck::MISMATCH_CODE ),
+			);
+		}
+		if ( ! in_array( $job->status, array( 'validated', 'needs_ack', 'promoting' ), true ) ) {
 			return array(
 				'ok'     => false,
 				'errors' => array( 'recruitment_import_job_invalid_state_for_promote' ),
@@ -520,7 +571,7 @@ final class CsvStagingService {
 
 		// Flip the job to 'promoting' on the first non-empty batch so
 		// subsequent /validate or /commit calls see the correct state.
-		if ( 'validated' === $job->status ) {
+		if ( 'validated' === $job->status || 'needs_ack' === $job->status ) {
 			$wpdb->update(
 				$jobs_table,
 				array(

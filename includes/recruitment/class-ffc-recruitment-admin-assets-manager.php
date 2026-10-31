@@ -110,6 +110,21 @@ final class RecruitmentAdminAssetsManager {
 			FFC_VERSION,
 			true
 		);
+		// Lines that match a stored candidate whose data differs are confirmed
+		// in the shared dialog before any import writes (#2245); the three
+		// import screens read these strings through the batched importer.
+		wp_localize_script(
+			'ffc-recruitment-import-batched',
+			'ffcRecruitmentImportIdentity',
+			array(
+				'title'     => __( 'Some lines differ from stored candidates', 'ffcertificate' ),
+				'body'      => __( 'These lines match a candidate already stored, but their data differs. The import attaches them to that candidate and keeps the stored name, CPF, RF and e-mail. Correct the candidate by hand if the file is right.', 'ffcertificate' ),
+				'cta'       => __( 'Import and keep stored data', 'ffcertificate' ),
+				/* translators: {n}: number of lines not listed */
+				'more'      => __( '+{n} more, listed below the form', 'ffcertificate' ),
+				'cancelled' => __( 'Import cancelled. Nothing was imported.', 'ffcertificate' ),
+			)
+		);
 
 		// Candidate-edit page interactions (PII reveal + adjutancy swap),
 		// extracted from inline <script> blocks (frontend-audit Item 3). The
@@ -152,7 +167,7 @@ final class RecruitmentAdminAssetsManager {
 		wp_enqueue_script(
 			'ffc-recruitment-candidates-import',
 			FFC_PLUGIN_URL . "assets/js/ffc-recruitment-candidates-import{$s}.js",
-			array( 'ffc-core' ),
+			array( 'ffc-core', self::HANDLE_JS, 'ffc-recruitment-import-batched' ),
 			FFC_VERSION,
 			true
 		);

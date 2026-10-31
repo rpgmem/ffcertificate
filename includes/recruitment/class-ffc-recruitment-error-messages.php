@@ -210,6 +210,9 @@ final class RecruitmentErrorMessages {
 			'recruitment_csv_time_points_invalid_format'   => __( 'Time points format is invalid (numeric value expected).', 'ffcertificate' ),
 			'recruitment_csv_missing_adjutancy'            => __( 'Adjutancy is required.', 'ffcertificate' ),
 			'recruitment_csv_adjutancy_not_in_notice'      => __( 'Adjutancy is not linked to this notice.', 'ffcertificate' ),
+			// Candidate identity (#2245).
+			'recruitment_csv_identity_conflict'            => __( 'The CPF and the RF on this line belong to two different candidates. Correct the line and import again.', 'ffcertificate' ),
+			'recruitment_import_identity_mismatch'         => __( 'Some lines match a stored candidate whose data differs. Review them and confirm to import; the stored data is kept.', 'ffcertificate' ),
 		);
 	}
 }

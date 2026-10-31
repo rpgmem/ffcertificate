@@ -423,8 +423,11 @@ final class RecruitmentClassificationsRestController {
 			);
 		}
 
-		$result = RecruitmentCsvImporter::import_preview( $id, $content );
+		$result = RecruitmentCsvImporter::import_preview( $id, $content, $this->acknowledged_identity( $request ) );
 
+		if ( ! empty( $result['mismatches'] ) ) {
+			return $this->identity_mismatch_error( $result['mismatches'] );
+		}
 		if ( ! $result['success'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}
@@ -504,6 +507,10 @@ final class RecruitmentClassificationsRestController {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}
 
+		// Rows that differ from the stored candidate: the client asks the
+		// operator, then sends acknowledge_identity with each batch (#2245).
+		$result['mismatch_messages'] = RecruitmentImportIdentityCheck::messages( $result['mismatches'] );
+
 		// Even on a clean validate we return 200 with `errors: []` so
 		// the JS-side can branch on length without an extra HTTP code.
 		return new \WP_REST_Response( $result, 200 );
@@ -526,7 +533,7 @@ final class RecruitmentClassificationsRestController {
 			$size = RecruitmentCsvImporter::BATCH_SIZE_DEFAULT;
 		}
 
-		$result = RecruitmentCsvImporter::promote_batch( $job_id, $size );
+		$result = RecruitmentCsvImporter::promote_batch( $job_id, $size, $this->acknowledged_identity( $request ) );
 		if ( ! $result['ok'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}
@@ -607,7 +614,10 @@ final class RecruitmentClassificationsRestController {
 
 		// The importer refuses a notice that is not `preliminary` or already
 		// has calls, and promotes it in the same transaction (#2245).
-		$result = RecruitmentCsvImporter::import_definitive( $id, $content );
+		$result = RecruitmentCsvImporter::import_definitive( $id, $content, $this->acknowledged_identity( $request ) );
+		if ( ! empty( $result['mismatches'] ) ) {
+			return $this->identity_mismatch_error( $result['mismatches'] );
+		}
 		if ( ! $result['success'] ) {
 			// A notice in the wrong state is a conflict; a bad file is not.
 			$code     = (string) ( $result['errors'][0] ?? '' );
@@ -619,6 +629,36 @@ final class RecruitmentClassificationsRestController {
 		RecruitmentActivityLogger::notice_promoted( $id, 'definitive_import', 0 );
 
 		return new \WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * Whether the request carries the operator's acknowledgement of the
+	 * identity mismatches (#2245).
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return bool
+	 */
+	private function acknowledged_identity( \WP_REST_Request $request ): bool {
+		return true === filter_var( $request->get_param( 'acknowledge_identity' ), FILTER_VALIDATE_BOOLEAN );
+	}
+
+	/**
+	 * The 409 an import answers while identity mismatches wait for the
+	 * operator. It names lines, fields and candidate IDs, never values.
+	 *
+	 * @param list<array{line: int, candidate_id: int, fields: list<string>}> $mismatches Mismatches.
+	 * @return \WP_Error
+	 */
+	private function identity_mismatch_error( array $mismatches ): \WP_Error {
+		return new \WP_Error(
+			RecruitmentImportIdentityCheck::MISMATCH_CODE,
+			RecruitmentErrorMessages::translate( RecruitmentImportIdentityCheck::MISMATCH_CODE ),
+			array(
+				'status'            => 409,
+				'mismatches'        => $mismatches,
+				'mismatch_messages' => RecruitmentImportIdentityCheck::messages( $mismatches ),
+			)
+		);
 	}
 
 	/**

@@ -9,6 +9,9 @@ import { loadScript } from './helpers.js';
 
 // FFC.status() draws the status lines beside the buttons (#1843).
 loadScript('assets/js/ffc-core.js');
+// The single-request import asks about identity mismatches through the
+// batched importer's shared helper (#2245).
+loadScript('assets/js/ffc-recruitment-import-batched.js');
 
 const SCRIPT = 'assets/js/ffc-recruitment-candidates-import.js';
 
@@ -40,6 +43,7 @@ function installForm(noticeStatus) {
 			<span id="ffc-cand-csv-progress"></span>
 			<span id="ffc-cand-csv-progress-text"></span>
 			<span id="ffc-cand-csv-status"></span>
+			<ul id="ffc-cand-csv-errors"></ul>
 		</form>
 	`;
 }
@@ -207,5 +211,67 @@ describe('ffcRecruitmentImportFromCandidates', () => {
 
 		expect(document.getElementById('ffc-cand-csv-status').textContent).toBe('Network error: offline');
 		expect(document.getElementById('ffc-cand-csv-submit').disabled).toBe(false);
+	});
+
+	describe('identity mismatches (#2245)', () => {
+		function mismatch() {
+			return Promise.resolve({
+				status: 409,
+				json: () => Promise.resolve({
+					code: 'recruitment_import_identity_mismatch',
+					message: 'Some lines differ',
+					data: { status: 409, mismatch_messages: ['Line 2: name differ from candidate #9.'] },
+				}),
+			});
+		}
+		const flush = () => new Promise((r) => setTimeout(r, 0));
+
+		afterEach(() => {
+			delete window.ffcRecruitmentAdmin;
+			delete window.ffcRecruitmentImportIdentity;
+		});
+
+		it('lists the lines and sends the file again with the acknowledgement once confirmed', async () => {
+			installForm('preliminary');
+			loadScript(SCRIPT);
+			const reload = vi.fn();
+			Object.defineProperty(window, 'location', {
+				value: { ...window.location, reload },
+				configurable: true,
+			});
+			const modal = vi.fn((cfg, onConfirm) => onConfirm());
+			window.ffcRecruitmentAdmin = { openConfirmModal: modal };
+			window.fetch = vi.fn()
+				.mockReturnValueOnce(mismatch())
+				.mockReturnValueOnce(Promise.resolve({ status: 200, json: () => Promise.resolve({ message: 'done' }) }));
+
+			window.ffcRecruitmentImportFromCandidates(document.querySelector('form'));
+			await flush();
+			await flush();
+
+			expect(modal).toHaveBeenCalledTimes(1);
+			expect(modal.mock.calls[0][0].consequences).toEqual(['Line 2: name differ from candidate #9.']);
+			expect(document.getElementById('ffc-cand-csv-errors').textContent).toContain('candidate #9');
+			expect(window.fetch).toHaveBeenCalledTimes(2);
+			expect(window.fetch.mock.calls[0][1].body.get('acknowledge_identity')).toBeNull();
+			expect(window.fetch.mock.calls[1][1].body.get('acknowledge_identity')).toBe('1');
+			expect(reload).toHaveBeenCalledTimes(1);
+		});
+
+		it('sends nothing more and says so when the operator declines', async () => {
+			installForm('preliminary');
+			loadScript(SCRIPT);
+			window.ffcRecruitmentImportIdentity = { cancelled: 'CANCELLED' };
+			window.ffcRecruitmentAdmin = { openConfirmModal: (cfg, onConfirm, onCancel) => onCancel() };
+			window.fetch = vi.fn().mockReturnValueOnce(mismatch());
+
+			window.ffcRecruitmentImportFromCandidates(document.querySelector('form'));
+			await flush();
+			await flush();
+
+			expect(window.fetch).toHaveBeenCalledTimes(1);
+			expect(document.getElementById('ffc-cand-csv-status').textContent).toBe('CANCELLED');
+			expect(document.getElementById('ffc-cand-csv-submit').disabled).toBe(false);
+		});
 	});
 });

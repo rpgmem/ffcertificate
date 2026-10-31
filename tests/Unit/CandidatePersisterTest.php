@@ -325,27 +325,66 @@ class CandidatePersisterTest extends TestCase {
 
 	public function test_upsert_updates_existing_candidate_matched_by_cpf(): void {
 		$cpf_hash                  = (string) SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A );
-		$this->by_cpf[ $cpf_hash ] = (object) array( 'id' => '99' );
+		$this->by_cpf[ $cpf_hash ] = (object) array(
+			'id'       => '99',
+			'cpf_hash' => $cpf_hash,
+		);
 
 		$id = CandidatePersister::upsert_candidate( $this->row() );
 
 		$this->assertSame( 99, $id );
 		$this->assertSame( 1, $this->preparedCount( 'WHERE cpf_hash = %s LIMIT 1' ) );
-		// rf lookup must NOT happen when cpf already matched.
-		$this->assertSame( 0, $this->preparedCount( 'WHERE rf_hash = %s LIMIT 1' ) );
+		// The RF is looked up too, so a CPF and an RF of two people are caught.
+		$this->assertSame( 1, $this->preparedCount( 'WHERE rf_hash = %s LIMIT 1' ) );
 		$this->assertSame( array(), $this->inserts, 'An existing candidate is never re-created.' );
 
 		$updates = $this->candidateUpdates();
 		$this->assertSame( array( 'id' => 99 ), $updates[0]['where'] );
-		// array_filter drops nulls; full row keeps all keys.
-		$this->assertArrayHasKey( 'cpf_hash', $updates[0]['data'] );
+		// Identifiers the candidate lacks are filled in; the stored CPF and
+		// the name are kept (#2245).
+		$this->assertArrayNotHasKey( 'cpf_hash', $updates[0]['data'] );
+		$this->assertArrayNotHasKey( 'cpf_encrypted', $updates[0]['data'] );
+		$this->assertArrayHasKey( 'rf_hash', $updates[0]['data'] );
 		$this->assertArrayHasKey( 'email_hash', $updates[0]['data'] );
-		$this->assertSame( 'Maria', $updates[0]['data']['name'] );
+		$this->assertArrayNotHasKey( 'name', $updates[0]['data'] );
+		$this->assertSame( '11999998888', $updates[0]['data']['phone'] );
+	}
+
+	public function test_upsert_never_overwrites_a_stored_identifier(): void {
+		$cpf_hash                  = (string) SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A );
+		$this->by_cpf[ $cpf_hash ] = (object) array(
+			'id'         => '99',
+			'cpf_hash'   => $cpf_hash,
+			'rf_hash'    => 'stored-rf-of-somebody',
+			'email_hash' => 'stored-email',
+		);
+
+		$id = CandidatePersister::upsert_candidate( $this->row() );
+
+		$this->assertSame( 99, $id );
+		$updates = $this->candidateUpdates();
+		foreach ( array( 'name', 'cpf_hash', 'cpf_encrypted', 'rf_hash', 'rf_encrypted', 'email_hash', 'email_encrypted' ) as $column ) {
+			$this->assertArrayNotHasKey( $column, $updates[0]['data'], $column . ' must keep its stored value.' );
+		}
+	}
+
+	public function test_upsert_refuses_a_cpf_and_an_rf_of_two_candidates(): void {
+		$cpf_hash                  = (string) SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A );
+		$rf_hash                   = (string) SensitiveFieldRegistry::hash_identifier( 'rf', Identifiers::RF_A );
+		$this->by_cpf[ $cpf_hash ] = (object) array( 'id' => '99' );
+		$this->by_rf[ $rf_hash ]   = (object) array( 'id' => '5' );
+
+		$this->assertFalse( CandidatePersister::upsert_candidate( $this->row() ) );
+		$this->assertSame( array(), $this->inserts );
+		$this->assertSame( array(), $this->updates, 'Neither candidate is touched.' );
 	}
 
 	public function test_upsert_falls_back_to_rf_lookup_when_cpf_misses(): void {
 		$rf_hash                 = (string) SensitiveFieldRegistry::hash_identifier( 'rf', Identifiers::RF_A );
-		$this->by_rf[ $rf_hash ] = (object) array( 'id' => 5 );
+		$this->by_rf[ $rf_hash ] = (object) array(
+			'id'      => 5,
+			'rf_hash' => $rf_hash,
+		);
 
 		$id = CandidatePersister::upsert_candidate( $this->row( array( 'pcd' => 'no' ) ) );
 
@@ -354,7 +393,8 @@ class CandidatePersisterTest extends TestCase {
 		$this->assertSame( 1, $this->preparedCount( 'WHERE rf_hash = %s LIMIT 1' ) );
 		$this->assertSame( array(), $this->inserts );
 		$updates = $this->candidateUpdates();
-		$this->assertArrayHasKey( 'name', $updates[0]['data'], 'The first write is the field refresh.' );
+		$this->assertArrayHasKey( 'cpf_hash', $updates[0]['data'], 'The missing CPF is filled in.' );
+		$this->assertArrayNotHasKey( 'rf_hash', $updates[0]['data'] );
 		$this->assertSame( array( 'id' => 5 ), $updates[0]['where'] );
 	}
 

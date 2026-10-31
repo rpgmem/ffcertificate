@@ -323,3 +323,62 @@ describe('ffcRecruitmentImportBatched.run — DOM side effects', () => {
 		expect(els.btn.disabled).toBe(false);
 	});
 });
+
+describe('ffcRecruitmentImportBatched.run — identity mismatches (#2245)', () => {
+	afterEach(() => {
+		delete window.ffcRecruitmentAdmin;
+		delete window.ffcRecruitmentImportIdentity;
+	});
+
+	it('asks once, then acknowledges on every batch', async () => {
+		vi.useFakeTimers();
+		const els = mountDom();
+		const modal = vi.fn((cfg, onConfirm) => onConfirm());
+		window.ffcRecruitmentAdmin = { openConfirmModal: modal };
+
+		fetchMock
+			.mockReturnValueOnce(jsonResponse({ ok: true, job_id: 'JOB-1', total: 2 }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, errors: [], mismatches: [{ line: 2 }], mismatch_messages: ['Line 2'] }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, processed: 2, total: 2, done: true }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, inserted: 2 }));
+
+		await callRun(els);
+
+		expect(modal).toHaveBeenCalledTimes(1);
+		expect(modal.mock.calls[0][0].consequences).toEqual(['Line 2']);
+		const batchBody = JSON.parse(fetchMock.mock.calls[2][1].body);
+		expect(batchBody.acknowledge_identity).toBe(true);
+		expect(fetchMock.mock.calls[3][0]).toBe(REST_ROOT + 'notices/7/import-job/commit');
+	});
+
+	it('stops before any batch when the operator declines', async () => {
+		const els = mountDom();
+		window.ffcRecruitmentImportIdentity = { cancelled: 'CANCELLED' };
+		window.ffcRecruitmentAdmin = { openConfirmModal: (cfg, onConfirm, onCancel) => onCancel() };
+
+		fetchMock
+			.mockReturnValueOnce(jsonResponse({ ok: true, job_id: 'JOB-1', total: 2 }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, errors: [], mismatches: [{ line: 2 }], mismatch_messages: ['Line 2'] }));
+
+		await callRun(els);
+
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(els.status.textContent).toBe('CANCELLED');
+		expect(els.btn.disabled).toBe(false);
+	});
+
+	it('does not acknowledge a job that had no mismatch', async () => {
+		vi.useFakeTimers();
+		const els = mountDom();
+		fetchMock
+			.mockReturnValueOnce(jsonResponse({ ok: true, job_id: 'JOB-1', total: 1 }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, errors: [], mismatches: [], mismatch_messages: [] }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, processed: 1, total: 1, done: true }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, inserted: 1 }));
+
+		await callRun(els);
+
+		expect(JSON.parse(fetchMock.mock.calls[2][1].body).acknowledge_identity).toBeUndefined();
+	});
+});
+
