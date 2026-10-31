@@ -162,6 +162,7 @@ final class RecruitmentErrorMessages {
 			'recruitment_call_cancel_race_lost'            => __( 'Another operator updated this call moments ago. Reload to see the current state.', 'ffcertificate' ),
 			'recruitment_cancel_only_from_called_or_accepted' => __( 'Only a call that is called, accepted or not shown can be cancelled.', 'ffcertificate' ),
 			'recruitment_call_not_in_classification'       => __( 'This call does not belong to that candidate row. Reload the page and try again.', 'ffcertificate' ),
+			'recruitment_call_not_yours'                   => __( 'Only the operator who made this call, or a manager, can cancel it.', 'ffcertificate' ),
 			'recruitment_status_called_requires_call'      => __( 'A candidate is called through Call, which records the call and its date.', 'ffcertificate' ),
 			'recruitment_status_empty_requires_cancel'     => __( 'A call is undone through Cancel call or Reopen, which end the call itself.', 'ffcertificate' ),
 			'recruitment_call_requires_definitive_list'    => __( 'Calls and outcomes are recorded on the definitive list only.', 'ffcertificate' ),

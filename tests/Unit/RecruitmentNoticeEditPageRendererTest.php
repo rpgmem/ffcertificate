@@ -79,6 +79,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	/** @var list<object> Call rows the active-call lookup answers. */
 	private array $calls = array();
 
+	/** @var array<string, bool> Capabilities the user holds; every one unless a test says otherwise. */
+	private array $caps = array();
+
 	/**
 	 * Every query the double answered, as [method, sql, bound args].
 	 *
@@ -134,6 +137,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( static fn( $s ) => print $s );
 		Functions\when( 'esc_attr_e' )->alias( static fn( $s ) => print $s );
+
+		Functions\when( 'current_user_can' )->alias( fn ( $cap ) => $this->caps[ $cap ] ?? true );
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'checked' )->justReturn( '' );
@@ -591,11 +597,13 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 				'id'                => '91',
 				'classification_id' => '60',
 				'cancelled_at'      => null,
+				'created_by'        => '3',
 			),
 			(object) array(
 				'id'                => '90',
 				'classification_id' => '60',
 				'cancelled_at'      => '1777968000',
+				'created_by'        => '3',
 			),
 		);
 
@@ -605,6 +613,84 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 
 		$this->assertMatchesRegularExpression( '/data-cls-action="cancel" data-call-id="91"/', $html );
 		$this->assertStringNotContainsString( 'data-call-id="90"', $html, 'A cancelled call is never the one to end.' );
+	}
+
+	/**
+	 * An Operator: view and call, no manage.
+	 */
+	private function as_operator(): void {
+		$this->caps = array(
+			'manage_options'         => false,
+			'ffc_manage_recruitment' => false,
+			'ffc_view_recruitment'   => true,
+			'ffc_call_recruitment'   => true,
+		);
+	}
+
+	public function test_an_operator_records_outcomes_and_ends_only_their_own_call(): void {
+		$this->as_operator();
+		$this->store_classifications(
+			array( $this->cls_row( 50, 1, 'empty', 1, 500 ) ),
+			array(
+				$this->cls_row( 60, 1, 'called', 1, 600 ),
+				$this->cls_row( 61, 2, 'called', 1, 601 ),
+				$this->cls_row( 62, 3, 'hired', 1, 602 ),
+			)
+		);
+		$this->calls = array(
+			(object) array(
+				'id'                => '91',
+				'classification_id' => '60',
+				'cancelled_at'      => null,
+				'created_by'        => '7',
+			),
+			(object) array(
+				'id'                => '92',
+				'classification_id' => '61',
+				'cancelled_at'      => null,
+				'created_by'        => '3',
+			),
+		);
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice() );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'ffc-cls-bulk-toolbar', $html, 'The Operator calls.' );
+		$this->assertStringContainsString( 'data-cls-id="61" data-cls-action="hired"', $html, 'The Operator records an outcome on anyone\'s call.' );
+		$this->assertMatchesRegularExpression( '/data-cls-action="cancel" data-call-id="91"/', $html, 'Their own call can be cancelled.' );
+		$this->assertStringNotContainsString( 'data-call-id="92"', $html, 'Another operator\'s call cannot.' );
+		$this->assertStringNotContainsString( 'data-cls-action="override"', $html, 'Undoing a decision is the Manager\'s.' );
+		$this->assertMatchesRegularExpression( '/<select class="ffc-cls-preview-status" data-cls-id="50" disabled>/', $html, 'The preliminary statuses are the Manager\'s.' );
+	}
+
+	public function test_a_viewer_reads_the_lists_without_actions(): void {
+		$this->caps = array(
+			'manage_options'         => false,
+			'ffc_manage_recruitment' => false,
+			'ffc_call_recruitment'   => false,
+			'ffc_view_recruitment'   => true,
+		);
+		$this->store_classifications( array(), array( $this->cls_row( 61, 1, 'empty', 1, 601 ) ) );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice() );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Cand 601', $html );
+		$this->assertStringNotContainsString( 'ffcRecruitmentClsAct', $html );
+		$this->assertStringNotContainsString( 'ffc-cls-bulk-toolbar', $html );
+	}
+
+	public function test_the_status_section_offers_no_transition_to_a_non_manager(): void {
+		$this->store_classifications( array(), array() );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_status_section( $this->notice( array( 'status' => 'definitive' ) ), false );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'target_status', $html );
+		$this->assertStringContainsString( 'Current state:', $html );
 	}
 
 	public function test_render_classifications_section_empty_lists_render_no_rows_notice(): void {

@@ -9172,10 +9172,6 @@ msgstr "Importar público-alvo"
 msgid "Import candidates (CSV)"
 msgstr "Candidatos a importar (CSV)"
 
-#: includes/settings/views/documentation/feature-recruitment.php:78
-msgid "import candidates / record call-ups."
-msgstr "importar candidatos / registrar convocações."
-
 #: includes/migrations/class-ffc-migration-registry.php:100
 msgid "Import certificate layouts left in the plugin's html/ drop-folder into the reusable template pool (Certificate → Templates). Non-destructive and idempotent: shipped defaults are skipped and each file is imported once."
 msgstr "Importe os layouts de certificado presentes na pasta `html/` do plugin para o repositório de modelos reutilizáveis ​​(Certificado → Modelos). O processo é não destrutivo e idempotente: os modelos padrão fornecidos são ignorados e cada arquivo é importado apenas uma vez."
@@ -30833,3 +30829,15 @@ msgstr "Um candidato vinculado a uma conta vê os próprios dados sem máscara, 
 #: includes/settings/views/documentation/feature-recruitment.php
 msgid "The REST API edits a candidate under the edit screen's rules: name, phone and notes for the manage capability, the e-mail only for whoever may reveal it, CPF and RF never, and every change logged. Every reveal of a CPF, RF or e-mail is logged; there is no setting to turn that off. The PCD filter of the public list exists only when the notice shows the PCD column, and the candidate's own API answer carries the score only when the notice shows it, never the staff fields of a call."
 msgstr "A API REST edita um candidato com as regras da tela de edição: nome, telefone e observações para a permissão de gerenciar, o e-mail só para quem pode revelá-lo, CPF e RF nunca, e toda alteração registrada. Toda revelação de CPF, RF ou e-mail é registrada; não há opção para desligar isso. O filtro PCD da lista pública só existe quando o edital mostra a coluna PCD, e a resposta da API ao próprio candidato traz a nota só quando o edital a mostra, nunca os campos internos de uma convocação."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "Only the operator who made this call, or a manager, can cancel it."
+msgstr "Só o operador que fez esta convocação, ou um gestor, pode cancelá-la."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "The notice screen opens to everyone who can view recruitment. A Viewer reads the lists. An Operator also calls candidates, records outcomes (accepted, not shown, hired, withdrew) and cancels or reopens the calls they made. The notice's name, public columns, status and adjutancies, the preliminary statuses, imports, deletion and undoing a decision stay with the Manager, who can also cancel any call."
+msgstr "A tela do edital abre para todos que podem ver o recrutamento. O Visualizador lê as listas. O Operador também convoca candidatos, registra desfechos (aceitou, não compareceu, contratado, desistiu) e cancela ou reabre as convocações que fez. O nome do edital, as colunas públicas, o status e as adjutâncias, os status preliminares, as importações, a exclusão e desfazer uma decisão ficam com o Gestor, que também pode cancelar qualquer convocação."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "import candidates / call candidates, record outcomes and cancel their own calls."
+msgstr "importar candidatos / convocar candidatos, registrar desfechos e cancelar as próprias convocações."

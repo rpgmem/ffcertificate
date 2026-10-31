@@ -319,7 +319,10 @@ final class RecruitmentAdminPage {
 		// cards (`.ffc-boxed`, #1631), the shape the audience and campaign
 		// editors already use.
 		if ( 'edit-notice' === $action || 'edit-candidate' === $action || 'edit-reason' === $action || 'edit-adjutancy' === $action ) {
-			if ( ! $can_edit ) {
+			// The notice screen opens to view and call holders (#2245): the
+			// Operator calls from it. It gates its own sections; the other
+			// edit screens still need the manage capability.
+			if ( ! $can_edit && 'edit-notice' !== $action ) {
 				wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 			}
 			echo '<div class="wrap ffc-admin-page ffc-page-recruitment ffc-recruitment-admin ffc-boxed">';
