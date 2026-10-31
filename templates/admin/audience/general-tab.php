@@ -2,7 +2,9 @@
 /**
  * Template: Audience admin settings — General tab (status summary + global holidays).
  * In-scope: $holidays (array), $published (int|string published calendars),
- * $audience_active_count (int active audience schedules), $this->menu_slug.
+ * $audience_active_count (int active audience schedules), $this->menu_slug,
+ * $ffc_audience_access (bool; false for a Personal Calendars Setup holder
+ * without the audience capability, who sees the status and the holidays).
  * The calendar colours and labels card reads CalendarAppearance (#2215).
  *
  * Extracted verbatim from the matching AudienceAdminSettings method
@@ -188,6 +190,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<!-- Calendar colours and labels (#2202, #2215) -->
 		<?php
+		if ( ! $ffc_audience_access ) {
+			return;
+		}
 		$ffc_appearance      = \FreeFormCertificate\Scheduling\CalendarAppearance::stored();
 		$ffc_available_ratio = \FreeFormCertificate\Scheduling\CalendarAppearance::available_contrast( $ffc_appearance['colors']['available'] );
 		$ffc_state_hints     = array(

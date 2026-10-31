@@ -89,6 +89,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: a booking's creation and cancellation are stored as UTC seconds** (#2243). `created_at` came from the database session's zone and `cancelled_at` from the site's, so the two disagreed whenever those zones did. Both are now `BIGINT` instants, converted once by the zone that wrote each, and the details and the CSV render them in the site's zone and format.
 - **Personal Calendars: the Appointments list opens by appointment date and time** (#2288). Newest date first, latest time first within a day; a Date sort breaks ties on the time. Date, time and Created show in the site's formats, on the list and on the detail screen. The Audience Calendars bookings list, already newest date first, now also puts the latest time first within a day.
 - **Audience Calendars: sort the bookings list by clicking a column** (#2291). ID, Date, Time, Space, Description and Status sort both ways, as on the Appointments list; filtering and paging keep the sort. The headers come from a shared `AdminUI::sortable_column_header()` that prints core's list-table markup.
+- **Personal Calendars: global holidays close personal appointments too (#2244).** Holders of `ffc_manage_calendars` can add, edit and remove global holidays (Scheduling → Settings opens to them on the General tab only), and a holiday on a date with open personal-calendar appointments lists them beside the audience bookings and, once confirmed, cancels each one with the closure as its reason.
 
 ### Deprecated
 

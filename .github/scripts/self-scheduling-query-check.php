@@ -189,11 +189,18 @@ $open   = array(
 	$reader->isSlotAvailable( $calendar_id, $day, '09:00:00', 2 ),
 	$reader->isSlotAvailable( $calendar_id, $day, '09:00:00', 3 ),
 	count( $reader->getAppointmentsByDate( $calendar_id, $day ) ),
+	// What a global holiday on $day would cancel (#2244): this calendar's open rows, with its title joined.
+	count(
+		array_filter(
+			$reader->getAllOnDate( $day, \FreeFormCertificate\SelfScheduling\AppointmentHandler::CANCELLABLE_STATUSES ),
+			static fn( array $row ): bool => (int) $row['calendar_id'] === $calendar_id && array_key_exists( 'calendar_title', $row )
+		)
+	),
 );
 $wpdb->delete( $table, array( 'calendar_id' => $calendar_id ), array( '%d' ) );
 
-if ( array( false, true, 2 ) !== $open ) {
-	ffc_ss_query_fail( 'The capacity queries answered ' . wp_json_encode( $open ) . ' for two confirmed and one cancelled at 09:00 (expected [false,true,2]).' );
+if ( array( false, true, 2, 2 ) !== $open ) {
+	ffc_ss_query_fail( 'The capacity queries answered ' . wp_json_encode( $open ) . ' for two confirmed and one cancelled at 09:00 (expected [false,true,2,2]).' );
 }
 
 echo "SLOT QUERIES HOLD: one block read per date, capacity counted per start.\n";

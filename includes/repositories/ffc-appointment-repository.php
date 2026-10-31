@@ -199,6 +199,17 @@ class AppointmentRepository extends AbstractRepository {
 	}
 
 	/**
+	 * The appointments on one date across every calendar, with the calendar's title.
+	 *
+	 * @param string             $date     Date (Y-m-d).
+	 * @param array<int, string> $statuses Statuses.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getAllOnDate( string $date, array $statuses ): array {
+		return $this->reader->getAllOnDate( $date, $statuses );
+	}
+
+	/**
 	 * Check if slot is available
 	 *
 	 * @param int    $calendar_id Calendar ID.

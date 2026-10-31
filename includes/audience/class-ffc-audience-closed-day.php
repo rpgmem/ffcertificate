@@ -34,7 +34,7 @@ class AudienceClosedDay {
 	/**
 	 * The closure waiting for confirmation in this request, if any.
 	 *
-	 * @var array{date: string, kind: string, description: string, bookings: list<BookingRow>, fields: array<string, string>}|null
+	 * @var array{date: string, kind: string, description: string, bookings: list<BookingRow>, appointments: array<int, array<string, mixed>>, fields: array<string, string>}|null
 	 */
 	private static ?array $pending = null;
 
@@ -73,28 +73,30 @@ class AudienceClosedDay {
 	/**
 	 * Hold a closure for the confirmation the screen renders in this request.
 	 *
-	 * @param string                $date        Date (Y-m-d).
-	 * @param string                $kind        Closed-date kind.
-	 * @param string                $description Description, may be empty.
-	 * @param array<int, object>    $bookings    The bookings on that date.
-	 * @param array<string, string> $fields      The form fields to post again, by name.
+	 * @param string                           $date        Date (Y-m-d).
+	 * @param string                           $kind        Closed-date kind.
+	 * @param string                           $description Description, may be empty.
+	 * @param array<int, object>               $bookings    The bookings on that date.
+	 * @param array<string, string>            $fields      The form fields to post again, by name.
+	 * @param array<int, array<string, mixed>> $appointments The personal-calendar appointments on that date, for a global holiday (#2244).
 	 * @phpstan-param list<BookingRow> $bookings
 	 * @return void
 	 */
-	public static function hold( string $date, string $kind, string $description, array $bookings, array $fields ): void {
+	public static function hold( string $date, string $kind, string $description, array $bookings, array $fields, array $appointments = array() ): void {
 		self::$pending = array(
-			'date'        => $date,
-			'kind'        => $kind,
-			'description' => $description,
-			'bookings'    => $bookings,
-			'fields'      => $fields,
+			'date'         => $date,
+			'kind'         => $kind,
+			'description'  => $description,
+			'bookings'     => $bookings,
+			'appointments' => $appointments,
+			'fields'       => $fields,
 		);
 	}
 
 	/**
 	 * The closure waiting for confirmation, if any.
 	 *
-	 * @return array{date: string, kind: string, description: string, bookings: list<BookingRow>, fields: array<string, string>}|null
+	 * @return array{date: string, kind: string, description: string, bookings: list<BookingRow>, appointments: array<int, array<string, mixed>>, fields: array<string, string>}|null
 	 */
 	public static function pending(): ?array {
 		return self::$pending;

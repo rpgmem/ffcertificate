@@ -547,6 +547,40 @@ class AppointmentReader extends AbstractRepository {
 	}
 
 	/**
+	 * The appointments on one date across every calendar (#2244), with the
+	 * calendar's title: what a global holiday takes away.
+	 *
+	 * @param string             $date     Date (Y-m-d).
+	 * @param array<int, string> $statuses Statuses.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getAllOnDate( string $date, array $statuses ): array {
+		if ( array() === $statuses ) {
+			return array();
+		}
+		$status_placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
+		$calendars_table     = $this->wpdb->prefix . 'ffc_self_scheduling_calendars';
+
+		$sql = $this->wpdb->prepare(
+			"SELECT a.*, c.title as calendar_title
+             FROM %i a
+             LEFT JOIN %i c ON a.calendar_id = c.id
+             WHERE a.appointment_date = %s
+             AND a.status IN ({$status_placeholders})
+             ORDER BY a.start_time ASC, a.id ASC",
+			array_merge( array( $this->table, $calendars_table, $date ), $statuses )
+		);
+
+		$results = $this->wpdb->get_results( $sql, ARRAY_A );
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $results ) ? $results : array();
+	}
+
+	/**
 	 * Get booking counts by date range
 	 *
 	 * @param int    $calendar_id Calendar ID.
