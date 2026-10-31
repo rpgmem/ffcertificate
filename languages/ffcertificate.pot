@@ -30514,3 +30514,18 @@ msgstr ""
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "A date that is already closed, on the same calendar or in the global list, is refused with a message. Closing a date that already holds audience bookings asks first: the screen lists those bookings, and \"Close the day and cancel the bookings\" saves the date and cancels each one with the reason \"Closed day:\" followed by the description, e-mailing its participants as any cancellation does. A calendar's closed date takes that calendar's bookings; a global holiday takes the bookings of every audience calendar and the open appointments of every personal calendar, listed apart, and the button then reads \"Close the day and cancel everything listed\"."
 msgstr ""
+
+#. translators: %d: number of appointments
+#: includes/self-scheduling/class-ffc-self-scheduling-slot-grid-lock.php
+msgid "The appointment duration, interval and working hours were not changed: %d open appointment sits on a slot the change would move or remove. Cancel or move it first."
+msgid_plural "The appointment duration, interval and working hours were not changed: %d open appointments sit on slots the change would move or remove. Cancel or move them first."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "Once a regular calendar has bookings, a save that changes the appointment duration, the break or the working hours so that an open appointment (pending, confirmed or on the waitlist, from today on) would no longer sit on a slot of the same start and end keeps the previous duration, break and hours, and the editor lists the appointments that held them. A change that keeps every booked slot, such as longer hours, is saved. Cancel or move the listed appointments first to change the grid under them."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "This calendar has bookings: a change to the duration, the break or the working hours that would move or remove the slot of an open appointment is refused on save, and the appointments that hold it are listed."
+msgstr ""

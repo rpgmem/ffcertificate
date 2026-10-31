@@ -402,6 +402,9 @@ class SelfSchedulingEditor {
 
 		wp_nonce_field( 'ffc_self_scheduling_config_nonce', 'ffc_self_scheduling_config_nonce' );
 
+		// A save that would have moved booked slots says so above the tabs (#2244).
+		SlotGridLock::render_notice( (int) $post->ID );
+
 		AdminUI::render_vertical_tabs(
 			self::tab_definitions( $this->shows_occupancy( (int) $post->ID ), 'auto-draft' !== $post->post_status ),
 			function ( string $key ) use ( $post, $config, $mode_locked ): void {
@@ -623,6 +626,9 @@ class SelfSchedulingEditor {
 				<td>
 					<input type="number" id="slot_duration" name="ffc_self_scheduling_config[slot_duration]" value="<?php echo esc_attr( $config['slot_duration'] ); ?>" min="5" max="480" step="5" required /> <?php esc_html_e( 'minutes', 'ffcertificate' ); ?>
 					<p class="description"><?php esc_html_e( 'Duration of each appointment slot', 'ffcertificate' ); ?></p>
+					<?php if ( $mode_locked ) : ?>
+						<p class="description"><?php esc_html_e( 'This calendar has bookings: a change to the duration, the break or the working hours that would move or remove the slot of an open appointment is refused on save, and the appointments that hold it are listed.', 'ffcertificate' ); ?></p>
+					<?php endif; ?>
 				</td>
 			</tr>
 			<tr class="ffc-regular-only">
