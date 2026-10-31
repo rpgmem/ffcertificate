@@ -478,7 +478,9 @@ class AppointmentRestControllerTest extends TestCase {
 					// A regular calendar with no booking rule beyond one per slot.
 					'schedule_type'                     => 'regular',
 					'slot_duration'                     => '30',
-					'working_hours'                     => '[]',
+					// Every day 08:00-18:00, so the 09:00 the tests book is a
+					// slot of the grid the validator accepts (#2244).
+					'working_hours'                     => '[{"day":0,"start":"08:00","end":"18:00"},{"day":1,"start":"08:00","end":"18:00"},{"day":2,"start":"08:00","end":"18:00"},{"day":3,"start":"08:00","end":"18:00"},{"day":4,"start":"08:00","end":"18:00"},{"day":5,"start":"08:00","end":"18:00"},{"day":6,"start":"08:00","end":"18:00"}]',
 					'advance_booking_min'               => '0',
 					'advance_booking_max'               => '0',
 					'max_appointments_per_slot'         => '1',
@@ -737,7 +739,7 @@ class AppointmentRestControllerTest extends TestCase {
 		$row = $this->appointment_inserts[0];
 		$this->assertSame( 1, $row['calendar_id'] );
 		$this->assertSame( $this->future_date(), $row['appointment_date'] );
-		$this->assertSame( '09:00', $row['start_time'] );
+		$this->assertSame( '09:00:00', $row['start_time'], 'The start is stored normalised (#2244).' );
 		$this->assertSame( '09:30:00', $row['end_time'], 'The end follows the 30-minute slot.' );
 		$this->assertSame( 'confirmed', $row['status'] );
 		$this->assertSame( 1, $row['consent_given'] );
