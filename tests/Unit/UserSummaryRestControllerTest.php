@@ -139,7 +139,7 @@ class UserSummaryRestControllerTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_row' )->andReturnUsing(
 			function ( $query ) {
 				[ $sql, $args ] = $this->statement( $query );
-				if ( false !== strpos( $sql, 'appointment_date >= CURDATE()' ) ) {
+				if ( false !== strpos( $sql, 'appointment_date >= %s' ) ) {
 					return $this->appointment_row;
 				}
 				if ( false !== strpos( $sql, 'WHERE id = %d' ) && 'wp_ffc_self_scheduling_calendars' === ( $args[0] ?? null ) ) {
@@ -368,6 +368,9 @@ class UserSummaryRestControllerTest extends TestCase {
 		$this->assertNotNull( $result['next_appointment'] );
 		$this->assertSame( 'Main Calendar', $result['next_appointment']['title'] );
 		$this->assertSame( '10:30', $result['next_appointment']['time'] );
+		$this->assertSame( '2026-06-15', $result['next_appointment']['date'], 'The wall-clock date renders as stored (#2246).' );
+		$next_reads = $this->prepared_matching( '/appointment_date >= %s/' );
+		$this->assertSame( '2026-08-09', end( $next_reads[0][1] ), 'The lower bound is the site\'s today.' );
 		$calendar_reads = $this->prepared_matching( '/WHERE id = %d/' );
 		$this->assertSame( array( 'wp_ffc_self_scheduling_calendars', 42 ), $calendar_reads[0][1] ?? null );
 	}

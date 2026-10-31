@@ -129,12 +129,12 @@ class AppointmentReader extends AbstractRepository {
 			if ( $limit ) {
 				// Single prepare call — avoids double-prepare issues.
 				$sql = $this->wpdb->prepare(
-					"SELECT * FROM %i WHERE user_id = %d AND status IN ({$status_placeholders}) ORDER BY appointment_date DESC LIMIT %d OFFSET %d",
+					"SELECT * FROM %i WHERE user_id = %d AND status IN ({$status_placeholders}) ORDER BY appointment_date DESC, start_time DESC, id DESC LIMIT %d OFFSET %d",
 					array_merge( array( $this->table, $user_id ), $statuses, array( $limit, $offset ) )
 				);
 			} else {
 				$sql = $this->wpdb->prepare(
-					"SELECT * FROM %i WHERE user_id = %d AND status IN ({$status_placeholders}) ORDER BY appointment_date DESC",
+					"SELECT * FROM %i WHERE user_id = %d AND status IN ({$status_placeholders}) ORDER BY appointment_date DESC, start_time DESC, id DESC",
 					array_merge( array( $this->table, $user_id ), $statuses )
 				);
 			}
@@ -815,9 +815,11 @@ class AppointmentReader extends AbstractRepository {
 		if ( $user_id <= 0 || empty( $statuses ) ) {
 			return null;
 		}
+		// The site's today, not the server's CURDATE(): a wall-clock date is
+		// compared with the date the site's people are living (#2246).
 		$placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
-		$args         = array_merge( array( $this->table, $user_id ), array_values( $statuses ) );
-		$sql          = "SELECT * FROM %i WHERE user_id = %d AND status IN ({$placeholders}) AND appointment_date >= CURDATE() ORDER BY appointment_date ASC, start_time ASC LIMIT 1";
+		$args         = array_merge( array( $this->table, $user_id ), array_values( $statuses ), array( current_time( 'Y-m-d' ) ) );
+		$sql          = "SELECT * FROM %i WHERE user_id = %d AND status IN ({$placeholders}) AND appointment_date >= %s ORDER BY appointment_date ASC, start_time ASC, id ASC LIMIT 1";
 		$row          = $this->wpdb->get_row( $this->wpdb->prepare( $sql, $args ), ARRAY_A );
 		return is_array( $row ) ? $row : null;
 	}

@@ -103,18 +103,18 @@ class UserSummaryRestController {
 				$next     = $apt_repo->findNextUpcomingForUser( $user_id );
 
 				if ( $next ) {
-					$timestamp      = strtotime( (string) $next['appointment_date'] );
-					$time_formatted = '';
-					if ( ! empty( $next['start_time'] ) ) {
-						$time_ts        = strtotime( (string) $next['start_time'] );
-						$time_formatted = ( false !== $time_ts ) ? \FreeFormCertificate\Core\DateFormatter::format_time( $time_ts ) : '';
-					}
+					// Category B wall-clock values: rendered as stored, never
+					// shifted by the site timezone (#2246).
+					$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $next['appointment_date'] );
+					$time_formatted = ! empty( $next['start_time'] )
+						? \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $next['start_time'] )
+						: '';
 
 					$calendar      = ( new \FreeFormCertificate\Repositories\CalendarRepository() )->findById( (int) ( $next['calendar_id'] ?? 0 ) );
 					$calendar_name = is_array( $calendar ) ? (string) ( $calendar['title'] ?? '' ) : '';
 
 					$summary['next_appointment'] = array(
-						'date'  => ( false !== $timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $timestamp ) : (string) $next['appointment_date'],
+						'date'  => '' !== $date_formatted ? $date_formatted : (string) $next['appointment_date'],
 						'time'  => $time_formatted,
 						'title' => $calendar_name,
 					);

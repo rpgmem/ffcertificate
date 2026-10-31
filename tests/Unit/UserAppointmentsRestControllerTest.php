@@ -87,6 +87,8 @@ class UserAppointmentsRestControllerTest extends TestCase {
 		});
 
 		Functions\when( '__' )->returnArg();
+		// The site's today, which splits upcoming from past (#2246).
+		Functions\when( 'current_time' )->alias( static fn( $type ) => 'Y-m-d' === $type ? gmdate( 'Y-m-d' ) : time() );
 		Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
 		Functions\when( 'rest_ensure_response' )->alias( function( $data ) { return $data; } );
 		Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
@@ -276,6 +278,52 @@ class UserAppointmentsRestControllerTest extends TestCase {
 		$this->assertIsArray( $result );
 		$this->assertSame( 0, $result['total'] );
 		$this->assertEmpty( $result['appointments'] );
+	}
+
+	/**
+	 * #2246 — on a UTC-3 site the wall-clock date renders as stored, and the
+	 * Upcoming/Past split follows the site's today at its local midnight:
+	 * at 22:30 in São Paulo (01:30 UTC the next day) today is still today.
+	 */
+	public function test_dates_render_as_stored_and_split_on_the_sites_today_in_sao_paulo(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$site = new \DateTimeZone( 'America/Sao_Paulo' );
+		Functions\when( 'wp_timezone' )->justReturn( $site );
+		Functions\when( 'wp_date' )->alias(
+			static function ( $format, $timestamp = null, $tz = null ) use ( $site ) {
+				return ( new \DateTimeImmutable( '@' . ( $timestamp ?? time() ) ) )->setTimezone( $tz ?? $site )->format( $format );
+			}
+		);
+		// 2026-05-21 01:30 UTC is 2026-05-20 22:30 in São Paulo.
+		Functions\when( 'current_time' )->alias(
+			static fn( $type ) => 'Y-m-d' === $type ? ( new \DateTimeImmutable( '@1779327000' ) )->setTimezone( $site )->format( 'Y-m-d' ) : 1779327000
+		);
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_settings' === $key ? array( 'date_format' => 'd/m/Y', 'time_format' => 'H:i' ) : $default
+		);
+
+		$row                = static fn( int $id, string $date, string $status = 'confirmed' ) => array(
+			'id'               => (string) $id,
+			'calendar_id'      => '2',
+			'appointment_date' => $date,
+			'start_time'       => '09:00:00',
+			'end_time'         => '10:00:00',
+			'status'           => $status,
+			'confirmation_token' => '',
+		);
+		Functions\when( 'add_query_arg' )->justReturn( 'https://example.test/receipt' );
+		$this->appointments = array( $row( 1, '2026-05-20' ), $row( 2, '2026-05-19' ), $row( 3, '2026-05-21', 'completed' ) );
+		$this->calendars    = array( array( 'id' => '2', 'title' => 'Main' ) );
+
+		$result = ( new UserAppointmentsRestController( 'ffc/v1' ) )->get_user_appointments( $this->make_request() );
+		$by_id  = array_column( $result['appointments'], null, 'id' );
+
+		$this->assertSame( '20/05/2026', $by_id[1]['appointment_date'], 'Not shifted to 19/05 by the site offset.' );
+		$this->assertSame( '09:00', $by_id[1]['start_time'] );
+		$this->assertFalse( $by_id[1]['is_past'], 'Today in São Paulo, although UTC has already moved on.' );
+		$this->assertTrue( $by_id[2]['is_past'] );
+		$this->assertTrue( $by_id[3]['is_past'], 'A completed appointment is past whatever its date.' );
 	}
 
 	public function test_get_user_appointments_returns_formatted_appointment_data(): void {

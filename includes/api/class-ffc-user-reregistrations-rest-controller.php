@@ -280,8 +280,8 @@ class UserReregistrationsRestController {
 					'end_date'              => $sub->end_date,
 					// Wall-clock (Category B): formatted in UTC so the stored value
 					// prints as written instead of being shifted by the site zone.
-					'start_date_formatted'  => ( false !== $start_ts ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $start_ts, 'default', 'UTC' ) : $sub->start_date,
-					'end_date_formatted'    => ( false !== $end_ts ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $end_ts, 'default', 'UTC' ) : $sub->end_date,
+					'start_date_formatted'  => ( false !== $start_ts ) ? \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $sub->start_date ) : $sub->start_date,
+					'end_date_formatted'    => ( false !== $end_ts ) ? \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $sub->end_date ) : $sub->end_date,
 					'submitted_at'          => $submitted_at,
 					'days_left'             => $is_active ? \FreeFormCertificate\Reregistration\ReregistrationWindow::days_left( (string) $sub->end_date ) : 0,
 					'can_download'          => $can_download,
