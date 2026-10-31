@@ -78,6 +78,11 @@ echo '<p class="description">' . esc_html__( 'The convocation email subject and 
 echo '<a href="' . esc_url( admin_url( 'admin.php?page=ffc-settings&tab=email_texts' ) ) . '">' . esc_html__( 'Edit the email texts', 'ffcertificate' ) . '</a></p>';
 echo '</td></tr>';
 
+echo '<tr><th><label for="ffc-rs-response-days">' . esc_html__( 'Days to answer a call', 'ffcertificate' ) . '</label></th><td>';
+echo '<input id="ffc-rs-response-days" type="number" min="0" max="' . esc_attr( (string) RecruitmentSettings::MAX_RESPONSE_DAYS ) . '" required name="' . esc_attr( $opt ) . '[response_days]" value="' . esc_attr( (string) $settings['response_days'] ) . '">';
+echo '<p class="description">' . esc_html__( 'The call e-mail asks the candidate to answer within this many days of the call, never later than the presentation date. 0 names no deadline.', 'ffcertificate' ) . '</p>';
+echo '</td></tr>';
+
 echo '<tr><th><label for="ffc-rs-from-address">' . esc_html__( 'From address', 'ffcertificate' ) . '</label></th><td>';
 echo '<input id="ffc-rs-from-address" type="email" class="regular-text" name="' . esc_attr( $opt ) . '[email_from_address]" value="' . esc_attr( (string) $settings['email_from_address'] ) . '" placeholder="' . esc_attr__( '(falls back to wp_mail default)', 'ffcertificate' ) . '">';
 echo '</td></tr>';

@@ -199,7 +199,7 @@ class TabEmailTexts extends SettingsTab {
 			),
 			'recruitment-convocation'       => array(
 				'label'  => __( 'Recruitment convocation', 'ffcertificate' ),
-				'tokens' => array( 'name', 'cpf_masked', 'rf_masked', 'email_masked', 'adjutancy', 'notice_code', 'notice_name', 'rank', 'score', 'is_pcd', 'date_to_assume', 'time_to_assume', 'called_at', 'site_name', 'site_url', 'notes' ),
+				'tokens' => array( 'name', 'cpf_masked', 'rf_masked', 'email_masked', 'adjutancy', 'notice_code', 'notice_name', 'rank', 'score', 'is_pcd', 'date_to_assume', 'time_to_assume', 'called_at', 'site_name', 'site_url', 'notes', 'my_calls_url', 'set_password_url', 'respond_by_line' ),
 			),
 			'recruitment-cancellation'      => array(
 				'label'  => __( 'Recruitment call cancelled', 'ffcertificate' ),

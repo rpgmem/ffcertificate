@@ -58,7 +58,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     errors:   list<string>,
  *   }
  *
- * @phpstan-type CallResult array{success: bool, call_ids: list<int>, errors: list<string>}
+ * `unreached` lists the classifications a call e-mail could not reach —
+ * no e-mail on file — so the screen can tell the operator to contact them
+ * by other means (#2245). Absent when nothing was sent.
+ *
+ * @phpstan-type CallResult array{success: bool, call_ids: list<int>, errors: list<string>, unreached?: list<int>}
  */
 final class RecruitmentCallService {
 
@@ -114,14 +118,16 @@ final class RecruitmentCallService {
 
 		// Best-effort email dispatch — failures here do NOT roll back the
 		// committed call (§7). Gated by the configured send mode (#794).
-		if ( RecruitmentEmailDispatcher::should_send( $notify_email ) ) {
-			RecruitmentEmailDispatcher::send_for_call( $result['call_id'] );
+		$unreached = array();
+		if ( RecruitmentEmailDispatcher::should_send( $notify_email ) && ! RecruitmentEmailDispatcher::send_for_call( $result['call_id'] ) ) {
+			$unreached[] = $classification_id;
 		}
 
 		return array(
-			'success'  => true,
-			'call_ids' => array( $result['call_id'] ),
-			'errors'   => array(),
+			'success'   => true,
+			'call_ids'  => array( $result['call_id'] ),
+			'errors'    => array(),
+			'unreached' => $unreached,
 		);
 	}
 
@@ -203,16 +209,20 @@ final class RecruitmentCallService {
 		// Best-effort email dispatch per row — failures here do NOT roll
 		// back the committed batch (§7). Gated by the configured send mode (#794);
 		// resolved once for the whole batch.
+		$unreached = array();
 		if ( RecruitmentEmailDispatcher::should_send( $notify_email ) ) {
-			foreach ( $call_ids as $cid ) {
-				RecruitmentEmailDispatcher::send_for_call( $cid );
+			foreach ( $call_ids as $i => $cid ) {
+				if ( ! RecruitmentEmailDispatcher::send_for_call( $cid ) ) {
+					$unreached[] = (int) $classification_ids[ $i ];
+				}
 			}
 		}
 
 		return array(
-			'success'  => true,
-			'call_ids' => $call_ids,
-			'errors'   => array(),
+			'success'   => true,
+			'call_ids'  => $call_ids,
+			'errors'    => array(),
+			'unreached' => $unreached,
 		);
 	}
 

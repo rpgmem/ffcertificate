@@ -560,6 +560,7 @@ final class RecruitmentNoticeEditPageRenderer {
 	 *     per_page: int,
 	 *     candidates: array<int, string>,
 	 *     pcd_map: array<int, bool>,
+	 *     no_email: array<int, bool>,
 	 *     adjutancies: array<int, string>,
 	 *     reasons: array<int, object>
 	 * }
@@ -570,6 +571,7 @@ final class RecruitmentNoticeEditPageRenderer {
 	 *     per_page: int,
 	 *     candidates: array<int, string>,
 	 *     pcd_map: array<int, bool>,
+	 *     no_email: array<int, bool>,
 	 *     adjutancies: array<int, string>,
 	 *     reasons: list<ReasonRow>
 	 * }
@@ -597,8 +599,12 @@ final class RecruitmentNoticeEditPageRenderer {
 		$candidate_rows = RecruitmentCandidateReader::get_by_ids( array_unique( $candidate_ids ) );
 		$candidates     = array();
 		$pcd_map        = array();
+		$no_email       = array();
 		foreach ( $candidate_rows as $cand ) {
-			$cid                = (int) $cand->id;
+			$cid = (int) $cand->id;
+			// A call e-mail cannot reach a candidate with no address on file
+			// (#2245): the operator is told to contact them another way.
+			$no_email[ $cid ]   = '' === (string) ( $cand->email_hash ?? '' );
 			$candidates[ $cid ] = (string) ( $cand->name ?? '' );
 			// `verify` returns null on hash decode failure — fall back to
 			// GERAL, mirroring the public shortcode's defensive default.
@@ -620,6 +626,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			'per_page'     => $per_page,
 			'candidates'   => $candidates,
 			'pcd_map'      => $pcd_map,
+			'no_email'     => $no_email,
 			'adjutancies'  => $adjutancies,
 			'reasons'      => $reasons,
 		);
@@ -659,6 +666,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		$per_page     = $data['per_page'];
 		$candidates   = $data['candidates'];
 		$pcd_map      = $data['pcd_map'];
+		$no_email     = $data['no_email'];
 		$adjutancies  = $data['adjutancies'];
 		$reasons      = $data['reasons'];
 
@@ -724,7 +732,11 @@ final class RecruitmentNoticeEditPageRenderer {
 				echo '<td><input type="checkbox" class="ffc-cls-bulk-cb" value="' . esc_attr( (string) $row->id ) . '"' . ( $is_empty ? '' : ' disabled' ) . '></td>';
 			}
 			echo '<td>' . esc_html( (string) $row->rank ) . '</td>';
-			echo '<td>' . esc_html( $candidate_name ) . '</td>';
+			echo '<td>' . esc_html( $candidate_name );
+			if ( $with_actions && ( $no_email[ (int) $row->candidate_id ] ?? false ) ) {
+				echo ' <span class="ffc-icon-warning ffc-icon-tone-warning ffc-rec-ml-half">' . esc_html__( 'No email — contact manually', 'ffcertificate' ) . '</span>';
+			}
+			echo '</td>';
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
 			echo '<td>' . RecruitmentAdminPage::adjutancy_badge( RecruitmentAdjutancyReader::get_by_id( (int) $row->adjutancy_id ) ) . '</td>';
 			$is_pcd = $pcd_map[ (int) $row->candidate_id ] ?? false;

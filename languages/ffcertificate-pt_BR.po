@@ -30849,3 +30849,41 @@ msgstr "O arquivo não está em UTF-8. O Excel costuma salvar CSV como Windows-1
 #: includes/settings/views/documentation/feature-recruitment.php
 msgid "Every line is checked before anything is imported, on the screen's import and through the API alike: identifiers, score, time points, rank and adjutancy. One invalid line refuses the whole file, and the report names each line, each problem and the value at fault (never a CPF or RF, which are personal data). The file must be UTF-8: Excel's plain \"CSV\" is Windows-1252, so choose \"CSV UTF-8\" when saving. Promoting the preliminary list keeps every column, time points and the EMEBS qualification included."
 msgstr "Toda linha é verificada antes de qualquer importação, tanto na tela quanto pela API: identificadores, nota, pontos de tempo, classificação e adjutância. Uma linha inválida recusa o arquivo inteiro, e o relatório indica cada linha, cada problema e o valor errado (nunca um CPF ou RF, que são dados pessoais). O arquivo precisa estar em UTF-8: o \"CSV\" comum do Excel é Windows-1252, então escolha \"CSV UTF-8\" ao salvar. Promover a lista preliminar mantém todas as colunas, incluindo os pontos de tempo e a habilitação EMEBS."
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Days to answer a call"
+msgstr "Dias para responder à convocação"
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "The call e-mail asks the candidate to answer within this many days of the call, never later than the presentation date. 0 names no deadline."
+msgstr "O e-mail de convocação pede que o candidato responda em até este número de dias após a convocação, nunca depois da data de apresentação. 0 não indica prazo."
+
+#. translators: %s: the date by which the candidate must answer
+#: includes/recruitment/class-ffc-recruitment-email-dispatcher.php
+msgid "Please answer by %s."
+msgstr "Responda até %s."
+
+#: templates/emails/recruitment-convocation.php
+msgid "Please confirm whether you will attend by replying to this email."
+msgstr "Confirme se comparecerá respondendo a este e-mail."
+
+#: templates/emails/recruitment-convocation.php
+msgid "The calendar file attached adds the presentation to your calendar."
+msgstr "O arquivo de calendário anexo adiciona a apresentação à sua agenda."
+
+#: templates/emails/recruitment-convocation.php
+msgid "Open My Calls"
+msgstr "Abrir Minhas Convocações"
+
+#. translators: {count} is replaced in JS with the number of candidates
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "{count} called candidate(s) have no email on file and were not notified. Contact them manually."
+msgstr "{count} candidato(s) convocado(s) não têm e-mail cadastrado e não foram notificados. Entre em contato manualmente."
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "No email — contact manually"
+msgstr "Sem e-mail — contatar manualmente"
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "The call e-mail gives the presentation date and time in the site's formats, attaches the call's .ics, links to \"My calls\" and asks the candidate to confirm by replying. The \"Days to answer a call\" option of the Recruitment settings adds a deadline, counted from the day of the call and never later than the presentation; 0 names none. The e-mail also carries a link to define a password, which is how a candidate whose account the import created signs in for the first time. A candidate with no e-mail on file is marked \"No email — contact manually\" on the definitive list, and calling one says so, since nobody was notified."
+msgstr "O e-mail de convocação informa a data e a hora da apresentação nos formatos do site, anexa o .ics da convocação, leva a \"Minhas convocações\" e pede que o candidato confirme respondendo. A opção \"Dias para responder à convocação\" das configurações do Recrutamento acrescenta um prazo, contado a partir do dia da convocação e nunca posterior à apresentação; 0 não indica prazo. O e-mail traz também um link para definir a senha, que é como um candidato cuja conta foi criada pela importação entra pela primeira vez. Um candidato sem e-mail cadastrado aparece como \"Sem e-mail — contatar manualmente\" na lista definitiva, e convocá-lo avisa isso, pois ninguém foi notificado."
