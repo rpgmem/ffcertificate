@@ -68,6 +68,7 @@ class DashboardAssetManagerTest extends TestCase {
 		Functions\when( 'rest_url' )->justReturn( 'https://example.com/wp-json/ffc/v1/' );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce' );
 		Functions\when( 'wp_logout_url' )->justReturn( 'https://example.com/logout' );
+		Functions\when( 'wp_lostpassword_url' )->justReturn( 'https://example.com/wp-login.php?action=lostpassword' );
 		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
 		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
 		Functions\when( 'wp_timezone_string' )->justReturn( 'America/Sao_Paulo' );

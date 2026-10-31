@@ -399,8 +399,6 @@ class DashboardShortcode {
 
 		DashboardAssetManager::enqueue_assets( 0 );
 
-		$ffc_key     = $pair['key'];
-		$ffc_login   = $pair['login'];
 		$ffc_error   = RequestInput::get_get_string( 'ffc_password_error' );
 		$ffc_min_len = PasswordInvite::MIN_PASSWORD_LENGTH;
 

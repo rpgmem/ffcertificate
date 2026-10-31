@@ -417,7 +417,11 @@
             html += '<div class="ffc-password-form" style="display: none;">';
             var req = ' <span class="ffc-required" aria-hidden="true">*</span>';
             html += '<div class="ffc-profile-field"><label for="ffc-current-password">' + (s.currentPassword || 'Current Password') + req + '</label>';
-            html += '<input type="password" id="ffc-current-password" autocomplete="current-password" required /></div>';
+            html += '<input type="password" id="ffc-current-password" autocomplete="current-password" required />';
+            if (ffcDashboard.lostPasswordUrl) {
+                html += '<a class="ffc-password-forgot" href="' + esc(ffcDashboard.lostPasswordUrl) + '">' + esc(s.forgotPassword || 'Forgot your password?') + '</a>';
+            }
+            html += '</div>';
             html += '<div class="ffc-profile-field"><label for="ffc-new-password">' + (s.newPassword || 'New Password') + req + '</label>';
             html += '<input type="password" id="ffc-new-password" autocomplete="new-password" minlength="8" required /></div>';
             html += '<div class="ffc-profile-field"><label for="ffc-confirm-password">' + (s.confirmPassword || 'Confirm New Password') + req + '</label>';

@@ -145,6 +145,7 @@ class DashboardShortcodeTest extends TestCase {
 		Functions\when( 'wp_logout_url' )->justReturn( '' );
 		Functions\when( 'get_bloginfo' )->justReturn( '' );
 		Functions\when( 'wp_timezone_string' )->justReturn( 'UTC' );
+		Functions\when( 'wp_lostpassword_url' )->justReturn( 'https://example.com/wp-login.php?action=lostpassword' );
 		// The approved banner's window is counted on the site clock, and the
 		// real ReregistrationFrontend reads it whenever banners load (#1887).
 		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'America/Sao_Paulo' ) );

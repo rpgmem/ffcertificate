@@ -442,6 +442,8 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 		$user->user_login         = 'alice';
 		Functions\when( 'get_userdata' )->justReturn( $user );
 		Functions\when( 'get_password_reset_key' )->justReturn( 'k3y' );
+		// `issue_for()` refuses staff accounts (#2246); these recipients are not.
+		Functions\when( 'user_can' )->justReturn( false );
 		$this->configure(
 			array(
 				'email_subject'      => 'Sub',
