@@ -87,6 +87,9 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 		Functions\when( 'get_permalink' )->justReturn( 'https://example.test/painel/' );
 		Functions\when( 'get_userdata' )->justReturn( false );
 		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
+		// The dispatcher guards on function_exists( 'wp_tempnam' ), so the branch
+		// is chosen here rather than inherited from whichever test ran first.
+		Functions\when( 'wp_tempnam' )->alias( static fn ( $name = '' ) => (string) tempnam( sys_get_temp_dir(), 'ffc-test-' ) );
 		Functions\when( 'is_email' )->alias( static fn ( $email ) => false !== filter_var( $email, FILTER_VALIDATE_EMAIL ) );
 		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
