@@ -191,7 +191,7 @@ class AdminConditionalAssets {
 					'noFormsForDay'   => __( 'No forms scheduled for this day.', 'ffcertificate' ),
 					'viewSubmissions' => __( 'View submissions for this form', 'ffcertificate' ),
 					'calendarStrings' => array(
-						'months'   => array(
+						'months'    => array(
 							__( 'January', 'ffcertificate' ),
 							__( 'February', 'ffcertificate' ),
 							__( 'March', 'ffcertificate' ),
@@ -205,7 +205,7 @@ class AdminConditionalAssets {
 							__( 'November', 'ffcertificate' ),
 							__( 'December', 'ffcertificate' ),
 						),
-						'weekdays' => array(
+						'weekdays'  => array(
 							__( 'Sun', 'ffcertificate' ),
 							__( 'Mon', 'ffcertificate' ),
 							__( 'Tue', 'ffcertificate' ),
@@ -214,7 +214,9 @@ class AdminConditionalAssets {
 							__( 'Fri', 'ffcertificate' ),
 							__( 'Sat', 'ffcertificate' ),
 						),
-						'today'    => __( 'Today', 'ffcertificate' ),
+						'today'     => __( 'Today', 'ffcertificate' ),
+						'prevMonth' => __( 'Previous month', 'ffcertificate' ),
+						'nextMonth' => __( 'Next month', 'ffcertificate' ),
 					),
 				),
 			)

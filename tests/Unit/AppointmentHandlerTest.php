@@ -978,6 +978,41 @@ class AppointmentHandlerTest extends TestCase {
 		$this->assertContains( 'ffcertificate_self_scheduling_appointment_cancelled_email', $fired );
 	}
 
+	/**
+	 * A self-cancellation e-mail carries the reason the person typed (#2244):
+	 * the row read before the cancel has none, so it is carried in.
+	 */
+	public function test_cancellation_email_carries_the_reason(): void {
+		$sent = array();
+		Functions\when( 'do_action' )->alias( function ( $hook, ...$args ) use ( &$sent ) {
+			if ( 'ffcertificate_self_scheduling_appointment_cancelled_email' === $hook ) {
+				$sent[] = $args[0];
+			}
+		} );
+
+		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
+			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
+			'user_id' => 0, 'confirmation_token' => 'valid',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
+		) );
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn(
+			$this->makeCalendar( array( 'email_config' => wp_json_encode( array( 'send_cancellation_notification' => 1 ) ) ) )
+		);
+		$this->appointmentRepo->shouldReceive( 'cancelFrom' )->andReturn( 1 );
+
+		$this->handler->cancel_appointment( 1, 'valid', 'Travel' );
+
+		$this->assertCount( 1, $sent );
+		$this->assertSame( 'Travel', $sent[0]['cancellation_reason'] );
+		$this->assertSame( 'cancelled', $sent[0]['status'] );
+	}
+
+	public function test_sends_cancellation_email_follows_the_calendar_switch(): void {
+		$this->assertTrue( AppointmentHandler::sends_cancellation_email( array( 'email_config' => wp_json_encode( array( 'send_cancellation_notification' => 1 ) ) ) ) );
+		$this->assertFalse( AppointmentHandler::sends_cancellation_email( array( 'email_config' => wp_json_encode( array( 'send_cancellation_notification' => 0 ) ) ) ) );
+		$this->assertFalse( AppointmentHandler::sends_cancellation_email( array() ) );
+	}
+
 	// ==================================================================
 	// cancel_appointment() — authorization + policy error branches
 	// ==================================================================

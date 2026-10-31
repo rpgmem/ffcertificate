@@ -139,10 +139,9 @@ class AppointmentCancellationHandler {
 			case 'process':
 				// The second submit cancels to rebook (#2244): once the
 				// booking is released the person lands on the calendar page.
-				$next = $this->reschedule_requested()
-					? self::booking_page_url( self::calendar_of( is_array( $appointment ) ? $appointment : array() ) )
-					: '';
-				$this->process_cancellation( $appointment_id, $token, $next );
+				$calendar = self::calendar_of( is_array( $appointment ) ? $appointment : array() );
+				$next     = $this->reschedule_requested() ? self::booking_page_url( $calendar ) : '';
+				$this->process_cancellation( $appointment_id, $token, $next, AppointmentHandler::sends_cancellation_email( $calendar ) );
 				return;
 
 			case 'confirm':
@@ -255,9 +254,10 @@ class AppointmentCancellationHandler {
 	 * @param int    $appointment_id Appointment id.
 	 * @param string $token          Confirmation token (re-validated downstream).
 	 * @param string $next           Booking page to open after a reschedule, or ''.
+	 * @param bool   $emails         Whether the calendar e-mails the cancellation.
 	 * @return void
 	 */
-	private function process_cancellation( int $appointment_id, string $token, string $next = '' ): void {
+	private function process_cancellation( int $appointment_id, string $token, string $next = '', bool $emails = true ): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in confirm_submitted() before this method is reached; the token is the primary credential and is re-checked in cancel_appointment().
 		$reason = isset( $_POST['ffc_cancel_reason'] )
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- see above; nonce already verified.
@@ -282,9 +282,12 @@ class AppointmentCancellationHandler {
 			exit;
 		}
 
+		// Promise an e-mail only when one is sent (#2244).
 		$this->render_notice(
 			__( 'Appointment cancelled', 'ffcertificate' ),
-			__( 'Your appointment has been cancelled. A confirmation e-mail is on its way.', 'ffcertificate' )
+			$emails
+				? __( 'Your appointment has been cancelled. A confirmation e-mail is on its way.', 'ffcertificate' )
+				: __( 'Your appointment has been cancelled.', 'ffcertificate' )
 		);
 	}
 

@@ -39,9 +39,12 @@
      */
     function buildModal(apt, reschedule) {
         var s = ffcDashboard.strings;
+        // Leaving the waitlist is the same cancellation, worded for a queue
+        // place rather than a booked time (#2244).
+        var waitlist = apt.status === 'waitlist';
         var confirm = reschedule
             ? window.FFC.buttonHtml({ label: s.rescheduleConfirmBtn, category: 'caution', icon: 'calendar', className: 'ffc-reschedule-confirm', attrs: { 'data-id': String(apt.id) } })
-            : window.FFC.buttonHtml({ label: s.cancelConfirmBtn, category: 'danger', icon: 'cross', className: 'ffc-cancel-confirm', attrs: { 'data-id': String(apt.id) } });
+            : window.FFC.buttonHtml({ label: waitlist ? s.leaveWaitlistConfirmBtn : s.cancelConfirmBtn, category: 'danger', icon: 'cross', className: 'ffc-cancel-confirm', attrs: { 'data-id': String(apt.id) } });
         var reason = reschedule ? '' :
             '<div class="ffc-form-group">' +
                 '<label for="ffc-cancel-reason">' + helpers.esc(s.cancelReasonLabel) + '</label>' +
@@ -54,11 +57,11 @@
                 '<div class="ffc-modal-backdrop"></div>' +
                 '<div class="ffc-modal-content">' +
                     '<div class="ffc-modal-header">' +
-                        '<h3 class="ffc-modal-title" id="' + MODAL_ID + '-title">' + helpers.esc(reschedule ? s.rescheduleTitle : s.cancelTitle) + '</h3>' +
+                        '<h3 class="ffc-modal-title" id="' + MODAL_ID + '-title">' + helpers.esc(reschedule ? s.rescheduleTitle : (waitlist ? s.leaveWaitlistTitle : s.cancelTitle)) + '</h3>' +
                         '<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="' + helpers.escAttr(s.close) + '" title="' + helpers.escAttr(s.close) + '"></button>' +
                     '</div>' +
                     '<div class="ffc-modal-body">' +
-                        '<p>' + helpers.esc(reschedule ? s.rescheduleIntro : s.cancelIntro) + '</p>' +
+                        '<p>' + helpers.esc(reschedule ? s.rescheduleIntro : (waitlist ? s.leaveWaitlistIntro : s.cancelIntro)) + '</p>' +
                         (reschedule && apt.reschedule_note ? window.FFC.notice('warning', 'warning', apt.reschedule_note, '', { role: 'note' }).outerHTML : '') +
                         '<dl class="ffc-cancel-summary">' +
                             '<dt>' + helpers.esc(s.cancelService) + '</dt>' +
@@ -204,12 +207,16 @@
 
         if (apt.can_cancel) {
             html += window.FFC.buttonHtml({
-                label: ffcDashboard.strings.cancelAppointment,
+                label: apt.status === 'waitlist' ? ffcDashboard.strings.leaveWaitlist : ffcDashboard.strings.cancelAppointment,
                 category: 'danger',
                 icon: 'cross',
                 className: 'ffc-cancel-appointment',
                 attrs: { 'data-id': apt.id }
             });
+        }
+
+        if (!apt.can_cancel && apt.cancel_note) {
+            html += '<span class="ffc-cancel-note">' + helpers.esc(apt.cancel_note) + '</span>';
         }
 
         if (section === 'upcoming' && apt.status === 'confirmed') {

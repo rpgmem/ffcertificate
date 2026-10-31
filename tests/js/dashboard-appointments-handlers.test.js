@@ -33,6 +33,10 @@ beforeAll(() => {
 		rescheduleIntro: 'Cancelled first, then the calendar opens.',
 		rescheduleConfirmBtn: 'Cancel and book a new time',
 		rescheduleReason: 'Rescheduled by the participant',
+		leaveWaitlist: 'Leave waitlist',
+		leaveWaitlistTitle: 'Leave the waitlist',
+		leaveWaitlistIntro: 'You will lose your place.',
+		leaveWaitlistConfirmBtn: 'Leave the waitlist',
 		cancelError: 'Cancel failed',
 		noPermission: 'No permission',
 		name: 'Name:',
@@ -506,6 +510,45 @@ describe('appointments reschedule', () => {
 
 		const ids = Array.from(document.querySelectorAll('.ffc-reschedule-appointment')).map((b) => b.getAttribute('data-id'));
 		expect(ids).toEqual(['1']);
+	});
+});
+
+// ----------------------------------------------------------------------
+// Waitlist and the reason a row cannot be cancelled (#2244)
+// ----------------------------------------------------------------------
+
+describe('appointments waitlist and cancel note', () => {
+	afterEach(() => {
+		const el = document.getElementById('ffc-cancel-appointment-modal');
+		if (el) el.remove();
+	});
+
+	it('offers Leave waitlist on a waitlisted row and words the dialog for it', () => {
+		const row = makeAppt({ id: 5, status: 'waitlist', status_label: 'Waitlisted', can_cancel: true });
+		panel().state = [row];
+		panel().render([row], 1);
+
+		const btn = document.querySelector('.ffc-cancel-appointment');
+		expect(btn.textContent).toContain('Leave waitlist');
+		expect(document.querySelector('.ffc-dashboard-status-waitlist').textContent).toBe('Waitlisted');
+
+		window.$(btn).trigger('click');
+		const dialog = document.getElementById('ffc-cancel-appointment-modal');
+		expect(dialog.textContent).toContain('Leave the waitlist');
+		expect(dialog.textContent).toContain('You will lose your place.');
+	});
+
+	it('says why an open row offers no Cancel', () => {
+		panel().render([makeAppt({ id: 6, can_cancel: false, cancel_note: 'Cancelling closed 24 hours before the appointment.' })], 1);
+
+		expect(document.querySelector('.ffc-cancel-appointment')).toBeNull();
+		expect(document.querySelector('.ffc-cancel-note').textContent).toBe('Cancelling closed 24 hours before the appointment.');
+	});
+
+	it('draws no note on a row that can be cancelled', () => {
+		panel().render([makeAppt({ id: 7, can_cancel: true, cancel_note: '' })], 1);
+
+		expect(document.querySelector('.ffc-cancel-note')).toBeNull();
 	});
 });
 

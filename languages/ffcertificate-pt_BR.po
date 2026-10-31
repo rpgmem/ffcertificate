@@ -995,10 +995,6 @@ msgstr "Um aviso percorre estes estágios; o shortcode público exibe a classifi
 msgid "A one-click link that downloads the participant's own certificate. The secret token travels in the URL hash fragment (#token=…), so the server never sees it in logs. The token is the only credential — there is no separate login — so the link should be treated as private. It has no captcha, but it is rate-limited by IP and every access is logged."
 msgstr "Um link de clique único que baixa o próprio certificado do participante. O token secreto é transmitido no fragmento de hash da URL (#token=…), de modo que o servidor nunca o registra nos logs. O token é a única credencial — não há login separado —, portanto, o link deve ser tratado como privado. Não há CAPTCHA, mas existe uma limitação de taxa de acesso por IP, e todos os acessos são registrados."
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:20
-msgid "A personal calendar books one-on-one appointments in time slots (e.g. consultations). Each calendar is created under the Scheduling menu → Personal Calendars and configured in one Calendar Configuration box, split into tabs: Calendar, Slots & hours, Booking window, Cancellation, Approval & waitlist, Who can see and book, Administrator bypass, and Emails. A dot on the Cancellation and Administrator bypass tabs shows whether each is on."
-msgstr "Um calendário pessoal agenda compromissos individuais em horários específicos (por exemplo, consultas). Cada calendário é criado no menu Agendamento → Calendários Pessoais e configurado em uma única caixa, Configuração do Calendário, dividida em abas: Calendário, Vagas e horários, Janela de agendamento, Cancelamento, Aprovação e lista de espera, Quem pode ver e agendar, Burlar do administrador e E-mails. Um ponto nas abas Cancelamento e Burlar do administrador mostra se cada uma está ativa."
-
 #: includes/admin/class-ffc-form-editor-save-handler.php:657
 msgid "A plugin update or deploy will delete these files and break the images. Use the \"Insert Image\" button to add them from the Media Library instead, or run"
 msgstr "Uma atualização ou implantação de plugin excluirá esses arquivos e quebrará as imagens. Em vez disso, use o botão \"Inserir imagem\" para adicioná-las a partir da Biblioteca de Mídia, ou execute"
@@ -30670,3 +30666,50 @@ msgstr "Buscar agendamentos"
 #: includes/settings/views/documentation/feature-self-scheduling.php:61
 msgid "The Appointments list filters by calendar, status and a date range, and Today opens the day's agenda in time order. The search box takes a name, an e-mail, a CPF or RF, or an appointment ID; CPF, RF and e-mail are stored encrypted, so they match only when typed in full. Export CSV exports exactly what the filters show."
 msgstr "A lista de Agendamentos filtra por calendário, status e intervalo de datas, e Hoje abre a agenda do dia em ordem de horário. A busca aceita nome, e-mail, CPF ou RF, ou o ID do agendamento; CPF, RF e e-mail são guardados criptografados, então só encontram quando digitados por completo. Exportar CSV exporta exatamente o que os filtros mostram."
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:307
+msgid "Leave the waitlist"
+msgstr "Sair da lista de espera"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:306
+msgid "Leave waitlist"
+msgstr "Sair da lista de espera"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:208
+msgid "The reason needs at least 5 characters. Nothing was cancelled."
+msgstr "O motivo precisa de pelo menos 5 caracteres. Nada foi cancelado."
+
+#: includes/api/class-ffc-user-appointments-rest-controller.php:209
+msgid "This calendar does not take cancellations online. Contact the organiser to cancel."
+msgstr "Este calendário não aceita cancelamento on-line. Fale com o organizador para cancelar."
+
+#: includes/api/class-ffc-user-appointments-rest-controller.php:172
+msgid "Waitlisted"
+msgstr "Na lista de espera"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:308
+msgid "You will lose your place in the queue for this time. If a place opens up later, it goes to the next person waiting."
+msgstr "Você perde seu lugar na fila deste horário. Se uma vaga abrir depois, ela vai para a próxima pessoa da fila."
+
+#. translators: %d: hours before the appointment
+#: includes/api/class-ffc-user-appointments-rest-controller.php:213
+msgid "Cancelling closed %d hour before the appointment."
+msgid_plural "Cancelling closed %d hours before the appointment."
+msgstr[0] "O cancelamento fechou %d hora antes do agendamento."
+msgstr[1] "O cancelamento fechou %d horas antes do agendamento."
+
+#: includes/settings/views/documentation/feature-user-dashboard.php:31
+msgid "A waitlisted appointment is labelled Waitlisted and offers Leave waitlist; an open one that can no longer be cancelled says why, the calendar taking no online cancellations or the deadline having passed. An administrator is held to the calendar's admin bypass switch here as on the cancellation itself."
+msgstr "Um agendamento na lista de espera aparece como Na lista de espera e oferece Sair da lista de espera; um agendamento aberto que já não pode ser cancelado diz por quê: o calendário não aceita cancelamento on-line ou o prazo passou. O administrador segue a chave de bypass do calendário aqui como no próprio cancelamento."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:65
+msgid "The person's cancellation e-mail carries the reason they typed, and the cancellation link's confirmation promises an e-mail only when the calendar sends one. On the Appointments list, a cancellation reason shorter than five characters is refused with a message instead of being dropped."
+msgstr "O e-mail de cancelamento da pessoa traz o motivo que ela digitou, e a confirmação do link de cancelamento só promete e-mail quando o calendário envia um. Na lista de Agendamentos, um motivo de cancelamento com menos de cinco caracteres é recusado com uma mensagem, em vez de ser ignorado."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:65
+msgid "The booking calendar works from the keyboard: each day is a named button, the arrow keys move a day or a week, Home and End go to the first and last day of the month, Enter or Space picks it, and the month arrows are labelled."
+msgstr "O calendário de agendamento funciona pelo teclado: cada dia é um botão com nome, as setas andam um dia ou uma semana, Home e End vão ao primeiro e ao último dia do mês, Enter ou Espaço escolhe o dia, e as setas do mês têm rótulo."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:20
+msgid "A personal calendar books one-on-one appointments in time slots (e.g. consultations). Each calendar is created under the Scheduling menu → Personal Calendars and configured in one Calendar Configuration box, split into tabs: Calendar, Slots & hours, Booking window, Blocked dates (once the calendar is saved), Cancellation, Approval & waitlist, Who can see and book, Administrator bypass, Names, Emails, and Occupancy (on a saved custom-mode calendar). A dot on the Cancellation and Administrator bypass tabs shows whether each is on."
+msgstr "Um calendário pessoal agenda atendimentos individuais em horários (por exemplo, consultas). Cada calendário é criado no menu Agendamento → Calendários Pessoais e configurado em uma única caixa Configuração do Calendário, dividida em abas: Calendário, Vagas e horários, Janela de agendamento, Datas bloqueadas (depois que o calendário é salvo), Cancelamento, Aprovação e lista de espera, Quem pode ver e agendar, Exceção para administradores, Nomes, E-mails e Ocupação (em um calendário salvo no modo personalizado). Um ponto nas abas Cancelamento e Exceção para administradores mostra se cada uma está ativa."

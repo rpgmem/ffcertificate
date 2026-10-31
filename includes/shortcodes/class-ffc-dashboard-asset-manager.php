@@ -302,6 +302,11 @@ class DashboardAssetManager {
 					'rescheduleIntro'          => __( 'This appointment is cancelled first, then the calendar opens so you can pick a new time. The old time is released at once and may be taken by someone else.', 'ffcertificate' ),
 					'rescheduleConfirmBtn'     => __( 'Cancel and book a new time', 'ffcertificate' ),
 					'rescheduleReason'         => __( 'Rescheduled by the participant', 'ffcertificate' ),
+					// Leaving the waitlist is a cancellation of a queue place (#2244).
+					'leaveWaitlist'            => __( 'Leave waitlist', 'ffcertificate' ),
+					'leaveWaitlistTitle'       => __( 'Leave the waitlist', 'ffcertificate' ),
+					'leaveWaitlistIntro'       => __( 'You will lose your place in the queue for this time. If a place opens up later, it goes to the next person waiting.', 'ffcertificate' ),
+					'leaveWaitlistConfirmBtn'  => __( 'Leave the waitlist', 'ffcertificate' ),
 					'noPermission'             => __( 'You do not have permission to view this content.', 'ffcertificate' ),
 					// Calendar export.
 					'exportToCalendar'         => __( 'Export to Calendar', 'ffcertificate' ),

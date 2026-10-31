@@ -275,6 +275,12 @@
     box-shadow: var(--ffc-shadow-sm);
 }
 
+/* A day of the month takes the keyboard focus (#2244). */
+.ffc-shortcode .ffc-day:focus-visible {
+    outline: 2px solid var(--ffc-border-focus);
+    outline-offset: 2px;
+}
+
 .ffc-shortcode .ffc-day.ffc-other-month {
     background: var(--ffc-gray-100);
     opacity: 0.6;
