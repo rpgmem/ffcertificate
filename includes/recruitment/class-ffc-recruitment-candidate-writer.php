@@ -111,9 +111,13 @@ class RecruitmentCandidateWriter {
 			return false;
 		}
 
+		// Read the id before the action: a listener that writes (the cache
+		// version is an option, added on the first write) moves insert_id.
+		$id = (int) $wpdb->insert_id;
+
 		do_action( 'ffc_recruitment_public_cache_dirty' );
 
-		return (int) $wpdb->insert_id;
+		return $id;
 	}
 
 	/**
