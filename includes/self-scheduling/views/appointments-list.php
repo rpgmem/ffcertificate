@@ -414,8 +414,7 @@ $ffcertificate_table->prepare_items();
 	// but cannot bulk-extract the attendee dataset). The current calendar/status
 	// filters ride along via data-* so the export matches the on-screen query.
 	if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_appointments' ) ) :
-		$ffc_export_calendar_id = \FreeFormCertificate\Core\RequestInput::get_get_int( 'calendar_id' );
-		$ffc_export_status      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
+		$ffc_export_filters = \FreeFormCertificate\SelfScheduling\AppointmentsListTable::request_filters();
 		?>
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_button(
@@ -424,8 +423,11 @@ $ffcertificate_table->prepare_items();
 				'icon'  => 'download',
 				'id'    => 'ffc-appointments-export-btn',
 				'attrs' => array(
-					'data-calendar_id' => (string) $ffc_export_calendar_id,
-					'data-status'      => $ffc_export_status,
+					'data-calendar_id' => (string) $ffc_export_filters['calendar_id'],
+					'data-status'      => $ffc_export_filters['status'],
+					'data-start_date'  => $ffc_export_filters['start_date'],
+					'data-end_date'    => $ffc_export_filters['end_date'],
+					'data-s'           => $ffc_export_filters['search'],
 				),
 			)
 		);

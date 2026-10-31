@@ -30575,3 +30575,15 @@ msgstr ""
 #: includes/settings/views/documentation/feature-self-scheduling.php:62
 msgid "When the calendar sets a minimum interval and the person holds another appointment on it, the dashboard's Reschedule dialog names that appointment first, because the new time is measured from it."
 msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:526
+msgid "Name, e-mail, CPF/RF or ID"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:526
+msgid "Search appointments"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:61
+msgid "The Appointments list filters by calendar, status and a date range, and Today opens the day's agenda in time order. The search box takes a name, an e-mail, a CPF or RF, or an appointment ID; CPF, RF and e-mail are stored encrypted, so they match only when typed in full. Export CSV exports exactly what the filters show."
+msgstr ""
