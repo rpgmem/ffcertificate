@@ -169,6 +169,15 @@ class MigrationRegistry {
 			'order'       => 11,
 		);
 
+		// #2245: PCD moved from the candidate to each notice classification.
+		$this->migrations['recruitment_pcd_per_notice'] = array(
+			'name'        => __( 'Recruitment: PCD per Notice', 'ffcertificate' ),
+			'description' => __( 'Copy the PCD flag each candidate carried onto every one of its notice classifications, where it is now recorded, so a candidate can be PCD in one notice and general in another. A flag that can no longer be read (the WordPress salts were rotated) is recorded as general, which is what the screens already showed, and counted for review by hand.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-hash',
+			'batch_size'  => 200,
+			'order'       => 13,
+		);
+
 		// #2242: reregistration drafts stored their sensitive values in clear
 		// until the draft save encrypted them like the final submit.
 		$this->migrations['rereg_draft_encryption'] = array(

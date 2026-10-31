@@ -205,12 +205,18 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 		);
 	}
 
-	/** Build a classification row; overrides merge over the defaults. */
+	/**
+	 * Build a classification row; overrides merge over the defaults.
+	 *
+	 * The default row is PCD in its notice (#2245).
+	 */
 	private static function row( array $over = array() ): \stdClass {
 		return (object) array_merge(
 			array(
 				'id'                => 10,
+				'notice_id'         => 1,
 				'candidate_id'      => 1,
+				'pcd_hash'          => RecruitmentPcdHasher::compute_for_row( 1, 1, 3, true ),
 				'rank'              => 1,
 				'adjutancy_id'      => 3,
 				'status'            => 'called',
@@ -398,11 +404,13 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 	}
 
 	public function test_render_row_pcd_false_renders_geral_badge(): void {
-		$this->candidates[1] = $this->candidate( 1, false );
+		// The candidate row says PCD; the classification says general, and
+		// the classification is what decides (#2245).
+		$this->candidates[1] = $this->candidate( 1, true );
 
 		$out = RecruitmentPublicShortcodeRenderer::render_section(
 			'Called',
-			array( self::row() ),
+			array( self::row( array( 'pcd_hash' => RecruitmentPcdHasher::compute_for_row( 1, 1, 3, false ) ) ) ),
 			self::all_columns(),
 			true,
 			1,

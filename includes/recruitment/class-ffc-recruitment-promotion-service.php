@@ -127,6 +127,9 @@ final class RecruitmentPromotionService {
 						// leave them 0 / false on the definitive list.
 						'time_points'  => (string) ( $row->time_points ?? '0' ),
 						'hab_emebs'    => (int) ( $row->hab_emebs ?? 0 ),
+						// The hash names notice, candidate and adjutancy, never
+						// the row, so it copies as it is (#2245).
+						'pcd_hash'     => isset( $row->pcd_hash ) ? (string) $row->pcd_hash : null,
 					)
 				);
 				if ( false === $new_id ) {

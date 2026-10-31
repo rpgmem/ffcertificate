@@ -271,17 +271,19 @@ class RecruitmentClassificationFilterManagerTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_apply_filters_subscription_pcd_keeps_only_pcd_candidates(): void {
+		// PCD is read off the classification row, so the same candidate can
+		// be kept in one notice and dropped from another (#2245).
 		$rows = array(
-			(object) array( 'adjutancy_id' => 0, 'candidate_id' => 1 ),
-			(object) array( 'adjutancy_id' => 0, 'candidate_id' => 2 ),
+			(object) array( 'notice_id' => 7, 'adjutancy_id' => 0, 'candidate_id' => 1, 'pcd_hash' => RecruitmentPcdHasher::compute_for_row( 7, 1, 0, true ) ),
+			(object) array( 'notice_id' => 7, 'adjutancy_id' => 0, 'candidate_id' => 2, 'pcd_hash' => RecruitmentPcdHasher::compute_for_row( 7, 2, 0, false ) ),
 		);
 		$this->candidates[1] = (object) array(
 			'name'     => 'A',
-			'pcd_hash' => RecruitmentPcdHasher::compute( 1, true ),
+			'pcd_hash' => RecruitmentPcdHasher::compute( 1, false ),
 		);
 		$this->candidates[2] = (object) array(
 			'name'     => 'B',
-			'pcd_hash' => RecruitmentPcdHasher::compute( 2, false ),
+			'pcd_hash' => RecruitmentPcdHasher::compute( 2, true ),
 		);
 
 		$filters = array( 'subscription' => 'pcd' );

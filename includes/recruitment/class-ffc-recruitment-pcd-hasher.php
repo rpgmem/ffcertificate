@@ -27,6 +27,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
+use FreeFormCertificate\Core\Encryption;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -50,7 +52,10 @@ final class RecruitmentPcdHasher {
 	private const DOMAIN_NOT_PCD = '0';
 
 	/**
-	 * Compute the `pcd_hash` for a given candidate.
+	 * Compute the candidate-level `pcd_hash`, the storage PCD had before it
+	 * moved to the classification (#2245). Read only by the migration that
+	 * copies those flags, through {@see self::verify()}; nothing writes it any
+	 * more.
 	 *
 	 * @param int  $candidate_id The candidate's row ID (auto-incremented at INSERT).
 	 * @param bool $is_pcd       Whether this candidate is registered as PCD.
@@ -93,6 +98,103 @@ final class RecruitmentPcdHasher {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Context of the per-classification hash (#2245).
+	 */
+	private const ROW_CONTEXT = 'recruitment_pcd';
+
+	/**
+	 * The `pcd_hash` of one notice classification (#2245).
+	 *
+	 * PCD is recorded per notice, because the same person can be PCD in one
+	 * notice and general in another. The domain names the notice, the
+	 * candidate and the adjutancy and never the row id, so the batched import
+	 * can compute it before the INSERT and "Copy preliminary as definitive"
+	 * can copy it unchanged. Every row's value is distinct, so equal hashes
+	 * never group the PCD rows; only the server key tells them apart.
+	 *
+	 * The key is the plugin's own hash salt ({@see Encryption::keyed_hash()}),
+	 * so rotating the WordPress salts no longer turns PCD into general once
+	 * `FFC_HASH_SALT` is defined.
+	 *
+	 * @param int  $notice_id    Notice ID.
+	 * @param int  $candidate_id Candidate ID.
+	 * @param int  $adjutancy_id Adjutancy ID.
+	 * @param bool $is_pcd       Whether the row is PCD.
+	 * @return string 64 hex characters.
+	 */
+	public static function compute_for_row( int $notice_id, int $candidate_id, int $adjutancy_id, bool $is_pcd ): string {
+		return Encryption::keyed_hash( self::row_domain( $notice_id, $candidate_id, $adjutancy_id, $is_pcd ), self::ROW_CONTEXT );
+	}
+
+	/**
+	 * Read a classification's PCD flag.
+	 *
+	 * Checked under the active salt, then under the WordPress-derived one, the
+	 * fallback a value hashed before `FFC_HASH_SALT` was defined needs; the
+	 * key-rotation migration rewrites those. A missing or unrecognised hash
+	 * reads as general, which is what the screens have always shown for it.
+	 *
+	 * @param object $row Classification row (`notice_id`, `candidate_id`, `adjutancy_id`, `pcd_hash`).
+	 * @return bool
+	 */
+	public static function row_is_pcd( object $row ): bool {
+		return true === self::read_row( $row )['pcd'];
+	}
+
+	/**
+	 * A classification's PCD flag and which salt it was written with.
+	 *
+	 * @param object $row Classification row.
+	 * @return array{pcd: bool|null, legacy: bool} `pcd` is null when neither salt recognises the hash.
+	 */
+	public static function read_row( object $row ): array {
+		$stored = isset( $row->pcd_hash ) ? (string) $row->pcd_hash : '';
+		if ( '' === $stored ) {
+			return array(
+				'pcd'    => null,
+				'legacy' => false,
+			);
+		}
+		$notice    = (int) ( $row->notice_id ?? 0 );
+		$candidate = (int) ( $row->candidate_id ?? 0 );
+		$adjutancy = (int) ( $row->adjutancy_id ?? 0 );
+		foreach ( array( true, false ) as $flag ) {
+			if ( hash_equals( self::compute_for_row( $notice, $candidate, $adjutancy, $flag ), $stored ) ) {
+				return array(
+					'pcd'    => $flag,
+					'legacy' => false,
+				);
+			}
+		}
+		foreach ( array( true, false ) as $flag ) {
+			$legacy = Encryption::legacy_keyed_hash( self::row_domain( $notice, $candidate, $adjutancy, $flag ), self::ROW_CONTEXT );
+			if ( null !== $legacy && hash_equals( $legacy, $stored ) ) {
+				return array(
+					'pcd'    => $flag,
+					'legacy' => true,
+				);
+			}
+		}
+		return array(
+			'pcd'    => null,
+			'legacy' => false,
+		);
+	}
+
+	/**
+	 * The value a classification hash is computed over.
+	 *
+	 * @param int  $notice_id    Notice ID.
+	 * @param int  $candidate_id Candidate ID.
+	 * @param int  $adjutancy_id Adjutancy ID.
+	 * @param bool $is_pcd       Whether the row is PCD.
+	 * @return string
+	 */
+	private static function row_domain( int $notice_id, int $candidate_id, int $adjutancy_id, bool $is_pcd ): string {
+		return ( $is_pcd ? self::DOMAIN_PCD : self::DOMAIN_NOT_PCD ) . '|' . $notice_id . '|' . $candidate_id . '|' . $adjutancy_id;
 	}
 
 	/**

@@ -235,6 +235,14 @@ final class RecruitmentCsvImporter {
 						// (true/1/sim/yes).
 						'time_points'  => isset( $row['time_points'] ) && '' !== (string) $row['time_points'] ? (string) $row['time_points'] : '0',
 						'hab_emebs'    => CsvParser::parse_pcd_flag( $row['hab_emebs'] ?? '' ) ? 1 : 0,
+						// PCD belongs to this notice's row, not to the
+						// candidate, who may be general in another (#2245).
+						'pcd_hash'     => RecruitmentPcdHasher::compute_for_row(
+							$notice_id,
+							(int) $candidate_id,
+							(int) $adjutancy_map[ $row['adjutancy'] ],
+							CsvParser::parse_pcd_flag( $row['pcd'] ?? '' )
+						),
 					)
 				);
 				if ( false === $classification_id ) {

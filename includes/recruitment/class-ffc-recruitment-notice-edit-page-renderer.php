@@ -605,9 +605,8 @@ final class RecruitmentNoticeEditPageRenderer {
 		$candidate_ids = array_map( static fn( $r ) => (int) $r->candidate_id, $rows );
 		$adjutancy_ids = array_map( static fn( $r ) => (int) $r->adjutancy_id, $rows );
 
-		// Bulk-load the full candidate rows once (we need `pcd_hash` for
-		// the Subscription column; the `name` map below is fed from the
-		// same payload to keep this a single SQL round-trip).
+		// Bulk-load the full candidate rows once: the `name` map and the
+		// e-mail flag below come from one SQL round-trip.
 		$candidate_rows = RecruitmentCandidateReader::get_by_ids( array_unique( $candidate_ids ) );
 		$candidates     = array();
 		$pcd_map        = array();
@@ -618,9 +617,11 @@ final class RecruitmentNoticeEditPageRenderer {
 			// (#2245): the operator is told to contact them another way.
 			$no_email[ $cid ]   = '' === (string) ( $cand->email_hash ?? '' );
 			$candidates[ $cid ] = (string) ( $cand->name ?? '' );
-			// `verify` returns null on hash decode failure — fall back to
-			// GERAL, mirroring the public shortcode's defensive default.
-			$pcd_map[ $cid ] = true === RecruitmentPcdHasher::verify( (string) ( $cand->pcd_hash ?? '' ), $cid );
+		}
+		// PCD belongs to the row, not to the candidate (#2245); an
+		// unrecognised hash reads as GERAL, as the public shortcode does.
+		foreach ( $rows as $r ) {
+			$pcd_map[ (int) $r->id ] = RecruitmentPcdHasher::row_is_pcd( $r );
 		}
 		$adjutancies = self::lookup_map( array_unique( $adjutancy_ids ), array( RecruitmentAdjutancyReader::class, 'get_by_id' ), 'slug' );
 
@@ -753,7 +754,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			echo '</td>';
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
 			echo '<td>' . RecruitmentAdminPage::adjutancy_badge( RecruitmentAdjutancyReader::get_by_id( (int) $row->adjutancy_id ) ) . '</td>';
-			$is_pcd = $pcd_map[ (int) $row->candidate_id ] ?? false;
+			$is_pcd = $pcd_map[ (int) $row->id ] ?? false;
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
 			echo '<td>' . RecruitmentPublicShortcodeRenderer::render_subscription_badge( $is_pcd ) . '</td>';
 			echo '<td>' . esc_html( (string) $row->score ) . '</td>';

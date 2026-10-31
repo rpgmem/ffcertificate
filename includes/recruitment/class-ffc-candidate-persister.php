@@ -6,9 +6,9 @@
  * {@see RecruitmentCsvImporter} (#563 Sprint 6, PR 6c). Both the synchronous
  * import flow (`RecruitmentCsvImporter::run()`) and the staged batched flow
  * (`CsvStagingService::promote_batch()`) write candidates through this one
- * class, so the lookup-then-create logic, the encryption/hash handling and
- * the `pcd_hash` recompute live in a single place rather than being
- * duplicated across the two flows. Neither flow creates or links a WordPress
+ * class, so the lookup-then-create logic and the encryption/hash handling live
+ * in a single place rather than being duplicated across the two flows. PCD
+ * is not among them: it is written on the classification (#2245). Neither flow creates or links a WordPress
  * account any more: {@see RecruitmentAccountLinker} does that after the
  * import has committed, and only for a notice past `draft` (#2245).
  *
@@ -41,9 +41,12 @@ final class CandidatePersister {
 	 * Existing candidate (matched by cpf_hash, then rf_hash) is reused —
 	 * additional rows in `classification` will reference it, and its stored
 	 * name and identifiers are kept. Returns false when the CPF and the RF
-	 * belong to different candidates. New candidates
-	 * are inserted with a placeholder `pcd_hash`, then updated with the
-	 * proper HMAC once `candidate_id` is known.
+	 * belong to different candidates.
+	 *
+	 * PCD is not written here (#2245): it belongs to the notice
+	 * classification the importer creates, because the same person can be
+	 * PCD in one notice and general in another. The candidate's `pcd_hash`
+	 * column is left empty on new rows and untouched on existing ones.
 	 *
 	 * No account is created or linked here (#2245). This ran inside the
 	 * import transaction, so a rolled-back import still sent every new user
@@ -59,7 +62,6 @@ final class CandidatePersister {
 		$email = is_string( $row['email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( $row['email'] ) : '';
 		$name  = is_string( $row['name'] ) ? trim( $row['name'] ) : '';
 		$phone = is_string( $row['phone'] ) ? trim( $row['phone'] ) : '';
-		$pcd   = CsvParser::parse_pcd_flag( $row['pcd'] );
 
 		$cpf_hash   = SensitiveFieldRegistry::hash_identifier( 'cpf', $cpf );
 		$rf_hash    = SensitiveFieldRegistry::hash_identifier( 'rf', $rf );
@@ -103,15 +105,14 @@ final class CandidatePersister {
 				)
 			);
 
-			self::refresh_pcd_hash( $candidate_id, $pcd );
-
 			return $candidate_id;
 		}
 
-		// New candidate: insert with placeholder pcd_hash, then UPDATE.
+		// New candidate. `pcd_hash` is NOT NULL on the table and no longer
+		// carries PCD (#2245), so it is stored empty.
 		$insert_payload = array(
 			'name'     => $name,
-			'pcd_hash' => 'pending',
+			'pcd_hash' => '',
 		);
 		if ( '' !== $cpf ) {
 			$insert_payload['cpf_encrypted'] = Encryption::encrypt( $cpf );
@@ -133,8 +134,6 @@ final class CandidatePersister {
 		if ( false === $candidate_id ) {
 			return false;
 		}
-
-		self::refresh_pcd_hash( (int) $candidate_id, $pcd );
 
 		return (int) $candidate_id;
 	}
@@ -160,30 +159,5 @@ final class CandidatePersister {
 		}
 
 		return $map;
-	}
-
-	/**
-	 * Recompute and persist `pcd_hash` for a candidate.
-	 *
-	 * @param int  $candidate_id Candidate ID.
-	 * @param bool $is_pcd       Whether the candidate is registered as PCD.
-	 * @return void
-	 */
-	private static function refresh_pcd_hash( int $candidate_id, bool $is_pcd ): void {
-		global $wpdb;
-		$table = RecruitmentCandidateReader::get_table_name();
-		$hash  = RecruitmentPcdHasher::compute( $candidate_id, $is_pcd );
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
-		$wpdb->update(
-			$table,
-			array(
-				'pcd_hash'   => $hash,
-				'updated_at' => current_time( 'mysql' ),
-			),
-			array( 'id' => $candidate_id ),
-			array( '%s', '%s' ),
-			array( '%d' )
-		);
 	}
 }

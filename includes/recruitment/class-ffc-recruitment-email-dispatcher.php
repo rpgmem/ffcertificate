@@ -304,7 +304,8 @@ final class RecruitmentEmailDispatcher {
 		$rf_plain    = self::decrypt( $candidate->rf_encrypted ?? null );
 		$email_plain = self::decrypt_email( $candidate->email_encrypted ?? null );
 
-		$is_pcd = RecruitmentPcdHasher::verify( $candidate->pcd_hash, (int) $candidate->id );
+		// PCD of the classification being called, per notice (#2245).
+		$is_pcd = RecruitmentPcdHasher::row_is_pcd( $classification );
 
 		return array(
 			'name'                => $candidate->name,
@@ -316,7 +317,7 @@ final class RecruitmentEmailDispatcher {
 			'notice_name'         => $notice->name,
 			'rank'                => (string) $classification->rank,
 			'score'               => $classification->score,
-			'is_pcd'              => true === $is_pcd ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' ),
+			'is_pcd'              => $is_pcd ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' ),
 			// Wall-clock values (Category B): the site's formats, no timezone shift.
 			'date_to_assume'      => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $call->date_to_assume ),
 			'time_to_assume'      => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $call->time_to_assume ),

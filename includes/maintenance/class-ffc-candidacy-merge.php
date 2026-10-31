@@ -57,8 +57,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * promoted under the mistyped number and a definitive list re-imported under
  * the right one. Dropping the merged candidacy's copy loses nothing, because
  * the survivor holds the same row; any difference, or any call, refuses.
- * - A different PCD status. PCD is an attribute of the CANDIDACY, so moving a
- *   classification would silently change the condition it competes under.
+ * - Two colliding classifications that record a different PCD condition.
+ *   PCD belongs to each notice classification (#2245), so a moved
+ *   classification keeps its own; its hash names the candidacy, so it is
+ *   recomputed for the survivor, never changed.
  * - The other identifier filled on both with different values: that is a
  *   finding of its own, not a gap to fill.
  *
@@ -102,16 +104,6 @@ class CandidacyMerge {
 			return new WP_Error(
 				'ffc_identity_candidacy_accounts',
 				__( 'The two candidacies belong to different accounts, so folding one into the other would merge two people. Decide the merge under "Two accounts, one number" first.', 'ffcertificate' )
-			);
-		}
-
-		$pcd = $this->is_pcd( $target );
-
-		if ( null === $pcd || $this->is_pcd( $source ) !== $pcd ) {
-			return new WP_Error(
-				'ffc_identity_candidacy_pcd',
-				__( 'The two candidacies do not record the same PCD condition, and PCD belongs to the candidacy: merging them would change the condition one of the classifications competes under. Correct the candidacy first.', 'ffcertificate' ),
-				array( 'candidacies' => array( $from, $into ) )
 			);
 		}
 
@@ -190,6 +182,23 @@ class CandidacyMerge {
 			}
 		}
 
+		// Each classification's PCD, read before its hash stops naming its
+		// candidacy (#2245).
+		$moving = $wpdb->get_results(
+			$wpdb->prepare( 'SELECT id, notice_id, candidate_id, adjutancy_id, pcd_hash FROM %i WHERE candidate_id = %d', $classification_table, $from ),
+			ARRAY_A
+		);
+		$pcd    = array();
+		foreach ( is_array( $moving ) ? $moving : array() as $row ) {
+			if ( is_array( $row ) ) {
+				$pcd[ ArrayValue::int( $row, 'id' ) ] = array(
+					'notice'    => ArrayValue::int( $row, 'notice_id' ),
+					'adjutancy' => ArrayValue::int( $row, 'adjutancy_id' ),
+					'pcd'       => RecruitmentPcdHasher::row_is_pcd( (object) $row ),
+				);
+			}
+		}
+
 		$classifications = $wpdb->update(
 			$classification_table,
 			array( 'candidate_id' => $into ),
@@ -200,6 +209,13 @@ class CandidacyMerge {
 
 		if ( false === $classifications ) {
 			return $this->failed( $classification_table );
+		}
+
+		foreach ( $pcd as $id => $row ) {
+			$hash = RecruitmentPcdHasher::compute_for_row( $row['notice'], $into, $row['adjutancy'], $row['pcd'] );
+			if ( false === $wpdb->update( $classification_table, array( 'pcd_hash' => $hash ), array( 'id' => $id ), array( '%s' ), array( '%d' ) ) ) {
+				return $this->failed( $classification_table );
+			}
 		}
 
 		// A finished import keeps its staging rows until cleanup, and one
@@ -294,6 +310,8 @@ class CandidacyMerge {
 					a.status AS from_status, b.status AS into_status,
 					a.preview_status AS from_preview_status, b.preview_status AS into_preview_status,
 					a.preview_reason_id AS from_preview_reason_id, b.preview_reason_id AS into_preview_reason_id,
+					a.adjutancy_id, a.candidate_id AS from_candidate_id, b.candidate_id AS into_candidate_id,
+					a.pcd_hash AS from_pcd_hash, b.pcd_hash AS into_pcd_hash,
 					(SELECT COUNT(*) FROM %i c WHERE c.classification_id IN (a.id, b.id)) AS calls
 				FROM %i a
 				INNER JOIN %i b ON b.notice_id = a.notice_id AND b.adjutancy_id = a.adjutancy_id AND b.list_type = a.list_type
@@ -340,7 +358,8 @@ class CandidacyMerge {
 				&& abs( (float) ArrayValue::string( $row, 'from_time_points', '0' ) - (float) ArrayValue::string( $row, 'into_time_points', '0' ) ) < 0.00005
 				&& ArrayValue::int( $row, 'from_hab_emebs' ) === ArrayValue::int( $row, 'into_hab_emebs' )
 				&& ArrayValue::string( $row, 'from_preview_status' ) === ArrayValue::string( $row, 'into_preview_status' )
-				&& ArrayValue::int( $row, 'from_preview_reason_id' ) === ArrayValue::int( $row, 'into_preview_reason_id' );
+				&& ArrayValue::int( $row, 'from_preview_reason_id' ) === ArrayValue::int( $row, 'into_preview_reason_id' )
+				&& $this->overlap_pcd( $row, 'from' ) === $this->overlap_pcd( $row, 'into' );
 
 			if ( ! $same ) {
 				$code = ArrayValue::string( $row, 'code' );
@@ -401,17 +420,24 @@ class CandidacyMerge {
 	}
 
 	/**
-	 * A candidacy's PCD condition, as its own hash records it.
+	 * One side of an overlap's PCD condition, as its classification records it.
 	 *
-	 * Null when neither domain matches -- a rotated salt or a tampered row --
-	 * and that is refused rather than guessed: an unreadable condition cannot
-	 * be shown to agree with anything.
+	 * PCD belongs to the notice classification (#2245), so two copies of one
+	 * standing are identical only when they agree on it too.
 	 *
-	 * @param array<array-key, mixed> $row A candidacy row.
-	 * @return bool|null
+	 * @param array<array-key, mixed> $row  An overlap row.
+	 * @param string                  $side `from` or `into`.
+	 * @return bool
 	 */
-	protected function is_pcd( array $row ): ?bool {
-		return RecruitmentPcdHasher::verify( ArrayValue::string( $row, 'pcd_hash' ), ArrayValue::int( $row, 'id' ) );
+	protected function overlap_pcd( array $row, string $side ): bool {
+		return RecruitmentPcdHasher::row_is_pcd(
+			(object) array(
+				'notice_id'    => ArrayValue::int( $row, 'notice_id' ),
+				'candidate_id' => ArrayValue::int( $row, $side . '_candidate_id' ),
+				'adjutancy_id' => ArrayValue::int( $row, 'adjutancy_id' ),
+				'pcd_hash'     => ArrayValue::string( $row, $side . '_pcd_hash' ),
+			)
+		);
 	}
 
 	/**

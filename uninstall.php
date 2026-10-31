@@ -283,6 +283,8 @@ $ffcertificate_options = array(
 	'ffc_rereg_draft_encryption_state',
 	// The name-parts backfill cursor (#1552), written only when that card runs.
 	'ffc_name_parts_backfill_state',
+	// The PCD-per-notice cursor (#2245), written only when that card runs.
+	'ffc_recruitment_pcd_per_notice_state',
 	// When each recurring task last ran (#1538), written only when one runs --
 	// never by activation, so the fresh-install gate does not see it.
 	'ffc_cron_heartbeats',

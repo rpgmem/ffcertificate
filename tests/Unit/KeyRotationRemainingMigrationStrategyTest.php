@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Migrations\Strategies\KeyRotationRemainingMigrationStrategy;
+use FreeFormCertificate\Recruitment\RecruitmentPcdHasher;
 
 /**
  * The migration that finishes the key rotation over the areas the first one
@@ -34,6 +35,8 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 
 	private const CANDIDATES = 'wp_ffc_recruitment_candidate';
 	private const REREG      = 'wp_ffc_reregistration_submissions';
+	private const CLS        = 'wp_ffc_recruitment_classification';
+	private const STATE      = 'ffc_key_rotation_remaining_state';
 
 	/** @var array<string, array<int, array<string, mixed>>> */
 	private array $rows = array();
@@ -55,6 +58,7 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 		$this->rows    = array(
 			self::CANDIDATES => array(),
 			self::REREG      => array(),
+			self::CLS        => array(),
 		);
 		$this->options = array();
 		$this->updates = array();
@@ -203,6 +207,10 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 				$rows,
 				static fn( $r ) => is_string( $r['data'] ?? null ) && str_contains( (string) $r['data'], Encryption::V2_PREFIX )
 			);
+		}
+
+		if ( str_contains( $sql, 'pcd_hash IS NOT NULL' ) ) {
+			$rows = array_filter( $rows, static fn( $r ) => '' !== (string) ( $r['pcd_hash'] ?? '' ) );
 		}
 
 		if ( preg_match( '/id <= (\d+)/', $sql, $m ) ) {
@@ -594,6 +602,120 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 			$this->options['ffc_key_rotation_remaining_state']['cursors'],
 			'A matching fingerprint must not reset the cursors.'
 		);
+	}
+
+	// ------------------------------------------------------------------
+	// Recruitment PCD per notice (#2245)
+	// ------------------------------------------------------------------
+
+	/**
+	 * A classification row carrying a PCD hash.
+	 *
+	 * @param int    $id   The id.
+	 * @param string $hash The stored hash.
+	 * @return array<string, mixed>
+	 */
+	private function classification( int $id, string $hash ): array {
+		return array(
+			'id'           => $id,
+			'notice_id'    => 3,
+			'candidate_id' => 10 + $id,
+			'adjutancy_id' => 4,
+			'pcd_hash'     => $hash,
+		);
+	}
+
+	/**
+	 * A hash written under the WordPress-derived salt is rewritten under the
+	 * active one, keeping its flag; a current one costs no write, and one
+	 * neither salt recognises is reported and kept.
+	 *
+	 * Own process: it defines FFC_HASH_SALT, which Encryption reads with no
+	 * other seam and every other test here needs absent.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_a_pcd_hash_under_the_wordpress_salt_is_rewritten_under_the_active_one(): void {
+		$legacy = RecruitmentPcdHasher::compute_for_row( 3, 11, 4, true );
+		define( 'FFC_HASH_SALT', str_repeat( 'S', 64 ) );
+
+		$this->rows[ self::CLS ] = array(
+			$this->classification( 1, $legacy ),
+			$this->classification( 2, RecruitmentPcdHasher::compute_for_row( 3, 12, 4, false ) ),
+			$this->classification( 3, str_repeat( 'a', 64 ) ),
+			$this->classification( 4, '' ),
+		);
+
+		$result = $this->strategy->execute( 'key_rotation_remaining', array() );
+
+		$this->assertSame( 1, $result['processed'], 'Only the changed row counts (#1378).' );
+		$this->assertSame(
+			array(
+				array(
+					'table' => self::CLS,
+					'data'  => array( 'pcd_hash' => RecruitmentPcdHasher::compute_for_row( 3, 11, 4, true ) ),
+					'id'    => 1,
+				),
+			),
+			$this->updates
+		);
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertStringContainsString( '3', $result['errors'][0] );
+		$this->assertFalse( $result['has_more'] );
+		$this->assertSame(
+			array( 'pcd' => true, 'legacy' => false ),
+			RecruitmentPcdHasher::read_row( (object) $this->rows[ self::CLS ][0] ),
+			'The rewritten flag still reads PCD, now under the active salt.'
+		);
+	}
+
+	public function test_a_rotation_latched_before_the_pcd_target_existed_reports_the_pcd_rows_pending(): void {
+		$this->options[ self::STATE ] = array(
+			'fingerprint' => Encryption::key_fingerprint(),
+			'cursors'     => array(),
+			'completed'   => true,
+		);
+		$this->rows[ self::CLS ]      = array(
+			$this->classification( 1, RecruitmentPcdHasher::compute_for_row( 3, 11, 4, true ) ),
+			$this->classification( 2, RecruitmentPcdHasher::compute_for_row( 3, 12, 4, false ) ),
+		);
+
+		$status = $this->strategy->calculate_status( 'key_rotation_remaining', array() );
+
+		$this->assertSame( 2, $status['pending'], 'A latch that names no targets covered only the three older ones.' );
+		$this->assertFalse( $status['is_complete'] );
+
+		$result = $this->strategy->execute( 'key_rotation_remaining', array() );
+
+		$this->assertSame( 0, $result['processed'], 'Both hashes are already current.' );
+		$this->assertSame( array(), $this->updates );
+		$this->assertTrue( $this->strategy->calculate_status( 'key_rotation_remaining', array() )['is_complete'] );
+		$this->assertSame(
+			array( 'recruitment_candidate', 'reregistration_data', 'user_profile_meta', 'recruitment_pcd' ),
+			$this->options[ self::STATE ]['completed_targets']
+		);
+	}
+
+	public function test_a_latch_naming_every_target_reports_complete(): void {
+		$this->options[ self::STATE ] = array(
+			'fingerprint'       => Encryption::key_fingerprint(),
+			'cursors'           => array(),
+			'completed'         => true,
+			'completed_targets' => array( 'recruitment_candidate', 'reregistration_data', 'user_profile_meta', 'recruitment_pcd' ),
+		);
+		$this->rows[ self::CLS ]      = array( $this->classification( 1, RecruitmentPcdHasher::compute_for_row( 3, 11, 4, true ) ) );
+
+		$status = $this->strategy->calculate_status( 'key_rotation_remaining', array() );
+
+		$this->assertTrue( $status['is_complete'] );
+		$this->assertSame( 0, $status['pending'] );
+	}
+
+	public function test_a_classification_without_a_pcd_hash_is_not_counted(): void {
+		$this->rows[ self::CLS ] = array( $this->classification( 5, '' ) );
+
+		$this->assertSame( 0, $this->strategy->calculate_status( 'key_rotation_remaining', array() )['total'], 'Those rows belong to the PCD-per-notice card.' );
 	}
 
 	public function test_name_is_the_one_the_registry_advertises(): void {

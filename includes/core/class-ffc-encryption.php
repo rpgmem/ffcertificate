@@ -532,6 +532,26 @@ class Encryption {
 	}
 
 	/**
+	 * The same keyed hash under the WordPress-derived salt, or null when that
+	 * salt is the active one (#2245).
+	 *
+	 * A hash cannot be decrypted, so a value hashed before `FFC_HASH_SALT`
+	 * was defined can only be recognised by recomputing it under the salt it
+	 * was written with. This is that salt, for the one comparison a key
+	 * rotation needs; nothing is ever written with it.
+	 *
+	 * @param string $value   Value to hash.
+	 * @param string $context Name of the use.
+	 * @return string|null 64 hex characters, or null when the salts are the same.
+	 */
+	public static function legacy_keyed_hash( string $value, string $context ): ?string {
+		if ( ! defined( 'FFC_HASH_SALT' ) ) {
+			return null;
+		}
+		return hash_hmac( 'sha256', $value, self::wp_derived_hash_salt() . '|' . $context );
+	}
+
+	/**
 	 * Decrypt a single field with encrypted-first + plain fallback.
 	 *
 	 * Eliminates the repeated pattern across CSV exporters, REST controllers
@@ -750,7 +770,17 @@ class Encryption {
 			return FFC_HASH_SALT;
 		}
 
-		// Derive from WordPress keys.
+		return self::wp_derived_hash_salt();
+	}
+
+	/**
+	 * The hash salt derived from the WordPress keys: the active one until
+	 * `FFC_HASH_SALT` is defined, and the one older hashes were written with
+	 * after it is.
+	 *
+	 * @return string
+	 */
+	private static function wp_derived_hash_salt(): string {
 		$base_keys = array(
 			defined( 'AUTH_KEY' ) ? AUTH_KEY : '',
 			defined( 'SECURE_AUTH_KEY' ) ? SECURE_AUTH_KEY : '',

@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Recruitment\CsvParser;
 use FreeFormCertificate\Recruitment\CsvStagingService;
+use FreeFormCertificate\Recruitment\RecruitmentPcdHasher;
 use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 use FreeFormCertificate\Tests\Support\Identifiers;
 
@@ -366,6 +367,8 @@ class CsvStagingServiceTest extends TestCase {
 			'email'          => 'person' . $id . '@example.com',
 			'phone'          => (string) $id,
 			'pcd'            => $pcd,
+			'notice_id'      => 5,
+			'adjutancy_id'   => 10,
 		);
 	}
 
@@ -742,6 +745,7 @@ class CsvStagingServiceTest extends TestCase {
 				array(
 					'data'  => array(
 						'candidate_id' => 100,
+						'pcd_hash'     => RecruitmentPcdHasher::compute_for_row( 5, 100, 10, false ),
 						'processed'    => 1,
 					),
 					'where' => array( 'id' => 1 ),
@@ -749,6 +753,7 @@ class CsvStagingServiceTest extends TestCase {
 				array(
 					'data'  => array(
 						'candidate_id' => 101,
+						'pcd_hash'     => RecruitmentPcdHasher::compute_for_row( 5, 101, 10, true ),
 						'processed'    => 1,
 					),
 					'where' => array( 'id' => 2 ),

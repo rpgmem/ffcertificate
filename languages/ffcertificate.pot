@@ -21080,9 +21080,6 @@ msgstr ""
 msgid "The two candidacies belong to different accounts, so folding one into the other would merge two people. Decide the merge under \"Two accounts, one number\" first."
 msgstr ""
 
-msgid "The two candidacies do not record the same PCD condition, and PCD belongs to the candidacy: merging them would change the condition one of the classifications competes under. Correct the candidacy first."
-msgstr ""
-
 msgid "The two candidacies carry different values for the other identifier, so they disagree about who this is. Resolve that finding first."
 msgstr ""
 
@@ -21093,9 +21090,6 @@ msgid "The two candidacies' classifications changed since the check and no longe
 msgstr ""
 
 msgid "The candidacies to merge could not be found. Reload the queue."
-msgstr ""
-
-msgid "fold the mistyped number into the account's sound one. When the same person has a recruitment candidacy under each number, the two candidacies become one: the classifications move unchanged and the emptied candidacy is deleted. Where both hold an identical, never-called classification on the same notice, adjutancy and list, the copy is dropped. It is refused when such a pair differs or was called, or the two record a different PCD condition — those are decisions for HR."
 msgstr ""
 
 msgid "The value you confirmed already belongs to account %s. Correcting this one is not a merge and moves no records — but afterwards both accounts carry the number, and this correction cannot be undone here, because putting the old value back means confirming a number that fails its own check digit. Confirm that you mean to, and then decide the merge under \"Two accounts, one number\"."
@@ -22971,9 +22965,6 @@ msgid "Encryption keys are not configured, so the addresses cannot be encrypted.
 msgstr ""
 
 msgid "Activity-log entries store the client IP address encrypted, and an entry whose details carry a sensitive field (such as CPF or an IP address) has those details encrypted too; the log is still personal data. Entries written before 6.34.0 kept the address in clear until the \"Activity Log: Encrypt Client IPs\" migration runs. The debug logs hash IP addresses instead."
-msgstr ""
-
-msgid "the Encryption Key Rotation re-encrypts stored personal data under FFC_ENCRYPTION_KEY from wp-config.php, with a second card for the remaining areas (recruitment candidates and reregistration bodies); two more cards clear plaintext left on activity log rows that are already encrypted and encrypt the client IP addresses older activity log rows still hold in clear."
 msgstr ""
 
 msgid "%1$s — %2$s (%3$s, score %4$s)"
@@ -30922,4 +30913,44 @@ msgstr ""
 
 #: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php
 msgid "You are about to copy the preliminary list as the definitive list."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-identity-resolution.php:38
+msgid "fold the mistyped number into the account's sound one. When the same person has a recruitment candidacy under each number, the two candidacies become one: the classifications move unchanged and the emptied candidacy is deleted. Where both hold an identical, never-called classification on the same notice, adjutancy and list, the copy is dropped. It is refused when such a pair differs, PCD condition included, or was called — those are decisions for HR. Each moved classification keeps its own PCD condition."
+msgstr ""
+
+#: includes/settings/views/documentation/operations-migrations.php:26
+msgid "the Encryption Key Rotation re-encrypts stored personal data under FFC_ENCRYPTION_KEY from wp-config.php, with a second card for the remaining areas (recruitment candidates and their PCD flags, reregistration bodies and profile identifiers); two more cards clear plaintext left on activity log rows that are already encrypted and encrypt the client IP addresses older activity log rows still hold in clear."
+msgstr ""
+
+#: includes/migrations/class-ffc-migration-registry.php:175
+msgid "Copy the PCD flag each candidate carried onto every one of its notice classifications, where it is now recorded, so a candidate can be PCD in one notice and general in another. A flag that can no longer be read (the WordPress salts were rotated) is recorded as general, which is what the screens already showed, and counted for review by hand."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-key-rotation-remaining-migration-strategy.php:1018
+msgid "Could not write the rehashed PCD flag for recruitment classification %d."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php:68
+msgid "PCD is recorded per notice: the pcd column of a file sets the condition in that notice only, so the same person can be PCD in one notice and general in another, and importing one notice never changes another."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-recruitment-pcd-per-notice-migration-strategy.php:193
+msgid "Recorded the PCD flag on %1$d classifications. %2$d candidate flags could not be read and were recorded as general; review them by hand."
+msgstr ""
+
+#: includes/migrations/class-ffc-migration-registry.php:174
+msgid "Recruitment: PCD per Notice"
+msgstr ""
+
+#: includes/settings/views/documentation/operations-migrations.php:25
+msgid "The \"Recruitment: PCD per Notice\" card copies each candidate's former PCD flag onto every one of its notice classifications; a flag that can no longer be read is recorded as general and counted on the card, for review by hand."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-key-rotation-remaining-migration-strategy.php:996
+msgid "The PCD flag of recruitment classification %d matches neither salt — left unchanged; it reads as general."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-recruitment-pcd-per-notice-migration-strategy.php:131
+msgid "The recruitment tables are not available — nothing to migrate."
 msgstr ""

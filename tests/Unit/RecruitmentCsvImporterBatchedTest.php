@@ -644,7 +644,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 					'rf_normalized'  => '',
 					'email'          => 'a@b.test',
 					'phone'          => '',
-					'pcd'            => '0',
+					'pcd'            => '1',
+					'notice_id'      => '5',
+					'adjutancy_id'   => '10',
 				),
 			),
 			1
@@ -670,12 +672,19 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->assertSame( 'promoting', $jobs[0][2][1]['status'] );
 
 		$staging = $this->calls_to( 'update', '/^wp_ffc_recruitment_import_staging$/' );
-		$this->assertSame( array( 'candidate_id' => 100, 'processed' => 1 ), $staging[0][2][1] );
+		$this->assertSame(
+			array(
+				'candidate_id' => 100,
+				'pcd_hash'     => RecruitmentPcdHasher::compute_for_row( 5, 100, 10, true ),
+				'processed'    => 1,
+			),
+			$staging[0][2][1],
+			'PCD is recorded on the staged classification, where the notice is known (#2245).'
+		);
 		$this->assertSame( array( 'id' => 11 ), $staging[0][2][2] );
 
 		$candidate_updates = array_map( static fn( array $c ): array => $c[2][1], $this->calls_to( 'update', '/^wp_ffc_recruitment_candidate$/' ) );
-		$this->assertCount( 1, $candidate_updates, 'Only the pcd-hash refresh touches the candidate: no user is linked.' );
-		$this->assertSame( RecruitmentPcdHasher::compute( 100, false ), $candidate_updates[0]['pcd_hash'] );
+		$this->assertSame( array(), $candidate_updates, 'A new candidate is not updated: no PCD on it, no user linked.' );
 		$this->assertSame( array(), $this->created_users, 'The import creates no account (#2245).' );
 	}
 

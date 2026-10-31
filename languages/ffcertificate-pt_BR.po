@@ -21162,9 +21162,6 @@ msgstr "Os dois identificadores estão registrados em %s, em candidaturas de con
 msgid "The two candidacies belong to different accounts, so folding one into the other would merge two people. Decide the merge under \"Two accounts, one number\" first."
 msgstr "As duas candidaturas pertencem a contas diferentes, então juntar uma à outra fundiria duas pessoas. Decida antes a fusão em \"Duas contas, um número\"."
 
-msgid "The two candidacies do not record the same PCD condition, and PCD belongs to the candidacy: merging them would change the condition one of the classifications competes under. Correct the candidacy first."
-msgstr "As duas candidaturas não registram a mesma condição de PCD, e PCD pertence à candidatura: juntá-las mudaria a condição sob a qual uma das classificações concorre. Corrija a candidatura antes."
-
 msgid "The two candidacies carry different values for the other identifier, so they disagree about who this is. Resolve that finding first."
 msgstr "As duas candidaturas têm valores diferentes no outro identificador, então discordam sobre quem é esta pessoa. Resolva esse achado antes."
 
@@ -21176,9 +21173,6 @@ msgstr "As classificações das duas candidaturas mudaram desde a verificação 
 
 msgid "The candidacies to merge could not be found. Reload the queue."
 msgstr "As candidaturas a juntar não foram encontradas. Recarregue a fila."
-
-msgid "fold the mistyped number into the account's sound one. When the same person has a recruitment candidacy under each number, the two candidacies become one: the classifications move unchanged and the emptied candidacy is deleted. Where both hold an identical, never-called classification on the same notice, adjutancy and list, the copy is dropped. It is refused when such a pair differs or was called, or the two record a different PCD condition — those are decisions for HR."
-msgstr "junta o número digitado errado ao número íntegro da conta. Quando a mesma pessoa tem uma candidatura de recrutamento em cada número, as duas viram uma: as classificações são movidas sem alteração e a candidatura esvaziada é excluída. Quando as duas têm uma classificação idêntica e nunca convocada no mesmo edital, função e lista, a cópia é descartada. É recusado quando esse par difere ou já foi convocado, ou quando registram condição de PCD diferente — essas são decisões do RH."
 
 msgid "The value you confirmed already belongs to account %s. Correcting this one is not a merge and moves no records — but afterwards both accounts carry the number, and this correction cannot be undone here, because putting the old value back means confirming a number that fails its own check digit. Confirm that you mean to, and then decide the merge under \"Two accounts, one number\"."
 msgstr "O valor que você confirmou já pertence à conta %s. Corrigir esta não é uma mesclagem e não move registro nenhum — mas depois as duas contas passam a ter o número, e esta correção não pode ser desfeita aqui, porque gravar o valor antigo de volta significa confirmar um número que falha no próprio dígito verificador. Confirme que é essa a sua intenção e depois decida a mesclagem em \"Duas contas, um número\"."
@@ -23054,9 +23048,6 @@ msgstr "As chaves de criptografia não estão configuradas, então os endereços
 
 msgid "Activity-log entries store the client IP address encrypted, and an entry whose details carry a sensitive field (such as CPF or an IP address) has those details encrypted too; the log is still personal data. Entries written before 6.34.0 kept the address in clear until the \"Activity Log: Encrypt Client IPs\" migration runs. The debug logs hash IP addresses instead."
 msgstr "As entradas do registro de atividades armazenam o endereço IP do cliente criptografado, e uma entrada cujos detalhes trazem um campo sensível (como CPF ou um endereço IP) também tem esses detalhes criptografados; o registro continua sendo dado pessoal. Entradas gravadas antes da 6.34.0 mantêm o endereço em texto puro até a migração \"Registro de atividades: Criptografar IPs dos clientes\" ser executada. Os logs de depuração guardam um hash dos endereços IP."
-
-msgid "the Encryption Key Rotation re-encrypts stored personal data under FFC_ENCRYPTION_KEY from wp-config.php, with a second card for the remaining areas (recruitment candidates and reregistration bodies); two more cards clear plaintext left on activity log rows that are already encrypted and encrypt the client IP addresses older activity log rows still hold in clear."
-msgstr "a Rotação de Chaves de Criptografia recriptografa os dados pessoais armazenados com a FFC_ENCRYPTION_KEY do wp-config.php, com um segundo cartão para as áreas restantes (candidatos do recrutamento e conteúdo dos recadastramentos); outros dois cartões apagam o texto puro deixado em linhas do registro de atividades que já estão criptografadas e criptografam os endereços IP de clientes que linhas antigas do registro ainda guardam em texto puro."
 
 msgid "%1$s — %2$s (%3$s, score %4$s)"
 msgstr "%1$s — %2$s (%3$s, pontuação %4$s)"
@@ -31006,3 +30997,43 @@ msgstr "Este arquivo substitui uma lista que já tem linhas. Cada linha que entr
 #: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php
 msgid "You are about to copy the preliminary list as the definitive list."
 msgstr "Você vai copiar a lista preliminar como lista definitiva."
+
+#: includes/settings/views/documentation/feature-identity-resolution.php:38
+msgid "fold the mistyped number into the account's sound one. When the same person has a recruitment candidacy under each number, the two candidacies become one: the classifications move unchanged and the emptied candidacy is deleted. Where both hold an identical, never-called classification on the same notice, adjutancy and list, the copy is dropped. It is refused when such a pair differs, PCD condition included, or was called — those are decisions for HR. Each moved classification keeps its own PCD condition."
+msgstr "junta o número digitado errado ao número íntegro da conta. Quando a mesma pessoa tem uma candidatura de recrutamento em cada número, as duas viram uma: as classificações são movidas sem alteração e a candidatura esvaziada é excluída. Quando as duas têm uma classificação idêntica e nunca convocada no mesmo edital, função e lista, a cópia é descartada. É recusado quando esse par difere, inclusive na condição de PCD, ou já foi convocado — essas são decisões do RH. Cada classificação movida mantém a própria condição de PCD."
+
+#: includes/settings/views/documentation/operations-migrations.php:26
+msgid "the Encryption Key Rotation re-encrypts stored personal data under FFC_ENCRYPTION_KEY from wp-config.php, with a second card for the remaining areas (recruitment candidates and their PCD flags, reregistration bodies and profile identifiers); two more cards clear plaintext left on activity log rows that are already encrypted and encrypt the client IP addresses older activity log rows still hold in clear."
+msgstr "a Rotação de Chaves de Criptografia recriptografa os dados pessoais armazenados com a FFC_ENCRYPTION_KEY do wp-config.php, com um segundo cartão para as áreas restantes (candidatos do recrutamento e suas marcações de PCD, conteúdo dos recadastramentos e identificadores do perfil); outros dois cartões apagam o texto puro deixado em linhas do registro de atividades que já estão criptografadas e criptografam os endereços IP de clientes que linhas antigas do registro ainda guardam em texto puro."
+
+#: includes/migrations/class-ffc-migration-registry.php:175
+msgid "Copy the PCD flag each candidate carried onto every one of its notice classifications, where it is now recorded, so a candidate can be PCD in one notice and general in another. A flag that can no longer be read (the WordPress salts were rotated) is recorded as general, which is what the screens already showed, and counted for review by hand."
+msgstr "Copia a marcação de PCD de cada candidato para todas as suas classificações nos editais, onde ela passa a ser registrada, para que um candidato possa ser PCD em um edital e geral em outro. Uma marcação que não pode mais ser lida (os salts do WordPress foram trocados) é registrada como geral, que é o que as telas já mostravam, e contada para revisão manual."
+
+#: includes/migrations/strategies/class-ffc-key-rotation-remaining-migration-strategy.php:1018
+msgid "Could not write the rehashed PCD flag for recruitment classification %d."
+msgstr "Não foi possível gravar a marcação de PCD recalculada da classificação de recrutamento %d."
+
+#: includes/settings/views/documentation/feature-recruitment.php:68
+msgid "PCD is recorded per notice: the pcd column of a file sets the condition in that notice only, so the same person can be PCD in one notice and general in another, and importing one notice never changes another."
+msgstr "A condição de PCD é registrada por edital: a coluna pcd de um arquivo define a condição apenas naquele edital, então a mesma pessoa pode ser PCD em um edital e geral em outro, e importar um edital nunca altera outro."
+
+#: includes/migrations/strategies/class-ffc-recruitment-pcd-per-notice-migration-strategy.php:193
+msgid "Recorded the PCD flag on %1$d classifications. %2$d candidate flags could not be read and were recorded as general; review them by hand."
+msgstr "Marcação de PCD registrada em %1$d classificações. %2$d marcações de candidatos não puderam ser lidas e foram registradas como geral; revise-as manualmente."
+
+#: includes/migrations/class-ffc-migration-registry.php:174
+msgid "Recruitment: PCD per Notice"
+msgstr "Recrutamento: PCD por Edital"
+
+#: includes/settings/views/documentation/operations-migrations.php:25
+msgid "The \"Recruitment: PCD per Notice\" card copies each candidate's former PCD flag onto every one of its notice classifications; a flag that can no longer be read is recorded as general and counted on the card, for review by hand."
+msgstr "O cartão \"Recrutamento: PCD por Edital\" copia a antiga marcação de PCD de cada candidato para todas as suas classificações nos editais; uma marcação que não pode mais ser lida é registrada como geral e contada no cartão, para revisão manual."
+
+#: includes/migrations/strategies/class-ffc-key-rotation-remaining-migration-strategy.php:996
+msgid "The PCD flag of recruitment classification %d matches neither salt — left unchanged; it reads as general."
+msgstr "A marcação de PCD da classificação de recrutamento %d não corresponde a nenhum dos salts — mantida sem alteração; ela é lida como geral."
+
+#: includes/migrations/strategies/class-ffc-recruitment-pcd-per-notice-migration-strategy.php:131
+msgid "The recruitment tables are not available — nothing to migrate."
+msgstr "As tabelas do recrutamento não estão disponíveis — nada a migrar."

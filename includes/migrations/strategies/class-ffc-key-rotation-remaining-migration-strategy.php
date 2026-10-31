@@ -32,6 +32,8 @@
  * a single scalar -- each is a different storage SHAPE, not merely another
  * table: `ffc_recruitment_candidate` is columns with paired search hashes to
  * rebuild, and the user profile is usermeta keyed by user rather than rows.
+ * The recruitment classifications joined in #2245: a keyed hash per row, with
+ * no ciphertext, so the walk recomputes rather than decrypts.
  *
  * The recruitment target is NOT hypothetical: a production install measured
  * 7.695 candidate rows, every one of them written inside a single hour on one
@@ -49,6 +51,7 @@ namespace FreeFormCertificate\Migrations\Strategies;
 
 use FreeFormCertificate\Core\ArrayValue;
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Recruitment\RecruitmentPcdHasher;
 use FreeFormCertificate\Repositories\UserProfileRepository;
 use WP_Error;
 
@@ -97,6 +100,28 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	 * Target key for the sensitive user-profile usermeta.
 	 */
 	private const TARGET_USER_PROFILE = 'user_profile_meta';
+
+	/**
+	 * Target key for the per-notice PCD hashes of the recruitment
+	 * classifications (#2245).
+	 *
+	 * A hash cannot be decrypted, so a row hashed before `FFC_HASH_SALT` was
+	 * defined is recognised by recomputing it under the WordPress-derived salt
+	 * ({@see \FreeFormCertificate\Recruitment\RecruitmentPcdHasher::read_row()})
+	 * and rewritten under the active one. Until then it reads through that
+	 * fallback, which a later rotation of the WordPress salts would break.
+	 */
+	private const TARGET_RECRUITMENT_PCD = 'recruitment_pcd';
+
+	/**
+	 * The targets this strategy walked before the PCD target existed.
+	 *
+	 * A state latched `completed` by a release that knew only these records
+	 * no list of targets, and reads as having walked exactly these. So the
+	 * card reports the PCD rows as pending on an install that finished the
+	 * rotation before, instead of a false green over them.
+	 */
+	private const LEGACY_TARGETS = array( 'recruitment_candidate', 'reregistration_data', 'user_profile_meta' );
 
 	/**
 	 * Encrypted meta key => the ffc_user_profiles COLUMN carrying its lookup
@@ -151,7 +176,7 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	 * @return array<int, string>
 	 */
 	private function targets(): array {
-		return array( self::TARGET_RECRUITMENT, self::TARGET_REREGISTRATION, self::TARGET_USER_PROFILE );
+		return array( self::TARGET_RECRUITMENT, self::TARGET_REREGISTRATION, self::TARGET_USER_PROFILE, self::TARGET_RECRUITMENT_PCD );
 	}
 
 	/**
@@ -195,6 +220,16 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	private function recruitment_table(): string {
 		global $wpdb;
 		return $wpdb->prefix . 'ffc_recruitment_candidate';
+	}
+
+	/**
+	 * Full table name for the recruitment classifications.
+	 *
+	 * @return string
+	 */
+	private function classification_table(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'ffc_recruitment_classification';
 	}
 
 	/**
@@ -319,6 +354,10 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 			return 'data LIKE %s';
 		}
 
+		if ( self::TARGET_RECRUITMENT_PCD === $target ) {
+			return "( pcd_hash IS NOT NULL AND pcd_hash <> '' )";
+		}
+
 		return '( cpf_encrypted IS NOT NULL OR rf_encrypted IS NOT NULL OR email_encrypted IS NOT NULL )';
 	}
 
@@ -335,6 +374,10 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 
 		if ( self::TARGET_RECRUITMENT === $target ) {
 			return $this->recruitment_table();
+		}
+
+		if ( self::TARGET_RECRUITMENT_PCD === $target ) {
+			return $this->classification_table();
 		}
 
 		return '';
@@ -381,6 +424,8 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 				$result = $this->migrate_recruitment_batch();
 			} elseif ( self::TARGET_REREGISTRATION === $target ) {
 				$result = $this->migrate_reregistration_batch();
+			} elseif ( self::TARGET_RECRUITMENT_PCD === $target ) {
+				$result = $this->migrate_recruitment_pcd_batch();
 			} else {
 				$result = $this->migrate_user_profile_batch();
 			}
@@ -885,6 +930,109 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	}
 
 	/**
+	 * Rewrite one batch of classification PCD hashes written under the
+	 * WordPress-derived salt (#2245).
+	 *
+	 * Only a row recognised under that salt is written, and only a write that
+	 * changed the row counts, so a batch over rows already under the active
+	 * salt reports nothing (#1378). A hash neither salt recognises is left as
+	 * it is and reported: it reads as general on every screen, and no key
+	 * this site holds can tell what it said.
+	 *
+	 * @return array{processed: int, errors: array<int, string>}
+	 */
+	private function migrate_recruitment_pcd_batch(): array {
+		global $wpdb;
+
+		$table  = $this->classification_table();
+		$cursor = $this->get_cursor( self::TARGET_RECRUITMENT_PCD );
+		$errors = array();
+
+		if ( ! $this->table_exists( $table ) ) {
+			return array(
+				'processed' => 0,
+				'errors'    => $errors,
+			);
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Data statement against the plugin's own `ffc_*` table inside a migration: WordPress exposes no API for it, and a cached read is exactly what a migration cursor must not take.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, notice_id, candidate_id, adjutancy_id, pcd_hash
+				 FROM %i WHERE id > %d AND pcd_hash IS NOT NULL AND pcd_hash <> '' ORDER BY id ASC LIMIT %d",
+				$table,
+				$cursor,
+				self::BATCH_SIZE
+			),
+			ARRAY_A
+		);
+
+		if ( ! is_array( $rows ) || array() === $rows ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Data statement against the plugin's own `ffc_*` table inside a migration: WordPress exposes no API for it, and a cached read is exactly what a migration cursor must not take.
+			$max_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(id), 0) FROM %i', $table ) );
+			if ( $max_id > $cursor ) {
+				$this->set_cursor( self::TARGET_RECRUITMENT_PCD, $max_id );
+			}
+
+			return array(
+				'processed' => 0,
+				'errors'    => $errors,
+			);
+		}
+
+		$processed = 0;
+		$last_id   = $cursor;
+
+		foreach ( $rows as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$last_id = ArrayValue::int( $row, 'id' );
+			$read    = RecruitmentPcdHasher::read_row( (object) $row );
+
+			if ( null === $read['pcd'] ) {
+				$errors[] = sprintf(
+					/* translators: %d: classification ID */
+					__( 'The PCD flag of recruitment classification %d matches neither salt — left unchanged; it reads as general.', 'ffcertificate' ),
+					$last_id
+				);
+				continue;
+			}
+
+			if ( ! $read['legacy'] ) {
+				continue;
+			}
+
+			$fresh = RecruitmentPcdHasher::compute_for_row(
+				ArrayValue::int( $row, 'notice_id' ),
+				ArrayValue::int( $row, 'candidate_id' ),
+				ArrayValue::int( $row, 'adjutancy_id' ),
+				$read['pcd']
+			);
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Data statement against the plugin's own `ffc_*` table inside a migration: WordPress exposes no API for it, and a cached read is exactly what a migration cursor must not take.
+			$written = $wpdb->update( $table, array( 'pcd_hash' => $fresh ), array( 'id' => $last_id ), array( '%s' ), array( '%d' ) );
+			if ( false === $written ) {
+				$errors[] = sprintf(
+					/* translators: %d: classification ID */
+					__( 'Could not write the rehashed PCD flag for recruitment classification %d.', 'ffcertificate' ),
+					$last_id
+				);
+				continue;
+			}
+
+			$processed += (int) $written;
+		}
+
+		$this->set_cursor( self::TARGET_RECRUITMENT_PCD, $last_id );
+
+		return array(
+			'processed' => $processed,
+			'errors'    => $errors,
+		);
+	}
+
+	/**
 	 * Re-encrypt every ciphertext inside one submission body.
 	 *
 	 * WHICH VALUES ARE CIPHERTEXT IS READ FROM THE VALUE, NOT FROM THE CONFIG.
@@ -1111,23 +1259,38 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	}
 
 	/**
-	 * Whether the run is latched complete.
+	 * Whether the run is latched complete for every target it walks now.
+	 *
+	 * The latch records which targets it covered (#2245), so a target added
+	 * after an install finished the rotation reports pending rather than a
+	 * false green, and only that target is walked: the others resume from
+	 * cursors already at their end.
 	 *
 	 * @return bool
 	 */
 	private function is_completed(): bool {
 		$state = $this->get_state();
-		return ! empty( $state['completed'] );
+		if ( empty( $state['completed'] ) ) {
+			return false;
+		}
+
+		$walked = self::LEGACY_TARGETS;
+		if ( array_key_exists( 'completed_targets', $state ) ) {
+			$walked = array_values( array_filter( ArrayValue::array( $state, 'completed_targets' ), 'is_string' ) );
+		}
+
+		return array() === array_diff( $this->targets(), $walked );
 	}
 
 	/**
-	 * Latch completion.
+	 * Latch completion, naming the targets walked.
 	 *
 	 * @return void
 	 */
 	private function mark_completed(): void {
-		$state              = $this->get_state();
-		$state['completed'] = true;
+		$state                      = $this->get_state();
+		$state['completed']         = true;
+		$state['completed_targets'] = $this->targets();
 
 		$this->put_state( $state );
 	}
