@@ -287,6 +287,8 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->alias( 'trim' );
 		Functions\when( 'wp_verify_nonce' )->alias( static fn ( $nonce, $action ) => 'good' === $nonce && 'ffc_view_as_user_42' === $action );
 		Functions\when( 'get_user_by' )->alias( static fn ( $field, $id ) => 42 === (int) $id ? (object) array( 'ID' => 42 ) : false );
+		// The view-as gate also requires the viewed account to exist (#2246).
+		Functions\when( 'get_userdata' )->alias( static fn ( $id ) => 42 === (int) $id ? (object) array( 'ID' => 42 ) : false );
 		$_GET = array(
 			'ffc_view_as_user' => '42',
 			'ffc_view_nonce'   => 'good',
