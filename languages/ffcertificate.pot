@@ -7691,9 +7691,6 @@ msgstr ""
 msgid "Female"
 msgstr ""
 
-#: includes/settings/views/documentation/developer-hooks-api.php:118
-msgid "fetch a certificate's PDF payload (HTML + assets, rendered to PDF client-side — the plugin has no server-side PDF binary). Any logged-in user may call it; the handler then requires ffc_manage_certificates OR ownership of that specific certificate."
-msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:129
 msgid "Fetch a short URL's QR Code for reuse in an external automation (e.g. N8N). Cap-gated by ffc_view_url_shortener via an Application Password. The QR encodes the short URL itself, so scans are click-counted, and PNGs are served from the same database cache the admin uses."
@@ -11910,9 +11907,6 @@ msgstr ""
 msgid "Operator IP Bypass"
 msgstr ""
 
-#: includes/settings/views/documentation/developer-hooks-api.php:95
-msgid "Operator — Application Password + ffc_manage_certificates (the PDF route: that capability OR ownership of the certificate)."
-msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:41
 msgid "Opt in (off by default) to log where the legacy and secure IP strategies diverge, to validate a switch before flipping."
@@ -19339,9 +19333,6 @@ msgstr ""
 msgid "You are not a member of this group"
 msgstr ""
 
-#: includes/api/class-ffc-operator-certificates-rest-controller.php:297
-msgid "You are not allowed to access this certificate."
-msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-frontend.php:169 includes/reregistration/class-ffc-reregistration-frontend.php:222 includes/reregistration/class-ffc-reregistration-frontend.php:292
 msgid "You are not part of this reregistration."
@@ -31204,4 +31195,13 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "Viewing as someone needs ffc_view_as_user and permission to edit that account in wp-admin, for the page and for every request it makes. The password cannot be changed while viewing as another account, and an expired or invalid link shows a notice instead of a dashboard."
+msgstr ""
+
+msgid "Operator — Application Password + ffc_manage_certificates (the PDF route: ownership of the certificate OR ffc_view_certificates_pii, audited)."
+msgstr ""
+
+msgid "fetch a certificate's PDF payload (HTML + assets, rendered to PDF client-side — the plugin has no server-side PDF binary). Any logged-in user may call it; the owner receives their own certificate, a holder of ffc_view_certificates_pii (or an administrator) receives any certificate and the read is written to the activity log, and anyone else, or a record that is not an issued certificate, gets the same 404 as an id that does not exist."
+msgstr ""
+
+msgid "Certificate PDF Read by Staff"
 msgstr ""

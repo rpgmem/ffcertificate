@@ -251,6 +251,7 @@ class AdminActivityLogPage {
 			'submission_restored'                          => __( 'Submission Restored', 'ffcertificate' ),
 			'submission_moved'                             => __( 'Submission Moved to Another Form', 'ffcertificate' ),
 			'submission_pii_revealed'                      => __( 'Submission Personal Data Revealed', 'ffcertificate' ),
+			'submission_pdf_revealed'                      => __( 'Certificate PDF Read by Staff', 'ffcertificate' ),
 			'bulk_trash'                                   => __( 'Submissions Bulk Trashed', 'ffcertificate' ),
 			'bulk_restore'                                 => __( 'Submissions Bulk Restored', 'ffcertificate' ),
 			'bulk_delete'                                  => __( 'Submissions Bulk Deleted', 'ffcertificate' ),

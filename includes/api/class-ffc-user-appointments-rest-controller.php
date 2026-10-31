@@ -156,15 +156,16 @@ class UserAppointmentsRestController {
 					? \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $appointment['start_time'] )
 					: '';
 
-				$email_display = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' );
-				$phone_display = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'phone' );
-				// "View as user" is not the owner reading their own bookings
-				// (#1863): the email and phone arrive masked; the
-				// administrator reveals them on the appointments screen.
-				if ( $ctx['is_view_as'] ) {
-					$email_display = \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $email_display );
-					$phone_display = \FreeFormCertificate\Core\DocumentFormatter::mask_phone( (string) $phone_display );
-				}
+				// The email and phone leave the server masked for everyone
+				// (#2246): on a screen the owner's answer is `owner_reveal`
+				// (`PiiAccessPolicy::resolve_on_screen()`), which draws the data
+				// masked, and "view as user" is not the owner at all (#1863).
+				// The tab draws neither field and the calendar export no
+				// longer carries the e-mail, so nothing on the dashboard needs
+				// the clear value; the administrator reveals it on the
+				// appointments screen.
+				$email_display = \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' ) );
+				$phone_display = \FreeFormCertificate\Core\DocumentFormatter::mask_phone( (string) \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'phone' ) );
 
 				$end_time_formatted = ! empty( $appointment['end_time'] )
 					? \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $appointment['end_time'] )
