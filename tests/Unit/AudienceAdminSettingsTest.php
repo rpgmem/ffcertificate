@@ -195,10 +195,11 @@ class AudienceAdminSettingsTest extends TestCase {
 	/**
 	 * Post a global holiday and run the handler until it redirects.
 	 *
-	 * @param array<string, string> $extra More POST fields.
+	 * @param array<string, string>                     $extra        More POST fields.
+	 * @param \FreeFormCertificate\SelfScheduling\ClosedDayAppointments|null $appointments The personal appointments of the day; none when null.
 	 * @return string The redirect target, or '' when the handler returned.
 	 */
-	private function add_global_holiday( array $extra = array() ): string {
+	private function add_global_holiday( array $extra = array(), $appointments = null ): string {
 		$_POST = array_merge(
 			array(
 				'ffc_action'                 => 'add_global_holiday',
@@ -212,13 +213,109 @@ class AudienceAdminSettingsTest extends TestCase {
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'wp_safe_redirect' )->alias( static function ( $url ) { throw new \RuntimeException( 'redirect:' . $url ); } );
 
-		$page = new AudienceAdminSettings( 'ffc-scheduling', \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class )->shouldIgnoreMissing() );
+		if ( null === $appointments ) {
+			$appointments = Mockery::mock( \FreeFormCertificate\SelfScheduling\ClosedDayAppointments::class );
+			$appointments->shouldReceive( 'on' )->andReturn( array() );
+			$appointments->shouldReceive( 'cancel' )->andReturn( 0 );
+		}
+
+		$page = new AudienceAdminSettings( 'ffc-scheduling', \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class )->shouldIgnoreMissing(), $appointments );
 		try {
 			$page->handle_global_holiday_actions();
 		} catch ( \RuntimeException $e ) {
 			return $e->getMessage();
 		}
 		return '';
+	}
+
+	/**
+	 * A personal-calendar collaborator that reports these appointments on the day.
+	 *
+	 * @param array<int, array<string, mixed>> $rows Appointments.
+	 * @return \FreeFormCertificate\SelfScheduling\ClosedDayAppointments&\Mockery\MockInterface
+	 */
+	private function appointments_on_day( array $rows ) {
+		$appointments = Mockery::mock( \FreeFormCertificate\SelfScheduling\ClosedDayAppointments::class );
+		$appointments->shouldReceive( 'on' )->with( '2026-12-25' )->andReturn( $rows );
+		return $appointments;
+	}
+
+	public function test_a_global_holiday_on_a_day_with_personal_appointments_waits_for_confirmation(): void {
+		\FreeFormCertificate\Audience\AudienceClosedDay::reset();
+		$appointments = $this->appointments_on_day( array( array( 'id' => 8, 'start_time' => '09:00:00', 'end_time' => '09:30:00', 'calendar_title' => 'Clinic' ) ) );
+		$appointments->shouldNotReceive( 'cancel' );
+		$update_option = CallLog::record( 'update_option', true );
+
+		$this->assertSame( '', $this->add_global_holiday( array(), $appointments ), 'The handler returns to the tab instead of redirecting.' );
+		$this->assertSame( 0, $update_option->count() );
+		$pending = \FreeFormCertificate\Audience\AudienceClosedDay::pending();
+		$this->assertSame( array(), $pending['bookings'] );
+		$this->assertSame( 8, $pending['appointments'][0]['id'] );
+		\FreeFormCertificate\Audience\AudienceClosedDay::reset();
+	}
+
+	public function test_a_confirmed_global_holiday_cancels_the_personal_appointments_with_the_closure_as_reason(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		$rows         = array( array( 'id' => 8 ), array( 'id' => 9 ) );
+		$appointments = $this->appointments_on_day( $rows );
+		$appointments->shouldReceive( 'cancel' )->once()->with( $rows, 'Closed day: Xmas' )->andReturn( 2 );
+		$update_option = CallLog::record( 'update_option', true );
+
+		$redirect = $this->add_global_holiday( array( \FreeFormCertificate\Audience\AudienceClosedDay::CONFIRM_FIELD => '1' ), $appointments );
+
+		$this->assertStringContainsString( 'message=holiday_added_cancelled&cancelled=0&appointments=2', $redirect );
+		$this->assertSame( 1, $update_option->count() );
+	}
+
+	public function test_a_personal_calendars_setup_holder_may_add_a_global_holiday(): void {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_calendars' === $cap );
+		$update_option = CallLog::record( 'update_option', true );
+
+		$this->assertStringContainsString( 'message=holiday_added', $this->add_global_holiday() );
+		$this->assertSame( 1, $update_option->count() );
+	}
+
+	public function test_a_view_only_calendar_holder_may_not_add_a_global_holiday(): void {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_view_calendars' === $cap );
+		$update_option = CallLog::record( 'update_option', true );
+
+		$this->assertSame( '', $this->add_global_holiday() );
+		$this->assertSame( 0, $update_option->count() );
+	}
+
+	/**
+	 * @return array<string, array{0: array<int, string>, 1: string}>
+	 */
+	public static function menu_capabilities(): array {
+		return array(
+			'audience viewer'         => array( array( 'ffc_view_audiences' ), 'ffc_view_audiences' ),
+			'calendar setup only'     => array( array( 'ffc_manage_calendars' ), 'ffc_manage_calendars' ),
+			'both'                    => array( array( 'ffc_view_audiences', 'ffc_manage_calendars' ), 'ffc_view_audiences' ),
+			'neither keeps the audience cap' => array( array(), 'ffc_view_audiences' ),
+		);
+	}
+
+	/**
+	 * @dataProvider menu_capabilities
+	 * @param array<int, string> $held Capabilities the user holds.
+	 */
+	public function test_the_settings_menu_opens_to_a_personal_calendars_setup_holder( array $held, string $expected ): void {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => in_array( $cap, $held, true ) );
+
+		$this->assertSame( $expected, AudienceAdminSettings::menu_capability() );
+	}
+
+	public function test_a_personal_calendars_setup_holder_sees_the_holidays_only(): void {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_calendars' === $cap );
+		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
+		$_GET = array( 'tab' => 'audience' );
+
+		$html = $this->render( $this->page() );
+
+		$this->assertStringContainsString( 'Global Holidays', $html );
+		$this->assertStringNotContainsString( 'ffc-scheduling-tabnav-audience', $html );
+		$this->assertStringNotContainsString( 'ffc-scheduling-tabnav-self-scheduling', $html );
+		$this->assertStringNotContainsString( 'Calendar Colors and Labels', $html );
 	}
 
 	public function test_a_date_already_a_global_holiday_is_refused_with_a_message(): void {
@@ -493,6 +590,42 @@ class AudienceAdminSettingsTest extends TestCase {
 		}
 
 		$this->assertSame( array( array( 'ffc_audience', $text, 'success' ) ), $notices );
+	}
+
+	/**
+	 * @return array<string, array{0: int, 1: int, 2: string}>
+	 */
+	public static function cancelled_notices(): array {
+		return array(
+			'bookings only'     => array( 2, 0, 'Holiday added. %d bookings were cancelled and their participants were e-mailed.' ),
+			'appointments only' => array( 0, 1, 'Holiday added. %d personal calendar appointment was cancelled.' ),
+			'both'              => array( 1, 3, 'Holiday added. %d booking was cancelled and its participants were e-mailed. %d personal calendar appointments were cancelled.' ),
+		);
+	}
+
+	/**
+	 * The notice says what the holiday cancelled, bookings and appointments
+	 * apart (#2244).
+	 *
+	 * @dataProvider cancelled_notices
+	 */
+	public function test_the_cancelled_notice_names_bookings_and_appointments( int $bookings, int $appointments, string $text ): void {
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
+		$_GET    = array(
+			'page'         => 'ffc-scheduling-settings',
+			'message'      => 'holiday_added_cancelled',
+			'cancelled'    => (string) $bookings,
+			'appointments' => (string) $appointments,
+		);
+		$notices = $this->record_notices();
+
+		try {
+			$this->page()->handle_global_holiday_actions();
+		} finally {
+			$_GET = array();
+		}
+
+		$this->assertSame( array( str_replace( '%d', '%s', $text ) ), array_map( static fn( $n ) => preg_replace( '/\d+/', '%s', $n ), $notices->getArrayCopy() ) );
 	}
 
 	public function test_global_holiday_message_is_ignored_on_another_screen(): void {

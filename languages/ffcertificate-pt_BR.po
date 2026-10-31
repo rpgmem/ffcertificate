@@ -30016,9 +30016,6 @@ msgstr "Não adicionado: essa data já é um feriado global."
 msgid "Close the day and cancel the bookings"
 msgstr "Fechar o dia e cancelar os agendamentos"
 
-msgid "A date that is already closed, on the same calendar or in the global list, is refused with a message. Closing a date that already holds audience bookings asks first: the screen lists those bookings, and \"Close the day and cancel the bookings\" saves the date and cancels each one with the reason \"Closed day:\" followed by the description, e-mailing its participants as any cancellation does. A calendar's closed date takes that calendar's bookings; a global holiday takes the bookings of every audience calendar. Personal-calendar appointments on that date are not cancelled."
-msgstr "Uma data já fechada, no mesmo calendário ou na lista global, é recusada com uma mensagem. Fechar uma data que já tem agendamentos de público pergunta antes: a tela lista esses agendamentos, e \"Fechar o dia e cancelar os agendamentos\" salva a data e cancela cada um com o motivo \"Dia fechado:\" seguido da descrição, avisando os participantes por e-mail como qualquer cancelamento. A data fechada de um calendário leva os agendamentos desse calendário; um feriado global leva os agendamentos de todos os calendários de público. Os agendamentos dos calendários pessoais nessa data não são cancelados."
-
 msgid "The custom users listed in a booking's details on Audience Bookings follow the same rule, with the same Reveal. The user search that adds members, custom users and calendar access shows each address masked, and only holders of ffc_view_audiences_pii can search by email address; everyone else searches by name or username."
 msgstr "Os usuários personalizados listados nos detalhes de um agendamento em Agendamentos de Público-alvo seguem a mesma regra, com o mesmo Revelar. A busca de usuários que adiciona membros, usuários personalizados e acesso ao calendário mostra cada endereço mascarado, e só quem tem ffc_view_audiences_pii pode buscar por endereço de e-mail; os demais buscam por nome ou nome de usuário."
 
@@ -30567,6 +30564,39 @@ msgid "Blocked. %d appointment was cancelled."
 msgid_plural "Blocked. %d appointments were cancelled."
 msgstr[0] "Bloqueado. %d agendamento foi cancelado."
 msgstr[1] "Bloqueado. %d agendamentos foram cancelados."
+
+#. translators: 1: number of appointments, 2: the date being closed
+#: templates/admin/audience/closed-day-confirm.php
+msgid "%1$d personal calendar appointment will be cancelled if %2$s is closed, and the person e-mailed where the calendar sends cancellation e-mails:"
+msgid_plural "%1$d personal calendar appointments will be cancelled if %2$s is closed, and each person e-mailed where the calendar sends cancellation e-mails:"
+msgstr[0] "%1$d agendamento de calendário pessoal será cancelado se %2$s for fechado, e a pessoa receberá um e-mail onde o calendário envia e-mails de cancelamento:"
+msgstr[1] "%1$d agendamentos de calendário pessoal serão cancelados se %2$s for fechado, e cada pessoa receberá um e-mail onde o calendário envia e-mails de cancelamento:"
+
+#. translators: %d: number of personal-calendar appointments cancelled
+#: includes/audience/class-ffc-audience-admin-settings.php
+msgid "Holiday added. %d personal calendar appointment was cancelled."
+msgid_plural "Holiday added. %d personal calendar appointments were cancelled."
+msgstr[0] "Feriado adicionado. %d agendamento de calendário pessoal foi cancelado."
+msgstr[1] "Feriado adicionado. %d agendamentos de calendário pessoal foram cancelados."
+
+#. translators: %d: number of personal-calendar appointments cancelled
+#: includes/audience/class-ffc-audience-admin-settings.php
+msgid "%d personal calendar appointment was cancelled."
+msgid_plural "%d personal calendar appointments were cancelled."
+msgstr[0] "%d agendamento de calendário pessoal foi cancelado."
+msgstr[1] "%d agendamentos de calendário pessoal foram cancelados."
+
+#: templates/admin/audience/closed-day-confirm.php
+msgid "Close the day and cancel everything listed"
+msgstr "Fechar o dia e cancelar tudo o que está listado"
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "Global holidays, on the General tab of Scheduling → Settings, close a date on every personal and audience calendar. Holders of ffc_manage_calendars may add, edit and remove them as well as audience managers; without the audience capability the Settings screen shows them the General tab only. Adding a holiday on a date that holds open appointments (pending, confirmed or on the waitlist) lists them first, by time and calendar; confirming saves the date and cancels each one with the reason \"Closed day:\" followed by the description, sending the cancellation e-mail where the calendar sends one."
+msgstr "Os feriados globais, na aba Geral de Agendamento → Configurações, fecham uma data em todos os calendários pessoais e de público. Quem tem ffc_manage_calendars pode adicioná-los, editá-los e removê-los, assim como os gestores de público; sem a capacidade de público, a tela de Configurações mostra a essa pessoa apenas a aba Geral. Adicionar um feriado numa data que tem agendamentos abertos (pendentes, confirmados ou na lista de espera) primeiro os lista, por horário e calendário; ao confirmar, a data é salva e cada um é cancelado com o motivo \"Dia fechado:\" seguido da descrição, enviando o e-mail de cancelamento onde o calendário envia um."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "A date that is already closed, on the same calendar or in the global list, is refused with a message. Closing a date that already holds audience bookings asks first: the screen lists those bookings, and \"Close the day and cancel the bookings\" saves the date and cancels each one with the reason \"Closed day:\" followed by the description, e-mailing its participants as any cancellation does. A calendar's closed date takes that calendar's bookings; a global holiday takes the bookings of every audience calendar and the open appointments of every personal calendar, listed apart, and the button then reads \"Close the day and cancel everything listed\"."
+msgstr "Uma data já fechada, no mesmo calendário ou na lista global, é recusada com uma mensagem. Fechar uma data que já tem agendamentos de público pergunta antes: a tela lista esses agendamentos, e \"Fechar o dia e cancelar os agendamentos\" salva a data e cancela cada um com o motivo \"Dia fechado:\" seguido da descrição, avisando os participantes por e-mail como qualquer cancelamento. A data fechada de um calendário leva os agendamentos desse calendário; um feriado global leva os agendamentos de todos os calendários de público e os agendamentos abertos de todos os calendários pessoais, listados à parte, e o botão passa a dizer \"Fechar o dia e cancelar tudo o que está listado\"."
 
 #. translators: %d: number of appointments
 #: includes/self-scheduling/class-ffc-self-scheduling-slot-grid-lock.php

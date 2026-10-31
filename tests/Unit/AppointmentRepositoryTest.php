@@ -1240,6 +1240,35 @@ class AppointmentRepositoryTest extends TestCase {
 	}
 
 	// ==================================================================
+	// getAllOnDate (#2244)
+	// ==================================================================
+
+	public function test_get_all_on_date_reads_every_calendar_with_its_title(): void {
+		$sql   = '';
+		$bound = [];
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function($query, $args) use (&$sql, &$bound) {
+			$sql   = $query;
+			$bound = $args;
+			return $query;
+		});
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn([['id' => 3, 'calendar_title' => 'Clinic']]);
+
+		$rows = $this->repo->getAllOnDate('2032-05-20', ['pending', 'confirmed']);
+
+		$this->assertSame([['id' => 3, 'calendar_title' => 'Clinic']], $rows);
+		$this->assertStringContainsString('LEFT JOIN %i c ON a.calendar_id = c.id', $sql);
+		$this->assertStringContainsString('a.status IN (%s,%s)', $sql);
+		$this->assertStringNotContainsString('calendar_id = %d', $sql, 'No calendar filter: a global holiday closes them all.');
+		$this->assertSame(['2032-05-20', 'pending', 'confirmed'], array_slice($bound, 2));
+	}
+
+	public function test_get_all_on_date_without_statuses_reads_nothing(): void {
+		$this->wpdb->shouldNotReceive('get_results');
+
+		$this->assertSame([], $this->repo->getAllOnDate('2032-05-20', []));
+	}
+
+	// ==================================================================
 	// getUpcomingForReminders
 	// ==================================================================
 
