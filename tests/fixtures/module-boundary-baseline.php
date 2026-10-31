@@ -81,6 +81,7 @@ return array(
 	'Migrations>Admin',
 	'Migrations>Core',
 	'Migrations>Maintenance',
+	'Migrations>Recruitment',
 	'Migrations>Repositories',
 	'Migrations>Reregistration',
 	'Migrations>Security',

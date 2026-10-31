@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Maintenance\CandidacyMerge;
+use FreeFormCertificate\Recruitment\RecruitmentPcdHasher;
 
 /**
  * Folding one person's mistyped candidacy into their sound one.
@@ -40,11 +41,11 @@ class CandidacyMergeTest extends TestCase {
 	private array $overlaps = array();
 
 	/**
-	 * PCD condition per candidacy id; a missing id reads as unreadable.
+	 * The merged candidacy's classifications, as the PCD read answers.
 	 *
-	 * @var array<int, bool>
+	 * @var array<int, array<string, mixed>>
 	 */
-	public array $pcd = array();
+	private array $moving = array();
 
 	/**
 	 * Every write, in order, as `[verb, table, data, where]`.
@@ -68,6 +69,13 @@ class CandidacyMergeTest extends TestCase {
 	private bool $staging = true;
 
 	/**
+	 * Whether a `pcd_hash` write answers false.
+	 *
+	 * @var bool
+	 */
+	private bool $refuse_rehash = false;
+
+	/**
 	 * Set up Brain\Monkey and the $wpdb double.
 	 */
 	protected function setUp(): void {
@@ -76,10 +84,12 @@ class CandidacyMergeTest extends TestCase {
 
 		$this->candidates = array();
 		$this->overlaps   = array();
-		$this->pcd        = array();
+		$this->moving     = array();
 		$this->writes     = array();
 		$this->refusing   = array();
 		$this->staging    = true;
+
+		$this->refuse_rehash = false;
 
 		Functions\when( '__' )->returnArg( 1 );
 		Functions\when( 'current_time' )->justReturn( '2026-10-12 10:00:00' );
@@ -93,10 +103,14 @@ class CandidacyMergeTest extends TestCase {
 			}
 		);
 
-		// Two statements reach `get_results`: the candidacy pair, which is
-		// `SELECT *`, and the overlap query, which names its columns.
+		// Three statements reach `get_results`: the candidacy pair, which is
+		// `SELECT *`, the merged side's classifications, read for their PCD,
+		// and the overlap query.
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $prepared ) {
+				if ( 0 === strpos( (string) $prepared['sql'], 'SELECT id, notice_id, candidate_id, adjutancy_id, pcd_hash' ) ) {
+					return $this->moving;
+				}
 				if ( 0 !== strpos( (string) $prepared['sql'], 'SELECT *' ) ) {
 					return $this->overlaps;
 				}
@@ -114,6 +128,10 @@ class CandidacyMergeTest extends TestCase {
 		$wpdb->shouldReceive( 'update' )->andReturnUsing(
 			function ( $table, $data, $where ) {
 				$this->writes[] = array( 'update', (string) $table, (array) $data, (array) $where );
+
+				if ( $this->refuse_rehash && array_key_exists( 'pcd_hash', (array) $data ) ) {
+					return false;
+				}
 
 				return in_array( (string) $table, $this->refusing, true ) ? false : 2;
 			}
@@ -140,35 +158,16 @@ class CandidacyMergeTest extends TestCase {
 	}
 
 	/**
-	 * A merge whose PCD reading the case steers.
+	 * The merge under test.
 	 *
 	 * @return CandidacyMerge
 	 */
 	private function merge(): CandidacyMerge {
-		return new class( $this ) extends CandidacyMerge {
-
-			/** @var CandidacyMergeTest */
-			private $test;
-
-			/**
-			 * @param CandidacyMergeTest $test The case.
-			 */
-			public function __construct( $test ) {
-				$this->test = $test;
-			}
-
-			/**
-			 * @param array<string, mixed> $row A candidacy row.
-			 * @return bool|null
-			 */
-			protected function is_pcd( array $row ): ?bool {
-				return $this->test->pcd[ (int) $row['id'] ] ?? null;
-			}
-		};
+		return new CandidacyMerge();
 	}
 
 	/**
-	 * Two candidacies of account 398, both not PCD: the production shape.
+	 * Two candidacies of account 398: the production shape.
 	 *
 	 * @param array<string, mixed> $from Overrides for the candidacy that goes.
 	 * @param array<string, mixed> $into Overrides for the candidacy that stays.
@@ -205,10 +204,6 @@ class CandidacyMergeTest extends TestCase {
 			),
 			$into
 		);
-		$this->pcd = array(
-			1 => false,
-			5 => false,
-		);
 	}
 
 	/**
@@ -241,19 +236,23 @@ class CandidacyMergeTest extends TestCase {
 			'preview_reason_id' => null,
 		);
 		$row  = array(
-			'from_id'   => 31,
-			'into_id'   => 47,
-			'notice_id' => 12,
-			'list_type' => 'definitive',
-			'code'      => '6016.2026/0026032-4',
-			'calls'     => (string) $calls,
+			'from_id'           => 31,
+			'into_id'           => 47,
+			'notice_id'         => 12,
+			'adjutancy_id'      => 3,
+			'from_candidate_id' => 1,
+			'into_candidate_id' => 5,
+			'list_type'         => 'definitive',
+			'code'              => '6016.2026/0026032-4',
+			'calls'             => (string) $calls,
 		);
+		$side['pcd_hash'] = null;
 
-		foreach ( array_merge( $side, $from ) as $key => $value ) {
+		foreach ( array_merge( $side, array( 'pcd_hash' => RecruitmentPcdHasher::compute_for_row( 12, 1, 3, false ) ), $from ) as $key => $value ) {
 			$row[ 'from_' . $key ] = $value;
 		}
 
-		foreach ( array_merge( $side, $into ) as $key => $value ) {
+		foreach ( array_merge( $side, array( 'pcd_hash' => RecruitmentPcdHasher::compute_for_row( 12, 5, 3, false ) ), $into ) as $key => $value ) {
 			$row[ 'into_' . $key ] = $value;
 		}
 
@@ -345,30 +344,102 @@ class CandidacyMergeTest extends TestCase {
 	}
 
 	/**
-	 * PCD belongs to the candidacy, so a different condition is refused:
-	 * moving a classification would change what it competes under.
+	 * PCD belongs to each notice classification now (#2245), so what the two
+	 * candidacies themselves record no longer decides anything.
 	 */
-	public function test_a_different_pcd_condition_is_refused(): void {
-		$this->pair();
-		$this->pcd[1] = true;
+	public function test_a_different_candidacy_level_pcd_no_longer_refuses(): void {
+		$this->pair( array( 'pcd_hash' => 'candidate-level-pcd' ), array( 'pcd_hash' => 'candidate-level-general' ) );
 
-		$result = $this->merge()->check( 1, 5, 'cpf' );
-
-		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'ffc_identity_candidacy_pcd', $result->get_error_code() );
+		$this->assertTrue( $this->merge()->check( 1, 5, 'cpf' ) );
 	}
 
 	/**
-	 * An unreadable condition cannot be shown to agree, so it is refused too.
+	 * Two copies of one standing are identical only when they record the
+	 * same PCD condition: dropping one would change what the other competes
+	 * under.
 	 */
-	public function test_an_unreadable_pcd_condition_is_refused(): void {
+	public function test_a_colliding_pair_with_a_different_pcd_is_refused(): void {
 		$this->pair();
-		unset( $this->pcd[1], $this->pcd[5] );
+		$this->overlaps = array( $this->collision( array( 'pcd_hash' => RecruitmentPcdHasher::compute_for_row( 12, 1, 3, true ) ) ) );
 
 		$result = $this->merge()->check( 1, 5, 'cpf' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'ffc_identity_candidacy_pcd', $result->get_error_code() );
+		$this->assertSame( 'ffc_identity_candidacy_overlap', $result->get_error_code() );
+	}
+
+	/**
+	 * A colliding pair that agrees on PCD is still a duplicate, although
+	 * the two hashes differ: each names its own candidacy.
+	 */
+	public function test_a_colliding_pair_that_agrees_on_pcd_merges(): void {
+		$this->pair();
+		$this->overlaps = array(
+			$this->collision(
+				array( 'pcd_hash' => RecruitmentPcdHasher::compute_for_row( 12, 1, 3, true ) ),
+				array( 'pcd_hash' => RecruitmentPcdHasher::compute_for_row( 12, 5, 3, true ) )
+			),
+		);
+
+		$this->assertTrue( $this->merge()->check( 1, 5, 'cpf' ) );
+	}
+
+	/**
+	 * A moved classification keeps its PCD: its hash is recomputed for the
+	 * candidacy it now belongs to, after the move, row by row.
+	 */
+	public function test_apply_rehashes_each_moved_classification_for_the_survivor(): void {
+		$this->pair();
+		$this->moving = array(
+			array(
+				'id'           => '31',
+				'notice_id'    => '12',
+				'candidate_id' => '1',
+				'adjutancy_id' => '3',
+				'pcd_hash'     => RecruitmentPcdHasher::compute_for_row( 12, 1, 3, true ),
+			),
+			array(
+				'id'           => '32',
+				'notice_id'    => '13',
+				'candidate_id' => '1',
+				'adjutancy_id' => '3',
+				'pcd_hash'     => RecruitmentPcdHasher::compute_for_row( 13, 1, 3, false ),
+			),
+		);
+
+		$this->merge()->apply( 1, 5 );
+
+		$classification = array_values(
+			array_filter( $this->writes, static fn( array $w ): bool => 'wp_ffc_recruitment_classification' === $w[1] )
+		);
+		$this->assertSame( array( 'candidate_id' => 5 ), $classification[0][2], 'The move comes first.' );
+		$this->assertSame(
+			array(
+				array( array( 'pcd_hash' => RecruitmentPcdHasher::compute_for_row( 12, 5, 3, true ) ), array( 'id' => 31 ) ),
+				array( array( 'pcd_hash' => RecruitmentPcdHasher::compute_for_row( 13, 5, 3, false ) ), array( 'id' => 32 ) ),
+			),
+			array_map( static fn( array $w ): array => array( $w[2], $w[3] ), array_slice( $classification, 1 ) )
+		);
+	}
+
+	/**
+	 * A rehash the database refuses fails the merge loudly.
+	 */
+	public function test_apply_reports_a_refused_rehash(): void {
+		$this->pair();
+		$this->moving        = array(
+			array(
+				'id'           => '31',
+				'notice_id'    => '12',
+				'candidate_id' => '1',
+				'adjutancy_id' => '3',
+				'pcd_hash'     => RecruitmentPcdHasher::compute_for_row( 12, 1, 3, true ),
+			),
+		);
+		$this->refuse_rehash = true;
+
+		$this->assertInstanceOf( \WP_Error::class, $this->merge()->apply( 1, 5 ) );
+		$this->assertSame( array( 'candidate_id' => 5 ), $this->writes[0][2], 'The move ran; the rehash after it is what failed.' );
 	}
 
 	/**

@@ -48,6 +48,9 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 	/** @var object The candidate row the database holds. */
 	private object $candidate;
 
+	/** @var object The classification row the call points at; PCD lives here (#2245). */
+	private object $classification;
+
 	/**
 	 * Every `wp_mail()` call, with the attachments' content read at send
 	 * time (the dispatcher deletes the temp file right after).
@@ -167,6 +170,16 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 			'pcd_hash'        => '',
 		);
 
+		$this->classification = (object) array(
+			'id'           => '10',
+			'candidate_id' => '100',
+			'adjutancy_id' => '2',
+			'notice_id'    => '5',
+			'rank'         => '1',
+			'score'        => '90.0000',
+			'pcd_hash'     => '',
+		);
+
 		$rows = array(
 			'wp_ffc_recruitment_call WHERE id = 7'            => (object) array(
 				'id'                => '7',
@@ -177,14 +190,7 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 				'notes'             => 'Bring documents',
 				'cancelled_at'      => null,
 			),
-			'wp_ffc_recruitment_classification WHERE id = 10' => (object) array(
-				'id'           => '10',
-				'candidate_id' => '100',
-				'adjutancy_id' => '2',
-				'notice_id'    => '5',
-				'rank'         => '1',
-				'score'        => '90.0000',
-			),
+			'wp_ffc_recruitment_classification WHERE id = 10' => $this->classification,
 			'wp_ffc_recruitment_candidate WHERE id = 100'     => $this->candidate,
 			'wp_ffc_recruitment_notice WHERE id = 5'          => (object) array(
 				'id'     => '5',
@@ -215,10 +221,13 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 
 	/**
 	 * Store the convocation templates and the recruitment settings, and the
-	 * candidate's PCD claim.
+	 * classification's PCD claim.
+	 *
+	 * The candidate row carries the opposite claim, so a dispatcher still
+	 * reading the candidate would resolve the wrong answer (#2245).
 	 *
 	 * @param array<string, string> $settings Subject, body and From settings.
-	 * @param bool                  $is_pcd   The candidate's stored PCD claim.
+	 * @param bool                  $is_pcd   The classification's PCD claim.
 	 */
 	private function configure( array $settings, bool $is_pcd, int $response_days = 0 ): void {
 		$this->options['ffc_email_bodies']         = array(
@@ -233,7 +242,8 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 			'response_days'      => $response_days,
 		);
 
-		$this->candidate->pcd_hash = RecruitmentPcdHasher::compute( 100, $is_pcd );
+		$this->classification->pcd_hash = RecruitmentPcdHasher::compute_for_row( 5, 100, 2, $is_pcd );
+		$this->candidate->pcd_hash      = RecruitmentPcdHasher::compute( 100, ! $is_pcd );
 	}
 
 	/**
@@ -354,7 +364,7 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 				'body'    => '<p>{{set_password_url}}|{{name}}</p>',
 			),
 		);
-		$this->candidate->pcd_hash         = RecruitmentPcdHasher::compute( 100, false );
+		$this->classification->pcd_hash    = RecruitmentPcdHasher::compute_for_row( 5, 100, 2, false );
 
 		$this->assertTrue( RecruitmentEmailDispatcher::send_for_cancellation( 7 ) );
 		$captured = $this->sent();

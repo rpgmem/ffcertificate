@@ -192,6 +192,41 @@ class RecruitmentActivator {
 			self::migrate_recreate_staging_table_plaintext();
 			update_option( $option_key, 11 );
 		}
+
+		if ( $current < 12 ) {
+			self::migrate_add_classification_pcd_hash();
+			update_option( $option_key, 12 );
+		}
+	}
+
+	/**
+	 * V12 — PCD moves from the candidate to each notice classification
+	 * (#2245). Adds `pcd_hash` to the classification table and to the staging
+	 * table the batched import fills. The flags already stored on candidates
+	 * are copied by the "PCD per notice" migration card, not here: that walk
+	 * is batched, and activation is not the place for it.
+	 *
+	 * Idempotent via the SHOW COLUMNS guard.
+	 *
+	 * @return void
+	 */
+	private static function migrate_add_classification_pcd_hash(): void {
+		global $wpdb;
+		foreach ( array(
+			'ffc_recruitment_classification' => 'hab_emebs',
+			'ffc_recruitment_import_staging' => 'pcd',
+		) as $suffix => $after ) {
+			$table = $wpdb->prefix . $suffix;
+			if ( ! self::table_exists( $table ) ) {
+				continue;
+			}
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration; $table is built from $wpdb->prefix.
+			$has = $wpdb->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'pcd_hash'" );
+			if ( null === $has || '' === (string) $has ) {
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration; $table and $after are literals of this method.
+				$wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN pcd_hash varchar(64) DEFAULT NULL AFTER {$after}" );
+			}
+		}
 	}
 
 	/**
@@ -738,6 +773,7 @@ class RecruitmentActivator {
             score decimal(10,4) NOT NULL,
             time_points decimal(10,4) NOT NULL DEFAULT 0,
             hab_emebs tinyint(1) NOT NULL DEFAULT 0,
+            pcd_hash varchar(64) DEFAULT NULL,
             status enum('empty','called','accepted','not_shown','hired','withdrew') NOT NULL DEFAULT 'empty',
             preview_status enum('empty','denied','granted','appeal_denied','appeal_granted') NOT NULL DEFAULT 'empty',
             preview_reason_id bigint(20) unsigned DEFAULT NULL,
@@ -962,6 +998,7 @@ class RecruitmentActivator {
             time_points decimal(10,4) NOT NULL DEFAULT 0,
             hab_emebs tinyint(1) NOT NULL DEFAULT 0,
             pcd tinyint(1) NOT NULL DEFAULT 0,
+            pcd_hash varchar(64) DEFAULT NULL,
             candidate_id bigint(20) unsigned DEFAULT NULL,
             processed tinyint(1) NOT NULL DEFAULT 0,
             PRIMARY KEY (id),

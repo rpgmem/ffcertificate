@@ -120,6 +120,7 @@ class RecruitmentPromotionServiceTest extends TestCase {
 				'score'        => '90.0000',
 				'time_points'  => '12.5000',
 				'hab_emebs'    => '1',
+				'pcd_hash'     => 'hash-of-the-preliminary-row',
 				'status'       => 'empty',
 				'created_at'   => '2026-05-01 10:00:00',
 				'updated_at'   => '2026-05-01 10:00:00',
@@ -191,6 +192,7 @@ class RecruitmentPromotionServiceTest extends TestCase {
 		$this->assertSame( 1, $written[0]['hab_emebs'] );
 		$this->assertSame( '0', $written[1]['time_points'], 'A row without the column copies the default.' );
 		$this->assertSame( 0, $written[1]['hab_emebs'] );
+		$this->assertSame( 'hash-of-the-preliminary-row', $written[0]['pcd_hash'], 'PCD copies unchanged: its hash names no row id (#2245).' );
 
 		// Sanity: the transaction envelope is present.
 		$this->assertContains( 'START TRANSACTION', $query_log );

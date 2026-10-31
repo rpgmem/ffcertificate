@@ -449,6 +449,29 @@ class EncryptionTest extends TestCase {
 		$this->assertArrayNotHasKey( 'cpf', $out );
 	}
 
+	public function test_legacy_keyed_hash_is_null_while_the_salts_are_one(): void {
+		$this->assertNull( Encryption::legacy_keyed_hash( 'value', 'ctx' ), 'Without FFC_HASH_SALT there is no older salt to try.' );
+	}
+
+	/**
+	 * After FFC_HASH_SALT is defined, the legacy keyed hash is exactly what
+	 * keyed_hash() returned before it (#2245).
+	 *
+	 * Own process: it defines FFC_HASH_SALT, which the class reads with no
+	 * other seam and every other test here needs absent.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_legacy_keyed_hash_reproduces_the_wordpress_derived_one(): void {
+		$before = Encryption::keyed_hash( 'value', 'ctx' );
+		define( 'FFC_HASH_SALT', str_repeat( 'S', 64 ) );
+
+		$this->assertNotSame( $before, Encryption::keyed_hash( 'value', 'ctx' ) );
+		$this->assertSame( $before, Encryption::legacy_keyed_hash( 'value', 'ctx' ) );
+		$this->assertNotSame( $before, Encryption::legacy_keyed_hash( 'value', 'other' ), 'The context still separates uses.' );
+	}
+
 	/**
 	 * A decoupled hash salt is what `hash()` uses, and the health check reads it.
 	 *

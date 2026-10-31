@@ -280,7 +280,7 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 				'email_encrypted' => Encryption::encrypt( self::EMAIL ),
 				'phone'           => '11999998888',
 				'notes'           => 'a note',
-				'pcd_hash'        => RecruitmentPcdHasher::compute( 5, true ),
+				'pcd_hash'        => '',
 				'created_at'      => '2026-01-01 00:00:00',
 				'updated_at'      => '2026-01-02 00:00:00',
 			),
@@ -446,7 +446,50 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$this->assertSame( DocumentFormatter::mask_email( self::EMAIL ), $data['email_masked'] );
 		$this->assertTrue( $data['pii_masked'] );
 		$this->assertSame( '11999998888', $data['phone'] );
-		$this->assertTrue( $data['is_pcd'] );
+		$this->assertArrayNotHasKey( 'is_pcd', $data, 'PCD is per notice, not per candidate (#2245).' );
+	}
+
+	public function test_get_candidate_reports_pcd_per_notice_classification(): void {
+		$this->store_candidate();
+		$this->rows[ self::T_CLASSIFICATION ][31] = (object) array(
+			'id'           => 31,
+			'candidate_id' => 5,
+			'notice_id'    => 2,
+			'adjutancy_id' => 4,
+			'list_type'    => 'definitive',
+			'pcd_hash'     => RecruitmentPcdHasher::compute_for_row( 2, 5, 4, true ),
+		);
+		$this->rows[ self::T_CLASSIFICATION ][32] = (object) array(
+			'id'           => 32,
+			'candidate_id' => 5,
+			'notice_id'    => 3,
+			'adjutancy_id' => 4,
+			'list_type'    => 'preview',
+			'pcd_hash'     => RecruitmentPcdHasher::compute_for_row( 3, 5, 4, false ),
+		);
+
+		$data = $this->controller->get_candidate( $this->make_request( array( 'id' => 5 ) ) )->get_data();
+
+		$this->assertSame(
+			array(
+				array(
+					'classification_id' => 31,
+					'notice_id'         => 2,
+					'adjutancy_id'      => 4,
+					'list_type'         => 'definitive',
+					'is_pcd'            => true,
+				),
+				array(
+					'classification_id' => 32,
+					'notice_id'         => 3,
+					'adjutancy_id'      => 4,
+					'list_type'         => 'preview',
+					'is_pcd'            => false,
+				),
+			),
+			$data['pcd'],
+			'The same person is PCD in one notice and general in another.'
+		);
 	}
 
 	public function test_get_candidate_gives_the_candidate_their_own_data_in_clear(): void {

@@ -22,7 +22,9 @@
  *   6. deleting the published notice is refused and its rows survive;
  *   7. the call is cancelled.
  *
- * A second draft notice is then deleted, and its rows must go with it.
+ * A second draft notice is then deleted, and its rows must go with it, and a
+ * third notice records the same person as PCD while the first records them
+ * as general, through the import and the copy to definitive.
  *
  * **WHY THIS JOB.** `fresh-install` has the only real MariaDB and the freshly
  * created schema. Everything planted is deleted before the script exits.
@@ -45,6 +47,7 @@ use FreeFormCertificate\Recruitment\RecruitmentNoticeAdjutancyRepository;
 use FreeFormCertificate\Recruitment\RecruitmentNoticeReader;
 use FreeFormCertificate\Recruitment\RecruitmentNoticeStateMachine;
 use FreeFormCertificate\Recruitment\RecruitmentNoticeWriter;
+use FreeFormCertificate\Recruitment\RecruitmentPcdHasher;
 use FreeFormCertificate\Recruitment\RecruitmentPromotionService;
 
 $wp_root = (string) ( $argv[1] ?? '' );
@@ -387,6 +390,41 @@ if ( 1 !== ( $ranks[ (int) $bruno->candidate_id ] ?? 0 ) || 2 !== count( $ranks 
 	ffc_rf_fail( 'The promotion kept the old definitive list: ' . wp_json_encode( $ranks ) );
 }
 
+// PCD per notice (#2245): Ana is general in the first notice and PCD here,
+// and the copy to definitive keeps it; the first notice is not touched.
+$pcd_notice = RecruitmentNoticeWriter::create( 'CI-FLOW-P-' . $suffix, 'CI flow PCD' );
+if ( false === $pcd_notice ) {
+	ffc_rf_fail( 'Could not create the PCD notice.' );
+}
+$pcd_notice                  = (int) $pcd_notice;
+$ffc_rf_planted['notices'][] = $pcd_notice;
+RecruitmentNoticeAdjutancyRepository::attach( $pcd_notice, (int) $adjutancy );
+$pcd_csv = "name,cpf,rf,email,adjutancy,rank,score,pcd\n"
+	. "Ana Flow,51817842080,,ci-flow-a@example.test,ci-flow-{$suffix},1,90.5,sim\n";
+if ( ! RecruitmentCsvImporter::import_preview( $pcd_notice, $pcd_csv )['success'] ) {
+	ffc_rf_fail( 'Preview import on the PCD notice failed.' );
+}
+$ana_id = (int) $stored->id;
+$flags  = static function ( int $notice_id, string $list_type ) use ( $ana_id ): array {
+	$out = array();
+	foreach ( RecruitmentClassificationRepository::get_for_notice( $notice_id, $list_type ) as $row ) {
+		if ( (int) $row->candidate_id === $ana_id ) {
+			$out[] = RecruitmentPcdHasher::row_is_pcd( $row );
+		}
+	}
+	return $out;
+};
+if ( array( true ) !== $flags( $pcd_notice, 'preview' ) ) {
+	ffc_rf_fail( 'The PCD notice does not record Ana as PCD: ' . wp_json_encode( $flags( $pcd_notice, 'preview' ) ) );
+}
+if ( array( false ) !== $flags( $notice, 'definitive' ) ) {
+	ffc_rf_fail( 'Importing another notice changed PCD on the first: ' . wp_json_encode( $flags( $notice, 'definitive' ) ) );
+}
+RecruitmentNoticeStateMachine::transition_to( $pcd_notice, 'preliminary' );
+if ( ! RecruitmentPromotionService::snapshot_to_definitive( $pcd_notice )['success'] || array( true ) !== $flags( $pcd_notice, 'definitive' ) ) {
+	ffc_rf_fail( 'The copy to definitive did not keep PCD: ' . wp_json_encode( $flags( $pcd_notice, 'definitive' ) ) );
+}
+
 $deleted = RecruitmentDeleteService::delete_notice( $draft );
 if ( ! $deleted['success'] ) {
 	ffc_rf_fail( 'Deleting a draft failed: ' . implode( ' | ', $deleted['errors'] ) );
@@ -400,5 +438,5 @@ if ( 0 !== $left || array() !== $junction || null !== RecruitmentNoticeReader::g
 }
 
 ffc_rf_cleanup();
-echo "Recruitment flow: draft import makes no account, the batch links once, the definitive import promotes in one change and refuses a second, a published notice is not deleted, a cancelled call ends and the row can be called again, nobody is called on a draft, a row naming somebody else waits for the operator and keeps the stored identity, a CPF and an RF of two candidates are refused, a re-import waits for its comparison and keeps manual statuses, the promotion after going back copies the corrected list, a draft is deleted with its rows.\n";
+echo "Recruitment flow: draft import makes no account, the batch links once, the definitive import promotes in one change and refuses a second, a published notice is not deleted, a cancelled call ends and the row can be called again, nobody is called on a draft, a row naming somebody else waits for the operator and keeps the stored identity, a CPF and an RF of two candidates are refused, a re-import waits for its comparison and keeps manual statuses, the promotion after going back copies the corrected list, PCD is recorded per notice and survives the copy, a draft is deleted with its rows.\n";
 exit( 0 );

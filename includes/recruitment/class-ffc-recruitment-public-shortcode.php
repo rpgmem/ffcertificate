@@ -401,11 +401,10 @@ final class RecruitmentPublicShortcode {
 							}
 						}
 						if ( $has_sub ) {
-							// Defensive normalization: a row whose
-							// pcd_hash doesn't decode against either
-							// domain falls into GERAL — same as the
-							// badge rendering path.
-							$is_pcd       = true === RecruitmentPcdHasher::verify( (string) ( $candidate->pcd_hash ?? '' ), (int) $candidate->id );
+							// PCD is the row's, per notice (#2245); a hash
+							// neither salt recognises falls into GERAL, as
+							// on the badge.
+							$is_pcd       = RecruitmentPcdHasher::row_is_pcd( $row );
 							$row_sub_type = $is_pcd ? 'pcd' : 'geral';
 							if ( $row_sub_type !== $subscription ) {
 								return false;

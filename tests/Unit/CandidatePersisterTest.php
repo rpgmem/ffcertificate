@@ -8,7 +8,6 @@ use Brain\Monkey\Functions;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Core\SensitiveFieldRegistry;
 use FreeFormCertificate\Recruitment\CandidatePersister;
-use FreeFormCertificate\Recruitment\RecruitmentPcdHasher;
 use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 use FreeFormCertificate\Tests\Support\Identifiers;
 use Mockery;
@@ -270,7 +269,7 @@ class CandidatePersisterTest extends TestCase {
 		$this->assertSame( self::CANDIDATES, $this->inserts[0]['table'] );
 		$captured = $this->inserts[0]['data'];
 		$this->assertSame( 'Maria', $captured['name'] );
-		$this->assertSame( 'pending', $captured['pcd_hash'] );
+		$this->assertSame( '', $captured['pcd_hash'], 'PCD lives on the classification now (#2245).' );
 		$this->assertSame( Identifiers::CPF_A, Encryption::decrypt( $captured['cpf_encrypted'] ) );
 		$this->assertSame( SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A ), $captured['cpf_hash'] );
 		$this->assertSame( Identifiers::RF_A, Encryption::decrypt( $captured['rf_encrypted'] ) );
@@ -279,11 +278,8 @@ class CandidatePersisterTest extends TestCase {
 		$this->assertSame( Encryption::hash( 'person@example.com' ), $captured['email_hash'] );
 		$this->assertSame( '11999998888', $captured['phone'] );
 
-		// The placeholder is replaced by the real PCD hash once the id is known.
-		$updates = $this->candidateUpdates();
-		$this->assertCount( 1, $updates, 'Only the pcd_hash refresh; no promotion link.' );
-		$this->assertSame( array( 'id' => 42 ), $updates[0]['where'] );
-		$this->assertSame( RecruitmentPcdHasher::compute( 42, true ), $updates[0]['data']['pcd_hash'] );
+		// A PCD row writes nothing PCD-related onto the candidate.
+		$this->assertSame( array(), $this->candidateUpdates(), 'No pcd_hash refresh and no promotion link.' );
 	}
 
 	public function test_upsert_insert_omits_empty_optional_fields(): void {

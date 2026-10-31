@@ -183,10 +183,9 @@ final class RecruitmentPublicShortcodeRenderer {
 			}
 		}
 		if ( $columns['pcd_badge'] ) {
-			// `verify()` returns null when the hash doesn't decode against
-			// either domain — treat that as non-PCD on the public surface
-			// rather than hiding the badge entirely.
-			$is_pcd = true === RecruitmentPcdHasher::verify( (string) $candidate->pcd_hash, (int) $candidate->id );
+			// The row's PCD, per notice (#2245). A hash neither salt
+			// recognises reads as non-PCD rather than hiding the badge.
+			$is_pcd = RecruitmentPcdHasher::row_is_pcd( $row );
 			$html  .= '<td>' . self::render_subscription_badge( $is_pcd ) . '</td>';
 		}
 		if ( $show_date && ( $columns['date_to_assume'] || $columns['time_to_assume'] ) ) {

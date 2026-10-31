@@ -565,7 +565,7 @@ final class CsvStagingService {
 
 		$batch = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT id, name, cpf_normalized, rf_normalized, email, phone, pcd FROM {$staging_table} WHERE job_id = %s AND processed = 0 ORDER BY row_no LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
+				"SELECT id, notice_id, adjutancy_id, name, cpf_normalized, rf_normalized, email, phone, pcd FROM {$staging_table} WHERE job_id = %s AND processed = 0 ORDER BY row_no LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
 				$job_id,
 				$size
 			)
@@ -624,10 +624,13 @@ final class CsvStagingService {
 				$staging_table,
 				array(
 					'candidate_id' => (int) $candidate_id,
+					// Computed here, where the candidate is known, so the
+					// swap copies it with the row (#2245).
+					'pcd_hash'     => RecruitmentPcdHasher::compute_for_row( (int) $row->notice_id, (int) $candidate_id, (int) $row->adjutancy_id, 1 === (int) $row->pcd ),
 					'processed'    => 1,
 				),
 				array( 'id' => (int) $row->id ),
-				array( '%d', '%d' ),
+				array( '%d', '%s', '%d' ),
 				array( '%d' )
 			);
 			++$processed_now;
@@ -776,8 +779,8 @@ final class CsvStagingService {
 			$inserted = $wpdb->query(
 				$wpdb->prepare(
 					'INSERT INTO %i
-						(candidate_id, adjutancy_id, notice_id, list_type, `rank`, score, time_points, hab_emebs, status, created_at, updated_at)
-					 SELECT candidate_id, adjutancy_id, notice_id, %s, rank_value, score, time_points, hab_emebs, %s, %s, %s
+						(candidate_id, adjutancy_id, notice_id, list_type, `rank`, score, time_points, hab_emebs, pcd_hash, status, created_at, updated_at)
+					 SELECT candidate_id, adjutancy_id, notice_id, %s, rank_value, score, time_points, hab_emebs, pcd_hash, %s, %s, %s
 					 FROM %i
 					 WHERE job_id = %s AND processed = 1
 					 ORDER BY row_no',

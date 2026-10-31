@@ -61,7 +61,8 @@ class MigrationRegistryTest extends TestCase {
 		$all = $registry->get_all_migrations();
 
 		$this->assertIsArray( $all );
-		// Eighteen since the reregistration draft encryption joined (#2242),
+		// Nineteen since the recruitment PCD-per-notice move joined (#2245),
+		// eighteen once the reregistration draft encryption did (#2242),
 		// seventeen once the refused-address cleanup did (#2109), sixteen
 		// once the rate-limit log address encryption did (#2109).
 		// Fourteen once the activity-log IP encryption joined (#1574),
@@ -73,7 +74,8 @@ class MigrationRegistryTest extends TestCase {
 		// and as a live number here on purpose -- every key below is named too,
 		// so a card arriving without a test failing is what this guards against;
 		// bump the number and name the new key together.
-		$this->assertCount( 18, $all );
+		$this->assertCount( 19, $all );
+		$this->assertArrayHasKey( 'recruitment_pcd_per_notice', $all );
 		$this->assertArrayHasKey( 'split_cpf_rf', $all );
 		$this->assertArrayHasKey( 'email_hash_rehash', $all );
 		$this->assertArrayHasKey( 'key_rotation', $all );

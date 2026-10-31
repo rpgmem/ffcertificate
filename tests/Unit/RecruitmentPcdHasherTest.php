@@ -85,4 +85,80 @@ class RecruitmentPcdHasherTest extends TestCase {
 
 		$this->assertNull( RecruitmentPcdHasher::verify( $hash, 6 ) );
 	}
+
+	// ------------------------------------------------------------------
+	// Per-classification hash (#2245)
+	// ------------------------------------------------------------------
+
+	/**
+	 * A classification row the reader takes.
+	 */
+	private static function cls( int $notice, int $candidate, int $adjutancy, ?string $hash ): object {
+		return (object) array(
+			'notice_id'    => $notice,
+			'candidate_id' => $candidate,
+			'adjutancy_id' => $adjutancy,
+			'pcd_hash'     => $hash,
+		);
+	}
+
+	public function test_the_row_hash_names_the_notice_candidate_and_adjutancy(): void {
+		$base = RecruitmentPcdHasher::compute_for_row( 1, 2, 3, true );
+
+		$this->assertSame( 64, strlen( $base ) );
+		$this->assertSame( $base, RecruitmentPcdHasher::compute_for_row( 1, 2, 3, true ), 'Deterministic, so a snapshot can copy it.' );
+		$this->assertNotSame( $base, RecruitmentPcdHasher::compute_for_row( 1, 2, 3, false ) );
+		$this->assertNotSame( $base, RecruitmentPcdHasher::compute_for_row( 9, 2, 3, true ), 'Another notice' );
+		$this->assertNotSame( $base, RecruitmentPcdHasher::compute_for_row( 1, 9, 3, true ), 'Another candidate' );
+		$this->assertNotSame( $base, RecruitmentPcdHasher::compute_for_row( 1, 2, 9, true ), 'Another adjutancy' );
+	}
+
+	public function test_the_row_hash_does_not_depend_on_the_wordpress_auth_salt(): void {
+		$before = RecruitmentPcdHasher::compute_for_row( 1, 2, 3, true );
+		Functions\when( 'wp_salt' )->justReturn( 'rotated-auth-salt' );
+
+		$this->assertSame( $before, RecruitmentPcdHasher::compute_for_row( 1, 2, 3, true ), 'Rotating wp_salt(auth) no longer turns PCD into general.' );
+	}
+
+	public function test_read_row_recognises_both_flags_under_the_active_salt(): void {
+		$this->assertSame( array( 'pcd' => true, 'legacy' => false ), RecruitmentPcdHasher::read_row( self::cls( 1, 2, 3, RecruitmentPcdHasher::compute_for_row( 1, 2, 3, true ) ) ) );
+		$this->assertSame( array( 'pcd' => false, 'legacy' => false ), RecruitmentPcdHasher::read_row( self::cls( 1, 2, 3, RecruitmentPcdHasher::compute_for_row( 1, 2, 3, false ) ) ) );
+		$this->assertTrue( RecruitmentPcdHasher::row_is_pcd( self::cls( 1, 2, 3, RecruitmentPcdHasher::compute_for_row( 1, 2, 3, true ) ) ) );
+	}
+
+	public function test_read_row_reads_missing_moved_or_tampered_hashes_as_unknown(): void {
+		$hash = RecruitmentPcdHasher::compute_for_row( 1, 2, 3, true );
+
+		foreach ( array( null, '', str_repeat( 'a', 64 ) ) as $stored ) {
+			$this->assertNull( RecruitmentPcdHasher::read_row( self::cls( 1, 2, 3, $stored ) )['pcd'] );
+		}
+		$this->assertNull( RecruitmentPcdHasher::read_row( self::cls( 1, 7, 3, $hash ) )['pcd'], 'A hash copied onto another candidacy reads as nothing.' );
+		$this->assertFalse( RecruitmentPcdHasher::row_is_pcd( self::cls( 1, 7, 3, $hash ) ), 'And therefore as general on every screen.' );
+		$this->assertFalse( RecruitmentPcdHasher::row_is_pcd( (object) array() ) );
+	}
+
+	/**
+	 * A hash written before FFC_HASH_SALT was defined still reads, and is
+	 * flagged for the key rotation to rewrite.
+	 *
+	 * Own process: it defines FFC_HASH_SALT, which Encryption reads with no
+	 * other seam and every other test here needs absent.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_read_row_falls_back_to_the_wordpress_derived_salt(): void {
+		$legacy_pcd     = RecruitmentPcdHasher::compute_for_row( 1, 2, 3, true );
+		$legacy_general = RecruitmentPcdHasher::compute_for_row( 1, 2, 3, false );
+		define( 'FFC_HASH_SALT', str_repeat( 'S', 64 ) );
+
+		$this->assertNotSame( $legacy_pcd, RecruitmentPcdHasher::compute_for_row( 1, 2, 3, true ), 'The active salt changed.' );
+		$this->assertSame( array( 'pcd' => true, 'legacy' => true ), RecruitmentPcdHasher::read_row( self::cls( 1, 2, 3, $legacy_pcd ) ) );
+		$this->assertSame( array( 'pcd' => false, 'legacy' => true ), RecruitmentPcdHasher::read_row( self::cls( 1, 2, 3, $legacy_general ) ) );
+		$this->assertSame(
+			array( 'pcd' => true, 'legacy' => false ),
+			RecruitmentPcdHasher::read_row( self::cls( 1, 2, 3, RecruitmentPcdHasher::compute_for_row( 1, 2, 3, true ) ) ),
+			'A hash under the active salt is not legacy.'
+		);
+	}
 }

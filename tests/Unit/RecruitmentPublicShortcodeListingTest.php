@@ -207,14 +207,16 @@ class RecruitmentPublicShortcodeListingTest extends TestCase {
 		);
 	}
 
-	private function row( int $candidate, string $status ): object {
+	private function row( int $candidate, string $status, bool $is_pcd = false ): object {
 		return (object) array(
 			'id'           => (string) ( 100 + $candidate ),
+			'notice_id'    => '5',
 			'candidate_id' => (string) $candidate,
 			'rank'         => (string) $candidate,
 			'adjutancy_id' => '3',
 			'list_type'    => 'definitive',
 			'status'       => $status,
+			'pcd_hash'     => RecruitmentPcdHasher::compute_for_row( 5, $candidate, 3, $is_pcd ),
 		);
 	}
 
@@ -377,9 +379,10 @@ class RecruitmentPublicShortcodeListingTest extends TestCase {
 
 	public function test_the_subscription_filter_keeps_only_the_matching_quota(): void {
 		$this->withNotice( 'definitive' );
-		$this->candidates[1]   = $this->candidate( 1, 'Candidate 1', RecruitmentPcdHasher::compute( 1, false ) );
-		$this->candidates[2]   = $this->candidate( 2, 'Candidate 2', RecruitmentPcdHasher::compute( 2, true ) );
-		$this->classifications = array( $this->row( 1, 'empty' ), $this->row( 2, 'called' ) );
+		// The candidate rows say the opposite: PCD is read per notice (#2245).
+		$this->candidates[1]   = $this->candidate( 1, 'Candidate 1', RecruitmentPcdHasher::compute( 1, true ) );
+		$this->candidates[2]   = $this->candidate( 2, 'Candidate 2', RecruitmentPcdHasher::compute( 2, false ) );
+		$this->classifications = array( $this->row( 1, 'empty', false ), $this->row( 2, 'called', true ) );
 
 		$html = RecruitmentPublicShortcode::render_uncached( 'EDITAL-1', '', 1, 1, false, '', 'pcd' );
 

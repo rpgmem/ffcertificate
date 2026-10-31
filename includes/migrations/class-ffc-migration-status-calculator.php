@@ -364,6 +364,24 @@ class MigrationStatusCalculator {
 					unset( $this->strategy_errors['rereg_draft_encryption'] );
 					break;
 
+				case 'recruitment_pcd_per_notice':
+					$strategy_dir = __DIR__ . '/strategies/';
+					$core_dir     = dirname( __DIR__ ) . '/core/';
+
+					if ( ! trait_exists( '\\FreeFormCertificate\\Core\\DatabaseHelperTrait', false ) ) {
+						include $core_dir . 'class-ffc-database-helper-trait.php';
+					}
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\RecruitmentPcdPerNoticeMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-recruitment-pcd-per-notice-migration-strategy.php';
+					}
+
+					$this->strategies['recruitment_pcd_per_notice'] = new \FreeFormCertificate\Migrations\Strategies\RecruitmentPcdPerNoticeMigrationStrategy();
+					unset( $this->strategy_errors['recruitment_pcd_per_notice'] );
+					break;
+
 				case 'import_legacy_templates':
 					$strategy_dir = __DIR__ . '/strategies/';
 

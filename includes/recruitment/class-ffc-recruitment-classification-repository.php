@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * acts only on `definitive`); the repository does NOT enforce this — the
  * service layer (sprint 4 importer + sprint 6 convocation) is responsible.
  *
- * @phpstan-type ClassificationRow \stdClass&object{id: numeric-string, candidate_id: numeric-string, adjutancy_id: numeric-string, notice_id: numeric-string, list_type: string, rank: numeric-string, score: string, time_points?: string, hab_emebs?: numeric-string, status: string, created_at: string, updated_at: string}
+ * @phpstan-type ClassificationRow \stdClass&object{id: numeric-string, candidate_id: numeric-string, adjutancy_id: numeric-string, notice_id: numeric-string, list_type: string, rank: numeric-string, score: string, time_points?: string, hab_emebs?: numeric-string, pcd_hash?: string|null, status: string, created_at: string, updated_at: string}
  */
 class RecruitmentClassificationRepository {
 
@@ -259,7 +259,7 @@ class RecruitmentClassificationRepository {
 	 * Returns `false` on UNIQUE collision
 	 * `(candidate_id, adjutancy_id, notice_id, list_type)`.
 	 *
-	 * @param array{candidate_id: int, adjutancy_id: int, notice_id: int, list_type: string, rank: int, score: string|float, status?: string, time_points?: string|float, hab_emebs?: int|bool} $data Classification payload.
+	 * @param array{candidate_id: int, adjutancy_id: int, notice_id: int, list_type: string, rank: int, score: string|float, status?: string, time_points?: string|float, hab_emebs?: int|bool, pcd_hash?: string|null} $data Classification payload.
 	 * @return int|false New classification ID or false on failure.
 	 */
 	public static function create( array $data ) {
@@ -281,11 +281,13 @@ class RecruitmentClassificationRepository {
 				// to 0 / 0 when the importer / caller didn't supply them.
 				'time_points'  => isset( $data['time_points'] ) ? (string) $data['time_points'] : '0',
 				'hab_emebs'    => isset( $data['hab_emebs'] ) && $data['hab_emebs'] ? 1 : 0,
+				// PCD of this notice classification (#2245); null reads as general.
+				'pcd_hash'     => $data['pcd_hash'] ?? null,
 				'status'       => $data['status'] ?? 'empty',
 				'created_at'   => $now,
 				'updated_at'   => $now,
 			),
-			array( '%d', '%d', '%d', '%s', '%d', '%s', '%s', '%d', '%s', '%s', '%s' )
+			array( '%d', '%d', '%d', '%s', '%d', '%s', '%s', '%d', '%s', '%s', '%s', '%s' )
 		);
 
 		if ( ! $result ) {

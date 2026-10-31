@@ -479,7 +479,17 @@ final class RecruitmentCandidatesRestController {
 			'pii_masked'   => ! $clear,
 			'phone'        => $candidate->phone,
 			'notes'        => $candidate->notes,
-			'is_pcd'       => RecruitmentPcdHasher::verify( $candidate->pcd_hash, (int) $candidate->id ),
+			// PCD is per notice classification (#2245), not per candidate.
+			'pcd'          => array_map(
+				static fn( object $cls ): array => array(
+					'classification_id' => (int) $cls->id,
+					'notice_id'         => (int) $cls->notice_id,
+					'adjutancy_id'      => (int) $cls->adjutancy_id,
+					'list_type'         => (string) $cls->list_type,
+					'is_pcd'            => RecruitmentPcdHasher::row_is_pcd( $cls ),
+				),
+				RecruitmentClassificationRepository::get_for_candidate( (int) $candidate->id )
+			),
 			'created_at'   => $candidate->created_at,
 			'updated_at'   => $candidate->updated_at,
 		);

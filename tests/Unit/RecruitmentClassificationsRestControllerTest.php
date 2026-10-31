@@ -362,7 +362,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 			}
 			return $out;
 		}
-		if ( 0 === strpos( $sql, 'SELECT id, name, cpf_normalized, rf_normalized, email, phone, pcd FROM ' . self::T_STAGING . ' WHERE job_id = ' ) ) {
+		if ( 0 === strpos( $sql, 'SELECT id, notice_id, adjutancy_id, name, cpf_normalized, rf_normalized, email, phone, pcd FROM ' . self::T_STAGING . ' WHERE job_id = ' ) ) {
 			return $this->staged;
 		}
 		if ( 0 === strpos( $sql, 'SELECT line_no, cpf_normalized, rf_normalized, email, name FROM ' . self::T_STAGING . ' WHERE job_id = ' ) ) {
@@ -1202,6 +1202,8 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 				'email'          => 'ana@example.com',
 				'phone'          => '',
 				'pcd'            => 0,
+				'notice_id'      => 7,
+				'adjutancy_id'   => 3,
 			),
 		);
 
