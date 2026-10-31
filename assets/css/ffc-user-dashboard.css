@@ -1874,7 +1874,8 @@
 }
 
 .ffc-pill.ffc-mycalls-badge-withdrew,
-.ffc-pill.ffc-mycalls-badge-expired {
+.ffc-pill.ffc-mycalls-badge-expired,
+.ffc-pill.ffc-mycalls-badge-notice-closed {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text);
 }
@@ -2093,6 +2094,7 @@
     .ffc-pill.ffc-mycalls-badge-final,
     .ffc-pill.ffc-mycalls-badge-hired,
     .ffc-pill.ffc-mycalls-badge-not-shown,
+    .ffc-pill.ffc-mycalls-badge-notice-closed,
     .ffc-pill.ffc-mycalls-badge-preliminary,
     .ffc-pill.ffc-mycalls-badge-withdrew {
         border: 1px solid CanvasText;

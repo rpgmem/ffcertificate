@@ -240,6 +240,9 @@ final class RecruitmentDashboardSection {
 	 * - `empty` is Waiting, `final` or `preliminary` by the notice's status.
 	 * - `hired`, `withdrew`, `not_shown` and any status this screen does not
 	 *   know are Closed.
+	 * - On a closed notice nothing waits and nothing is still called (#2245):
+	 *   a row that has no outcome yet is Closed as `notice_closed`, and a
+	 *   recorded outcome keeps its own badge.
 	 *
 	 * Every item also carries the most recent cancelled call (`reverted`),
 	 * which the Waiting and Closed rows explain behind their info button.
@@ -275,6 +278,11 @@ final class RecruitmentDashboardSection {
 			);
 
 			$status = (string) $entry['classification']->status;
+			if ( 'closed' === (string) $entry['notice']->status && in_array( $status, array( 'empty', 'called', 'accepted' ), true ) ) {
+				$item['status'] = 'notice_closed';
+				$closed[]       = $item;
+				continue;
+			}
 			if ( in_array( $status, array( 'called', 'accepted' ), true ) && null !== $live ) {
 				if ( self::deadline_passed( (string) $live->date_to_assume, $now ) ) {
 					$item['status'] = 'expired';
@@ -435,7 +443,7 @@ final class RecruitmentDashboardSection {
 		}
 
 		if ( ! empty( $sections['closed'] ) ) {
-			$html .= self::section_open( 'closed', 'inbox', _x( 'Closed', 'recruitment calls section', 'ffcertificate' ), __( 'Hired, withdrew, did not show up, or the presentation deadline passed.', 'ffcertificate' ) );
+			$html .= self::section_open( 'closed', 'inbox', _x( 'Closed', 'recruitment calls section', 'ffcertificate' ), __( 'Hired, withdrew, did not show up, the presentation deadline passed, or the notice was closed.', 'ffcertificate' ) );
 			$html .= self::render_closed( $sections['closed'] );
 			$html .= '</section>';
 		}
@@ -785,10 +793,11 @@ final class RecruitmentDashboardSection {
 	 */
 	private static function status_badge( string $status ): string {
 		$map  = array(
-			'hired'     => array( 'ffc-mycalls-badge-hired', __( 'Hired', 'ffcertificate' ) ),
-			'withdrew'  => array( 'ffc-mycalls-badge-withdrew', __( 'Withdrew', 'ffcertificate' ) ),
-			'not_shown' => array( 'ffc-mycalls-badge-not-shown', __( 'Did not show up', 'ffcertificate' ) ),
-			'expired'   => array( 'ffc-mycalls-badge-expired', __( 'Deadline passed', 'ffcertificate' ) ),
+			'hired'         => array( 'ffc-mycalls-badge-hired', __( 'Hired', 'ffcertificate' ) ),
+			'withdrew'      => array( 'ffc-mycalls-badge-withdrew', __( 'Withdrew', 'ffcertificate' ) ),
+			'not_shown'     => array( 'ffc-mycalls-badge-not-shown', __( 'Did not show up', 'ffcertificate' ) ),
+			'expired'       => array( 'ffc-mycalls-badge-expired', __( 'Deadline passed', 'ffcertificate' ) ),
+			'notice_closed' => array( 'ffc-mycalls-badge-notice-closed', __( 'Notice closed', 'ffcertificate' ) ),
 		);
 		$pair = $map[ $status ] ?? array( 'ffc-mycalls-badge-withdrew', $status );
 		return '<span class="ffc-pill ' . esc_attr( $pair[0] ) . '">' . esc_html( $pair[1] ) . '</span>';
