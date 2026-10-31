@@ -37,7 +37,7 @@ final class AppointmentReminderScanner {
 	 *
 	 * @var string
 	 */
-	public const CRON_HOOK = 'ffcertificate_self_scheduling_reminder_scan';
+	public const CRON_HOOK = 'ffc_self_scheduling_reminder_scan';
 
 	/**
 	 * Cron callback: dispatch reminders for every due appointment.

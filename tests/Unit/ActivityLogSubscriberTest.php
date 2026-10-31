@@ -74,7 +74,7 @@ class ActivityLogSubscriberTest extends TestCase {
 			->with( \Mockery::pattern( '/^ffcertificate_after_appointment|ffcertificate_appointment|ffcertificate_after_pdf_generation|ffcertificate_before_email_send|ffcertificate_settings|ffcertificate_daily|admin_init/' ), \Mockery::any(), \Mockery::any(), \Mockery::any() )
 			->zeroOrMoreTimes();
 		Functions\expect( 'add_action' )
-			->with( 'ffcertificate_daily_cleanup_hook', \Mockery::any() )
+			->with( 'ffc_daily_cleanup', \Mockery::any() )
 			->zeroOrMoreTimes();
 
 		new ActivityLogSubscriber();
@@ -114,7 +114,7 @@ class ActivityLogSubscriberTest extends TestCase {
 			->with( 'ffcertificate_settings_saved', \Mockery::type( 'array' ), 10, 1 )
 			->once();
 		Functions\expect( 'add_action' )
-			->with( 'ffcertificate_daily_cleanup_hook', \Mockery::type( 'array' ) )
+			->with( 'ffc_daily_cleanup', \Mockery::type( 'array' ) )
 			->once();
 
 		// Allow remaining hooks

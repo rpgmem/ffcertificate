@@ -30,7 +30,7 @@ final class AppointmentCloseout {
 	/**
 	 * Recurring cron hook that runs the close-out once a day.
 	 */
-	public const CRON_HOOK = 'ffcertificate_self_scheduling_closeout';
+	public const CRON_HOOK = 'ffc_self_scheduling_closeout';
 
 	/**
 	 * Option holding the number of days after the appointment date; 0 turns

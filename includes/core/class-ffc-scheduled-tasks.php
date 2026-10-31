@@ -87,75 +87,101 @@ final class ScheduledTasks {
 	 * @var array<string, array{recurrence: string, module: string|null}>
 	 */
 	private const TASKS = array(
-		'ffcertificate_daily_cleanup_hook'            => array(
+		'ffc_daily_cleanup'                   => array(
 			'recurrence' => 'daily',
 			'module'     => null,
 		),
-		'ffc_daily_expired_tickets_cleanup'           => array(
+		'ffc_daily_expired_tickets_cleanup'   => array(
 			'recurrence' => 'daily',
 			'module'     => 'certificates',
 		),
-		'ffcertificate_reregistration_expire_hook'    => array(
+		'ffc_reregistration_expire'           => array(
 			'recurrence' => 'daily',
 			'module'     => 'reregistration',
 		),
-		'ffcertificate_self_scheduling_reminder_scan' => array(
+		'ffc_self_scheduling_reminder_scan'   => array(
 			'recurrence' => 'hourly',
 			'module'     => 'self_scheduling',
 		),
-		'ffcertificate_self_scheduling_closeout'      => array(
+		'ffc_self_scheduling_closeout'        => array(
 			'recurrence' => 'daily',
 			'module'     => 'self_scheduling',
 		),
-		'ffcertificate_audience_post_event_invites'   => array(
+		'ffc_audience_post_event_invites'     => array(
 			'recurrence' => 'hourly',
 			'module'     => 'audiences',
 		),
-		'ffc_cloudflare_cidr_refresh'                 => array(
+		'ffc_cloudflare_cidr_refresh'         => array(
 			'recurrence' => 'daily',
 			'module'     => null,
 		),
-		'ffcertificate_bulk_issue_purge'              => array(
+		'ffc_bulk_issue_purge'                => array(
 			'recurrence' => 'daily',
 			'module'     => 'certificates',
 		),
-		'ffc_process_submission_async'                => array(
+		'ffc_process_submission_async'        => array(
 			'recurrence' => self::SINGLE,
 			'module'     => null,
 		),
-		'ffc_reregistration_reminder_batch'           => array(
+		'ffc_reregistration_reminder_batch'   => array(
 			'recurrence' => self::SINGLE,
 			'module'     => 'reregistration',
 		),
-		'ffc_reregistration_invitation_batch'         => array(
+		'ffc_reregistration_invitation_batch' => array(
 			'recurrence' => self::SINGLE,
 			'module'     => 'reregistration',
 		),
-		'ffc_recruitment_account_link_batch'          => array(
+		'ffc_recruitment_account_link_batch'  => array(
 			'recurrence' => self::SINGLE,
 			'module'     => 'recruitment',
 		),
-		'ffc_audience_notification_batch'             => array(
+		'ffc_audience_notification_batch'     => array(
 			'recurrence' => self::SINGLE,
 			'module'     => 'audiences',
 		),
-		'ffc_date_messages_daily'                     => array(
+		'ffc_date_messages_daily'             => array(
 			'recurrence' => 'daily',
 			'module'     => 'date_messages',
 		),
-		'ffc_date_messages_batch'                     => array(
+		'ffc_date_messages_batch'             => array(
 			'recurrence' => self::SINGLE,
 			'module'     => 'date_messages',
 		),
-		'ffc_date_messages_digest'                    => array(
+		'ffc_date_messages_digest'            => array(
 			'recurrence' => self::SINGLE,
 			'module'     => 'date_messages',
 		),
-		'ffc_date_messages_announce'                  => array(
+		'ffc_date_messages_announce'          => array(
 			'recurrence' => self::SINGLE,
 			'module'     => 'date_messages',
 		),
 	);
+
+	/**
+	 * The names six hooks had before they took the `ffc_` prefix (#2323),
+	 * mapped to the name each has now.
+	 *
+	 * For one cycle an upgraded install moves an event still scheduled under
+	 * an old name (migrate_legacy_hooks()), a callback a site attached to an
+	 * old name keeps running with a deprecation notice (init()), and
+	 * deactivation and `uninstall.php` clear both names.
+	 *
+	 * @removal 6.45.0
+	 * @var array<string, string>
+	 */
+	public const LEGACY_HOOKS = array(
+		'ffcertificate_daily_cleanup_hook'            => 'ffc_daily_cleanup',
+		'ffcertificate_reregistration_expire_hook'    => 'ffc_reregistration_expire',
+		'ffcertificate_self_scheduling_reminder_scan' => 'ffc_self_scheduling_reminder_scan',
+		'ffcertificate_self_scheduling_closeout'      => 'ffc_self_scheduling_closeout',
+		'ffcertificate_audience_post_event_invites'   => 'ffc_audience_post_event_invites',
+		'ffcertificate_bulk_issue_purge'              => 'ffc_bulk_issue_purge',
+	);
+
+	/**
+	 * The release the old names were deprecated in.
+	 */
+	private const LEGACY_SINCE = '6.43.0';
 
 	/**
 	 * How long past its interval a recurring task may go unrun before the
@@ -187,21 +213,21 @@ final class ScheduledTasks {
 	 */
 	public static function label( string $hook ): string {
 		switch ( $hook ) {
-			case 'ffcertificate_daily_cleanup_hook':
+			case 'ffc_daily_cleanup':
 				return __( 'Daily cleanup (submissions, export jobs, expired sessions, activity log)', 'ffcertificate' );
 			case 'ffc_daily_expired_tickets_cleanup':
 				return __( 'Expired ticket cleanup', 'ffcertificate' );
-			case 'ffcertificate_reregistration_expire_hook':
+			case 'ffc_reregistration_expire':
 				return __( 'Reregistration expiry, invitations and automated reminders', 'ffcertificate' );
-			case 'ffcertificate_self_scheduling_reminder_scan':
+			case 'ffc_self_scheduling_reminder_scan':
 				return __( 'Appointment reminder scan', 'ffcertificate' );
-			case 'ffcertificate_self_scheduling_closeout':
+			case 'ffc_self_scheduling_closeout':
 				return __( 'Close old appointments (confirmed to completed, pending to cancelled)', 'ffcertificate' );
-			case 'ffcertificate_audience_post_event_invites':
+			case 'ffc_audience_post_event_invites':
 				return __( 'Audience post-event form invitations', 'ffcertificate' );
 			case 'ffc_cloudflare_cidr_refresh':
 				return __( 'Cloudflare IP range refresh', 'ffcertificate' );
-			case 'ffcertificate_bulk_issue_purge':
+			case 'ffc_bulk_issue_purge':
 				return __( 'Bulk issue: expire unfinished imports', 'ffcertificate' );
 			case 'ffc_process_submission_async':
 				return __( 'Submission processing (one per submission)', 'ffcertificate' );
@@ -232,6 +258,19 @@ final class ScheduledTasks {
 	 * @return void
 	 */
 	public static function init(): void {
+		foreach ( self::LEGACY_HOOKS as $old => $new ) {
+			add_action(
+				$new,
+				static function () use ( $old, $new ): void {
+					if ( has_action( $old ) ) {
+						// @removal 6.45.0 -- the old name is relayed for one cycle (#2323).
+						do_action_deprecated( $old, array(), self::LEGACY_SINCE, $new );
+					}
+				},
+				998
+			);
+		}
+
 		foreach ( self::TASKS as $hook => $task ) {
 			if ( self::SINGLE === $task['recurrence'] ) {
 				continue;
@@ -243,6 +282,69 @@ final class ScheduledTasks {
 				},
 				999
 			);
+		}
+	}
+
+	/**
+	 * Move every event still scheduled under an old name to its new one (#2323).
+	 *
+	 * The next run is kept, the event is cleared under the old name, and a
+	 * new-name event the Loader already scheduled is left alone, so no task
+	 * runs twice. The task's last-run time and chosen time follow it. Runs on
+	 * every request before the Loader schedules anything; with nothing left
+	 * under an old name it costs one lookup per name in the cron array
+	 * WordPress has already loaded, and writes nothing.
+	 *
+	 * @removal 6.45.0
+	 * @return int How many events moved.
+	 */
+	public static function migrate_legacy_hooks(): int {
+		$moved = 0;
+		foreach ( self::LEGACY_HOOKS as $old => $new ) {
+			$next = wp_next_scheduled( $old );
+			if ( false === $next ) {
+				continue;
+			}
+			$recurrence = wp_get_schedule( $old );
+			wp_clear_scheduled_hook( $old );
+			if ( false === wp_next_scheduled( $new ) ) {
+				wp_schedule_event( (int) $next, false !== $recurrence ? $recurrence : self::TASKS[ $new ]['recurrence'], $new );
+			}
+			++$moved;
+		}
+
+		if ( $moved > 0 ) {
+			self::rename_keys( self::HEARTBEAT_OPTION );
+			self::rename_keys( self::TIMES_OPTION );
+		}
+		return $moved;
+	}
+
+	/**
+	 * Re-key an option keyed by hook from the old names to the new ones. A
+	 * value already stored under the new name wins.
+	 *
+	 * @param string $option Option name.
+	 * @return void
+	 */
+	private static function rename_keys( string $option ): void {
+		$stored = get_option( $option, array() );
+		if ( ! is_array( $stored ) ) {
+			return;
+		}
+		$changed = false;
+		foreach ( self::LEGACY_HOOKS as $old => $new ) {
+			if ( ! array_key_exists( $old, $stored ) ) {
+				continue;
+			}
+			if ( ! array_key_exists( $new, $stored ) ) {
+				$stored[ $new ] = $stored[ $old ];
+			}
+			unset( $stored[ $old ] );
+			$changed = true;
+		}
+		if ( $changed ) {
+			update_option( $option, $stored, false );
 		}
 	}
 

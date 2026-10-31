@@ -707,7 +707,7 @@ class ReregistrationAdminPageTest extends TestCase {
 				$notices[] = array( $code, $message, $type );
 			}
 		);
-		Functions\when( 'wp_next_scheduled' )->alias( static fn( $hook ) => 'ffcertificate_reregistration_expire_hook' === $hook ? 1800000000 : false );
+		Functions\when( 'wp_next_scheduled' )->alias( static fn( $hook ) => 'ffc_reregistration_expire' === $hook ? 1800000000 : false );
 
 		( new ReregistrationAdmin() )->handle_actions();
 

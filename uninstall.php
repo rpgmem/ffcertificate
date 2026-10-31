@@ -39,17 +39,25 @@ $ffcertificate_purge    = is_array( $ffcertificate_settings )
 if ( ! $ffcertificate_purge ) {
 	// Cron-only cleanup: leave data + structure untouched but clear
 	// scheduled events that point at code about to be removed.
-	wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
-	wp_clear_scheduled_hook( 'ffcertificate_bulk_issue_purge' );
+	wp_clear_scheduled_hook( 'ffc_daily_cleanup' );
+	wp_clear_scheduled_hook( 'ffc_bulk_issue_purge' );
 	wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 	// #1248's internal hook, which replaced the one above in the scheduling.
 	// The old one stays: there may be an event pending in the old shape.
 	wp_unschedule_hook( 'ffc_process_submission_async' );
 	wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
+	wp_clear_scheduled_hook( 'ffc_reregistration_expire' );
+	wp_clear_scheduled_hook( 'ffc_self_scheduling_reminder_scan' );
+	wp_clear_scheduled_hook( 'ffc_self_scheduling_closeout' );
+	wp_clear_scheduled_hook( 'ffc_audience_post_event_invites' );
+	// @removal 6.45.0 -- the names these hooks had before #2323; an event
+	// may still be pending under one.
+	wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 	wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 	wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
 	wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_closeout' );
 	wp_clear_scheduled_hook( 'ffcertificate_audience_post_event_invites' );
+	wp_clear_scheduled_hook( 'ffcertificate_bulk_issue_purge' );
 	wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
 	wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
 	wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
@@ -384,17 +392,25 @@ $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient
 // ──────────────────────────────────────
 // 4. Clear scheduled cron hooks
 // ──────────────────────────────────────
-wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
-wp_clear_scheduled_hook( 'ffcertificate_bulk_issue_purge' );
+wp_clear_scheduled_hook( 'ffc_daily_cleanup' );
+wp_clear_scheduled_hook( 'ffc_bulk_issue_purge' );
 wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 // #1248's internal hook, which replaced the one above in the scheduling.
 // The old one stays: an event scheduled the old way may still be pending.
 wp_unschedule_hook( 'ffc_process_submission_async' );
 wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
+wp_clear_scheduled_hook( 'ffc_reregistration_expire' );
+wp_clear_scheduled_hook( 'ffc_self_scheduling_reminder_scan' );
+wp_clear_scheduled_hook( 'ffc_self_scheduling_closeout' );
+wp_clear_scheduled_hook( 'ffc_audience_post_event_invites' );
+// @removal 6.45.0 -- the names these hooks had before #2323; an event
+// may still be pending under one.
+wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
 wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_closeout' );
 wp_clear_scheduled_hook( 'ffcertificate_audience_post_event_invites' );
+wp_clear_scheduled_hook( 'ffcertificate_bulk_issue_purge' );
 wp_clear_scheduled_hook( 'ffc_cloudflare_cidr_refresh' );
 // See the cron-only block above (#1538).
 wp_clear_scheduled_hook( 'ffc_daily_expired_tickets_cleanup' );

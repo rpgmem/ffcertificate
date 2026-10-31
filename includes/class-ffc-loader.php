@@ -486,9 +486,13 @@ class Loader {
 
 		new ActivityLogSubscriber();
 
+		// Move events still scheduled under a pre-#2323 name first, so the
+		// checks below find them instead of scheduling a second copy.
+		\FreeFormCertificate\Core\ScheduledTasks::migrate_legacy_hooks();
+
 		// Ensure daily cleanup cron is scheduled.
-		if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
-			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffcertificate_daily_cleanup_hook', time() ), 'daily', 'ffcertificate_daily_cleanup_hook' );
+		if ( ! wp_next_scheduled( 'ffc_daily_cleanup' ) ) {
+			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffc_daily_cleanup', time() ), 'daily', 'ffc_daily_cleanup' );
 		}
 
 		// Ensure the daily expiry of unfinished bulk-issue jobs is scheduled (#1945).
@@ -498,8 +502,8 @@ class Loader {
 		}
 
 		// Ensure reregistration expiry cron is scheduled.
-		if ( ! wp_next_scheduled( 'ffcertificate_reregistration_expire_hook' ) ) {
-			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffcertificate_reregistration_expire_hook', time() ), 'daily', 'ffcertificate_reregistration_expire_hook' );
+		if ( ! wp_next_scheduled( 'ffc_reregistration_expire' ) ) {
+			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffc_reregistration_expire', time() ), 'daily', 'ffc_reregistration_expire' );
 		}
 
 		// Ensure the self-scheduling appointment-reminder scan cron is scheduled
@@ -1224,7 +1228,7 @@ class Loader {
 		// Issue in bulk (#1945, #1967): the form editor tab's preview endpoint and the template download.
 		\FreeFormCertificate\Admin\BulkIssuePage::register();
 		add_action(
-			'ffcertificate_daily_cleanup_hook',
+			'ffc_daily_cleanup',
 			function () {
 				$this->submission_handler->run_data_cleanup();
 			}
@@ -1236,7 +1240,7 @@ class Loader {
 		// or programmatic invocation, but action callbacks must return
 		// void per PHPStan's `return.void` rule.
 		add_action(
-			'ffcertificate_daily_cleanup_hook',
+			'ffc_daily_cleanup',
 			static function (): void {
 				\FreeFormCertificate\Admin\CsvExporter::cleanup_stale_export_jobs();
 			}
@@ -1245,7 +1249,7 @@ class Loader {
 		// expiry has lapsed. Returns the reaped count; wrapped void per
 		// PHPStan's return.void rule on action callbacks.
 		add_action(
-			'ffcertificate_daily_cleanup_hook',
+			'ffc_daily_cleanup',
 			static function (): void {
 				\FreeFormCertificate\Frontend\ScheduleExceptionSession::cleanup_expired_consumed();
 			}
@@ -1256,15 +1260,15 @@ class Loader {
 		// scheduled; with no callback registered they fire as harmless no-ops and
 		// resume the moment the module is re-enabled (init runs every request).
 		if ( SettingsReader::module_enabled( 'reregistration' ) ) {
-			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );
+			add_action( 'ffc_reregistration_expire', array( ReregistrationRepository::class, 'expire_overdue' ) );
 			// Late joiners get their row before the reminders and invitations
 			// read the table, so both reach them on the same run (#2242).
-			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationSubmissionWriter::class, 'seed_active_campaigns' ) );
-			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_automated_reminders' ) );
+			add_action( 'ffc_reregistration_expire', array( ReregistrationSubmissionWriter::class, 'seed_active_campaigns' ) );
+			add_action( 'ffc_reregistration_expire', array( ReregistrationEmailHandler::class, 'run_automated_reminders' ) );
 			// Invitations wait for this run since #1762, instead of going out
 			// the moment a campaign is activated. After `expire_overdue`, so a
 			// campaign that has just closed is not swept.
-			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_pending_invitations' ) );
+			add_action( 'ffc_reregistration_expire', array( ReregistrationEmailHandler::class, 'run_pending_invitations' ) );
 
 			// Continuation of a reminder batch (#1232 step 2). It needs `2`
 			// accepted arguments: the payload carries the campaign id and the
