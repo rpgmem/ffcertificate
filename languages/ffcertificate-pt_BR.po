@@ -31195,3 +31195,39 @@ msgid "The %s waiting row on every page is selected."
 msgid_plural "All %s waiting rows on every page are selected."
 msgstr[0] "A %s linha aguardando de todas as páginas está selecionada."
 msgstr[1] "Todas as %s linhas aguardando de todas as páginas estão selecionadas."
+
+#: includes/recruitment/class-ffc-recruitment-export-source.php
+msgid "Cancellation reason"
+msgstr "Motivo do cancelamento"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Download a notice's definitive list and its calls as CSV."
+msgstr "Baixar a lista definitiva de um edital e suas convocações em CSV."
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Export calls (CSV)"
+msgstr "Exportar convocações (CSV)"
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Export definitive list (CSV)"
+msgstr "Exportar lista definitiva (CSV)"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Export recruitment CSV"
+msgstr "Exportar CSV do recrutamento"
+
+#: includes/recruitment/class-ffc-recruitment-export-source.php
+msgid "Out-of-order justification"
+msgstr "Justificativa de fora de ordem"
+
+#: includes/recruitment/class-ffc-recruitment-export-source.php
+msgid "You do not have permission to export recruitment data."
+msgstr "Você não tem permissão para exportar dados do recrutamento."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "download a notice's definitive list and its calls as CSV. Held by the FFC Recruitment - Manager and Administrator roles."
+msgstr "baixar a lista definitiva de um edital e suas convocações em CSV. Concedido aos papéis FFC Recruitment - Manager e Administrator."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "With the ffc_export_recruitment capability, Export definitive list (CSV) above the definitive list and Export calls (CSV) on the Calls record download the whole list or every call of the notice, whatever the filters on screen, ordered by row rather than by rank. Neither file carries CPF, RF or e-mail; who made and who cancelled a call is written only for a user who sees it on screen."
+msgstr "Com a capacidade ffc_export_recruitment, Exportar lista definitiva (CSV), acima da lista definitiva, e Exportar convocações (CSV), no registro de Convocações, baixam a lista inteira ou todas as convocações do edital, independentemente dos filtros da tela, ordenadas pela linha e não pela classificação. Nenhum dos arquivos traz CPF, RF ou e-mail; quem fez e quem cancelou uma convocação só é escrito para quem vê isso na tela."

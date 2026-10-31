@@ -197,6 +197,34 @@ class RecruitmentCallReaderTest extends TestCase {
 		$this->assertSame( array(), RecruitmentCallReader::get_for_notice( 9 ) );
 	}
 
+	public function test_count_for_notice_counts_every_call_of_the_notice(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '6' );
+
+		$this->assertSame( 6, RecruitmentCallReader::count_for_notice( 9 ) );
+	}
+
+	public function test_page_for_notice_walks_the_call_id_keyset(): void {
+		$rows = array( array( 'id' => '5' ) );
+		$seen = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) use ( &$seen ) {
+				$seen = array( $sql, $args );
+				return 'PREPARED';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->once()->with( 'PREPARED', ARRAY_A )->andReturn( $rows );
+
+		$this->assertSame( $rows, RecruitmentCallReader::page_for_notice( 9, 40, 25 ) );
+		$this->assertStringContainsString( 'AND c.id < %d ORDER BY c.id DESC LIMIT %d', $seen[0] );
+		$this->assertSame( array( 'wp_ffc_recruitment_call', 'wp_ffc_recruitment_classification', 9, 40, 25 ), $seen[1] );
+	}
+
+	public function test_page_for_notice_returns_empty_on_non_array_result(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
+
+		$this->assertSame( array(), RecruitmentCallReader::page_for_notice( 9, 40, 25 ) );
+	}
+
 	// ------------------------------------------------------------------
 	// count_for_classification
 	// ------------------------------------------------------------------

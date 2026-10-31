@@ -308,6 +308,11 @@ class CapabilityManager {
 		// `ffc_manage_url_shortener` holder, mirroring the activity-log split
 		// (`ffc_activity_log_export_cap_v1`).
 		'ffc_export_url_shortener',
+		// Recruitment export (#2245): the definitive list and the calls record
+		// of a notice. New with the export itself, so no grant migration: there
+		// is no earlier export to keep. It sits on the Recruitment Manager tier,
+		// which `RoleRegistrar::register_module_roles()` adds to stored roles.
+		'ffc_export_recruitment',
 
 		// Granular "import" tier (GAP H). Bulk CSV ingestion is split out of
 		// `manage` for the domains where loading external data is the most
@@ -940,7 +945,7 @@ class CapabilityManager {
 
 		$recruitment_viewer   = array( 'ffc_view_recruitment', 'ffc_view_recruitment_reasons' );
 		$recruitment_operator = array_merge( $recruitment_viewer, array( 'ffc_call_recruitment' ) );
-		$recruitment_manager  = array_merge( $recruitment_operator, array( 'ffc_manage_recruitment', 'ffc_import_recruitment', 'ffc_delete_recruitment', 'ffc_manage_recruitment_reasons', 'ffc_view_recruitment_pii' ) );
+		$recruitment_manager  = array_merge( $recruitment_operator, array( 'ffc_manage_recruitment', 'ffc_import_recruitment', 'ffc_delete_recruitment', 'ffc_manage_recruitment_reasons', 'ffc_view_recruitment_pii', 'ffc_export_recruitment' ) );
 
 		$short_urls_viewer   = array( 'ffc_view_url_shortener' );
 		$short_urls_operator = array_merge( $short_urls_viewer, array( 'ffc_export_url_shortener' ) );

@@ -35,6 +35,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Personal Calendars: the Appointments list filters by date and searches** (#2244). A date range, a Today shortcut to the day's agenda in time order, and a search by name, e-mail, CPF/RF (through their hashes, whole values only) or ID; the count and Export CSV read the same filters, so the file holds what the screen shows.
 - **Personal Calendars: the participant dashboard and the calendar for everyone** (#2244). A waitlisted appointment is labelled and can be left; an open one that can no longer be cancelled says why; the booking calendar's days are named buttons operated from the keyboard, and the month arrows are labelled.
 - **Recruitment: the definitive list says who was called, when and by whom (#2245).** Rows show the date to assume and when the call was made; a status filter with per-status counts narrows the list; a bulk call can select the waiting rows of every page; a Calls record lists every call of the notice. Who made or cancelled a call shows only to the new `ffc_view_recruitment_history` (Recruitment Administrator) and WordPress administrators.
+- **Recruitment: a notice's definitive list and calls download as CSV (#2245).** Two buttons export the whole definitive list or every call of the notice, cancelled ones included, through the batched engine; neither file carries CPF, RF or e-mail, and callers are written only for `ffc_view_recruitment_history`. Gated by the new `ffc_export_recruitment` (Recruitment Manager and Administrator).
 
 ### Changed
 
