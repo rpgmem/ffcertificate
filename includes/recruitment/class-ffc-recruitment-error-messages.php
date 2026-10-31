@@ -113,10 +113,14 @@ final class RecruitmentErrorMessages {
 			'recruitment_notice_has_no_adjutancies'        => __( 'This notice has no adjutancies linked. Add at least one adjutancy in the Adjutancies tab before importing a CSV.', 'ffcertificate' ),
 			'recruitment_notice_adjutancy_attach_failed'   => __( 'Could not link the adjutancy to the notice. Please try again.', 'ffcertificate' ),
 			'recruitment_notice_status_changed'            => __( 'Notice status changed.', 'ffcertificate' ),
+			'recruitment_notice_delete_requires_draft'     => __( 'Only a draft notice can be deleted. A published notice can only be closed.', 'ffcertificate' ),
+			'recruitment_notice_delete_failed'             => __( 'Could not delete the notice. Nothing was removed.', 'ffcertificate' ),
 
 			// Notice state machine.
 			'recruitment_invalid_state_for_preview_import' => __( 'CSV imports for the preliminary list are only allowed while the notice is in `draft` or `preliminary`.', 'ffcertificate' ),
 			'recruitment_definitive_to_preliminary_blocked_by_calls' => __( 'Cannot move back to preliminary: at least one call has already been issued. Cancel pending calls before reverting.', 'ffcertificate' ),
+			'recruitment_definitive_import_requires_preliminary' => __( 'The definitive list can only be imported while the notice is in `preliminary`. Nothing was imported.', 'ffcertificate' ),
+			'recruitment_definitive_import_blocked_by_calls' => __( 'The definitive list cannot be replaced: this notice already has calls. Nothing was imported.', 'ffcertificate' ),
 			'recruitment_state_locked'                     => __( 'This action is not allowed in the notice\'s current state.', 'ffcertificate' ),
 			'recruitment_state_terminal_hired'             => __( 'This candidate has already been hired and cannot be modified.', 'ffcertificate' ),
 			'recruitment_state_terminal_withdrew'          => __( 'This candidate has withdrawn and cannot be modified.', 'ffcertificate' ),

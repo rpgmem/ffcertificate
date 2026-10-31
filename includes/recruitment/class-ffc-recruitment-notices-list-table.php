@@ -90,22 +90,25 @@ class RecruitmentNoticesListTable extends AbstractRecruitmentListTable {
 			'ffc_recruitment_delete_notice_' . $id
 		);
 
-		$delete_consequences = wp_json_encode(
-			array(
-				__( 'The notice and its candidate rows will be permanently removed.', 'ffcertificate' ),
-				__( 'Any classifications, calls and adjutancy links referencing it are detached.', 'ffcertificate' ),
-				__( 'This cannot be undone.', 'ffcertificate' ),
-			)
+		$actions = array(
+			'edit' => sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), esc_html__( 'Edit', 'ffcertificate' ) ),
 		);
-		$actions             = array(
-			'edit'   => sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), esc_html__( 'Edit', 'ffcertificate' ) ),
-			'delete' => $this->delete_row_action_link(
+
+		// Only a draft is deletable (#2245); a published notice is closed.
+		if ( 'draft' === (string) $item['status'] ) {
+			$delete_consequences = wp_json_encode(
+				array(
+					__( 'The draft notice, its imported lists and its adjutancy links will be permanently removed.', 'ffcertificate' ),
+					__( 'This cannot be undone.', 'ffcertificate' ),
+				)
+			);
+			$actions['delete']   = $this->delete_row_action_link(
 				$delete_url,
 				__( 'Delete this notice?', 'ffcertificate' ),
 				__( 'You are about to permanently delete this notice.', 'ffcertificate' ),
 				(string) $delete_consequences
-			),
-		);
+			);
+		}
 
 		return sprintf(
 			'<strong><a href="%s">%s</a></strong>%s',
@@ -204,7 +207,7 @@ class RecruitmentNoticesListTable extends AbstractRecruitmentListTable {
 	 * @param int $id Row id.
 	 */
 	protected function delete_one( int $id ): void {
-		RecruitmentNoticeWriter::delete( $id );
+		RecruitmentDeleteService::delete_notice( $id );
 	}
 
 	/**

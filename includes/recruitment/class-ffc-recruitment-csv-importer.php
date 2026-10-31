@@ -85,16 +85,17 @@ final class RecruitmentCsvImporter {
 			return self::failure( 'recruitment_invalid_state_for_preview_import' );
 		}
 
-		return self::run( $notice_id, $csv_content, 'preview' );
+		return self::run( $notice_id, $csv_content, 'preview', (string) $status );
 	}
 
 	/**
-	 * Run a `definitive` import on a notice during the promote-preview flow.
+	 * Run a `definitive` import and promote the notice, as one change (#2245).
 	 *
-	 * Caller (sprint 5's PromotionService) is responsible for gating this on
-	 * the 15s countdown + zero-calls-history check. The importer only
-	 * verifies the notice exists and writes to `list_type='definitive'`,
-	 * wiping any pre-existing definitive rows in the same transaction.
+	 * Accepted only on a `preliminary` notice with no calls, checked before
+	 * any write. Before #2245 this ran on any notice and the state change came
+	 * after the commit, so on a `definitive` or `closed` notice it wiped the
+	 * called and hired rows and orphaned their calls, and only then answered
+	 * 409. The rows and the transition now share one transaction.
 	 *
 	 * @param int    $notice_id Target notice.
 	 * @param string $csv_content Raw CSV bytes.
@@ -106,7 +107,32 @@ final class RecruitmentCsvImporter {
 			return self::failure( 'recruitment_notice_not_found' );
 		}
 
-		return self::run( $notice_id, $csv_content, 'definitive' );
+		$blocked = self::definitive_import_block( $notice_id, (string) $notice->status );
+		if ( null !== $blocked ) {
+			return self::failure( $blocked );
+		}
+
+		return self::run( $notice_id, $csv_content, 'definitive', 'definitive' );
+	}
+
+	/**
+	 * Why a definitive import may not run on this notice, or null when it may.
+	 *
+	 * Shared by the single-request and the batched path, so both refuse the
+	 * same notices before writing anything.
+	 *
+	 * @param int    $notice_id Notice ID.
+	 * @param string $status    The notice's current status.
+	 * @return string|null Error code, or null.
+	 */
+	public static function definitive_import_block( int $notice_id, string $status ): ?string {
+		if ( 'preliminary' !== $status ) {
+			return 'recruitment_definitive_import_requires_preliminary';
+		}
+		if ( RecruitmentClassificationRepository::count_calls_for_notice( $notice_id ) > 0 ) {
+			return 'recruitment_definitive_import_blocked_by_calls';
+		}
+		return null;
 	}
 
 	/**
@@ -119,9 +145,10 @@ final class RecruitmentCsvImporter {
 	 * @param int    $notice_id Notice ID.
 	 * @param string $csv_content Raw CSV bytes.
 	 * @param string $list_type `preview` or `definitive`.
+	 * @param string $status    The notice's status once the import commits.
 	 * @return ImportResult
 	 */
-	private static function run( int $notice_id, string $csv_content, string $list_type ): array {
+	private static function run( int $notice_id, string $csv_content, string $list_type, string $status ): array {
 		// Step 1: parse CSV into normalized row arrays.
 		$parse = self::parse( $csv_content );
 		if ( ! $parse['ok'] ) {
@@ -185,9 +212,20 @@ final class RecruitmentCsvImporter {
 				++$inserted;
 			}
 
+			// The definitive list and the notice's promotion are one change
+			// (#2245): a transition that loses rolls the rows back with it.
+			if ( 'definitive' === $list_type ) {
+				$transition = RecruitmentNoticeStateMachine::transition_to( $notice_id, 'definitive' );
+				if ( ! $transition['success'] ) {
+					$wpdb->query( 'ROLLBACK' );
+					return self::failure_with_messages( $transition['errors'] );
+				}
+			}
+
 			$wpdb->query( 'COMMIT' );
 
 			RecruitmentActivityLogger::csv_imported( $notice_id, $list_type, $inserted );
+			RecruitmentAccountLinker::schedule( $notice_id, $status );
 
 			return array(
 				'success'  => true,

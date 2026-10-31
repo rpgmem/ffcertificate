@@ -132,6 +132,21 @@ class RecruitmentClassificationRepositoryTest extends TestCase {
 		$this->assertSame( 12, RecruitmentClassificationRepository::count_for_adjutancy( 4 ) );
 	}
 
+	public function test_delete_all_for_notice_removes_every_list(): void {
+		$this->wpdb->shouldReceive( 'delete' )
+			->once()
+			->with( 'wp_ffc_recruitment_classification', array( 'notice_id' => 5 ), array( '%d' ) )
+			->andReturn( 9 );
+
+		$this->assertSame( 9, RecruitmentClassificationRepository::delete_all_for_notice( 5 ) );
+	}
+
+	public function test_delete_all_for_notice_reports_a_database_error(): void {
+		$this->wpdb->shouldReceive( 'delete' )->once()->andReturn( false );
+
+		$this->assertFalse( RecruitmentClassificationRepository::delete_all_for_notice( 5 ) );
+	}
+
 	public function test_delete_all_for_notice_list_returns_count(): void {
 		$this->wpdb->shouldReceive( 'delete' )
 			->once()

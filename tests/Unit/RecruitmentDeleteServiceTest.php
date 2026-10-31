@@ -287,4 +287,105 @@ class RecruitmentDeleteServiceTest extends TestCase {
 		$this->assertTrue( $result['success'] );
 		$this->assertArrayNotHasKey( 'blocked_by', $result );
 	}
+
+	// ------------------------------------------------------------------
+	// delete_notice() — draft only, in one transaction (#2245)
+	// ------------------------------------------------------------------
+
+	public function test_delete_notice_removes_a_draft_with_its_rows_in_one_transaction(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'draft' ) );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '0' );
+		$statements = array();
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $sql ) use ( &$statements ) {
+				$statements[] = $sql;
+				return 1;
+			}
+		);
+		$deletes = array();
+		$this->wpdb->shouldReceive( 'delete' )->andReturnUsing(
+			function ( $table, $where ) use ( &$deletes ) {
+				$deletes[] = array( $table, $where );
+				return 'wp_ffc_recruitment_classification' === $table ? 4 : 1;
+			}
+		);
+
+		$result = RecruitmentDeleteService::delete_notice( 5 );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( array( 'START TRANSACTION', 'COMMIT' ), $statements );
+		$this->assertSame(
+			array(
+				array( 'wp_ffc_recruitment_classification', array( 'notice_id' => 5 ) ),
+				array( 'wp_ffc_recruitment_notice_adjutancy', array( 'notice_id' => 5 ) ),
+				array( 'wp_ffc_recruitment_notice', array( 'id' => 5 ) ),
+			),
+			$deletes
+		);
+	}
+
+	/**
+	 * @dataProvider provider_published_statuses
+	 */
+	public function test_delete_notice_refuses_every_status_but_draft( string $status ): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( $status ) );
+		$this->wpdb->shouldNotReceive( 'delete' );
+		$this->wpdb->shouldNotReceive( 'query' );
+
+		$result = RecruitmentDeleteService::delete_notice( 5 );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertSame( array( 'recruitment_notice_delete_requires_draft' ), $result['errors'] );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public function provider_published_statuses(): array {
+		return array(
+			'preliminary' => array( 'preliminary' ),
+			'definitive'  => array( 'definitive' ),
+			'closed'      => array( 'closed' ),
+		);
+	}
+
+	public function test_delete_notice_refuses_a_draft_that_somehow_has_calls(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'draft' ) );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '2' );
+		$this->wpdb->shouldNotReceive( 'delete' );
+
+		$result = RecruitmentDeleteService::delete_notice( 5 );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertSame( array( 'calls' => 2 ), $result['blocked_by'] );
+	}
+
+	public function test_delete_notice_rolls_back_when_the_notice_row_is_not_deleted(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'draft' ) );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '0' );
+		$statements = array();
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $sql ) use ( &$statements ) {
+				$statements[] = $sql;
+				return 1;
+			}
+		);
+		$this->wpdb->shouldReceive( 'delete' )->andReturnUsing(
+			static fn( $table ) => 'wp_ffc_recruitment_notice' === $table ? false : 0
+		);
+
+		$result = RecruitmentDeleteService::delete_notice( 5 );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertSame( array( 'recruitment_notice_delete_failed' ), $result['errors'] );
+		$this->assertSame( array( 'START TRANSACTION', 'ROLLBACK' ), $statements );
+	}
+
+	public function test_delete_notice_reports_a_missing_notice(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
+
+		$result = RecruitmentDeleteService::delete_notice( 5 );
+
+		$this->assertSame( array( 'recruitment_notice_not_found' ), $result['errors'] );
+	}
 }

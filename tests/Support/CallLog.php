@@ -58,4 +58,13 @@ final class CallLog {
 	public function count(): int {
 		return count( $this->calls );
 	}
+
+	/**
+	 * The arguments of every call, in order.
+	 *
+	 * @return list<array<int, mixed>>
+	 */
+	public function calls(): array {
+		return $this->calls;
+	}
 }

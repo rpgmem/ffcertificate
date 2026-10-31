@@ -111,9 +111,13 @@ class RecruitmentCandidateWriter {
 			return false;
 		}
 
+		// Read the id before the action: a listener that writes (the cache
+		// version is an option, added on the first write) moves insert_id.
+		$id = (int) $wpdb->insert_id;
+
 		do_action( 'ffc_recruitment_public_cache_dirty' );
 
-		return (int) $wpdb->insert_id;
+		return $id;
 	}
 
 	/**
@@ -203,6 +207,39 @@ class RecruitmentCandidateWriter {
 		static::cache_delete( "id_{$id}" );
 
 		return false !== $result;
+	}
+
+	/**
+	 * Link a candidate to an account only while it has none (#2245).
+	 *
+	 * A link is never moved by an import: an existing `user_id` is left as it
+	 * is, whoever the row's e-mail now resolves to, because moving it would
+	 * hand the candidacy to that account as its owner. Staff move a link on
+	 * the candidate screen, where it is reviewed.
+	 *
+	 * @param int $id      Candidate ID.
+	 * @param int $user_id WP user ID.
+	 * @return bool True when this call set the link.
+	 */
+	public static function claim_user_id( int $id, int $user_id ): bool {
+		$wpdb = self::db();
+
+		$sql = $wpdb->prepare(
+			'UPDATE %i SET user_id = %d, updated_at = %s WHERE id = %d AND user_id IS NULL',
+			self::get_table_name(),
+			$user_id,
+			current_time( 'mysql' ),
+			$id
+		);
+		if ( ! is_string( $sql ) ) {
+			return false;
+		}
+
+		$affected = $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is the result of prepare() above, held only so a null return is refused first.
+
+		static::cache_delete( "id_{$id}" );
+
+		return 1 === $affected;
 	}
 
 	/**

@@ -605,15 +605,15 @@ final class RecruitmentClassificationsRestController {
 			);
 		}
 
+		// The importer refuses a notice that is not `preliminary` or already
+		// has calls, and promotes it in the same transaction (#2245).
 		$result = RecruitmentCsvImporter::import_definitive( $id, $content );
 		if ( ! $result['success'] ) {
-			return $this->wp_error_from_envelope( $result['errors'], 400 );
-		}
-
-		// Flip status to definitive after a successful definitive_import.
-		$transition = RecruitmentNoticeStateMachine::transition_to( $id, 'definitive' );
-		if ( ! $transition['success'] ) {
-			return $this->wp_error_from_envelope( $transition['errors'], 409 );
+			// A notice in the wrong state is a conflict; a bad file is not.
+			$code     = (string) ( $result['errors'][0] ?? '' );
+			$conflict = in_array( $code, array( 'recruitment_definitive_import_requires_preliminary', 'recruitment_definitive_import_blocked_by_calls', 'recruitment_transition_race_lost' ), true )
+				|| 0 === strpos( $code, 'recruitment_invalid_transition' );
+			return $this->wp_error_from_envelope( $result['errors'], $conflict ? 409 : 400 );
 		}
 
 		RecruitmentActivityLogger::notice_promoted( $id, 'definitive_import', 0 );

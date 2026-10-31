@@ -236,6 +236,25 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 		$this->assertSame( 0, RecruitmentCandidateWriter::link_orphans_by_hash( 'cpfhash', 'rfhash', 0 ) );
 	}
 
+	public function test_claim_user_id_fills_only_an_empty_link(): void {
+		$statements = array();
+		$this->wpdb->shouldReceive( 'query' )->once()->andReturnUsing(
+			function ( $sql ) use ( &$statements ) {
+				$statements[] = (string) $sql;
+				return 1;
+			}
+		);
+
+		$this->assertTrue( RecruitmentCandidateWriter::claim_user_id( 5, 100 ) );
+		$this->assertStringContainsString( 'WHERE id = %d AND user_id IS NULL', $statements[0], 'A link is never moved by an import (#2245).' );
+	}
+
+	public function test_claim_user_id_reports_a_candidate_that_already_has_an_account(): void {
+		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 0 );
+
+		$this->assertFalse( RecruitmentCandidateWriter::claim_user_id( 5, 100 ) );
+	}
+
 	public function test_set_user_id_writes_link(): void {
 		$captured = array();
 		$this->wpdb->shouldReceive( 'update' )

@@ -94,6 +94,18 @@ final class CsvStagingService {
 			);
 		}
 
+		// The batched path refuses the same notices as the single request
+		// before staging a single row (#2245).
+		if ( 'definitive' === $list_type ) {
+			$blocked = RecruitmentCsvImporter::definitive_import_block( $notice_id, (string) $notice->status );
+			if ( null !== $blocked ) {
+				return array(
+					'ok'     => false,
+					'errors' => array( $blocked ),
+				);
+			}
+		}
+
 		$parse = CsvParser::parse( $csv_content );
 		if ( ! $parse['ok'] ) {
 			return array(
@@ -658,6 +670,21 @@ final class CsvStagingService {
 			);
 		}
 
+		// Re-checked at the swap: calls may have been made while the job was
+		// promoting, and a definitive swap must never wipe a called row.
+		if ( 'definitive' === (string) $job->list_type ) {
+			$notice  = RecruitmentNoticeReader::get_by_id( (int) $job->notice_id );
+			$blocked = null === $notice
+				? 'recruitment_notice_not_found'
+				: RecruitmentCsvImporter::definitive_import_block( (int) $job->notice_id, (string) $notice->status );
+			if ( null !== $blocked && 'committed' !== $job->status ) {
+				return array(
+					'ok'     => false,
+					'errors' => array( $blocked ),
+				);
+			}
+		}
+
 		$wpdb->query( 'START TRANSACTION' );
 		try {
 			RecruitmentClassificationRepository::delete_all_for_notice_list( (int) $job->notice_id, (string) $job->list_type );
@@ -687,6 +714,19 @@ final class CsvStagingService {
 				);
 			}
 
+			// Same rule as the single request: the definitive list and the
+			// promotion commit together or not at all (#2245).
+			if ( 'definitive' === (string) $job->list_type ) {
+				$transition = RecruitmentNoticeStateMachine::transition_to( (int) $job->notice_id, 'definitive' );
+				if ( ! $transition['success'] ) {
+					$wpdb->query( 'ROLLBACK' );
+					return array(
+						'ok'     => false,
+						'errors' => $transition['errors'],
+					);
+				}
+			}
+
 			$wpdb->update(
 				$jobs_table,
 				array(
@@ -708,6 +748,10 @@ final class CsvStagingService {
 		}
 
 		RecruitmentActivityLogger::csv_imported( (int) $job->notice_id, (string) $job->list_type, (int) $inserted );
+		RecruitmentAccountLinker::schedule(
+			(int) $job->notice_id,
+			'definitive' === (string) $job->list_type ? 'definitive' : null
+		);
 
 		// Post-commit cleanup. Outside the transaction so the swap is
 		// already durable; if these fail, the orphan reaper at the top

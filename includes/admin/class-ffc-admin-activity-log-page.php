@@ -310,6 +310,7 @@ class AdminActivityLogPage {
 			'recruitment_call_cancelled'                   => __( 'Recruitment Call Cancelled', 'ffcertificate' ),
 			'recruitment_candidate_promoted'               => __( 'Candidate Promoted', 'ffcertificate' ),
 			'recruitment_candidate_deleted'                => __( 'Candidate Deleted', 'ffcertificate' ),
+			'recruitment_notice_deleted'                   => __( 'Notice Deleted', 'ffcertificate' ),
 			'recruitment_candidate_fields_edited'          => __( 'Candidate Fields Edited', 'ffcertificate' ),
 			'recruitment_pii_revealed'                     => __( 'Candidate Personal Data Revealed', 'ffcertificate' ),
 			'recruitment_classification_status_changed'    => __( 'Classification Status Changed', 'ffcertificate' ),

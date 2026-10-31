@@ -292,9 +292,13 @@ class RecruitmentClassificationRepository {
 			return false;
 		}
 
+		// Read the id before the action: a listener that writes (the cache
+		// version is an option, added on the first write) moves insert_id.
+		$id = (int) $wpdb->insert_id;
+
 		do_action( 'ffc_recruitment_public_cache_dirty' );
 
-		return (int) $wpdb->insert_id;
+		return $id;
 	}
 
 	/**
@@ -415,6 +419,32 @@ class RecruitmentClassificationRepository {
 		}
 
 		return $rows;
+	}
+
+	/**
+	 * Delete every classification of a notice, whatever its list (#2245).
+	 *
+	 * Only a draft notice is ever deleted, so no row here can carry a call;
+	 * {@see RecruitmentDeleteService::delete_notice()} checks that before it
+	 * calls this inside its transaction.
+	 *
+	 * @param int $notice_id Notice ID.
+	 * @return int|false Rows deleted, or false on a database error.
+	 */
+	public static function delete_all_for_notice( int $notice_id ) {
+		$wpdb  = self::db();
+		$table = self::get_table_name();
+
+		$result = $wpdb->delete( $table, array( 'notice_id' => $notice_id ), array( '%d' ) );
+		if ( false === $result ) {
+			return false;
+		}
+
+		if ( $result > 0 ) {
+			do_action( 'ffc_recruitment_public_cache_dirty' );
+		}
+
+		return (int) $result;
 	}
 
 	/**

@@ -6,9 +6,11 @@
  * {@see RecruitmentCsvImporter} (#563 Sprint 6, PR 6c). Both the synchronous
  * import flow (`RecruitmentCsvImporter::run()`) and the staged batched flow
  * (`CsvStagingService::promote_batch()`) write candidates through this one
- * class, so the lookup-then-create logic, the encryption/hash handling, the
- * `pcd_hash` recompute, and the best-effort wp_user promotion live in a
- * single place rather than being duplicated across the two flows.
+ * class, so the lookup-then-create logic, the encryption/hash handling and
+ * the `pcd_hash` recompute live in a single place rather than being
+ * duplicated across the two flows. Neither flow creates or links a WordPress
+ * account any more: {@see RecruitmentAccountLinker} does that after the
+ * import has committed, and only for a notice past `draft` (#2245).
  *
  * Also holds the per-notice adjutancy slug→id resolver, which both flows
  * need before they can map a row's `adjutancy` column to a foreign key.
@@ -23,8 +25,6 @@ namespace FreeFormCertificate\Recruitment;
 
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Core\SensitiveFieldRegistry;
-use FreeFormCertificate\UserDashboard\CapabilityManager;
-use FreeFormCertificate\UserDashboard\UserCreator;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -43,9 +43,10 @@ final class CandidatePersister {
 	 * are inserted with a placeholder `pcd_hash`, then updated with the
 	 * proper HMAC once `candidate_id` is known.
 	 *
-	 * Promotion to wp_user is delegated to {@see UserCreator::get_or_create_user}
-	 * with the recruitment context — failures are silent (candidate stays
-	 * with `user_id = NULL`, which is the intended "not yet promoted" state).
+	 * No account is created or linked here (#2245). This ran inside the
+	 * import transaction, so a rolled-back import still sent every new user
+	 * its welcome e-mail, and a draft notice created accounts nobody had
+	 * been told about.
 	 *
 	 * @param array<string, mixed> $row Validated row.
 	 * @return int|false Candidate ID, or false on DB failure.
@@ -94,7 +95,6 @@ final class CandidatePersister {
 			);
 
 			self::refresh_pcd_hash( $candidate_id, $pcd );
-			self::maybe_promote_candidate( $candidate_id, $cpf_hash, $rf_hash, $email, $name );
 
 			return $candidate_id;
 		}
@@ -126,7 +126,6 @@ final class CandidatePersister {
 		}
 
 		self::refresh_pcd_hash( (int) $candidate_id, $pcd );
-		self::maybe_promote_candidate( (int) $candidate_id, $cpf_hash, $rf_hash, $email, $name );
 
 		return (int) $candidate_id;
 	}
@@ -177,63 +176,5 @@ final class CandidatePersister {
 			array( '%s', '%s' ),
 			array( '%d' )
 		);
-	}
-
-	/**
-	 * Best-effort wp_user link via UserCreator (no-op when nothing matches).
-	 *
-	 * UserCreator handles the §4 trigger logic: hash lookup against
-	 * `ffc_submissions`, email lookup against `wp_users`, and (for new emails)
-	 * user creation. Failures (e.g. `wp_create_user` rejecting an empty email)
-	 * are intentionally swallowed — the candidate stays `user_id=NULL`, which
-	 * is the documented "not yet promoted" state.
-	 *
-	 * @param int         $candidate_id Candidate row ID.
-	 * @param string|null $cpf_hash     SHA-256 hash of CPF (or null).
-	 * @param string|null $rf_hash      SHA-256 hash of RF (or null).
-	 * @param string      $email        Lowercased email (may be empty).
-	 * @param string      $name         The candidate's name, for the account's own (#1480).
-	 * @return void
-	 */
-	private static function maybe_promote_candidate( int $candidate_id, ?string $cpf_hash, ?string $rf_hash, string $email, string $name = '' ): void {
-		if ( null === $cpf_hash && null === $rf_hash && '' === $email ) {
-			return;
-		}
-
-		if ( ! class_exists( UserCreator::class ) ) {
-			return;
-		}
-
-		// Recruitment is the only flow where a single row can carry BOTH
-		// a CPF and an RF. The legacy single-hash entry point would miss
-		// a previously-registered submission keyed on whichever hash we
-		// didn't pass — `get_or_create_user_dual` checks both columns in
-		// a single SQL pass and falls back to email matching identically.
-		// THE NAME TRAVELS WITH THE PROMOTION (#1480).
-		//
-		// This argument is the submission's answers, and it was `array()` --
-		// while the candidate's name sat in the very row being persisted. So
-		// `UserCreator::sync_user_metadata()` had nothing to read, and WordPress
-		// fell back to writing the LOGIN into `display_name`. Measured on
-		// production: 6,976 accounts, every one of them promoted from a
-		// candidacy, every one of them carrying its login as a name while
-		// `ffc_recruitment_candidate.name` held the person's.
-		//
-		// No plumbing is added for it. `name` is already one of
-		// `SubmitterName::CANDIDATE_KEYS`, which is what `sync_user_metadata()`
-		// reads, so the answers-shaped array this path never had is one key
-		// wide.
-		$user_id = UserCreator::get_or_create_user_dual(
-			$cpf_hash,
-			$rf_hash,
-			$email,
-			'' !== $name ? array( 'name' => $name ) : array(),
-			CapabilityManager::CONTEXT_RECRUITMENT
-		);
-
-		if ( is_int( $user_id ) && $user_id > 0 ) {
-			RecruitmentCandidateWriter::set_user_id( $candidate_id, $user_id );
-			RecruitmentActivityLogger::candidate_promoted( $candidate_id, $user_id );
-		}
 	}
 }

@@ -103,6 +103,8 @@ class RecruitmentNoticeEditPageHandlersTest extends TestCase {
 		Functions\when( 'add_query_arg' )->alias(
 			static fn ( $args ) => 'admin.php?' . http_build_query( (array) $args )
 		);
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		Functions\when( 'wp_schedule_single_event' )->justReturn( true );
 		Functions\when( 'wp_die' )->alias(
 			static function ( $msg = '' ) {
 				throw new \RuntimeException( 'WP_DIE:' . $msg );
