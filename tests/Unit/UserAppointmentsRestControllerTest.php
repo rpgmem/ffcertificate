@@ -341,6 +341,38 @@ class UserAppointmentsRestControllerTest extends TestCase {
 		$this->assertSame( 'https://example.com/valid/#token=conf_token_123', $apt['receipt_url'], 'The receipt link is built from the stored token, on the fallback verification page.' );
 	}
 
+	/**
+	 * "View as user" gets no receipt link (#2244): it carries the person's
+	 * token, which opens their receipt unmasked and cancels as a guest.
+	 */
+	public function test_view_as_returns_no_receipt_url_and_masks_the_contact(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'is_email' )->alias( static fn( $e ) => false !== filter_var( $e, FILTER_VALIDATE_EMAIL ) );
+
+		$this->appointments = array(
+			array(
+				'id'                 => '10',
+				'calendar_id'        => '2',
+				'appointment_date'   => date( 'Y-m-d', strtotime( '+30 days' ) ),
+				'start_time'         => '14:00:00',
+				'status'             => 'confirmed',
+				'email_encrypted'    => Encryption::encrypt( 'john@example.com' ),
+				'confirmation_token' => 'conf_token_123',
+			),
+		);
+		$this->calendars    = array( array( 'id' => '2', 'title' => 'Main Calendar' ) );
+
+		$result = ( new UserAppointmentsRestController( 'ffc/v1' ) )->get_user_appointments( $this->make_request( array( 'viewAsUserId' => 5 ) ) );
+
+		$this->assertSame( array( 5 ), $this->appointment_reads, 'The appointments are read for the viewed user.' );
+		$apt = $result['appointments'][0];
+		$this->assertSame( '', $apt['receipt_url'] );
+		$this->assertStringNotContainsString( 'john@example.com', (string) $apt['email'] );
+	}
+
 	public function test_get_user_appointments_uses_unknown_calendar_when_not_found(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( true );

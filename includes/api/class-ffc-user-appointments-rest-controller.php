@@ -172,8 +172,11 @@ class UserAppointmentsRestController {
 
 				$status = $appointment['status'] ?? 'pending';
 
+				// "View as user" gets no receipt link (#2244): the link carries
+				// the person's token, which opens their receipt unmasked and
+				// cancels as a guest.
 				$receipt_url = '';
-				if ( 'cancelled' !== $status ) {
+				if ( 'cancelled' !== $status && ! $ctx['is_view_as'] ) {
 					$confirmation_token = $appointment['confirmation_token'] ?? '';
 					if ( ! empty( $confirmation_token ) && class_exists( '\\FreeFormCertificate\\Generators\\MagicLinkHelper' ) ) {
 						$receipt_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $confirmation_token );
