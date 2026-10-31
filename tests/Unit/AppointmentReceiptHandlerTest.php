@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Tests\Support\Identifiers;
 use FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler;
 
 /**
@@ -353,7 +354,7 @@ class AppointmentReceiptHandlerTest extends TestCase {
 			'status'           => 'confirmed',
 			'user_id'          => '1',
 			'confirmation_token' => str_repeat( 'a', 64 ),
-			'cpf_encrypted'    => Encryption::encrypt( '52998224725' ),
+			'cpf_encrypted'    => Encryption::encrypt( Identifiers::CPF_A ),
 			'name'             => 'Alice',
 			'email_encrypted'  => Encryption::encrypt( 'alice@example.com' ),
 			'phone_encrypted'  => Encryption::encrypt( '+5511999990000' ),
@@ -425,7 +426,7 @@ class AppointmentReceiptHandlerTest extends TestCase {
 		$this->assertSame( '(Calendar Deleted)', $receipt['pdfData']['form_title'] );
 		// The owner's PDF carries the token its QR code links with.
 		$this->assertStringContainsString( str_repeat( 'a', 64 ), (string) $receipt['pdfData']['html'] );
-		$this->assertStringContainsString( '529.982.247-25', (string) $receipt['pdfData']['html'] );
+		$this->assertStringContainsString( DocumentFormatter::format_cpf( Identifiers::CPF_A ), (string) $receipt['pdfData']['html'] );
 	}
 
 	public function test_the_token_holder_reads_the_receipt_as_it_is(): void {
@@ -462,7 +463,7 @@ class AppointmentReceiptHandlerTest extends TestCase {
 		}
 		$this->assertStringContainsString( DocumentFormatter::mask_email( 'alice@example.com' ), $html );
 		$this->assertStringContainsString( DocumentFormatter::mask_phone( '+5511999990000' ), $html );
-		$this->assertStringNotContainsString( '529.982.247-25', $pdf );
+		$this->assertStringNotContainsString( DocumentFormatter::format_cpf( Identifiers::CPF_A ), $pdf );
 		$this->assertStringNotContainsString( str_repeat( 'a', 64 ), $pdf );
 	}
 
