@@ -166,7 +166,8 @@ final class RecruitmentAccountLinker {
 	/**
 	 * Resolve one candidate's account and fill its empty link.
 	 *
-	 * @param LinkRow $row Candidate row.
+	 * @param object $row Candidate row.
+	 * @phpstan-param LinkRow $row
 	 * @return bool True when the link was set by this call.
 	 */
 	private static function link( object $row ): bool {
