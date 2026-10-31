@@ -2872,10 +2872,6 @@ msgstr ""
 msgid "Blacklist"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:47
-msgid "Blackout full days, time ranges or recurring patterns (per calendar or global)."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-geolocation.php:420
 msgid "Block"
 msgstr ""
@@ -30367,5 +30363,128 @@ msgstr ""
 #, php-format
 msgid "Deleting this calendar cancels %d open appointment (pending, confirmed or waitlisted) and e-mails the person. Delete it permanently?"
 msgid_plural "Deleting this calendar cancels %d open appointments (pending, confirmed or waitlisted) and e-mails each person. Delete it permanently?"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "%1$d open appointment(s) of the calendar \"%2$s\" fall on what you are blocking. They will be cancelled, and each person booked will receive the calendar's cancellation e-mail with the reason."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "%1$d open appointment(s) of the calendar \"%2$s\" fall on what you are blocking. They will be cancelled. This calendar does not send cancellation e-mails, so nobody will be notified."
+msgstr ""
+
+#: templates/admin/scheduling/blocked-dates-tab.php
+msgid "Add a block"
+msgstr ""
+
+#: templates/admin/scheduling/blocked-dates-tab.php
+msgid "Add block"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Block and cancel %d"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Block and cancel appointments"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Block not found."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Block removed."
+msgstr ""
+
+#: templates/admin/scheduling/blocked-dates-tab.php
+msgid "Blocked"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Blocked."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Choose a start time before the end time."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Choose a valid date."
+msgstr ""
+
+#: templates/admin/scheduling/blocked-dates-tab.php
+msgid "Close whole days or a time range on one date. Nobody can book what is blocked, and adding a block that reaches open appointments asks first, then cancels them. Global holidays apply on top of these."
+msgstr ""
+
+#: templates/admin/scheduling/blocked-dates-tab.php
+msgid "No blocked dates."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "One block covers at most %d days."
+msgstr ""
+
+#: templates/admin/scheduling/blocked-dates-tab.php
+msgid "Reason (optional, shown in the cancellation e-mail)"
+msgstr ""
+
+#: templates/admin/scheduling/blocked-dates-tab.php
+msgid "Remove block"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Remove this block? The dates open for booking again."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Save the calendar first; its blocked dates can be added once it exists."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Security check failed. Reload the page and try again."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "The Blocked dates tab, once the calendar is saved, closes whole days (one, or a run of up to 366) or a time range on one date, with an optional reason. A time range closes every slot it overlaps, not only those starting inside it; a block that repeats one already there is refused. Adding a block that reaches pending, confirmed or waitlisted appointments first says how many, then cancels them with the reason, sending the cancellation e-mail when the calendar's Emails tab turns it on. Global holidays apply on top."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "The block could not be saved."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "The calendar already blocks this date or time."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "The calendar was closed: %s"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "The last day must be a valid date on or after the first."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "The number of appointments on this date changed since you confirmed. Review it and try again."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Time range"
+msgstr ""
+
+#: templates/admin/scheduling/blocked-dates-tab.php
+msgid "Until (optional)"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Whole days"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php:201
+#, php-format
+msgid "Blocked. %d appointment was cancelled."
+msgid_plural "Blocked. %d appointments were cancelled."
 msgstr[0] ""
 msgstr[1] ""

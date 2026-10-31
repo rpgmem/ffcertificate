@@ -152,6 +152,9 @@ foreach (
 		array( 'block_type' => 'full_day', 'start_date' => $day ),
 		// Another day: must not be read for $day.
 		array( 'block_type' => 'full_day', 'start_date' => $now->modify( '+31 days' )->format( 'Y-m-d' ), 'end_date' => $now->modify( '+31 days' )->format( 'Y-m-d' ) ),
+		// The day before, with no end date: one day, so not read for $day
+		// either (it used to read as never ending).
+		array( 'block_type' => 'full_day', 'start_date' => $now->modify( '+29 days' )->format( 'Y-m-d' ) ),
 	) as $block
 ) {
 	if ( ! $wpdb->insert( $blocked, array_merge( array( 'calendar_id' => $calendar_id, 'created_at' => current_time( 'mysql' ) ), $block ) ) ) {
@@ -170,6 +173,9 @@ if ( array( $planted_blocks[0], $planted_blocks[1] ) !== $read ) {
 }
 if ( ! \FreeFormCertificate\Repositories\BlockedDateRepository::blocksMatch( array( array( 'block_type' => 'time_range', 'start_time' => '10:00:00', 'end_time' => '11:00:00' ) ), $day, '10:30:00' ) ) {
 	ffc_ss_query_fail( 'A time-range block read from the database does not close the slot inside it.' );
+}
+if ( ! \FreeFormCertificate\Repositories\BlockedDateRepository::blocksMatch( array( array( 'block_type' => 'time_range', 'start_time' => '10:00:00', 'end_time' => '11:00:00' ) ), $day, '09:30:00', '10:30:00' ) ) {
+	ffc_ss_query_fail( 'A time-range block does not close a slot that overlaps it.' );
 }
 
 // Capacity: two confirmed at 09:00:00 on $day fill a slot of two; a cancelled

@@ -498,7 +498,7 @@ class AppointmentHandler {
 			$slot_time = $grid_slot['start'];
 
 			// Time-range blocks and the notice window (bypass skips both).
-			if ( ! $has_bypass && ( \FreeFormCertificate\Repositories\BlockedDateRepository::blocksMatch( $blocks, $date, $slot_time ) || self::starts_before( $date, $slot_time, (int) $earliest ) ) ) {
+			if ( ! $has_bypass && ( \FreeFormCertificate\Repositories\BlockedDateRepository::blocksMatch( $blocks, $date, $slot_time, $grid_slot['end'] ) || self::starts_before( $date, $slot_time, (int) $earliest ) ) ) {
 				continue;
 			}
 
@@ -572,7 +572,7 @@ class AppointmentHandler {
 			$slot_time = $start_hm . ':00';
 
 			// Time-range blocks and the notice window still apply (bypass skips them).
-			if ( ! $has_bypass && ( \FreeFormCertificate\Repositories\BlockedDateRepository::blocksMatch( $closed, $date, $slot_time ) || self::starts_before( $date, $slot_time, (int) $earliest ) ) ) {
+			if ( ! $has_bypass && ( \FreeFormCertificate\Repositories\BlockedDateRepository::blocksMatch( $closed, $date, $slot_time, $end_hm . ':00' ) || self::starts_before( $date, $slot_time, (int) $earliest ) ) ) {
 				continue;
 			}
 
