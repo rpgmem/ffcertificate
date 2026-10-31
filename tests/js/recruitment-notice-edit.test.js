@@ -25,7 +25,6 @@ const CFG = {
 		bulkNoDate: 'NO_DATE',
 		confirmOooSingle: 'CONFIRM_OOO',
 		promptOooReason: 'PROMPT_OOO',
-		reasonRequired: 'REASON_REQ',
 		bulkModalTitle: 'BULK_TITLE',
 		bulkModalBodyTpl: 'About to issue {count} call(s) for {date} at {time}.',
 		bulkModalCta: 'BULK_CTA',
@@ -254,6 +253,24 @@ describe('ffcRecruitmentBulkCall', () => {
 		expect(cfg.body).toBe('About to issue 2 call(s) for 2026-05-20 at 09:00.');
 	});
 
+	it('warns that a past bulk date sends no e-mail and drops the notify box', () => {
+		installBulk({ 'adj-1': [{ id: 10, rank: 1 }, { id: 11, rank: 2 }] });
+		const openConfirmModal = vi.fn((cfg, cb) => cb('', true));
+		window.ffcRecruitmentAdmin = { openConfirmModal };
+		window.ffcRecruitmentNoticeEdit = { ...CFG, emailMode: 'ask', siteNow: '2026-05-21T08:00', strings: { ...CFG.strings, callPastWarning: 'PAST' } };
+		loadScript(SCRIPT);
+		document.getElementById('ffc-bulk-date').value = '2026-05-20';
+		document.getElementById('ffc-bulk-time').value = '09:00';
+		document.querySelectorAll('.ffc-cls-bulk-cb').forEach((cb) => { cb.checked = true; });
+
+		window.ffcRecruitmentBulkCall();
+
+		const cfg = openConfirmModal.mock.calls[0][0];
+		expect(cfg.consequences).toContain('PAST');
+		expect(cfg.checkboxLabel).toBeUndefined();
+		expect(JSON.parse(fetchSpy.mock.calls[0][1].body).notify_email).toBeUndefined();
+	});
+
 	it('flags OOO when the selection skips a higher-ranked empty', () => {
 		// Empty rank 1 (id 9) is NOT selected; selecting rank-2 (id 11) skips it.
 		installBulk({ 'adj-1': [{ id: 9, rank: 1 }, { id: 11, rank: 2 }] });
@@ -369,22 +386,33 @@ describe('ffcRecruitmentClsAct', () => {
 		return document.querySelector('button');
 	}
 
-	it('prompts for OOO justification when calling out of order, then POSTs /call', () => {
-		const btn = installRow();
-		loadScript(SCRIPT);
-		// rank 3 > lowest empty rank 1 → OOO path.
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
-		vi.spyOn(window, 'prompt')
-			.mockReturnValueOnce('because reasons') // OOO justification
-			.mockReturnValueOnce('2026-05-20')      // date
-			.mockReturnValueOnce('09:00');          // time
+	const VALUES = { date_to_assume: '2026-05-20', time_to_assume: '09:00' };
 
+	it('asks for date, time and the OOO justification in one dialog, then POSTs /call', () => {
+		const btn = installRow();
+		const openConfirmModal = vi.fn((cfg, cb) => cb('because reasons', null, VALUES));
+		window.ffcRecruitmentAdmin = { openConfirmModal };
+		loadScript(SCRIPT);
+		const promptSpy = vi.spyOn(window, 'prompt');
+
+		// rank 3 > lowest empty rank 1 → OOO path.
 		window.ffcRecruitmentClsAct(btn);
 
+		const cfg = openConfirmModal.mock.calls[0][0];
+		expect(cfg.fields.map((f) => [f.name, f.type, f.required])).toEqual([
+			['date_to_assume', 'date', true],
+			['time_to_assume', 'time', true],
+		]);
+		expect(cfg.reasonLabel).toBe('PROMPT_OOO');
+		expect(cfg.consequences).toEqual(['CONFIRM_OOO']);
+		expect(cfg.style).toBe('destructive');
+		expect(promptSpy).not.toHaveBeenCalled();
 		expect(fetchSpy.mock.calls[0][0]).toBe(CLASS + '5/call');
 		const fd = fetchSpy.mock.calls[0][1].body;
 		expect(fd.get('out_of_order_reason')).toBe('because reasons');
 		expect(fd.get('date_to_assume')).toBe('2026-05-20');
+		expect(fd.get('time_to_assume')).toBe('09:00');
+		expect(window.localStorage.getItem('ffcRecruitmentLastBulkDate')).toBe('2026-05-20');
 	});
 
 	function installAskRow() {
@@ -397,68 +425,83 @@ describe('ffcRecruitmentClsAct', () => {
 			</tbody></table>`;
 	}
 
-	it('opens a default-checked notify modal in ask mode and sends when kept checked', () => {
+	it('offers a default-checked notify box in ask mode and sends when kept checked', () => {
 		installAskRow();
-		const openConfirmModal = vi.fn((cfg, cb) => cb('', true)); // box checked → send
+		const openConfirmModal = vi.fn((cfg, cb) => cb(null, true, VALUES));
 		window.ffcRecruitmentAdmin = { openConfirmModal };
 		window.ffcRecruitmentNoticeEdit = { ...CFG, emailMode: 'ask' };
 		loadScript(SCRIPT);
-		// In order (rank 1 = lowest), so no OOO prompt: date, then time.
-		vi.spyOn(window, 'prompt')
-			.mockReturnValueOnce('2026-05-20')
-			.mockReturnValueOnce('09:00');
 
 		window.ffcRecruitmentClsAct(document.querySelector('button'));
 
 		const cfg = openConfirmModal.mock.calls[0][0];
 		expect(cfg.checkboxLabel).toBe('NOTIFY?');
 		expect(cfg.checkboxChecked).toBe(true);
-		expect(fetchSpy.mock.calls[0][0]).toBe(CLASS + '1/call');
+		expect(cfg.reasonLabel).toBe('');
+		expect(cfg.style).toBe('primary');
 		const fd = fetchSpy.mock.calls[0][1].body;
 		expect(fd.get('notify_email')).toBe('1');
+		expect(fd.get('out_of_order_reason')).toBeNull();
 	});
 
-	it('appends notify_email 0 when the single-call modal checkbox is cleared', () => {
+	it('appends notify_email 0 when the notify box is cleared', () => {
 		installAskRow();
-		const openConfirmModal = vi.fn((cfg, cb) => cb('', false)); // box cleared → do not send
-		window.ffcRecruitmentAdmin = { openConfirmModal };
+		window.ffcRecruitmentAdmin = { openConfirmModal: vi.fn((cfg, cb) => cb(null, false, VALUES)) };
 		window.ffcRecruitmentNoticeEdit = { ...CFG, emailMode: 'ask' };
 		loadScript(SCRIPT);
-		vi.spyOn(window, 'prompt')
-			.mockReturnValueOnce('2026-05-20')
-			.mockReturnValueOnce('09:00');
 
 		window.ffcRecruitmentClsAct(document.querySelector('button'));
 
-		const fd = fetchSpy.mock.calls[0][1].body;
-		expect(fd.get('notify_email')).toBe('0');
+		expect(fetchSpy.mock.calls[0][1].body.get('notify_email')).toBe('0');
 	});
 
-	it('fires immediately with no notify field when not in ask mode', () => {
+	it('sends no notify field when the box was hidden or the mode does not ask', () => {
+		installAskRow();
+		const openConfirmModal = vi.fn((cfg, cb) => cb(null, null, VALUES));
+		window.ffcRecruitmentAdmin = { openConfirmModal };
+		loadScript(SCRIPT);
+
+		window.ffcRecruitmentClsAct(document.querySelector('button'));
+
+		expect(openConfirmModal.mock.calls[0][0].checkboxLabel).toBe('');
+		expect(fetchSpy.mock.calls[0][1].body.get('notify_email')).toBeNull();
+	});
+
+	it('warns that a past date sends no e-mail and hides the notify box', () => {
+		installAskRow();
+		const openConfirmModal = vi.fn();
+		window.ffcRecruitmentAdmin = { openConfirmModal };
+		window.ffcRecruitmentNoticeEdit = { ...CFG, emailMode: 'ask', siteNow: '2026-05-20T10:00', strings: { ...CFG.strings, callPastWarning: 'PAST' } };
+		loadScript(SCRIPT);
+
+		window.ffcRecruitmentClsAct(document.querySelector('button'));
+
+		const onChange = openConfirmModal.mock.calls[0][0].onChange;
+		expect(onChange({ date_to_assume: '2026-05-20', time_to_assume: '09:59' })).toEqual({ warning: 'PAST', hideCheckbox: true });
+		expect(onChange({ date_to_assume: '2026-05-20', time_to_assume: '10:00' })).toEqual({ warning: '', hideCheckbox: false });
+		expect(onChange({ date_to_assume: '', time_to_assume: '' })).toEqual({ warning: '', hideCheckbox: false });
+	});
+
+	it('prefills the dialog with the last date and time used', () => {
+		installAskRow();
+		window.localStorage.setItem('ffcRecruitmentLastBulkDate', '2026-06-01');
+		window.localStorage.setItem('ffcRecruitmentLastBulkTime', '08:30');
+		const openConfirmModal = vi.fn();
+		window.ffcRecruitmentAdmin = { openConfirmModal };
+		loadScript(SCRIPT);
+
+		window.ffcRecruitmentClsAct(document.querySelector('button'));
+
+		expect(openConfirmModal.mock.calls[0][0].fields.map((f) => f.value)).toEqual(['2026-06-01', '08:30']);
+	});
+
+	it('sends nothing when the call dialog is dismissed', () => {
 		installAskRow();
 		window.ffcRecruitmentAdmin = { openConfirmModal: vi.fn() };
 		loadScript(SCRIPT);
-		vi.spyOn(window, 'prompt')
-			.mockReturnValueOnce('2026-05-20')
-			.mockReturnValueOnce('09:00');
 
 		window.ffcRecruitmentClsAct(document.querySelector('button'));
 
-		expect(window.ffcRecruitmentAdmin.openConfirmModal).not.toHaveBeenCalled();
-		const fd = fetchSpy.mock.calls[0][1].body;
-		expect(fd.get('notify_email')).toBeNull();
-	});
-
-	it('aborts the call when the OOO justification is blank', () => {
-		const btn = installRow();
-		loadScript(SCRIPT);
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
-		vi.spyOn(window, 'prompt').mockReturnValueOnce('   '); // whitespace reason
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-
-		window.ffcRecruitmentClsAct(btn);
-
-		expect(alertSpy).toHaveBeenCalledWith('REASON_REQ');
 		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 
@@ -473,37 +516,32 @@ describe('ffcRecruitmentClsAct', () => {
 		expect(fetchSpy.mock.calls[0][1].body).toContain('status=accepted');
 	});
 
-	it('override: confirms, prompts a reason, then POSTs /override-to-empty', () => {
-		document.body.innerHTML = '<button data-cls-id="12" data-cls-action="override">Undo</button>';
+	it('override: asks for an audited reason in the destructive dialog, then POSTs /override-to-empty', () => {
+		document.body.innerHTML = '<button class="ffc-btn ffc-icon-restore" data-cls-id="12" data-cls-action="override">Undo</button>';
+		const openConfirmModal = vi.fn((cfg, cb) => cb('hired the wrong person'));
+		window.ffcRecruitmentAdmin = { openConfirmModal };
+		window.ffcRecruitmentNoticeEdit = { ...CFG, strings: { ...CFG.strings, overrideModalTitle: 'UNDO_TITLE' } };
 		loadScript(SCRIPT);
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-		vi.spyOn(window, 'prompt').mockReturnValueOnce('hired the wrong person');
+		const confirmSpy = vi.spyOn(window, 'confirm');
 
 		window.ffcRecruitmentClsAct(document.querySelector('button'));
 
-		expect(confirmSpy).toHaveBeenCalledWith('OVERRIDE_CONFIRM?');
+		const cfg = openConfirmModal.mock.calls[0][0];
+		expect(cfg.title).toBe('UNDO_TITLE');
+		expect(cfg.body).toBe('OVERRIDE_CONFIRM?');
+		expect(cfg.reasonLabel).toBe('OVERRIDE_REASON?');
+		expect(cfg.style).toBe('destructive');
+		expect(cfg.icon).toBe('restore');
+		expect(confirmSpy).not.toHaveBeenCalled();
 		expect(fetchSpy.mock.calls[0][0]).toBe(CLASS + '12/override-to-empty');
 		expect(fetchSpy.mock.calls[0][1].method).toBe('POST');
 		expect(fetchSpy.mock.calls[0][1].body).toContain('reason=hired+the+wrong+person');
 	});
 
-	it('override: aborts (no fetch) when the destructive confirm is declined', () => {
+	it('override: sends nothing when the dialog is dismissed', () => {
 		document.body.innerHTML = '<button data-cls-id="12" data-cls-action="override">Undo</button>';
+		window.ffcRecruitmentAdmin = { openConfirmModal: vi.fn() };
 		loadScript(SCRIPT);
-		vi.spyOn(window, 'confirm').mockReturnValue(false);
-		const promptSpy = vi.spyOn(window, 'prompt');
-
-		window.ffcRecruitmentClsAct(document.querySelector('button'));
-
-		expect(promptSpy).not.toHaveBeenCalled();
-		expect(fetchSpy).not.toHaveBeenCalled();
-	});
-
-	it('override: aborts when the reason is left blank', () => {
-		document.body.innerHTML = '<button data-cls-id="12" data-cls-action="override">Undo</button>';
-		loadScript(SCRIPT);
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
-		vi.spyOn(window, 'prompt').mockReturnValueOnce('   '); // whitespace only
 
 		window.ffcRecruitmentClsAct(document.querySelector('button'));
 
@@ -655,12 +693,15 @@ describe('fetch resolution branches', () => {
 		expect(btn.disabled).toBe(false);
 	});
 
-	it('per-row cancel action prompts for a reason and POSTs the call cancel route', () => {
+	it('per-row cancel asks for a reason in the dialog and POSTs the call cancel route', () => {
 		document.body.innerHTML = '<button data-cls-id="8" data-cls-action="cancel" data-call-id="31">X</button>';
 		window.fetch = vi.fn(() => new Promise(() => {}));
-		vi.spyOn(window, 'prompt').mockReturnValue('changed my mind');
+		const openConfirmModal = vi.fn((cfg, cb) => cb('changed my mind'));
+		window.ffcRecruitmentAdmin = { openConfirmModal };
 		loadScript(SCRIPT);
 		window.ffcRecruitmentClsAct(document.querySelector('button'));
+		expect(openConfirmModal.mock.calls[0][0].reasonLabel).toBe('CANCEL?');
+		expect(openConfirmModal.mock.calls[0][0].style).toBe('destructive');
 		expect(window.fetch.mock.calls[0][0]).toBe(CLASS + '8/calls/31/cancel');
 		expect(window.fetch.mock.calls[0][1].method).toBe('POST');
 		expect(window.fetch.mock.calls[0][1].body).toContain('reason=changed');
@@ -790,20 +831,20 @@ describe('fetch resolution branches', () => {
 		expect(btn.disabled).toBe(false);
 	});
 
-	it('reopen action prompts for a reason and ends the call through its route', () => {
+	it('reopen asks for a reason in the dialog and ends the call through its route', () => {
 		document.body.innerHTML = '<button data-cls-id="8" data-cls-action="reopen" data-call-id="40">R</button>';
 		window.fetch = vi.fn(() => new Promise(() => {}));
-		vi.spyOn(window, 'prompt').mockReturnValue('reopening');
+		window.ffcRecruitmentAdmin = { openConfirmModal: vi.fn((cfg, cb) => cb('reopening')) };
 		loadScript(SCRIPT);
 		window.ffcRecruitmentClsAct(document.querySelector('button'));
 		expect(window.fetch.mock.calls[0][0]).toBe(CLASS + '8/calls/40/cancel');
 		expect(window.fetch.mock.calls[0][1].body).toContain('reason=reopening');
 	});
 
-	it('reopen action aborts when the reason prompt is cancelled', () => {
+	it('reopen sends nothing when the dialog is dismissed', () => {
 		document.body.innerHTML = '<button data-cls-id="8" data-cls-action="reopen" data-call-id="40">R</button>';
 		window.fetch = vi.fn(() => new Promise(() => {}));
-		vi.spyOn(window, 'prompt').mockReturnValue('');
+		window.ffcRecruitmentAdmin = { openConfirmModal: vi.fn() };
 		loadScript(SCRIPT);
 		window.ffcRecruitmentClsAct(document.querySelector('button'));
 		expect(window.fetch).not.toHaveBeenCalled();

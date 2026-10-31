@@ -769,7 +769,17 @@ final class RecruitmentClassificationsRestController {
 		);
 
 		if ( ! $result['success'] ) {
-			return $this->wp_error_from_envelope( $result['errors'], 409 );
+			$error = $this->wp_error_from_envelope( $result['errors'], 409 );
+			// The batch names the row it stopped at, then why: say both in
+			// words rather than the marker code (#2245).
+			if ( 0 === strpos( (string) $result['errors'][0], 'recruitment_bulk_call_failed_at_classification' ) && isset( $result['errors'][1] ) ) {
+				return new \WP_Error(
+					$error->get_error_code(),
+					RecruitmentErrorMessages::translate( 'recruitment_bulk_call_failed_at_classification' ) . ' ' . RecruitmentErrorMessages::translate( $result['errors'][1] ),
+					$error->get_error_data()
+				);
+			}
+			return $error;
 		}
 
 		return new \WP_REST_Response( $result, 201 );

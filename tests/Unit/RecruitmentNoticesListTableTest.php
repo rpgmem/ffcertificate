@@ -55,6 +55,8 @@ class RecruitmentNoticesListTableTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// A kept row is reported over the table (#2245).
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
 		// Preload the extracted base so pcov attributes its coverage.
 		class_exists( '\FreeFormCertificate\Recruitment\AbstractRecruitmentListTable' );
 
@@ -464,9 +466,18 @@ class RecruitmentNoticesListTableTest extends TestCase {
 		Functions\when( 'get_option' )->justReturn( array() );
 		$this->seed_reader( array( $this->notice_obj( 3, 'A', 'A' ), $this->notice_obj( 4, 'B', 'B', 'definitive' ) ) );
 
+		$notices = array();
+		Functions\when( 'wp_admin_notice' )->alias(
+			static function ( $message ) use ( &$notices ) {
+				$notices[] = $message;
+			}
+		);
+
 		$this->call_protected( 'process_bulk_action' );
 
 		$this->assertSame( array( 3 ), $this->deleted_ids(), 'The published notice in the selection is kept (#2245).' );
+		$this->assertCount( 1, $notices );
+		$this->assertStringContainsString( '1 notice was not deleted: only a draft notice can be deleted.', $notices[0], 'The screen says why (#2245).' );
 	}
 
 	public function test_process_bulk_action_denied_without_delete_cap(): void {

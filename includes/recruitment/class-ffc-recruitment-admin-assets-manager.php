@@ -225,6 +225,9 @@ final class RecruitmentAdminAssetsManager {
 				// Convocation send mode (#794). Only 'ask' surfaces the per-call
 				// "notify by email" prompt in the call flows.
 				'emailMode'      => (string) $rec_settings['email_mode'],
+				// The site clock, so the call dialog can tell a past date
+				// to assume (#2245). The server decides again on save.
+				'siteNow'        => wp_date( 'Y-m-d\TH:i' ),
 				'reasonRequired' => array(
 					'denied'         => ! empty( $rec_settings['preview_reason_required_denied'] ),
 					'granted'        => ! empty( $rec_settings['preview_reason_required_granted'] ),
@@ -246,9 +249,8 @@ final class RecruitmentAdminAssetsManager {
 					'processingCsv'          => __( 'Processing CSV…', 'ffcertificate' ),
 					'bulkNoSel'              => __( 'Select at least one row first.', 'ffcertificate' ),
 					'bulkNoDate'             => __( 'Date and time are required for bulk call.', 'ffcertificate' ),
-					'confirmOooSingle'       => __( 'This call would skip a higher-ranked candidate (out of order). Continue?', 'ffcertificate' ),
-					'promptOooReason'        => __( 'Justification for calling out of order (required):', 'ffcertificate' ),
-					'reasonRequired'         => __( 'A justification is required to proceed.', 'ffcertificate' ),
+					'confirmOooSingle'       => __( 'This call skips a higher-ranked candidate (out of order), so it needs a justification.', 'ffcertificate' ),
+					'promptOooReason'        => __( 'Justification for calling out of order (required)', 'ffcertificate' ),
 					'bulkModalTitle'         => __( 'Issue calls for the selected candidates?', 'ffcertificate' ),
 					/* translators: 1: number of selected rows, 2: date, 3: time */
 					'bulkModalBodyTpl'       => __( 'About to issue {count} call(s) for {date} at {time}.', 'ffcertificate' ),
@@ -257,16 +259,26 @@ final class RecruitmentAdminAssetsManager {
 					'bulkConsequenceLog'     => __( 'A "bulk call" audit entry is recorded with the selected candidates.', 'ffcertificate' ),
 					'bulkConsequenceOoo'     => __( 'One or more selected rows would skip a higher-ranked candidate (out of order).', 'ffcertificate' ),
 					'bulkReasonLabel'        => __( 'Justification for calling out of order (required)', 'ffcertificate' ),
-					'dateToAssume'           => __( 'Date to assume (YYYY-MM-DD):', 'ffcertificate' ),
-					'timeToAssume'           => __( 'Time to assume (HH:MM):', 'ffcertificate' ),
-					'cancellationReason'     => __( 'Cancellation reason (required):', 'ffcertificate' ),
-					'reopenReason'           => __( 'Reopen reason (required):', 'ffcertificate' ),
-					'confirmOverride'        => __( 'This will undo a realized decision (hired / withdrew / no-show), reopen the vacancy and return the candidate to the waiting queue at their original position. The candidate is NOT notified. Continue?', 'ffcertificate' ),
-					'overrideReason'         => __( 'Reason for undoing this decision (required, audited):', 'ffcertificate' ),
+					'dateToAssume'           => __( 'Date to assume', 'ffcertificate' ),
+					'timeToAssume'           => __( 'Time to assume', 'ffcertificate' ),
+					'callModalTitle'         => __( 'Call this candidate?', 'ffcertificate' ),
+					'callModalCta'           => __( 'Call', 'ffcertificate' ),
+					'callPastWarning'        => __( 'This date is already over: the call is recorded and no e-mail is sent.', 'ffcertificate' ),
+					'cancellationReason'     => __( 'Cancellation reason (required)', 'ffcertificate' ),
+					'cancelModalTitle'       => __( 'Cancel this call?', 'ffcertificate' ),
+					'cancelModalBody'        => __( 'The candidate returns to the waiting list and the call ends everywhere: the .ics file, "My calls" and the next call.', 'ffcertificate' ),
+					'cancelModalCta'         => __( 'Cancel call', 'ffcertificate' ),
+					'reopenReason'           => __( 'Reopen reason (required)', 'ffcertificate' ),
+					'reopenModalTitle'       => __( 'Reopen this vacancy?', 'ffcertificate' ),
+					'reopenModalBody'        => __( 'The candidate returns to the waiting list and the call that led to the no-show ends.', 'ffcertificate' ),
+					'reopenModalCta'         => __( 'Reopen', 'ffcertificate' ),
+					'confirmOverride'        => __( 'This will undo a realized decision (hired / withdrew / no-show), reopen the vacancy and return the candidate to the waiting queue at their original position. The candidate is NOT notified.', 'ffcertificate' ),
+					'overrideReason'         => __( 'Reason for undoing this decision (required, audited)', 'ffcertificate' ),
+					'overrideModalTitle'     => __( 'Undo this decision?', 'ffcertificate' ),
+					'overrideModalCta'       => __( 'Undo decision', 'ffcertificate' ),
 					'notifyByEmailAsk'       => __( 'Notify the candidate by email about this call', 'ffcertificate' ),
 					/* translators: {count} is replaced in JS with the number of candidates */
 					'noEmailContactManually' => __( '{count} called candidate(s) have no email on file and were not notified. Contact them manually.', 'ffcertificate' ),
-					'callModalBodyTpl'       => __( 'Convocation to assume on {date} at {time}.', 'ffcertificate' ),
 				),
 			)
 		);

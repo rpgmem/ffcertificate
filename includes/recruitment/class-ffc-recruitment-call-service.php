@@ -62,7 +62,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * no e-mail on file — so the screen can tell the operator to contact them
  * by other means (#2245). Absent when nothing was sent.
  *
- * @phpstan-type CallResult array{success: bool, call_ids: list<int>, errors: list<string>, unreached?: list<int>}
+ * `past` is true when the date and time to assume are already over: the
+ * call is recorded and no e-mail is sent, whatever the send mode (#2245).
+ *
+ * @phpstan-type CallResult array{success: bool, call_ids: list<int>, errors: list<string>, unreached?: list<int>, past?: bool}
  */
 final class RecruitmentCallService {
 
@@ -87,13 +90,18 @@ final class RecruitmentCallService {
 		?string $notes = null,
 		?bool $notify_email = null
 	): array {
+		$schedule = self::normalize_schedule( $date_to_assume, $time_to_assume );
+		if ( is_string( $schedule ) ) {
+			return self::failure( $schedule );
+		}
+
 		global $wpdb;
 		$wpdb->query( 'START TRANSACTION' );
 
 		$result = self::call_one(
 			$classification_id,
-			$date_to_assume,
-			$time_to_assume,
+			$schedule['date'],
+			$schedule['time'],
 			$created_by,
 			$out_of_order_reason,
 			$notes
@@ -118,8 +126,11 @@ final class RecruitmentCallService {
 
 		// Best-effort email dispatch — failures here do NOT roll back the
 		// committed call (§7). Gated by the configured send mode (#794).
+		// A call whose date is already over is a record, not a summons: it
+		// never e-mails the candidate (#2245).
+		$past      = self::is_past( $schedule['date'], $schedule['time'] );
 		$unreached = array();
-		if ( RecruitmentEmailDispatcher::should_send( $notify_email ) && ! RecruitmentEmailDispatcher::send_for_call( $result['call_id'] ) ) {
+		if ( ! $past && RecruitmentEmailDispatcher::should_send( $notify_email ) && ! RecruitmentEmailDispatcher::send_for_call( $result['call_id'] ) ) {
 			$unreached[] = $classification_id;
 		}
 
@@ -128,6 +139,7 @@ final class RecruitmentCallService {
 			'call_ids'  => array( $result['call_id'] ),
 			'errors'    => array(),
 			'unreached' => $unreached,
+			'past'      => $past,
 		);
 	}
 
@@ -164,6 +176,13 @@ final class RecruitmentCallService {
 		if ( empty( $classification_ids ) ) {
 			return self::failure( 'recruitment_bulk_call_empty_id_list' );
 		}
+
+		$schedule = self::normalize_schedule( $date_to_assume, $time_to_assume );
+		if ( is_string( $schedule ) ) {
+			return self::failure( $schedule );
+		}
+		$date_to_assume = $schedule['date'];
+		$time_to_assume = $schedule['time'];
 
 		global $wpdb;
 		$wpdb->query( 'START TRANSACTION' );
@@ -209,8 +228,9 @@ final class RecruitmentCallService {
 		// Best-effort email dispatch per row — failures here do NOT roll
 		// back the committed batch (§7). Gated by the configured send mode (#794);
 		// resolved once for the whole batch.
+		$past      = self::is_past( $date_to_assume, $time_to_assume );
 		$unreached = array();
-		if ( RecruitmentEmailDispatcher::should_send( $notify_email ) ) {
+		if ( ! $past && RecruitmentEmailDispatcher::should_send( $notify_email ) ) {
 			foreach ( $call_ids as $i => $cid ) {
 				if ( ! RecruitmentEmailDispatcher::send_for_call( $cid ) ) {
 					$unreached[] = (int) $classification_ids[ $i ];
@@ -223,6 +243,7 @@ final class RecruitmentCallService {
 			'call_ids'  => $call_ids,
 			'errors'    => array(),
 			'unreached' => $unreached,
+			'past'      => $past,
 		);
 	}
 
@@ -414,6 +435,58 @@ final class RecruitmentCallService {
 			'call_id' => (int) $call_id,
 			'errors'  => array(),
 		);
+	}
+
+	/**
+	 * Validate the date and time to assume and bring them to their stored
+	 * shape (#2245).
+	 *
+	 * Each is parsed against its exact format and must print back as what
+	 * was given, so an impossible date (`2026-02-30`) or time (`25:00`)
+	 * is refused rather than rolled over. The time takes `HH:MM` or
+	 * `HH:MM:SS` and is stored with seconds.
+	 *
+	 * @param string $date `YYYY-MM-DD`.
+	 * @param string $time `HH:MM` or `HH:MM:SS`.
+	 * @return array{date: string, time: string}|string The normalized pair, or an error code.
+	 */
+	public static function normalize_schedule( string $date, string $time ) {
+		$date = trim( $date );
+		$time = trim( $time );
+
+		$day = \DateTimeImmutable::createFromFormat( '!Y-m-d', $date );
+		if ( false === $day || $day->format( 'Y-m-d' ) !== $date ) {
+			return 'recruitment_call_invalid_date';
+		}
+
+		$format = 5 === strlen( $time ) ? 'H:i' : 'H:i:s';
+		$clock  = \DateTimeImmutable::createFromFormat( '!' . $format, $time );
+		if ( false === $clock || $clock->format( $format ) !== $time ) {
+			return 'recruitment_call_invalid_time';
+		}
+
+		return array(
+			'date' => $date,
+			'time' => $clock->format( 'H:i:s' ),
+		);
+	}
+
+	/**
+	 * Whether a date and time to assume are already over, in the site's
+	 * time zone (a wall-clock value, CLAUDE.md "Date / time storage
+	 * convention").
+	 *
+	 * @param string $date `YYYY-MM-DD`.
+	 * @param string $time `HH:MM:SS`.
+	 * @return bool
+	 */
+	public static function is_past( string $date, string $time ): bool {
+		$zone = wp_timezone();
+		$when = \DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', $date . ' ' . $time, $zone );
+		if ( false === $when ) {
+			return false;
+		}
+		return $when < new \DateTimeImmutable( 'now', $zone );
 	}
 
 	/**

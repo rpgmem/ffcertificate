@@ -391,6 +391,31 @@ class RecruitmentAdjutanciesListTableTest extends TestCase {
 		$this->assertSame( array( 5, 6 ), $this->deleted_adjutancy_ids() );
 	}
 
+	public function test_process_bulk_action_says_which_adjutancies_were_kept(): void {
+		$_REQUEST['action']        = 'bulk-delete';
+		$_REQUEST['adjutancy_ids'] = array( '5', '6' );
+
+		$this->rows         = array(
+			$this->adj_obj( 5, 'alpha', 'Alpha' ),
+			$this->adj_obj( 6, 'beta', 'Beta' ),
+		);
+		$this->notice_links = array( 5 => array( 9 ) );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_delete_recruitment' === $cap );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
+		$notices = array();
+		Functions\when( 'wp_admin_notice' )->alias(
+			static function ( $message ) use ( &$notices ) {
+				$notices[] = $message;
+			}
+		);
+
+		$this->call_protected( 'process_bulk_action' );
+
+		$this->assertSame( array( 6 ), $this->deleted_adjutancy_ids() );
+		$this->assertCount( 1, $notices );
+		$this->assertStringContainsString( 'still uses it', $notices[0] );
+	}
+
 	// ------------------------------------------------------------------
 	// convert_rows() + sort_rows() — static private helpers
 	// ------------------------------------------------------------------

@@ -208,6 +208,10 @@ final class RecruitmentAdminPageRenderer {
 			'name-mandatory'              => array( 'error', __( 'public_columns_config rejected: `name` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
 			'slug-taken'                  => array( 'error', __( 'Slug rejected: another adjutancy already uses this slug. Pick a different value.', 'ffcertificate' ) ),
 			'save-failed'                 => array( 'error', __( 'Save failed. Please try again.', 'ffcertificate' ) ),
+			'adjutancy-deleted'           => array( 'success', __( 'Adjutancy deleted.', 'ffcertificate' ) ),
+			'adjutancy-in-use'            => array( 'error', __( 'The adjutancy was not deleted: a notice or a classification still uses it. Detach it from every notice first; one that classified candidates stays for the record.', 'ffcertificate' ) ),
+			'reason-deleted'              => array( 'success', __( 'Reason deleted.', 'ffcertificate' ) ),
+			'reason-in-use'               => array( 'error', __( 'The reason was not deleted: a classification still uses it.', 'ffcertificate' ) ),
 		);
 		if ( ! isset( $map[ $key ] ) ) {
 			return;

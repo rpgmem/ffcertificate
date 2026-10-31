@@ -367,6 +367,10 @@ final class RecruitmentAdminPage {
 		// Messages. The edit screens above keep their own chrome.
 		echo '<div class="wrap ffc-admin-page ffc-page-recruitment ffc-recruitment-admin ffc-settings-wrap">';
 		echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
+		$msg = RequestInput::get_get_key( 'ffc_msg' );
+		if ( '' !== $msg ) {
+			RecruitmentAdminPageRenderer::render_flash_notice( $msg );
+		}
 
 		echo '<div class="ffc-settings-tabs">';
 		RecruitmentAdminPageRenderer::render_tabs( $tab );

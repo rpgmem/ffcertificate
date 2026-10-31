@@ -197,8 +197,22 @@ class RecruitmentAdjutanciesListTable extends AbstractRecruitmentListTable {
 	 *
 	 * @param int $id Row id.
 	 */
-	protected function delete_one( int $id ): void {
-		RecruitmentDeleteService::delete_adjutancy( $id );
+	protected function delete_one( int $id ): bool {
+		return RecruitmentDeleteService::delete_adjutancy( $id )['success'];
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @param int $kept Rows the guard kept.
+	 * @return string
+	 */
+	protected function blocked_delete_message( int $kept ): string {
+		return sprintf(
+			/* translators: %d: number of adjutancies that were not deleted */
+			_n( '%d adjutancy was not deleted: a notice or a classification still uses it.', '%d adjutancies were not deleted: a notice or a classification still uses them.', $kept, 'ffcertificate' ),
+			$kept
+		);
 	}
 
 	/**

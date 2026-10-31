@@ -104,6 +104,8 @@ class CsvStagingServiceTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The stale-job cutoff is computed in the site's zone (#2245).
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts = null ) => gmdate( $format, $ts ?? time() ) );
 
 		$this->had_wpdb      = array_key_exists( 'wpdb', $GLOBALS );
 		$this->previous_wpdb = $GLOBALS['wpdb'] ?? null;
@@ -518,6 +520,20 @@ class CsvStagingServiceTest extends TestCase {
 			)
 		);
 		$this->assertCount( 1, $staged );
+
+		// The sweep binds a cutoff computed in the site's zone, a day back,
+		// rather than comparing with the database's NOW() (#2245).
+		$sweeps = array_values(
+			array_filter(
+				$this->queries,
+				static fn( array $q ): bool => 0 === strpos( $q[0], 'DELETE FROM ' . self::JOBS . ' WHERE created_at < %s' )
+			)
+		);
+		$this->assertCount( 1, $sweeps );
+		$this->assertStringNotContainsString( 'NOW()', $sweeps[0][0] );
+		$cutoff = strtotime( (string) $sweeps[0][1][0] . ' UTC' );
+		$this->assertEqualsWithDelta( time() - DAY_IN_SECONDS, $cutoff, 5 );
+
 		$values = $staged[0][1];
 		$this->assertCount( 32, $values, 'Sixteen columns per row, two rows.' );
 		// First row: job, row_no, line, notice, name, cpf, rf, email, phone, slug, adjutancy_id.

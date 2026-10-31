@@ -320,6 +320,21 @@ class RecruitmentAdminActionsTest extends TestCase {
 			$this->deletes
 		);
 		$this->assertStringContainsString( 'tab=adjutancies', $url );
+		$this->assertStringContainsString( 'ffc_msg=adjutancy-deleted', $url );
+	}
+
+	public function test_delete_adjutancy_in_use_redirects_with_the_reason(): void {
+		$_GET['adjutancy_id']            = '7';
+		$this->adjutancies[7]            = (object) array(
+			'id'   => 7,
+			'slug' => 'mat',
+		);
+		$this->adjutancy_classifications[7] = 2;
+
+		$url = $this->dispatchCapture( 'delete-adjutancy' );
+
+		$this->assertSame( array(), $this->deletes, 'An adjutancy in use is not deleted.' );
+		$this->assertStringContainsString( 'ffc_msg=adjutancy-in-use', $url );
 	}
 
 	public function test_delete_reason_deletes_only_when_unreferenced(): void {
@@ -332,6 +347,7 @@ class RecruitmentAdminActionsTest extends TestCase {
 			$this->deletes
 		);
 		$this->assertStringContainsString( 'tab=reasons', $url );
+		$this->assertStringContainsString( 'ffc_msg=reason-deleted', $url );
 	}
 
 	public function test_delete_reason_blocked_when_still_referenced(): void {
@@ -342,6 +358,7 @@ class RecruitmentAdminActionsTest extends TestCase {
 
 		$this->assertSame( array(), $this->deletes, 'A referenced reason is not deleted.' );
 		$this->assertStringContainsString( 'tab=reasons', $url );
+		$this->assertStringContainsString( 'ffc_msg=reason-in-use', $url );
 	}
 
 	public function test_delete_candidate_delegates_to_delete_service_and_redirects(): void {

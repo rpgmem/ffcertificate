@@ -276,11 +276,26 @@ class RecruitmentReasonsListTable extends AbstractRecruitmentListTable {
 	 *
 	 * @param int $id Row id.
 	 */
-	protected function delete_one( int $id ): void {
+	protected function delete_one( int $id ): bool {
 		if ( RecruitmentReasonReader::count_references( $id ) > 0 ) {
-			return;
+			return false;
 		}
 		RecruitmentReasonWriter::delete( $id );
+		return true;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @param int $kept Rows the guard kept.
+	 * @return string
+	 */
+	protected function blocked_delete_message( int $kept ): string {
+		return sprintf(
+			/* translators: %d: number of reasons that were not deleted */
+			_n( '%d reason was not deleted: a classification still uses it.', '%d reasons were not deleted: a classification still uses them.', $kept, 'ffcertificate' ),
+			$kept
+		);
 	}
 
 	/**
