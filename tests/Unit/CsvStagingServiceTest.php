@@ -465,10 +465,34 @@ class CsvStagingServiceTest extends TestCase {
 		);
 	}
 
+	public function test_ingest_refuses_an_invalid_row_before_staging_anything(): void {
+		$this->storeNotice( 'preliminary' );
+		$this->attachMathAdjutancy();
+		$csv = $this->header() . 'Alice,' . $this->formattedCpf() . ",,ALICE@test.com,11999,math,first,nine,3,0,0\n";
+
+		$r = CsvStagingService::ingest_job( 5, $csv, 'preview' );
+
+		$this->assertFalse( $r['ok'] );
+		$this->assertSame(
+			array(
+				'line=2: recruitment_csv_score_invalid_format: "nine"',
+				'line=2: recruitment_csv_rank_invalid: "first"',
+			),
+			array_slice( $r['errors'], 0, 2 ),
+			'Every problem of the line is named, with its value, and nothing is written.'
+		);
+		$this->assertSame( array(), $this->to( $this->inserts, self::JOBS ), 'No job, no staging.' );
+	}
+
 	public function test_ingest_happy_path_returns_job_id_and_total(): void {
 		$this->storeNotice( 'preliminary' );
 		$this->attachMathAdjutancy();
-		$r = CsvStagingService::ingest_job( 5, $this->csv( 2 ), 'preview' );
+		// Two different people: the same row twice is a duplicate the
+		// validator now refuses before staging (#2245).
+		$csv = $this->header()
+			. 'Alice,' . $this->formattedCpf() . ",,ALICE@test.com,11999,math,1,9.5,3,0,0\n"
+			. 'Bia,' . Identifiers::CPF_B . ",,bia@test.com,11998,math,2,9.0,3,0,0\n";
+		$r   = CsvStagingService::ingest_job( 5, $csv, 'preview' );
 		$this->assertTrue( $r['ok'] );
 		$this->assertSame( self::JOB_ID, $r['job_id'] );
 		$this->assertSame( 2, $r['total'] );

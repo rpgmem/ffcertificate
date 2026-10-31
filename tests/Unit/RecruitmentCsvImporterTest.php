@@ -625,6 +625,31 @@ class RecruitmentCsvImporterTest extends TestCase {
 		$this->assertStringContainsString( 'recruitment_csv_adjutancy_not_in_notice: unknown', $errors[0] );
 	}
 
+	public function test_validate_names_every_problem_of_a_line_with_its_value(): void {
+		$rows   = array(
+			$this->csv_row(
+				array(
+					'score'       => '9,5',
+					'rank'        => 'abc',
+					'time_points' => 'x',
+					'adjutancy'   => 'unknown',
+				)
+			),
+		);
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertSame(
+			array(
+				'line=2: recruitment_csv_score_uses_comma_decimal: "9,5"',
+				'line=2: recruitment_csv_rank_invalid: "abc"',
+				'line=2: recruitment_csv_time_points_invalid_format: "x"',
+				'line=2: recruitment_csv_adjutancy_not_in_notice: unknown',
+			),
+			$errors,
+			'One import shows every mistake of the line, not only the first (#2245).'
+		);
+	}
+
 	public function test_validate_detects_candidate_field_divergence_same_cpf(): void {
 		// Same CPF in two rows but a different name. The rows sit in
 		// DIFFERENT adjutancies (both in the map) so the duplicate-pair

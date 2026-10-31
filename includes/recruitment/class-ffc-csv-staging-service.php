@@ -129,6 +129,18 @@ final class CsvStagingService {
 			);
 		}
 
+		// The same row rules as the single request, before anything is
+		// staged (#2245). The batched path used to stage every row and
+		// check only what SQL could group: a non-numeric rank became 0 and
+		// a malformed CPF reached the candidate table.
+		$validation = CsvValidator::validate( $rows, $notice_id, $list_type, $adjutancy_map );
+		if ( array() !== $validation ) {
+			return array(
+				'ok'     => false,
+				'errors' => $validation,
+			);
+		}
+
 		// Reap stale jobs + their staging rows before allocating a new
 		// one. Idempotent and bounded — only deletes rows older than the
 		// generous JOB TTL.

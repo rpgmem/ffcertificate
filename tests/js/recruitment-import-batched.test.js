@@ -255,6 +255,47 @@ describe('ffcRecruitmentImportBatched.run — failure handling', () => {
 		expect(reloadMock).not.toHaveBeenCalled();
 	});
 
+	it('lists every refused line when /start answers with several messages (#2245)', async () => {
+		const els = mountDom();
+		const list = document.createElement('ul');
+		document.body.append(list);
+
+		fetchMock.mockReturnValueOnce(
+			jsonResponse({
+				code: 'recruitment_csv_rank_invalid',
+				message: 'Line 2: Rank must be a positive integer. ("abc")',
+				data: {
+					status: 400,
+					messages: [
+						'Line 2: Rank must be a positive integer. ("abc")',
+						'Line 3: Score format is invalid (numeric value expected). ("x")',
+					],
+				},
+			}, 400)
+		);
+
+		await expect(window.ffcRecruitmentImportBatched.run({
+			noticeId: NOTICE_ID,
+			file: new File(['x'], 'a.csv'),
+			restRoot: REST_ROOT,
+			nonce: NONCE,
+			btn: els.btn,
+			status: els.status,
+			progressWrap: els.wrap,
+			progressBar: els.bar,
+			progressText: els.text,
+			errorList: list,
+			strings: { validationFailed: 'Validation failed', errorPrefix: 'Error:' },
+		})).rejects.toThrow();
+
+		expect(Array.from(list.querySelectorAll('li')).map((li) => li.textContent)).toEqual([
+			'Line 2: Rank must be a positive integer. ("abc")',
+			'Line 3: Score format is invalid (numeric value expected). ("x")',
+		]);
+		expect(els.status.textContent).toBe('Validation failed');
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
 	it('surfaces a network-error label when the response is not valid JSON', async () => {
 		const els = mountDom();
 

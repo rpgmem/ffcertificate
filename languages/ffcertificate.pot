@@ -30758,3 +30758,11 @@ msgstr ""
 #: includes/settings/views/documentation/feature-recruitment.php
 msgid "import candidates / call candidates, record outcomes and cancel their own calls."
 msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "The file is not UTF-8. Excel often saves CSV as Windows-1252: in Excel choose \"CSV UTF-8\", or re-save the file as UTF-8 in your editor, and import it again."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "Every line is checked before anything is imported, on the screen's import and through the API alike: identifiers, score, time points, rank and adjutancy. One invalid line refuses the whole file, and the report names each line, each problem and the value at fault (never a CPF or RF, which are personal data). The file must be UTF-8: Excel's plain \"CSV\" is Windows-1252, so choose \"CSV UTF-8\" when saving. Promoting the preliminary list keeps every column, time points and the EMEBS qualification included."
+msgstr ""

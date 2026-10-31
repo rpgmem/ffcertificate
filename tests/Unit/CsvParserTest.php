@@ -33,6 +33,29 @@ class CsvParserTest extends TestCase {
 		class_exists( '\\FreeFormCertificate\\Core\\Csv' );
 	}
 
+	public function test_a_windows_1252_file_is_refused_with_its_own_code(): void {
+		// "José" saved by Excel pt-BR: é is the single byte 0xE9.
+		$csv = "name,cpf,rf,email,adjutancy,rank,score,pcd\nJos\xE9," . Identifiers::CPF_A . ",,a@b.c,math,1,9,0\n";
+
+		$this->assertSame(
+			array(
+				'ok'     => false,
+				'rows'   => array(),
+				'errors' => array( 'recruitment_csv_not_utf8' ),
+			),
+			CsvParser::parse( $csv )
+		);
+	}
+
+	public function test_a_utf8_file_with_a_bom_is_read(): void {
+		$csv = "\xEF\xBB\xBFname,cpf,rf,email,adjutancy,rank,score,pcd\nJosé," . Identifiers::CPF_A . ",,a@b.c,math,1,9,0\n";
+
+		$parse = CsvParser::parse( $csv );
+
+		$this->assertTrue( $parse['ok'] );
+		$this->assertSame( 'José', $parse['rows'][0]['name'] );
+	}
+
 	public function test_header_constants_are_the_documented_contract(): void {
 		$this->assertSame(
 			array( 'name', 'cpf', 'rf', 'email', 'adjutancy', 'rank', 'score', 'pcd' ),
