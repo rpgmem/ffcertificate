@@ -26,8 +26,6 @@ class AudienceAdminPageTest extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
-		// The Settings submenu asks who is reading (#2244); an audience viewer by default.
-		Functions\when( 'current_user_can' )->justReturn( true );
 	}
 
 	protected function tearDown(): void {
@@ -113,6 +111,8 @@ class AudienceAdminPageTest extends TestCase {
 			$submenu_pages[] = func_get_args();
 		} );
 
+		// The Settings submenu asks who is reading (#2244): an audience viewer.
+		Functions\when( 'current_user_can' )->justReturn( true );
 		$page->add_admin_menus();
 
 		$this->assertCount( 1, $menu_pages, 'Should register exactly 1 top-level menu page' );
@@ -131,6 +131,8 @@ class AudienceAdminPageTest extends TestCase {
 			$submenu_pages[] = func_get_args();
 		} );
 
+		// The Settings submenu asks who is reading (#2244): an audience viewer.
+		Functions\when( 'current_user_can' )->justReturn( true );
 		$page->add_admin_menus();
 
 		// Should register: dashboard, calendars, environments (hidden),
@@ -180,6 +182,8 @@ class AudienceAdminPageTest extends TestCase {
 			$submenu_pages[ $args[4] ] = array( 'parent' => $args[0], 'cap' => $args[3], 'callback' => $args[5] );
 		} );
 
+		// The Settings submenu asks who is reading (#2244): an audience viewer.
+		Functions\when( 'current_user_can' )->justReturn( true );
 		$page->add_admin_menus();
 
 		foreach ( array( 'dashboard', 'calendars', 'environments', 'audiences', 'bookings', 'settings' ) as $suffix ) {
