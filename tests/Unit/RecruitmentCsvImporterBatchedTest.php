@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Recruitment\RecruitmentCsvImporter;
+use FreeFormCertificate\Recruitment\RecruitmentReimportDiff;
 use FreeFormCertificate\Recruitment\RecruitmentPcdHasher;
 use FreeFormCertificate\Tests\Support\Identifiers;
 
@@ -52,6 +53,13 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 
 	/** @var int Rows of the notice's preliminary list (#2245). */
 	private int $preview_rows = 1;
+
+	/**
+	 * The list the import replaces; empty unless a test stores one (#2245).
+	 *
+	 * @var list<object>
+	 */
+	private array $stored_list = array();
 
 	/** @var list<array{0: string, 1: string, 2: array<int, mixed>}> Every call the double answered: method, SQL or table, arguments. */
 	private array $calls = array();
@@ -131,6 +139,8 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		}
 		// The notice has a preliminary list unless a test says otherwise (#2245).
 		$this->on( 'get_var', "/list_type = 'preview'$/", fn() => (string) $this->preview_rows );
+		// The list an import replaces is read before it is cleared (#2245).
+		$this->on( 'get_results', "/^SELECT \\* FROM `wp_ffc_recruitment_classification` WHERE notice_id = \\d+ AND list_type = '(preview|definitive)' ORDER BY/", fn() => $this->stored_list );
 		foreach ( array( 'insert', 'update', 'delete' ) as $method ) {
 			$this->wpdb->shouldReceive( $method )
 				->andReturnUsing(
@@ -783,6 +793,102 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->assertContains( 'recruitment_import_swap_failed', $out['errors'] );
 		$this->assertSame( array( 'START TRANSACTION', 'ROLLBACK' ), $this->transaction_statements() );
 		$this->assertSame( array(), $this->calls_to( 'update' ), 'A failed swap leaves the job state alone.' );
+	}
+
+	public function test_commit_job_over_a_stored_list_waits_for_the_comparison(): void {
+		$this->arrange_promoting_job_without_swap();
+		$this->stored_list = array( $this->stored_row( 50, 100, 2, 1, '90', 'empty' ) );
+		$this->on(
+			'get_results',
+			"/^SELECT candidate_id, adjutancy_id, rank_value, score FROM `wp_ffc_recruitment_import_staging`/",
+			array( (object) array( 'candidate_id' => '101', 'adjutancy_id' => '2', 'rank_value' => '1', 'score' => '80.0000' ) )
+		);
+
+		$out = RecruitmentCsvImporter::commit_job( 'j1' );
+
+		$this->assertFalse( $out['ok'] );
+		$this->assertSame( array( RecruitmentReimportDiff::CONFIRM_CODE ), $out['errors'] );
+		$this->assertCount( 1, $out['diff']['added'] );
+		$this->assertCount( 1, $out['diff']['removed'] );
+		$this->assertSame( array(), $this->transaction_statements(), 'Nothing is written before the operator confirms.' );
+		$this->assertSame( array(), $this->calls_to( 'delete' ) );
+	}
+
+	public function test_confirmed_commit_carries_the_manual_marks_onto_the_new_rows(): void {
+		$this->arrange_promoting_job();
+		$this->store_notice( $this->notice_stub( 'preliminary' ) );
+		$this->stored_list = array(
+			$this->stored_row( 50, 100, 2, 1, '90', 'denied', '7' ),
+			$this->stored_row( 51, 101, 2, 2, '80', 'empty' ),
+		);
+		$this->on( 'query', '/^(START TRANSACTION|COMMIT)$/', 1 );
+		$this->on( 'query', '/^INSERT INTO `wp_ffc_recruitment_classification`/', 2, 1 );
+		$this->on(
+			'get_results',
+			"/^SELECT id, candidate_id, adjutancy_id FROM `wp_ffc_recruitment_classification`/",
+			array(
+				(object) array( 'id' => '300', 'candidate_id' => '100', 'adjutancy_id' => '2' ),
+				(object) array( 'id' => '301', 'candidate_id' => '101', 'adjutancy_id' => '2' ),
+			),
+			1
+		);
+		$this->on( 'update', '/^wp_ffc_recruitment_(classification|import_jobs)$/', 1 );
+		$this->on( 'delete', '/^wp_ffc_recruitment_import_(staging|jobs)$/', 1, 2 );
+
+		$out = RecruitmentCsvImporter::commit_job( 'j1', true );
+
+		$this->assertTrue( $out['ok'] );
+		$marks = $this->calls_to( 'update', '/^wp_ffc_recruitment_classification$/' );
+		$this->assertCount( 1, $marks, 'Only the marked row is written back.' );
+		$this->assertSame( array( 'id' => 300 ), $marks[0][2][2] );
+		$this->assertSame( 'denied', $marks[0][2][1]['preview_status'] );
+		$this->assertSame( 7, $marks[0][2][1]['preview_reason_id'] );
+	}
+
+	public function test_single_request_reimport_rolls_back_until_confirmed(): void {
+		$this->store_notice( $this->notice_stub( 'draft' ) );
+		$this->arrange_run_writes( 200 );
+		$this->stored_list = array( $this->stored_row( 50, 999, 2, 1, '70', 'empty' ) );
+
+		$out = RecruitmentCsvImporter::import_preview( 5, self::HEADER . 'Alice,' . Identifiers::CPF_A . ',,a@b.test,mat,1,90,Sim' );
+
+		$this->assertFalse( $out['success'] );
+		$this->assertSame( array( RecruitmentReimportDiff::CONFIRM_CODE ), $out['errors'] );
+		$this->assertSame( array( 'START TRANSACTION', 'ROLLBACK' ), $this->transaction_statements() );
+		$this->assertCount( 1, $out['diff']['removed'] );
+	}
+
+	/**
+	 * A promoting job whose swap is never reached.
+	 */
+	private function arrange_promoting_job_without_swap(): void {
+		$this->on(
+			'get_row',
+			"/^SELECT \\* FROM wp_ffc_recruitment_import_jobs WHERE job_id = 'j1'$/",
+			(object) array(
+				'job_id'    => 'j1',
+				'status'    => 'promoting',
+				'notice_id' => '5',
+				'list_type' => 'preview',
+			),
+			1
+		);
+		$this->on( 'get_var', "/^SELECT COUNT\\(\\*\\) FROM wp_ffc_recruitment_import_staging WHERE job_id = 'j1' AND processed = 0$/", 0, 1 );
+	}
+
+	/**
+	 * A stored classification row.
+	 */
+	private function stored_row( int $id, int $candidate, int $adjutancy, int $rank, string $score, string $mark, ?string $reason = null ): object {
+		return (object) array(
+			'id'                => (string) $id,
+			'candidate_id'      => (string) $candidate,
+			'adjutancy_id'      => (string) $adjutancy,
+			'rank'              => (string) $rank,
+			'score'             => $score,
+			'preview_status'    => $mark,
+			'preview_reason_id' => $reason,
+		);
 	}
 
 	// ==================================================================

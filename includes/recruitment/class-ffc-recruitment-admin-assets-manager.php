@@ -125,6 +125,18 @@ final class RecruitmentAdminAssetsManager {
 				'cancelled' => __( 'Import cancelled. Nothing was imported.', 'ffcertificate' ),
 			)
 		);
+		// A file that replaces a list with rows shows what it changes before
+		// anything is written (#2245).
+		wp_localize_script(
+			'ffc-recruitment-import-batched',
+			'ffcRecruitmentImportDiff',
+			array(
+				'title'     => __( 'Replace the list?', 'ffcertificate' ),
+				'body'      => __( 'This file replaces a list that already has rows. Every row that enters, leaves or changes is listed below the form. Manual preliminary statuses are kept for the rows that stay.', 'ffcertificate' ),
+				'cta'       => __( 'Replace list', 'ffcertificate' ),
+				'cancelled' => __( 'Import cancelled. Nothing was imported.', 'ffcertificate' ),
+			)
+		);
 
 		// Candidate-edit page interactions (PII reveal + adjutancy swap),
 		// extracted from inline <script> blocks (frontend-audit Item 3). The

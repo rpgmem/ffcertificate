@@ -58,7 +58,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * previous list (if any) for the same `(notice_id, list_type)` has been
  * wiped.
  *
- * @phpstan-type ImportResult array{success: bool, inserted: int, errors: list<string>, mismatches?: list<array{line: int, candidate_id: int, fields: list<string>}>}
+ * @phpstan-import-type Diff from RecruitmentReimportDiff
+ * @phpstan-type ImportResult array{success: bool, inserted: int, errors: list<string>, mismatches?: list<array{line: int, candidate_id: int, fields: list<string>}>, diff?: Diff}
  */
 final class RecruitmentCsvImporter {
 
@@ -73,9 +74,10 @@ final class RecruitmentCsvImporter {
 	 * @param int    $notice_id            Target notice.
 	 * @param string $csv_content          Raw CSV bytes (UTF-8, with or without BOM).
 	 * @param bool   $acknowledge_identity The operator accepted the identity mismatches (#2245).
+	 * @param bool   $confirm_reimport     The operator confirmed the comparison with the stored list (#2245).
 	 * @return ImportResult
 	 */
-	public static function import_preview( int $notice_id, string $csv_content, bool $acknowledge_identity = false ): array {
+	public static function import_preview( int $notice_id, string $csv_content, bool $acknowledge_identity = false, bool $confirm_reimport = false ): array {
 		$notice = RecruitmentNoticeReader::get_by_id( $notice_id );
 		if ( null === $notice ) {
 			return self::failure( 'recruitment_notice_not_found' );
@@ -86,7 +88,7 @@ final class RecruitmentCsvImporter {
 			return self::failure( 'recruitment_invalid_state_for_preview_import' );
 		}
 
-		return self::run( $notice_id, $csv_content, 'preview', (string) $status, $acknowledge_identity );
+		return self::run( $notice_id, $csv_content, 'preview', (string) $status, $acknowledge_identity, $confirm_reimport );
 	}
 
 	/**
@@ -101,9 +103,10 @@ final class RecruitmentCsvImporter {
 	 * @param int    $notice_id            Target notice.
 	 * @param string $csv_content          Raw CSV bytes.
 	 * @param bool   $acknowledge_identity The operator accepted the identity mismatches (#2245).
+	 * @param bool   $confirm_reimport     The operator confirmed the comparison with the stored list (#2245).
 	 * @return ImportResult
 	 */
-	public static function import_definitive( int $notice_id, string $csv_content, bool $acknowledge_identity = false ): array {
+	public static function import_definitive( int $notice_id, string $csv_content, bool $acknowledge_identity = false, bool $confirm_reimport = false ): array {
 		$notice = RecruitmentNoticeReader::get_by_id( $notice_id );
 		if ( null === $notice ) {
 			return self::failure( 'recruitment_notice_not_found' );
@@ -114,7 +117,7 @@ final class RecruitmentCsvImporter {
 			return self::failure( $blocked );
 		}
 
-		return self::run( $notice_id, $csv_content, 'definitive', 'definitive', $acknowledge_identity );
+		return self::run( $notice_id, $csv_content, 'definitive', 'definitive', $acknowledge_identity, $confirm_reimport );
 	}
 
 	/**
@@ -154,9 +157,10 @@ final class RecruitmentCsvImporter {
 	 * @param string $list_type `preview` or `definitive`.
 	 * @param string $status    The notice's status once the import commits.
 	 * @param bool   $acknowledge_identity The operator accepted the identity mismatches.
+	 * @param bool   $confirm_reimport     The operator confirmed the comparison with the stored list.
 	 * @return ImportResult
 	 */
-	private static function run( int $notice_id, string $csv_content, string $list_type, string $status, bool $acknowledge_identity = false ): array {
+	private static function run( int $notice_id, string $csv_content, string $list_type, string $status, bool $acknowledge_identity = false, bool $confirm_reimport = false ): array {
 		// Step 1: parse CSV into normalized row arrays.
 		$parse = self::parse( $csv_content );
 		if ( ! $parse['ok'] ) {
@@ -199,9 +203,16 @@ final class RecruitmentCsvImporter {
 		$wpdb->query( 'START TRANSACTION' );
 
 		try {
+			// What the file replaces (#2245): compared below before anything
+			// commits, and the manual preliminary marks carried across.
+			$stored = RecruitmentClassificationRepository::get_for_notice( $notice_id, $list_type );
+			$marks  = 'preview' === $list_type ? RecruitmentReimportDiff::marks( $stored ) : array();
+
 			RecruitmentClassificationRepository::delete_all_for_notice_list( $notice_id, $list_type );
 
-			$inserted = 0;
+			$inserted   = 0;
+			$new_rows   = array();
+			$ids_by_key = array();
 			foreach ( $rows as $row ) {
 				$candidate_id = CandidatePersister::upsert_candidate( $row );
 				if ( false === $candidate_id ) {
@@ -231,7 +242,33 @@ final class RecruitmentCsvImporter {
 					return self::failure( 'recruitment_classification_insert_failed' );
 				}
 
+				$adjutancy_id = (int) $adjutancy_map[ $row['adjutancy'] ];
+				$ids_by_key[ RecruitmentReimportDiff::key( (int) $candidate_id, $adjutancy_id ) ] = (int) $classification_id;
+				$new_rows[] = array(
+					'candidate_id' => (int) $candidate_id,
+					'adjutancy_id' => $adjutancy_id,
+					'rank'         => (int) $row['rank'],
+					'score'        => (string) $row['score'],
+				);
 				++$inserted;
+			}
+
+			// A file that replaces a list with rows waits for the operator to
+			// read what it changes (#2245). The comparison needs the
+			// candidates the rows resolve to, so it runs here and rolls back.
+			if ( ! empty( $stored ) && ! $confirm_reimport ) {
+				$diff = RecruitmentReimportDiff::compute( $stored, $new_rows );
+				if ( ! RecruitmentReimportDiff::is_identical( $diff ) ) {
+					$wpdb->query( 'ROLLBACK' );
+					$failure         = self::failure( RecruitmentReimportDiff::CONFIRM_CODE );
+					$failure['diff'] = $diff;
+					return $failure;
+				}
+			}
+
+			if ( ! RecruitmentReimportDiff::restore_marks( $marks, $ids_by_key ) ) {
+				$wpdb->query( 'ROLLBACK' );
+				return self::failure( 'recruitment_classification_insert_failed' );
 			}
 
 			// The definitive list and the notice's promotion are one change
@@ -380,10 +417,11 @@ final class RecruitmentCsvImporter {
 	/**
 	 * Phase 4 — atomic swap of the staged list into the live table. {@see CsvStagingService::commit_job()}.
 	 *
-	 * @param string $job_id Job identifier.
-	 * @return array{ok: true, inserted: int}|array{ok: false, errors: list<string>}
+	 * @param string $job_id           Job identifier.
+	 * @param bool   $confirm_reimport The operator confirmed the comparison with the stored list (#2245).
+	 * @return array{ok: true, inserted: int}|array{ok: false, errors: list<string>, diff?: Diff}
 	 */
-	public static function commit_job( string $job_id ) {
-		return CsvStagingService::commit_job( $job_id );
+	public static function commit_job( string $job_id, bool $confirm_reimport = false ) {
+		return CsvStagingService::commit_job( $job_id, $confirm_reimport );
 	}
 }

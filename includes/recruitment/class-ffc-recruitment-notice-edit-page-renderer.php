@@ -332,9 +332,10 @@ final class RecruitmentNoticeEditPageRenderer {
 	 *   - definitive_import — upload a brand-new CSV that becomes the
 	 *     definitive list.
 	 *
-	 * If `definitive` rows already exist (e.g. from a prior promote
-	 * cycle), neither mode applies — the operator just promotes the
-	 * status. We detect that here and route accordingly.
+	 * If `definitive` rows already exist (from a cycle that went back to
+	 * preliminary), both modes replace them (#2245): before, a third path
+	 * only flipped the status and kept that list, so a corrected
+	 * preliminary list never reached the definitive one.
 	 *
 	 * @param object $notice       Notice row.
 	 * @phpstan-param NoticeRow $notice
@@ -342,8 +343,8 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * @return void
 	 */
 	private static function render_preliminary_to_final_options( object $notice, string $nonce_action ): void {
-		$id             = (int) $notice->id;
-		$has_definitive = ! empty( RecruitmentClassificationRepository::get_for_notice( $id, 'definitive' ) );
+		$id               = (int) $notice->id;
+		$definitive_count = RecruitmentClassificationRepository::count_for_notice_list( $id, 'definitive' );
 
 		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/promote-to-definitive-options.php';
 	}

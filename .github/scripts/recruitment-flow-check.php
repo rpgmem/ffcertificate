@@ -35,6 +35,7 @@ declare(strict_types=1);
 use FreeFormCertificate\Core\SensitiveFieldRegistry;
 use FreeFormCertificate\Recruitment\RecruitmentAccountLinker;
 use FreeFormCertificate\Recruitment\RecruitmentAdjutancyWriter;
+use FreeFormCertificate\Recruitment\RecruitmentClassificationRepository;
 use FreeFormCertificate\Recruitment\RecruitmentCallReader;
 use FreeFormCertificate\Recruitment\RecruitmentCallService;
 use FreeFormCertificate\Recruitment\RecruitmentCandidateReader;
@@ -44,6 +45,7 @@ use FreeFormCertificate\Recruitment\RecruitmentNoticeAdjutancyRepository;
 use FreeFormCertificate\Recruitment\RecruitmentNoticeReader;
 use FreeFormCertificate\Recruitment\RecruitmentNoticeStateMachine;
 use FreeFormCertificate\Recruitment\RecruitmentNoticeWriter;
+use FreeFormCertificate\Recruitment\RecruitmentPromotionService;
 
 $wp_root = (string) ( $argv[1] ?? '' );
 
@@ -296,7 +298,16 @@ if ( $result['success'] || empty( $result['mismatches'] ) || array( 'name' ) !==
 if ( 2 !== count( ffc_rf_rows( $draft, 'preview' ) ) ) {
 	ffc_rf_fail( 'A held import changed the list.' );
 }
+// The file drops a row of a list that has two, so it also waits for the
+// comparison to be confirmed (#2245).
 $result = RecruitmentCsvImporter::import_preview( $draft, $renamed, true );
+if ( $result['success'] || ! isset( $result['diff'] ) || 1 !== count( $result['diff']['removed'] ) ) {
+	ffc_rf_fail( 'A re-import that drops a row did not wait for the comparison: ' . wp_json_encode( $result ) );
+}
+if ( 2 !== count( ffc_rf_rows( $draft, 'preview' ) ) ) {
+	ffc_rf_fail( 'A re-import waiting for the comparison changed the list.' );
+}
+$result = RecruitmentCsvImporter::import_preview( $draft, $renamed, true, true );
 if ( ! $result['success'] ) {
 	ffc_rf_fail( 'The acknowledged import failed: ' . implode( ' | ', $result['errors'] ) );
 }
@@ -309,6 +320,71 @@ $conflict = "name,cpf,rf,email,adjutancy,rank,score,pcd\n"
 $result   = RecruitmentCsvImporter::import_preview( $draft, $conflict, true );
 if ( $result['success'] || false === strpos( implode( ' ', $result['errors'] ), 'recruitment_csv_identity_conflict' ) ) {
 	ffc_rf_fail( 'A CPF and an RF of two candidates were not refused: ' . wp_json_encode( $result ) );
+}
+
+// A corrected preliminary list (#2245): a manual status survives the
+// re-import, the promotion after going back to preliminary copies the new
+// list, and a bare status flip is refused.
+$cycle = RecruitmentNoticeWriter::create( 'CI-FLOW-C-' . $suffix, 'CI flow cycle' );
+if ( false === $cycle ) {
+	ffc_rf_fail( 'Could not create the cycle notice.' );
+}
+$cycle                       = (int) $cycle;
+$ffc_rf_planted['notices'][] = $cycle;
+RecruitmentNoticeAdjutancyRepository::attach( $cycle, (int) $adjutancy );
+if ( ! RecruitmentCsvImporter::import_preview( $cycle, $csv )['success'] ) {
+	ffc_rf_fail( 'Preview import on the cycle notice failed.' );
+}
+RecruitmentNoticeStateMachine::transition_to( $cycle, 'preliminary' );
+$snapshot = RecruitmentPromotionService::snapshot_to_definitive( $cycle );
+if ( ! $snapshot['success'] || 2 !== $snapshot['copied'] ) {
+	ffc_rf_fail( 'The first copy to definitive failed: ' . wp_json_encode( $snapshot ) );
+}
+$back = RecruitmentNoticeStateMachine::transition_to( $cycle, 'preliminary' );
+if ( ! $back['success'] ) {
+	ffc_rf_fail( 'definitive -> preliminary with no calls failed: ' . implode( ' | ', $back['errors'] ) );
+}
+$preview_rows = RecruitmentClassificationRepository::get_for_notice( $cycle, 'preview' );
+$bruno        = null;
+foreach ( $preview_rows as $row ) {
+	if ( 2 === (int) $row->rank ) {
+		$bruno = $row;
+	}
+}
+if ( null === $bruno || ! RecruitmentClassificationRepository::set_preview_status( (int) $bruno->id, 'denied', null ) ) {
+	ffc_rf_fail( 'Could not mark the preliminary row by hand.' );
+}
+$corrected = "name,cpf,rf,email,adjutancy,rank,score,pcd\n"
+	. "Bruno Flow,20456942084,5181780,ci-flow-b@example.test,ci-flow-{$suffix},1,95,nao\n"
+	. "Ana Flow,51817842080,,ci-flow-a@example.test,ci-flow-{$suffix},2,90.5,nao\n";
+$result    = RecruitmentCsvImporter::import_preview( $cycle, $corrected );
+if ( $result['success'] || ! isset( $result['diff'] ) || 2 !== count( $result['diff']['changed'] ) || 1 !== $result['diff']['marks_kept'] ) {
+	ffc_rf_fail( 'The corrected list did not report its changes: ' . wp_json_encode( $result ) );
+}
+if ( ! RecruitmentCsvImporter::import_preview( $cycle, $corrected, false, true )['success'] ) {
+	ffc_rf_fail( 'The confirmed corrected import failed.' );
+}
+$kept = null;
+foreach ( RecruitmentClassificationRepository::get_for_notice( $cycle, 'preview' ) as $row ) {
+	if ( (int) $row->candidate_id === (int) $bruno->candidate_id ) {
+		$kept = $row;
+	}
+}
+if ( null === $kept || 'denied' !== (string) $kept->preview_status || 1 !== (int) $kept->rank ) {
+	ffc_rf_fail( 'The manual status did not survive the re-import: ' . wp_json_encode( $kept ) );
+}
+if ( ! RecruitmentPromotionService::is_bare_promotion( $cycle, 'definitive' ) ) {
+	ffc_rf_fail( 'A bare preliminary -> definitive flip was not recognised.' );
+}
+if ( ! RecruitmentPromotionService::snapshot_to_definitive( $cycle )['success'] ) {
+	ffc_rf_fail( 'The second copy to definitive failed.' );
+}
+$ranks = array();
+foreach ( RecruitmentClassificationRepository::get_for_notice( $cycle, 'definitive' ) as $row ) {
+	$ranks[ (int) $row->candidate_id ] = (int) $row->rank;
+}
+if ( 1 !== ( $ranks[ (int) $bruno->candidate_id ] ?? 0 ) || 2 !== count( $ranks ) ) {
+	ffc_rf_fail( 'The promotion kept the old definitive list: ' . wp_json_encode( $ranks ) );
 }
 
 $deleted = RecruitmentDeleteService::delete_notice( $draft );
@@ -324,5 +400,5 @@ if ( 0 !== $left || array() !== $junction || null !== RecruitmentNoticeReader::g
 }
 
 ffc_rf_cleanup();
-echo "Recruitment flow: draft import makes no account, the batch links once, the definitive import promotes in one change and refuses a second, a published notice is not deleted, a cancelled call ends and the row can be called again, nobody is called on a draft, a row naming somebody else waits for the operator and keeps the stored identity, a CPF and an RF of two candidates are refused, a draft is deleted with its rows.\n";
+echo "Recruitment flow: draft import makes no account, the batch links once, the definitive import promotes in one change and refuses a second, a published notice is not deleted, a cancelled call ends and the row can be called again, nobody is called on a draft, a row naming somebody else waits for the operator and keeps the stored identity, a CPF and an RF of two candidates are refused, a re-import waits for its comparison and keeps manual statuses, the promotion after going back copies the corrected list, a draft is deleted with its rows.\n";
 exit( 0 );

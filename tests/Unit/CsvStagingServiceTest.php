@@ -268,6 +268,10 @@ class CsvStagingServiceTest extends TestCase {
 		if ( false !== strpos( $sql, 'FROM ' . self::STAGING . ' WHERE job_id = %s AND processed = 0 ORDER BY row_no LIMIT %d' ) ) {
 			return $this->batch;
 		}
+		if ( 'SELECT * FROM %i WHERE notice_id = %d AND list_type = %s ORDER BY `rank` ASC, candidate_id ASC' === $sql ) {
+			// The list a commit replaces (#2245): empty, so no comparison waits.
+			return $this->rule_answers['stored_list'] ?? array();
+		}
 		$this->fail( 'Unexpected get_results: ' . $sql );
 	}
 

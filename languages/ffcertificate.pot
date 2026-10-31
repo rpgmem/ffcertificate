@@ -928,10 +928,6 @@ msgstr ""
 msgid "A database foreign-key backstop enforces the same anonymise/remove behaviour even if the application hook is bypassed."
 msgstr ""
 
-#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php:29
-msgid "A definitive list already exists for this notice. Promoting just flips the status to `definitive` (the existing definitive list is preserved)."
-msgstr ""
-
 #: includes/settings/views/documentation/feature-record.php:138
 msgid "A dependent_select custom field (e.g. divisao_setor) exposes three placeholders: the combined value plus its two halves. Use whichever the layout needs."
 msgstr ""
@@ -1091,10 +1087,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-captcha.php:49
 msgid "A visitor without JavaScript cannot submit the form at all. The widget also refuses to run outside a secure connection, so this mode cannot be saved on a site that is not served over HTTPS."
-msgstr ""
-
-#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php:81
-msgid "A — Publish preliminary as definitive (snapshot, no changes)"
 msgstr ""
 
 #. 1: number of selected rows, 2: date, 3: time
@@ -13017,10 +13009,6 @@ msgstr ""
 msgid "Progress"
 msgstr ""
 
-#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php:74
-msgid "Promote (snapshot) to definitive?"
-msgstr ""
-
 #: templates/admin/recruitment/admin-page/notices-empty-state.php:29
 msgid "Promote the preliminary list to definitive once you're ready, and call candidates per row or in bulk."
 msgstr ""
@@ -16692,10 +16680,6 @@ msgstr ""
 msgid "the end-user self-service caps."
 msgstr ""
 
-#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php:34
-msgid "The existing definitive list is preserved as-is."
-msgstr ""
-
 #: templates/public/set-password.php:28
 msgid "The form expired before it was sent. Try again."
 msgstr ""
@@ -19391,10 +19375,6 @@ msgstr ""
 msgid "You appear to be offline. Reconnect to the internet and try again."
 msgstr ""
 
-#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php:41
-msgid "You are about to flip the notice status to `definitive`."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-adjutancies-list-table.php:104
 msgid "You are about to permanently delete this adjutancy."
 msgstr ""
@@ -19413,10 +19393,6 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-reasons-list-table.php:143
 msgid "You are about to permanently delete this reason."
-msgstr ""
-
-#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php:75
-msgid "You are about to snapshot the preliminary list as the definitive list."
 msgstr ""
 
 #: includes/api/class-ffc-user-audience-rest-controller.php:402
@@ -30836,4 +30812,114 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "Closed shows each row's position and score, as Waiting does. When a notice is closed, its rows leave Called and Waiting and are listed under Closed. A row with no result yet reads \"Notice closed\"; a recorded result or a passed deadline keeps its own badge. Only the label changes: the candidate's status in the notice stays as it was."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+#, php-format
+msgid "%s more row is not listed."
+msgid_plural "%s more rows are not listed."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+#, php-format
+msgid "%s row changes rank or score."
+msgid_plural "%s rows change rank or score."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+#, php-format
+msgid "%s row enters the list."
+msgid_plural "%s rows enter the list."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+#, php-format
+msgid "%s row is unchanged."
+msgid_plural "%s rows are unchanged."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+#, php-format
+msgid "%s row leaves the list."
+msgid_plural "%s rows leave the list."
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php
+#, php-format
+msgid "A definitive list from an earlier cycle exists (%s row). Either option below replaces it."
+msgid_plural "A definitive list from an earlier cycle exists (%s rows). Either option below replaces it."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "A file that replaces a list that already has rows shows what it changes before anything is written: the rows that enter, leave, or change rank or score. Nothing is imported until the operator confirms. The preliminary status and reason set by hand stay with each candidate and adjutancy that remains; only those of the rows that leave are lost, and the comparison says how many."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "A preliminary notice is promoted only by \"Copy preliminary as definitive\" or by importing a definitive list. When a definitive list remains from an earlier cycle, because the notice went back to preliminary, both replace it, so the definitive list always comes from the corrected preliminary one or from the new file."
+msgstr ""
+
+#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php
+msgid "A — Copy preliminary as definitive"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+msgid "Changes: %1$s, %2$s, rank %3$s → %4$s, score %5$s → %6$s."
+msgstr ""
+
+#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php
+msgid "Copy the preliminary list as definitive?"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+msgid "Enters: %1$s, %2$s, rank %3$s."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+msgid "Leaves: %1$s, %2$s, rank %3$s."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+msgid "Leaves: %1$s, %2$s, rank %3$s. Its manual status is lost."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+msgid "Manual preliminary statuses: %1$s kept, %2$s lost with the rows that leave."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "Promote a preliminary notice by copying the preliminary list or importing a definitive one, so the definitive list is always the current one."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "Promote a preliminary notice with \"Copy preliminary as definitive\" or by importing a definitive list."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "Replace list"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "Replace the list?"
+msgstr ""
+
+#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php
+msgid "The definitive list from the earlier cycle is replaced."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "The file replaces a list that already has rows. Review what changes and confirm to import; nothing was written yet."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "This file replaces a list that already has rows. Every row that enters, leaves or changes is listed below the form. Manual preliminary statuses are kept for the rows that stay."
+msgstr ""
+
+#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php
+msgid "You are about to copy the preliminary list as the definitive list."
 msgstr ""

@@ -463,7 +463,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringNotContainsString( 'Back to draft', $html );
 	}
 
-	public function test_render_status_section_preliminary_with_existing_definitive_single_button(): void {
+	public function test_render_status_section_preliminary_with_a_stale_definitive_list_still_replaces_it(): void {
 		$this->classifications['definitive'] = array( $this->cls_row( 1, 1, 'empty', 1, 100 ) );
 
 		ob_start();
@@ -471,8 +471,13 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertSame( array( 'definitive' ), $this->classification_reads() );
-		$this->assertStringContainsString( 'A definitive list already exists', $html );
-		$this->assertStringNotContainsString( 'ffcRecruitmentSnapshotPromote', $html );
+		// #2245: the list from the earlier cycle is replaced by either path,
+		// never kept by a bare status flip.
+		$this->assertStringContainsString( 'A definitive list from an earlier cycle exists (1 row). Either option below replaces it.', $html );
+		$this->assertStringContainsString( 'ffcRecruitmentSnapshotPromote', $html );
+		$this->assertStringContainsString( 'A — Copy preliminary as definitive', $html );
+		$this->assertStringContainsString( 'The definitive list from the earlier cycle is replaced.', $html );
+		$this->assertStringNotContainsString( 'name="target_status" value="definitive"', $html );
 	}
 
 	public function test_render_status_section_definitive_renders_close_transition(): void {

@@ -24,6 +24,8 @@ require_once __DIR__ . '/class-ffc-recruitment-rest-support-trait.php';
 
 /**
  * REST controller for the recruitment classifications slice.
+ *
+ * @phpstan-import-type Diff from RecruitmentReimportDiff
  */
 final class RecruitmentClassificationsRestController {
 
@@ -423,10 +425,13 @@ final class RecruitmentClassificationsRestController {
 			);
 		}
 
-		$result = RecruitmentCsvImporter::import_preview( $id, $content, $this->acknowledged_identity( $request ) );
+		$result = RecruitmentCsvImporter::import_preview( $id, $content, $this->acknowledged_identity( $request ), $this->confirmed_reimport( $request ) );
 
 		if ( ! empty( $result['mismatches'] ) ) {
 			return $this->identity_mismatch_error( $result['mismatches'] );
+		}
+		if ( isset( $result['diff'] ) ) {
+			return $this->reimport_diff_error( $result['diff'] );
 		}
 		if ( ! $result['success'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
@@ -555,7 +560,10 @@ final class RecruitmentClassificationsRestController {
 	public function import_job_commit( \WP_REST_Request $request ) {
 		$job_id = (string) $request->get_param( 'job_id' );
 
-		$result = RecruitmentCsvImporter::commit_job( $job_id );
+		$result = RecruitmentCsvImporter::commit_job( $job_id, $this->confirmed_reimport( $request ) );
+		if ( ! $result['ok'] && isset( $result['diff'] ) ) {
+			return $this->reimport_diff_error( $result['diff'] );
+		}
 		if ( ! $result['ok'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}
@@ -614,9 +622,12 @@ final class RecruitmentClassificationsRestController {
 
 		// The importer refuses a notice that is not `preliminary` or already
 		// has calls, and promotes it in the same transaction (#2245).
-		$result = RecruitmentCsvImporter::import_definitive( $id, $content, $this->acknowledged_identity( $request ) );
+		$result = RecruitmentCsvImporter::import_definitive( $id, $content, $this->acknowledged_identity( $request ), $this->confirmed_reimport( $request ) );
 		if ( ! empty( $result['mismatches'] ) ) {
 			return $this->identity_mismatch_error( $result['mismatches'] );
+		}
+		if ( isset( $result['diff'] ) ) {
+			return $this->reimport_diff_error( $result['diff'] );
 		}
 		if ( ! $result['success'] ) {
 			// A notice in the wrong state is a conflict; a bad file is not.
@@ -640,6 +651,38 @@ final class RecruitmentClassificationsRestController {
 	 */
 	private function acknowledged_identity( \WP_REST_Request $request ): bool {
 		return true === filter_var( $request->get_param( 'acknowledge_identity' ), FILTER_VALIDATE_BOOLEAN );
+	}
+
+	/**
+	 * Whether the request carries the operator's confirmation of the
+	 * comparison with the list it replaces (#2245).
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return bool
+	 */
+	private function confirmed_reimport( \WP_REST_Request $request ): bool {
+		return true === filter_var( $request->get_param( 'confirm_reimport' ), FILTER_VALIDATE_BOOLEAN );
+	}
+
+	/**
+	 * The 409 an import answers while the comparison with the stored list
+	 * waits for the operator. Nothing was written.
+	 *
+	 * @param array $diff From {@see RecruitmentReimportDiff::compute()}.
+	 * @phpstan-param Diff $diff
+	 * @return \WP_Error
+	 */
+	private function reimport_diff_error( array $diff ): \WP_Error {
+		$messages = RecruitmentReimportDiff::messages( $diff );
+		return new \WP_Error(
+			RecruitmentReimportDiff::CONFIRM_CODE,
+			RecruitmentErrorMessages::translate( RecruitmentReimportDiff::CONFIRM_CODE ),
+			array(
+				'status'        => 409,
+				'diff_summary'  => $messages['summary'],
+				'diff_messages' => $messages['lines'],
+			)
+		);
 	}
 
 	/**

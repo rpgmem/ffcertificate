@@ -142,6 +142,11 @@ final class RecruitmentNoticesRestController {
 		// activity-log instrumentation fire correctly.
 		$new_status = $request->get_param( 'status' );
 		if ( is_string( $new_status ) && '' !== $new_status ) {
+			// Promotion copies or imports the definitive list (#2245):
+			// `POST /notices/{id}/promote-preview` is the only way in.
+			if ( RecruitmentPromotionService::is_bare_promotion( $id, $new_status ) ) {
+				return $this->wp_error_from_envelope( array( 'recruitment_promotion_requires_promote_flow' ), 409 );
+			}
 			$reason     = $request->get_param( 'reason' );
 			$transition = RecruitmentNoticeStateMachine::transition_to(
 				$id,
