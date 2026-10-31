@@ -16,8 +16,8 @@
  *   - `reveal` — holders of `ffc_view_recruitment_pii` (the Recruitment
  *     Manager and Administrator roles, FFC Administrator) and WordPress
  *     administrators. A masked placeholder; clicking "Reveal" hits the REST
- *     endpoint, which decrypts the value and writes an audit entry (subject
- *     to dedup + the `audit_pii_reveals` setting).
+ *     endpoint, which decrypts the value and writes an audit entry for
+ *     every reveal.
  *   - `masked` — everyone else. The button is not rendered.
  *
  * Until #1863 WordPress administrators and `ffc_recruitment_admin` saw the
@@ -91,8 +91,7 @@ final class RecruitmentPiiAccessPolicy {
 	 * Convenience predicate: does revealing fire an audit row?
 	 *
 	 * Every staff reveal audits; only the candidate reading their own row
-	 * does not. The dedup + `audit_pii_reveals` setting are enforced caller-side
-	 * (the reveal handler), not here.
+	 * does not.
 	 *
 	 * @param object|null $candidate Candidate row, or null.
 	 * @param int|null    $user_id   User to check; defaults to current user.

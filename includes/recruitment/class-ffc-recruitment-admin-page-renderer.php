@@ -200,6 +200,8 @@ final class RecruitmentAdminPageRenderer {
 			'delete-blocked'              => array( 'error', __( 'Delete blocked: candidate still has classifications. Remove them first or leave the candidate row in place.', 'ffcertificate' ) ),
 			'link-user-ok'                => array( 'success', __( 'Candidate linked to the WP user.', 'ffcertificate' ) ),
 			'link-user-not-found'         => array( 'error', __( 'No WP user found for that lookup. Try the numeric ID, exact login, or full email.', 'ffcertificate' ) ),
+			'link-user-self'              => array( 'error', __( 'You cannot link a candidate to your own account.', 'ffcertificate' ) ),
+			'link-user-mismatch'          => array( 'error', __( 'That account does not carry this candidate\'s CPF, RF or e-mail. Only a holder of the PII capability can link it.', 'ffcertificate' ) ),
 			'unlink-user-ok'              => array( 'success', __( 'Candidate unlinked from the WP user. The wp_user account was not deleted.', 'ffcertificate' ) ),
 			'rank-mandatory'              => array( 'error', __( 'public_columns_config rejected: `rank` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
 			'name-mandatory'              => array( 'error', __( 'public_columns_config rejected: `name` cannot be set to false (mandatory column).', 'ffcertificate' ) ),

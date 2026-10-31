@@ -33,6 +33,7 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  * answers true), not the candidate, whose account is {@see self::OWNER}.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentCandidatesRestController
+ * @covers \FreeFormCertificate\Recruitment\RecruitmentCandidateEditor
  */
 class RecruitmentCandidatesRestControllerTest extends TestCase {
 
@@ -112,6 +113,9 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => trim( (string) $v ) );
+		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => trim( (string) $v ) );
+		Functions\when( 'sanitize_email' )->alias( static fn( $v ) => trim( (string) $v ) );
 		Functions\when( 'current_user_can' )->justReturn( false );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
@@ -532,7 +536,19 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 	// update_candidate()
 	// ------------------------------------------------------------------
 
+	public function test_update_candidate_returns_404_for_an_unknown_candidate(): void {
+		$result = $this->controller->update_candidate(
+			$this->make_request( array( 'id' => 5, 'name' => 'X' ) )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_candidate_not_found', $result->get_error_code() );
+		$this->assertSame( array(), $this->writes );
+	}
+
 	public function test_update_candidate_returns_400_when_no_writable_fields(): void {
+		$this->store_candidate();
+
 		$result = $this->controller->update_candidate(
 			$this->make_request( array( 'id' => 5, 'irrelevant' => 'x' ) )
 		);
@@ -544,6 +560,7 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 	}
 
 	public function test_update_candidate_returns_409_when_writer_fails(): void {
+		$this->store_candidate();
 		$this->update_result = false;
 
 		$result = $this->controller->update_candidate(
@@ -555,58 +572,101 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$this->assertSame( 409, $result->get_error_data()['status'] );
 		$this->assertCount( 1, $this->writes );
 		$this->assertSame( array( 'id' => 5 ), $this->writes[0][3] );
+		$this->assertSame( array(), $this->logged( 'recruitment_candidate_fields_edited' ), 'A failed write logs no change.' );
 	}
 
-	public function test_update_candidate_success_returns_reshaped_row(): void {
+	public function test_update_candidate_writes_the_general_fields_and_logs_the_diff(): void {
 		$this->store_candidate();
 
 		$response = $this->controller->update_candidate(
-			$this->make_request( array( 'id' => 5, 'name' => 'New Name', 'phone' => '123', 'notes' => 'n' ) )
+			$this->make_request( array( 'id' => 5, 'name' => 'New Name', 'phone' => '11999998888', 'notes' => '' ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertSame( 5, $response->get_data()['id'] );
-		// Only the writable plain fields make it through (no cpf/rf/email here).
 		$this->assertCount( 1, $this->writes );
 		$written = $this->writes[0][2];
 		unset( $written['updated_at'] );
-		$this->assertSame( array( 'name' => 'New Name', 'phone' => '123', 'notes' => 'n' ), $written );
+		$this->assertSame( array( 'name' => 'New Name', 'phone' => '11999998888', 'notes' => null ), $written );
+		$this->assertSame(
+			array(
+				array(
+					'candidate_id' => 5,
+					'changes'      => array(
+						'name'  => array(
+							'old' => 'Jane Doe',
+							'new' => 'New Name',
+						),
+						'notes' => array(
+							'old' => 'a note',
+							'new' => '',
+						),
+					),
+				),
+			),
+			$this->logged( 'recruitment_candidate_fields_edited' ),
+			'An unchanged phone is not reported.'
+		);
 	}
 
-	public function test_update_candidate_encrypts_sensitive_fields(): void {
+	/**
+	 * @dataProvider identifier_provider
+	 */
+	public function test_update_candidate_never_writes_an_identifier( string $key, string $value ): void {
 		$this->store_candidate();
 
-		$response = $this->controller->update_candidate(
-			$this->make_request(
-				array(
-					'id'    => 5,
-					'cpf'   => DocumentFormatter::format_cpf( Identifiers::CPF_A ),
-					'rf'    => DocumentFormatter::format_rf( Identifiers::RF_A ),
-					'email' => '  Jane@Example.COM ',
-				)
-			)
+		$result = $this->controller->update_candidate(
+			$this->make_request( array( 'id' => 5, 'name' => 'New Name', $key => $value ) )
 		);
 
-		$this->assertSame( 200, $response->get_status() );
-		$this->assertCount( 1, $this->writes );
-		$written = $this->writes[0][2];
-		// Normalised before encryption: digits only, and the e-mail lowercased.
-		$this->assertSame( Identifiers::CPF_A, Encryption::decrypt( $written['cpf_encrypted'] ) );
-		$this->assertSame( Identifiers::RF_A, Encryption::decrypt( $written['rf_encrypted'] ) );
-		$this->assertSame( self::EMAIL, Encryption::decrypt( $written['email_encrypted'] ) );
-		$this->assertSame( Encryption::hash( Identifiers::CPF_A ), $written['cpf_hash'] );
-		$this->assertSame( Encryption::hash( Identifiers::RF_A ), $written['rf_hash'] );
-		$this->assertSame( Encryption::hash( self::EMAIL ), $written['email_hash'] );
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_candidate_identifier_not_editable', $result->get_error_code() );
+		$this->assertSame( 400, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->writes, 'The name is not written either: the request is refused whole.' );
 	}
 
-	public function test_update_candidate_success_with_null_row_returns_null_data(): void {
-		// No candidate 5 is stored, so the re-read after the write finds nothing.
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public function identifier_provider(): array {
+		return array(
+			'cpf' => array( 'cpf', Identifiers::CPF_B ),
+			'rf'  => array( 'rf', Identifiers::RF_B ),
+		);
+	}
+
+	public function test_update_candidate_writes_the_email_for_the_reveal_tier_and_logs_hashes(): void {
+		$this->store_candidate( array( 'email_hash' => Encryption::hash( self::EMAIL ) ) );
+
 		$response = $this->controller->update_candidate(
-			$this->make_request( array( 'id' => 5, 'name' => 'X' ) )
+			$this->make_request( array( 'id' => 5, 'email' => '  New@Example.COM ' ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
-		$this->assertNull( $response->get_data() );
+		$written = $this->writes[0][2];
+		$this->assertSame( 'new@example.com', Encryption::decrypt( $written['email_encrypted'] ) );
+		$this->assertSame( Encryption::hash( 'new@example.com' ), $written['email_hash'] );
+		$this->assertSame(
+			array(
+				'old' => Encryption::hash( self::EMAIL ),
+				'new' => Encryption::hash( 'new@example.com' ),
+			),
+			$this->logged( 'recruitment_candidate_fields_edited' )[0]['changes']['email_hash']
+		);
+	}
+
+	public function test_update_candidate_refuses_the_email_to_the_masked_tier(): void {
+		$this->store_candidate();
+		Functions\when( 'user_can' )->justReturn( false );
+
+		$result = $this->controller->update_candidate(
+			$this->make_request( array( 'id' => 5, 'email' => 'other@example.com' ) )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_candidate_email_not_editable', $result->get_error_code() );
+		$this->assertSame( 403, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->writes );
 	}
 
 	// ------------------------------------------------------------------
@@ -825,6 +885,8 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 			'name'         => 'Notice 7',
 			'status'       => 'open',
 			'was_reopened' => '1',
+			// Score shown publicly, so the candidate sees it too.
+			'public_columns_config' => '{"score":true}',
 		);
 		$this->rows[ self::T_NOTICE ][8] = (object) array(
 			'id'           => 8,
@@ -832,10 +894,11 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 			'name'         => 'Draft',
 			'status'       => 'draft',
 			'was_reopened' => '0',
+			'public_columns_config' => '{}',
 		);
 		$this->history = array(
-			(object) array( 'id' => 900, 'classification_id' => 100 ),
-			(object) array( 'id' => 901, 'classification_id' => 102 ),
+			$this->call_row( 900, 100 ),
+			$this->call_row( 901, 102 ),
 		);
 
 		$response = $this->controller->get_my_recruitment();
@@ -866,7 +929,72 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		// Ranking 102's row exists in the batch's return but does not reach here:
 		// its call was discarded. Ranking 100's does, grouped.
 		$this->assertCount( 1, $data[0]['classifications'][0]['calls'] );
-		$this->assertSame( 900, $data[0]['classifications'][0]['calls'][0]->id );
+		$this->assertSame(
+			array(
+				'id'                  => 900,
+				'called_at'           => 1700000000,
+				'date_to_assume'      => '2026-11-10',
+				'time_to_assume'      => '09:00:00',
+				'notes'               => 'Bring your documents.',
+				'cancelled_at'        => null,
+				'cancellation_reason' => null,
+			),
+			$data[0]['classifications'][0]['calls'][0],
+			'The candidate gets what "My calls" shows, never the staff fields of the call.'
+		);
+		$this->assertSame( '9.5', $data[0]['classifications'][0]['score'] );
+	}
+
+	public function test_get_my_recruitment_hides_the_score_the_notice_hides(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( self::OWNER );
+		$this->store_candidate();
+		$this->rows[ self::T_CLASSIFICATION ][100] = (object) array(
+			'id'           => 100,
+			'candidate_id' => 5,
+			'notice_id'    => 7,
+			'adjutancy_id' => 3,
+			'list_type'    => 'definitive',
+			'rank'         => 1,
+			'score'        => '9.5',
+			'status'       => 'empty',
+		);
+		$this->rows[ self::T_NOTICE ][7] = (object) array(
+			'id'                    => 7,
+			'code'                  => 'N-7',
+			'name'                  => 'Notice 7',
+			'status'                => 'definitive',
+			'was_reopened'          => '0',
+			'public_columns_config' => '{"score":false}',
+		);
+
+		$data = $this->controller->get_my_recruitment()->get_data();
+
+		$this->assertArrayNotHasKey( 'score', $data[0]['classifications'][0] );
+	}
+
+	/**
+	 * A call row with the staff-only columns filled in.
+	 *
+	 * @param int $id                Call ID.
+	 * @param int $classification_id Classification ID.
+	 */
+	private function call_row( int $id, int $classification_id ): object {
+		return (object) array(
+			'id'                  => (string) $id,
+			'classification_id'   => (string) $classification_id,
+			'called_at'           => '1700000000',
+			'date_to_assume'      => '2026-11-10',
+			'time_to_assume'      => '09:00:00',
+			'out_of_order'        => '1',
+			'out_of_order_reason' => 'Staff-only reason',
+			'cancellation_reason' => null,
+			'cancelled_at'        => null,
+			'cancelled_by'        => null,
+			'notes'               => 'Bring your documents.',
+			'created_by'          => '3',
+			'created_at'          => '2026-11-01 10:00:00',
+			'updated_at'          => '2026-11-01 10:00:00',
+		);
 	}
 
 	// ------------------------------------------------------------------

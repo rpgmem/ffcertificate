@@ -215,27 +215,6 @@ foreach ( $notice_status_color_rows as $field => $label ) {
 echo '</tbody></table>';
 echo '</div>';
 
-// PII / audit toggle (#330). Lives at the bottom of the Settings
-// tab because it's a security knob, not a visual one — operators
-// who land here are usually adjusting palettes. The default is
-// `true` so the first save after the upgrade keeps auditing on.
-echo '<div class="card">';
-echo '<h2 class="ffc-icon-shield">' . esc_html__( 'PII access audit', 'ffcertificate' ) . '</h2>';
-echo '<p class="description">' . esc_html__( 'When enabled, every reveal of CPF / RF on the candidate detail screen by a non-admin user writes a row to the activity log (with a 60-second dedup per user + candidate + field). Recommended ON for compliance.', 'ffcertificate' ) . '</p>';
-echo '<table class="form-table"><tbody>';
-echo '<tr><th>' . esc_html__( 'Audit PII reveals', 'ffcertificate' ) . '</th><td>';
-\FreeFormCertificate\Admin\AdminUI::render_toggle(
-	array(
-		'name'    => $opt . '[audit_pii_reveals]',
-		'id'      => 'ffc-rs-audit-pii-reveals',
-		'checked' => ! empty( $settings['audit_pii_reveals'] ),
-		'data'    => array( 'ffc-autosave-key' => 'recruitment_audit_pii_reveals' ),
-	)
-);
-echo '</td></tr>';
-echo '</tbody></table>';
-echo '</div>';
-
 if ( $can_edit ) {
 	\FreeFormCertificate\Admin\AdminUI::render_save_button( '', array( 'value' => __( 'Save Changes', 'ffcertificate' ) ) );
 } else {

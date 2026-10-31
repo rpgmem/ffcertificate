@@ -59,6 +59,8 @@ final class RecruitmentCandidateHistoryService {
 	 */
 	private const RELEVANT_ACTIONS = array(
 		'recruitment_candidate_promoted',
+		'recruitment_candidate_account_linked',
+		'recruitment_candidate_account_unlinked',
 		'recruitment_candidate_fields_edited',
 		'recruitment_pii_revealed',
 		'recruitment_classification_status_changed',
@@ -185,6 +187,24 @@ final class RecruitmentCandidateHistoryService {
 						/* translators: %d — WP user ID */
 						__( 'Promoted to WordPress user #%d.', 'ffcertificate' ),
 						(int) ( $context['user_id'] ?? 0 )
+					)
+				);
+
+			case 'recruitment_candidate_account_linked':
+				return esc_html(
+					sprintf(
+						/* translators: %d — WP user ID */
+						__( 'Linked to WordPress user #%d.', 'ffcertificate' ),
+						(int) ( $context['linked_user'] ?? 0 )
+					)
+				);
+
+			case 'recruitment_candidate_account_unlinked':
+				return esc_html(
+					sprintf(
+						/* translators: %d — WP user ID */
+						__( 'Unlinked from WordPress user #%d.', 'ffcertificate' ),
+						(int) ( $context['previous_user'] ?? 0 )
 					)
 				);
 

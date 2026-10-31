@@ -334,6 +334,12 @@ final class RecruitmentPublicShortcode {
 			);
 		}
 
+		// PCD is health data: a notice that hides the PCD column must not
+		// let a visitor list who is PCD through the filter either (#2245).
+		if ( ! RecruitmentPublicShortcodeRenderer::parse_columns_config( (string) $notice->public_columns_config )['pcd_badge'] ) {
+			$subscription = '';
+		}
+
 		// preliminary, definitive, closed → render the listing. The list_type
 		// switches between `preview` (preliminary) and `definitive`
 		// (definitive/closed); the banner copy at the top differs accordingly.

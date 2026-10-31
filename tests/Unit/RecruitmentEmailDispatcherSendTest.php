@@ -252,6 +252,26 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 		$this->assertContains( 'From: "Recursos Humanos" <rh@example.test>', $captured['headers'] );
 	}
 
+	public function test_escapes_every_token_value_in_the_body_and_none_in_the_subject(): void {
+		Functions\when( 'esc_html' )->alias( static fn ( $v ) => htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) );
+		$this->candidate->name = 'Ana <script>x</script>';
+		$this->configure(
+			array(
+				'email_subject'      => 'Call for {{name}}',
+				'email_body_html'    => '<p>{{name}} — {{notes}}</p>',
+				'email_from_address' => '',
+				'email_from_name'    => '',
+			),
+			false
+		);
+
+		$this->assertTrue( RecruitmentEmailDispatcher::send_for_call( 7 ) );
+		$captured = $this->sent();
+		$this->assertStringContainsString( '<p>Ana &lt;script&gt;x&lt;/script&gt; — Bring documents</p>', $captured['body'], 'A name from the CSV is text in the HTML body, never markup.' );
+		$this->assertStringNotContainsString( '<script>', $captured['body'] );
+		$this->assertSame( 'Call for Ana <script>x</script>', $captured['subject'], 'The subject is a plain-text header: no entity reaches it.' );
+	}
+
 	public function test_sends_email_with_no_from_header_when_address_blank(): void {
 		$this->configure(
 			array(

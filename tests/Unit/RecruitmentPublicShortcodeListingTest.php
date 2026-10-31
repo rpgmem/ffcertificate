@@ -390,6 +390,19 @@ class RecruitmentPublicShortcodeListingTest extends TestCase {
 		$this->assertStringNotContainsString( 'Candidate 1', $html );
 	}
 
+	public function test_a_notice_hiding_the_pcd_column_ignores_the_subscription_filter(): void {
+		$this->withNotice( 'definitive' );
+		$this->notices['EDITAL-1']->public_columns_config = '{"pcd_badge":false}';
+		$this->candidates[1]   = $this->candidate( 1, 'Candidate 1', RecruitmentPcdHasher::compute( 1, false ) );
+		$this->candidates[2]   = $this->candidate( 2, 'Candidate 2', RecruitmentPcdHasher::compute( 2, true ) );
+		$this->classifications = array( $this->row( 1, 'empty' ), $this->row( 2, 'empty' ) );
+
+		$html = RecruitmentPublicShortcode::render_uncached( 'EDITAL-1', '', 1, 1, false, '', 'pcd' );
+
+		$this->assertSame( array( 1, 2 ), $this->sections( $html )[0]['candidates'], 'Filtering by PCD would disclose what the hidden column hides.' );
+		$this->assertStringNotContainsString( 'name="subscription"', $html, 'Nor is the PCD select offered.' );
+	}
+
 	public function test_a_name_that_matches_nobody_keeps_the_filters_and_says_so(): void {
 		$this->withNotice( 'definitive' );
 		$this->candidates[1]   = $this->candidate( 1, 'Ana' );

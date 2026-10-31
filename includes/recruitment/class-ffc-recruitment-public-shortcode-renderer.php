@@ -226,9 +226,13 @@ final class RecruitmentPublicShortcodeRenderer {
 	 * @return string
 	 */
 	public static function render_filters_bar( object $notice, bool $filter_locked, string $name_query, string $subscription = '' ): string {
-		$adjutancy_html    = $filter_locked ? '' : self::render_adjutancy_filter_inputs( (int) $notice->id );
-		$search_html       = self::render_name_search_input( $name_query );
-		$subscription_html = self::render_subscription_filter_inputs( $subscription );
+		$adjutancy_html = $filter_locked ? '' : self::render_adjutancy_filter_inputs( (int) $notice->id );
+		$search_html    = self::render_name_search_input( $name_query );
+		// The PCD filter exists only where the notice shows the PCD column
+		// (#2245): filtering by it would disclose what the column hides.
+		$subscription_html = self::parse_columns_config( (string) $notice->public_columns_config )['pcd_badge']
+			? self::render_subscription_filter_inputs( $subscription )
+			: '';
 
 		if ( '' === $adjutancy_html && '' === $search_html && '' === $subscription_html ) {
 			return '';
