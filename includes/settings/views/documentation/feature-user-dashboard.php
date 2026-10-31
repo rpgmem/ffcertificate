@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h4><?php esc_html_e( 'What the user sees', 'ffcertificate' ); ?></h4>
 		<ul>
 			<li><?php esc_html_e( 'Their own issued certificates, with download / verification links', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'Their personal-calendar appointments (with receipt / cancel actions where allowed)', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Their personal-calendar appointments (with receipt / cancel actions where allowed)', 'ffcertificate' ); ?> <?php esc_html_e( 'A waitlisted appointment is labelled Waitlisted and offers Leave waitlist; an open one that can no longer be cancelled says why, the calendar taking no online cancellations or the deadline having passed. An administrator is held to the calendar\'s admin bypass switch here as on the cancellation itself.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'The reregistration banner and "Download Record" action when a reregistration applies to them', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'View answers on a reregistration they sent, which opens their answers under the row even after the campaign closed. CPF, RF, RG, phones, e-mails and the birth date arrive masked behind a Reveal button; viewing as a user, the reveal is recorded in the activity log.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Their audience bookings, and the Recruitment tab with their call-ups, when they belong to an audience or are linked to a candidate', 'ffcertificate' ); ?></li>

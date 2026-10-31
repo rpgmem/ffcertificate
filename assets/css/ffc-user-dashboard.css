@@ -664,6 +664,12 @@
     color: var(--ffc-text-secondary);
 }
 
+/* A waitlisted appointment holds a queue place, not a time (#2244). */
+.ffc-pill.ffc-dashboard-status-waitlist {
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
+}
+
 /* No `opacity` in these four rules, on purpose (#1126).
    Opacity on a row fades the TEXT along with the background, so it multiplies
    down whatever contrast the tokens guaranteed — and the pair meter cannot see
@@ -675,6 +681,13 @@
 .ffc-appointments-table .ffc-row-past { background: var(--ffc-bg-alt); }
 .ffc-appointments-table .ffc-row-cancelled { background: var(--ffc-danger-bg); }
 .ffc-appointments-table .ffc-row-cancelled td { color: var(--ffc-text-muted); }
+
+/* Why an open appointment offers no Cancel (#2244). */
+.ffc-appointments-table .ffc-cancel-note {
+    display: block;
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-muted);
+}
 
 #ffc-tabpanel-appointments h3,
 #ffc-tabpanel-audience h3,
@@ -2070,7 +2083,8 @@
     .ffc-pill.ffc-dashboard-status-no_show,
     .ffc-pill.ffc-dashboard-status-pending,
     .ffc-pill.ffc-dashboard-status-rejected,
-    .ffc-pill.ffc-dashboard-status-submitted {
+    .ffc-pill.ffc-dashboard-status-submitted,
+    .ffc-pill.ffc-dashboard-status-waitlist {
         border: 1px solid CanvasText;
     }
 

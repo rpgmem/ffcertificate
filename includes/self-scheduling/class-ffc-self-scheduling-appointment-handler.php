@@ -752,10 +752,28 @@ class AppointmentHandler {
 		 */
 		do_action( 'ffcertificate_appointment_cancelled', $appointment_id, $appointment, $reason, $cancelled_by );
 
-		// Send cancellation emails.
+		// Send cancellation emails. The row read above predates the cancel,
+		// so the reason is carried in (#2244): without it a person who
+		// cancelled with a reason got an e-mail that dropped it.
+		$appointment['status']              = 'cancelled';
+		$appointment['cancellation_reason'] = $reason;
 		$this->schedule_email_notifications( $appointment, $calendar, 'cancelled' );
 
 		return true;
+	}
+
+	/**
+	 * Whether cancelling an appointment on this calendar e-mails the person
+	 * (#2244), so a page that confirms a cancellation promises an e-mail only
+	 * when one is on its way.
+	 *
+	 * @param array<string, mixed> $calendar Calendar row.
+	 * @return bool
+	 */
+	public static function sends_cancellation_email( array $calendar ): bool {
+		$email_config = json_decode( \FreeFormCertificate\Core\ArrayValue::string( $calendar, 'email_config' ), true );
+
+		return is_array( $email_config ) && ! empty( $email_config['send_cancellation_notification'] ) && ! self::ffc_emails_disabled();
 	}
 
 	/**

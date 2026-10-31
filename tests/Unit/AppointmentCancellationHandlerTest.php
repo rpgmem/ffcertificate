@@ -432,6 +432,31 @@ class AppointmentCancellationHandlerTest extends TestCase {
 	}
 
 	/**
+	 * The success page promises an e-mail only when the calendar sends one
+	 * (#2244).
+	 */
+	public function test_process_cancellation_promises_no_email_the_calendar_does_not_send(): void {
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'sanitize_textarea_field' )->returnArg();
+
+		$appt_handler = Mockery::mock( 'FreeFormCertificate\SelfScheduling\AppointmentHandler' );
+		$appt_handler->shouldReceive( 'cancel_appointment' )->andReturn( true );
+		Functions\when( 'add_filter' )->justReturn( true );
+		Functions\when( 'add_action' )->justReturn( true );
+		$handler  = new AppointmentCancellationHandler( $appt_handler );
+		$captured = $this->stub_render_capture();
+
+		try {
+			$this->invoke_process_cancellation( $handler, 42, 'tok', '', false );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'render-page', $e->getMessage() );
+		}
+
+		$this->assert_captured_contains( $captured, 'Your appointment has been cancelled.' );
+		$this->assertNotContains( 'Your appointment has been cancelled. A confirmation e-mail is on its way.', $captured->getArrayCopy() );
+	}
+
+	/**
 	 * "Cancel and book a new time" (#2244): the reason is filled in when the
 	 * person typed none, and the browser goes to the calendar's page.
 	 */
@@ -655,9 +680,9 @@ class AppointmentCancellationHandlerTest extends TestCase {
 	/**
 	 * Invoke the private process_cancellation().
 	 */
-	private function invoke_process_cancellation( AppointmentCancellationHandler $handler, int $id, string $token, string $next = '' ): void {
+	private function invoke_process_cancellation( AppointmentCancellationHandler $handler, int $id, string $token, string $next = '', bool $emails = true ): void {
 		$ref = new \ReflectionMethod( AppointmentCancellationHandler::class, 'process_cancellation' );
 		$ref->setAccessible( true );
-		$ref->invoke( $handler, $id, $token, $next );
+		$ref->invoke( $handler, $id, $token, $next, $emails );
 	}
 }

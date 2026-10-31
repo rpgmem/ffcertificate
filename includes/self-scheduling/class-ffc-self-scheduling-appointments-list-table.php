@@ -202,9 +202,10 @@ class AppointmentsListTable extends \WP_List_Table {
 				'ffc_cancel_appointment_' . $item['id']
 			);
 			$actions['cancel'] = sprintf(
-				'<a href="#" class="ffc-appointment-cancel ffc-delete-link" data-cancel-url="%s" data-prompt="%s">%s</a>',
+				'<a href="#" class="ffc-appointment-cancel ffc-delete-link" data-cancel-url="%s" data-prompt="%s" data-too-short="%s">%s</a>',
 				esc_url( $cancel_url ),
 				esc_attr__( 'Please provide a reason for cancellation (minimum 5 characters):', 'ffcertificate' ),
+				esc_attr__( 'The reason needs at least 5 characters. Nothing was cancelled.', 'ffcertificate' ),
 				esc_html__( 'Cancel', 'ffcertificate' )
 			);
 		}

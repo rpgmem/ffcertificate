@@ -5,7 +5,8 @@
  * The `.ffc-appointment-cancel` links were extracted from an inline onclick in
  * views/appointments-list.php: each prompts for a cancellation reason (min 5
  * chars) and, when given, redirects to its nonce-signed `data-cancel-url` with
- * the reason appended.
+ * the reason appended; a shorter one is refused with its `data-too-short`
+ * message.
  *
  * The Export CSV button (#ffc-appointments-export-btn) drives the shared
  * window.FFCBatchedExport engine (#772) through the unified `ffc_export_*`
@@ -20,9 +21,17 @@
 		var url    = this.getAttribute('data-cancel-url');
 		var prompt = this.getAttribute('data-prompt') || '';
 		var reason = window.prompt(prompt);
-		if (reason && reason.length >= 5 && url) {
-			window.location = url + '&reason=' + encodeURIComponent(reason);
+		if (reason === null || !url) {
+			return false;
 		}
+		// A reason under five characters used to drop the cancel in silence
+		// (#2244); say why nothing happened.
+		reason = reason.trim();
+		if (reason.length < 5) {
+			window.alert(this.getAttribute('data-too-short') || '');
+			return false;
+		}
+		window.location = url + '&reason=' + encodeURIComponent(reason);
 		return false;
 	}
 

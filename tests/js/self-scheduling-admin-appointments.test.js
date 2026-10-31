@@ -37,8 +37,10 @@ describe('ffc-self-scheduling-admin-appointments', () => {
 		expect(window.location).toBe(URL + '&reason=valid%20reason');
 	});
 
-	it('does not redirect when the reason is shorter than 5 chars', () => {
-		window.prompt = vi.fn(() => 'abc');
+	it('does not redirect when the reason is shorter than 5 chars, and says why', () => {
+		document.querySelector('.ffc-appointment-cancel').setAttribute('data-too-short', 'Too short.');
+		window.prompt = vi.fn(() => '  abc  ');
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		delete window.location;
 		window.location = 'INITIAL';
 		loadScript(SCRIPT);
@@ -46,6 +48,8 @@ describe('ffc-self-scheduling-admin-appointments', () => {
 		document.querySelector('.ffc-appointment-cancel').click();
 
 		expect(window.location).toBe('INITIAL');
+		expect(alertSpy).toHaveBeenCalledWith('Too short.');
+		alertSpy.mockRestore();
 	});
 
 	it('does not redirect when the prompt is cancelled (null)', () => {

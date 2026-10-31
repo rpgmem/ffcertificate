@@ -116,6 +116,9 @@ class UserAppointmentsRestControllerTest extends TestCase {
 		Functions\when( 'home_url' )->alias( function( $path = '' ) {
 			return 'https://example.com' . $path;
 		});
+		// The calendar's bypass switch (#2244); no stored config is the
+		// historical default, on.
+		Functions\when( 'get_post_meta' )->justReturn( '' );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
@@ -431,7 +434,7 @@ class UserAppointmentsRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		// The participant holds the capability but is not an administrator,
 		// so the calendar's own cancellation rule decides.
-		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'manage_options' !== $cap );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => ! in_array( $cap, array( 'manage_options', 'ffc_bypass_appointments' ), true ) );
 		$searched = false;
 		Functions\when( 'get_posts' )->alias(
 			static function () use ( &$searched ) {
@@ -457,6 +460,57 @@ class UserAppointmentsRestControllerTest extends TestCase {
 		$this->assertFalse( $result['appointments'][0]['can_cancel'] );
 		$this->assertSame( '', $result['appointments'][0]['reschedule_url'] );
 		$this->assertFalse( $searched );
+		$this->assertSame( 'This calendar does not take cancellations online. Contact the organiser to cancel.', $result['appointments'][0]['cancel_note'], 'The row says why it cannot be cancelled.' );
+	}
+
+	/**
+	 * Past the deadline the row says how far ahead cancelling closes; a
+	 * waitlisted row can be left, and is labelled, but offers no reschedule
+	 * (#2244).
+	 */
+	public function test_deadline_note_and_the_waitlisted_row(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => ! in_array( $cap, array( 'manage_options', 'ffc_bypass_appointments' ), true ) );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
+		Functions\when( 'get_posts' )->justReturn( array( 70 ) );
+		Functions\when( 'get_post_field' )->justReturn( '[ffc_self_scheduling id="31"]' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/book/' );
+
+		$soon               = gmdate( 'Y-m-d H:i:s', time() + 2 * HOUR_IN_SECONDS );
+		$later              = date( 'Y-m-d', strtotime( '+30 days' ) );
+		$this->appointments = array(
+			array( 'id' => '10', 'calendar_id' => '2', 'appointment_date' => substr( $soon, 0, 10 ), 'start_time' => substr( $soon, 11 ), 'status' => 'confirmed', 'confirmation_token' => 'a' ),
+			array( 'id' => '11', 'calendar_id' => '2', 'appointment_date' => $later, 'start_time' => '14:00:00', 'status' => 'waitlist', 'confirmation_token' => 'b' ),
+		);
+		$this->calendars    = array( array( 'id' => '2', 'post_id' => '31', 'title' => 'Clinic', 'allow_cancellation' => '1', 'cancellation_min_hours' => '24' ) );
+
+		$rows = array_column( ( new UserAppointmentsRestController( 'ffc/v1' ) )->get_user_appointments( $this->make_request() )['appointments'], null, 'id' );
+
+		$this->assertFalse( $rows[10]['can_cancel'] );
+		$this->assertSame( 'Cancelling closed 24 hours before the appointment.', $rows[10]['cancel_note'] );
+		$this->assertTrue( $rows[11]['can_cancel'], 'A waitlisted person can leave the queue.' );
+		$this->assertSame( 'Waitlisted', $rows[11]['status_label'] );
+		$this->assertSame( '', $rows[11]['reschedule_url'], 'A waitlisted row holds no time to move.' );
+	}
+
+	/**
+	 * With the calendar's bypass switch off, an administrator is held to the
+	 * calendar's own rules on the dashboard, as the cancel handler holds them
+	 * (#2244).
+	 */
+	public function test_an_administrator_follows_the_calendars_bypass_switch(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_post_meta' )->justReturn( array( 'admin_bypass' => 0 ) );
+
+		$this->appointments = array(
+			array( 'id' => '10', 'calendar_id' => '2', 'appointment_date' => date( 'Y-m-d', strtotime( '+30 days' ) ), 'start_time' => '14:00:00', 'status' => 'confirmed', 'confirmation_token' => 'a' ),
+		);
+		$this->calendars    = array( array( 'id' => '2', 'post_id' => '31', 'title' => 'No cancelling', 'allow_cancellation' => '0' ) );
+
+		$row = ( new UserAppointmentsRestController( 'ffc/v1' ) )->get_user_appointments( $this->make_request() )['appointments'][0];
+
+		$this->assertFalse( $row['can_cancel'] );
 	}
 
 	/**

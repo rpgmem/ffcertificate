@@ -21,6 +21,16 @@
     }
 
     /**
+     * Text made safe for an attribute value.
+     *
+     * @param {*} text - Raw text.
+     * @returns {string}
+     */
+    function escapeAttr(text) {
+        return $('<span>').text(String(text)).html().replace(/"/g, '&quot;');
+    }
+
+    /**
      * Calendar Core Constructor
      *
      * @param {jQuery} $container - Container element
@@ -59,6 +69,8 @@
                     'July', 'August', 'September', 'October', 'November', 'December'],
                 weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
                 today: 'Today',
+                prevMonth: 'Previous month',
+                nextMonth: 'Next month',
                 holiday: 'Holiday',
                 closed: 'Closed',
                 available: 'Available',
@@ -112,9 +124,11 @@
             // Header
             html += '<div class="ffc-calendar-header">';
             html += '<div class="ffc-calendar-nav">';
-            html += '<button type="button" class="ffc-nav-btn ffc-prev-month">&lsaquo;</button>';
-            html += '<h2 class="ffc-current-month"></h2>';
-            html += '<button type="button" class="ffc-nav-btn ffc-next-month">&rsaquo;</button>';
+            // The arrows are glyphs, so they carry a name; the month heading is
+            // announced when it changes (#2244).
+            html += '<button type="button" class="ffc-nav-btn ffc-prev-month" aria-label="' + escapeAttr(this.options.strings.prevMonth) + '"><span aria-hidden="true">&lsaquo;</span></button>';
+            html += '<h2 class="ffc-current-month" aria-live="polite"></h2>';
+            html += '<button type="button" class="ffc-nav-btn ffc-next-month" aria-label="' + escapeAttr(this.options.strings.nextMonth) + '"><span aria-hidden="true">&rsaquo;</span></button>';
             if (this.options.showTodayButton) {
                 html += '<button type="button" class="ffc-nav-btn ffc-today-btn">' + this.options.strings.today + '</button>';
             }
@@ -188,6 +202,45 @@
                     self.options.onDayClick(date, $(this));
                 }
             });
+
+            // Keyboard (#2244): Enter or Space picks the focused day, the
+            // arrows move a day or a week, Home and End go to the month's
+            // first and last day. One day holds the tab stop at a time.
+            this.$container.on('keydown', '.ffc-day[data-ffc-focusable]', function(e) {
+                var $day = $(this);
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    $day.trigger('click');
+                    return;
+                }
+                var step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+                var $days = self.$days.find('.ffc-day[data-ffc-focusable]');
+                var index = $days.index($day);
+                var target = -1;
+                if (typeof step === 'number') {
+                    target = index + step;
+                } else if (e.key === 'Home') {
+                    target = 0;
+                } else if (e.key === 'End') {
+                    target = $days.length - 1;
+                }
+                if (target < 0 || target >= $days.length) {
+                    return;
+                }
+                e.preventDefault();
+                self.moveFocus($days.eq(index), $days.eq(target));
+            });
+        },
+
+        /**
+         * Hand the tab stop from one day to another and focus it.
+         *
+         * @param {jQuery} $from Day that holds the tab stop.
+         * @param {jQuery} $to   Day that takes it.
+         */
+        moveFocus: function($from, $to) {
+            $from.attr('tabindex', '-1');
+            $to.attr('tabindex', '0').trigger('focus');
         },
 
         /**
@@ -297,8 +350,18 @@
                         }
                     }
 
-                    // Build day HTML
-                    html += '<div class="' + classes.join(' ') + '" data-date="' + dateStr + '">';
+                    // Build day HTML. A day of this month is a button to a
+                    // screen reader and to the keyboard, named by its full date;
+                    // one that cannot be picked says so instead of hiding.
+                    var a11y = '';
+                    if (!isOtherMonth) {
+                        var unavailable = classes.indexOf('ffc-disabled') !== -1;
+                        a11y = ' role="button" data-ffc-focusable="1" tabindex="-1"' +
+                            ' aria-label="' + escapeAttr(cellDay + ' ' + this.options.strings.months[cellDate.getMonth()] + ' ' + cellDate.getFullYear()) + '"' +
+                            (unavailable ? ' aria-disabled="true"' : '') +
+                            (this.selectedDate === dateStr ? ' aria-pressed="true"' : '');
+                    }
+                    html += '<div class="' + classes.join(' ') + '" data-date="' + dateStr + '"' + a11y + '>';
                     html += '<span class="ffc-day-number">' + cellDay + '</span>';
 
                     // Custom content from callback
@@ -317,6 +380,7 @@
             }
 
             this.$days.html(html);
+            this.assignTabStop();
 
             // Fire onMonthChange only when year/month actually changed
             // Prevents infinite loop: onMonthChange → fetch → refresh → renderDays → onMonthChange
@@ -327,6 +391,19 @@
                     this.options.onMonthChange(year, month + 1);
                 }
             }
+        },
+
+        /**
+         * Give the month's tab stop to the selected day, else today, else the
+         * first day that can be picked, else the first day of the month.
+         */
+        assignTabStop: function() {
+            var $days = this.$days.find('.ffc-day[data-ffc-focusable]');
+            var $stop = $days.filter('.ffc-selected').first();
+            if (!$stop.length) { $stop = $days.filter('.ffc-today').first(); }
+            if (!$stop.length) { $stop = $days.not('[aria-disabled]').first(); }
+            if (!$stop.length) { $stop = $days.first(); }
+            $stop.attr('tabindex', '0');
         },
 
         /**
@@ -375,8 +452,8 @@
          */
         selectDate: function(dateStr) {
             this.selectedDate = dateStr;
-            this.$days.find('.ffc-day').removeClass('ffc-selected');
-            this.$days.find('.ffc-day[data-date="' + dateStr + '"]').addClass('ffc-selected');
+            this.$days.find('.ffc-day').removeClass('ffc-selected').removeAttr('aria-pressed');
+            this.$days.find('.ffc-day[data-date="' + dateStr + '"]').addClass('ffc-selected').attr('aria-pressed', 'true');
         },
 
         /**

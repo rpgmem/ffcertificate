@@ -172,6 +172,8 @@ class SelfSchedulingShortcode {
 							__( 'Sat', 'ffcertificate' ),
 						),
 						'today'                => __( 'Today', 'ffcertificate' ),
+						'prevMonth'            => __( 'Previous month', 'ffcertificate' ),
+						'nextMonth'            => __( 'Next month', 'ffcertificate' ),
 						// Confirmation screen.
 						'date'                 => __( 'Date', 'ffcertificate' ),
 						'time'                 => __( 'Time', 'ffcertificate' ),

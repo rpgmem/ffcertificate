@@ -169,6 +169,7 @@ class UserAppointmentsRestController {
 					'cancelled' => __( 'Cancelled', 'ffcertificate' ),
 					'completed' => __( 'Completed', 'ffcertificate' ),
 					'no_show'   => __( 'No Show', 'ffcertificate' ),
+					'waitlist'  => __( 'Waitlisted', 'ffcertificate' ),
 				);
 
 				$status = $appointment['status'] ?? 'pending';
@@ -189,22 +190,31 @@ class UserAppointmentsRestController {
 					}
 				}
 
-				$can_cancel = false;
-				if ( in_array( $status, array( 'pending', 'confirmed' ), true ) ) {
+				// The same rules the cancel handler applies (#2244): an open
+				// appointment that has not started, cancellable by its calendar's
+				// rules, or by anyone the calendar's bypass switch lets through.
+				// When it is not, the row says why instead of only hiding Cancel.
+				$can_cancel  = false;
+				$cancel_note = '';
+				if ( in_array( $status, \FreeFormCertificate\SelfScheduling\AppointmentHandler::CANCELLABLE_STATUSES, true ) ) {
 					$appointment_time = ( new \DateTimeImmutable( $appointment['appointment_date'] . ' ' . ( $appointment['start_time'] ?? '23:59:59' ), wp_timezone() ) )->getTimestamp();
 					$now              = time();
+					$calendar_post_id = $calendar && ! empty( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
+					$min_hours        = $calendar && ! empty( $calendar['cancellation_min_hours'] ) ? (int) $calendar['cancellation_min_hours'] : 0;
 
 					if ( $appointment_time > $now ) {
-						if ( current_user_can( 'manage_options' ) ) {
+						if ( \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $calendar_post_id ) ) {
 							$can_cancel = true;
-						} elseif ( $calendar && ! empty( $calendar['allow_cancellation'] ) ) {
+						} elseif ( ! $calendar || empty( $calendar['allow_cancellation'] ) ) {
+							$cancel_note = __( 'This calendar does not take cancellations online. Contact the organiser to cancel.', 'ffcertificate' );
+						} elseif ( $min_hours > 0 && $now > $appointment_time - $min_hours * 3600 ) {
+							$cancel_note = sprintf(
+								/* translators: %d: hours before the appointment */
+								_n( 'Cancelling closed %d hour before the appointment.', 'Cancelling closed %d hours before the appointment.', $min_hours, 'ffcertificate' ),
+								$min_hours
+							);
+						} else {
 							$can_cancel = true;
-							if ( ! empty( $calendar['cancellation_min_hours'] ) && $calendar['cancellation_min_hours'] > 0 ) {
-								$deadline = $appointment_time - ( $calendar['cancellation_min_hours'] * 3600 );
-								if ( $now > $deadline ) {
-									$can_cancel = false;
-								}
-							}
 						}
 					}
 				}
@@ -213,7 +223,8 @@ class UserAppointmentsRestController {
 				// is, and only when the calendar is published on a page the
 				// person can return to. One lookup per calendar.
 				$reschedule_url = '';
-				if ( $can_cancel && ! $ctx['is_view_as'] && $calendar && ! empty( $calendar['post_id'] ) ) {
+				// A waitlisted person holds no time to move, so leaving is all.
+				if ( $can_cancel && 'waitlist' !== $status && ! $ctx['is_view_as'] && $calendar && ! empty( $calendar['post_id'] ) ) {
 					$calendar_post = (int) $calendar['post_id'];
 					if ( ! isset( $booking_pages[ $calendar_post ] ) ) {
 						$booking_pages[ $calendar_post ] = \FreeFormCertificate\Core\ShortcodePage::url( 'ffc_self_scheduling', $calendar_post );
@@ -240,6 +251,7 @@ class UserAppointmentsRestController {
 					'user_notes'           => $appointment['user_notes'] ?? '',
 					'created_at'           => $appointment['created_at'] ?? '',
 					'can_cancel'           => $can_cancel,
+					'cancel_note'          => $cancel_note,
 					'receipt_url'          => $receipt_url,
 					'reschedule_url'       => $reschedule_url,
 					'reschedule_note'      => $reschedule_note,
