@@ -7,6 +7,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\API\OperatorCertificatesRestController;
 use FreeFormCertificate\Core\Encryption;
@@ -510,33 +511,107 @@ class OperatorCertificatesRestControllerTest extends TestCase {
 	// get_certificate_pdf (A2)
 	// ------------------------------------------------------------------
 
-	public function test_pdf_returned_for_capability_holder(): void {
+	/**
+	 * Route the real ActivityLog into its buffer and resolve `user_can()` from
+	 * `$this->caps`, as `PiiAccessPolicy` asks it (#2246).
+	 */
+	private function with_audit_buffer(): void {
+		ActivityLogBuffer::reset();
+		ActivityLogBuffer::stub_functions();
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_settings' === $key ? ActivityLogBuffer::ENABLED_SETTINGS : $default
+		);
+		Functions\when( 'user_can' )->alias( fn( $uid, $cap ) => in_array( $cap, $this->caps, true ) );
+	}
+
+	/**
+	 * The buffered rows for one action.
+	 *
+	 * @return list<array{action: string, level: string, context: mixed}>
+	 */
+	private function audited( string $action ): array {
+		return array_values( array_filter( ActivityLogBuffer::contexts(), static fn( $row ) => $action === $row['action'] ) );
+	}
+
+	public function test_pdf_returned_to_its_owner_without_an_audit_row(): void {
+		$this->with_audit_buffer();
+		$this->caps = array();
+		// Owner: submission user_id (7) === get_current_user_id() (7).
+
 		$resp = $this->controller()->get_certificate_pdf( $this->request( array(), array( 'id' => 5 ) ) );
 
 		$this->assertIsArray( $resp );
 		$this->assertTrue( $resp['success'] );
 		$this->assertSame( 5, $resp['submission_id'] );
-		$this->assertArrayHasKey( 'pdf_data', $resp );
 		// The real generator rendered the stored, decrypted submission.
 		$this->assertStringContainsString( 'Maria', $resp['pdf_data']['html'] );
 		$this->assertStringContainsString( 'maria@example.com', $resp['pdf_data']['html'] );
+		$this->assertSame( array(), $this->audited( 'submission_pdf_revealed' ), 'The owner reading their own certificate is not a reveal.' );
 	}
 
-	public function test_pdf_allowed_for_owner_without_capability(): void {
-		$this->caps = array();
-		// Owner: submission user_id (7) === get_current_user_id() (7).
+	public function test_pdf_returned_to_a_pii_holder_and_audited(): void {
+		$this->with_audit_buffer();
+		$this->caps      = array( 'ffc_view_certificates_pii' );
+		$this->row_reads = array( $this->stored_row( 999 ) );
+
 		$resp = $this->controller()->get_certificate_pdf( $this->request( array(), array( 'id' => 5 ) ) );
+
 		$this->assertIsArray( $resp );
 		$this->assertTrue( $resp['success'] );
+		$rows = $this->audited( 'submission_pdf_revealed' );
+		$this->assertCount( 1, $rows, 'Staff reading someone else\'s certificate writes one audit row.' );
+		$this->assertSame( array( 'channel' => 'rest' ), $rows[0]['context'] );
+	}
+
+	public function test_pdf_hidden_from_a_manager_without_the_pii_capability(): void {
+		// Managing certificates grants no right to see the personal data a PDF prints.
+		$this->with_audit_buffer();
+		$this->caps      = array( 'ffc_manage_certificates' );
+		$this->row_reads = array( $this->stored_row( 999 ) );
+
+		$resp = $this->controller()->get_certificate_pdf( $this->request( array(), array( 'id' => 5 ) ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $resp );
+		$this->assertSame( 'certificate_not_found', $resp->get_error_code(), 'Not allowed reads exactly as not found.' );
+		$this->assertSame( 404, $resp->get_error_data()['status'] );
 	}
 
 	public function test_pdf_forbidden_for_non_owner_without_capability(): void {
+		$this->with_audit_buffer();
 		$this->caps      = array();
 		$this->row_reads = array( $this->stored_row( 999 ) );
 
 		$resp = $this->controller()->get_certificate_pdf( $this->request( array(), array( 'id' => 5 ) ) );
 		$this->assertInstanceOf( \WP_Error::class, $resp );
-		$this->assertSame( 'forbidden', $resp->get_error_code() );
+		$this->assertSame( 'certificate_not_found', $resp->get_error_code() );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function not_a_certificate(): array {
+		return array(
+			'trashed'          => array( 'trash' ),
+			'quiz in progress' => array( 'quiz_in_progress' ),
+			'quiz failed'      => array( 'quiz_failed' ),
+			'quiz pending'     => array( 'quiz_pending' ),
+		);
+	}
+
+	/**
+	 * @dataProvider not_a_certificate
+	 */
+	public function test_pdf_is_not_served_for_a_row_that_is_not_a_certificate( string $status ): void {
+		$this->with_audit_buffer();
+		$this->caps                = array( 'ffc_view_certificates_pii' );
+		$row                       = $this->stored_row( self::OPERATOR );
+		$row['status']             = $status;
+		$this->row_reads           = array( $row );
+
+		$resp = $this->controller()->get_certificate_pdf( $this->request( array(), array( 'id' => 5 ) ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $resp );
+		$this->assertSame( 'certificate_not_found', $resp->get_error_code() );
 	}
 
 	public function test_pdf_not_found(): void {

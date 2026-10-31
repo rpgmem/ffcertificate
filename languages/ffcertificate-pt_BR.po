@@ -7694,9 +7694,6 @@ msgstr "Fevereiro"
 msgid "Female"
 msgstr "Feminino"
 
-#: includes/settings/views/documentation/developer-hooks-api.php:118
-msgid "fetch a certificate's PDF payload (HTML + assets, rendered to PDF client-side — the plugin has no server-side PDF binary). Any logged-in user may call it; the handler then requires ffc_manage_certificates OR ownership of that specific certificate."
-msgstr "obter o conteúdo em PDF de um certificado (HTML + recursos, renderizados em PDF no lado do cliente — o plugin não gera binários de PDF no servidor). Qualquer usuário autenticado pode acioná-lo; o manipulador então exige a permissão `ffc_manage_certificates` ou a propriedade daquele certificado específico."
 
 #: includes/settings/views/documentation/developer-hooks-api.php:129
 msgid "Fetch a short URL's QR Code for reuse in an external automation (e.g. N8N). Cap-gated by ffc_view_url_shortener via an Application Password. The QR encodes the short URL itself, so scans are click-counted, and PNGs are served from the same database cache the admin uses."
@@ -11929,9 +11926,6 @@ msgstr "Recursos do operador"
 msgid "Operator IP Bypass"
 msgstr "Bypass de IP pelo operador"
 
-#: includes/settings/views/documentation/developer-hooks-api.php:95
-msgid "Operator — Application Password + ffc_manage_certificates (the PDF route: that capability OR ownership of the certificate)."
-msgstr "Operador — Senha de Aplicativo + ffc_manage_certificates (o caminho do PDF: essa permissão OU a propriedade do certificado)."
 
 #: includes/settings/views/documentation/developer-hooks-api.php:41
 msgid "Opt in (off by default) to log where the legacy and secure IP strategies diverge, to validate a switch before flipping."
@@ -19393,9 +19387,6 @@ msgstr "Você já é membro deste grupo."
 msgid "You are not a member of this group"
 msgstr "Você não é membro deste grupo."
 
-#: includes/api/class-ffc-operator-certificates-rest-controller.php:297
-msgid "You are not allowed to access this certificate."
-msgstr "Você não tem permissão para acessar este certificado."
 
 #: includes/reregistration/class-ffc-reregistration-frontend.php:169 includes/reregistration/class-ffc-reregistration-frontend.php:222 includes/reregistration/class-ffc-reregistration-frontend.php:292
 msgid "You are not part of this reregistration."
@@ -31305,6 +31296,15 @@ msgstr "A senha não pode ser alterada enquanto você visualiza como outra conta
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "Viewing as someone needs ffc_view_as_user and permission to edit that account in wp-admin, for the page and for every request it makes. The password cannot be changed while viewing as another account, and an expired or invalid link shows a notice instead of a dashboard."
 msgstr "Visualizar como alguém exige ffc_view_as_user e permissão para editar essa conta no wp-admin, tanto na página quanto em cada requisição que ela faz. A senha não pode ser alterada enquanto você visualiza como outra conta, e um link expirado ou inválido mostra um aviso no lugar do painel."
+
+msgid "Operator — Application Password + ffc_manage_certificates (the PDF route: ownership of the certificate OR ffc_view_certificates_pii, audited)."
+msgstr "Operador — senha de aplicativo + ffc_manage_certificates (a rota do PDF: dono do certificado OU ffc_view_certificates_pii, com auditoria)."
+
+msgid "fetch a certificate's PDF payload (HTML + assets, rendered to PDF client-side — the plugin has no server-side PDF binary). Any logged-in user may call it; the owner receives their own certificate, a holder of ffc_view_certificates_pii (or an administrator) receives any certificate and the read is written to the activity log, and anyone else, or a record that is not an issued certificate, gets the same 404 as an id that does not exist."
+msgstr "busca os dados do PDF de um certificado (HTML + recursos, convertidos em PDF no navegador — o plugin não gera o arquivo PDF no servidor). Qualquer usuário conectado pode chamá-la; o dono recebe o próprio certificado, quem tem ffc_view_certificates_pii (ou um administrador) recebe qualquer certificado e a leitura é gravada no registro de atividades, e qualquer outra pessoa, ou um registro que não seja um certificado emitido, recebe o mesmo 404 de um id que não existe."
+
+msgid "Certificate PDF Read by Staff"
+msgstr "PDF de certificado lido pela equipe"
 
 #: includes/settings/views/documentation/reference-privacy.php
 msgid "They also list the activity-log entries recorded against the person, with the address they came from but without the operator-facing details, and the date messages sent to them."

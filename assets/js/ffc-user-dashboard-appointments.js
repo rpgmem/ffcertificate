@@ -223,7 +223,9 @@
             var aptEvent = {
                 uid: 'ffc-apt-' + apt.id,
                 summary: apt.calendar_title,
-                description: apt.calendar_title + (apt.name ? '\n' + (ffcDashboard.strings.name || 'Name:') + ' ' + apt.name : '') + (apt.email ? '\n' + (ffcDashboard.strings.email || 'Email:') + ' ' + apt.email : ''),
+                // No e-mail (#2246): the row carries it masked, and a calendar
+                // entry the person keeps does not need it.
+                description: apt.calendar_title + (apt.name ? '\n' + (ffcDashboard.strings.name || 'Name:') + ' ' + apt.name : ''),
                 location: ffcDashboard.mainAddress || '',
                 date: apt.appointment_date_raw,
                 startTime: apt.start_time_raw,

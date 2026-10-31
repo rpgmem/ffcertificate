@@ -69,6 +69,8 @@ class UserAppointmentsRestControllerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The payload masks the e-mail through DocumentFormatter (#2246).
+		Functions\when( 'is_email' )->alias( static fn( $e ) => false !== filter_var( $e, FILTER_VALIDATE_EMAIL ) );
 
 		$this->registered_routes = [];
 		$this->prepared          = array();
@@ -379,8 +381,11 @@ class UserAppointmentsRestControllerTest extends TestCase {
 		$this->assertSame( 'confirmed', $apt['status'] );
 		$this->assertSame( 'Confirmed', $apt['status_label'] );
 		$this->assertSame( 'John Doe', $apt['name'] );
-		$this->assertSame( 'john@example.com', $apt['email'] );
-		$this->assertSame( '(11) 99999-0000', $apt['phone'] );
+		// The owner's own e-mail and phone leave the server masked too (#2246):
+		// on screen the owner's tier is owner_reveal, never clear.
+		$this->assertSame( \FreeFormCertificate\Core\DocumentFormatter::mask_email( 'john@example.com' ), $apt['email'] );
+		$this->assertSame( \FreeFormCertificate\Core\DocumentFormatter::mask_phone( '(11) 99999-0000' ), $apt['phone'] );
+		$this->assertStringNotContainsString( 'john@example.com', $apt['email'] );
 		$this->assertSame( 'Test note', $apt['user_notes'] );
 		$this->assertNotEmpty( $apt['appointment_date'] );
 		$this->assertNotEmpty( $apt['start_time'] );

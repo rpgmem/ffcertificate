@@ -177,6 +177,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Submissions: the edit screen names the quiz result (#2321).** Score in points and percent, maximum score, passed (Yes/No), questions answered correctly, scored questions and attempt now read with translated labels among the protected fields instead of as raw `_quiz_*` keys among the answers.
 - **User dashboard: appointment dates no longer shift by the site timezone (#2246).** The appointments list and the summary's next appointment render the stored day and time; the next appointment and the Upcoming/Past split use the site's today, not the server's or the browser's UTC date, and one day orders by start time.
 - **User dashboard: privacy requests reach WordPress, and a deleted account leaves nothing behind** (#2246). A request from the dashboard now sends WordPress's confirmation e-mail and says so; deleting an account cleans up trashed certificates, cancelled appointments, a lone profile row, bookings and schedule permissions.
+- **User dashboard: the owner can edit a masked phone or birth date** (#2246). The edit form locked both fields with no way to unlock them; it now carries a Reveal button beside each and reopens unlocked, keeping what was typed, and an empty value is not locked at all.
 
 ### Security
 
@@ -197,6 +198,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Recruitment privacy (#2245).** The public PCD filter works only when the notice shows the PCD column; nobody can link a candidate to their own account, a link without the PII capability needs the candidate's own identifiers, and links are logged; `PATCH /candidates/{id}` follows the edit screen's rules (no CPF/RF, e-mail by tier, changes logged); `/me/recruitment` drops staff call fields; e-mail tokens are escaped; every reveal is logged and the setting that disabled it is gone.
 - **User dashboard: invitation links and staff accounts** (#2246). The password-set key leaves the URL into an HttpOnly cookie with `Referrer-Policy: no-referrer`; the link lasts 7 days by default and is never issued to a staff account, and an e-mail match never rewrites one. The password form links to WordPress's reset.
 - **User dashboard: one view-as gate for the page and its API, and no password change in view-as (#2246).** Both need `ffc_view_as_user` and `edit_user` on an existing account; a refused request is a 403, not the viewer's own data. An expired link shows a notice, and the password route refuses view-as.
+- ⚠ **Certificates: the operator PDF route follows the reveal policy** (#2246). `GET /operator/certificates/{id}/pdf` serves the owner, or a holder of `ffc_view_certificates_pii` with an audit row; `ffc_manage_certificates` alone no longer opens it, and a non-certificate or refused id answers 404. The dashboard's appointment rows carry e-mail and phone masked.
 
 ## [6.42.0] (2026-10-26) — `8241871c`
 
