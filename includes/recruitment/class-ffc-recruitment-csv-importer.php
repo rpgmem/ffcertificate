@@ -58,7 +58,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * previous list (if any) for the same `(notice_id, list_type)` has been
  * wiped.
  *
- * @phpstan-type ImportResult array{success: bool, inserted: int, errors: list<string>}
+ * @phpstan-type ImportResult array{success: bool, inserted: int, errors: list<string>, mismatches?: list<array{line: int, candidate_id: int, fields: list<string>}>}
  */
 final class RecruitmentCsvImporter {
 
@@ -70,11 +70,12 @@ final class RecruitmentCsvImporter {
 	 * `active` / `closed`; this importer just checks for the basic
 	 * write-eligible states.
 	 *
-	 * @param int    $notice_id Target notice.
-	 * @param string $csv_content Raw CSV bytes (UTF-8, with or without BOM).
+	 * @param int    $notice_id            Target notice.
+	 * @param string $csv_content          Raw CSV bytes (UTF-8, with or without BOM).
+	 * @param bool   $acknowledge_identity The operator accepted the identity mismatches (#2245).
 	 * @return ImportResult
 	 */
-	public static function import_preview( int $notice_id, string $csv_content ): array {
+	public static function import_preview( int $notice_id, string $csv_content, bool $acknowledge_identity = false ): array {
 		$notice = RecruitmentNoticeReader::get_by_id( $notice_id );
 		if ( null === $notice ) {
 			return self::failure( 'recruitment_notice_not_found' );
@@ -85,7 +86,7 @@ final class RecruitmentCsvImporter {
 			return self::failure( 'recruitment_invalid_state_for_preview_import' );
 		}
 
-		return self::run( $notice_id, $csv_content, 'preview', (string) $status );
+		return self::run( $notice_id, $csv_content, 'preview', (string) $status, $acknowledge_identity );
 	}
 
 	/**
@@ -97,11 +98,12 @@ final class RecruitmentCsvImporter {
 	 * called and hired rows and orphaned their calls, and only then answered
 	 * 409. The rows and the transition now share one transaction.
 	 *
-	 * @param int    $notice_id Target notice.
-	 * @param string $csv_content Raw CSV bytes.
+	 * @param int    $notice_id            Target notice.
+	 * @param string $csv_content          Raw CSV bytes.
+	 * @param bool   $acknowledge_identity The operator accepted the identity mismatches (#2245).
 	 * @return ImportResult
 	 */
-	public static function import_definitive( int $notice_id, string $csv_content ): array {
+	public static function import_definitive( int $notice_id, string $csv_content, bool $acknowledge_identity = false ): array {
 		$notice = RecruitmentNoticeReader::get_by_id( $notice_id );
 		if ( null === $notice ) {
 			return self::failure( 'recruitment_notice_not_found' );
@@ -112,7 +114,7 @@ final class RecruitmentCsvImporter {
 			return self::failure( $blocked );
 		}
 
-		return self::run( $notice_id, $csv_content, 'definitive', 'definitive' );
+		return self::run( $notice_id, $csv_content, 'definitive', 'definitive', $acknowledge_identity );
 	}
 
 	/**
@@ -146,9 +148,10 @@ final class RecruitmentCsvImporter {
 	 * @param string $csv_content Raw CSV bytes.
 	 * @param string $list_type `preview` or `definitive`.
 	 * @param string $status    The notice's status once the import commits.
+	 * @param bool   $acknowledge_identity The operator accepted the identity mismatches.
 	 * @return ImportResult
 	 */
-	private static function run( int $notice_id, string $csv_content, string $list_type, string $status ): array {
+	private static function run( int $notice_id, string $csv_content, string $list_type, string $status, bool $acknowledge_identity = false ): array {
 		// Step 1: parse CSV into normalized row arrays.
 		$parse = self::parse( $csv_content );
 		if ( ! $parse['ok'] ) {
@@ -170,6 +173,20 @@ final class RecruitmentCsvImporter {
 		$validation = CsvValidator::validate( $rows, $notice_id, $list_type, $adjutancy_map );
 		if ( ! empty( $validation ) ) {
 			return self::failure_with_messages( $validation );
+		}
+
+		// Step 3b: compare the rows with the stored candidates (#2245). A CPF
+		// and an RF of different candidates refuse the file; a row that
+		// names somebody other than the candidate it matches waits for the
+		// operator to accept that the stored identity is kept.
+		$identity = RecruitmentImportIdentityCheck::check( self::identity_rows( $rows ) );
+		if ( ! empty( $identity['conflicts'] ) ) {
+			return self::failure_with_messages( $identity['conflicts'] );
+		}
+		if ( ! empty( $identity['mismatches'] ) && ! $acknowledge_identity ) {
+			$failure               = self::failure( RecruitmentImportIdentityCheck::MISMATCH_CODE );
+			$failure['mismatches'] = $identity['mismatches'];
+			return $failure;
 		}
 
 		// Step 4: transactional write.
@@ -236,6 +253,26 @@ final class RecruitmentCsvImporter {
 			$wpdb->query( 'ROLLBACK' );
 			return self::failure( 'recruitment_import_unexpected_error: ' . $e->getMessage() );
 		}
+	}
+
+	/**
+	 * The identity columns of parsed rows, in the shape the check reads.
+	 *
+	 * @param list<array<string, mixed>> $rows Parsed rows.
+	 * @return list<array{line: int, cpf: string, rf: string, email: string, name: string}>
+	 */
+	private static function identity_rows( array $rows ): array {
+		$out = array();
+		foreach ( $rows as $row ) {
+			$out[] = array(
+				'line'  => (int) ( $row['_line'] ?? 0 ),
+				'cpf'   => is_string( $row['cpf'] ?? null ) ? $row['cpf'] : '',
+				'rf'    => is_string( $row['rf'] ?? null ) ? $row['rf'] : '',
+				'email' => is_string( $row['email'] ?? null ) ? $row['email'] : '',
+				'name'  => is_string( $row['name'] ?? null ) ? $row['name'] : '',
+			);
+		}
+		return $out;
 	}
 
 	/**
@@ -317,7 +354,7 @@ final class RecruitmentCsvImporter {
 	 * Phase 2 — SQL-validate the staged rows. {@see CsvStagingService::validate_job()}.
 	 *
 	 * @param string $job_id Job identifier.
-	 * @return array{ok: true, errors: list<string>}|array{ok: false, errors: list<string>}
+	 * @return array{ok: true, errors: list<string>, mismatches: list<array{line: int, candidate_id: int, fields: list<string>}>}|array{ok: false, errors: list<string>}
 	 */
 	public static function validate_job( string $job_id ) {
 		return CsvStagingService::validate_job( $job_id );
@@ -326,12 +363,13 @@ final class RecruitmentCsvImporter {
 	/**
 	 * Phase 3 — promote one chunk of staged rows. {@see CsvStagingService::promote_batch()}.
 	 *
-	 * @param string $job_id Job identifier.
-	 * @param int    $size   Rows to process in this batch (clamped to 10–100).
+	 * @param string $job_id               Job identifier.
+	 * @param int    $size                 Rows to process in this batch (clamped to 10–100).
+	 * @param bool   $acknowledge_identity The operator accepted the identity mismatches (#2245).
 	 * @return array{ok: true, processed: int, total: int, done: bool}|array{ok: false, errors: list<string>}
 	 */
-	public static function promote_batch( string $job_id, int $size ) {
-		return CsvStagingService::promote_batch( $job_id, $size );
+	public static function promote_batch( string $job_id, int $size, bool $acknowledge_identity = false ) {
+		return CsvStagingService::promote_batch( $job_id, $size, $acknowledge_identity );
 	}
 
 	/**

@@ -30741,3 +30741,49 @@ msgstr "As contas dos candidatos são vinculadas ou criadas quando o edital cheg
 #: includes/settings/views/documentation/feature-recruitment.php:71
 msgid "Only a draft notice can be deleted, and its imported lists and adjutancy links go with it. A published notice is closed instead, so its calls and its history stay."
 msgstr "Somente um edital em rascunho pode ser excluído, e suas listas importadas e vínculos de matérias vão junto. Um edital publicado é encerrado em vez disso, para que suas chamadas e seu histórico permaneçam."
+
+#. translators: {n}: number of lines not listed
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:124
+msgid "+{n} more, listed below the form"
+msgstr "+{n} a mais, listadas abaixo do formulário"
+
+#: includes/settings/views/documentation/feature-recruitment.php:71
+msgid "A candidate is shared by every notice and is recognised by CPF, then by RF. Before anything is written, each line is compared with the candidate it matches. A line whose CPF belongs to one candidate and whose RF belongs to another refuses the whole file. A line whose name, CPF, RF or e-mail differs from the stored candidate is listed, and the import waits for confirmation: confirming attaches the line to that candidate and keeps the stored data. An import never overwrites a stored name or identifier; it only fills in one the candidate lacks. To correct a candidate, edit it on its own screen."
+msgstr "Um candidato é compartilhado por todos os editais e é reconhecido pelo CPF e, depois, pelo RF. Antes de qualquer gravação, cada linha é comparada com o candidato correspondente. Uma linha cujo CPF pertence a um candidato e cujo RF pertence a outro recusa o arquivo inteiro. Uma linha cujo nome, CPF, RF ou e-mail difere do candidato armazenado é listada, e a importação aguarda confirmação: ao confirmar, a linha é vinculada a esse candidato e os dados armazenados são mantidos. Uma importação nunca sobrescreve um nome ou identificador armazenado; apenas preenche o que estiver faltando. Para corrigir um candidato, edite-o na própria tela."
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:122
+msgid "Import and keep stored data"
+msgstr "Importar e manter os dados armazenados"
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:125
+msgid "Import cancelled. Nothing was imported."
+msgstr "Importação cancelada. Nada foi importado."
+
+#. translators: 1: CSV line number, 2: comma-separated field names, 3: candidate ID
+#: includes/recruitment/class-ffc-recruitment-import-identity-check.php:147
+msgid "Line %1$d differs from candidate #%3$d in: %2$s. The stored data is kept."
+msgstr "A linha %1$d difere do candidato nº %3$d em: %2$s. Os dados armazenados são mantidos."
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:120
+msgid "Some lines differ from stored candidates"
+msgstr "Algumas linhas diferem dos candidatos armazenados"
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:215
+msgid "Some lines match a stored candidate whose data differs. Review them and confirm to import; the stored data is kept."
+msgstr "Algumas linhas correspondem a um candidato armazenado cujos dados diferem. Revise-as e confirme para importar; os dados armazenados são mantidos."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:214
+msgid "The CPF and the RF on this line belong to two different candidates. Correct the line and import again."
+msgstr "O CPF e o RF desta linha pertencem a dois candidatos diferentes. Corrija a linha e importe novamente."
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:121
+msgid "These lines match a candidate already stored, but their data differs. The import attaches them to that candidate and keeps the stored name, CPF, RF and e-mail. Correct the candidate by hand if the file is right."
+msgstr "Estas linhas correspondem a um candidato já armazenado, mas os dados diferem. A importação as vincula a esse candidato e mantém o nome, CPF, RF e e-mail armazenados. Corrija o candidato manualmente se o arquivo estiver certo."
+
+#: includes/recruitment/class-ffc-recruitment-import-identity-check.php:136
+msgid "e-mail"
+msgstr "e-mail"
+
+#: includes/recruitment/class-ffc-recruitment-import-identity-check.php:133
+msgid "name"
+msgstr "nome"

@@ -156,6 +156,34 @@
 			});
 		}
 
+		// Phases 3 and 4 — promote every batch, then swap. `acknowledge`
+		// rides on each batch: the server promotes a job parked in
+		// `needs_ack` only when the operator accepted the mismatches.
+		function promoteAndCommit(jobId, acknowledge) {
+			setStatus(strings.processing || 'Processing…');
+			function nextBatch() {
+				var payload = { job_id: jobId, size: BATCH_SIZE_DEFAULT };
+				if (acknowledge) { payload.acknowledge_identity = true; }
+				return postJson(baseUrl + '/batch', payload)
+					.then(function (batch) {
+						setProgress(batch.processed, batch.total);
+						if (!batch.done) {
+							return nextBatch();
+						}
+						return batch;
+					});
+			}
+
+			return nextBatch().then(function () {
+				setStatus(strings.committing || 'Finalising…');
+				return postJson(baseUrl + '/commit', { job_id: jobId }).then(function (commit) {
+					setStatus((strings.done || 'Done') + ' (' + commit.inserted + ')');
+					cleanup();
+					setTimeout(function () { window.location.reload(); }, 600);
+				});
+			});
+		}
+
 		// Phase 1 — start.
 		clearErrorList();
 		progressWrap.style.display = 'inline-flex';
@@ -186,27 +214,20 @@
 					throw validationErr;
 				}
 
-				// Phase 3 — sequential promote batches.
-				setStatus(strings.processing || 'Processing…');
-				function nextBatch() {
-					return postJson(baseUrl + '/batch', { job_id: jobId, size: BATCH_SIZE_DEFAULT })
-						.then(function (batch) {
-							setProgress(batch.processed, batch.total);
-							if (!batch.done) {
-								return nextBatch();
-							}
-							return batch;
-						});
-				}
+				// Rows that differ from a stored candidate wait for the
+				// operator (#2245); a refusal ends the run with nothing written.
+				var mismatches = validation.mismatch_messages || [];
+				var acknowledged = mismatches.length === 0
+					? Promise.resolve(true)
+					: confirmIdentity(mismatches, errorListEl);
 
-				return nextBatch().then(function () {
-					// Phase 4 — commit (swap).
-					setStatus(strings.committing || 'Finalising…');
-					return postJson(baseUrl + '/commit', { job_id: jobId }).then(function (commit) {
-						setStatus((strings.done || 'Done') + ' (' + commit.inserted + ')');
+				return acknowledged.then(function (ok) {
+					if (!ok) {
 						cleanup();
-						setTimeout(function () { window.location.reload(); }, 600);
-					});
+						setStatus(identityStrings().cancelled || 'Import cancelled.');
+						return undefined;
+					}
+					return promoteAndCommit(jobId, mismatches.length > 0);
 				});
 			});
 		}).catch(function (err) {
@@ -221,5 +242,80 @@
 		});
 	}
 
-	window.ffcRecruitmentImportBatched = { run: run };
+	/**
+	 * Identity strings, localised once for every recruitment screen.
+	 *
+	 * @returns {Object}
+	 */
+	function identityStrings() {
+		return window.ffcRecruitmentImportIdentity || {};
+	}
+
+	/**
+	 * Ask the operator to accept the rows that differ from a stored
+	 * candidate (#2245). Every line is listed under the form; the shared
+	 * confirm dialog repeats the first few.
+	 *
+	 * @param {string[]}         messages One sentence per line.
+	 * @param {HTMLElement|null} listEl   List to fill, when the screen has one.
+	 * @returns {Promise<boolean>} True when the operator confirmed.
+	 */
+	function confirmIdentity(messages, listEl) {
+		var s = identityStrings();
+		if (listEl) {
+			listEl.innerHTML = '';
+			messages.forEach(function (line) {
+				var li = document.createElement('li');
+				li.textContent = line;
+				listEl.appendChild(li);
+			});
+		}
+		var shown = messages.slice(0, 5);
+		if (messages.length > shown.length) {
+			shown.push((s.more || '+{n} more').replace('{n}', String(messages.length - shown.length)));
+		}
+		var admin = window.ffcRecruitmentAdmin;
+		return new Promise(function (resolve) {
+			if (!admin || typeof admin.openConfirmModal !== 'function') {
+				resolve(window.confirm((s.body || '') + '\n\n' + shown.join('\n')));
+				return;
+			}
+			admin.openConfirmModal({
+				title: s.title || 'Some lines differ from stored candidates',
+				body: s.body || '',
+				consequences: shown,
+				cta: s.cta || 'Import and keep stored data',
+				icon: 'upload'
+			}, function () { resolve(true); }, function () { resolve(false); });
+		});
+	}
+
+	/**
+	 * Run a single-request import, asking the operator once when the
+	 * server answers that some lines differ from stored candidates, then
+	 * sending the same file again with the acknowledgement.
+	 *
+	 * @param {function(boolean): Promise<{status: number, body: Object}>} send
+	 *        Posts the file; the argument says whether to acknowledge.
+	 * @param {HTMLElement|null} listEl List for the mismatch lines.
+	 * @returns {Promise<{status: number, body: Object}|null>} The final
+	 *          response, or null when the operator declined.
+	 */
+	function sendWithIdentityAck(send, listEl) {
+		return send(false).then(function (o) {
+			var data = o.body && o.body.data;
+			if (o.status !== 409 || !o.body || o.body.code !== 'recruitment_import_identity_mismatch' || !data) {
+				return o;
+			}
+			return confirmIdentity(data.mismatch_messages || [], listEl).then(function (ok) {
+				return ok ? send(true) : null;
+			});
+		});
+	}
+
+	window.ffcRecruitmentImportBatched = {
+		run: run,
+		confirmIdentity: confirmIdentity,
+		sendWithIdentityAck: sendWithIdentityAck
+	};
 }());

@@ -50,6 +50,9 @@ let fetchSpy;
 
 beforeEach(() => {
 	window.ffcRecruitmentNoticeEdit = CFG;
+	// The definitive import asks about identity mismatches through the
+	// batched importer's shared helper (#2245).
+	loadScript('assets/js/ffc-recruitment-import-batched.js');
 	window.localStorage.clear();
 	fetchSpy = vi.fn(() => new Promise(() => {})); // never resolves → no reload
 	window.fetch = fetchSpy;

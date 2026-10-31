@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\SensitiveFieldRegistry;
 use FreeFormCertificate\Recruitment\RecruitmentClassificationsRestController;
 use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 use FreeFormCertificate\Tests\Support\CallLog;
@@ -88,6 +89,12 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	/** @var list<object> The rows the staging batch read answers. */
 	private array $staged = array();
 
+	/** @var list<object> Stored candidate identities the pre-import check reads (#2245). */
+	private array $stored_identities = array();
+
+	/** @var list<object> Staged rows as the batched identity check reads them. */
+	private array $staged_identities = array();
+
 	/** @var int What the "unpromoted staging rows" count answers. */
 	private int $unpromoted = 0;
 
@@ -163,6 +170,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'get_current_user_id' )->justReturn( self::OPERATOR );
 		Functions\when( 'size_format' )->justReturn( '10 MB' );
+		Functions\when( 'remove_accents' )->returnArg();
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
 		Functions\when( 'wp_generate_uuid4' )->justReturn( 'job-1' );
@@ -338,6 +346,18 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		}
 		if ( 0 === strpos( $sql, 'SELECT id, name, cpf_normalized, rf_normalized, email, phone, pcd FROM ' . self::T_STAGING . ' WHERE job_id = ' ) ) {
 			return $this->staged;
+		}
+		if ( 0 === strpos( $sql, 'SELECT line_no, cpf_normalized, rf_normalized, email, name FROM ' . self::T_STAGING . ' WHERE job_id = ' ) ) {
+			return $this->staged_identities;
+		}
+		if ( 1 === preg_match( '/^SELECT id, cpf_hash, rf_hash, email_hash, name FROM ' . self::T_CANDIDATE . ' WHERE (cpf_hash|rf_hash) IN \((.*)\)$/', $sql, $m ) ) {
+			$wanted = array_map( static fn( string $h ): string => trim( $h, " '" ), explode( ',', $m[2] ) );
+			return array_values(
+				array_filter(
+					$this->stored_identities,
+					static fn( object $c ): bool => in_array( (string) $c->{$m[1]}, $wanted, true )
+				)
+			);
 		}
 		if ( 0 === strpos( $sql, 'SELECT line_no, adjutancy_slug FROM ' . self::T_STAGING )
 			|| ( false !== strpos( $sql, 'GROUP_CONCAT(line_no ORDER BY row_no)' ) && false !== strpos( $sql, self::T_STAGING ) ) ) {
@@ -915,6 +935,99 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'recruitment_csv_missing_headers: cpf,rf,email,adjutancy,score,pcd', $result->get_error_code() );
 		$this->assertSame( 400, $result->get_error_data()['status'] );
+	}
+
+	/**
+	 * A stored candidate as the identity check reads it.
+	 *
+	 * @param int         $id   Candidate ID.
+	 * @param string|null $cpf  CPF, or null when none is stored.
+	 * @param string|null $rf   RF, or null when none is stored.
+	 * @param string      $name Stored name.
+	 */
+	private function stored_identity( int $id, ?string $cpf, ?string $rf, string $name ): object {
+		return (object) array(
+			'id'         => (string) $id,
+			'cpf_hash'   => null === $cpf ? null : SensitiveFieldRegistry::hash_identifier( 'cpf', $cpf ),
+			'rf_hash'    => null === $rf ? null : SensitiveFieldRegistry::hash_identifier( 'rf', $rf ),
+			'email_hash' => null,
+			'name'       => $name,
+		);
+	}
+
+	public function test_import_csv_asks_before_attaching_a_row_to_a_differently_named_candidate(): void {
+		$this->notice( 7, 'draft' );
+		$this->attach( 7, 3, 'teacher' );
+		$this->stored_identities = array( $this->stored_identity( 40, Identifiers::CPF_A, null, 'Beatriz Lima' ) );
+
+		$result = $this->controller->import_csv(
+			$this->make_request( array( 'id' => 7 ), $this->csv_files( $this->valid_csv() ) )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_import_identity_mismatch', $result->get_error_code() );
+		$data = $result->get_error_data();
+		$this->assertSame( 409, $data['status'] );
+		$this->assertSame(
+			array(
+				array(
+					'line'         => 2,
+					'candidate_id' => 40,
+					'fields'       => array( 'name' ),
+				),
+			),
+			$data['mismatches']
+		);
+		$this->assertCount( 1, $data['mismatch_messages'] );
+		$this->assertStringNotContainsString( 'Ana', $data['mismatch_messages'][0], 'The report names fields, never values.' );
+		$this->assertSame( array(), $this->writes, 'Nothing is written before the operator answers.' );
+	}
+
+	public function test_import_csv_keeps_the_stored_identity_once_acknowledged(): void {
+		$this->notice( 7, 'draft' );
+		$this->attach( 7, 3, 'teacher' );
+		$this->stored_identities = array( $this->stored_identity( 40, Identifiers::CPF_A, null, 'Beatriz Lima' ) );
+
+		$response = $this->controller->import_csv(
+			$this->make_request(
+				array(
+					'id'                   => 7,
+					'acknowledge_identity' => '1',
+				),
+				$this->csv_files( $this->valid_csv() )
+			)
+		);
+
+		$this->assertNotInstanceOf( \WP_Error::class, $response );
+		$this->assertSame( 200, $response->get_status() );
+		foreach ( $this->writes_to( 'update', self::T_CANDIDATE ) as $update ) {
+			$this->assertArrayNotHasKey( 'name', $update[2], 'The stored name is kept.' );
+			$this->assertArrayNotHasKey( 'cpf_hash', $update[2], 'The stored CPF is kept.' );
+		}
+	}
+
+	public function test_import_csv_refuses_a_cpf_and_an_rf_of_two_candidates(): void {
+		$this->notice( 7, 'draft' );
+		$this->attach( 7, 3, 'teacher' );
+		$this->stored_identities = array(
+			$this->stored_identity( 40, Identifiers::CPF_A, null, 'Ana' ),
+			$this->stored_identity( 41, null, Identifiers::RF_A, 'Bia' ),
+		);
+
+		$result = $this->controller->import_csv(
+			$this->make_request(
+				array(
+					'id'                   => 7,
+					'acknowledge_identity' => '1',
+				),
+				$this->csv_files( $this->valid_csv() )
+			)
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'line=2: recruitment_csv_identity_conflict', $result->get_error_code() );
+		$this->assertSame( 400, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->writes, 'An acknowledgement does not override a conflict.' );
 	}
 
 	// ------------------------------------------------------------------

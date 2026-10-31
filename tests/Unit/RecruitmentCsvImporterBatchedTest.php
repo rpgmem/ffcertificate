@@ -316,6 +316,8 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	 */
 	private function arrange_new_candidates(): void {
 		$this->on( 'get_row', '/FROM `wp_ffc_recruitment_candidate` WHERE (cpf|rf)_hash = /', null );
+		// The pre-import identity check finds no stored candidate either.
+		$this->on( 'get_results', '/^SELECT id, cpf_hash, rf_hash, email_hash, name FROM `wp_ffc_recruitment_candidate` WHERE/', array() );
 		$this->accept_inserts( 'ffc_recruitment_candidate', 100 );
 		$this->on( 'update', '/^wp_ffc_recruitment_candidate$/', 1 );
 		$this->on( 'get_var', '/^SELECT user_id FROM `wp_ffc_(user_profiles|submissions)` WHERE/', null );

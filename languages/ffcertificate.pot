@@ -30658,3 +30658,49 @@ msgstr ""
 #: includes/settings/views/documentation/feature-recruitment.php:71
 msgid "Only a draft notice can be deleted, and its imported lists and adjutancy links go with it. A published notice is closed instead, so its calls and its history stay."
 msgstr ""
+
+#. translators: {n}: number of lines not listed
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:124
+msgid "+{n} more, listed below the form"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php:71
+msgid "A candidate is shared by every notice and is recognised by CPF, then by RF. Before anything is written, each line is compared with the candidate it matches. A line whose CPF belongs to one candidate and whose RF belongs to another refuses the whole file. A line whose name, CPF, RF or e-mail differs from the stored candidate is listed, and the import waits for confirmation: confirming attaches the line to that candidate and keeps the stored data. An import never overwrites a stored name or identifier; it only fills in one the candidate lacks. To correct a candidate, edit it on its own screen."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:122
+msgid "Import and keep stored data"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:125
+msgid "Import cancelled. Nothing was imported."
+msgstr ""
+
+#. translators: 1: CSV line number, 2: comma-separated field names, 3: candidate ID
+#: includes/recruitment/class-ffc-recruitment-import-identity-check.php:147
+msgid "Line %1$d differs from candidate #%3$d in: %2$s. The stored data is kept."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:120
+msgid "Some lines differ from stored candidates"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:215
+msgid "Some lines match a stored candidate whose data differs. Review them and confirm to import; the stored data is kept."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:214
+msgid "The CPF and the RF on this line belong to two different candidates. Correct the line and import again."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:121
+msgid "These lines match a candidate already stored, but their data differs. The import attaches them to that candidate and keeps the stored name, CPF, RF and e-mail. Correct the candidate by hand if the file is right."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-import-identity-check.php:136
+msgid "e-mail"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-import-identity-check.php:133
+msgid "name"
+msgstr ""

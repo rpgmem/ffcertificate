@@ -32,9 +32,11 @@
 
 declare(strict_types=1);
 
+use FreeFormCertificate\Core\SensitiveFieldRegistry;
 use FreeFormCertificate\Recruitment\RecruitmentAccountLinker;
 use FreeFormCertificate\Recruitment\RecruitmentAdjutancyWriter;
 use FreeFormCertificate\Recruitment\RecruitmentCallService;
+use FreeFormCertificate\Recruitment\RecruitmentCandidateReader;
 use FreeFormCertificate\Recruitment\RecruitmentCsvImporter;
 use FreeFormCertificate\Recruitment\RecruitmentDeleteService;
 use FreeFormCertificate\Recruitment\RecruitmentNoticeAdjutancyRepository;
@@ -163,7 +165,7 @@ wp_set_current_user( 1 );
 $suffix = (string) wp_rand( 100000, 999999 );
 $csv    = "name,cpf,rf,email,adjutancy,rank,score,pcd\n"
 	. "Ana Flow,51817842080,,ci-flow-a@example.test,ci-flow-{$suffix},1,90.5,nao\n"
-	. "Bruno Flow,20456942084,,ci-flow-b@example.test,ci-flow-{$suffix},2,80,nao\n";
+	. "Bruno Flow,20456942084,5181780,ci-flow-b@example.test,ci-flow-{$suffix},2,80,nao\n";
 
 $adjutancy = RecruitmentAdjutancyWriter::create( 'ci-flow-' . $suffix, 'CI flow' );
 if ( false === $adjutancy ) {
@@ -262,6 +264,33 @@ $result = RecruitmentCsvImporter::import_preview( $draft, $csv );
 if ( ! $result['success'] ) {
 	ffc_rf_fail( 'Preview import on the second draft failed: ' . implode( ' | ', $result['errors'] ) );
 }
+// Identity (#2245): a row naming somebody else than the stored candidate
+// waits for the operator, keeps the stored identity once acknowledged, and a
+// CPF and an RF of two candidates are refused even when acknowledged.
+$renamed = "name,cpf,rf,email,adjutancy,rank,score,pcd\n"
+	. "Someone Else,51817842080,,ci-flow-a@example.test,ci-flow-{$suffix},1,90.5,nao\n";
+$result  = RecruitmentCsvImporter::import_preview( $draft, $renamed );
+if ( $result['success'] || empty( $result['mismatches'] ) || array( 'name' ) !== $result['mismatches'][0]['fields'] ) {
+	ffc_rf_fail( 'A row naming somebody else was not held for the operator: ' . wp_json_encode( $result ) );
+}
+if ( 2 !== count( ffc_rf_rows( $draft, 'preview' ) ) ) {
+	ffc_rf_fail( 'A held import changed the list.' );
+}
+$result = RecruitmentCsvImporter::import_preview( $draft, $renamed, true );
+if ( ! $result['success'] ) {
+	ffc_rf_fail( 'The acknowledged import failed: ' . implode( ' | ', $result['errors'] ) );
+}
+$stored = RecruitmentCandidateReader::get_by_cpf_hash( (string) SensitiveFieldRegistry::hash_identifier( 'cpf', '51817842080' ) );
+if ( null === $stored || 'Ana Flow' !== $stored->name ) {
+	ffc_rf_fail( 'The acknowledged import overwrote the stored name.' );
+}
+$conflict = "name,cpf,rf,email,adjutancy,rank,score,pcd\n"
+	. "Ana Flow,51817842080,5181780,ci-flow-a@example.test,ci-flow-{$suffix},1,90.5,nao\n";
+$result   = RecruitmentCsvImporter::import_preview( $draft, $conflict, true );
+if ( $result['success'] || false === strpos( implode( ' ', $result['errors'] ), 'recruitment_csv_identity_conflict' ) ) {
+	ffc_rf_fail( 'A CPF and an RF of two candidates were not refused: ' . wp_json_encode( $result ) );
+}
+
 $deleted = RecruitmentDeleteService::delete_notice( $draft );
 if ( ! $deleted['success'] ) {
 	ffc_rf_fail( 'Deleting a draft failed: ' . implode( ' | ', $deleted['errors'] ) );
@@ -275,5 +304,5 @@ if ( 0 !== $left || array() !== $junction || null !== RecruitmentNoticeReader::g
 }
 
 ffc_rf_cleanup();
-echo "Recruitment flow: draft import makes no account, the batch links once, the definitive import promotes in one change and refuses a second, a published notice is not deleted, a draft is deleted with its rows.\n";
+echo "Recruitment flow: draft import makes no account, the batch links once, the definitive import promotes in one change and refuses a second, a published notice is not deleted, a row naming somebody else waits for the operator and keeps the stored identity, a CPF and an RF of two candidates are refused, a draft is deleted with its rows.\n";
 exit( 0 );

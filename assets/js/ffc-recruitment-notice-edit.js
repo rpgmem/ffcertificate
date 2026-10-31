@@ -61,11 +61,18 @@
 			}).catch(function () {});
 			return false;
 		}
-		// Definitive list → single-shot /promote-preview (unchanged).
-		var fd = new FormData();
-		fd.append('csv_file', file);
-		fd.append('mode', 'definitive_import');
+		// Definitive list → single-shot /promote-preview. Lines that differ
+		// from a stored candidate are confirmed once, then the file is sent
+		// again with the acknowledgement (#2245).
 		var url = noticesRoot + nid + '/promote-preview';
+		function send(acknowledge) {
+			var fd = new FormData();
+			fd.append('csv_file', file);
+			fd.append('mode', 'definitive_import');
+			if (acknowledge) { fd.append('acknowledge_identity', '1'); }
+			return fetch(url, { method: 'POST', headers: { 'X-WP-Nonce': nonce }, body: fd, credentials: 'same-origin' })
+				.then(function (r) { return r.json().then(function (d) { return { status: r.status, body: d }; }); });
+		}
 		progress.style.display = 'inline-flex';
 		progressBar.style.display = 'none';
 		progressText.textContent = strings.processingCsv || '';
@@ -74,10 +81,13 @@
 			progressBar.style.display = '';
 			btn.disabled = false;
 		}
-		fetch(url, { method: 'POST', headers: { 'X-WP-Nonce': nonce }, body: fd, credentials: 'same-origin' })
-			.then(function (r) { return r.json().then(function (d) { return { status: r.status, body: d }; }); })
+		window.ffcRecruitmentImportBatched.sendWithIdentityAck(send, errorList)
 			.then(function (o) {
 				cleanup();
+				if (o === null) {
+					window.FFC.status(status, 'warning', (window.ffcRecruitmentImportIdentity || {}).cancelled || '');
+					return;
+				}
 				if (o.status >= 200 && o.status < 300) {
 					window.FFC.status(status, 'success', 'OK (' + ((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)) + ')');
 					location.reload();
