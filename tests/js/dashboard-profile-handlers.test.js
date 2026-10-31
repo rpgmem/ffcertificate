@@ -601,14 +601,11 @@ describe('profile — viewAsUserId propagation', () => {
 		expect(spy.mock.calls[0][0].url).toContain('?viewAsUserId=12');
 	});
 
-	it('changePassword appends viewAsUserId', () => {
+	it('renders no password control while viewing as another account (#2246)', () => {
 		panel().render(PROFILE_FIXTURE);
-		document.getElementById('ffc-current-password').value = 'oldpass';
-		document.getElementById('ffc-new-password').value = 'newpass123';
-		document.getElementById('ffc-confirm-password').value = 'newpass123';
-		const spy = mockAjax(() => ({}));
-		window.$('.ffc-password-save-btn').trigger('click');
-		expect(spy.mock.calls[0][0].url).toContain('?viewAsUserId=12');
+		expect(document.querySelector('.ffc-password-toggle-btn')).toBeNull();
+		expect(document.querySelector('.ffc-password-form')).toBeNull();
+		expect(document.getElementById('ffc-new-password')).toBeNull();
 	});
 
 	it('privacyRequest appends viewAsUserId', () => {

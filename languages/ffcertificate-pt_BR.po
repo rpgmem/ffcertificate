@@ -31272,3 +31272,19 @@ msgstr "Tentativa do quiz"
 #: includes/settings/views/documentation/submissions-list.php
 msgid "Under Form answers, the quiz result the plugin records is listed with readable names among the protected fields: the score in points and in percent, the maximum score, whether the quiz was passed, the questions answered correctly, the scored questions, the attempt number and the times the quiz window was left. None of them is an answer, so a correction cannot change them."
 msgstr "Em Respostas do formulário, o resultado do quiz que o plugin registra aparece com nomes legíveis entre os campos protegidos: a nota em pontos e em porcentagem, a nota máxima, se houve aprovação, as questões respondidas corretamente, as questões pontuadas, o número da tentativa e as vezes em que a janela do quiz foi deixada. Nenhum deles é uma resposta, por isso uma correção não pode alterá-los."
+
+#: includes/shortcodes/class-ffc-dashboard-view-mode.php
+msgid "This view-as link has expired or is not valid for your account. Open it again from the Users screen."
+msgstr "Este link de visualização como usuário expirou ou não é válido para a sua conta. Abra-o novamente a partir da tela Usuários."
+
+#: includes/api/class-ffc-user-context-trait.php
+msgid "You may not view the dashboard as this account."
+msgstr "Você não pode visualizar o painel como esta conta."
+
+#: includes/api/class-ffc-user-profile-rest-controller.php
+msgid "The password cannot be changed while viewing as another account."
+msgstr "A senha não pode ser alterada enquanto você visualiza como outra conta."
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "Viewing as someone needs ffc_view_as_user and permission to edit that account in wp-admin, for the page and for every request it makes. The password cannot be changed while viewing as another account, and an expired or invalid link shows a notice instead of a dashboard."
+msgstr "Visualizar como alguém exige ffc_view_as_user e permissão para editar essa conta no wp-admin, tanto na página quanto em cada requisição que ela faz. A senha não pode ser alterada enquanto você visualiza como outra conta, e um link expirado ou inválido mostra um aviso no lugar do painel."

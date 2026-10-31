@@ -82,15 +82,15 @@ class UserDataRestControllerTest extends TestCase {
 			if ( isset( $route['args'][0] ) ) {
 				foreach ( $route['args'] as $endpoint ) {
 					$this->assertSame(
-						'is_user_logged_in',
-						$endpoint['permission_callback'],
+						'rest_permission',
+						$endpoint['permission_callback'][1],
 						"Route {$route_path} should require authentication"
 					);
 				}
 			} else {
 				$this->assertSame(
-					'is_user_logged_in',
-					$route['args']['permission_callback'],
+					'rest_permission',
+					$route['args']['permission_callback'][1],
 					"Route {$route_path} should require authentication"
 				);
 			}

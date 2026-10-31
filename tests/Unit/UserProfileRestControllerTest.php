@@ -460,15 +460,15 @@ class UserProfileRestControllerTest extends TestCase {
 			if ( isset( $route['args'][0] ) ) {
 				foreach ( $route['args'] as $endpoint ) {
 					$this->assertSame(
-						'is_user_logged_in',
-						$endpoint['permission_callback'],
+						'rest_permission',
+						$endpoint['permission_callback'][1],
 						"Route {$route_path} should require authentication"
 					);
 				}
 			} else {
 				$this->assertSame(
-					'is_user_logged_in',
-					$route['args']['permission_callback'],
+					'rest_permission',
+					$route['args']['permission_callback'][1],
 					"Route {$route_path} should require authentication"
 				);
 			}
@@ -560,7 +560,8 @@ class UserProfileRestControllerTest extends TestCase {
 	 */
 	private function view_as_user_five(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'manage_options' === $cap );
+		// The view-as gate: an administrator who may edit the account (#2246).
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => in_array( $cap, array( 'manage_options', 'edit_user' ), true ) );
 		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 1 === $uid && 'manage_options' === $cap );
 		$user = $this->make_user( 5 );
 		Functions\when( 'get_user_by' )->justReturn( $user );
@@ -1051,6 +1052,59 @@ class UserProfileRestControllerTest extends TestCase {
 
 		$this->assertIsArray( $result );
 		$this->assertTrue( $result['success'] );
+	}
+
+	/**
+	 * #2246 — no password changes while viewing as another account, for
+	 * anyone: the route refuses before it reads a field or writes anything.
+	 *
+	 * @dataProvider view_as_targets
+	 */
+	public function test_change_password_is_refused_in_view_as( string $target ): void {
+		$this->view_as_user_five();
+		$set = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_set_password' );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->change_password(
+			$this->make_request(
+				array(
+					'viewAsUserId'     => $target,
+					'current_password' => '',
+					'new_password'     => 'newpassword123',
+				)
+			)
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_view_as_password', $result->get_error_code() );
+		$this->assertSame( 403, $result->get_error_data()['status'] );
+		$this->assertSame( 0, $set->count(), 'No password is written.' );
+	}
+
+	/**
+	 * A valid target, and one the gate refuses: the second must not fall
+	 * through to changing the administrator's own password.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public static function view_as_targets(): array {
+		return array(
+			'allowed target' => array( '5' ),
+			'refused target' => array( '999' ),
+		);
+	}
+
+	public function test_change_password_always_checks_the_current_password(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_user_by' )->justReturn( $this->make_user( 1 ) );
+		$set = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_set_password' );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->change_password(
+			$this->make_request( array( 'new_password' => 'newpassword123' ) )
+		);
+
+		$this->assertSame( 'missing_fields', $result->get_error_code(), 'An administrator is asked for their own password too.' );
+		$this->assertSame( 0, $set->count() );
 	}
 
 	// ------------------------------------------------------------------

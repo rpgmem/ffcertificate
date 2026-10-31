@@ -408,12 +408,17 @@
 
             html += '<div class="ffc-profile-actions">';
             html += window.FFC.buttonHtml({ label: s.editProfile || 'Edit Profile', category: 'neutral', icon: 'edit', className: 'ffc-profile-edit-btn' });
-            html += window.FFC.buttonHtml({ label: s.changePassword || 'Change Password', category: 'neutral', icon: 'key', className: 'ffc-password-toggle-btn' });
+            // No password change while viewing as another account (#2246).
+            var canChangePassword = !ffcDashboard.viewAsUserId;
+            if (canChangePassword) {
+                html += window.FFC.buttonHtml({ label: s.changePassword || 'Change Password', category: 'neutral', icon: 'key', className: 'ffc-password-toggle-btn' });
+            }
             if (profile.audience_groups && profile.audience_groups.length > 0) {
                 html += window.FFC.buttonHtml({ label: s.leaveAllGroups || 'Leave all groups', category: 'danger', icon: 'logout', className: 'ffc-leave-all-groups-btn' });
             }
             html += '</div>';
 
+            if (canChangePassword) {
             html += '<div class="ffc-password-form" style="display: none;">';
             var req = ' <span class="ffc-required" aria-hidden="true">*</span>';
             html += '<div class="ffc-profile-field"><label for="ffc-current-password">' + (s.currentPassword || 'Current Password') + req + '</label>';
@@ -425,6 +430,7 @@
             html += window.FFC.buttonHtml({ label: s.save || 'Save', category: 'primary', icon: 'save', className: 'ffc-password-save-btn' });
             html += '<span class="ffc-password-status ffc-status" role="status" aria-live="polite" hidden></span>';
             html += '</div>';
+            }
 
             // Audience self-join section — populated by ffc-user-dashboard-audience-join.js.
             html += '<div class="ffc-audience-join-section" id="ffc-audience-join-section"></div>';

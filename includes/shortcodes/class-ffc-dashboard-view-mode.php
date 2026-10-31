@@ -29,32 +29,56 @@ class DashboardViewMode {
 	 */
 	public static function get_view_as_user_id() {
 		// Check if admin is trying to view as another user.
-		if ( ! isset( $_GET['ffc_view_as_user'] ) || ! isset( $_GET['ffc_view_nonce'] ) ) {
+		if ( ! self::is_view_as_request() ) {
 			return false;
 		}
 
-		// View-as is admin-only by default; the granular `ffc_view_as_user`
-		// cap (6.2.0) lets site admins delegate impersonation to support /
-		// audit operators without giving full WP admin.
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_as_user' ) ) {
-			return false;
-		}
-
-		$target_user_id = absint( wp_unslash( $_GET['ffc_view_as_user'] ) );
+		$target_user_id = absint( wp_unslash( $_GET['ffc_view_as_user'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- the nonce is verified on the next line.
 		$nonce          = \FreeFormCertificate\Core\RequestInput::get_get_string( 'ffc_view_nonce' );
 
-		// Verify nonce.
 		if ( ! wp_verify_nonce( $nonce, 'ffc_view_as_user_' . $target_user_id ) ) {
 			return false;
 		}
 
-		// Verify user exists.
-		$user = get_user_by( 'id', $target_user_id );
-		if ( ! $user ) {
+		// The same gate every REST route the dashboard calls applies (#2246).
+		if ( ! \FreeFormCertificate\Core\ViewAs::can_view( $target_user_id ) ) {
 			return false;
 		}
 
 		return $target_user_id;
+	}
+
+	/**
+	 * Whether the request carries a view-as link at all, valid or not.
+	 *
+	 * @return bool
+	 */
+	public static function is_view_as_request(): bool {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- presence only; get_view_as_user_id() verifies the nonce.
+		return isset( $_GET['ffc_view_as_user'], $_GET['ffc_view_nonce'] );
+	}
+
+	/**
+	 * The notice for a view-as link that is expired, tampered with or names
+	 * an account the viewer may not open (#2246).
+	 *
+	 * It replaces the dashboard rather than sitting above the viewer's own:
+	 * falling back silently showed an administrator their own data under a
+	 * link they believed was someone else's.
+	 *
+	 * @return string HTML.
+	 */
+	public static function render_invalid_link_notice(): string {
+		return \FreeFormCertificate\Core\Notice::render(
+			'error',
+			'eye',
+			__( 'This view-as link has expired or is not valid for your account. Open it again from the Users screen.', 'ffcertificate' ),
+			__( 'Admin View Mode', 'ffcertificate' ),
+			array(
+				'role' => 'alert',
+				'hook' => 'view-as-invalid',
+			)
+		);
 	}
 
 	/**

@@ -95,7 +95,10 @@ class DashboardShortcode {
 		}
 
 		// Check for admin view-as mode — delegated to DashboardViewMode.
-		$view_as_user_id  = DashboardViewMode::get_view_as_user_id();
+		$view_as_user_id = DashboardViewMode::get_view_as_user_id();
+		if ( false === $view_as_user_id && DashboardViewMode::is_view_as_request() ) {
+			return DashboardViewMode::render_invalid_link_notice();
+		}
 		$is_admin_viewing = $view_as_user_id && get_current_user_id() !== $view_as_user_id;
 
 		// Enqueue assets — delegated to DashboardAssetManager.
