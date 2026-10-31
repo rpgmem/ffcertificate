@@ -130,7 +130,7 @@ class UserSummaryRestControllerTest extends TestCase {
 				if ( false !== strpos( $sql, 'COUNT(DISTINCT b.id)' ) ) {
 					return $this->booking_count;
 				}
-				if ( false !== strpos( $sql, 'COUNT(*)' ) && 'wp_ffc_submissions' === ( $args[0] ?? null ) ) {
+				if ( ( false !== strpos( $sql, 'COUNT(*)' ) || false !== strpos( $sql, 'COUNT(DISTINCT form_id)' ) ) && 'wp_ffc_submissions' === ( $args[0] ?? null ) ) {
 					return $this->certificate_count;
 				}
 				return null;
@@ -269,22 +269,20 @@ class UserSummaryRestControllerTest extends TestCase {
 	// get_user_summary() — exception path
 	// ------------------------------------------------------------------
 
-	public function test_get_user_summary_returns_defaults_on_exception(): void {
-		// Make get_current_user_id throw to trigger the catch block
+	/**
+	 * #2246 — a failure answers an error, never a row of zeros the screen
+	 * would read as "nothing here".
+	 */
+	public function test_get_user_summary_returns_error_on_exception(): void {
 		Functions\when( 'get_current_user_id' )->alias( function() {
 			throw new \Exception( 'Simulated failure' );
 		});
 
-		$ctrl    = new UserSummaryRestController( 'ffc/v1' );
-		$request = $this->make_request();
-		$result  = $ctrl->get_user_summary( $request );
+		$result = ( new UserSummaryRestController( 'ffc/v1' ) )->get_user_summary( $this->make_request() );
 
-		// On exception, returns defaults (NOT WP_Error)
-		$this->assertIsArray( $result );
-		$this->assertSame( 0, $result['total_certificates'] );
-		$this->assertNull( $result['next_appointment'] );
-		$this->assertSame( 0, $result['upcoming_group_events'] );
-		$this->assertSame( 0, $result['pending_reregistrations'] );
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'summary_error', $result->get_error_code() );
+		$this->assertSame( 500, $result->get_error_data()['status'] );
 	}
 
 	// ------------------------------------------------------------------
@@ -308,6 +306,32 @@ class UserSummaryRestControllerTest extends TestCase {
 			$counts[0][1]
 		);
 		$this->assertSame( 2, $result['total_certificates'] );
+	}
+
+	/**
+	 * #2246 — without the history capability the list keeps one certificate
+	 * per form, and the card counts the same thing.
+	 */
+	public function test_get_user_summary_counts_forms_without_history_capability(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_view_own_certificates' === $cap );
+		$this->certificate_count = '3';
+
+		$result = ( new UserSummaryRestController( 'ffc/v1' ) )->get_user_summary( $this->make_request() );
+
+		$counts = $this->prepared_matching( '/status NOT IN/' );
+		$this->assertStringContainsString( 'COUNT(DISTINCT form_id)', $counts[0][0] );
+		$this->assertSame( 3, $result['total_certificates'] );
+	}
+
+	public function test_get_user_summary_counts_every_certificate_with_history_capability(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => in_array( $cap, array( 'ffc_view_own_certificates', 'ffc_view_own_certificate_history' ), true ) );
+
+		( new UserSummaryRestController( 'ffc/v1' ) )->get_user_summary( $this->make_request() );
+
+		$counts = $this->prepared_matching( '/status NOT IN/' );
+		$this->assertStringContainsString( 'SELECT COUNT(*)', $counts[0][0] );
 	}
 
 	public function test_get_user_summary_counts_certificates_when_manage_options(): void {

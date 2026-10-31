@@ -201,10 +201,9 @@ class UserCertificatesRestControllerTest extends TestCase {
 				'id'              => '10',
 				'form_id'         => '3',
 				'form_title'      => 'Test Form',
-				'submission_date' => '2025-06-15 10:30:00',
+				'submission_date' => '1749983400',
 				'consent_given'   => '1',
-				'email'           => '',
-				'email_encrypted' => $this->email_encrypted,
+				'has_email'       => '1',
 				'auth_code'       => 'ABCDEFGHIJKL',
 				'magic_token'     => 'token123',
 			),
@@ -338,12 +337,40 @@ class UserCertificatesRestControllerTest extends TestCase {
 		$this->assertSame( 3, $cert['form_id'] );
 		$this->assertSame( 'Test Form', $cert['form_title'] );
 		$this->assertTrue( $cert['consent_given'] );
-		$this->assertSame( 'j***@example.com', $cert['email'] );
+		$this->assertSame( '***@***', $cert['email'], 'The list shows the placeholder; only the Reveal decrypts (#2246).' );
+		$this->assertSame( '2025-06-15', $cert['submission_day'], 'The filter compares the site-timezone day (#2246).' );
 		$this->assertTrue( $result['can_reveal'], 'The owner may reveal their own e-mail (#1897).' );
 		$this->assertStringNotContainsString( 'john@example.com', (string) json_encode( $result ) );
 		$this->assertNotEmpty( $cert['auth_code'] );
 		$this->assertSame( 'https://example.com/valid/#token=token123', $cert['magic_link'], 'The link is built from the stored token, on the fallback verification page.' );
 		$this->assertSame( $cert['magic_link'], $cert['pdf_url'] );
+	}
+
+	/**
+	 * #2246 — the list reads only the columns it shows and never selects the
+	 * ciphertext, so nothing is decrypted per row.
+	 */
+	public function test_get_user_certificates_selects_no_ciphertext(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+
+		( new UserCertificatesRestController( 'ffc/v1' ) )->get_user_certificates( $this->make_request() );
+
+		[ $sql ] = $this->prepared[0];
+		$this->assertStringNotContainsString( 's.*', $sql );
+		$this->assertDoesNotMatchRegularExpression( '/s\.email_encrypted\s*,|s\.email_encrypted\s+FROM/', $sql, 'The ciphertext is only tested for presence.' );
+		$this->assertStringContainsString( 'AS has_email', $sql );
+	}
+
+	public function test_get_user_certificates_leaves_email_empty_when_none_is_stored(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+
+		$this->rows = array( $this->submission( array( 'has_email' => '0' ) ) );
+
+		$result = ( new UserCertificatesRestController( 'ffc/v1' ) )->get_user_certificates( $this->make_request() );
+
+		$this->assertSame( '', $result['certificates'][0]['email'] );
 	}
 
 	public function test_get_user_certificates_hides_magic_link_when_download_denied(): void {

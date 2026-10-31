@@ -122,7 +122,7 @@
 
             if (this.state !== null) return;
 
-            $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
+            $container.html('<div class="ffc-loading" role="status">' + ffcDashboard.strings.loading + '</div>');
 
             var url = ffcDashboard.restUrl + 'user/audience-bookings';
             if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
@@ -190,6 +190,7 @@
             };
 
             var html = filterHtml;
+            if (filtered.length === 0) html += helpers.buildNoResults('audience');
             if (this.pendingLabel) {
                 html += FFC.notice('info', 'award', this.pendingLabel, '', { hook: 'post-event-pending' }).outerHTML;
             }

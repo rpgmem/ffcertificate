@@ -104,34 +104,13 @@ class DashboardShortcode {
 		// Enqueue assets — delegated to DashboardAssetManager.
 		DashboardAssetManager::enqueue_assets( $view_as_user_id );
 
-		// Check user permissions.
-		$user_id = $view_as_user_id ? $view_as_user_id : get_current_user_id();
-		$user    = get_user_by( 'id', $user_id );
-
-		// Check if user has FFC permissions (based on capabilities, not just role).
-		$can_view_certificates = $user && (
-			user_can( $user, 'ffc_view_own_certificates' ) ||
-			user_can( $user, 'manage_options' )
-		);
-
-		$can_view_appointments = $user && (
-			user_can( $user, 'ffc_view_own_appointments' ) ||
-			user_can( $user, 'manage_options' )
-		);
-
-		$can_view_audience_bookings = $user && (
-			user_can( $user, 'ffc_view_own_audience_bookings' ) ||
-			user_can( $user, 'manage_options' )
-		);
-
-		// Only show audience tab if user actually belongs to at least one audience group.
-		if ( $can_view_audience_bookings ) {
-			$can_view_audience_bookings = DashboardAssetManager::user_has_audience_groups( $user_id );
-		}
-
-		// Check if user has any reregistration submissions.
-		$can_view_reregistrations = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
-			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_all_by_user( $user_id ) );
+		// Check user permissions: one answer shared with the localized script.
+		$user_id                    = $view_as_user_id ? $view_as_user_id : get_current_user_id();
+		$tabs                       = DashboardAssetManager::tab_permissions( (int) $user_id );
+		$can_view_certificates      = $tabs['certificates'];
+		$can_view_appointments      = $tabs['appointments'];
+		$can_view_audience_bookings = $tabs['audience'];
+		$can_view_reregistrations   = $tabs['reregistrations'];
 
 		// Recruitment tab — visible when the user has at least one
 		// classification across recruitment notices (joined via
@@ -142,7 +121,8 @@ class DashboardShortcode {
 		// the gate signal AND the tab body — avoiding a second pass over
 		// the repository layer.
 		$recruitment_html = '';
-		if ( class_exists( '\FreeFormCertificate\Recruitment\RecruitmentDashboardSection' ) ) {
+		if ( \FreeFormCertificate\Settings\SettingsReader::module_enabled( 'recruitment' )
+			&& class_exists( '\FreeFormCertificate\Recruitment\RecruitmentDashboardSection' ) ) {
 			// Pass the already-resolved (view-as-aware) $user_id explicitly
 			// so the recruitment section renders for the impersonated user
 			// when an admin is in view-as mode — not the admin's own row.
@@ -153,6 +133,21 @@ class DashboardShortcode {
 		// Get current tab - default to first available tab.
 		$default_tab = $can_view_certificates ? 'certificates' : ( $can_view_appointments ? 'appointments' : ( $can_view_audience_bookings ? 'audience' : ( $can_view_reregistrations ? 'reregistrations' : ( $can_view_recruitment ? 'recruitment' : 'profile' ) ) ) );
 		$current_tab = \FreeFormCertificate\Core\RequestInput::get_get_string( 'tab', $default_tab );
+
+		// A `?tab=` naming a tab this account does not have -- a typo, an old
+		// bookmark, a module switched off -- opens the default one instead of
+		// a dashboard with no panel at all (#2246).
+		$visible = array(
+			'certificates'    => $can_view_certificates,
+			'appointments'    => $can_view_appointments,
+			'audience'        => $can_view_audience_bookings,
+			'reregistrations' => $can_view_reregistrations,
+			'recruitment'     => $can_view_recruitment,
+			'profile'         => true,
+		);
+		if ( empty( $visible[ $current_tab ] ) ) {
+			$current_tab = $default_tab;
+		}
 
 		// Start output buffering.
 		ob_start();
@@ -341,11 +336,16 @@ class DashboardShortcode {
 		// normal case (#1212). The password-setting screen lives on the
 		// dashboard's page on purpose -- no new page, no new option, and
 		// therefore nothing for `uninstall.php` and the fresh-install gate.
+		$invite_unusable = false;
 		if ( PasswordInvite::request_has_link() ) {
 			$password_screen = self::render_set_password();
 			if ( '' !== $password_screen ) {
 				return $password_screen;
 			}
+			// The link reached us and no longer works: say so, instead of a
+			// bare "please log in" that reads as if the link were never read
+			// (#2246).
+			$invite_unusable = true;
 		}
 
 		// The notice is a plugin root of its own and loads the dashboard's
@@ -356,7 +356,28 @@ class DashboardShortcode {
 		?>
 		<div class="ffc-shortcode">
 			<?php
-			$permalink   = get_permalink();
+			$permalink = get_permalink();
+			if ( $invite_unusable ) {
+				$expired_html = Notice::render(
+					'warning',
+					'clock',
+					__( 'This invitation link has expired or was already used. If you already chose a password, log in; otherwise ask for a new one.', 'ffcertificate' ),
+					'',
+					array(
+						'role'    => 'alert',
+						'hook'    => 'invite-expired',
+						'actions' => Button::html(
+							array(
+								'label'    => __( 'Forgot your password?', 'ffcertificate' ),
+								'category' => 'neutral',
+								'icon'     => 'key',
+								'href'     => wp_lostpassword_url( $permalink ? $permalink : '' ),
+							)
+						),
+					)
+				);
+				echo $expired_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
+			}
 			$notice_html = Notice::render(
 				'warning',
 				'lock',

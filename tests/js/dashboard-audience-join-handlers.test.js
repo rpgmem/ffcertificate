@@ -6,6 +6,10 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { installDashboardFixtures, loadDashboardCore, loadPanel, flushPromises } from './dashboard-fixtures.js';
 
+// What the dashboard's message region says: alerts left for it (#2246).
+const flashText = () => (document.getElementById('ffc-dashboard-flash') || { textContent: '' }).textContent;
+afterEach(() => { const el = document.getElementById('ffc-dashboard-flash'); if (el) el.remove(); });
+
 beforeAll(() => {
 	installDashboardFixtures();
 	Object.assign(window.ffcDashboard.strings, {
@@ -75,12 +79,11 @@ describe('audience-join — joinGroup', () => {
 			opts.success({ upcoming: 3, message: 'You joined. Its 3 upcoming bookings are now in your list.' });
 			return {};
 		});
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-audience-join-btn[data-id="7"]').trigger('click');
 		await flushPromises();
 
-		expect(alertSpy).toHaveBeenCalledWith('You joined. Its 3 upcoming bookings are now in your list.');
+		expect(flashText()).toBe('You joined. Its 3 upcoming bookings are now in your list.');
 		expect(window.FFCDashboard.panels.profile.reload).toHaveBeenCalled();
 	});
 
@@ -89,12 +92,11 @@ describe('audience-join — joinGroup', () => {
 			opts.success({ upcoming: 0, message: 'You joined.' });
 			return {};
 		});
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-audience-join-btn[data-id="7"]').trigger('click');
 		await flushPromises();
 
-		expect(alertSpy).not.toHaveBeenCalled();
+		expect(flashText()).toBe('');
 	});
 
 	it('appends viewAsUserId query string when impersonating', async () => {
@@ -126,12 +128,11 @@ describe('audience-join — joinGroup', () => {
 			opts.error({ responseJSON: { message: 'Quota exceeded' } });
 			return {};
 		});
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-audience-join-btn[data-id="7"]').trigger('click');
 		await flushPromises();
 
-		expect(alertSpy).toHaveBeenCalledWith('Quota exceeded');
+		expect(flashText()).toBe('Quota exceeded');
 		const $btn = window.$('.ffc-audience-join-btn[data-id="7"]');
 		expect($btn.prop('disabled')).toBe(false);
 		expect($btn.text()).toBe('Join');
@@ -142,12 +143,11 @@ describe('audience-join — joinGroup', () => {
 			opts.error({});
 			return {};
 		});
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-audience-join-btn[data-id="7"]').trigger('click');
 		await flushPromises();
 
-		expect(alertSpy).toHaveBeenCalledWith('Generic error');
+		expect(flashText()).toBe('Generic error');
 	});
 });
 
@@ -211,13 +211,12 @@ describe('audience-join — leaveGroup', () => {
 	it('on error: alerts the server message and re-enables the button', async () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		route((opts) => opts.success({}), (opts) => opts.error({ responseJSON: { message: 'Not a member' } }));
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-audience-leave-btn[data-id="9"]').trigger('click');
 		await flushPromises();
 		await flushPromises();
 
-		expect(alertSpy).toHaveBeenCalledWith('Not a member');
+		expect(flashText()).toBe('Not a member');
 		const $btn = window.$('.ffc-audience-leave-btn[data-id="9"]');
 		expect($btn.prop('disabled')).toBe(false);
 		expect($btn.text()).toBe('Leave');
@@ -273,12 +272,11 @@ describe('audience-join — leaveAllGroups', () => {
 			opts.error({ responseJSON: { message: 'Server down' } });
 			return {};
 		});
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-leave-all-groups-btn').trigger('click');
 		await flushPromises();
 
-		expect(alertSpy).toHaveBeenCalledWith('Server down');
+		expect(flashText()).toBe('Server down');
 		const $btn = window.$('.ffc-leave-all-groups-btn');
 		expect($btn.prop('disabled')).toBe(false);
 		expect($btn.text()).toBe('Leave all groups');

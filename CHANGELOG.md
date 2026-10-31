@@ -178,6 +178,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **User dashboard: appointment dates no longer shift by the site timezone (#2246).** The appointments list and the summary's next appointment render the stored day and time; the next appointment and the Upcoming/Past split use the site's today, not the server's or the browser's UTC date, and one day orders by start time.
 - **User dashboard: privacy requests reach WordPress, and a deleted account leaves nothing behind** (#2246). A request from the dashboard now sends WordPress's confirmation e-mail and says so; deleting an account cleans up trashed certificates, cancelled appointments, a lone profile row, bookings and schedule permissions.
 - **User dashboard: the owner can edit a masked phone or birth date** (#2246). The edit form locked both fields with no way to unlock them; it now carries a Reveal button beside each and reopens unlocked, keeping what was typed, and an empty value is not locked at all.
+- **User dashboard: filters, tabs and counts tell the truth** (#2246). The certificate date filter compares the site-timezone day; a filter that matches nothing says so with a Clear filters button; an unknown `?tab=` opens the default tab and a module switched off hides its tab; the Certificates card counts what the list shows, and a failed summary is an error, not zeros.
+- **User dashboard: messages instead of browser alerts, one notice for an expired session** (#2246). Results of cancelling, joining, leaving and revealing appear in the dashboard; a 401 or stale nonce shows one reload prompt; an expired invitation link says so; Back restores the tab, the search is labelled, storage errors are ignored, and status values are escaped.
+- **User dashboard: the certificate list no longer decrypts every e-mail** (#2246). It reads only the columns it shows and prints the placeholder until Reveal decrypts the one asked for.
 
 ### Security
 

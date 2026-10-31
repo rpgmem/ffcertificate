@@ -64,6 +64,38 @@ class DashboardAssetManager {
 	}
 
 	/**
+	 * Which data tabs the dashboard draws for a user.
+	 *
+	 * The shortcode and the localized script both read this, so a tab and the
+	 * summary card that counts it can never disagree (#2246). A tab needs its
+	 * capability AND its module switched on: a module turned off in Settings ->
+	 * Modules takes its tab with it, whatever the account holds.
+	 *
+	 * @param int $user_id Dashboard owner (the view-as target when there is one).
+	 * @return array{certificates: bool, appointments: bool, audience: bool, reregistrations: bool}
+	 */
+	public static function tab_permissions( int $user_id ): array {
+		$user = get_user_by( 'id', $user_id );
+		$can  = static function ( string $cap ) use ( $user ): bool {
+			return (bool) $user && ( user_can( $user, $cap ) || user_can( $user, 'manage_options' ) );
+		};
+		$on   = array( \FreeFormCertificate\Settings\SettingsReader::class, 'module_enabled' );
+
+		$audience = $on( 'audiences' ) && $can( 'ffc_view_own_audience_bookings' ) && self::user_has_audience_groups( $user_id );
+
+		$reregistrations = $on( 'reregistration' )
+			&& class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
+			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_all_by_user( $user_id ) );
+
+		return array(
+			'certificates'    => $on( 'certificates' ) && $can( 'ffc_view_own_certificates' ),
+			'appointments'    => $on( 'self_scheduling' ) && $can( 'ffc_view_own_appointments' ),
+			'audience'        => $audience,
+			'reregistrations' => $reregistrations,
+		);
+	}
+
+	/**
 	 * Enqueue dashboard assets
 	 *
 	 * @param int|false $view_as_user_id User ID in view-as mode.
@@ -71,30 +103,12 @@ class DashboardAssetManager {
 	public static function enqueue_assets( $view_as_user_id = false ): void {
 		// Get user permissions (based on capabilities, not just role).
 		$user_id = $view_as_user_id ? $view_as_user_id : get_current_user_id();
-		$user    = get_user_by( 'id', $user_id );
 
-		$can_view_certificates = $user && (
-			user_can( $user, 'ffc_view_own_certificates' ) ||
-			user_can( $user, 'manage_options' )
-		);
-
-		$can_view_appointments = $user && (
-			user_can( $user, 'ffc_view_own_appointments' ) ||
-			user_can( $user, 'manage_options' )
-		);
-
-		$can_view_audience_bookings = $user && (
-			user_can( $user, 'ffc_view_own_audience_bookings' ) ||
-			user_can( $user, 'manage_options' )
-		);
-
-		// Only show audience tab if user actually belongs to at least one audience group.
-		if ( $can_view_audience_bookings ) {
-			$can_view_audience_bookings = self::user_has_audience_groups( $user_id );
-		}
-
-		$can_view_reregistrations = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
-			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_all_by_user( $user_id ) );
+		$tabs                       = self::tab_permissions( (int) $user_id );
+		$can_view_certificates      = $tabs['certificates'];
+		$can_view_appointments      = $tabs['appointments'];
+		$can_view_audience_bookings = $tabs['audience'];
+		$can_view_reregistrations   = $tabs['reregistrations'];
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
@@ -394,6 +408,11 @@ class DashboardAssetManager {
 					'filterSearch'             => __( 'Search...', 'ffcertificate' ),
 					'filterApply'              => __( 'Filter', 'ffcertificate' ),
 					'filterClear'              => __( 'Clear', 'ffcertificate' ),
+					'filterSearchLabel'        => __( 'Search this list', 'ffcertificate' ),
+					'noResults'                => __( 'No results for these filters.', 'ffcertificate' ),
+					'clearFilters'             => __( 'Clear filters', 'ffcertificate' ),
+					'sessionExpired'           => __( 'Your session has expired. Reload the page to continue.', 'ffcertificate' ),
+					'reloadPage'               => __( 'Reload page', 'ffcertificate' ),
 					// Notification preferences.
 					'notificationSection'      => __( 'Notification Preferences', 'ffcertificate' ),
 					'notifAppointmentReminder' => __( 'Appointment reminder', 'ffcertificate' ),

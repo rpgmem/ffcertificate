@@ -117,7 +117,7 @@
             })
             .catch(function () {
                 $btn.prop('disabled', false);
-                window.alert(ffcDashboard.strings.revealError || 'Unable to reveal this value.');
+                helpers.flash('danger', ffcDashboard.strings.revealError || 'Unable to reveal this value.');
             });
     }
 
@@ -390,7 +390,7 @@
             var $container = $('#ffc-tabpanel-profile');
             if ($container.find('.ffc-profile-info').length > 0) return;
 
-            $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
+            $container.html('<div class="ffc-loading" role="status">' + ffcDashboard.strings.loading + '</div>');
 
             var url = ffcDashboard.restUrl + 'user/profile';
             if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
@@ -517,7 +517,7 @@
         reload: function () {
             this.state = null;
             var $container = $('#ffc-tabpanel-profile');
-            $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
+            $container.html('<div class="ffc-loading" role="status">' + ffcDashboard.strings.loading + '</div>');
 
             var url = ffcDashboard.restUrl + 'user/profile';
             if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;

@@ -28,7 +28,7 @@
 
         var $cell = $row.find('.ffc-rereg-answers');
         if (!reveal) {
-            $cell.html('<div class="ffc-loading">' + s.loading + '</div>');
+            $cell.html('<div class="ffc-loading" role="status">' + s.loading + '</div>');
         }
 
         return FFC.rest(url, { nonce: ffcDashboard.nonce })
@@ -140,7 +140,7 @@
 
             if (this.state !== null) return;
 
-            $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
+            $container.html('<div class="ffc-loading" role="status">' + ffcDashboard.strings.loading + '</div>');
 
             var url = ffcDashboard.restUrl + 'user/reregistrations';
             if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
@@ -197,6 +197,7 @@
             var pageItems = allOrdered.slice(start, start + pageSize);
 
             var html = filterHtml;
+            if (filtered.length === 0) html += helpers.buildNoResults('reregistrations');
             var currentSection = '';
 
             pageItems.forEach(function (item) {
@@ -231,7 +232,7 @@
                 html += '<tr' + rowClass + '>';
                 html += '<td>' + esc(item.title) + '</td>';
                 html += '<td>' + esc(item.start_date_formatted) + ' &mdash; ' + esc(item.end_date_formatted) + '</td>';
-                html += '<td><span class="ffc-pill ffc-dashboard-status-' + item.status + '">' + esc(item.status_label) + '</span></td>';
+                html += '<td><span class="ffc-pill ffc-dashboard-status-' + helpers.classSlug(item.status) + '">' + esc(item.status_label) + '</span></td>';
                 html += '<td>' + esc(item.submitted_at || '—') + '</td>';
                 html += '<td>';
                 if (item.auth_code) {

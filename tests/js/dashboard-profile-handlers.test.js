@@ -12,6 +12,10 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { installDashboardFixtures, loadDashboardCore, loadPanel } from './dashboard-fixtures.js';
 
+// What the dashboard's message region says: alerts left for it (#2246).
+const flashText = () => (document.getElementById('ffc-dashboard-flash') || { textContent: '' }).textContent;
+afterEach(() => { const el = document.getElementById('ffc-dashboard-flash'); if (el) el.remove(); });
+
 beforeAll(() => {
 	installDashboardFixtures();
 	Object.assign(window.ffcDashboard.strings, {
@@ -905,12 +909,11 @@ describe('profile — view as user', () => {
 	it('re-enables the button and alerts when the reveal fails', async () => {
 		panel().render({ ...VIEWED });
 		mockAjaxError({ status: 403, responseJSON: { message: 'No.' } });
-		window.alert = vi.fn();
 
 		window.$('.ffc-profile-reveal-btn[data-field="phone"]').trigger('click');
 		await flush();
 
-		expect(window.alert).toHaveBeenCalledWith('Unable to reveal this value.');
+		expect(flashText()).toBe('Unable to reveal this value.');
 		expect(window.$('.ffc-profile-reveal-btn[data-field="phone"]').prop('disabled')).toBe(false);
 	});
 });

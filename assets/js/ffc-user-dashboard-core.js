@@ -63,8 +63,67 @@
             return $el;
         },
 
+        // A class name built from a server value keeps only the characters a
+        // class may hold, so a value never breaks out of the attribute (#2246).
+        classSlug: function (value) {
+            return String(value || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+        },
+
+        // Browser storage is a convenience: a private window, blocked site
+        // data or a full quota throws, and the dashboard works without it
+        // (#2246).
+        storage: {
+            get: function (key) {
+                try { return window.localStorage.getItem(key); } catch (e) { return null; }
+            },
+            set: function (key, value) {
+                try { window.localStorage.setItem(key, String(value)); } catch (e) { /* not stored */ }
+            }
+        },
+
+        // A message about an action, shown in the dashboard instead of a
+        // browser alert (#2246): `tone` is a notice tone, and an error is
+        // announced at once (`role="alert"`), anything else politely.
+        // The dashboard's root, or the page when the dashboard is not on it.
+        root: function () {
+            var $root = $('#ffc-user-dashboard');
+            return $root.length ? $root : $('body');
+        },
+
+        flash: function (tone, text) {
+            var $region = $('#ffc-dashboard-flash');
+            if ($region.length === 0) {
+                $region = $('<div class="ffc-dashboard-flash" id="ffc-dashboard-flash"></div>');
+                var $summary = $('#ffc-dashboard-summary');
+                if ($summary.length) $summary.before($region);
+                else helpers.root().prepend($region);
+            }
+            var notice = window.FFC.notice(tone || 'info', '', String(text || ''), '', { role: tone === 'danger' ? 'alert' : 'status' });
+            $region.empty().append(notice);
+            if (notice && typeof notice.scrollIntoView === 'function') notice.scrollIntoView({ block: 'nearest' });
+            return $region;
+        },
+
+        // The message an error carries from the server, or the fallback.
+        errorMessage: function (err, fallback) {
+            var json = err && err.xhr && err.xhr.responseJSON;
+            if (json && json.message) return json.message;
+            if (err && err.fromServer && err.message) return err.message;
+            return fallback || ffcDashboard.strings.error || 'Error';
+        },
+
+        // "No results" under an active filter, with the way out beside it
+        // (#2246). Without a filter the panel shows its own empty state.
+        buildNoResults: function (tabName) {
+            var s = ffcDashboard.strings;
+            return '<div class="ffc-empty-state ffc-empty-filtered" role="status"><p>' +
+                helpers.esc(s.noResults || 'No results for these filters.') + '</p>' +
+                window.FFC.buttonHtml({ label: s.clearFilters || 'Clear filters', category: 'neutral', icon: 'eraser', className: 'ffc-filter-clear', attrs: { 'data-tab': tabName } }) +
+                '</div>';
+        },
+
         getPageSize: function () {
-            var stored = parseInt(localStorage.getItem('ffc_page_size'), 10);
+            var stored = parseInt(helpers.storage.get('ffc_page_size'), 10);
             return (stored && [10, 25, 50].indexOf(stored) !== -1) ? stored : DEFAULT_PAGE_SIZE;
         },
 
@@ -73,7 +132,7 @@
             var html = '<div class="ffc-filter-bar" data-tab="' + tabName + '">';
             html += '<label>' + (s.filterFrom || 'From:') + ' <input type="date" class="ffc-filter-from" /></label>';
             html += '<label>' + (s.filterTo || 'To:') + ' <input type="date" class="ffc-filter-to" /></label>';
-            html += '<input type="text" class="ffc-filter-search" placeholder="' + (s.filterSearch || 'Search...') + '" />';
+            html += '<input type="text" class="ffc-filter-search" placeholder="' + helpers.escAttr(s.filterSearch || 'Search...') + '" aria-label="' + helpers.escAttr(s.filterSearchLabel || 'Search this list') + '" />';
             html += window.FFC.buttonHtml({ label: s.filterApply || 'Filter', category: 'neutral', icon: 'filter', className: 'ffc-filter-apply' });
             html += window.FFC.buttonHtml({ label: s.filterClear || 'Clear', category: 'neutral', icon: 'eraser', className: 'ffc-filter-clear' });
             html += '</div>';
@@ -252,6 +311,8 @@
 
         init: function () {
             this.bindEvents();
+            this.bindHistory();
+            this.bindSession();
             this.bindPanelEvents();
             this.loadSummary();
             this.loadInitialTab();
@@ -269,9 +330,10 @@
             });
             $(document).on('click', '.ffc-filter-clear', function (e) {
                 e.preventDefault();
-                var $bar = $(this).closest('.ffc-filter-bar');
-                $bar.find('input').val('');
-                FFCDashboard.applyTabFilter($bar.data('tab'));
+                // The bar's own button, or the one beside "No results".
+                var tab = $(this).data('tab') || $(this).closest('.ffc-filter-bar').data('tab');
+                $('.ffc-filter-bar[data-tab="' + tab + '"]').find('input').val('');
+                FFCDashboard.applyTabFilter(tab);
             });
             $(document).on('keyup', '.ffc-filter-search', function (e) {
                 if (e.key === 'Enter') {
@@ -281,8 +343,49 @@
 
             $(document).on('click', '.ffc-page-size-btn', function (e) {
                 e.preventDefault();
-                localStorage.setItem('ffc_page_size', parseInt($(this).data('size'), 10));
+                helpers.storage.set('ffc_page_size', parseInt($(this).data('size'), 10));
                 FFCDashboard.applyTabFilter($('.ffc-tab.is-active').data('tab'));
+            });
+        },
+
+        // Back and Forward walk the tabs the URL recorded (#2246).
+        bindHistory: function () {
+            var self = this;
+            $(window).on('popstate', function () {
+                var tab = new URL(window.location).searchParams.get('tab');
+                var $button = tab ? $('.ffc-tab[data-tab="' + tab + '"]') : $('.ffc-tab').first();
+                if ($button.length) self.activateTab($button, false);
+            });
+        },
+
+        // An expired login or a stale nonce answers 401, or 403 with core's
+        // `rest_cookie_invalid_nonce`. Every request of the dashboard then
+        // fails the same way, so the page says it once, with the way out,
+        // instead of a generic error in each panel (#2246).
+        isSessionError: function (xhr) {
+            if (!xhr) return false;
+            var code = xhr.responseJSON && xhr.responseJSON.code;
+            return xhr.status === 401 || code === 'rest_cookie_invalid_nonce';
+        },
+
+        showSessionExpired: function () {
+            if ($('#ffc-dashboard-session').length) return;
+            var s = ffcDashboard.strings;
+            var notice = window.FFC.notice('warning', 'clock', s.sessionExpired || 'Your session has expired. Reload the page to continue.', '', { role: 'alert' });
+            var $wrap = $('<div class="ffc-dashboard-session" id="ffc-dashboard-session"></div>').append(notice);
+            $wrap.find('.ffc-notice-body').append(window.FFC.buttonHtml({ label: s.reloadPage || 'Reload page', category: 'primary', icon: 'sync', className: 'ffc-session-reload' }));
+            helpers.root().prepend($wrap);
+        },
+
+        bindSession: function () {
+            var self = this;
+            $(document).ajaxError(function (event, xhr, settings) {
+                var url = (settings && settings.url) || '';
+                if (url.indexOf(ffcDashboard.restUrl) === 0 && self.isSessionError(xhr)) self.showSessionExpired();
+            });
+            $(document).on('click', '.ffc-session-reload', function (e) {
+                e.preventDefault();
+                window.location.reload();
             });
         },
 
@@ -355,7 +458,12 @@
 
         switchTab: function (e) {
             e.preventDefault();
-            var $button = $(e.currentTarget);
+            this.activateTab($(e.currentTarget), true);
+        },
+
+        // Show one tab; `record` adds it to the history, which Back then
+        // walks (a tab restored from the history is not recorded again).
+        activateTab: function ($button, record) {
             var tab = $button.data('tab');
 
             $('.ffc-tab').removeClass('is-active').attr('aria-selected', 'false').attr('tabindex', '-1');
@@ -364,10 +472,10 @@
             $('.ffc-tab-content').removeClass('is-active');
             $('#ffc-tabpanel-' + tab).addClass('is-active');
 
-            if (history.pushState) {
+            if (record && history.pushState) {
                 var url = new URL(window.location);
                 url.searchParams.set('tab', tab);
-                history.pushState({}, '', url);
+                history.pushState({ tab: tab }, '', url);
             }
 
             var panel = this.panels[tab];

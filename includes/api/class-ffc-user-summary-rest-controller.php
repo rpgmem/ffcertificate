@@ -84,11 +84,17 @@ class UserSummaryRestController {
 				$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 				// Counted as the certificate list lists them (#1744).
 				$hidden = \FreeFormCertificate\Core\SubmissionStatus::NOT_A_CERTIFICATE;
+				// Without the history capability the list keeps one certificate
+				// per form, so the card counts forms (#2246).
+				$counted = $this->user_has_capability( 'ffc_view_own_certificate_history', $user_id, $ctx['is_view_as'] )
+					? 'COUNT(*)'
+					: 'COUNT(DISTINCT form_id)';
 				// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list is `%s` repeated once per hidden status, so the sniff cannot count it.
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Counts one user's rows in the plugin's own submissions table for the REST summary; the response is built once per request.
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Counts one user's rows in the plugin's own submissions table for the REST summary; the response is built once per request.
 				$summary['total_certificates'] = (int) $wpdb->get_var(
 					$wpdb->prepare(
-						'SELECT COUNT(*) FROM %i WHERE user_id = %d AND status NOT IN (' . implode( ', ', array_fill( 0, count( $hidden ), '%s' ) ) . ')',
+						// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- `$counted` is one of the two literals above, never request data.
+						'SELECT ' . $counted . ' FROM %i WHERE user_id = %d AND status NOT IN (' . implode( ', ', array_fill( 0, count( $hidden ), '%s' ) ) . ')',
 						$table,
 						$user_id,
 						...$hidden
@@ -156,14 +162,9 @@ class UserSummaryRestController {
 			return rest_ensure_response( $summary );
 
 		} catch ( \Exception $e ) {
-			return rest_ensure_response(
-				array(
-					'total_certificates'      => 0,
-					'next_appointment'        => null,
-					'upcoming_group_events'   => 0,
-					'pending_reregistrations' => 0,
-				)
-			);
+			// A failure is an error, never a row of zeros that reads as "you
+			// have nothing" (#2246).
+			return new \WP_Error( 'summary_error', __( 'Error loading the summary', 'ffcertificate' ), array( 'status' => 500 ) );
 		}
 	}
 }
