@@ -119,6 +119,9 @@ class UserAppointmentsRestController {
 
 			$appointments_formatted = array();
 			$booking_pages          = array();
+			// Upcoming and past split on the site's today, not the browser's
+			// UTC date (#2246).
+			$site_today = current_time( 'Y-m-d' );
 
 			foreach ( $appointments as $appointment ) {
 				if ( empty( $appointment['id'] ) ) {
@@ -134,10 +137,14 @@ class UserAppointmentsRestController {
 					}
 				}
 
+				// The date is Category B wall-clock too (#2246): through the
+				// timestamp path a UTC-3 site rendered 20/05 as 19/05.
 				$date_formatted = '';
 				if ( ! empty( $appointment['appointment_date'] ) ) {
-					$timestamp      = strtotime( $appointment['appointment_date'] );
-					$date_formatted = ( false !== $timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $timestamp ) : $appointment['appointment_date'];
+					$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $appointment['appointment_date'] );
+					if ( '' === $date_formatted ) {
+						$date_formatted = (string) $appointment['appointment_date'];
+					}
 				}
 
 				// Appointment times are Category-B wall-clock (TIME columns, no TZ
@@ -245,6 +252,7 @@ class UserAppointmentsRestController {
 					'end_time_raw'         => $appointment['end_time'] ?? '',
 					'status'               => $status,
 					'status_label'         => $status_labels[ $status ] ?? $status,
+					'is_past'              => ( (string) ( $appointment['appointment_date'] ?? '' ) < $site_today ) || in_array( $status, array( 'completed', 'no_show' ), true ),
 					'name'                 => $appointment['name'] ?? '',
 					'email'                => $email_display,
 					'phone'                => $phone_display,

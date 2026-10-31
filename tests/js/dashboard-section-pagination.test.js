@@ -91,7 +91,7 @@ const TABS = {
 	appointments: {
 		data: () => [].concat(
 			appts(12, { prefix: 'U' }),
-			appts(7, { prefix: 'P', row: { status: 'completed', appointment_date_raw: FAR_PAST } }),
+			appts(7, { prefix: 'P', row: { status: 'completed', appointment_date_raw: FAR_PAST, is_past: true } }),
 			appts(3, { prefix: 'C', row: { status: 'cancelled' } }),
 		),
 	},

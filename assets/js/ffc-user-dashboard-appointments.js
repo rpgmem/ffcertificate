@@ -347,12 +347,20 @@
                 });
             }
 
-            var today = new Date().toISOString().slice(0, 10);
+            // The server decides past and upcoming in the site's timezone;
+            // the browser's UTC date put tonight's appointments in Past (#2246).
             var sections = { upcoming: [], past: [], cancelled: [] };
             filtered.forEach(function (apt) {
                 if (apt.status === 'cancelled') sections.cancelled.push(apt);
-                else if (apt.appointment_date_raw < today || apt.status === 'completed' || apt.status === 'no_show') sections.past.push(apt);
+                else if (apt.is_past) sections.past.push(apt);
                 else sections.upcoming.push(apt);
+            });
+            // Upcoming reads soonest first; on one day by start time, then id.
+            sections.upcoming.sort(function (a, b) {
+                var ka = (a.appointment_date_raw || '') + ' ' + (a.start_time_raw || '');
+                var kb = (b.appointment_date_raw || '') + ' ' + (b.start_time_raw || '');
+                if (ka !== kb) return ka < kb ? -1 : 1;
+                return (a.id || 0) - (b.id || 0);
             });
             this.sections = sections;
 
