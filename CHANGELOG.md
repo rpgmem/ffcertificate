@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+
+- **Dev toolchain: `minimatch` forced to 11.0.1 or later through `overrides`** (#2334). Clears GHSA-g3hv-75wg-m249, reached through ESLint and through `glob` 7 under `clean-css-cli`; no upstream release had moved off the vulnerable range. Nothing ships: the build output is byte-identical.
+
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 
 ### Added
