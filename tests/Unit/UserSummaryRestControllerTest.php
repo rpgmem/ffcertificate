@@ -224,8 +224,8 @@ class UserSummaryRestControllerTest extends TestCase {
 		$ctrl->register_routes();
 
 		$this->assertSame(
-			'is_user_logged_in',
-			$this->registered_routes[0]['args']['permission_callback']
+			'rest_permission',
+			$this->registered_routes[0]['args']['permission_callback'][1]
 		);
 	}
 

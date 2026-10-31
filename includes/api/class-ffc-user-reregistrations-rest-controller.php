@@ -57,7 +57,7 @@ class UserReregistrationsRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_user_reregistrations' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 
@@ -67,7 +67,7 @@ class UserReregistrationsRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_submission_answers' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 				'args'                => array(
 					'id'     => array(
 						'type'              => 'integer',
@@ -88,7 +88,7 @@ class UserReregistrationsRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_submission_record' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 				'args'                => array(
 					'id' => array(
 						'type'              => 'integer',

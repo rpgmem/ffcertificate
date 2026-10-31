@@ -223,7 +223,7 @@ class UserCertificatesRestControllerTest extends TestCase {
 		$this->assertCount( 2, $this->registered_routes );
 		$this->assertSame( '/user/certificates/reveal', $this->registered_routes[1]['route'] );
 		$this->assertSame( 'POST', $this->registered_routes[1]['args']['methods'] );
-		$this->assertSame( 'is_user_logged_in', $this->registered_routes[1]['args']['permission_callback'] );
+		$this->assertSame( 'rest_permission', $this->registered_routes[1]['args']['permission_callback'][1] );
 	}
 
 	public function test_certificates_route_path(): void {
@@ -238,8 +238,8 @@ class UserCertificatesRestControllerTest extends TestCase {
 		$ctrl->register_routes();
 
 		$this->assertSame(
-			'is_user_logged_in',
-			$this->registered_routes[0]['args']['permission_callback']
+			'rest_permission',
+			$this->registered_routes[0]['args']['permission_callback'][1]
 		);
 	}
 
@@ -509,8 +509,10 @@ class UserCertificatesRestControllerTest extends TestCase {
 	}
 
 	public function test_view_as_reveal_is_audited_once(): void {
+		// The view-as gate needs an account that exists (#2246).
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 5 ) );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'manage_options' === $cap );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => in_array( $cap, array( 'manage_options', 'edit_user' ), true ) );
 		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => ( 1 === $uid && 'manage_options' === $cap ) || ( 5 === $uid && 'ffc_view_own_certificates' === $cap ) );
 		$this->store_row( array( 'id' => '10', 'user_id' => '5', 'status' => 'publish', 'email_encrypted' => $this->email_encrypted ) );
 

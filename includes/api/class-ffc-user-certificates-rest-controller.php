@@ -56,7 +56,7 @@ class UserCertificatesRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_user_certificates' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 
@@ -67,7 +67,7 @@ class UserCertificatesRestController {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'reveal_certificate_email' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,

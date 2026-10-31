@@ -190,7 +190,7 @@ class UserReregistrationsRestControllerTest extends TestCase {
 		$this->assertCount( 3, $this->registered_routes );
 		$this->assertSame( '/user/reregistrations/(?P<id>\\d+)/answers', $this->registered_routes[1]['route'] );
 		$this->assertSame( '/user/reregistrations/(?P<id>\\d+)/record', $this->registered_routes[2]['route'] );
-		$this->assertSame( 'is_user_logged_in', $this->registered_routes[2]['args']['permission_callback'], 'The Record is a signed-in download (#2242).' );
+		$this->assertSame( 'rest_permission', $this->registered_routes[2]['args']['permission_callback'][1], 'The Record is a signed-in download (#2242).' );
 	}
 
 	public function test_reregistrations_route_registered(): void {
@@ -205,8 +205,8 @@ class UserReregistrationsRestControllerTest extends TestCase {
 		$ctrl->register_routes();
 
 		$this->assertSame(
-			'is_user_logged_in',
-			$this->registered_routes[0]['args']['permission_callback']
+			'rest_permission',
+			$this->registered_routes[0]['args']['permission_callback'][1]
 		);
 	}
 

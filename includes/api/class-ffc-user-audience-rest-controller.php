@@ -60,7 +60,7 @@ class UserAudienceRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_user_audience_bookings' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 
@@ -70,7 +70,7 @@ class UserAudienceRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_joinable_groups' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 
@@ -80,7 +80,7 @@ class UserAudienceRestController {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'join_audience_group' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 
@@ -90,7 +90,7 @@ class UserAudienceRestController {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'leave_audience_group' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 
@@ -102,7 +102,7 @@ class UserAudienceRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_leave_impact' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 
@@ -112,7 +112,7 @@ class UserAudienceRestController {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'leave_all_audience_groups' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 
@@ -122,7 +122,7 @@ class UserAudienceRestController {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'switch_audience_group' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 	}

@@ -62,12 +62,12 @@ class UserProfileRestController {
 				array(
 					'methods'             => \WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_user_profile' ),
-					'permission_callback' => 'is_user_logged_in',
+					'permission_callback' => array( $this, 'rest_permission' ),
 				),
 				array(
 					'methods'             => 'PUT',
 					'callback'            => array( $this, 'update_user_profile' ),
-					'permission_callback' => 'is_user_logged_in',
+					'permission_callback' => array( $this, 'rest_permission' ),
 				),
 			)
 		);
@@ -81,7 +81,7 @@ class UserProfileRestController {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'reveal_profile_field' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 				'args'                => array(
 					'field' => array(
 						'required'          => true,
@@ -97,7 +97,7 @@ class UserProfileRestController {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'change_password' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 
@@ -107,7 +107,7 @@ class UserProfileRestController {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'create_privacy_request' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 	}
@@ -516,6 +516,13 @@ class UserProfileRestController {
 				return new \WP_Error( 'not_logged_in', __( 'You must be logged in', 'ffcertificate' ), array( 'status' => 401 ) );
 			}
 
+			// No password changes while viewing as another account (#2246): it
+			// skipped the current password and the log named the target as the
+			// actor. The dashboard does not render the form there either.
+			if ( $ctx['is_view_as'] || '' !== (string) $request->get_param( 'viewAsUserId' ) ) {
+				return new \WP_Error( 'ffc_view_as_password', __( 'The password cannot be changed while viewing as another account.', 'ffcertificate' ), array( 'status' => 403 ) );
+			}
+
 			// Rate limit: 3/hour, 5/day for password changes.
 			if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
 				$rate_check = \FreeFormCertificate\Security\RateLimiter::check_user_limit( $user_id, 'password_change', 3, 5 );
@@ -540,23 +547,18 @@ class UserProfileRestController {
 				return new \WP_Error( 'user_not_found', __( 'User not found', 'ffcertificate' ), array( 'status' => 404 ) );
 			}
 
-			// Admin in view-as mode can skip current password verification.
-			if ( ! $ctx['is_view_as'] ) {
-				if ( empty( $current_password ) ) {
-					return new \WP_Error( 'missing_fields', __( 'All password fields are required', 'ffcertificate' ), array( 'status' => 400 ) );
-				}
-				if ( ! wp_check_password( $current_password, $user->user_pass, $user_id ) ) {
-					return new \WP_Error( 'wrong_password', __( 'Current password is incorrect', 'ffcertificate' ), array( 'status' => 403 ) );
-				}
+			if ( empty( $current_password ) ) {
+				return new \WP_Error( 'missing_fields', __( 'All password fields are required', 'ffcertificate' ), array( 'status' => 400 ) );
+			}
+			if ( ! wp_check_password( $current_password, $user->user_pass, $user_id ) ) {
+				return new \WP_Error( 'wrong_password', __( 'Current password is incorrect', 'ffcertificate' ), array( 'status' => 403 ) );
 			}
 
 			wp_set_password( $new_password, $user_id );
 
-			// Re-authenticate: in view-as mode keep the admin session, otherwise re-auth the user.
-			if ( ! $ctx['is_view_as'] ) {
-				wp_set_current_user( $user_id );
-				wp_set_auth_cookie( $user_id, true );
-			}
+			// wp_set_password() ends every session; keep this one signed in.
+			wp_set_current_user( $user_id );
+			wp_set_auth_cookie( $user_id, true );
 
 			// Log password change.
 			if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
