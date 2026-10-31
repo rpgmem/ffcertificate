@@ -322,6 +322,24 @@ class RecruitmentNoticesRestControllerTest extends TestCase {
 		$this->assertSame( array(), $this->updates, 'A refused transition writes nothing.' );
 	}
 
+	public function test_update_notice_refuses_a_bare_promotion(): void {
+		$this->notices[1] = (object) array(
+			'id'     => 1,
+			'code'   => 'EDITAL-A',
+			'status' => 'preliminary',
+		);
+
+		$result = $this->controller->update_notice(
+			$this->make_request( array( 'id' => 1, 'status' => 'definitive' ) )
+		);
+
+		// #2245: promotion goes through /promote-preview, which writes the list.
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_promotion_requires_promote_flow', $result->get_error_code() );
+		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->updates, 'A refused promotion writes nothing.' );
+	}
+
 	public function test_update_notice_passes_meta_fields_through_to_repository(): void {
 		$this->notices[7] = (object) array(
 			'id'     => 7,

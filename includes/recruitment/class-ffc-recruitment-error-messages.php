@@ -228,6 +228,8 @@ final class RecruitmentErrorMessages {
 			// Candidate identity (#2245).
 			'recruitment_csv_identity_conflict'            => __( 'The CPF and the RF on this line belong to two different candidates. Correct the line and import again.', 'ffcertificate' ),
 			'recruitment_import_identity_mismatch'         => __( 'Some lines match a stored candidate whose data differs. Review them and confirm to import; the stored data is kept.', 'ffcertificate' ),
+			'recruitment_reimport_needs_confirmation'      => __( 'The file replaces a list that already has rows. Review what changes and confirm to import; nothing was written yet.', 'ffcertificate' ),
+			'recruitment_promotion_requires_promote_flow'  => __( 'Promote a preliminary notice by copying the preliminary list or importing a definitive one, so the definitive list is always the current one.', 'ffcertificate' ),
 		);
 	}
 }

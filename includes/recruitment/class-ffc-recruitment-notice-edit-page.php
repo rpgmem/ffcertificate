@@ -253,6 +253,12 @@ final class RecruitmentNoticeEditPage {
 		// somehow lands here with a non-enum value (form-tampering case).
 		$flash = 'transition-invalid-target';
 
+		if ( $notice_id > 0 && RecruitmentPromotionService::is_bare_promotion( $notice_id, $target ) ) {
+			// Promotion copies or imports the definitive list (#2245); a bare
+			// status flip would keep a list from an earlier cycle.
+			self::redirect_with_notice( $notice_id, 'transition-requires-promote' );
+		}
+
 		if ( $notice_id > 0 && in_array( $target, array( 'draft', 'preliminary', 'definitive', 'closed' ), true ) ) {
 			$result = RecruitmentNoticeStateMachine::transition_to( $notice_id, $target, '' === (string) $reason ? null : $reason );
 			if ( true === $result['success'] ) {

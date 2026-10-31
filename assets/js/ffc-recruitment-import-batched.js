@@ -34,6 +34,12 @@
 
 	var BATCH_SIZE_DEFAULT = 50;
 
+	// Error code of an import that waits for the comparison to be confirmed (#2245).
+	var DIFF_CODE = 'recruitment_reimport_needs_confirmation';
+
+	// Seconds the replace button waits, the same as the promotion dialog's.
+	var DIFF_COUNTDOWN = 15;
+
 	/**
 	 * Run the staging-based import flow.
 	 *
@@ -174,13 +180,32 @@
 					});
 			}
 
-			return nextBatch().then(function () {
-				setStatus(strings.committing || 'Finalising…');
-				return postJson(baseUrl + '/commit', { job_id: jobId }).then(function (commit) {
-					setStatus((strings.done || 'Done') + ' (' + commit.inserted + ')');
+			// A swap over a list that has rows answers with the comparison
+			// first (#2245); the staged rows wait for the operator.
+			function commit(confirm) {
+				var payload = { job_id: jobId };
+				if (confirm) { payload.confirm_reimport = true; }
+				return postJson(baseUrl + '/commit', payload).then(function (done) {
+					setStatus((strings.done || 'Done') + ' (' + done.inserted + ')');
 					cleanup();
 					setTimeout(function () { window.location.reload(); }, 600);
+				}, function (err) {
+					var body = err && err.data;
+					if (confirm || !body || body.code !== DIFF_CODE || !body.data) { throw err; }
+					return confirmDiff(body.data, errorListEl).then(function (ok) {
+						if (!ok) {
+							cleanup();
+							setStatus(diffStrings().cancelled || 'Import cancelled.');
+							return undefined;
+						}
+						return commit(true);
+					});
 				});
+			}
+
+			return nextBatch().then(function () {
+				setStatus(strings.committing || 'Finalising…');
+				return commit(false);
 			});
 		}
 
@@ -303,31 +328,99 @@
 	}
 
 	/**
-	 * Run a single-request import, asking the operator once when the
-	 * server answers that some lines differ from stored candidates, then
-	 * sending the same file again with the acknowledgement.
+	 * Strings of the re-import comparison, localised once (#2245).
 	 *
-	 * @param {function(boolean): Promise<{status: number, body: Object}>} send
-	 *        Posts the file; the argument says whether to acknowledge.
-	 * @param {HTMLElement|null} listEl List for the mismatch lines.
+	 * @returns {Object}
+	 */
+	function diffStrings() {
+		return window.ffcRecruitmentImportDiff || {};
+	}
+
+	/**
+	 * Ask the operator to confirm what a file changes in the list it
+	 * replaces (#2245). Every row is listed under the form; the shared
+	 * confirm dialog shows the counts.
+	 *
+	 * @param {{diff_summary: string[], diff_messages: string[]}} data Server data.
+	 * @param {HTMLElement|null} listEl List to fill, when the screen has one.
+	 * @returns {Promise<boolean>} True when the operator confirmed.
+	 */
+	function confirmDiff(data, listEl) {
+		var s = diffStrings();
+		var summary = data.diff_summary || [];
+		var lines = data.diff_messages || [];
+		if (listEl) {
+			listEl.innerHTML = '';
+			lines.forEach(function (line) {
+				var li = document.createElement('li');
+				li.textContent = line;
+				listEl.appendChild(li);
+			});
+		}
+		var admin = window.ffcRecruitmentAdmin;
+		return new Promise(function (resolve) {
+			if (!admin || typeof admin.openConfirmModal !== 'function') {
+				resolve(window.confirm((s.body || '') + '\n\n' + summary.join('\n')));
+				return;
+			}
+			admin.openConfirmModal({
+				title: s.title || 'Replace the list?',
+				body: s.body || '',
+				consequences: summary,
+				cta: s.cta || 'Replace list',
+				icon: 'upload',
+				// The plugin's countdown, so the list is read before it is replaced.
+				countdown: DIFF_COUNTDOWN
+			}, function () { resolve(true); }, function () { resolve(false); });
+		});
+	}
+
+	/**
+	 * Run a single-request import, asking the operator when the server
+	 * answers that some lines differ from stored candidates, or that the
+	 * file changes a list that already has rows (#2245), then sending the
+	 * same file again with the answers given so far.
+	 *
+	 * @param {function(boolean, boolean): Promise<{status: number, body: Object}>} send
+	 *        Posts the file; the arguments say whether to acknowledge the
+	 *        identity mismatches and whether to confirm the comparison.
+	 * @param {HTMLElement|null} listEl List for the lines to review.
 	 * @returns {Promise<{status: number, body: Object}|null>} The final
 	 *          response, or null when the operator declined.
 	 */
 	function sendWithIdentityAck(send, listEl) {
-		return send(false).then(function (o) {
-			var data = o.body && o.body.data;
-			if (o.status !== 409 || !o.body || o.body.code !== 'recruitment_import_identity_mismatch' || !data) {
+		var acknowledged = false;
+		var confirmed = false;
+		function attempt() {
+			return send(acknowledged, confirmed).then(function (o) {
+				var data = o.body && o.body.data;
+				if (o.status !== 409 || !o.body || !data) {
+					return o;
+				}
+				if (o.body.code === 'recruitment_import_identity_mismatch' && !acknowledged) {
+					return confirmIdentity(data.mismatch_messages || [], listEl).then(function (ok) {
+						if (!ok) { return null; }
+						acknowledged = true;
+						return attempt();
+					});
+				}
+				if (o.body.code === DIFF_CODE && !confirmed) {
+					return confirmDiff(data, listEl).then(function (ok) {
+						if (!ok) { return null; }
+						confirmed = true;
+						return attempt();
+					});
+				}
 				return o;
-			}
-			return confirmIdentity(data.mismatch_messages || [], listEl).then(function (ok) {
-				return ok ? send(true) : null;
 			});
-		});
+		}
+		return attempt();
 	}
 
 	window.ffcRecruitmentImportBatched = {
 		run: run,
 		confirmIdentity: confirmIdentity,
+		confirmDiff: confirmDiff,
 		sendWithIdentityAck: sendWithIdentityAck
 	};
 }());

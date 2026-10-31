@@ -95,6 +95,9 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	/** @var list<object> Staged rows as the batched identity check reads them. */
 	private array $staged_identities = array();
 
+	/** @var list<object> The promoted staging rows a commit compares with the stored list (#2245). */
+	private array $staged_promoted = array();
+
 	/** @var int What the "unpromoted staging rows" count answers. */
 	private int $unpromoted = 0;
 
@@ -364,6 +367,13 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		}
 		if ( 0 === strpos( $sql, 'SELECT line_no, cpf_normalized, rf_normalized, email, name FROM ' . self::T_STAGING . ' WHERE job_id = ' ) ) {
 			return $this->staged_identities;
+		}
+		if ( 0 === strpos( $sql, 'SELECT candidate_id, adjutancy_id, rank_value, score FROM ' . self::T_STAGING . ' WHERE job_id = ' ) ) {
+			return $this->staged_promoted;
+		}
+		if ( 0 === strpos( $sql, 'SELECT * FROM ' . self::T_CANDIDATE . ' WHERE id IN (' ) || 0 === strpos( $sql, 'SELECT * FROM ' . self::T_ADJUTANCY . ' ORDER BY name ASC' ) ) {
+			// The comparison names its rows; the names are not under test here.
+			return array();
 		}
 		if ( 1 === preg_match( '/^SELECT id, cpf_hash, rf_hash, email_hash, name FROM ' . self::T_CANDIDATE . ' WHERE (cpf_hash|rf_hash) IN \((.*)\)$/', $sql, $m ) ) {
 			$wanted = array_map( static fn( string $h ): string => trim( $h, " '" ), explode( ',', $m[2] ) );
@@ -1251,6 +1261,35 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 			),
 			$this->logged( 'recruitment_csv_imported' )
 		);
+	}
+
+	public function test_import_job_commit_over_a_stored_list_answers_409_with_the_comparison(): void {
+		$this->notice( 7, 'preliminary' );
+		$this->classification( 1, array( 'notice_id' => 7, 'list_type' => 'preview' ) );
+		$this->jobs['job-1']   = (object) array(
+			'job_id'    => 'job-1',
+			'notice_id' => 7,
+			'list_type' => 'preview',
+			'status'    => 'promoting',
+		);
+		$this->staged_promoted = array(
+			(object) array( 'candidate_id' => '12', 'adjutancy_id' => '3', 'rank_value' => '1', 'score' => '8.0000' ),
+		);
+
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+
+		$result = $this->controller->import_job_commit( $this->make_request( array( 'job_id' => 'job-1' ) ) );
+
+		// #2245: nothing is written until the operator confirms.
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_reimport_needs_confirmation', $result->get_error_code() );
+		$data = $result->get_error_data();
+		$this->assertSame( 409, $data['status'] );
+		$this->assertContains( '1 row enters the list.', $data['diff_summary'] );
+		$this->assertContains( '1 row leaves the list.', $data['diff_summary'] );
+		$this->assertCount( 2, $data['diff_messages'] );
+		$this->assertSame( array(), $this->writes_to( 'delete', self::T_CLASSIFICATION ) );
 	}
 
 	public function test_import_job_commit_failure(): void {

@@ -51,6 +51,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class RecruitmentPromotionService {
 
 	/**
+	 * Whether a status change is a promotion that skips the list (#2245).
+	 *
+	 * `preliminary → definitive` is reached only through the two promotion
+	 * paths, which write the definitive list in the same transaction: a
+	 * bare status flip would keep a definitive list left by an earlier
+	 * cycle, or leave a notice definitive with no list at all.
+	 *
+	 * @param int    $notice_id Notice ID.
+	 * @param string $target    Requested status.
+	 * @return bool
+	 */
+	public static function is_bare_promotion( int $notice_id, string $target ): bool {
+		if ( 'definitive' !== $target ) {
+			return false;
+		}
+		$notice = RecruitmentNoticeReader::get_by_id( $notice_id );
+		return null !== $notice && 'preliminary' === (string) $notice->status;
+	}
+
+	/**
 	 * Snapshot the current `preview` rows into `definitive`, then flip the
 	 * notice status to `definitive`.
 	 *

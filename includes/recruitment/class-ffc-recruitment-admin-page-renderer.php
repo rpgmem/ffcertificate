@@ -191,6 +191,7 @@ final class RecruitmentAdminPageRenderer {
 		$map = array(
 			'saved'                       => array( 'success', __( 'Saved.', 'ffcertificate' ) ),
 			'transitioned'                => array( 'success', __( 'Status transition applied.', 'ffcertificate' ) ),
+			'transition-requires-promote' => array( 'error', __( 'Promote a preliminary notice with "Copy preliminary as definitive" or by importing a definitive list.', 'ffcertificate' ) ),
 			'transition-blocked-by-calls' => array( 'error', __( 'Status transition rejected: cannot move from `definitive` back to `preliminary` once any call has been issued in this notice.', 'ffcertificate' ) ),
 			'transition-reason-required'  => array( 'error', __( 'Status transition rejected: this transition requires a reason (filled in the Reopen reason field).', 'ffcertificate' ) ),
 			'transition-race-lost'        => array( 'error', __( 'Status transition lost a race against another concurrent change. Reload the page and try again.', 'ffcertificate' ) ),

@@ -40,6 +40,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Service: ingest → validate → promote → commit batched CSV imports.
+ *
+ * @phpstan-import-type Diff from RecruitmentReimportDiff
  */
 final class CsvStagingService {
 
@@ -691,10 +693,16 @@ final class CsvStagingService {
 	 *      just leaves an orphaned 'committed' job + its staging,
 	 *      reaped on the next ingest_job TTL sweep.
 	 *
-	 * @param string $job_id Job identifier.
-	 * @return array{ok: true, inserted: int}|array{ok: false, errors: list<string>}
+	 * A swap over a list that already has rows waits for the operator
+	 * (#2245): without `$confirm_reimport` it answers with the comparison
+	 * and changes nothing, and the job stays promoted for the confirmed
+	 * call. The manual preliminary marks are carried onto the new rows.
+	 *
+	 * @param string $job_id           Job identifier.
+	 * @param bool   $confirm_reimport The operator confirmed the comparison.
+	 * @return array{ok: true, inserted: int}|array{ok: false, errors: list<string>, diff?: Diff}
 	 */
-	public static function commit_job( string $job_id ) {
+	public static function commit_job( string $job_id, bool $confirm_reimport = false ) {
 		global $wpdb;
 		$jobs_table           = $wpdb->prefix . 'ffc_recruitment_import_jobs';
 		$staging_table        = $wpdb->prefix . 'ffc_recruitment_import_staging';
@@ -748,6 +756,19 @@ final class CsvStagingService {
 			}
 		}
 
+		$stored = RecruitmentClassificationRepository::get_for_notice( (int) $job->notice_id, (string) $job->list_type );
+		if ( ! empty( $stored ) && ! $confirm_reimport && 'committed' !== $job->status ) {
+			$diff = RecruitmentReimportDiff::compute( $stored, self::staged_rows( $job_id ) );
+			if ( ! RecruitmentReimportDiff::is_identical( $diff ) ) {
+				return array(
+					'ok'     => false,
+					'errors' => array( RecruitmentReimportDiff::CONFIRM_CODE ),
+					'diff'   => $diff,
+				);
+			}
+		}
+		$marks = 'preview' === (string) $job->list_type ? RecruitmentReimportDiff::marks( $stored ) : array();
+
 		$wpdb->query( 'START TRANSACTION' );
 		try {
 			RecruitmentClassificationRepository::delete_all_for_notice_list( (int) $job->notice_id, (string) $job->list_type );
@@ -770,6 +791,14 @@ final class CsvStagingService {
 				)
 			);
 			if ( false === $inserted ) {
+				$wpdb->query( 'ROLLBACK' );
+				return array(
+					'ok'     => false,
+					'errors' => array( 'recruitment_import_swap_failed' ),
+				);
+			}
+
+			if ( ! empty( $marks ) && ! RecruitmentReimportDiff::restore_marks( $marks, self::ids_by_key( (int) $job->notice_id, (string) $job->list_type ) ) ) {
 				$wpdb->query( 'ROLLBACK' );
 				return array(
 					'ok'     => false,
@@ -826,5 +855,66 @@ final class CsvStagingService {
 			'ok'       => true,
 			'inserted' => (int) $inserted,
 		);
+	}
+
+	/**
+	 * The promoted staging rows of a job, in the shape the comparison reads.
+	 *
+	 * @param string $job_id Job identifier.
+	 * @return list<array{candidate_id: int, adjutancy_id: int, rank: int, score: string}>
+	 */
+	private static function staged_rows( string $job_id ): array {
+		global $wpdb;
+		/**
+		 * Promoted staging rows.
+		 *
+		 * @var list<\stdClass&object{candidate_id: numeric-string|null, adjutancy_id: numeric-string|null, rank_value: numeric-string|null, score: string|null}>|null $rows
+		 */
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT candidate_id, adjutancy_id, rank_value, score FROM %i WHERE job_id = %s AND processed = 1 ORDER BY row_no',
+				$wpdb->prefix . 'ffc_recruitment_import_staging',
+				$job_id
+			)
+		);
+		$out  = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$out[] = array(
+				'candidate_id' => (int) $row->candidate_id,
+				'adjutancy_id' => (int) $row->adjutancy_id,
+				'rank'         => (int) $row->rank_value,
+				'score'        => (string) $row->score,
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * The classification IDs of a notice's list, by comparison key.
+	 *
+	 * @param int    $notice_id Notice ID.
+	 * @param string $list_type List type.
+	 * @return array<string, int>
+	 */
+	private static function ids_by_key( int $notice_id, string $list_type ): array {
+		global $wpdb;
+		/**
+		 * Rows just inserted by the swap.
+		 *
+		 * @var list<\stdClass&object{id: numeric-string, candidate_id: numeric-string, adjutancy_id: numeric-string}>|null $rows
+		 */
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT id, candidate_id, adjutancy_id FROM %i WHERE notice_id = %d AND list_type = %s',
+				$wpdb->prefix . 'ffc_recruitment_classification',
+				$notice_id,
+				$list_type
+			)
+		);
+		$out  = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$out[ RecruitmentReimportDiff::key( (int) $row->candidate_id, (int) $row->adjutancy_id ) ] = (int) $row->id;
+		}
+		return $out;
 	}
 }

@@ -926,10 +926,6 @@ msgstr "Um e-mail de confirmação foi enviado para o seu endereço de e-mail."
 msgid "A database foreign-key backstop enforces the same anonymise/remove behaviour even if the application hook is bypassed."
 msgstr "Um mecanismo de segurança baseado em chaves estrangeiras no banco de dados impõe o mesmo comportamento de anonimização ou remoção, mesmo que o *hook* da aplicação seja contornado."
 
-#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php:29
-msgid "A definitive list already exists for this notice. Promoting just flips the status to `definitive` (the existing definitive list is preserved)."
-msgstr "Já existe uma lista definitiva para este edital. A promoção apenas altera o status para \"definitiva\" (a lista definitiva existente é preservada)."
-
 #: includes/settings/views/documentation/feature-record.php:138
 msgid "A dependent_select custom field (e.g. divisao_setor) exposes three placeholders: the combined value plus its two halves. Use whichever the layout needs."
 msgstr "Um campo personalizado dependent_select (por exemplo, divisao_setor) expõe três espaços reservados: o valor combinado mais suas duas metades. Use aquele que o layout exigir."
@@ -1090,10 +1086,6 @@ msgstr "Um form_id válido é obrigatório."
 #: includes/settings/views/documentation/config-captcha.php:49
 msgid "A visitor without JavaScript cannot submit the form at all. The widget also refuses to run outside a secure connection, so this mode cannot be saved on a site that is not served over HTTPS."
 msgstr "Um visitante sem JavaScript não consegue enviar o formulário de forma alguma. O widget também se recusa a funcionar fora de uma conexão segura; portanto, esse modo não pode ser salvo em um site que não utilize HTTPS."
-
-#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php:81
-msgid "A — Publish preliminary as definitive (snapshot, no changes)"
-msgstr "A — Publicar versão preliminar como definitiva (instantâneo, sem alterações)"
 
 #. 1: number of selected rows, 2: date, 3: time
 #: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:234
@@ -13042,10 +13034,6 @@ msgstr "Nome do Programa/Curso (se houver campo personalizado)"
 msgid "Progress"
 msgstr "Progresso"
 
-#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php:74
-msgid "Promote (snapshot) to definitive?"
-msgstr "Promover (instantâneo) para definitivo?"
-
 #: templates/admin/recruitment/admin-page/notices-empty-state.php:29
 msgid "Promote the preliminary list to definitive once you're ready, and call candidates per row or in bulk."
 msgstr "Promova a lista preliminar à lista definitiva quando estiver tudo pronto e convoque os candidatos por linha ou em lote."
@@ -16744,10 +16732,6 @@ msgstr "o limite para o usuário final; os direitos de reserva/cancelamento deri
 msgid "the end-user self-service caps."
 msgstr "os limites de autoatendimento para o usuário final."
 
-#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php:34
-msgid "The existing definitive list is preserved as-is."
-msgstr "A lista definitiva existente será mantida tal como está."
-
 #: templates/public/set-password.php:28
 msgid "The form expired before it was sent. Try again."
 msgstr "O formulário expirou antes de ser enviado. Tente novamente."
@@ -19448,10 +19432,6 @@ msgstr "Você já possui {count} certificados."
 msgid "You appear to be offline. Reconnect to the internet and try again."
 msgstr "Parece que você está offline. Reconecte-se à internet e tente novamente."
 
-#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php:41
-msgid "You are about to flip the notice status to `definitive`."
-msgstr "Você está prestes a alterar o status da notificação para \"definitiva\"."
-
 #: includes/recruitment/class-ffc-recruitment-adjutancies-list-table.php:104
 msgid "You are about to permanently delete this adjutancy."
 msgstr "Você está prestes a excluir permanentemente esta matéria."
@@ -19471,10 +19451,6 @@ msgstr "Você está prestes a excluir este edital permanentemente."
 #: includes/recruitment/class-ffc-recruitment-reasons-list-table.php:143
 msgid "You are about to permanently delete this reason."
 msgstr "Você está prestes a excluir permanentemente este motivo."
-
-#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php:75
-msgid "You are about to snapshot the preliminary list as the definitive list."
-msgstr "Você está prestes a salvar a lista preliminar como a lista definitiva."
 
 #: includes/api/class-ffc-user-audience-rest-controller.php:402
 msgid "You are already a member of this group"
@@ -30920,3 +30896,113 @@ msgstr "Contratado, desistiu, não compareceu, prazo de apresentação encerrado
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "Closed shows each row's position and score, as Waiting does. When a notice is closed, its rows leave Called and Waiting and are listed under Closed. A row with no result yet reads \"Notice closed\"; a recorded result or a passed deadline keeps its own badge. Only the label changes: the candidate's status in the notice stays as it was."
 msgstr "Encerradas mostra a posição e a pontuação de cada linha, como Aguardando convocação. Quando um edital é encerrado, suas linhas saem de Convocado e Aguardando convocação e passam para Encerradas. Uma linha ainda sem resultado mostra \"Edital encerrado\"; um resultado registrado ou um prazo vencido mantém o próprio selo. Só o rótulo muda: o status do candidato no edital continua o mesmo."
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+#, php-format
+msgid "%s more row is not listed."
+msgid_plural "%s more rows are not listed."
+msgstr[0] "%s linha a mais não está listada."
+msgstr[1] "%s linhas a mais não estão listadas."
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+#, php-format
+msgid "%s row changes rank or score."
+msgid_plural "%s rows change rank or score."
+msgstr[0] "%s linha muda de posição ou pontuação."
+msgstr[1] "%s linhas mudam de posição ou pontuação."
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+#, php-format
+msgid "%s row enters the list."
+msgid_plural "%s rows enter the list."
+msgstr[0] "%s linha entra na lista."
+msgstr[1] "%s linhas entram na lista."
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+#, php-format
+msgid "%s row is unchanged."
+msgid_plural "%s rows are unchanged."
+msgstr[0] "%s linha continua igual."
+msgstr[1] "%s linhas continuam iguais."
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+#, php-format
+msgid "%s row leaves the list."
+msgid_plural "%s rows leave the list."
+msgstr[0] "%s linha sai da lista."
+msgstr[1] "%s linhas saem da lista."
+
+#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php
+#, php-format
+msgid "A definitive list from an earlier cycle exists (%s row). Either option below replaces it."
+msgid_plural "A definitive list from an earlier cycle exists (%s rows). Either option below replaces it."
+msgstr[0] "Existe uma lista definitiva de um ciclo anterior (%s linha). Qualquer opção abaixo a substitui."
+msgstr[1] "Existe uma lista definitiva de um ciclo anterior (%s linhas). Qualquer opção abaixo a substitui."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "A file that replaces a list that already has rows shows what it changes before anything is written: the rows that enter, leave, or change rank or score. Nothing is imported until the operator confirms. The preliminary status and reason set by hand stay with each candidate and adjutancy that remains; only those of the rows that leave are lost, and the comparison says how many."
+msgstr "Um arquivo que substitui uma lista que já tem linhas mostra o que muda antes de gravar qualquer coisa: as linhas que entram, saem ou mudam de posição ou pontuação. Nada é importado até o operador confirmar. O status e o motivo preliminares lançados à mão continuam com cada candidato e matéria que permanece; só se perdem os das linhas que saem, e a comparação diz quantos são."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "A preliminary notice is promoted only by \"Copy preliminary as definitive\" or by importing a definitive list. When a definitive list remains from an earlier cycle, because the notice went back to preliminary, both replace it, so the definitive list always comes from the corrected preliminary one or from the new file."
+msgstr "Um edital preliminar só é promovido por \"Copiar a preliminar como definitiva\" ou importando uma lista definitiva. Quando sobra uma lista definitiva de um ciclo anterior, porque o edital voltou para preliminar, as duas opções a substituem, então a lista definitiva sempre vem da preliminar corrigida ou do arquivo novo."
+
+#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php
+msgid "A — Copy preliminary as definitive"
+msgstr "A — Copiar a preliminar como definitiva"
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+msgid "Changes: %1$s, %2$s, rank %3$s → %4$s, score %5$s → %6$s."
+msgstr "Muda: %1$s, %2$s, posição %3$s → %4$s, pontuação %5$s → %6$s."
+
+#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php
+msgid "Copy the preliminary list as definitive?"
+msgstr "Copiar a lista preliminar como definitiva?"
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+msgid "Enters: %1$s, %2$s, rank %3$s."
+msgstr "Entra: %1$s, %2$s, posição %3$s."
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+msgid "Leaves: %1$s, %2$s, rank %3$s."
+msgstr "Sai: %1$s, %2$s, posição %3$s."
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+msgid "Leaves: %1$s, %2$s, rank %3$s. Its manual status is lost."
+msgstr "Sai: %1$s, %2$s, posição %3$s. O status lançado à mão se perde."
+
+#: includes/recruitment/class-ffc-recruitment-reimport-diff.php
+msgid "Manual preliminary statuses: %1$s kept, %2$s lost with the rows that leave."
+msgstr "Status preliminares lançados à mão: %1$s mantidos, %2$s perdidos com as linhas que saem."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "Promote a preliminary notice by copying the preliminary list or importing a definitive one, so the definitive list is always the current one."
+msgstr "Promova um edital preliminar copiando a lista preliminar ou importando uma definitiva, para que a lista definitiva seja sempre a atual."
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "Promote a preliminary notice with \"Copy preliminary as definitive\" or by importing a definitive list."
+msgstr "Promova um edital preliminar com \"Copiar a preliminar como definitiva\" ou importando uma lista definitiva."
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "Replace list"
+msgstr "Substituir lista"
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "Replace the list?"
+msgstr "Substituir a lista?"
+
+#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php
+msgid "The definitive list from the earlier cycle is replaced."
+msgstr "A lista definitiva do ciclo anterior é substituída."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "The file replaces a list that already has rows. Review what changes and confirm to import; nothing was written yet."
+msgstr "O arquivo substitui uma lista que já tem linhas. Revise o que muda e confirme para importar; nada foi gravado ainda."
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "This file replaces a list that already has rows. Every row that enters, leaves or changes is listed below the form. Manual preliminary statuses are kept for the rows that stay."
+msgstr "Este arquivo substitui uma lista que já tem linhas. Cada linha que entra, sai ou muda aparece abaixo do formulário. Os status preliminares lançados à mão são mantidos nas linhas que ficam."
+
+#: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php
+msgid "You are about to copy the preliminary list as the definitive list."
+msgstr "Você vai copiar a lista preliminar como lista definitiva."

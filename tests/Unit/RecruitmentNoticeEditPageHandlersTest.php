@@ -312,6 +312,18 @@ class RecruitmentNoticeEditPageHandlersTest extends TestCase {
 		$this->assertStringContainsString( 'WHERE id = 5 AND status = draft', $this->status_updates()[0] );
 	}
 
+	public function test_handle_transition_refuses_a_bare_promotion(): void {
+		$_POST['notice_id']     = '5';
+		$_POST['target_status'] = 'definitive';
+		$this->store_notice( 'preliminary' );
+
+		$msg = $this->capture( array( RecruitmentNoticeEditPage::class, 'handle_transition' ) );
+
+		// #2245: a status flip would keep the definitive list of an earlier cycle.
+		$this->assertStringContainsString( 'ffc_msg=transition-requires-promote', $msg );
+		$this->assertSame( array(), $this->status_updates(), 'The status is not touched.' );
+	}
+
 	/**
 	 * The stored notice drives the real state machine into each refusal, and
 	 * the handler maps the refusal's code to its flash key.

@@ -60,11 +60,12 @@
 			: cfg.noticesRoot + nid + '/import';
 		// Lines that differ from a stored candidate are confirmed once, then
 		// the file is sent again with the acknowledgement (#2245).
-		function send(acknowledge) {
+		function send(acknowledge, confirm) {
 			var fd = new FormData();
 			fd.append('csv_file', file);
 			if (target === 'definitive') { fd.append('mode', 'definitive_import'); }
 			if (acknowledge) { fd.append('acknowledge_identity', '1'); }
+			if (confirm) { fd.append('confirm_reimport', '1'); }
 			return fetch(url, {
 				method: 'POST',
 				headers: { 'X-WP-Nonce': cfg.nonce },
