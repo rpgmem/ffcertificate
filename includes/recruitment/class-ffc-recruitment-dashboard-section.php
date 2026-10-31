@@ -241,8 +241,9 @@ final class RecruitmentDashboardSection {
 	 * - `hired`, `withdrew`, `not_shown` and any status this screen does not
 	 *   know are Closed.
 	 * - On a closed notice nothing waits and nothing is still called (#2245):
-	 *   a row that has no outcome yet is Closed as `notice_closed`, and a
-	 *   recorded outcome keeps its own badge.
+	 *   a row with no outcome yet is Closed as `notice_closed`, and a recorded
+	 *   outcome (or a passed deadline) keeps its own badge. The label is drawn
+	 *   here only; the stored classification status never changes.
 	 *
 	 * Every item also carries the most recent cancelled call (`reverted`),
 	 * which the Waiting and Closed rows explain behind their info button.
@@ -277,15 +278,14 @@ final class RecruitmentDashboardSection {
 				'reverted'       => $reverted,
 			);
 
-			$status = (string) $entry['classification']->status;
-			if ( 'closed' === (string) $entry['notice']->status && in_array( $status, array( 'empty', 'called', 'accepted' ), true ) ) {
-				$item['status'] = 'notice_closed';
-				$closed[]       = $item;
-				continue;
-			}
+			$status        = (string) $entry['classification']->status;
+			$notice_closed = 'closed' === (string) $entry['notice']->status;
 			if ( in_array( $status, array( 'called', 'accepted' ), true ) && null !== $live ) {
 				if ( self::deadline_passed( (string) $live->date_to_assume, $now ) ) {
 					$item['status'] = 'expired';
+					$closed[]       = $item;
+				} elseif ( $notice_closed ) {
+					$item['status'] = 'notice_closed';
 					$closed[]       = $item;
 				} else {
 					$item['status'] = 'called';
@@ -294,6 +294,11 @@ final class RecruitmentDashboardSection {
 				continue;
 			}
 
+			if ( in_array( $status, array( 'empty', 'called', 'accepted' ), true ) && $notice_closed ) {
+				$item['status'] = 'notice_closed';
+				$closed[]       = $item;
+				continue;
+			}
 			if ( in_array( $status, array( 'empty', 'called', 'accepted' ), true ) ) {
 				$item['status'] = 'preliminary' === $entry['notice']->status ? 'preliminary' : 'final';
 				$waiting[]      = $item;

@@ -541,4 +541,61 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 		$this->assertStringContainsString( '<dt>Reason</dt><dd>Date changed.</dd>', $closed );
 		$this->assertStringContainsString( '10/09/2026 08:00', $closed, 'The presentation date is the live call\'s.' );
 	}
+
+	public function test_a_closed_notice_moves_its_open_rows_to_closed_without_touching_the_stored_status(): void {
+		$tz       = new \DateTimeZone( 'America/Sao_Paulo' );
+		$midnight = ( new \DateTimeImmutable( '2026-10-20 00:00:00', $tz ) )->getTimestamp();
+		$notice   = $this->notice( 10, 'closed' );
+		$rows     = array(
+			'empty'    => $this->cls( 1, 10, 'definitive', 'empty' ),
+			'called'   => $this->cls( 2, 10, 'definitive', 'called' ),
+			'accepted' => $this->cls( 3, 10, 'definitive', 'accepted' ),
+			'expired'  => $this->cls( 4, 10, 'definitive', 'called' ),
+			'hired'    => $this->cls( 5, 10, 'definitive', 'hired' ),
+		);
+		$entries  = array(
+			array( 'notice' => $notice, 'classification' => $rows['empty'], 'calls' => array() ),
+			array( 'notice' => $notice, 'classification' => $rows['called'], 'calls' => array( $this->call( 102, 2, array( 'date_to_assume' => '2026-10-25' ) ) ) ),
+			array( 'notice' => $notice, 'classification' => $rows['accepted'], 'calls' => array( $this->call( 103, 3, array( 'date_to_assume' => '2026-10-25' ) ) ) ),
+			array( 'notice' => $notice, 'classification' => $rows['expired'], 'calls' => array( $this->call( 104, 4, array( 'date_to_assume' => '2026-10-19' ) ) ) ),
+			array( 'notice' => $notice, 'classification' => $rows['hired'], 'calls' => array( $this->call( 105, 5 ) ) ),
+		);
+
+		$sections = RecruitmentDashboardSection::build_sections( $entries, $midnight );
+
+		$this->assertSame( array(), $sections['called'], 'Nothing is still called on a closed notice.' );
+		$this->assertSame( array(), $sections['waiting'], 'Nothing waits on a closed notice.' );
+		$by_id = array();
+		foreach ( $sections['closed'] as $item ) {
+			$by_id[ (int) $item['classification']->id ] = $item['status'];
+		}
+		ksort( $by_id );
+		$this->assertSame(
+			array(
+				1 => 'notice_closed',
+				2 => 'notice_closed',
+				3 => 'notice_closed',
+				4 => 'expired',
+				5 => 'hired',
+			),
+			$by_id,
+			'Only a row with no outcome reads "Notice closed"; an outcome keeps its badge.'
+		);
+		$this->assertSame( 'empty', $rows['empty']->status, 'The label is visual: the classification row is never rewritten.' );
+		$this->assertSame( 'called', $rows['called']->status );
+		$this->assertSame( 'accepted', $rows['accepted']->status );
+	}
+
+	public function test_a_closed_notice_row_renders_its_badge_in_the_closed_section(): void {
+		$this->wire(
+			array( $this->cls( 1, 10, 'definitive', 'empty' ) ),
+			array( 10 => $this->notice( 10, 'closed' ) ),
+			array()
+		);
+
+		$html = RecruitmentDashboardSection::render_for_user( 9, self::NOW );
+
+		$this->assertStringNotContainsString( 'id="ffc-mycalls-waiting"', $html );
+		$this->assertStringContainsString( '<span class="ffc-pill ffc-mycalls-badge-notice-closed">Notice closed</span>', $this->section( $html, 'closed' ) );
+	}
 }
