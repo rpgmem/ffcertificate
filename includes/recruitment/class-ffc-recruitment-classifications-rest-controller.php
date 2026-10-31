@@ -621,7 +621,7 @@ final class RecruitmentClassificationsRestController {
 		if ( ! $result['success'] ) {
 			// A notice in the wrong state is a conflict; a bad file is not.
 			$code     = (string) ( $result['errors'][0] ?? '' );
-			$conflict = in_array( $code, array( 'recruitment_definitive_import_requires_preliminary', 'recruitment_definitive_import_blocked_by_calls', 'recruitment_transition_race_lost' ), true )
+			$conflict = in_array( $code, array( 'recruitment_definitive_import_requires_preliminary', 'recruitment_definitive_import_requires_preliminary_list', 'recruitment_definitive_import_blocked_by_calls', 'recruitment_transition_race_lost' ), true )
 				|| 0 === strpos( $code, 'recruitment_invalid_transition' );
 			return $this->wp_error_from_envelope( $result['errors'], $conflict ? 409 : 400 );
 		}

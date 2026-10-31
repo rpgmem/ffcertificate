@@ -56,6 +56,9 @@ final class RecruitmentNoticeEditPageRenderer {
 	public static function render_csv_import_section( object $notice ): void {
 		$notice_id = (int) $notice->id;
 		$status    = (string) $notice->status;
+		// The same check the import runs (#2245): the definitive option is
+		// offered only where the import would accept it.
+		$definitive_block = RecruitmentCsvImporter::definitive_import_block( $notice_id, $status );
 
 		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/csv-import-section.php';
 	}

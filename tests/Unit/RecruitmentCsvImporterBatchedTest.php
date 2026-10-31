@@ -50,6 +50,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	 */
 	private array $rules = array();
 
+	/** @var int Rows of the notice's preliminary list (#2245). */
+	private int $preview_rows = 1;
+
 	/** @var list<array{0: string, 1: string, 2: array<int, mixed>}> Every call the double answered: method, SQL or table, arguments. */
 	private array $calls = array();
 
@@ -126,6 +129,8 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 				)
 				->byDefault();
 		}
+		// The notice has a preliminary list unless a test says otherwise (#2245).
+		$this->on( 'get_var', "/list_type = 'preview'$/", fn() => (string) $this->preview_rows );
 		foreach ( array( 'insert', 'update', 'delete' ) as $method ) {
 			$this->wpdb->shouldReceive( $method )
 				->andReturnUsing(
@@ -868,6 +873,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	 */
 	public function test_import_definitive_refuses_before_any_write( string $status, int $calls, string $error ): void {
 		$this->store_notice( $this->notice_stub( $status ) );
+		$this->preview_rows = 'recruitment_definitive_import_requires_preliminary_list' === $error ? 0 : 1;
 		$this->on( 'get_var', '/FROM `?wp_ffc_recruitment_call`? c/', (string) $calls );
 
 		$out = RecruitmentCsvImporter::import_definitive(
@@ -890,6 +896,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 			'definitive'              => array( 'definitive', 0, 'recruitment_definitive_import_requires_preliminary' ),
 			'closed'                  => array( 'closed', 0, 'recruitment_definitive_import_requires_preliminary' ),
 			'preliminary with calls'  => array( 'preliminary', 3, 'recruitment_definitive_import_blocked_by_calls' ),
+			'no preliminary list'     => array( 'preliminary', 0, 'recruitment_definitive_import_requires_preliminary_list' ),
 		);
 	}
 

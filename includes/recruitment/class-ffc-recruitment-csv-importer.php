@@ -131,6 +131,11 @@ final class RecruitmentCsvImporter {
 		if ( ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::IMPORT_DEFINITIVE, $status ) ) {
 			return 'recruitment_definitive_import_requires_preliminary';
 		}
+		// The definitive list is drawn from a published preliminary one: with
+		// no preliminary list there is nothing it can be the outcome of (#2245).
+		if ( 0 === RecruitmentClassificationRepository::count_for_notice_list( $notice_id, 'preview' ) ) {
+			return 'recruitment_definitive_import_requires_preliminary_list';
+		}
 		if ( RecruitmentClassificationRepository::count_calls_for_notice( $notice_id ) > 0 ) {
 			return 'recruitment_definitive_import_blocked_by_calls';
 		}

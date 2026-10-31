@@ -120,6 +120,7 @@ final class RecruitmentErrorMessages {
 			'recruitment_invalid_state_for_preview_import' => __( 'CSV imports for the preliminary list are only allowed while the notice is in `draft` or `preliminary`.', 'ffcertificate' ),
 			'recruitment_definitive_to_preliminary_blocked_by_calls' => __( 'Cannot move back to preliminary: at least one call has already been issued. Cancel pending calls before reverting.', 'ffcertificate' ),
 			'recruitment_definitive_import_requires_preliminary' => __( 'The definitive list can only be imported while the notice is in `preliminary`. Nothing was imported.', 'ffcertificate' ),
+			'recruitment_definitive_import_requires_preliminary_list' => __( 'Import the preliminary list first: the definitive list is imported only on a notice that has one. Nothing was imported.', 'ffcertificate' ),
 			'recruitment_definitive_import_blocked_by_calls' => __( 'The definitive list cannot be replaced: this notice already has calls. Nothing was imported.', 'ffcertificate' ),
 			'recruitment_state_locked'                     => __( 'This action is not allowed in the notice\'s current state.', 'ffcertificate' ),
 			'recruitment_state_terminal_hired'             => __( 'This candidate has already been hired and cannot be modified.', 'ffcertificate' ),

@@ -12,6 +12,7 @@
  *
  * @var int    $notice_id Notice id.
  * @var string $status    Notice status.
+ * @var string|null $definitive_block Why a definitive import is refused, or null when it may run.
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.7.7
@@ -56,8 +57,10 @@ echo '<table class="form-table"><tbody>';
 
 echo '<tr><th><label>' . esc_html__( 'Target list', 'ffcertificate' ) . '</label></th><td>';
 echo '<label class="ffc-rec-mr-1"><input type="radio" name="list_target" value="preliminary" checked> ' . esc_html__( 'Preliminary list', 'ffcertificate' ) . '</label>';
-if ( \FreeFormCertificate\Recruitment\RecruitmentNoticeLocks::allows( \FreeFormCertificate\Recruitment\RecruitmentNoticeLocks::IMPORT_DEFINITIVE, $status ) ) {
+if ( null === $definitive_block ) {
 	echo '<label><input type="radio" name="list_target" value="definitive"> ' . esc_html__( 'Definitive list (also transitions notice to `definitive`)', 'ffcertificate' ) . '</label>';
+} elseif ( 'recruitment_definitive_import_requires_preliminary_list' === $definitive_block ) {
+	echo '<p class="description">' . esc_html__( 'The definitive list can be imported once the preliminary list has been imported.', 'ffcertificate' ) . '</p>';
 }
 echo '</td></tr>';
 

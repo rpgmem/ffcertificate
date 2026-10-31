@@ -218,6 +218,18 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 				throw new \LogicException( 'Unexpected get_results: ' . $sql );
 			}
 		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = array( 'get_var', $sql, $this->bound );
+				if ( str_contains( (string) $sql, 'WHERE notice_id = %d AND list_type = %s' ) && 'wp_ffc_recruitment_classification' === $this->bound[0] ) {
+					return 7 === (int) $this->bound[1] ? (string) count( $this->classifications[ (string) $this->bound[2] ] ?? array() ) : '0';
+				}
+				if ( str_contains( (string) $sql, 'INNER JOIN' ) ) {
+					return '0';
+				}
+				throw new \LogicException( 'Unexpected get_var: ' . $sql );
+			}
+		);
 		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
 			function ( $sql ) {
 				$this->queries[] = array( 'get_col', $sql, $this->bound );
@@ -368,6 +380,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_render_csv_import_section_preliminary_shows_import_form(): void {
+		$this->store_classifications( array( $this->cls_row( 50, 1, 'empty', 1, 500 ) ), array() );
 		ob_start();
 		RecruitmentNoticeEditPageRenderer::render_csv_import_section( $this->notice( array( 'status' => 'preliminary' ) ) );
 		$html = (string) ob_get_clean();
@@ -376,6 +389,16 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'name="csv_file"', $html );
 		// preliminary status exposes the "definitive" radio path.
 		$this->assertStringContainsString( 'value="definitive"', $html );
+	}
+
+	public function test_a_preliminary_notice_without_a_preliminary_list_offers_no_definitive_import(): void {
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_csv_import_section( $this->notice( array( 'status' => 'preliminary' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'name="csv_file"', $html, 'The preliminary import stays available.' );
+		$this->assertStringNotContainsString( 'value="definitive"', $html, 'The definitive list needs a preliminary one first (#2245).' );
+		$this->assertStringContainsString( 'once the preliminary list has been imported', $html );
 	}
 
 	public function test_render_csv_import_section_definitive_disables_import(): void {
