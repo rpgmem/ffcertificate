@@ -157,6 +157,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Recruitment: an import no longer rewrites a candidate's identity** (#2245). Lines whose name, CPF, RF or e-mail differ from the stored candidate are listed and wait for confirmation; a CPF and an RF of two candidates refuse the file; a stored name or identifier is never overwritten, only filled in.
 - **Recruitment: a cancelled call is cancelled everywhere** (#2245). Cancel and Reopen end the call row, so its `.ics`, "My calls" and the next call agree, and the candidate is e-mailed; calls and outcomes are refused off the definitive list of a definitive notice; a call is cancelled only under its own row; "Back to draft" is gone.
 - **Recruitment: the Operator can work a notice (#2245).** The notice screen opened only to `ffc_manage_recruitment`, so the Operator, who holds view and call, got "Access denied". It now opens to view and call holders: the Operator calls, records outcomes and cancels or reopens their own calls; name, columns, status, adjutancies, preliminary statuses, imports, deletion and the admin override stay with the Manager.
+- **Recruitment: imports validate every row, on both paths (#2245).** The batched import (the notice screen's) skipped the per-row rules, so a non-numeric rank became 0. Both paths now refuse the whole file on one bad line and list every problem of every line with its value. A non-UTF-8 file gets its own message, and promoting the preliminary list keeps `time_points` and `hab_emebs`.
 
 ### Security
 

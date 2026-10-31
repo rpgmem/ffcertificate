@@ -232,6 +232,18 @@
 			});
 		}).catch(function (err) {
 			cleanup();
+			// A refused file lists every line and value (#2245): the server
+			// answers the start with the translated messages.
+			var serverMessages = err && err.data && err.data.data && Array.isArray(err.data.data.messages)
+				? err.data.data.messages
+				: null;
+			if (serverMessages && serverMessages.length > 1) {
+				renderErrorList(serverMessages);
+				if (errorListEl) {
+					setStatus(strings.validationFailed || 'Validation failed');
+				}
+				throw err;
+			}
 			// Validation-error path already populated the list/status,
 			// so only overwrite for other failures.
 			if (!(err && err.data && Array.isArray(err.data.errors))) {

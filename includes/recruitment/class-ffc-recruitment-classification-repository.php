@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * acts only on `definitive`); the repository does NOT enforce this — the
  * service layer (sprint 4 importer + sprint 6 convocation) is responsible.
  *
- * @phpstan-type ClassificationRow \stdClass&object{id: numeric-string, candidate_id: numeric-string, adjutancy_id: numeric-string, notice_id: numeric-string, list_type: string, rank: numeric-string, score: string, status: string, created_at: string, updated_at: string}
+ * @phpstan-type ClassificationRow \stdClass&object{id: numeric-string, candidate_id: numeric-string, adjutancy_id: numeric-string, notice_id: numeric-string, list_type: string, rank: numeric-string, score: string, time_points?: string, hab_emebs?: numeric-string, status: string, created_at: string, updated_at: string}
  */
 class RecruitmentClassificationRepository {
 

@@ -59,7 +59,8 @@ final class RecruitmentPromotionService {
 	 *   1. Verify the notice exists and is in `preliminary`.
 	 *   2. Wipe any pre-existing `list_type='definitive'` rows for this notice.
 	 *   3. Copy each `list_type='preview'` row into `list_type='definitive'`,
-	 *      preserving (candidate_id, adjutancy_id, rank, score) and resetting
+	 *      preserving (candidate_id, adjutancy_id, rank, score, time_points,
+	 *      hab_emebs) and resetting
 	 *      `status='empty'` (the §5.2 invariant: convocation acts only on
 	 *      definitive rows that start empty).
 	 *   4. Transition the notice via the state machine.
@@ -102,6 +103,10 @@ final class RecruitmentPromotionService {
 						'list_type'    => 'definitive',
 						'rank'         => (int) $row->rank,
 						'score'        => $row->score,
+						// Both are public columns (#2245): the copy used to
+						// leave them 0 / false on the definitive list.
+						'time_points'  => (string) ( $row->time_points ?? '0' ),
+						'hab_emebs'    => (int) ( $row->hab_emebs ?? 0 ),
 					)
 				);
 				if ( false === $new_id ) {

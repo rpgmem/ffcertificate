@@ -214,6 +214,7 @@ final class RecruitmentErrorMessages {
 			'recruitment_csv_score_uses_comma_decimal'     => __( 'Score uses a comma decimal — replace with a dot (e.g. 12.5).', 'ffcertificate' ),
 			'recruitment_csv_score_invalid_format'         => __( 'Score format is invalid (numeric value expected).', 'ffcertificate' ),
 			'recruitment_csv_rank_invalid'                 => __( 'Rank must be a positive integer.', 'ffcertificate' ),
+			'recruitment_csv_not_utf8'                     => __( 'The file is not UTF-8. Excel often saves CSV as Windows-1252: in Excel choose "CSV UTF-8", or re-save the file as UTF-8 in your editor, and import it again.', 'ffcertificate' ),
 			'recruitment_csv_time_points_uses_comma_decimal' => __( 'Time points uses a comma decimal — replace with a dot.', 'ffcertificate' ),
 			'recruitment_csv_time_points_invalid_format'   => __( 'Time points format is invalid (numeric value expected).', 'ffcertificate' ),
 			'recruitment_csv_missing_adjutancy'            => __( 'Adjutancy is required.', 'ffcertificate' ),
