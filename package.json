@@ -25,5 +25,8 @@
     "stylelint-config-recommended": "^18.0.0",
     "terser": "^5.51.2",
     "vitest": "^5.0.3"
+  },
+  "overrides": {
+    "minimatch": "^11.0.1"
   }
 }
