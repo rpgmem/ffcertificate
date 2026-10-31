@@ -30331,6 +30331,41 @@ msgstr ""
 msgid "The account is created or linked only once the booking is accepted, so a refused booking leaves no account and sends no e-mail. A guest booking files only itself under the account: older unlinked records carrying the same CPF/RF are claimed when the person logs in or through Identity Resolution, never from a public form. Booking counts against the IP limit on the Rate Limit tab, and the slot and month reads against the Calendar — Slots read limit."
 msgstr ""
 
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-admin-actions.php:87
+msgid "Only a pending appointment can be confirmed."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-admin-actions.php:106
+msgid "The slot is already full, so the appointment cannot be confirmed."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-admin-actions.php:119
+msgid "This appointment changed meanwhile. Reload the page and try again."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-admin-actions.php:152
+msgid "This appointment has already taken place and can no longer be cancelled."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:61
+msgid "On the Appointments list, Confirm is offered only on a pending appointment: it recounts the slot first and refuses one that has filled, and it sends the approval notice only when the calendar's Emails tab turns it on. Cancel, which on a pending appointment is how a booking is rejected, asks for a reason, is offered while the appointment is pending, confirmed or on the waitlist, and sends the person the calendar's cancellation e-mail carrying that reason when the Emails tab turns it on. A cancelled, completed or no-show appointment can no longer be confirmed or cancelled."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:62
+msgid "Without the scheduling bypass, an appointment can be cancelled through its cancellation link or from the person's dashboard only while it is pending, confirmed or on the waitlist and has not started. A slot that has started takes nobody from the waitlist."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:63
+msgid "Deleting a calendar permanently cancels every appointment from today on that is pending, confirmed or on the waitlist, and sends each person the calendar-deleted notice. The Delete Permanently link in the trash says how many appointments that is before it deletes."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cpt.php:222
+#, php-format
+msgid "Deleting this calendar cancels %d open appointment (pending, confirmed or waitlisted) and e-mails the person. Delete it permanently?"
+msgid_plural "Deleting this calendar cancels %d open appointments (pending, confirmed or waitlisted) and e-mails each person. Delete it permanently?"
+msgstr[0] ""
+msgstr[1] ""
+
 #: includes/settings/views/documentation/feature-self-scheduling.php:93
 msgid "The receipt opens unmasked only for the person it belongs to: signed in as its owner, or through the link in their e-mails, which carries their confirmation token. Staff who can open the Appointments list reach it from View Receipt with the e-mail, phone and CPF/RF masked and without the token, which no staff screen shows, so a member of staff cannot cancel as the guest; the audited Reveal stays on the appointment's admin screen. View as user shows no receipt link."
 msgstr ""

@@ -933,7 +933,7 @@ class AppointmentRestControllerTest extends TestCase {
 		$this->assertTrue( $result['success'] );
 		$this->assertCount( 1, $this->updates );
 		list( $data, $where ) = $this->updates[0];
-		$this->assertSame( array( 'id' => 5 ), $where );
+		$this->assertSame( array( 'id' => 5, 'status' => 'confirmed' ), $where, 'Cancelled only over the status read (#2244).' );
 		$this->assertSame( 'cancelled', $data['status'] );
 		$this->assertSame( 'Scheduling conflict', $data['cancellation_reason'] );
 		$this->assertSame( 7, $data['cancelled_by'] );
@@ -1293,7 +1293,7 @@ class AppointmentRestControllerTest extends TestCase {
 		$this->assertTrue( $result['success'] );
 		$this->assertSame( array( 5 ), $this->appointment_reads );
 		$this->assertCount( 1, $this->updates );
-		$this->assertSame( array( 'id' => 5 ), $this->updates[0][1], 'The handler cancelled appointment 5, as an int.' );
+		$this->assertSame( array( 'id' => 5, 'status' => 'confirmed' ), $this->updates[0][1], 'The handler cancelled appointment 5, as an int.' );
 	}
 
 	public function test_check_appointment_access_accepts_a_string_id(): void {

@@ -69,21 +69,46 @@ class AppointmentWriter extends AbstractRepository {
 	}
 
 	/**
-	 * Confirm appointment (admin approval)
+	 * Confirm an appointment that is still pending (#2244).
 	 *
-	 * @param int      $id Record ID.
+	 * The status is in the WHERE clause, so a row another request confirmed,
+	 * cancelled or moved meanwhile is left alone and the write reports 0 rows.
+	 *
+	 * @param int      $id          Record ID.
 	 * @param int|null $approved_by User ID who approved.
-	 * @return int|false
+	 * @return int|false Rows changed, or false on a database error.
 	 */
-	public function confirm( int $id, ?int $approved_by = null ) {
-		return $this->update(
+	public function confirmPending( int $id, ?int $approved_by = null ) {
+		return $this->transition(
 			$id,
+			'pending',
+			'confirmed',
 			array(
-				'status'      => 'confirmed',
-				// `approved_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
 				'approved_at' => time(),
 				'approved_by' => $approved_by,
-				'updated_at'  => current_time( 'mysql' ),
+			)
+		);
+	}
+
+	/**
+	 * Cancel an appointment only if it still carries $from (#2244).
+	 *
+	 * @param int         $id           Record ID.
+	 * @param string      $from         Status the caller read on the row.
+	 * @param int|null    $cancelled_by User ID who cancelled.
+	 * @param string|null $reason       Cancellation reason.
+	 * @return int|false Rows changed (0 when the row moved meanwhile), or false
+	 *                   on a database error.
+	 */
+	public function cancelFrom( int $id, string $from, ?int $cancelled_by = null, ?string $reason = null ) {
+		return $this->transition(
+			$id,
+			$from,
+			'cancelled',
+			array(
+				'cancelled_at'        => time(),
+				'cancelled_by'        => $cancelled_by,
+				'cancellation_reason' => $reason,
 			)
 		);
 	}
@@ -172,17 +197,21 @@ class AppointmentWriter extends AbstractRepository {
 	 * The status is part of the WHERE clause, so a row another request moved
 	 * meanwhile is left alone and the write reports 0 rows.
 	 *
-	 * @param int    $id   Record ID.
-	 * @param string $from Status the row must carry.
-	 * @param string $to   Status to write.
+	 * @param int                  $id     Record ID.
+	 * @param string               $from   Status the row must carry.
+	 * @param string               $to     Status to write.
+	 * @param array<string, mixed> $fields Further columns written with it.
 	 * @return int|false
 	 */
-	private function transition( int $id, string $from, string $to ) {
+	private function transition( int $id, string $from, string $to, array $fields = array() ) {
 		$result = $this->wpdb->update(
 			$this->table,
-			array(
-				'status'     => $to,
-				'updated_at' => current_time( 'mysql' ),
+			array_merge(
+				$fields,
+				array(
+					'status'     => $to,
+					'updated_at' => current_time( 'mysql' ),
+				)
 			),
 			array(
 				'id'     => $id,

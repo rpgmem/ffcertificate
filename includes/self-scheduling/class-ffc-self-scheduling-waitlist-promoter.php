@@ -108,12 +108,19 @@ class WaitlistPromoter {
 	 * @return int|null Promoted appointment ID, or null when nothing was promoted.
 	 */
 	public function promote( int $calendar_id, string $date, string $start_time ): ?int {
+		// A slot that has already started takes nobody from the queue (#2244):
+		// promoting would book a person into the past. The time is wall-clock,
+		// so it is read in the site timezone.
+		if ( self::has_started( $date, $start_time ) ) {
+			return null;
+		}
+
 		$calendar = $this->calendar_repository->findById( $calendar_id );
 		if ( ! is_array( $calendar ) || empty( $calendar['waitlist_enabled'] ) ) {
 			return null;
 		}
 
-		$capacity = $this->resolve_capacity( $calendar, $date, $start_time );
+		$capacity = self::slot_capacity( $calendar, $date, $start_time );
 		if ( $capacity <= 0 ) {
 			return null;
 		}
@@ -145,20 +152,37 @@ class WaitlistPromoter {
 	}
 
 	/**
-	 * Resolve the slot capacity for the freed slot per scheduling mode.
+	 * The capacity of a slot per scheduling mode (the promoter and the admin
+	 * Confirm read it, #2244).
 	 *
 	 * @param array<string, mixed> $calendar   Calendar row.
 	 * @param string               $date       Date (Y-m-d).
 	 * @param string               $start_time Slot start time (H:i:s).
 	 * @return int Capacity, or 0 when the slot no longer exists (custom block removed).
 	 */
-	private function resolve_capacity( array $calendar, string $date, string $start_time ): int {
+	public static function slot_capacity( array $calendar, string $date, string $start_time ): int {
 		if ( 'custom' === ( $calendar['schedule_type'] ?? 'regular' ) ) {
 			$block = CustomSlots::find( $calendar['custom_slots'] ?? '', $date, $start_time );
 			return null === $block ? 0 : (int) $block['capacity'];
 		}
 
 		return (int) ( $calendar['max_appointments_per_slot'] ?? 1 );
+	}
+
+	/**
+	 * Whether a slot has started, in the site timezone (#2244).
+	 *
+	 * @param string $date       Date (Y-m-d, wall-clock).
+	 * @param string $start_time Start time (H:i:s, wall-clock).
+	 * @return bool True also when the date or time cannot be read.
+	 */
+	public static function has_started( string $date, string $start_time ): bool {
+		try {
+			$start = new \DateTimeImmutable( $date . ' ' . $start_time, wp_timezone() );
+		} catch ( \Exception $e ) {
+			return true;
+		}
+		return $start->getTimestamp() <= time();
 	}
 
 	/**

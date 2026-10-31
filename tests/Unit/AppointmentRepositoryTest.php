@@ -1071,40 +1071,53 @@ class AppointmentRepositoryTest extends TestCase {
 	}
 
 	// ==================================================================
-	// confirm
+	// confirmPending / cancelFrom
 	// ==================================================================
 
-	public function test_confirm_updates_status_to_confirmed(): void {
-		$captured_data = [];
+	public function test_confirm_pending_writes_confirmed_only_over_pending(): void {
+		$captured_data  = [];
+		$captured_where = [];
 		$this->wpdb->shouldReceive('update')
 			->once()
-			->andReturnUsing(function($table, $data, $where) use (&$captured_data) {
-				$captured_data = $data;
+			->andReturnUsing(function($table, $data, $where) use (&$captured_data, &$captured_where) {
+				$captured_data  = $data;
+				$captured_where = $where;
 				return 1;
 			});
 
-		$result = $this->repo->confirm(1, 42);
+		$result = $this->repo->confirmPending(1, 42);
 
 		$this->assertSame(1, $result);
 		$this->assertSame('confirmed', $captured_data['status']);
 		$this->assertSame(42, $captured_data['approved_by']);
 		$this->assertArrayHasKey('approved_at', $captured_data);
 		$this->assertArrayHasKey('updated_at', $captured_data);
+		$this->assertSame(array( 'id' => 1, 'status' => 'pending' ), $captured_where, 'A row that moved meanwhile is left alone.');
 	}
 
-	public function test_confirm_with_null_approved_by(): void {
-		$captured_data = [];
+	public function test_confirm_pending_reports_zero_when_the_row_is_no_longer_pending(): void {
+		$this->wpdb->shouldReceive('update')->once()->andReturn(0);
+
+		$this->assertSame(0, $this->repo->confirmPending(1));
+	}
+
+	public function test_cancel_from_writes_the_reason_over_the_status_read(): void {
+		$captured_data  = [];
+		$captured_where = [];
 		$this->wpdb->shouldReceive('update')
 			->once()
-			->andReturnUsing(function($table, $data, $where) use (&$captured_data) {
-				$captured_data = $data;
+			->andReturnUsing(function($table, $data, $where) use (&$captured_data, &$captured_where) {
+				$captured_data  = $data;
+				$captured_where = $where;
 				return 1;
 			});
 
-		$this->repo->confirm(1);
-
-		$this->assertSame('confirmed', $captured_data['status']);
-		$this->assertNull($captured_data['approved_by']);
+		$this->assertSame(1, $this->repo->cancelFrom(7, 'waitlist', 3, 'Slot removed'));
+		$this->assertSame('cancelled', $captured_data['status']);
+		$this->assertSame(3, $captured_data['cancelled_by']);
+		$this->assertSame('Slot removed', $captured_data['cancellation_reason']);
+		$this->assertIsInt($captured_data['cancelled_at']);
+		$this->assertSame(array( 'id' => 7, 'status' => 'waitlist' ), $captured_where);
 	}
 
 	// ==================================================================
@@ -1573,7 +1586,7 @@ class AppointmentRepositoryTest extends TestCase {
 	public function test_confirm_returns_false_when_update_fails(): void {
 		$this->wpdb->shouldReceive('update')->once()->andReturn(false);
 
-		$result = $this->repo->confirm(1, 42);
+		$result = $this->repo->confirmPending(1, 42);
 
 		$this->assertFalse($result);
 	}

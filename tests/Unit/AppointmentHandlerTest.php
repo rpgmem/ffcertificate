@@ -677,7 +677,7 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'cancelled',
 			'user_id' => 0, 'confirmation_token' => '',
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
 
@@ -702,7 +702,7 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
 			'user_id' => 99, 'confirmation_token' => 'secret',
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
 
@@ -716,16 +716,61 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
 			'user_id' => 0, 'confirmation_token' => 'valid-token-123',
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
-		$this->appointmentRepo->shouldReceive( 'cancel' )
-			->with( 1, null, 'Changed plans' )
-			->andReturn( true );
+		$this->appointmentRepo->shouldReceive( 'cancelFrom' )
+			->with( 1, 'confirmed', null, 'Changed plans' )
+			->andReturn( 1 );
 
 		$result = $this->handler->cancel_appointment( 1, 'valid-token-123', 'Changed plans' );
 
 		$this->assertTrue( $result );
+	}
+
+	/** @return array<string, array{string, string}> */
+	public function closed_rows(): array {
+		return array(
+			'started'   => array( 'confirmed', '2020-01-01' ),
+			'completed' => array( 'completed', '2032-03-01' ),
+			'no-show'   => array( 'no_show', '2032-03-01' ),
+		);
+	}
+
+	/**
+	 * @dataProvider closed_rows
+	 */
+	public function test_a_token_cannot_cancel_an_appointment_that_has_started_or_finished( string $status, string $date ): void {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
+		$this->appointmentRepo->shouldReceive( 'cancelFrom' )->never();
+		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
+			'id' => 1, 'calendar_id' => 1, 'user_id' => 0, 'confirmation_token' => 'tok',
+			'status' => $status, 'appointment_date' => $date, 'start_time' => '09:00:00',
+		) );
+
+		$result = $this->handler->cancel_appointment( 1, 'tok' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'not_cancellable', $result->get_error_code() );
+	}
+
+	public function test_a_cancel_that_lost_the_race_reports_the_change_and_fires_nothing(): void {
+		$fired = array();
+		Functions\when( 'do_action' )->alias( function ( $hook ) use ( &$fired ) {
+			$fired[] = $hook;
+		} );
+		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
+			'id' => 1, 'calendar_id' => 1, 'status' => 'pending',
+			'user_id' => 0, 'confirmation_token' => 'tok',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
+		) );
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
+		$this->appointmentRepo->shouldReceive( 'cancelFrom' )->with( 1, 'pending', null, '' )->andReturn( 0 );
+
+		$result = $this->handler->cancel_appointment( 1, 'tok' );
+
+		$this->assertSame( 'status_changed', $result->get_error_code() );
+		$this->assertSame( array(), $fired );
 	}
 
 	public function test_available_slots_returns_empty_when_date_blocked(): void {
@@ -919,14 +964,14 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
 			'user_id' => 0, 'confirmation_token' => 'valid',
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn(
 			$this->makeCalendar( array(
 				'email_config' => wp_json_encode( array( 'send_cancellation_notification' => 1 ) ),
 			) )
 		);
-		$this->appointmentRepo->shouldReceive( 'cancel' )->andReturn( true );
+		$this->appointmentRepo->shouldReceive( 'cancelFrom' )->andReturn( 1 );
 
 		$this->handler->cancel_appointment( 1, 'valid' );
 
@@ -941,7 +986,7 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 9, 'status' => 'confirmed',
 			'user_id' => 0, 'confirmation_token' => '',
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->with( 9 )->andReturn( null );
 
@@ -959,7 +1004,7 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
 			'user_id' => '5', 'confirmation_token' => '', // A string, as `$wpdb` returns it (#2160).
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
 
@@ -980,12 +1025,12 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
 			'user_id' => '5', 'confirmation_token' => '', // A string, as `$wpdb` returns it (#2160).
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
-		$this->appointmentRepo->shouldReceive( 'cancel' )
-			->with( 1, 5, 'Owner cancel' )
-			->andReturn( true );
+		$this->appointmentRepo->shouldReceive( 'cancelFrom' )
+			->with( 1, 'confirmed', 5, 'Owner cancel' )
+			->andReturn( 1 );
 
 		$result = $this->handler->cancel_appointment( 1, '', 'Owner cancel' );
 
@@ -996,7 +1041,7 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
 			'user_id' => 0, 'confirmation_token' => 'valid',
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn(
 			$this->makeCalendar( array( 'allow_cancellation' => 0 ) )
@@ -1009,11 +1054,12 @@ class AppointmentHandlerTest extends TestCase {
 	}
 
 	public function test_cancel_deadline_passed(): void {
-		// Appointment in the past + a min-hours window → the deadline has elapsed.
+		// Appointment two hours ahead + a 24-hour window → the deadline has elapsed.
+		$soon = new \DateTimeImmutable( '+2 hours', new \DateTimeZone( 'UTC' ) );
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
 			'user_id' => 0, 'confirmation_token' => 'valid',
-			'appointment_date' => '2020-01-01', 'start_time' => '09:00:00',
+			'appointment_date' => $soon->format( 'Y-m-d' ), 'start_time' => $soon->format( 'H:i:s' ),
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn(
 			$this->makeCalendar( array( 'cancellation_min_hours' => 24 ) )
@@ -1029,10 +1075,10 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
 			'user_id' => 0, 'confirmation_token' => 'valid',
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
-		$this->appointmentRepo->shouldReceive( 'cancel' )->andReturn( false );
+		$this->appointmentRepo->shouldReceive( 'cancelFrom' )->andReturn( false );
 
 		$result = $this->handler->cancel_appointment( 1, 'valid' );
 

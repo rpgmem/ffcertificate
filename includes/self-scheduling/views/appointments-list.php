@@ -67,76 +67,36 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 	$ffcertificate_repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
 
 	// Handle mutations (confirm/cancel/attendance) — these redirect and exit.
-	if ( 'confirm' === $ffcertificate_action ) {
-		check_admin_referer( 'ffc_confirm_appointment_' . $ffc_self_scheduling_appointment_id );
-		$ffcertificate_result = $ffcertificate_repo->confirm( $ffc_self_scheduling_appointment_id, get_current_user_id() );
-
-		if ( $ffcertificate_result ) {
-			// Send approval notification email with receipt link.
-			$ffcertificate_appointment = $ffcertificate_repo->findById( $ffc_self_scheduling_appointment_id );
-			if ( $ffcertificate_appointment && ! empty( $ffcertificate_appointment['calendar_id'] ) ) {
-				$ffcertificate_cal_repo = new \FreeFormCertificate\Repositories\CalendarRepository();
-				$ffcertificate_calendar = $ffcertificate_cal_repo->findById( (int) $ffcertificate_appointment['calendar_id'] );
-				if ( $ffcertificate_calendar ) {
-					do_action( 'ffcertificate_self_scheduling_appointment_confirmed_email', $ffcertificate_appointment, $ffcertificate_calendar );
-				}
-			}
-
-			set_transient(
-				'ffc_admin_notice_' . get_current_user_id(),
-				array(
-					'type'    => 'success',
-					'message' => __( 'Appointment confirmed successfully.', 'ffcertificate' ),
-				),
-				30
-			);
+	// Confirm and Cancel decide in AppointmentAdminActions (#2244); the view
+	// only checks the nonce and reports.
+	if ( in_array( $ffcertificate_action, array( 'confirm', 'cancel' ), true ) ) {
+		check_admin_referer( 'ffc_' . $ffcertificate_action . '_appointment_' . $ffc_self_scheduling_appointment_id );
+		$ffcertificate_actions = new \FreeFormCertificate\SelfScheduling\AppointmentAdminActions( $ffcertificate_repo );
+		if ( 'confirm' === $ffcertificate_action ) {
+			$ffcertificate_result = $ffcertificate_actions->confirm( $ffc_self_scheduling_appointment_id, get_current_user_id() );
+			$ffcertificate_done   = __( 'Appointment confirmed successfully.', 'ffcertificate' );
 		} else {
-			set_transient(
-				'ffc_admin_notice_' . get_current_user_id(),
-				array(
-					'type'    => 'error',
-					'message' => __( 'Failed to confirm appointment.', 'ffcertificate' ),
-				),
-				30
-			);
+			$ffcertificate_cancel_reason = isset( $_GET['reason'] ) ? sanitize_textarea_field( wp_unslash( $_GET['reason'] ) ) : '';
+			if ( '' === trim( $ffcertificate_cancel_reason ) ) {
+				$ffcertificate_cancel_reason = __( 'Cancelled by admin', 'ffcertificate' );
+			}
+			$ffcertificate_result = $ffcertificate_actions->cancel( $ffc_self_scheduling_appointment_id, get_current_user_id(), $ffcertificate_cancel_reason );
+			$ffcertificate_done   = __( 'Appointment cancelled successfully.', 'ffcertificate' );
 		}
 
-		wp_safe_redirect( $ffcertificate_appointments_url );
-		exit;
-
-	} elseif ( 'cancel' === $ffcertificate_action ) {
-		check_admin_referer( 'ffc_cancel_appointment_' . $ffc_self_scheduling_appointment_id );
-		$ffcertificate_cancel_reason = isset( $_GET['reason'] ) ? sanitize_textarea_field( wp_unslash( $_GET['reason'] ) ) : __( 'Cancelled by admin', 'ffcertificate' );
-		// Snapshot the row before cancelling so the waitlist promoter sees the
-		// pre-cancel status/slot (#941 phase 2).
-		$ffcertificate_pre_cancel = $ffcertificate_repo->findById( $ffc_self_scheduling_appointment_id );
-		$ffcertificate_result     = $ffcertificate_repo->cancel( $ffc_self_scheduling_appointment_id, get_current_user_id(), $ffcertificate_cancel_reason );
-
-		if ( $ffcertificate_result ) {
-			// Fire the shared cancellation action so the waitlist FIFO promotion
-			// runs on admin cancellations (an admin "rejection") too.
-			if ( is_array( $ffcertificate_pre_cancel ) ) {
-				do_action( 'ffcertificate_appointment_cancelled', $ffc_self_scheduling_appointment_id, $ffcertificate_pre_cancel, $ffcertificate_cancel_reason, get_current_user_id() );
-			}
-
-			set_transient(
-				'ffc_admin_notice_' . get_current_user_id(),
-				array(
-					'type'    => 'success',
-					'message' => __( 'Appointment cancelled successfully.', 'ffcertificate' ),
-				),
-				30
-			);
-		} else {
-			set_transient(
-				'ffc_admin_notice_' . get_current_user_id(),
-				array(
+		set_transient(
+			'ffc_admin_notice_' . get_current_user_id(),
+			is_wp_error( $ffcertificate_result )
+				? array(
 					'type'    => 'error',
-					'message' => __( 'Failed to cancel appointment.', 'ffcertificate' ),
+					'message' => $ffcertificate_result->get_error_message(),
+				)
+				: array(
+					'type'    => 'success',
+					'message' => $ffcertificate_done,
 				),
-				30
-			);
-		}
+			30
+		);
 
 		wp_safe_redirect( $ffcertificate_appointments_url );
 		exit;

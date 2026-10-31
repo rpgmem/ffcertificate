@@ -143,6 +143,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: the bookings list reads newest first** (#2290). `get_all()` sent a `b.`-prefixed column through `sanitize_sql_orderby()`, which refuses the prefix, so every order fell back to oldest first; the order now comes from an allowlist.
 - **Personal-calendar reminders are sent** (#2244). The reminder query compared against a `DATE_SUB` that MariaDB returns as NULL, in UTC against wall-clock dates, over a one-hour window, so no reminder ever went out. It now selects confirmed appointments starting between now and now plus the calendar's hours, in the site timezone; a real-database check in CI pins it.
 - **Personal Calendars: bookings land only on the offered slot grid** (#2244). A crafted start between two slots, or with seconds, used to count its own capacity; the last slot could end after closing or wrap past midnight; past and too-soon slots were offered. One `SlotGrid` now drives the listing and the validator, and blocks are read once per date.
+- **Personal Calendars: admin Confirm and Cancel, calendar deletion and the cancellation link** (#2244). Confirm acts only on a pending row, recounts the slot and honours the approval-notice switch; an admin cancel or rejection e-mails the reason; deleting a calendar also cancels and notifies waitlisted people, after a count; a link cannot cancel a past or finished appointment, and nobody is promoted into a started slot.
 
 ### Security
 

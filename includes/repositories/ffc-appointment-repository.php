@@ -417,14 +417,27 @@ class AppointmentRepository extends AbstractRepository {
 	}
 
 	/**
-	 * Confirm appointment (admin approval)
+	 * Confirm an appointment that is still pending (#2244).
 	 *
-	 * @param int      $id Record ID.
+	 * @param int      $id          Record ID.
 	 * @param int|null $approved_by User ID who approved.
-	 * @return int|false
+	 * @return int|false Rows changed (0 when the row is no longer pending).
 	 */
-	public function confirm( int $id, ?int $approved_by = null ) {
-		return $this->writer->confirm( $id, $approved_by );
+	public function confirmPending( int $id, ?int $approved_by = null ) {
+		return $this->writer->confirmPending( $id, $approved_by );
+	}
+
+	/**
+	 * Cancel an appointment only if it still carries $from (#2244).
+	 *
+	 * @param int         $id           Record ID.
+	 * @param string      $from         Status the caller read on the row.
+	 * @param int|null    $cancelled_by User ID who cancelled.
+	 * @param string|null $reason       Cancellation reason.
+	 * @return int|false Rows changed (0 when the row moved meanwhile).
+	 */
+	public function cancelFrom( int $id, string $from, ?int $cancelled_by = null, ?string $reason = null ) {
+		return $this->writer->cancelFrom( $id, $from, $cancelled_by, $reason );
 	}
 
 	/**
