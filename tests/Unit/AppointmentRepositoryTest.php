@@ -48,6 +48,7 @@ class AppointmentRepositoryTest extends TestCase {
 		// group flushing it falls back to wp_cache_flush(), stubbed above.
 		Functions\when('wp_cache_supports')->justReturn(false);
 		Functions\when('current_time')->justReturn('2026-03-01 10:00:00');
+		Functions\when('wp_timezone')->justReturn(new \DateTimeZone('UTC'));
 		Functions\when('get_current_user_id')->justReturn(1);
 		Functions\when('absint')->alias(function($val) {
 			return abs(intval($val));
@@ -1244,6 +1245,42 @@ class AppointmentRepositoryTest extends TestCase {
 		$this->assertStringContainsString('LEFT JOIN', $captured_sql);
 		$this->assertStringContainsString('calendar_title', $captured_sql);
 		$this->assertStringContainsString('email_config', $captured_sql);
+	}
+
+	/**
+	 * The window is the site's clock from now to now + H (#2244): a missed
+	 * hourly run is caught up, a window across midnight spans both dates,
+	 * and nothing is built from a bare TIME, which MariaDB turns into NULL.
+	 */
+	public function test_get_upcoming_for_reminders_binds_a_site_time_window_from_now(): void {
+		$tz = new \DateTimeZone('America/Sao_Paulo');
+		Functions\when('wp_timezone')->justReturn($tz);
+		$bound = [];
+		$sql   = '';
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function($query, ...$args) use (&$bound, &$sql) {
+			$sql   = $query;
+			$bound = $args;
+			return $query;
+		});
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+
+		$before = new \DateTimeImmutable('now', $tz);
+		$this->repo->getUpcomingForReminders(30);
+		$after = new \DateTimeImmutable('now', $tz);
+
+		[ , , $from_date, $to_date, $from, $to ] = $bound;
+		$from_dt = new \DateTimeImmutable($from, $tz);
+		$to_dt   = new \DateTimeImmutable($to, $tz);
+
+		// Read on both sides of the call: the clock may tick between them.
+		$this->assertGreaterThanOrEqual($before->format('Y-m-d H:i:s'), $from);
+		$this->assertLessThanOrEqual($after->format('Y-m-d H:i:s'), $from);
+		$this->assertSame(30 * 3600, $to_dt->getTimestamp() - $from_dt->getTimestamp());
+		$this->assertSame($from_dt->format('Y-m-d'), $from_date);
+		$this->assertSame($to_dt->format('Y-m-d'), $to_date, 'A window across midnight reaches the next date.');
+		$this->assertStringContainsString('TIMESTAMP(a.appointment_date, a.start_time) > %s', $sql);
+		$this->assertStringContainsString('TIMESTAMP(a.appointment_date, a.start_time) <= %s', $sql);
+		$this->assertStringNotContainsString('DATE_SUB', $sql);
 	}
 
 	public function test_get_upcoming_for_reminders_returns_results(): void {
