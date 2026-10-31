@@ -505,7 +505,7 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 
 		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $this->makeCalendar() );
 		// The holiday answers first: the blocked-date store is never asked.
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->never();
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->never();
 
 		$result = $this->handler->get_available_slots( 1, '2026-12-25' );
 

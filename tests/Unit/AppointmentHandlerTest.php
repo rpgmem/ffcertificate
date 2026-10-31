@@ -417,7 +417,7 @@ class AppointmentHandlerTest extends TestCase {
 		);
 		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->never();
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-08' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'calendar_private', $result->get_error_code() );
@@ -445,7 +445,7 @@ class AppointmentHandlerTest extends TestCase {
 	}
 
 	public function test_available_slots_generates_from_working_hours(): void {
-		// Monday 2026-03-02 (day_of_week=1)
+		// Monday 2032-03-08 (day_of_week=1)
 		$calendar = $this->makeCalendar( array(
 			'slot_duration'            => 30,
 			'slot_interval'            => 0,
@@ -457,12 +457,13 @@ class AppointmentHandlerTest extends TestCase {
 
 		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
 		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+		// One block read for the whole date, never one per slot (#2244).
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->once()->with( 1, '2032-03-08' )->andReturn( array() );
 
 		// userHasSchedulingBypass returns false (current_user_can returns false from stub)
 		// is_global_holiday returns false (get_option returns empty array)
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-08' );
 
 		// 09:00-10:00 with 30min slots = 2 slots (09:00 and 09:30)
 		$this->assertIsArray( $result );
@@ -476,22 +477,22 @@ class AppointmentHandlerTest extends TestCase {
 		$calendar = $this->makeCalendar( array(
 			'schedule_type' => 'custom',
 			'custom_slots'  => array(
-				array( 'date' => '2026-09-03', 'start' => '08:00', 'end' => '13:00', 'capacity' => 40, 'label' => 'Manha' ),
-				array( 'date' => '2026-09-03', 'start' => '14:00', 'end' => '18:00', 'capacity' => 40, 'label' => '' ),
-				array( 'date' => '2026-09-04', 'start' => '08:00', 'end' => '13:00', 'capacity' => 20, 'label' => '' ),
+				array( 'date' => '2032-09-09', 'start' => '08:00', 'end' => '13:00', 'capacity' => 40, 'label' => 'Manha' ),
+				array( 'date' => '2032-09-09', 'start' => '14:00', 'end' => '18:00', 'capacity' => 40, 'label' => '' ),
+				array( 'date' => '2032-09-10', 'start' => '08:00', 'end' => '13:00', 'capacity' => 20, 'label' => '' ),
 			),
 		) );
 
 		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
-		// One booking already sits in the 08:00 block on 2026-09-03.
+		// One booking already sits in the 08:00 block on 2032-09-09.
 		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array(
 			array( 'start_time' => '08:00:00' ),
 		) );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
 
-		$result = $this->handler->get_available_slots( 1, '2026-09-03' );
+		$result = $this->handler->get_available_slots( 1, '2032-09-09' );
 
-		// Only the two 2026-09-03 blocks; the block IS the slot.
+		// Only the two 2032-09-09 blocks; the block IS the slot.
 		$this->assertCount( 2, $result );
 		$this->assertSame( '08:00:00', $result[0]['time'] );
 		$this->assertSame( '13:00:00', $result[0]['end'] );
@@ -521,9 +522,9 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array(
 			array( 'start_time' => '09:00:00' ),
 		) );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-08' );
 
 		$this->assertCount( 1, $result );
 		$this->assertSame( '09:00:00', $result[0]['time'] );
@@ -547,9 +548,9 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array(
 			array( 'start_time' => '09:00:00' ),
 		) );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-08' );
 
 		$this->assertCount( 0, $result );
 	}
@@ -610,9 +611,9 @@ class AppointmentHandlerTest extends TestCase {
 			array( 'start_time' => '09:00:00' ),
 			array( 'start_time' => '09:00:00' ), // 09:00 full
 		) );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-08' );
 
 		// 09:00 full (2/2), only 09:30 available
 		$this->assertCount( 1, $result );
@@ -620,7 +621,7 @@ class AppointmentHandlerTest extends TestCase {
 	}
 
 	public function test_available_slots_no_working_hours_returns_empty(): void {
-		// Tuesday 2026-03-03 (day=2) — no hours for day 2
+		// Tuesday 2032-03-09 (day=2) — no hours for day 2
 		$calendar = $this->makeCalendar( array(
 			'working_hours' => array(
 				array( 'day' => 1, 'start' => '09:00', 'end' => '17:00' ),
@@ -628,9 +629,9 @@ class AppointmentHandlerTest extends TestCase {
 		) );
 
 		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-03' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-09' );
 
 		$this->assertIsArray( $result );
 		$this->assertEmpty( $result );
@@ -648,16 +649,15 @@ class AppointmentHandlerTest extends TestCase {
 
 		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
 		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-08' );
 
-		// 30min + 10min interval = 40min per cycle
-		// 09:00, 09:40, 10:20 (10:20 < 10:30)
-		$this->assertCount( 3, $result );
+		// 30min + 10min interval = 40min per cycle: 09:00, 09:40. 10:20 would
+		// end at 10:50, after the 10:30 close, so it is not offered (#2244).
+		$this->assertCount( 2, $result );
 		$this->assertSame( '09:00', $result[0]['display'] );
 		$this->assertSame( '09:40', $result[1]['display'] );
-		$this->assertSame( '10:20', $result[2]['display'] );
 	}
 
 	// ==================================================================
@@ -731,10 +731,11 @@ class AppointmentHandlerTest extends TestCase {
 	public function test_available_slots_returns_empty_when_date_blocked(): void {
 		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $this->makeCalendar() );
 		// Not a global holiday (real DateBlockingService + empty options) → the
-		// per-calendar blocked-date check short-circuits with no slots.
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->with( 1, '2026-03-02' )->andReturn( true );
+		// per-calendar full-day block short-circuits with no slots.
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->once()->with( 1, '2032-03-08' )->andReturn( array( array( 'block_type' => 'full_day' ) ) );
+		$this->appointmentRepo->shouldNotReceive( 'getAppointmentsByDate' );
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-08' );
 
 		$this->assertSame( array(), $result );
 	}
@@ -753,8 +754,9 @@ class AppointmentHandlerTest extends TestCase {
 			) )
 		);
 		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-08' );
 
 		$this->assertIsArray( $result );
 		$this->assertNotEmpty( $result );
@@ -1065,7 +1067,7 @@ class AppointmentHandlerTest extends TestCase {
 		return $this->makeCalendar( array(
 			'schedule_type' => 'custom',
 			'custom_slots'  => array(
-				array( 'date' => '2026-09-03', 'start' => '08:00', 'end' => '13:00', 'capacity' => 40, 'label' => '' ),
+				array( 'date' => '2032-09-09', 'start' => '08:00', 'end' => '13:00', 'capacity' => 40, 'label' => '' ),
 			),
 		) );
 	}
@@ -1076,7 +1078,7 @@ class AppointmentHandlerTest extends TestCase {
 
 		$result = $this->handler->process_appointment( array(
 			'calendar_id'      => 1,
-			'appointment_date' => '2026-09-03',
+			'appointment_date' => '2032-09-09',
 			'start_time'       => '14:00',
 			'consent_given'    => '1',
 		) );
@@ -1097,13 +1099,118 @@ class AppointmentHandlerTest extends TestCase {
 
 		$result = $this->handler->process_appointment( array(
 			'calendar_id'      => 1,
-			'appointment_date' => '2026-09-03',
+			'appointment_date' => '2032-09-09',
 			'start_time'       => '08:00',
 			'consent_given'    => '1',
 		) );
 
 		$this->assertIsArray( $result );
 		$this->assertSame( 400, $result['appointment_id'] );
+	}
+
+	public function test_process_regular_normalises_the_start_and_takes_the_end_from_the_grid(): void {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn(
+			$this->makeCalendar( array( 'working_hours' => array( array( 'day' => 1, 'start' => '09:00', 'end' => '10:00' ) ) ) )
+		);
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->validator->shouldReceive( 'validate' )->once()
+			->with( Mockery::on( static fn ( $data ) => '09:30:00' === $data['start_time'] ), Mockery::any(), true )
+			->andReturn( true );
+		$this->appointmentRepo->shouldReceive( 'createAppointment' )->once()
+			->with( Mockery::on( static fn ( $data ) => '09:30:00' === $data['start_time'] && '10:00:00' === $data['end_time'] ) )
+			->andReturn( 401 );
+		$this->appointmentRepo->shouldReceive( 'commit' )->once();
+		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array( 'id' => 401, 'confirmation_token' => 'tok401' ) );
+
+		$result = $this->handler->process_appointment( array(
+			'calendar_id'      => 1,
+			'appointment_date' => '2032-03-08',
+			'start_time'       => '09:30:07',
+			'consent_given'    => '1',
+		) );
+
+		$this->assertIsArray( $result, 'Seconds do not make a slot of their own (#2244).' );
+	}
+
+	public function test_process_refuses_an_appointment_that_would_end_after_midnight(): void {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar( array( 'slot_duration' => 30 ) ) );
+		$this->appointmentRepo->shouldNotReceive( 'begin_transaction' );
+		$this->appointmentRepo->shouldNotReceive( 'createAppointment' );
+
+		$result = $this->handler->process_appointment( array(
+			'calendar_id'      => 1,
+			'appointment_date' => '2032-03-08',
+			'start_time'       => '23:45',
+			'consent_given'    => '1',
+		) );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'invalid_slot', $result->get_error_code(), 'It used to wrap to 00:15 silently.' );
+	}
+
+	public function test_process_refuses_a_start_that_is_not_a_time(): void {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
+		$this->appointmentRepo->shouldNotReceive( 'begin_transaction' );
+
+		$result = $this->handler->process_appointment( array(
+			'calendar_id'      => 1,
+			'appointment_date' => '2032-03-08',
+			'start_time'       => '09:05; DROP',
+			'consent_given'    => '1',
+		) );
+
+		$this->assertSame( 'invalid_time', $result->get_error_code() );
+	}
+
+	public function test_available_slots_hide_what_starts_inside_the_notice_window_except_for_the_bypass(): void {
+		// A notice of 20 years puts every 2032 slot inside the window.
+		$calendar = $this->makeCalendar( array(
+			'advance_booking_min' => 24 * 366 * 20,
+			'working_hours'       => array( array( 'day' => 1, 'start' => '09:00', 'end' => '10:00' ) ),
+		) );
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
+
+		$this->assertSame( array(), $this->handler->get_available_slots( 1, '2032-03-08' ) );
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$this->assertCount( 2, $this->handler->get_available_slots( 1, '2032-03-08' ), 'The bypass still sees them.' );
+	}
+
+	public function test_available_slots_hide_a_slot_that_has_already_started(): void {
+		$today    = gmdate( 'Y-m-d' );
+		$calendar = $this->makeCalendar( array(
+			'slot_duration' => 60,
+			'working_hours' => array( array( 'day' => (int) gmdate( 'w' ), 'start' => '00:00', 'end' => '23:59' ) ),
+		) );
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
+
+		$before = time();
+		$times  = array_column( $this->handler->get_available_slots( 1, $today ), 'time' );
+
+		if ( $before > strtotime( $today . ' 00:00:00 UTC' ) ) {
+			$this->assertNotContains( '00:00:00', $times, 'Midnight today has passed by the time this runs.' );
+		}
+		foreach ( $times as $time ) {
+			$this->assertGreaterThanOrEqual( $before - 1, strtotime( $today . ' ' . $time . ' UTC' ) );
+		}
+	}
+
+	public function test_available_slots_drop_only_the_slot_a_time_range_block_covers(): void {
+		$calendar = $this->makeCalendar( array( 'working_hours' => array( array( 'day' => 1, 'start' => '09:00', 'end' => '10:30' ) ) ) );
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->once()->andReturn(
+			array( array( 'block_type' => 'time_range', 'start_time' => '09:30:00', 'end_time' => '10:00:00' ) )
+		);
+
+		$this->assertSame(
+			array( '09:00:00', '10:00:00' ),
+			array_column( $this->handler->get_available_slots( 1, '2032-03-08' ), 'time' )
+		);
 	}
 
 	// ==================================================================
@@ -1185,18 +1292,20 @@ class AppointmentHandlerTest extends TestCase {
 	public function test_available_slots_custom_mode_with_no_block_that_day_is_empty(): void {
 		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $this->customCalendar() );
 		$this->appointmentRepo->shouldNotReceive( 'getAppointmentsByDate' );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
 
-		$this->assertSame( array(), $this->handler->get_available_slots( 1, '2026-09-05' ) );
+		$this->assertSame( array(), $this->handler->get_available_slots( 1, '2032-09-11' ) );
 	}
 
 	public function test_available_slots_custom_mode_drops_a_blocked_block(): void {
 		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $this->customCalendar() );
 		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->with( 1, '2026-09-03' )->andReturn( false );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->with( 1, '2026-09-03', '08:00:00' )->andReturn( true );
+		// One read for the date; the 08:00 block falls inside a time-range block.
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->once()->with( 1, '2032-09-09' )->andReturn(
+			array( array( 'block_type' => 'time_range', 'start_time' => '07:30:00', 'end_time' => '09:00:00' ) )
+		);
 
-		$this->assertSame( array(), $this->handler->get_available_slots( 1, '2026-09-03' ) );
+		$this->assertSame( array(), $this->handler->get_available_slots( 1, '2032-09-09' ) );
 	}
 
 	// ==================================================================

@@ -128,6 +128,10 @@ class AppointmentValidator {
 			return new \WP_Error( 'invalid_time', __( 'Invalid time format.', 'ffcertificate' ) );
 		}
 
+		// Capacity is counted per exact start_time, so 09:00:07 must be the
+		// 09:00 slot, never a fresh one (#2244).
+		$data['start_time'] = SlotGrid::normalize( (string) $data['start_time'] ) ?? $data['start_time'];
+
 		// 4. Check if date is in the past (bypass allowed)
 		$now                   = time();
 		$appointment_timestamp = self::wall_clock_to_timestamp( $data['appointment_date'], $data['start_time'] );
@@ -212,6 +216,12 @@ class AppointmentValidator {
 				if ( $refused ) {
 					return $refused;
 				}
+			} elseif ( null === SlotGrid::find( $calendar, (string) $data['appointment_date'], (string) $data['start_time'], $has_bypass ) ) {
+				// Inside the hours but not a slot the listing offers: a start
+				// between two slots, or one whose slot would end after
+				// closing (#2244). Refused for everyone, since each such start
+				// would otherwise count its own capacity.
+				return new \WP_Error( 'invalid_slot', __( 'The selected time is not one of this calendar\'s slots.', 'ffcertificate' ) );
 			}
 			$slot_capacity = (int) $calendar['max_appointments_per_slot'];
 		}

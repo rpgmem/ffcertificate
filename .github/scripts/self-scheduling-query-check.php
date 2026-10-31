@@ -23,6 +23,12 @@
  * Then `getUpcomingForReminders( 24 )` must return exactly the two due rows
  * of that calendar. An empty answer fails: it is what the broken query gave.
  *
+ * **THE SLOT QUERIES.** The slot listing reads a date's blocked dates in one
+ * query and matches them per slot in PHP, and the booking counts capacity
+ * per exact start time. Both are checked on planted rows: the blocks that
+ * reach a date (and none from another day), and two confirmed plus one
+ * cancelled appointment filling a slot of two.
+ *
  * **WHY THIS JOB.** `fresh-install` has the only real MariaDB and the freshly
  * created schema. Everything planted is deleted before the script exits, and
  * the uninstall steps after it remove the rest.
@@ -130,3 +136,58 @@ $wpdb->delete( $table, array( 'calendar_id' => $calendar_id ), array( '%d' ) );
 
 echo 'REMINDER QUERY HOLDS: ' . count( $due ) . ' due appointment(s) selected out of 7 planted, at '
 	. $now->format( 'Y-m-d H:i' ) . " site time.\n";
+
+// ---------------------------------------------------------------------------
+// The slot queries (#2244): the blocks a date reads in one query, and the
+// per-slot capacity count the booking path takes under lock.
+// ---------------------------------------------------------------------------
+
+$blocked = $wpdb->prefix . 'ffc_self_scheduling_blocked_dates';
+$day     = $now->modify( '+30 days' )->format( 'Y-m-d' );
+$planted_blocks = array();
+foreach (
+	array(
+		array( 'block_type' => 'time_range', 'start_date' => $day, 'end_date' => $day, 'start_time' => '10:00:00', 'end_time' => '11:00:00' ),
+		// A single day written with no end date (#2244 PR 6 makes this mean one day everywhere).
+		array( 'block_type' => 'full_day', 'start_date' => $day ),
+		// Another day: must not be read for $day.
+		array( 'block_type' => 'full_day', 'start_date' => $now->modify( '+31 days' )->format( 'Y-m-d' ), 'end_date' => $now->modify( '+31 days' )->format( 'Y-m-d' ) ),
+	) as $block
+) {
+	if ( ! $wpdb->insert( $blocked, array_merge( array( 'calendar_id' => $calendar_id, 'created_at' => current_time( 'mysql' ) ), $block ) ) ) {
+		ffc_ss_query_fail( 'Could not plant a blocked date: ' . $wpdb->last_error );
+	}
+	$planted_blocks[] = (int) $wpdb->insert_id;
+}
+
+$blocks_repo = new \FreeFormCertificate\Repositories\BlockedDateRepository();
+$read        = array_map( 'intval', array_column( $blocks_repo->getBlocksForDate( $calendar_id, $day ), 'id' ) );
+sort( $read );
+$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE calendar_id = %d', $blocked, $calendar_id ) );
+
+if ( array( $planted_blocks[0], $planted_blocks[1] ) !== $read ) {
+	ffc_ss_query_fail( 'getBlocksForDate() read ' . wp_json_encode( $read ) . ' for ' . $day . ' where exactly ' . wp_json_encode( array( $planted_blocks[0], $planted_blocks[1] ) ) . ' reach it.' );
+}
+if ( ! \FreeFormCertificate\Repositories\BlockedDateRepository::blocksMatch( array( array( 'block_type' => 'time_range', 'start_time' => '10:00:00', 'end_time' => '11:00:00' ) ), $day, '10:30:00' ) ) {
+	ffc_ss_query_fail( 'A time-range block read from the database does not close the slot inside it.' );
+}
+
+// Capacity: two confirmed at 09:00:00 on $day fill a slot of two; a cancelled
+// one does not count.
+$now = new \DateTimeImmutable( $day . ' 09:00:00', wp_timezone() ); // ffc_ss_plant() places rows relative to it.
+foreach ( array( 'confirmed', 'confirmed', 'cancelled' ) as $status ) {
+	ffc_ss_plant( '+0 seconds', $status );
+}
+$reader = new \FreeFormCertificate\Repositories\AppointmentRepository();
+$open   = array(
+	$reader->isSlotAvailable( $calendar_id, $day, '09:00:00', 2 ),
+	$reader->isSlotAvailable( $calendar_id, $day, '09:00:00', 3 ),
+	count( $reader->getAppointmentsByDate( $calendar_id, $day ) ),
+);
+$wpdb->delete( $table, array( 'calendar_id' => $calendar_id ), array( '%d' ) );
+
+if ( array( false, true, 2 ) !== $open ) {
+	ffc_ss_query_fail( 'The capacity queries answered ' . wp_json_encode( $open ) . ' for two confirmed and one cancelled at 09:00 (expected [false,true,2]).' );
+}
+
+echo "SLOT QUERIES HOLD: one block read per date, capacity counted per start.\n";
