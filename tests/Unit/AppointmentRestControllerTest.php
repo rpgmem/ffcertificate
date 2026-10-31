@@ -1158,7 +1158,7 @@ class AppointmentRestControllerTest extends TestCase {
 				'appointment_id'   => self::FIRST_NEW_ID,
 				'calendar_id'      => 3,
 				'appointment_date' => $this->future_date(),
-				'start_time'       => '10:00',
+				'start_time'       => '10:00:00',
 				'booked_for'       => self::PERSON_ID,
 			),
 			json_decode( (string) $logged[0]['context'], true )
