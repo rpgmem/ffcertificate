@@ -220,7 +220,7 @@ class UserAppointmentsRestController {
 					}
 					$reschedule_url = $booking_pages[ $calendar_post ];
 				}
-				$reschedule_note = ( '' !== $reschedule_url && is_array( $calendar ) ) ? self::interval_note( $appointment, $appointments, $calendar ) : '';
+				$reschedule_note = '' !== $reschedule_url ? self::interval_note( $appointment, $appointments, (array) $calendar ) : '';
 
 				$appointments_formatted[] = array(
 					'id'                   => (int) $appointment['id'],
