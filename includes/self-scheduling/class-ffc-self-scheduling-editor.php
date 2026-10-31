@@ -44,6 +44,7 @@ class SelfSchedulingEditor {
 		// Delegated handlers.
 		new SelfSchedulingSaveHandler();
 		$this->cleanup_handler = new SelfSchedulingCleanupHandler();
+		new CalendarBlockedDates();
 	}
 
 	/**
@@ -131,6 +132,8 @@ class SelfSchedulingEditor {
 					'deleting'         => __( 'Deleting...', 'ffcertificate' ),
 					'cancelling'       => __( 'Cancelling...', 'ffcertificate' ),
 					'cleanup'          => self::cleanup_dialog_strings(),
+					'blocksNonce'      => CalendarBlockedDates::nonce(),
+					'blockRemove'      => __( 'Remove this block? The dates open for booking again.', 'ffcertificate' ),
 					'errorDeleting'    => __( 'Error deleting appointments', 'ffcertificate' ),
 					'errorServer'      => __( 'Error communicating with server', 'ffcertificate' ),
 					'schedulingForced' => __( 'Forced to Private because Visibility is Private.', 'ffcertificate' ),
@@ -181,6 +184,18 @@ class SelfSchedulingEditor {
 				/* translators: %d: number of appointments */
 				'confirmSilent' => __( 'Cancel %d appointment(s)', 'ffcertificate' ),
 				'type'          => $type,
+			),
+			// Adding a block that reaches open appointments (#2244).
+			'block'     => array(
+				'title'         => __( 'Block and cancel appointments', 'ffcertificate' ),
+				/* translators: 1: number of appointments, 2: calendar title */
+				'body'          => __( '%1$d open appointment(s) of the calendar "%2$s" fall on what you are blocking. They will be cancelled, and each person booked will receive the calendar\'s cancellation e-mail with the reason.', 'ffcertificate' ),
+				/* translators: 1: number of appointments, 2: calendar title */
+				'bodySilent'    => __( '%1$d open appointment(s) of the calendar "%2$s" fall on what you are blocking. They will be cancelled. This calendar does not send cancellation e-mails, so nobody will be notified.', 'ffcertificate' ),
+				/* translators: %d: number of appointments */
+				'confirm'       => __( 'Block and cancel %d', 'ffcertificate' ),
+				/* translators: %d: number of appointments */
+				'confirmSilent' => __( 'Block and cancel %d', 'ffcertificate' ),
 			),
 			'all'       => array(
 				'title'   => __( 'Delete all appointments', 'ffcertificate' ),
@@ -261,9 +276,10 @@ class SelfSchedulingEditor {
 	 * calendar has.
 	 *
 	 * @param bool $occupancy Whether the occupancy tab exists.
+	 * @param bool $saved     Whether the calendar exists (the blocked-dates tab needs its row).
 	 * @return array<int, array{key: string, icon: string, label: string, title: string, masters: array<int, string>}>
 	 */
-	private static function tab_definitions( bool $occupancy ): array {
+	private static function tab_definitions( bool $occupancy, bool $saved = false ): array {
 		$tabs = array(
 			array(
 				'key'     => 'calendar',
@@ -329,6 +345,24 @@ class SelfSchedulingEditor {
 				'masters' => array(),
 			),
 		);
+		if ( $saved ) {
+			// Blocked dates (#2244) write rows of the calendar, so they exist
+			// once the calendar does.
+			array_splice(
+				$tabs,
+				3,
+				0,
+				array(
+					array(
+						'key'     => 'blocks',
+						'icon'    => 'ffc-icon-lock',
+						'label'   => __( 'Blocked dates', 'ffcertificate' ),
+						'title'   => __( 'Blocked dates', 'ffcertificate' ),
+						'masters' => array(),
+					),
+				)
+			);
+		}
 		if ( $occupancy ) {
 			$tabs[] = array(
 				'key'     => 'occupancy',
@@ -369,7 +403,7 @@ class SelfSchedulingEditor {
 		wp_nonce_field( 'ffc_self_scheduling_config_nonce', 'ffc_self_scheduling_config_nonce' );
 
 		AdminUI::render_vertical_tabs(
-			self::tab_definitions( $this->shows_occupancy( (int) $post->ID ) ),
+			self::tab_definitions( $this->shows_occupancy( (int) $post->ID ), 'auto-draft' !== $post->post_status ),
 			function ( string $key ) use ( $post, $config, $mode_locked ): void {
 				switch ( $key ) {
 					case 'calendar':
@@ -381,6 +415,9 @@ class SelfSchedulingEditor {
 						break;
 					case 'window':
 						$this->render_tab_window( $config );
+						break;
+					case 'blocks':
+						CalendarBlockedDates::render( (int) $post->ID );
 						break;
 					case 'cancellation':
 						$this->render_tab_cancellation( $config );

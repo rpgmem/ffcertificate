@@ -190,7 +190,7 @@ class AppointmentValidator {
 			if ( $refused ) {
 				return $refused;
 			}
-		} elseif ( $this->blocked_date_repository->isDateBlocked( $data['calendar_id'], $data['appointment_date'], $data['start_time'] ) ) {
+		} elseif ( $this->blocked_date_repository->isDateBlocked( $data['calendar_id'], $data['appointment_date'], $data['start_time'], isset( $data['end_time'] ) ? (string) $data['end_time'] : null ) ) {
 			$refused = $rule( new \WP_Error( 'date_blocked', __( 'This date/time is not available.', 'ffcertificate' ) ) );
 			if ( $refused ) {
 				return $refused;

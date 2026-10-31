@@ -257,6 +257,11 @@ class SelfSchedulingEditorTest extends TestCase {
 			}
 		);
 
+		// No calendar row: the Blocked dates tab (#2244) says to save first.
+		$GLOBALS['wpdb']->shouldReceive( 'get_row' )->andReturn( null );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+
 		$editor = new SelfSchedulingEditor();
 		ob_start();
 		$editor->render_box_config( $post );
@@ -281,15 +286,18 @@ class SelfSchedulingEditorTest extends TestCase {
 
 		$this->assertStringContainsString( '<div class="ffc-vtabs" data-ffc-vtabs>', $output );
 		preg_match_all( '/<span class="ffc-vtabs__icon ([^"]+)"/', $output, $m );
-		// Each icon twice: in the nav and in the panel title.
-		$this->assertCount( 18, $m[1] );
+		// Each icon twice: in the nav and in the panel title. Ten tabs on a
+		// saved calendar, the Blocked dates one included (#2244).
+		$this->assertCount( 20, $m[1] );
+		$this->assertContains( 'ffc-icon-lock', $m[1] );
+		$this->assertStringContainsString( 'Save the calendar first; its blocked dates can be added once it exists.', $output );
 		foreach ( $m[1] as $class ) {
 			$this->assertMatchesRegularExpression( '/^ffc-icon-[a-z-]+$/', $class, 'A tab icon the registry does not know falls back to a dashicon' );
 		}
 		$this->assertStringNotContainsString( 'dashicons', $output );
 		// The first tab starts active; the others are reachable by the arrow keys.
 		$this->assertSame( 1, substr_count( $output, 'aria-selected="true"' ) );
-		$this->assertSame( 8, substr_count( $output, 'aria-selected="false"' ) );
+		$this->assertSame( 9, substr_count( $output, 'aria-selected="false"' ) );
 	}
 
 	public function test_the_occupancy_tab_exists_only_for_a_saved_custom_calendar(): void {

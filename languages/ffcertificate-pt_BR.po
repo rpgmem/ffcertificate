@@ -2867,10 +2867,6 @@ msgstr "Data de nascimento"
 msgid "Blacklist"
 msgstr "Lista negra"
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:47
-msgid "Blackout full days, time ranges or recurring patterns (per calendar or global)."
-msgstr "Bloqueie dias inteiros, intervalos de tempo ou padrões recorrentes (por calendário ou globais)."
-
 #: includes/settings/views/ffc-tab-geolocation.php:420
 msgid "Block"
 msgstr "Bloquear"
@@ -4078,8 +4074,6 @@ msgstr "Contexto de texto simples e linhas de registro de atividades foram limpa
 #, php-format
 msgid "Click once to process all records automatically. %s records remaining."
 msgstr "Clique uma vez para processar todos os registros automaticamente. %s registros restantes."
-
-
 
 #: templates/emails/certificate-user.php:31
 msgid "Click the button below to download it."
@@ -25434,8 +25428,6 @@ msgstr "Nenhum convite foi enviado ainda. Eles saem na próxima execução diár
 msgid "Send invitation email (daily run after activation)"
 msgstr "Enviar e-mail de convite (execução diária após a ativação)"
 
-
-
 #: templates/admin/reregistration/form.php
 msgid "Sends the invitation now, without waiting for the daily run, to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished."
 msgstr "Envia o convite agora, sem esperar a execução diária, a quem ainda não recebeu. Clicar duas vezes não envia nada na segunda. Se o prazo foi prorrogado, também alcança todos que não concluíram."
@@ -30452,3 +30444,126 @@ msgstr[1] "Excluir este calendário cancela %d agendamentos abertos (pendentes, 
 #: includes/settings/views/documentation/feature-self-scheduling.php:93
 msgid "The receipt opens unmasked only for the person it belongs to: signed in as its owner, or through the link in their e-mails, which carries their confirmation token. Staff who can open the Appointments list reach it from View Receipt with the e-mail, phone and CPF/RF masked and without the token, which no staff screen shows, so a member of staff cannot cancel as the guest; the audited Reveal stays on the appointment's admin screen. View as user shows no receipt link."
 msgstr "O comprovante abre sem máscara só para a pessoa a quem pertence: conectada como titular, ou pelo link dos seus e-mails, que leva o token de confirmação. A equipe que pode abrir a lista de Agendamentos chega a ele por Ver comprovante com e-mail, telefone e CPF/RF mascarados e sem o token, que nenhuma tela da equipe mostra, então ninguém da equipe consegue cancelar como o convidado; o Revelar auditado continua na tela de administração do agendamento. Ver como usuário não mostra link de comprovante."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "%1$d open appointment(s) of the calendar \"%2$s\" fall on what you are blocking. They will be cancelled, and each person booked will receive the calendar's cancellation e-mail with the reason."
+msgstr "%1$d agendamento(s) aberto(s) do calendário \"%2$s\" caem no que você está bloqueando. Eles serão cancelados, e cada pessoa agendada receberá o e-mail de cancelamento do calendário com o motivo."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "%1$d open appointment(s) of the calendar \"%2$s\" fall on what you are blocking. They will be cancelled. This calendar does not send cancellation e-mails, so nobody will be notified."
+msgstr "%1$d agendamento(s) aberto(s) do calendário \"%2$s\" caem no que você está bloqueando. Eles serão cancelados. Este calendário não envia e-mails de cancelamento, então ninguém será avisado."
+
+#: templates/admin/scheduling/blocked-dates-tab.php
+msgid "Add a block"
+msgstr "Adicionar bloqueio"
+
+#: templates/admin/scheduling/blocked-dates-tab.php
+msgid "Add block"
+msgstr "Adicionar bloqueio"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Block and cancel %d"
+msgstr "Bloquear e cancelar %d"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Block and cancel appointments"
+msgstr "Bloquear e cancelar agendamentos"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Block not found."
+msgstr "Bloqueio não encontrado."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Block removed."
+msgstr "Bloqueio removido."
+
+#: templates/admin/scheduling/blocked-dates-tab.php
+msgid "Blocked"
+msgstr "Bloqueado"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Blocked."
+msgstr "Bloqueado."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Choose a start time before the end time."
+msgstr "Escolha um horário de início anterior ao de término."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Choose a valid date."
+msgstr "Escolha uma data válida."
+
+#: templates/admin/scheduling/blocked-dates-tab.php
+msgid "Close whole days or a time range on one date. Nobody can book what is blocked, and adding a block that reaches open appointments asks first, then cancels them. Global holidays apply on top of these."
+msgstr "Feche dias inteiros ou um intervalo de horário em uma data. Ninguém consegue agendar o que está bloqueado, e adicionar um bloqueio que alcança agendamentos abertos pergunta antes e depois os cancela. Os feriados globais se aplicam além destes."
+
+#: templates/admin/scheduling/blocked-dates-tab.php
+msgid "No blocked dates."
+msgstr "Nenhuma data bloqueada."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "One block covers at most %d days."
+msgstr "Um bloqueio cobre no máximo %d dias."
+
+#: templates/admin/scheduling/blocked-dates-tab.php
+msgid "Reason (optional, shown in the cancellation e-mail)"
+msgstr "Motivo (opcional, mostrado no e-mail de cancelamento)"
+
+#: templates/admin/scheduling/blocked-dates-tab.php
+msgid "Remove block"
+msgstr "Remover bloqueio"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Remove this block? The dates open for booking again."
+msgstr "Remover este bloqueio? As datas voltam a aceitar agendamentos."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Save the calendar first; its blocked dates can be added once it exists."
+msgstr "Salve o calendário primeiro; as datas bloqueadas podem ser adicionadas depois que ele existir."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Security check failed. Reload the page and try again."
+msgstr "A verificação de segurança falhou. Recarregue a página e tente novamente."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "The Blocked dates tab, once the calendar is saved, closes whole days (one, or a run of up to 366) or a time range on one date, with an optional reason. A time range closes every slot it overlaps, not only those starting inside it; a block that repeats one already there is refused. Adding a block that reaches pending, confirmed or waitlisted appointments first says how many, then cancels them with the reason, sending the cancellation e-mail when the calendar's Emails tab turns it on. Global holidays apply on top."
+msgstr "A aba Datas bloqueadas, depois que o calendário é salvo, fecha dias inteiros (um, ou uma sequência de até 366) ou um intervalo de horário em uma data, com um motivo opcional. Um intervalo de horário fecha todo horário com que se sobrepõe, não só os que começam dentro dele; um bloqueio que repete outro já existente é recusado. Adicionar um bloqueio que alcança agendamentos pendentes, confirmados ou na lista de espera primeiro informa quantos são e depois os cancela com o motivo, enviando o e-mail de cancelamento quando a aba E-mails do calendário o ativa. Os feriados globais se aplicam além disso."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "The block could not be saved."
+msgstr "Não foi possível salvar o bloqueio."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "The calendar already blocks this date or time."
+msgstr "O calendário já bloqueia esta data ou horário."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "The calendar was closed: %s"
+msgstr "O calendário foi fechado: %s"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "The last day must be a valid date on or after the first."
+msgstr "O último dia deve ser uma data válida igual ou posterior ao primeiro."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "The number of appointments on this date changed since you confirmed. Review it and try again."
+msgstr "O número de agendamentos nesta data mudou desde a sua confirmação. Revise e tente novamente."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Time range"
+msgstr "Intervalo de horário"
+
+#: templates/admin/scheduling/blocked-dates-tab.php
+msgid "Until (optional)"
+msgstr "Até (opcional)"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php
+msgid "Whole days"
+msgstr "Dias inteiros"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-calendar-blocked-dates.php:201
+#, php-format
+msgid "Blocked. %d appointment was cancelled."
+msgid_plural "Blocked. %d appointments were cancelled."
+msgstr[0] "Bloqueado. %d agendamento foi cancelado."
+msgstr[1] "Bloqueado. %d agendamentos foram cancelados."
