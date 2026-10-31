@@ -254,7 +254,7 @@ final class CsvStagingService {
 	 *
 	 * Called at the top of `ingest_job` so each new import starts from
 	 * a clean tail of forgotten jobs. The DELETE pair is guarded by
-	 * `created_at < NOW() - INTERVAL` so it's bounded and safe to call
+	 * `created_at` older than the TTL so it's bounded and safe to call
 	 * on every import.
 	 *
 	 * @return int Number of staging rows deleted (best-effort count).
@@ -264,16 +264,22 @@ final class CsvStagingService {
 		$jobs_table    = $wpdb->prefix . 'ffc_recruitment_import_jobs';
 		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
 
+		// `created_at` is written with current_time( 'mysql' ), the site's
+		// time zone, so the cutoff is computed in that zone too; the
+		// database's NOW() is in the server's, and the two can be hours
+		// apart (#2245).
+		$cutoff = wp_date( 'Y-m-d H:i:s', time() - self::STAGING_JOB_TTL_SECONDS );
+
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
-				"DELETE s FROM {$staging_table} s INNER JOIN {$jobs_table} j ON s.job_id = j.job_id WHERE j.created_at < (NOW() - INTERVAL %d SECOND)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from $wpdb->prefix.
-				self::STAGING_JOB_TTL_SECONDS
+				"DELETE s FROM {$staging_table} s INNER JOIN {$jobs_table} j ON s.job_id = j.job_id WHERE j.created_at < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from $wpdb->prefix.
+				$cutoff
 			)
 		);
 		$wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$jobs_table} WHERE created_at < (NOW() - INTERVAL %d SECOND)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
-				self::STAGING_JOB_TTL_SECONDS
+				"DELETE FROM {$jobs_table} WHERE created_at < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
+				$cutoff
 			)
 		);
 

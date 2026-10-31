@@ -241,6 +241,9 @@
 		// confirm modal so the operator gets the destructive-transition look.
 		var consequences = [strings.bulkConsequenceAtomic || '', strings.bulkConsequenceLog || ''];
 		if (anyOoO) { consequences.push(strings.bulkConsequenceOoo || ''); }
+		// A past date is recorded without e-mail (#2245).
+		var past = ffcRecruitmentIsPast(date, time);
+		if (past) { consequences.push(strings.callPastWarning || ''); }
 		var bodyTpl = strings.bulkModalBodyTpl || '';
 		var bodyText = bodyTpl.replace('{count}', String(ids.length)).replace('{date}', date).replace('{time}', time);
 		var modalCfg = {
@@ -253,7 +256,8 @@
 		};
 		// Ask mode (#794): surface a "Notify by email" checkbox (default on)
 		// inside the confirmation modal instead of a separate native prompt.
-		if (cfg.emailMode === 'ask') {
+		var askEmail = cfg.emailMode === 'ask' && !past;
+		if (askEmail) {
 			modalCfg.checkboxLabel = strings.notifyByEmailAsk || '';
 			modalCfg.checkboxChecked = true;
 		}
@@ -264,7 +268,7 @@
 			var bulkPayload = { classification_ids: ids, date_to_assume: date, time_to_assume: time };
 			if (anyOoO) { bulkPayload.out_of_order_reasons = reasons; }
 			// Ask mode (#794): the modal checkbox drives the per-batch opt-in.
-			if (cfg.emailMode === 'ask') { bulkPayload.notify_email = !!notifyChecked; }
+			if (askEmail) { bulkPayload.notify_email = !!notifyChecked; }
 			fetch(classRoot + 'bulk-call', {
 				method: 'POST',
 				headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/json' },
@@ -308,83 +312,118 @@
 			}).catch(function (e) { alert((strings.networkError || 'Network error:') + ' ' + e.message); btn.disabled = false; });
 	}
 
+	// Whether a date and time to assume are already over, against the site
+	// clock the page was rendered with (#2245). `YYYY-MM-DD` and `HH:MM`
+	// compare as text. The server decides again when the call is saved.
+	function ffcRecruitmentIsPast(date, time) {
+		if (!date || !time || !cfg.siteNow) { return false; }
+		return (date + 'T' + time.slice(0, 5)) < cfg.siteNow;
+	}
+
+	// The live part of every call dialog: a past date says no e-mail is sent
+	// and hides the "notify" choice, which would not apply.
+	function ffcRecruitmentCallChange(values) {
+		var past = ffcRecruitmentIsPast(values.date_to_assume, values.time_to_assume);
+		return { warning: past ? (strings.callPastWarning || '') : '', hideCheckbox: past };
+	}
+
+	function ffcRecruitmentLastDateTime() {
+		var last = { date: '', time: '' };
+		try {
+			last.date = localStorage.getItem('ffcRecruitmentLastBulkDate') || '';
+			last.time = localStorage.getItem('ffcRecruitmentLastBulkTime') || '';
+		} catch (e) {}
+		return last;
+	}
+
+	function ffcRecruitmentRememberDateTime(date, time) {
+		try {
+			localStorage.setItem('ffcRecruitmentLastBulkDate', date);
+			localStorage.setItem('ffcRecruitmentLastBulkTime', time);
+		} catch (e) {}
+	}
+
+	// The confirm wears its trigger's icon (#1904).
+	function ffcRecruitmentIconOf(btn) {
+		var m = typeof btn.className === 'string' ? btn.className.match(/(?:^|\s)ffc-icon-([a-z0-9-]+)/) : null;
+		return m ? m[1] : '';
+	}
+
+	// One styled dialog per action (#2245): the browser prompts are gone.
 	window.ffcRecruitmentClsAct = function (btn) {
 		var id = btn.getAttribute('data-cls-id');
 		var action = btn.getAttribute('data-cls-action');
 		var base = classRoot;
-		var url, init;
+		var modal = window.ffcRecruitmentAdmin;
 		if (action === 'call') {
-			// Out-of-order is detected BEFORE asking date/time so the admin
-			// sees the warning/justification step at the top of the flow.
-			var oooReason = '';
+			// Out-of-order is detected first, so the dialog asks for the
+			// justification together with the date and time.
+			var ooo = false;
 			var tr = document.querySelector('tr[data-cls-id="' + id + '"]');
 			if (tr) {
 				var rank = parseInt(tr.getAttribute('data-cls-rank'), 10);
 				var adj = tr.getAttribute('data-cls-adjutancy');
 				var lowest = ffcRecruitmentLowestEmpty();
-				if (lowest[adj] && rank > lowest[adj]) {
-					if (!confirm(strings.confirmOooSingle || '')) { return; }
-					oooReason = prompt(strings.promptOooReason || '') || '';
-					if (!oooReason.trim()) { alert(strings.reasonRequired || ''); return; }
-				}
+				ooo = !!(lowest[adj] && rank > lowest[adj]);
 			}
-			var date = prompt(strings.dateToAssume || '');
-			if (!date) { return; }
-			var time = prompt(strings.timeToAssume || '');
-			if (!time) { return; }
-			var fd = new FormData();
-			fd.append('date_to_assume', date);
-			fd.append('time_to_assume', time);
-			if (oooReason) { fd.append('out_of_order_reason', oooReason); }
-			var callUrl = base + id + '/call';
-			var callInit = { method: 'POST', headers: { 'X-WP-Nonce': nonce }, body: fd, credentials: 'same-origin' };
-			// Ask mode (#794): confirm via the shared modal carrying a
-			// "Notify by email" checkbox (default on), then dispatch. Other
-			// modes fire immediately through the shared path below.
-			if (cfg.emailMode === 'ask') {
-				var callBodyTpl = strings.callModalBodyTpl || '';
-				window.ffcRecruitmentAdmin.openConfirmModal({
-					body: callBodyTpl.replace('{date}', date).replace('{time}', time),
-					checkboxLabel: strings.notifyByEmailAsk || '',
-					checkboxChecked: true
-				}, function (_reason, notifyChecked) {
-					fd.append('notify_email', notifyChecked ? '1' : '0');
-					ffcRecruitmentDispatchCls(btn, callUrl, callInit);
-				});
-				return;
-			}
-			url = callUrl;
-			init = callInit;
-		} else if (action === 'cancel' || action === 'reopen') {
-			// Both end the active call through its own route (#2245), so the
-			// call row is cancelled with the status: no `.ics`, nothing in
-			// "My calls", and the next call is the only active one.
-			var callId = btn.getAttribute('data-call-id');
-			var reason = prompt((action === 'cancel' ? strings.cancellationReason : strings.reopenReason) || '');
-			if (!reason || !callId) { return; }
-			var p = new URLSearchParams();
-			p.append('reason', reason);
-			url = base + id + '/calls/' + callId + '/cancel';
-			init = { method: 'POST', headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString(), credentials: 'same-origin' };
-		} else if (action === 'override') {
-			// Admin override (#Item 8): undo a realized hired/withdrew/not_shown
-			// decision. Destructive — confirm first, then require an audited
-			// reason. Hits the dedicated endpoint that bypasses the terminal
-			// guard and the reopen-freeze server-side.
-			if (!confirm(strings.confirmOverride || '')) { return; }
-			var oReason = prompt(strings.overrideReason || '');
-			if (!oReason || !oReason.trim()) { return; }
-			var po = new URLSearchParams();
-			po.append('reason', oReason);
-			url = base + id + '/override-to-empty';
-			init = { method: 'POST', headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/x-www-form-urlencoded' }, body: po.toString(), credentials: 'same-origin' };
-		} else {
-			var p3 = new URLSearchParams();
-			p3.append('status', action);
-			url = base + id + '/status';
-			init = { method: 'PUT', headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p3.toString(), credentials: 'same-origin' };
+			var last = ffcRecruitmentLastDateTime();
+			var askEmail = cfg.emailMode === 'ask';
+			modal.openConfirmModal({
+				title: strings.callModalTitle || '',
+				consequences: ooo ? [strings.confirmOooSingle || ''] : [],
+				cta: strings.callModalCta || '',
+				style: ooo ? 'destructive' : 'primary',
+				icon: ffcRecruitmentIconOf(btn),
+				fields: [
+					{ name: 'date_to_assume', label: strings.dateToAssume || '', type: 'date', value: last.date, required: true },
+					{ name: 'time_to_assume', label: strings.timeToAssume || '', type: 'time', value: last.time, required: true }
+				],
+				onChange: ffcRecruitmentCallChange,
+				reasonLabel: ooo ? (strings.promptOooReason || '') : '',
+				checkboxLabel: askEmail ? (strings.notifyByEmailAsk || '') : '',
+				checkboxChecked: true
+			}, function (oooReason, notifyChecked, values) {
+				var fd = new FormData();
+				fd.append('date_to_assume', values.date_to_assume);
+				fd.append('time_to_assume', values.time_to_assume);
+				if (ooo && oooReason) { fd.append('out_of_order_reason', oooReason); }
+				if (askEmail && notifyChecked !== null) { fd.append('notify_email', notifyChecked ? '1' : '0'); }
+				ffcRecruitmentRememberDateTime(values.date_to_assume, values.time_to_assume);
+				ffcRecruitmentDispatchCls(btn, base + id + '/call', { method: 'POST', headers: { 'X-WP-Nonce': nonce }, body: fd, credentials: 'same-origin' });
+			});
+			return;
 		}
-		ffcRecruitmentDispatchCls(btn, url, init);
+		if (action === 'cancel' || action === 'reopen' || action === 'override') {
+			// Cancel and reopen end the active call through its own route
+			// (#2245), so the call row is cancelled with the status: no
+			// `.ics`, nothing in "My calls", and the next call is the only
+			// active one. Override undoes a realized decision on its own
+			// audited endpoint.
+			var callId = btn.getAttribute('data-call-id');
+			if (action !== 'override' && !callId) { return; }
+			var copy = {
+				cancel: { title: strings.cancelModalTitle, body: strings.cancelModalBody, cta: strings.cancelModalCta, reason: strings.cancellationReason },
+				reopen: { title: strings.reopenModalTitle, body: strings.reopenModalBody, cta: strings.reopenModalCta, reason: strings.reopenReason },
+				override: { title: strings.overrideModalTitle, body: strings.confirmOverride, cta: strings.overrideModalCta, reason: strings.overrideReason }
+			}[action];
+			modal.openConfirmModal({
+				title: copy.title || '',
+				body: copy.body || '',
+				cta: copy.cta || '',
+				style: 'destructive',
+				icon: ffcRecruitmentIconOf(btn),
+				reasonLabel: copy.reason || ''
+			}, function (reason) {
+				var p = new URLSearchParams();
+				p.append('reason', reason);
+				var url = action === 'override' ? base + id + '/override-to-empty' : base + id + '/calls/' + callId + '/cancel';
+				ffcRecruitmentDispatchCls(btn, url, { method: 'POST', headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString(), credentials: 'same-origin' });
+			});
+			return;
+		}
+		var p3 = new URLSearchParams();
+		p3.append('status', action);
+		ffcRecruitmentDispatchCls(btn, base + id + '/status', { method: 'PUT', headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p3.toString(), credentials: 'same-origin' });
 	};
 
 	// -- Section 7: preliminary preview-status + reason dropdowns -------

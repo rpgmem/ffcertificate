@@ -66,6 +66,17 @@ final class RecruitmentErrorMessages {
 		$map     = self::map();
 		$message = $map[ $rest ] ?? $rest;
 
+		// `from->to` names two statuses; say them in words (#2245).
+		if ( 'recruitment_invalid_transition' === $rest && 1 === preg_match( '/^([a-z_]+)->([a-z_]+)$/', $suffix, $t ) ) {
+			$message = sprintf(
+				/* translators: 1: current status, 2: requested status */
+				__( 'This status change is not allowed: from "%1$s" to "%2$s".', 'ffcertificate' ),
+				self::status_name( $t[1] ),
+				self::status_name( $t[2] )
+			);
+			$suffix = '';
+		}
+
 		if ( '' !== $suffix && isset( $map[ $rest ] ) ) {
 			$message .= ' (' . $suffix . ')';
 		} elseif ( '' !== $suffix ) {
@@ -89,6 +100,29 @@ final class RecruitmentErrorMessages {
 	 */
 	public static function translate_all( array $codes ): array {
 		return array_map( array( __CLASS__, 'translate' ), $codes );
+	}
+
+	/**
+	 * A notice or classification status in words, for the transition
+	 * message. An unknown value is returned as it came.
+	 *
+	 * @param string $status Status code.
+	 * @return string
+	 */
+	private static function status_name( string $status ): string {
+		$names = array(
+			'draft'       => __( 'Draft', 'ffcertificate' ),
+			'preliminary' => __( 'Preliminary', 'ffcertificate' ),
+			'definitive'  => __( 'Definitive', 'ffcertificate' ),
+			'closed'      => __( 'Closed', 'ffcertificate' ),
+			'empty'       => __( 'Waiting', 'ffcertificate' ),
+			'called'      => __( 'Called', 'ffcertificate' ),
+			'accepted'    => __( 'Accepted', 'ffcertificate' ),
+			'not_shown'   => __( 'Did not show up', 'ffcertificate' ),
+			'hired'       => __( 'Hired', 'ffcertificate' ),
+			'withdrew'    => __( 'Withdrew', 'ffcertificate' ),
+		);
+		return $names[ $status ] ?? $status;
 	}
 
 	/**
@@ -122,7 +156,7 @@ final class RecruitmentErrorMessages {
 			'recruitment_definitive_import_requires_preliminary' => __( 'The definitive list can only be imported while the notice is in `preliminary`. Nothing was imported.', 'ffcertificate' ),
 			'recruitment_definitive_import_requires_preliminary_list' => __( 'Import the preliminary list first: the definitive list is imported only on a notice that has one. Nothing was imported.', 'ffcertificate' ),
 			'recruitment_definitive_import_blocked_by_calls' => __( 'The definitive list cannot be replaced: this notice already has calls. Nothing was imported.', 'ffcertificate' ),
-			'recruitment_state_locked'                     => __( 'This action is not allowed in the notice\'s current state.', 'ffcertificate' ),
+			'recruitment_state_locked'                     => __( 'Someone else changed this row a moment ago, so nothing was done. Reload the page and try again.', 'ffcertificate' ),
 			'recruitment_state_terminal_hired'             => __( 'This candidate has already been hired and cannot be modified.', 'ffcertificate' ),
 			'recruitment_state_terminal_withdrew'          => __( 'This candidate has withdrawn and cannot be modified.', 'ffcertificate' ),
 			'recruitment_transition_race_lost'             => __( 'Another operator changed this notice\'s status moments ago. Reload to see the current state.', 'ffcertificate' ),
@@ -153,7 +187,7 @@ final class RecruitmentErrorMessages {
 			'recruitment_classification_insert_failed'     => __( 'Could not save the classification entry. Please try again.', 'ffcertificate' ),
 			'recruitment_classification_delete_failed'     => __( 'Could not remove the classification entry. Please try again.', 'ffcertificate' ),
 			'recruitment_classification_delete_requires_draft_or_preliminary' => __( 'Classifications can only be removed while the notice is in draft or preliminary status.', 'ffcertificate' ),
-			'recruitment_classification_not_empty'         => __( 'Cannot complete the action: classifications already exist for this notice.', 'ffcertificate' ),
+			'recruitment_classification_not_empty'         => __( 'This candidate is no longer waiting to be called: the row was called or changed in the meantime. Reload the page.', 'ffcertificate' ),
 			'recruitment_classification_not_empty_for_delete' => __( 'Cannot delete this notice: it still has classifications attached.', 'ffcertificate' ),
 
 			// Calls.
@@ -171,6 +205,10 @@ final class RecruitmentErrorMessages {
 			'recruitment_cancel_reason_required'           => __( 'A reason is required to cancel this call.', 'ffcertificate' ),
 			'recruitment_out_of_order_requires_reason'     => __( 'Calling out of rank order requires a reason.', 'ffcertificate' ),
 			'recruitment_bulk_call_empty_id_list'          => __( 'Select at least one classification to call in bulk.', 'ffcertificate' ),
+			'recruitment_bulk_call_failed_at_classification' => __( 'Nobody was called: one of the selected rows was refused, and a bulk call is all or nothing.', 'ffcertificate' ),
+			'recruitment_call_invalid_date'                => __( 'The date to assume is not a valid date.', 'ffcertificate' ),
+			'recruitment_call_invalid_time'                => __( 'The time to assume is not a valid time.', 'ffcertificate' ),
+			'recruitment_invalid_transition'               => __( 'This status change is not allowed.', 'ffcertificate' ),
 
 			// Notice-status locks (#2245).
 			'recruitment_notice_adjutancies_locked'        => __( 'Adjutancies are attached or detached only while the notice is in draft or preliminary.', 'ffcertificate' ),

@@ -151,6 +151,10 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The call service judges a past date, and the staging cleanup its
+		// cutoff, in the site's zone (#2245).
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts = null ) => gmdate( $format, $ts ?? time() ) );
 
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
@@ -1481,7 +1485,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->assertCount( 1, $calls );
 		$this->assertSame( 5, $calls[0][2]['classification_id'] );
 		$this->assertSame( '2026-05-20', $calls[0][2]['date_to_assume'] );
-		$this->assertSame( '09:00', $calls[0][2]['time_to_assume'] );
+		$this->assertSame( '09:00:00', $calls[0][2]['time_to_assume'], 'Stored with seconds (#2245).' );
 		$this->assertSame( self::OPERATOR, $calls[0][2]['created_by'] );
 		$this->assertSame( 0, $calls[0][2]['out_of_order'] );
 		$this->assertNull( $calls[0][2]['out_of_order_reason'] );
@@ -1603,6 +1607,8 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'recruitment_bulk_call_failed_at_classification: 1', $result->get_error_code() );
 		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertStringStartsWith( 'Nobody was called', $result->get_error_message() );
+		$this->assertStringNotContainsString( 'recruitment_bulk_call_failed_at_classification', $result->get_error_message() );
 	}
 
 	// ------------------------------------------------------------------

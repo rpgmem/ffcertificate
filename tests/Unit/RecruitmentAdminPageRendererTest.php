@@ -236,6 +236,13 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'notice-error', $out );
 	}
 
+	public function test_render_flash_notice_says_why_a_delete_was_refused(): void {
+		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_flash_notice( 'adjutancy-in-use' ) );
+		$this->assertStringContainsString( 'was not deleted', $out );
+		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_flash_notice( 'reason-in-use' ) );
+		$this->assertStringContainsString( 'was not deleted', $out );
+	}
+
 	public function test_render_flash_notice_unknown_key_renders_nothing(): void {
 		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_flash_notice( 'totally-unknown' ) );
 		$this->assertSame( '', $out );

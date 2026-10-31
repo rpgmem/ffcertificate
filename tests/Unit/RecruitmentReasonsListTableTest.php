@@ -63,6 +63,8 @@ class RecruitmentReasonsListTableTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// A kept row is reported over the table (#2245).
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -400,9 +402,18 @@ class RecruitmentReasonsListTableTest extends TestCase {
 			6 => 0,
 		);
 
+		$notices = array();
+		Functions\when( 'wp_admin_notice' )->alias(
+			static function ( $message ) use ( &$notices ) {
+				$notices[] = $message;
+			}
+		);
+
 		$this->call_protected( 'process_bulk_action' );
 
 		$this->assertSame( array( 6 ), $this->deleted_reason_ids() );
+		$this->assertCount( 1, $notices );
+		$this->assertStringContainsString( '1 reason was not deleted: a classification still uses it.', $notices[0], 'The screen says why (#2245).' );
 	}
 
 	// ------------------------------------------------------------------

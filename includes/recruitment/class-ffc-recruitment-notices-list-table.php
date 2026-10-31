@@ -206,8 +206,22 @@ class RecruitmentNoticesListTable extends AbstractRecruitmentListTable {
 	 *
 	 * @param int $id Row id.
 	 */
-	protected function delete_one( int $id ): void {
-		RecruitmentDeleteService::delete_notice( $id );
+	protected function delete_one( int $id ): bool {
+		return RecruitmentDeleteService::delete_notice( $id )['success'];
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @param int $kept Rows the guard kept.
+	 * @return string
+	 */
+	protected function blocked_delete_message( int $kept ): string {
+		return sprintf(
+			/* translators: %d: number of notices that were not deleted */
+			_n( '%d notice was not deleted: only a draft notice can be deleted.', '%d notices were not deleted: only a draft notice can be deleted.', $kept, 'ffcertificate' ),
+			$kept
+		);
 	}
 
 	/**

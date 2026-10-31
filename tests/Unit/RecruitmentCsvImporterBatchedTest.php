@@ -78,6 +78,8 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The stale-job cutoff is computed in the site's zone (#2245).
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts = null ) => gmdate( $format, $ts ?? time() ) );
 
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $this->had_wpdb ? $GLOBALS['wpdb'] : null;

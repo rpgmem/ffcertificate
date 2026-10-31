@@ -22,12 +22,24 @@ class RecruitmentCallServiceTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/**
+	 * A date to assume a month ahead: a past one is recorded without the
+	 * e-mail these tests follow (#2245).
+	 *
+	 * @return string
+	 */
+	private static function future(): string {
+		return gmdate( 'Y-m-d', time() + 30 * DAY_IN_SECONDS );
+	}
+
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// A past date to assume sends no e-mail, judged in the site's zone (#2245).
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 
 		global $wpdb;
 		$wpdb            = Mockery::mock( 'wpdb' )->makePartial();
@@ -143,13 +155,102 @@ class RecruitmentCallServiceTest extends TestCase {
 				}
 			);
 
-		$result = RecruitmentCallService::call_single( 10, '2026-06-01', '08:00', 1 );
+		$result = RecruitmentCallService::call_single( 10, self::future(), '08:00', 1 );
 
 		$this->assertTrue( $result['success'] );
 		$this->assertSame( array( 7777 ), $result['call_ids'] );
 		$this->assertContains( 'START TRANSACTION', $query_log );
 		$this->assertContains( 'COMMIT', $query_log );
 		$this->assertSame( array( 10 ), $result['unreached'], 'A call whose e-mail found nobody to send to is reported, so the screen says to contact the candidate (#2245).' );
+	}
+
+	public function test_call_single_with_a_past_date_records_the_call_and_sends_nothing(): void {
+		$classification = $this->classification_stub( 10, 'empty', 1 );
+		$get_row        = 0;
+		$this->wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function () use ( $classification, &$get_row ) {
+				++$get_row;
+				return $get_row <= 2 ? $classification : null;
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
+		$inserted = null;
+		$this->wpdb->shouldReceive( 'insert' )->once()->andReturnUsing(
+			function ( $table, $data ) use ( &$inserted ) {
+				$inserted                   = $data;
+				$GLOBALS['wpdb']->insert_id = 7777;
+				return 1;
+			}
+		);
+
+		$result = RecruitmentCallService::call_single( 10, gmdate( 'Y-m-d', time() - DAY_IN_SECONDS ), '08:00', 1 );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertTrue( $result['past'] );
+		$this->assertSame( array(), $result['unreached'], 'No e-mail is attempted for a date already over (#2245).' );
+		$this->assertSame( 2, $get_row, 'The e-mail dispatcher never ran: it would have read the call back.' );
+		$this->assertSame( '08:00:00', $inserted['time_to_assume'] );
+	}
+
+	public function test_call_bulk_with_a_past_date_sends_nothing(): void {
+		$c10 = $this->classification_stub( 10, 'empty', 1 );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( $c10, $c10, null );
+		$this->wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function () {
+				$GLOBALS['wpdb']->insert_id = 9001;
+				return 1;
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
+
+		$result = RecruitmentCallService::call_bulk( array( 10 ), gmdate( 'Y-m-d', time() - DAY_IN_SECONDS ), '08:00', 1 );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertTrue( $result['past'] );
+		$this->assertSame( array(), $result['unreached'] );
+	}
+
+	/**
+	 * @dataProvider invalid_schedules
+	 */
+	public function test_an_invalid_date_or_time_is_refused_before_any_write( string $date, string $time, string $code ): void {
+		$this->wpdb->shouldNotReceive( 'query' );
+		$this->wpdb->shouldNotReceive( 'insert' );
+
+		$single = RecruitmentCallService::call_single( 10, $date, $time, 1 );
+		$bulk   = RecruitmentCallService::call_bulk( array( 10 ), $date, $time, 1 );
+
+		$this->assertSame( array( $code ), $single['errors'] );
+		$this->assertSame( array( $code ), $bulk['errors'] );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string, 2: string}>
+	 */
+	public static function invalid_schedules(): array {
+		return array(
+			'no such day'      => array( '2026-02-30', '09:00', 'recruitment_call_invalid_date' ),
+			'not a date'       => array( '20/05/2026', '09:00', 'recruitment_call_invalid_date' ),
+			'empty date'       => array( '', '09:00', 'recruitment_call_invalid_date' ),
+			'no such hour'     => array( '2026-05-20', '25:00', 'recruitment_call_invalid_time' ),
+			'unpadded hour'    => array( '2026-05-20', '9:00', 'recruitment_call_invalid_time' ),
+			'empty time'       => array( '2026-05-20', '', 'recruitment_call_invalid_time' ),
+			'no such second'   => array( '2026-05-20', '09:00:61', 'recruitment_call_invalid_time' ),
+		);
+	}
+
+	public function test_normalize_schedule_stores_the_time_with_seconds(): void {
+		$this->assertSame( array( 'date' => '2026-05-20', 'time' => '09:00:00' ), RecruitmentCallService::normalize_schedule( ' 2026-05-20 ', '09:00' ) );
+		$this->assertSame( array( 'date' => '2026-05-20', 'time' => '09:00:30' ), RecruitmentCallService::normalize_schedule( '2026-05-20', '09:00:30' ) );
+	}
+
+	public function test_is_past_compares_in_the_site_time_zone(): void {
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'America/Sao_Paulo' ) );
+		$now = new \DateTimeImmutable( 'now', new \DateTimeZone( 'America/Sao_Paulo' ) );
+
+		$this->assertTrue( RecruitmentCallService::is_past( $now->modify( '-1 minute' )->format( 'Y-m-d' ), $now->modify( '-1 minute' )->format( 'H:i:s' ) ) );
+		$this->assertFalse( RecruitmentCallService::is_past( $now->modify( '+2 minutes' )->format( 'Y-m-d' ), $now->modify( '+2 minutes' )->format( 'H:i:s' ) ) );
+		$this->assertFalse( RecruitmentCallService::is_past( 'garbage', '09:00:00' ), 'An unreadable value is not called past.' );
 	}
 
 	public function test_call_single_reports_nobody_unreached_when_no_email_is_sent(): void {
@@ -166,7 +267,7 @@ class RecruitmentCallServiceTest extends TestCase {
 			}
 		);
 
-		$result = RecruitmentCallService::call_single( 10, '2026-06-01', '08:00', 1 );
+		$result = RecruitmentCallService::call_single( 10, self::future(), '08:00', 1 );
 
 		$this->assertTrue( $result['success'] );
 		$this->assertSame( array(), $result['unreached'], 'In "never" mode nothing is sent, so nobody counts as unreached.' );
@@ -185,7 +286,7 @@ class RecruitmentCallServiceTest extends TestCase {
 				}
 			);
 
-		$result = RecruitmentCallService::call_single( 10, '2026-06-01', '08:00', 1 );
+		$result = RecruitmentCallService::call_single( 10, self::future(), '08:00', 1 );
 
 		$this->assertFalse( $result['success'] );
 		$this->assertContains( 'recruitment_classification_not_empty', $result['errors'] );
@@ -208,7 +309,7 @@ class RecruitmentCallServiceTest extends TestCase {
 				}
 			);
 
-		$result = RecruitmentCallService::call_single( 10, '2026-06-01', '08:00', 1 );
+		$result = RecruitmentCallService::call_single( 10, self::future(), '08:00', 1 );
 
 		$this->assertFalse( $result['success'] );
 		$this->assertContains( 'recruitment_out_of_order_requires_reason', $result['errors'] );
@@ -236,7 +337,7 @@ class RecruitmentCallServiceTest extends TestCase {
 
 		$result = RecruitmentCallService::call_single(
 			10,
-			'2026-06-01',
+			self::future(),
 			'08:00',
 			1,
 			'Lower-rank candidate withdrew earlier today',
@@ -266,7 +367,7 @@ class RecruitmentCallServiceTest extends TestCase {
 				}
 			);
 
-		$result = RecruitmentCallService::call_single( 10, '2026-06-01', '08:00', 1 );
+		$result = RecruitmentCallService::call_single( 10, self::future(), '08:00', 1 );
 
 		$this->assertFalse( $result['success'] );
 		$this->assertContains( 'recruitment_state_locked', $result['errors'] );
@@ -281,7 +382,7 @@ class RecruitmentCallServiceTest extends TestCase {
 		// Should not even open a transaction.
 		$this->wpdb->shouldNotReceive( 'query' );
 
-		$result = RecruitmentCallService::call_bulk( array(), '2026-06-01', '08:00', 1 );
+		$result = RecruitmentCallService::call_bulk( array(), self::future(), '08:00', 1 );
 
 		$this->assertFalse( $result['success'] );
 		$this->assertSame( array( 'recruitment_bulk_call_empty_id_list' ), $result['errors'] );
@@ -319,7 +420,7 @@ class RecruitmentCallServiceTest extends TestCase {
 				}
 			);
 
-		$result = RecruitmentCallService::call_bulk( array( 10, 11 ), '2026-06-01', '08:00', 1 );
+		$result = RecruitmentCallService::call_bulk( array( 10, 11 ), self::future(), '08:00', 1 );
 
 		$this->assertTrue( $result['success'] );
 		$this->assertCount( 2, $result['call_ids'] );
@@ -352,7 +453,7 @@ class RecruitmentCallServiceTest extends TestCase {
 				}
 			);
 
-		$result = RecruitmentCallService::call_bulk( array( 10, 11 ), '2026-06-01', '08:00', 1 );
+		$result = RecruitmentCallService::call_bulk( array( 10, 11 ), self::future(), '08:00', 1 );
 
 		$this->assertFalse( $result['success'] );
 		$this->assertSame( array(), $result['call_ids'] );
@@ -467,7 +568,7 @@ class RecruitmentCallServiceTest extends TestCase {
 		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
 		$this->wpdb->shouldNotReceive( 'insert' );
 
-		$result = RecruitmentCallService::call_single( 10, '2026-06-01', '08:00', 1 );
+		$result = RecruitmentCallService::call_single( 10, self::future(), '08:00', 1 );
 
 		$this->assertFalse( $result['success'] );
 		$this->assertSame( array( 'recruitment_call_requires_definitive_list' ), $result['errors'] );

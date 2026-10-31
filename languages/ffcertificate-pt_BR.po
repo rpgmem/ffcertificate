@@ -963,10 +963,6 @@ msgstr "Um painel na interface do usuário onde cada usuário logado visualiza s
 msgid "A full administrator (manage_options) always sees every FFC menu"
 msgstr "Um administrador com acesso total (manage_options) sempre vê todos os menus do FFC."
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:231
-msgid "A justification is required to proceed."
-msgstr "É necessária uma justificativa para prosseguir."
-
 #: includes/settings/views/documentation/feature-reregistration.php:53
 msgid "A manual resend replaces that member's automatic reminder — it does not add to it."
 msgstr "Um reenvio manual substitui o lembrete automático daquele membro — não se soma a ele."
@@ -3465,10 +3461,6 @@ msgstr "Cancelamento não é permitido para este calendário."
 msgid "Cancellation Reason"
 msgstr "Motivo do Cancelamento"
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:242
-msgid "Cancellation reason (required):"
-msgstr "Motivo do cancelamento (obrigatório):"
-
 #: includes/audience/class-ffc-audience-rest-controller.php:683
 msgid "Cancellation reason is required."
 msgstr "O motivo do cancelamento é obrigatório."
@@ -3577,10 +3569,6 @@ msgstr "Não é possível reservar datas no passado."
 #: includes/audience/class-ffc-audience-rest-controller.php:590
 msgid "Cannot book more than %d days in advance."
 msgstr "Não é possível reservar com mais de %d dias de antecedência."
-
-#: includes/recruitment/class-ffc-recruitment-error-messages.php:149
-msgid "Cannot complete the action: classifications already exist for this notice."
-msgstr "Não é possível concluir a ação: já existem classificações para este edital."
 
 #: includes/core/class-ffc-batched-csv-export.php:113
 msgid "Cannot create temp file."
@@ -4476,10 +4464,6 @@ msgstr "E-mail de convocação"
 msgid "Convocation email, public listing tuning and status colors."
 msgstr "E-mail de convocação, ajustes na listagem pública e cores de status."
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:247
-msgid "Convocation to assume on {date} at {time}."
-msgstr "Convocação para assumir em {date}, às {time}."
-
 #: includes/settings/views/ffc-tab-rate-limit.php:356
 msgid "Cookie"
 msgstr "Cookie"
@@ -5333,10 +5317,6 @@ msgstr "Intervalo de Datas"
 #: includes/recruitment/class-ffc-recruitment-dashboard-section.php:284 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:175 templates/public/recruitment/section-open.php:62 templates/admin/recruitment/candidate-edit/classifications-section.php:76
 msgid "Date to assume"
 msgstr "Data para assumir"
-
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:240
-msgid "Date to assume (YYYY-MM-DD):"
-msgstr "Data para assumir (AAAA-MM-DD):"
 
 #: templates/emails/recruitment-convocation.php:28
 msgid "Date to assume:"
@@ -9807,10 +9787,6 @@ msgstr "Basta clicar em \"Executar Migração\" uma vez! O processo continuará 
 msgid "Justification for calling out of order (required)"
 msgstr "Justificativa para chamar alguém de fora de ordem (obrigatória)"
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:230
-msgid "Justification for calling out of order (required):"
-msgstr "Justificativa para a chamada fora de ordem (obrigatória):"
-
 #: includes/settings/views/documentation/config-advanced.php:45
 msgid "Key / salt source"
 msgstr "Fonte de chave / salt"
@@ -13443,10 +13419,6 @@ msgstr "Motivo (opcional)"
 msgid "Reason creation failed (duplicate slug?)."
 msgstr "Motivo da falha na criação (slug duplicado?)."
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:245
-msgid "Reason for undoing this decision (required, audited):"
-msgstr "Motivo para reverter esta decisão (obrigatório, auditado):"
-
 #: includes/recruitment/class-ffc-recruitment-reason-edit-page.php:72
 msgid "Reason not found."
 msgstr "Motivo não encontrado."
@@ -13818,10 +13790,6 @@ msgstr "Reabrir edital"
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:218
 msgid "Reopen reason (required)"
 msgstr "Motivo de reabrir (obrigatório)"
-
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:243
-msgid "Reopen reason (required):"
-msgstr "Motivo da reabertura (obrigatório):"
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:209
 msgid "Reopen the closed notice?"
@@ -17169,10 +17137,6 @@ msgstr "Eles permanecem legíveis por meio do mecanismo de fallback, mas você d
 msgid "This action can only be performed once per form."
 msgstr "Esta ação só pode ser realizada uma vez por formulário."
 
-#: includes/recruitment/class-ffc-recruitment-error-messages.php:120
-msgid "This action is not allowed in the notice's current state."
-msgstr "Essa ação não é permitida no estado atual do edital."
-
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:133
 msgid "This adjutancy is in use by one or more notices and cannot be deleted."
 msgstr "Esta matéria está em uso por um ou mais editais e não pode ser excluída."
@@ -17217,10 +17181,6 @@ msgstr "Este calendário requer autenticação."
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:155
 msgid "This call has already been cancelled."
 msgstr "Esta chamada já foi cancelada."
-
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:229
-msgid "This call would skip a higher-ranked candidate (out of order). Continue?"
-msgstr "Esta chamada ignoraria um candidato com classificação superior (fora de ordem). Continuar?"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-cancellation-handler.php:129
 msgid "This cancellation link is invalid or has expired."
@@ -17561,10 +17521,6 @@ msgstr "Isso substituirá o horário de início agendado. O formulário será ab
 msgid "This will replace current content. Continue?"
 msgstr "Este conteúdo substituirá o atual. Deseja continuar?"
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:244
-msgid "This will undo a realized decision (hired / withdrew / no-show), reopen the vacancy and return the candidate to the waiting queue at their original position. The candidate is NOT notified. Continue?"
-msgstr "Isso desfará uma decisão tomada (contratado/desistiu/não compareceu), reabrirá a vaga e retornará o candidato à fila de espera em sua posição original. O candidato NÃO será notificado. Continuar?"
-
 #: includes/settings/views/documentation/developer-hooks-api.php:123
 msgid "Those defend the anonymous public form. The operator endpoint is authenticated and capability-gated, so the gate itself is the control; a generous per-operator rate-limit (300/hour, 2000/day) stays on only as a runaway guard. Per-IP limits are deliberately omitted because many field operators legitimately share one office IP."
 msgstr "Essa abordagem utiliza o formulário público anônimo. O endpoint do operador é autenticado e protegido por controle de acesso baseado em permissões (capability-based), de modo que esse mecanismo de controle é o que efetivamente regula o acesso; um limite de taxa generoso por operador (300/hora, 2000/dia) atua apenas como uma salvaguarda contra usos excessivos ou descontrolados. Limites por endereço IP foram deliberadamente omitidos, pois muitos operadores de campo compartilham legitimamente o mesmo IP do escritório."
@@ -17681,10 +17637,6 @@ msgstr "Entre as datas"
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:176
 msgid "Time to assume"
 msgstr "Hora para assumir"
-
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:241
-msgid "Time to assume (HH:MM):"
-msgstr "Hora para assumir (HH:MM):"
 
 #: templates/emails/appointment-reminder.php:26 templates/emails/selfscheduling-confirmation.php:38 templates/emails/appointment-approval.php:27 templates/emails/appointment-waitlisted.php:27 templates/emails/audience-booking.php:31 templates/emails/recruitment-convocation.php:29 templates/emails/appointment-cancellation.php:26 templates/emails/audience-cancellation.php:30 templates/emails/appointment-promoted.php:27 templates/emails/calendar-deleted-cancellation.php:30 includes/generators/class-ffc-pdf-html-renderer.php:341 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:445 includes/frontend/class-ffc-verification-response-renderer.php:266 templates/admin/recruitment/notice-edit/bulk-call-toolbar.php:24
 msgid "Time:"
@@ -31037,3 +30989,133 @@ msgstr "A marcação de PCD da classificação de recrutamento %d não correspon
 #: includes/migrations/strategies/class-ffc-recruitment-pcd-per-notice-migration-strategy.php:131
 msgid "The recruitment tables are not available — nothing to migrate."
 msgstr "As tabelas do recrutamento não estão disponíveis — nada a migrar."
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "Adjutancy deleted."
+msgstr "Atribuição excluída."
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "Reason deleted."
+msgstr "Motivo excluído."
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "The adjutancy was not deleted: a notice or a classification still uses it. Detach it from every notice first; one that classified candidates stays for the record."
+msgstr "A atribuição não foi excluída: um edital ou uma classificação ainda a usa. Desvincule-a de todos os editais primeiro; uma que classificou candidatos permanece como registro."
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "The reason was not deleted: a classification still uses it."
+msgstr "O motivo não foi excluído: uma classificação ainda o usa."
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "Call this candidate?"
+msgstr "Convocar este candidato?"
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "Cancel this call?"
+msgstr "Cancelar esta convocação?"
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "Cancellation reason (required)"
+msgstr "Motivo do cancelamento (obrigatório)"
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "Reason for undoing this decision (required, audited)"
+msgstr "Motivo para desfazer esta decisão (obrigatório, auditado)"
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "Reopen"
+msgstr "Reabrir"
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "Reopen this vacancy?"
+msgstr "Reabrir esta vaga?"
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "The candidate returns to the waiting list and the call ends everywhere: the .ics file, \"My calls\" and the next call."
+msgstr "O candidato volta à lista de espera e a convocação termina em todos os lugares: o arquivo .ics, \"Minhas convocações\" e a próxima convocação."
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "The candidate returns to the waiting list and the call that led to the no-show ends."
+msgstr "O candidato volta à lista de espera e a convocação que levou ao não comparecimento termina."
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "This call skips a higher-ranked candidate (out of order), so it needs a justification."
+msgstr "Esta convocação pula um candidato mais bem classificado (fora de ordem), por isso precisa de uma justificativa."
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "This date is already over: the call is recorded and no e-mail is sent."
+msgstr "Esta data já passou: a convocação é registrada e nenhum e-mail é enviado."
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "This will undo a realized decision (hired / withdrew / no-show), reopen the vacancy and return the candidate to the waiting queue at their original position. The candidate is NOT notified."
+msgstr "Isso desfará uma decisão tomada (contratado/desistiu/não compareceu), reabrirá a vaga e retornará o candidato à fila de espera em sua posição original. O candidato NÃO será notificado."
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "Undo decision"
+msgstr "Desfazer decisão"
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "Undo this decision?"
+msgstr "Desfazer esta decisão?"
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "Nobody was called: one of the selected rows was refused, and a bulk call is all or nothing."
+msgstr "Ninguém foi convocado: uma das linhas selecionadas foi recusada, e uma convocação em lote é tudo ou nada."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "Someone else changed this row a moment ago, so nothing was done. Reload the page and try again."
+msgstr "Outra pessoa alterou esta linha há pouco, por isso nada foi feito. Recarregue a página e tente novamente."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "The date to assume is not a valid date."
+msgstr "A data para assumir não é uma data válida."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "The time to assume is not a valid time."
+msgstr "O horário para assumir não é um horário válido."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "This candidate is no longer waiting to be called: the row was called or changed in the meantime. Reload the page."
+msgstr "Este candidato não está mais aguardando convocação: a linha foi convocada ou alterada nesse meio-tempo. Recarregue a página."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "This status change is not allowed."
+msgstr "Esta mudança de status não é permitida."
+
+#. translators: 1: current status, 2: requested status
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+#, php-format
+msgid "This status change is not allowed: from \"%1$s\" to \"%2$s\"."
+msgstr "Esta mudança de status não é permitida: de \"%1$s\" para \"%2$s\"."
+
+#: includes/recruitment/class-ffc-abstract-recruitment-list-table.php
+#, php-format
+msgid "%d row was not deleted because it is still in use."
+msgid_plural "%d rows were not deleted because they are still in use."
+msgstr[0] "%d linha não foi excluída porque ainda está em uso."
+msgstr[1] "%d linhas não foram excluídas porque ainda estão em uso."
+
+#: includes/recruitment/class-ffc-recruitment-adjutancies-list-table.php
+#, php-format
+msgid "%d adjutancy was not deleted: a notice or a classification still uses it."
+msgid_plural "%d adjutancies were not deleted: a notice or a classification still uses them."
+msgstr[0] "%d atribuição não foi excluída: um edital ou uma classificação ainda a usa."
+msgstr[1] "%d atribuições não foram excluídas: um edital ou uma classificação ainda as usa."
+
+#: includes/recruitment/class-ffc-recruitment-notices-list-table.php
+#, php-format
+msgid "%d notice was not deleted: only a draft notice can be deleted."
+msgid_plural "%d notices were not deleted: only a draft notice can be deleted."
+msgstr[0] "%d edital não foi excluído: só um edital em rascunho pode ser excluído."
+msgstr[1] "%d editais não foram excluídos: só um edital em rascunho pode ser excluído."
+
+#: includes/recruitment/class-ffc-recruitment-reasons-list-table.php
+#, php-format
+msgid "%d reason was not deleted: a classification still uses it."
+msgid_plural "%d reasons were not deleted: a classification still uses them."
+msgstr[0] "%d motivo não foi excluído: uma classificação ainda o usa."
+msgstr[1] "%d motivos não foram excluídos: uma classificação ainda os usa."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "Calling one candidate opens one dialog with the date and time to assume, the justification when the call skips a higher-ranked candidate, and, under the ask send mode, whether to e-mail the candidate; the date and time are remembered for the next call. A date that is already over is accepted, so a call made by phone can be recorded afterwards, but nothing is e-mailed for it: the dialog says so and drops the e-mail option, and a bulk call does the same. Cancel call, Reopen and Undo decision open the same dialog with a required, audited reason. Deleting an adjutancy or a reason that is still in use is refused with a notice that says why."
+msgstr "Convocar um candidato abre uma única caixa de diálogo com a data e o horário para assumir, a justificativa quando a convocação pula um candidato mais bem classificado e, no modo de envio \"perguntar\", se o candidato deve receber e-mail; a data e o horário ficam lembrados para a próxima convocação. Uma data que já passou é aceita, para que uma convocação feita por telefone possa ser registrada depois, mas nenhum e-mail é enviado por ela: a caixa avisa e remove a opção de e-mail, e a convocação em lote faz o mesmo. Cancelar convocação, Reabrir e Desfazer decisão abrem a mesma caixa com um motivo obrigatório e auditado. Excluir uma atribuição ou um motivo que ainda está em uso é recusado com um aviso que diz o porquê."
