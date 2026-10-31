@@ -45,6 +45,11 @@ class SubmissionReader extends AbstractRepository {
 	private const COUNT_CACHE_TTL = 5 * MINUTE_IN_SECONDS;
 
 	/**
+	 * Most accounts a name search matches; a broader term narrows to these.
+	 */
+	private const NAME_MATCH_LIMIT = 200;
+
+	/**
 	 * Cached column existence checks to avoid repeated INFORMATION_SCHEMA queries
 	 *
 	 * @since 4.6.13
@@ -699,6 +704,16 @@ class SubmissionReader extends AbstractRepository {
 			$conditions[] = $this->wpdb->prepare( 'rf_hash = %s', $id_hash );
 		}
 
+		// The name lives inside the encrypted data, so no query reaches it;
+		// the account a submission is linked to carries one in clear.
+		$user_ids = $this->linked_user_ids( $search_term );
+		if ( array() !== $user_ids ) {
+			$placeholders = implode( ', ', array_fill( 0, count( $user_ids ), '%d' ) );
+            // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders is %d repeated to match count($user_ids); Interpolated* is file-disabled above.
+			$conditions[] = $this->wpdb->prepare( "user_id IN ({$placeholders})", ...$user_ids );
+            // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		}
+
 		// A B-tree index answers a leading-anchored prefix only.
 		$conditions[] = $this->wpdb->prepare( 'magic_token LIKE %s', $this->wpdb->esc_like( $search_term ) . '%' );
 
@@ -935,6 +950,36 @@ class SubmissionReader extends AbstractRepository {
 	 */
 	public function sql_user_certificate_count_subquery(): string {
 		return "(SELECT user_id, COUNT(*) AS cnt FROM {$this->table} WHERE user_id IS NOT NULL AND status != 'trash' GROUP BY user_id)";
+	}
+
+	/**
+	 * The accounts whose name or login contains a search term.
+	 *
+	 * A submission keeps the name only inside its encrypted data, so the
+	 * list finds it by name through the account it is linked to; one with
+	 * no account is not found by name. A number or an e-mail is answered
+	 * by the indexed lookups and asks nothing here.
+	 *
+	 * @param string $search_term Search term as typed.
+	 * @return array<int, int> Up to NAME_MATCH_LIMIT user ids.
+	 */
+	private function linked_user_ids( string $search_term ): array {
+		$term = trim( $search_term );
+		if ( mb_strlen( $term ) < 2 || is_numeric( $term ) || false !== strpos( $term, '@' ) ) {
+			return array();
+		}
+
+		$ids = get_users(
+			array(
+				'search'         => '*' . $term . '*',
+				'search_columns' => array( 'display_name', 'user_login', 'user_nicename' ),
+				'fields'         => 'ID',
+				'number'         => self::NAME_MATCH_LIMIT,
+				'count_total'    => false,
+			)
+		);
+
+		return array_values( array_filter( array_map( 'intval', (array) $ids ) ) );
 	}
 
 	/**
