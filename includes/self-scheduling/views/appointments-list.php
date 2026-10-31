@@ -346,9 +346,6 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 						<tr><th><?php esc_html_e( 'Admin Notes', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['admin_notes'] ); ?></td></tr>
 						<?php endif; ?>
 						<tr><th><?php esc_html_e( 'Created', 'ffcertificate' ); ?></th><td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_datetime( (string) ( $ffcertificate_appointment['created_at'] ?? '' ), 'default', ' ', new \DateTimeZone( 'UTC' ) ) ); ?></td></tr>
-						<?php if ( ! empty( $ffcertificate_appointment['confirmation_token'] ) ) : ?>
-						<tr><th><?php esc_html_e( 'Confirmation Token', 'ffcertificate' ); ?></th><td><code><?php echo esc_html( $ffcertificate_appointment['confirmation_token'] ); ?></code></td></tr>
-						<?php endif; ?>
 					</table>
 				</div>
 

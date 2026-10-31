@@ -273,7 +273,9 @@ class AppointmentsListTableTest extends TestCase {
 		$this->assertStringContainsString( '>View<', $html, 'A manager is offered the manage-gated detail view.' );
 		$this->assertStringContainsString( 'appointment=7', $html );
 		// The real MagicLinkHelper: no verification page stored, so /valid/.
-		$this->assertStringContainsString( 'https://example.com/valid/#token=tok', $html );
+		// Staff get the bare receipt link, never the person's token (#2244).
+		$this->assertStringContainsString( 'https://example.com?ffc_appointment_receipt=7"', $html );
+		$this->assertStringNotContainsString( 'tok', $html );
 	}
 
 	public function test_column_id_readonly_cancelled_shows_no_row_action(): void {

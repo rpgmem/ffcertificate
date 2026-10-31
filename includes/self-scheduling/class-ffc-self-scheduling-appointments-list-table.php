@@ -245,18 +245,13 @@ class AppointmentsListTable extends \WP_List_Table {
 			);
 		}
 
-		// Add receipt link (magic link to /valid/ page) - not for cancelled appointments.
+		// Receipt link — not for cancelled appointments. It never carries the
+		// confirmation token (#2244): the token opens the person's own receipt
+		// unmasked and cancels the appointment as a guest, so staff get the
+		// bare link, which the receipt handler renders masked for them.
 		$item_status = $item['status'] ?? 'pending';
 		if ( 'cancelled' !== $item_status ) {
-			$confirmation_token = $item['confirmation_token'] ?? '';
-			if ( ! empty( $confirmation_token ) && class_exists( '\\FreeFormCertificate\\Generators\\MagicLinkHelper' ) ) {
-				$receipt_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $confirmation_token );
-			} else {
-				$receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
-					(int) $item['id'],
-					$confirmation_token
-				);
-			}
+			$receipt_url        = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url( (int) $item['id'] );
 			$actions['receipt'] = sprintf(
 				'<a href="%s" target="_blank">%s</a>',
 				esc_url( $receipt_url ),

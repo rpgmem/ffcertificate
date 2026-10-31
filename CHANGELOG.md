@@ -159,6 +159,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: no clear e-mail in two staff answers; the check-in link follows the code's rotation** (#2243). A booking's details and the user search now return addresses masked, with the audited Reveal for custom users, and search by address only for `ffc_view_audiences_pii` holders. The check-in link lives two rotations, not a fixed 10 minutes.
 - **Audience Calendars: the month read is rate limited for everyone, per account when signed in** (#2243). `GET /audience/bookings` counts 30 reads a minute and 500 an hour (Settings → Rate Limit), logged-in members included, keyed by account so a shared address does not cap a building. The calendar read limits now apply without first saving the tab.
 - **Personal Calendars: a public booking or certificate no longer hands over someone else's records** (#2244). The account is created or linked only after the booking validates, so a refused one leaves no account or e-mail; an anonymous form never adopts unlinked records carrying the typed CPF/RF. The booking form's booking, slot and month reads are rate-limited by IP.
+- **Personal Calendars: staff never see a booking's token** (#2244). View Receipt on the list and the detail screen no longer carried or printed the confirmation token, which opens the receipt unmasked and cancels as a guest; staff, `manage_options` included, now read the receipt masked and without it, and View as user returns no receipt link.
 
 ## [6.42.0] (2026-10-26) — `8241871c`
 
