@@ -370,7 +370,7 @@ class Settings {
 			'code_editor_theme'          => 'dark', // 'dark' | 'light' | 'auto' (auto follows dark_mode).
 			// Window of the invitation's password-set link, in hours (#1212).
 			// Clamped to 1..720 on read and on save by `PasswordInvite`.
-			'invite_password_link_hours' => 48,
+			'invite_password_link_hours' => 168,
 			// Days the dashboard keeps an approved reregistration's banner after
 			// the later of the campaign's end and the approval (#1887); 0 never
 			// hides. Clamped to 0..365 by `ReregistrationBannerWindow`.

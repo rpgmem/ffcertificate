@@ -88,11 +88,18 @@ class UserCreator {
 		$existing_user = '' !== $email ? get_user_by( 'email', $email ) : false;
 		if ( $existing_user ) {
 			$uid = (int) $existing_user->ID;
-			$existing_user->add_role( 'ffc_end_user' );
-			CapabilityManager::grant_context_capabilities( $uid, $context );
 
-			if ( empty( $existing_user->display_name ) || $existing_user->display_name === $existing_user->user_login ) {
-				self::sync_user_metadata( $uid, $submission_data );
+			// A match on the e-mail alone is a claim anyone can type (#2246).
+			// On a staff account it never rewrites the name, the metadata or
+			// the roles: the records still link, nothing about the account
+			// moves. A staff account already holds every capability it needs.
+			if ( ! CapabilityManager::is_staff_account( $uid ) ) {
+				$existing_user->add_role( 'ffc_end_user' );
+				CapabilityManager::grant_context_capabilities( $uid, $context );
+
+				if ( empty( $existing_user->display_name ) || $existing_user->display_name === $existing_user->user_login ) {
+					self::sync_user_metadata( $uid, $submission_data );
+				}
 			}
 
 			self::link_orphaned_records_dual( $cpf_hash, $rf_hash, $uid, $adopt );

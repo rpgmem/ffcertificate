@@ -6,10 +6,11 @@
  * link (#1212). Markup only: `Core\PasswordInvite` is what validates the key,
  * decides the message and writes the password.
  *
+ * The key and the login are not in the markup: they travel in the
+ * `PasswordInvite::COOKIE` cookie, never in a form field or a URL (#2246).
+ *
  * Variables coming from the caller's scope:
  *
- * @var string $ffc_key     Reset key, already validated.
- * @var string $ffc_login    Login of the user the key belongs to.
  * @var string $ffc_error    Slug of the error to show, or ''.
  * @var int    $ffc_min_len  Minimum password length.
  *
@@ -52,8 +53,6 @@ $ffc_messages = array(
 
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-password-form">
 			<input type="hidden" name="action" value="<?php echo esc_attr( \FreeFormCertificate\Core\PasswordInvite::ACTION ); ?>">
-			<input type="hidden" name="<?php echo esc_attr( \FreeFormCertificate\Core\PasswordInvite::ARG_KEY ); ?>" value="<?php echo esc_attr( $ffc_key ); ?>">
-			<input type="hidden" name="<?php echo esc_attr( \FreeFormCertificate\Core\PasswordInvite::ARG_LOGIN ); ?>" value="<?php echo esc_attr( $ffc_login ); ?>">
 			<?php echo \FreeFormCertificate\Core\PasswordInvite::nonce_field(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- `wp_nonce_field()` returns markup core has already escaped. ?>
 
 			<p class="ffc-set-password-field">

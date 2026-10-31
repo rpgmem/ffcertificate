@@ -501,18 +501,8 @@ class CapabilityManager {
 	 * @return bool
 	 */
 	public static function is_staff_account( int $user_id ): bool {
-		if ( $user_id <= 0 ) {
-			return false;
-		}
-		if ( user_can( $user_id, 'manage_options' ) ) {
-			return true;
-		}
-		foreach ( self::get_all_capabilities() as $cap ) {
-			if ( str_ends_with( $cap, '_pii' ) && user_can( $user_id, $cap ) ) {
-				return true;
-			}
-		}
-		return false;
+		// One answer for every caller, Core's included (#2246).
+		return \FreeFormCertificate\Core\Capabilities::is_staff_account( $user_id );
 	}
 
 	/**

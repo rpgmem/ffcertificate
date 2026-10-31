@@ -189,7 +189,8 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		Functions\when( 'username_exists' )->justReturn( false );
 		Functions\when( 'wp_generate_password' )->justReturn( 'generatedpw' );
 		Functions\when( 'current_time' )->justReturn( '2026-10-28 10:00:00' );
-		Functions\when( 'get_userdata' )->justReturn( false );
+		// An account the staff check reads carries its capability map (#2246).
+		Functions\when( 'get_userdata' )->alias( fn( $user_id ) => isset( $this->staff[ (int) $user_id ] ) ? (object) array( 'allcaps' => array( $this->staff[ (int) $user_id ] => true ) ) : false );
 		Functions\when( 'get_user_meta' )->justReturn( '' );
 		Functions\when( 'update_user_meta' )->justReturn( true );
 
