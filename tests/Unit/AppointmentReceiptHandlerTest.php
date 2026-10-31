@@ -8,7 +8,9 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Tests\Support\Identifiers;
 use FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler;
 
 /**
@@ -298,11 +300,11 @@ class AppointmentReceiptHandlerTest extends TestCase {
 	//                            placeholder, decryption + date formatting
 	// ==================================================================
 
-	public function test_handle_receipt_request_renders_receipt_for_admin(): void {
-		$this->stub_query_var( '7', '' );
-		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'is_user_logged_in' )->justReturn( true );
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+	/**
+	 * Stub what rendering a receipt reads.
+	 */
+	private function stub_render(): void {
+		Functions\when( 'is_email' )->alias( static fn( $e ) => false !== filter_var( $e, FILTER_VALIDATE_EMAIL ) );
 		Functions\when( 'language_attributes' )->justReturn( null );
 		Functions\when( 'bloginfo' )->justReturn( null );
 		Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
@@ -336,12 +338,23 @@ class AppointmentReceiptHandlerTest extends TestCase {
 			static fn( $format, $ts = null, $tz = null ) => ( new \DateTimeImmutable( '@' . (int) $ts ) )->setTimezone( $tz ?? new \DateTimeZone( 'UTC' ) )->format( $format )
 		);
 
+	}
+
+	/**
+	 * Store appointment 7 (calendar deleted, owner user 1), render its
+	 * receipt and return the page.
+	 *
+	 * @return string
+	 */
+	private function render_receipt(): string {
 		// Calendar deleted (calendar_id empty) → placeholder branch, and no
 		// calendar read reaches the double.
 		$this->appointments[7] = array(
 			'id'               => '7',
 			'status'           => 'confirmed',
 			'user_id'          => '1',
+			'confirmation_token' => str_repeat( 'a', 64 ),
+			'cpf_encrypted'    => Encryption::encrypt( Identifiers::CPF_A ),
 			'name'             => 'Alice',
 			'email_encrypted'  => Encryption::encrypt( 'alice@example.com' ),
 			'phone_encrypted'  => Encryption::encrypt( '+5511999990000' ),
@@ -380,6 +393,18 @@ class AppointmentReceiptHandlerTest extends TestCase {
 			$this->assertSame( 'localized', $e->getMessage() );
 		}
 
+		return $html;
+	}
+
+	public function test_the_owner_reads_the_receipt_as_it_is(): void {
+		$this->stub_query_var( '7', '' );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		$this->stub_render();
+
+		$html = $this->render_receipt();
+
 		$this->assertSame( array( 7 ), $this->appointment_reads );
 		// The real cipher decrypted both stored ciphertexts.
 		$this->assertStringContainsString( 'alice@example.com', $html );
@@ -399,6 +424,57 @@ class AppointmentReceiptHandlerTest extends TestCase {
 		$this->assertIsArray( $receipt['pdfData'] );
 		$this->assertSame( 'appointment_receipt', $receipt['pdfData']['type'] );
 		$this->assertSame( '(Calendar Deleted)', $receipt['pdfData']['form_title'] );
+		// The owner's PDF carries the token its QR code links with.
+		$this->assertStringContainsString( str_repeat( 'a', 64 ), (string) $receipt['pdfData']['html'] );
+		$this->assertStringContainsString( DocumentFormatter::format_cpf( Identifiers::CPF_A ), (string) $receipt['pdfData']['html'] );
+	}
+
+	public function test_the_token_holder_reads_the_receipt_as_it_is(): void {
+		$this->stub_query_var( '7', str_repeat( 'a', 64 ) );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		$this->stub_render();
+
+		$html = $this->render_receipt();
+
+		$this->assertStringContainsString( 'alice@example.com', $html );
+		$this->assertStringContainsString( '+5511999990000', $html );
+	}
+
+	/**
+	 * Staff read every receipt masked, manage_options included (#2244): it
+	 * used to print the e-mail, phone and CPF and, through the QR code, the
+	 * token that cancels the appointment as a guest.
+	 */
+	public function test_staff_read_the_receipt_masked_and_without_the_token(): void {
+		$this->stub_query_var( '7', '' );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 2 );
+		$this->stub_render();
+
+		$html = $this->render_receipt();
+		$pdf  = (string) $this->localized['ffcReceiptData']['pdfData']['html'];
+
+		foreach ( array( 'alice@example.com', '+5511999990000' ) as $clear ) {
+			$this->assertStringNotContainsString( $clear, $html );
+			$this->assertStringNotContainsString( $clear, $pdf );
+		}
+		$this->assertStringContainsString( DocumentFormatter::mask_email( 'alice@example.com' ), $html );
+		$this->assertStringContainsString( DocumentFormatter::mask_phone( '+5511999990000' ), $html );
+		$this->assertStringNotContainsString( DocumentFormatter::format_cpf( Identifiers::CPF_A ), $pdf );
+		$this->assertStringNotContainsString( str_repeat( 'a', 64 ), $pdf );
+	}
+
+	public function test_a_signed_in_user_who_is_neither_owner_nor_staff_is_refused(): void {
+		$this->stub_query_var( '7', '' );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 9 );
+		$this->appointments[7] = array( 'id' => '7', 'confirmation_token' => 'tok', 'status' => 'confirmed', 'user_id' => '5' );
+
+		$this->assertStringContainsString( 'do not have permission', $this->die_message() );
 	}
 
 	/**

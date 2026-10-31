@@ -353,9 +353,11 @@ class PdfGenerator {
 	 * @since 4.2.0
 	 * @param array<string, mixed> $appointment Appointment data array from database.
 	 * @param array<string, mixed> $calendar Calendar data array from database.
+	 * @param bool                 $masked   Staff copy (#2244): the e-mail and CPF/RF are masked and the
+	 *                                       confirmation token, which the QR code would carry, is left out.
 	 * @return array{html: string, filename: string, form_title: string, bg_image: mixed, type: string} PDF data array (html, template, filename, bg_image)
 	 */
-	public function generate_appointment_pdf_data( array $appointment, array $calendar ): array {
+	public function generate_appointment_pdf_data( array $appointment, array $calendar, bool $masked = false ): array {
 		$formatted_date = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['appointment_date'] ) ) {
 			$ts = strtotime( $appointment['appointment_date'] );
@@ -401,6 +403,10 @@ class PdfGenerator {
 		if ( '' === $cpf_rf ) {
 			$cpf_rf = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'rf', 'rf_encrypted' );
 		}
+		if ( $masked ) {
+			$email  = '' === $email ? '' : \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email );
+			$cpf_rf = '' === $cpf_rf ? '' : \FreeFormCertificate\Core\DocumentFormatter::mask_any( 'cpf_rf', $cpf_rf );
+		}
 
 		// Status labels.
 		$status_labels = array(
@@ -435,7 +441,7 @@ class PdfGenerator {
 		);
 
 		// Add magic_token (confirmation_token) for QR code / validation URL.
-		if ( ! empty( $appointment['confirmation_token'] ) ) {
+		if ( ! $masked && ! empty( $appointment['confirmation_token'] ) ) {
 			$data['magic_token'] = $appointment['confirmation_token'];
 		}
 

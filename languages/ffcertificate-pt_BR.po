@@ -4375,10 +4375,6 @@ msgstr "Corpo do E-mail de Confirmação"
 msgid "Confirmation Email Subject"
 msgstr "Assunto do E-mail de Confirmação"
 
-#: includes/self-scheduling/views/appointments-list.php:278
-msgid "Confirmation Token"
-msgstr "Token de Confirmação"
-
 #: includes/api/class-ffc-user-appointments-rest-controller.php:160 includes/api/class-ffc-user-audience-rest-controller.php:164 includes/generators/class-ffc-pdf-generator.php:366 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:542 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:282 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:363 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:437 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:210 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:242 includes/frontend/class-ffc-verification-response-renderer.php:211 includes/self-scheduling/views/appointments-list.php:225
 msgid "Confirmed"
 msgstr "Confirmado"
@@ -30452,3 +30448,7 @@ msgid "Deleting this calendar cancels %d open appointment (pending, confirmed or
 msgid_plural "Deleting this calendar cancels %d open appointments (pending, confirmed or waitlisted) and e-mails each person. Delete it permanently?"
 msgstr[0] "Excluir este calendário cancela %d agendamento aberto (pendente, confirmado ou na lista de espera) e avisa a pessoa por e-mail. Excluir permanentemente?"
 msgstr[1] "Excluir este calendário cancela %d agendamentos abertos (pendentes, confirmados ou na lista de espera) e avisa cada pessoa por e-mail. Excluir permanentemente?"
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:93
+msgid "The receipt opens unmasked only for the person it belongs to: signed in as its owner, or through the link in their e-mails, which carries their confirmation token. Staff who can open the Appointments list reach it from View Receipt with the e-mail, phone and CPF/RF masked and without the token, which no staff screen shows, so a member of staff cannot cancel as the guest; the audited Reveal stays on the appointment's admin screen. View as user shows no receipt link."
+msgstr "O comprovante abre sem máscara só para a pessoa a quem pertence: conectada como titular, ou pelo link dos seus e-mails, que leva o token de confirmação. A equipe que pode abrir a lista de Agendamentos chega a ele por Ver comprovante com e-mail, telefone e CPF/RF mascarados e sem o token, que nenhuma tela da equipe mostra, então ninguém da equipe consegue cancelar como o convidado; o Revelar auditado continua na tela de administração do agendamento. Ver como usuário não mostra link de comprovante."
