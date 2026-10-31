@@ -97,6 +97,48 @@ class RecruitmentClassificationRepository {
 	}
 
 	/**
+	 * How many rows a notice's definitive list holds, for its CSV export
+	 * (#2245).
+	 *
+	 * @param int $notice_id Notice ID.
+	 * @return int
+	 */
+	public static function count_definitive_for_export( int $notice_id ): int {
+		$wpdb = self::db();
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM %i WHERE notice_id = %d AND list_type = 'definitive'",
+				self::get_table_name(),
+				$notice_id
+			)
+		);
+	}
+
+	/**
+	 * One page of a notice's definitive list, newest id first, below the
+	 * cursor: the keyset the batched CSV export walks (#2245).
+	 *
+	 * @param int $notice_id Notice ID.
+	 * @param int $cursor    Exclusive upper bound on the row ID.
+	 * @param int $size      Page size.
+	 * @return list<array<string, mixed>>
+	 */
+	public static function definitive_page_for_export( int $notice_id, int $cursor, int $size ): array {
+		$wpdb = self::db();
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM %i WHERE notice_id = %d AND list_type = 'definitive' AND id < %d ORDER BY id DESC LIMIT %d",
+				self::get_table_name(),
+				$notice_id,
+				$cursor,
+				$size
+			),
+			ARRAY_A
+		);
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
 	 * List classifications for a notice, optionally filtered by list_type / adjutancy.
 	 *
 	 * Sort is `(rank ASC, candidate_id ASC)` — matches the public shortcode's

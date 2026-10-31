@@ -378,4 +378,27 @@ class RecruitmentClassificationRepositoryTest extends TestCase {
 		$this->assertFalse( RecruitmentClassificationRepository::delete( 4 ) );
 		$this->assertSame( array( 'id_4', 'id_4' ), $deleted, 'The cached row is dropped either way.' );
 	}
+
+	// ------------------------------------------------------------------
+	// Definitive list export keyset (#2245)
+	// ------------------------------------------------------------------
+
+	public function test_count_definitive_for_export_counts_the_notice_definitive_list(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '12' );
+
+		$this->assertSame( 12, RecruitmentClassificationRepository::count_definitive_for_export( 3 ) );
+	}
+
+	public function test_definitive_page_for_export_walks_the_id_keyset(): void {
+		$rows = array( array( 'id' => '8' ) );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->with( Mockery::type( 'string' ), ARRAY_A )->andReturn( $rows );
+
+		$this->assertSame( $rows, RecruitmentClassificationRepository::definitive_page_for_export( 3, 50, 25 ) );
+	}
+
+	public function test_definitive_page_for_export_returns_empty_on_non_array_result(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
+
+		$this->assertSame( array(), RecruitmentClassificationRepository::definitive_page_for_export( 3, 50, 25 ) );
+	}
 }

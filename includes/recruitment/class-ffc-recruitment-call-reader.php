@@ -232,6 +232,51 @@ class RecruitmentCallReader {
 	}
 
 	/**
+	 * How many calls a notice holds, cancelled ones included, for its CSV
+	 * export (#2245).
+	 *
+	 * @param int $notice_id Notice ID.
+	 * @return int
+	 */
+	public static function count_for_notice( int $notice_id ): int {
+		$wpdb = self::db();
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i c INNER JOIN %i cl ON cl.id = c.classification_id WHERE cl.notice_id = %d',
+				self::get_table_name(),
+				$wpdb->prefix . 'ffc_recruitment_classification',
+				$notice_id
+			)
+		);
+	}
+
+	/**
+	 * One page of a notice's calls, newest id first, below the cursor, with
+	 * the classification each was made on: the keyset the batched CSV export
+	 * walks (#2245).
+	 *
+	 * @param int $notice_id Notice ID.
+	 * @param int $cursor    Exclusive upper bound on the call ID.
+	 * @param int $size      Page size.
+	 * @return list<array<string, mixed>>
+	 */
+	public static function page_for_notice( int $notice_id, int $cursor, int $size ): array {
+		$wpdb = self::db();
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT c.*, cl.candidate_id, cl.adjutancy_id, cl.rank FROM %i c INNER JOIN %i cl ON cl.id = c.classification_id WHERE cl.notice_id = %d AND c.id < %d ORDER BY c.id DESC LIMIT %d',
+				self::get_table_name(),
+				$wpdb->prefix . 'ffc_recruitment_classification',
+				$notice_id,
+				$cursor,
+				$size
+			),
+			ARRAY_A
+		);
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
 	 * Count all calls for a classification, including cancelled.
 	 *
 	 * @param int $classification_id Classification ID.

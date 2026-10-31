@@ -1049,4 +1049,30 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringNotContainsString( 'Olga Operator', $html );
 		$this->assertStringNotContainsString( 'Mara Manager', $html );
 	}
+
+	public function test_the_export_buttons_show_only_with_the_export_capability(): void {
+		$this->store_classifications( array(), array( $this->cls_row( 60, 4, 'called', 1, 600 ) ) );
+		$this->notice_calls = array(
+			(object) array_merge( (array) $this->call( 91, 60, 3 ), array( 'candidate_id' => '600', 'adjutancy_id' => '1', 'rank' => '4' ) ),
+		);
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		RecruitmentNoticeEditPageRenderer::render_calls_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'data-ffc-rec-export="list" data-notice-id="7"', $html );
+		$this->assertStringContainsString( 'data-ffc-rec-export="calls" data-notice-id="7"', $html );
+
+		$this->caps = array(
+			'manage_options'         => false,
+			'ffc_export_recruitment' => false,
+		);
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		RecruitmentNoticeEditPageRenderer::render_calls_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'data-ffc-rec-export', $html );
+	}
 }

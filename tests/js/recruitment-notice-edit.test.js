@@ -374,6 +374,46 @@ describe('ffcRecruitmentClsToggleAll', () => {
 	});
 });
 
+describe('definitive list and calls CSV (#2245)', () => {
+	it('runs the batched export with the button kind and notice', () => {
+		document.body.innerHTML = '<p><button type="button" data-ffc-rec-export="calls" data-notice-id="12"><span>Export</span></button></p>';
+		const run = vi.fn();
+		window.FFCBatchedExport = { run };
+		window.ffcRecruitmentNoticeEdit = { ...CFG, ajaxUrl: '/ajax', exportNonce: 'EXN' };
+		loadScript(SCRIPT);
+
+		document.querySelector('button span').click();
+
+		expect(run).toHaveBeenCalledTimes(1);
+		const cfg = run.mock.calls[0][0];
+		expect(cfg.type).toBe('recruitment');
+		expect(cfg.ajaxUrl).toBe('/ajax');
+		expect(cfg.nonce).toBe('EXN');
+		expect(cfg.startData).toEqual({ notice_id: 12, kind: 'calls' });
+		delete window.FFCBatchedExport;
+	});
+
+	it('defaults an unknown kind to the list and does nothing without a nonce', () => {
+		document.body.innerHTML = '<button type="button" data-ffc-rec-export="bogus" data-notice-id="3">x</button>';
+		const run = vi.fn();
+		window.FFCBatchedExport = { run };
+		window.ffcRecruitmentNoticeEdit = { ...CFG, exportNonce: 'EXN' };
+		loadScript(SCRIPT);
+		document.querySelector('button').click();
+		expect(run.mock.calls[0][0].startData.kind).toBe('list');
+
+		run.mockClear();
+		window.ffcRecruitmentNoticeEdit = { ...CFG, exportNonce: '' };
+		document.body.innerHTML = '<button type="button" data-ffc-rec-export="list" data-notice-id="3">x</button>';
+		loadScript(SCRIPT);
+		document.querySelector('button').click();
+		// The listener of the earlier load still holds its nonce, so only the
+		// newly loaded one may stay silent: at most the earlier one ran.
+		expect(run.mock.calls.every((c) => c[0].nonce === 'EXN')).toBe(true);
+		delete window.FFCBatchedExport;
+	});
+});
+
 describe('select all across pages (#2245)', () => {
 	function installPaged() {
 		document.body.innerHTML = `

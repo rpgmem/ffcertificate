@@ -244,6 +244,31 @@
 		ffcRecruitmentSyncSelectAll();
 	};
 
+	// The definitive list and calls CSV (#2245), through the shared batched
+	// export driver: the button names the kind and the notice.
+	document.addEventListener('click', function (e) {
+		var btn = e.target && e.target.closest ? e.target.closest('[data-ffc-rec-export]') : null;
+		if (!btn || !window.FFCBatchedExport || !cfg.exportNonce) { return; }
+		e.preventDefault();
+		window.FFCBatchedExport.run({
+			type: 'recruitment',
+			ajaxUrl: cfg.ajaxUrl,
+			nonce: cfg.exportNonce,
+			button: btn,
+			overlay: true,
+			strings: {
+				preparing: strings.exportPreparing,
+				exporting: strings.exportProgress,
+				downloading: strings.exportDone,
+				error: strings.exportError
+			},
+			startData: {
+				notice_id: parseInt(btn.getAttribute('data-notice-id'), 10) || 0,
+				kind: btn.getAttribute('data-ffc-rec-export') === 'calls' ? 'calls' : 'list'
+			}
+		});
+	});
+
 	window.ffcRecruitmentClsToggleAll = function (cb) {
 		var boxes = document.querySelectorAll('.ffc-cls-bulk-cb:not([disabled])');
 		for (var i = 0; i < boxes.length; i++) { boxes[i].checked = cb.checked; }

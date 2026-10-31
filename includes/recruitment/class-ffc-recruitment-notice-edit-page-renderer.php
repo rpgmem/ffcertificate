@@ -551,6 +551,9 @@ final class RecruitmentNoticeEditPageRenderer {
 		$preliminary_table_html = (string) ob_get_clean();
 
 		ob_start();
+		if ( ! empty( $data['definitive_rows'] ) || $data['def_total'] > 0 ) {
+			self::render_export_button( $notice_id, 'list' );
+		}
 		self::render_status_filter( $data['def_status_counts'], $data['def_status'], $data['def_total'] );
 		self::render_classifications_table( $definitive_rows, RecruitmentNoticeEditPage::can_call() && RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::CALLS, $status ), 'definitive' );
 		$definitive_table_html = (string) ob_get_clean();
@@ -982,6 +985,7 @@ final class RecruitmentNoticeEditPageRenderer {
 
 		echo '<div class="card">';
 		echo '<h2 class="ffc-icon-user-call">' . esc_html__( 'Calls', 'ffcertificate' ) . '</h2>';
+		self::render_export_button( (int) $notice->id, 'calls' );
 		echo '<p class="description">' . esc_html(
 			$show_callers
 				? __( 'Every call made on this notice, newest first, with who made it and who cancelled it.', 'ffcertificate' )
@@ -1035,6 +1039,33 @@ final class RecruitmentNoticeEditPageRenderer {
 			echo '</div></div>';
 		}
 		echo '</div>';
+	}
+
+	/**
+	 * The "Export CSV" button of the definitive list or of the calls record,
+	 * for a holder of `ffc_export_recruitment` (#2245). The click runs the
+	 * batched export through `ffc-recruitment-notice-edit.js`.
+	 *
+	 * @param int    $notice_id Notice ID.
+	 * @param string $kind      `list` or `calls`.
+	 * @return void
+	 */
+	private static function render_export_button( int $notice_id, string $kind ): void {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( RecruitmentExportSource::CAP ) ) {
+			return;
+		}
+		echo '<p>';
+		\FreeFormCertificate\Core\Button::render(
+			array(
+				'label' => 'calls' === $kind ? __( 'Export calls (CSV)', 'ffcertificate' ) : __( 'Export definitive list (CSV)', 'ffcertificate' ),
+				'icon'  => 'download',
+				'attrs' => array(
+					'data-ffc-rec-export' => $kind,
+					'data-notice-id'      => (string) $notice_id,
+				),
+			)
+		);
+		echo '</p>';
 	}
 
 	/**

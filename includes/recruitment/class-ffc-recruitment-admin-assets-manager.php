@@ -209,6 +209,10 @@ final class RecruitmentAdminAssetsManager {
 		// the renderer carries no inline interpolation. Depends on the admin
 		// bundle (shared confirm modal) + the batched importer.
 		$rec_settings = RecruitmentSettings::all();
+		// The shared batched-export driver and its progress overlay, for the
+		// definitive list and calls CSV (#2245).
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-batched-export' );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
 		wp_enqueue_script(
 			'ffc-recruitment-notice-edit',
 			FFC_PLUGIN_URL . "assets/js/ffc-recruitment-notice-edit{$s}.js",
@@ -221,6 +225,10 @@ final class RecruitmentAdminAssetsManager {
 			'ffcRecruitmentNoticeEdit',
 			array(
 				'restRoot'       => esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/' ) ),
+				// The definitive list and calls CSV (#2245) run through the
+				// batched export dispatcher.
+				'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
+				'exportNonce'    => wp_create_nonce( RecruitmentExportSource::NONCE ),
 				'nonce'          => wp_create_nonce( 'wp_rest' ),
 				// Convocation send mode (#794). Only 'ask' surfaces the per-call
 				// "notify by email" prompt in the call flows.
@@ -245,6 +253,11 @@ final class RecruitmentAdminAssetsManager {
 					'validationFailed' => __( 'Validation failed — review the per-line errors below and re-import.', 'ffcertificate' ),
 				),
 				'strings'        => array(
+					'exportPreparing'        => __( 'Preparing…', 'ffcertificate' ),
+					/* translators: %1$d processed, %2$d total */
+					'exportProgress'         => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
+					'exportDone'             => __( 'Done!', 'ffcertificate' ),
+					'exportError'            => __( 'An error occurred.', 'ffcertificate' ),
 					'networkError'           => __( 'Network error:', 'ffcertificate' ),
 					'processingCsv'          => __( 'Processing CSV…', 'ffcertificate' ),
 					'bulkNoSel'              => __( 'Select at least one row first.', 'ffcertificate' ),

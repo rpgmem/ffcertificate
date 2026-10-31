@@ -31112,3 +31112,39 @@ msgid "The %s waiting row on every page is selected."
 msgid_plural "All %s waiting rows on every page are selected."
 msgstr[0] ""
 msgstr[1] ""
+
+#: includes/recruitment/class-ffc-recruitment-export-source.php
+msgid "Cancellation reason"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Download a notice's definitive list and its calls as CSV."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Export calls (CSV)"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Export definitive list (CSV)"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Export recruitment CSV"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-export-source.php
+msgid "Out-of-order justification"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-export-source.php
+msgid "You do not have permission to export recruitment data."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "download a notice's definitive list and its calls as CSV. Held by the FFC Recruitment - Manager and Administrator roles."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "With the ffc_export_recruitment capability, Export definitive list (CSV) above the definitive list and Export calls (CSV) on the Calls record download the whole list or every call of the notice, whatever the filters on screen, ordered by row rather than by rank. Neither file carries CPF, RF or e-mail; who made and who cancelled a call is written only for a user who sees it on screen."
+msgstr ""

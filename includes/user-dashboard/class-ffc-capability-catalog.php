@@ -518,6 +518,10 @@ final class CapabilityCatalog {
 						'label'       => __( 'View sensitive data (PII)', 'ffcertificate' ),
 						'description' => __( "Reveal candidates' CPF / RG.", 'ffcertificate' ),
 					),
+					'ffc_export_recruitment'          => array(
+						'label'       => __( 'Export recruitment CSV', 'ffcertificate' ),
+						'description' => __( "Download a notice's definitive list and its calls as CSV.", 'ffcertificate' ),
+					),
 					'ffc_view_recruitment_history'    => array(
 						'label'       => __( 'See who called', 'ffcertificate' ),
 						'description' => __( 'Show who made and who cancelled each call on the notice screen.', 'ffcertificate' ),
