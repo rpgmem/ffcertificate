@@ -598,7 +598,7 @@ final class RecruitmentCandidateEditPage {
 		// masked tier whatever the form says (#2245).
 		$tier = RecruitmentPiiAccessPolicy::resolve( $before, get_current_user_id() );
 		if ( RecruitmentPiiAccessPolicy::TIER_UNMASKED === $tier || ( RecruitmentPiiAccessPolicy::TIER_REVEAL === $tier && isset( $_POST['email'] ) ) ) {
-			$input['email'] = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( (string) $_POST['email'] ) ) : '';
+			$input['email'] = isset( $_POST['email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( wp_unslash( (string) $_POST['email'] ) ) ) : '';
 		}
 
 		RecruitmentCandidateEditor::update( $before, $input );
