@@ -28,6 +28,7 @@ use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
  * `$wpdb` double that holds one candidate row and records every write.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentCandidateEditPage
+ * @covers \FreeFormCertificate\Recruitment\RecruitmentCandidateEditor
  */
 class RecruitmentCandidateEditPageHandlersTest extends TestCase {
 
@@ -448,6 +449,121 @@ class RecruitmentCandidateEditPageHandlersTest extends TestCase {
 		$this->assertArrayHasKey( 'user_id', $data );
 		$this->assertNull( $data['user_id'] );
 		$this->assertStringContainsString( 'ffc_msg=unlink-user-ok', $msg );
+		$this->assertSame(
+			array(
+				array(
+					'candidate_id'  => 5,
+					'previous_user' => self::OPERATOR_ID,
+				),
+			),
+			$this->logged( 'recruitment_candidate_account_unlinked' )
+		);
+	}
+
+	public function test_handle_link_user_logs_the_previous_and_the_new_account(): void {
+		$_POST['candidate_id'] = '5';
+		$_POST['user_lookup']  = '42';
+		$this->candidate->user_id = '99';
+
+		$this->lookup_returns( 42 );
+
+		$this->capture( array( RecruitmentCandidateEditPage::class, 'handle_link_user' ) );
+
+		$this->assertSame(
+			array(
+				array(
+					'candidate_id'  => 5,
+					'previous_user' => 99,
+					'linked_user'   => 42,
+				),
+			),
+			$this->logged( 'recruitment_candidate_account_linked' )
+		);
+	}
+
+	public function test_handle_link_user_refuses_the_operators_own_account(): void {
+		$_POST['candidate_id'] = '5';
+		$_POST['user_lookup']  = (string) self::OPERATOR_ID;
+
+		$this->lookup_returns( self::OPERATOR_ID );
+
+		$msg = $this->capture( array( RecruitmentCandidateEditPage::class, 'handle_link_user' ) );
+
+		$this->assertStringContainsString( 'ffc_msg=link-user-self', $msg );
+		$this->assertSame( array(), $this->updates, 'Becoming the owner would unmask the data without the PII capability.' );
+		$this->assertSame( array(), $this->logged( 'recruitment_candidate_account_linked' ) );
+	}
+
+	public function test_handle_link_user_without_the_pii_cap_needs_the_candidates_own_identifiers(): void {
+		$_POST['candidate_id'] = '5';
+		$_POST['user_lookup']  = '42';
+		$this->caps['manage_options']           = false;
+		$this->caps['ffc_view_recruitment_pii'] = false;
+		$this->candidate->email_encrypted       = Encryption::encrypt( 'jane@example.com' );
+		$this->candidate->cpf_hash              = null;
+		$this->candidate->rf_hash               = null;
+
+		// The candidate's e-mail belongs to account 7, not 42.
+		$this->lookup_returns( 42, 7 );
+
+		$msg = $this->capture( array( RecruitmentCandidateEditPage::class, 'handle_link_user' ) );
+
+		$this->assertStringContainsString( 'ffc_msg=link-user-mismatch', $msg );
+		$this->assertSame( array(), $this->updates );
+	}
+
+	public function test_handle_link_user_without_the_pii_cap_links_the_account_carrying_the_email(): void {
+		$_POST['candidate_id'] = '5';
+		$_POST['user_lookup']  = '7';
+		$this->caps['manage_options']           = false;
+		$this->caps['ffc_view_recruitment_pii'] = false;
+		$this->candidate->email_encrypted       = Encryption::encrypt( 'jane@example.com' );
+		$this->candidate->cpf_hash              = null;
+		$this->candidate->rf_hash               = null;
+
+		$this->lookup_returns( 7, 7 );
+
+		$msg = $this->capture( array( RecruitmentCandidateEditPage::class, 'handle_link_user' ) );
+
+		$this->assertSame( 7, $this->the_update()['user_id'] );
+		$this->assertStringContainsString( 'ffc_msg=link-user-ok', $msg );
+	}
+
+	/**
+	 * Answer `get_user_by()`: the typed lookup finds `$typed`, and the
+	 * candidate's e-mail finds `$by_email` (or nobody).
+	 *
+	 * @param int      $typed    Account the operator typed.
+	 * @param int|null $by_email Account carrying the candidate's e-mail.
+	 */
+	private function lookup_returns( int $typed, ?int $by_email = null ): void {
+		Functions\when( 'get_user_by' )->alias(
+			static function ( $by, $value ) use ( $typed, $by_email ) {
+				$id = 'email' === $by ? $by_email : $typed;
+				if ( null === $id ) {
+					return false;
+				}
+				$user     = Mockery::mock( \WP_User::class );
+				$user->ID = $id;
+				return $user;
+			}
+		);
+	}
+
+	/**
+	 * The buffered activity-log contexts of one action.
+	 *
+	 * @param string $action Action.
+	 * @return list<mixed>
+	 */
+	private function logged( string $action ): array {
+		$out = array();
+		foreach ( ActivityLogBuffer::contexts() as $entry ) {
+			if ( $action === $entry['action'] ) {
+				$out[] = $entry['context'];
+			}
+		}
+		return $out;
 	}
 
 	// ==================================================================

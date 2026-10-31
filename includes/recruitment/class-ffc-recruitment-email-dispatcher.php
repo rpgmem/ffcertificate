@@ -183,7 +183,8 @@ final class RecruitmentEmailDispatcher {
 		// text/plain alternative stays derived from the email body.
 		$email_body = self::render(
 			\FreeFormCertificate\Core\EmailTemplates::effective_body( $template, 'body' ),
-			$tokens
+			$tokens,
+			true
 		);
 		$plain      = wp_strip_all_tags( $email_body );
 		$body       = self::ffc_email_document( $email_body, array( 'recipient' => $email_plain ) );
@@ -285,14 +286,20 @@ final class RecruitmentEmailDispatcher {
 	 * is visible in the rendered email — easier to spot than silent
 	 * empties. Token names are case-sensitive.
 	 *
+	 * The body is HTML, so every value is escaped there (#2245): the name
+	 * and the adjutancy come from an imported CSV, and an operator's call
+	 * notes and cancellation reason are free text. The subject is a plain
+	 * text header and takes the values as they are.
+	 *
 	 * @param string                $template Template string.
 	 * @param array<string, string> $tokens   Token → value map.
+	 * @param bool                  $html     Whether the template is HTML.
 	 * @return string
 	 */
-	private static function render( string $template, array $tokens ): string {
+	private static function render( string $template, array $tokens, bool $html = false ): string {
 		$replacements = array();
 		foreach ( $tokens as $key => $value ) {
-			$replacements[ '{{' . $key . '}}' ] = $value;
+			$replacements[ '{{' . $key . '}}' ] = $html ? esc_html( (string) $value ) : $value;
 		}
 		return \FreeFormCertificate\Core\TokenResolver::resolve( $template, $replacements );
 	}

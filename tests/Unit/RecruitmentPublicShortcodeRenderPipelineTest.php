@@ -425,7 +425,7 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 			'adjutancy' => '3',
 		);
 
-		$notice = (object) array( 'id' => 7 );
+		$notice = (object) array( 'id' => 7, 'public_columns_config' => '' );
 		$out    = RecruitmentPublicShortcodeRenderer::render_filters_bar( $notice, false, 'ana', '' );
 
 		$this->assertStringContainsString( '<form class="ffc-recruitment-filters"', $out );
@@ -439,7 +439,7 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 	}
 
 	public function test_render_filters_bar_locked_omits_adjutancy_select(): void {
-		$notice = (object) array( 'id' => 7 );
+		$notice = (object) array( 'id' => 7, 'public_columns_config' => '' );
 
 		$out = RecruitmentPublicShortcodeRenderer::render_filters_bar( $notice, true, '', '' );
 
@@ -454,7 +454,7 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 	public function test_render_filters_bar_single_adjutancy_hides_dropdown(): void {
 		$this->attached[7] = array( 1 ); // < 2 → hidden
 
-		$notice = (object) array( 'id' => 7 );
+		$notice = (object) array( 'id' => 7, 'public_columns_config' => '' );
 
 		$out = RecruitmentPublicShortcodeRenderer::render_filters_bar( $notice, false, '', '' );
 

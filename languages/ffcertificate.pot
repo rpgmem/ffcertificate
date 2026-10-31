@@ -2523,10 +2523,6 @@ msgstr ""
 msgid "Audit complete."
 msgstr ""
 
-#: templates/admin/recruitment/admin-page/settings-tab.php:212
-msgid "Audit PII reveals"
-msgstr ""
-
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:382
 msgid "Audit summary"
 msgstr ""
@@ -10888,10 +10884,6 @@ msgstr ""
 msgid "Module"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-recruitment.php:36
-msgid "Module-wide options: convocation email, public-queue tuning, status colors, and the PII-reveal audit toggle."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-modulos.php:55 includes/settings/views/ffc-tab-url-shortener.php:44 includes/settings/views/ffc-tab-documentation.php:162 includes/settings/tabs/class-ffc-tab-modulos.php:37 includes/settings/views/documentation/config-modules.php:18
 msgid "Modules"
 msgstr ""
@@ -12506,10 +12498,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:137
 msgid "Pick which operator actions this form exposes (can combine multiple):"
-msgstr ""
-
-#: templates/admin/recruitment/admin-page/settings-tab.php:209
-msgid "PII access audit"
 msgstr ""
 
 #. %s — PII field key (cpf / rf / email)
@@ -19071,10 +19059,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:24
 msgid "When enabled, each form gets its own secret hash. The operator opens a page carrying the"
-msgstr ""
-
-#: templates/admin/recruitment/admin-page/settings-tab.php:210
-msgid "When enabled, every reveal of CPF / RF on the candidate detail screen by a non-admin user writes a row to the activity log (with a 60-second dedup per user + candidate + field). Recommended ON for compliance."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:261
@@ -30719,4 +30703,50 @@ msgstr ""
 
 #: templates/emails/recruitment-cancellation.php:21
 msgid "Your call for notice {{notice_code}} — {{notice_name}} in adjutancy {{adjutancy}} was cancelled. Do not attend on the date it gave."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Candidate Linked to an Account"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Candidate Unlinked from an Account"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "You cannot link a candidate to your own account."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "That account does not carry this candidate's CPF, RF or e-mail. Only a holder of the PII capability can link it."
+msgstr ""
+
+#. translators: %d — WP user ID
+#: includes/recruitment/class-ffc-recruitment-candidate-history-service.php
+msgid "Linked to WordPress user #%d."
+msgstr ""
+
+#. translators: %d — WP user ID
+#: includes/recruitment/class-ffc-recruitment-candidate-history-service.php
+msgid "Unlinked from WordPress user #%d."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "A candidate's CPF and RF cannot be edited. They identify the candidate in every notice."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "You may not change this candidate's e-mail without the capability to reveal it."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "Module-wide options: convocation email, public-queue tuning and status colors."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "A candidate linked to an account reads their own data unmasked, so a link is a grant of access. Nobody can link a candidate to their own account. Without the PII capability, a candidate can only be linked to the account that carries its own CPF, RF or e-mail. Every link and unlink is recorded in the activity log and in the candidate's history."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "The REST API edits a candidate under the edit screen's rules: name, phone and notes for the manage capability, the e-mail only for whoever may reveal it, CPF and RF never, and every change logged. Every reveal of a CPF, RF or e-mail is logged; there is no setting to turn that off. The PCD filter of the public list exists only when the notice shows the PCD column, and the candidate's own API answer carries the score only when the notice shows it, never the staff fields of a call."
 msgstr ""

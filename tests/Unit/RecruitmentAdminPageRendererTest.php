@@ -446,7 +446,6 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 			'notice_status_color_preliminary'         => '#ff0',
 			'notice_status_color_definitive'          => '#0f0',
 			'notice_status_color_closed'              => '#999',
-			'audit_pii_reveals'                       => true,
 		);
 	}
 }

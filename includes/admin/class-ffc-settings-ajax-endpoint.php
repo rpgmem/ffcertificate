@@ -231,7 +231,6 @@ class SettingsAjaxEndpoint {
 			'preview_reason_required_granted',
 			'preview_reason_required_appeal_denied',
 			'preview_reason_required_appeal_granted',
-			'audit_pii_reveals',
 		);
 		// The convocation send mode, on the same tab (#1757). Gated by the
 		// tab's own capability, the one its Save button checks.
