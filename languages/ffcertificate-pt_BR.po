@@ -30397,3 +30397,7 @@ msgstr "Ordenar em ordem decrescente."
 #: includes/settings/views/documentation/scheduling-audiences.php:80
 msgid "Within a day the latest time comes first. Click the ID, Date, Time, space, Description or Status header to sort by that column; a second click reverses it, and filtering or changing page keeps the sort."
 msgstr "Dentro de um dia, o horário mais tarde vem primeiro. Clique no cabeçalho ID, Data, Horário, espaço, Descrição ou Status para ordenar por essa coluna; um segundo clique inverte a ordem, e filtrar ou mudar de página mantém a ordenação."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:68
+msgid "An hourly task sends each reminder once, to a confirmed appointment that starts within the calendar's reminder hours, measured in the timezone set in WordPress. A run that was missed is caught up by the next one; an appointment booked closer than that is reminded at the next run."
+msgstr "Uma tarefa de hora em hora envia cada lembrete uma vez, para um agendamento confirmado que começa dentro das horas de lembrete do calendário, medidas no fuso horário definido no WordPress. Uma execução perdida é recuperada pela seguinte; um agendamento feito com antecedência menor que essa recebe o lembrete na próxima execução."

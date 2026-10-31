@@ -30314,3 +30314,7 @@ msgstr ""
 #: includes/settings/views/documentation/scheduling-audiences.php:80
 msgid "Within a day the latest time comes first. Click the ID, Date, Time, space, Description or Status header to sort by that column; a second click reverses it, and filtering or changing page keeps the sort."
 msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:68
+msgid "An hourly task sends each reminder once, to a confirmed appointment that starts within the calendar's reminder hours, measured in the timezone set in WordPress. A run that was missed is caught up by the next one; an appointment booked closer than that is reminded at the next run."
+msgstr ""

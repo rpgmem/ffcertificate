@@ -141,6 +141,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: a calendar or audience in use is not deleted** (#2243). Deleting a calendar removed its own row and orphaned its environments, bookings, closed dates and permissions; deleting an audience removed its groups and memberships and shrank the rosters of bookings already held. Both now stay inactive while environments or bookings use them, and the message names the count.
 - **Audience Calendars: closing a day refuses a duplicate and asks before cancelling its bookings** (#2243). A duplicate closed date reported success while the database refused it; it now says why. A closed date (calendar or global) that holds audience bookings lists them first, and the confirmation cancels each with the reason "Closed day: <description>" and e-mails its participants.
 - **Audience Calendars: the bookings list reads newest first** (#2290). `get_all()` sent a `b.`-prefixed column through `sanitize_sql_orderby()`, which refuses the prefix, so every order fell back to oldest first; the order now comes from an allowlist.
+- **Personal-calendar reminders are sent** (#2244). The reminder query compared against a `DATE_SUB` that MariaDB returns as NULL, in UTC against wall-clock dates, over a one-hour window, so no reminder ever went out. It now selects confirmed appointments starting between now and now plus the calendar's hours, in the site timezone; a real-database check in CI pins it.
 
 ### Security
 

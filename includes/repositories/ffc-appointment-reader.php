@@ -500,17 +500,23 @@ class AppointmentReader extends AbstractRepository {
 	}
 
 	/**
-	 * Get upcoming appointments for reminders
+	 * Confirmed, not-yet-reminded appointments that start within the next
+	 * `$hours_before` hours, in the site's time (#2244).
 	 *
-	 * @param int $hours_before Hours before appointment.
+	 * The appointment date and time are wall-clock values (Category B), so
+	 * the window is built from the site's clock, never UTC. It runs from now
+	 * to now + H rather than over one hour at H, so a run WP-Cron skipped is
+	 * caught up by the next one and a window across midnight needs nothing
+	 * special; `reminder_sent_at IS NULL` keeps it to one reminder each.
+	 * `TIMESTAMP(date, time)` is used because `DATE_SUB('HH:MM:SS', …)`
+	 * returns NULL on MariaDB, which is how the old query matched nothing.
+	 *
+	 * @param int $hours_before Hours ahead the reminder goes out.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function getUpcomingForReminders( int $hours_before = 24 ): array {
-		$reminder_ts_raw = strtotime( "+{$hours_before} hours" );
-		$reminder_ts     = $reminder_ts_raw ? $reminder_ts_raw : time();
-		$target_datetime = gmdate( 'Y-m-d H:i:s', $reminder_ts );
-		$target_date     = gmdate( 'Y-m-d', $reminder_ts );
-		$target_time     = gmdate( 'H:i:s', $reminder_ts );
+		$now   = new \DateTimeImmutable( 'now', wp_timezone() );
+		$until = $now->modify( '+' . max( 1, $hours_before ) . ' hours' );
 
 		$calendars_table = $this->wpdb->prefix . 'ffc_self_scheduling_calendars';
 		$sql             = $this->wpdb->prepare(
@@ -519,14 +525,16 @@ class AppointmentReader extends AbstractRepository {
              LEFT JOIN %i c ON a.calendar_id = c.id
              WHERE a.status = \'confirmed\'
              AND a.reminder_sent_at IS NULL
-             AND a.appointment_date = %s
-             AND a.start_time <= %s
-             AND a.start_time > DATE_SUB(%s, INTERVAL 1 HOUR)',
+             AND a.appointment_date BETWEEN %s AND %s
+             AND TIMESTAMP(a.appointment_date, a.start_time) > %s
+             AND TIMESTAMP(a.appointment_date, a.start_time) <= %s
+             ORDER BY a.appointment_date ASC, a.start_time ASC, a.id ASC',
 			$this->table,
 			$calendars_table,
-			$target_date,
-			$target_time,
-			$target_time
+			$now->format( 'Y-m-d' ),
+			$until->format( 'Y-m-d' ),
+			$now->format( 'Y-m-d H:i:s' ),
+			$until->format( 'Y-m-d H:i:s' )
 		);
 
 		$results = $this->wpdb->get_results( $sql, ARRAY_A );

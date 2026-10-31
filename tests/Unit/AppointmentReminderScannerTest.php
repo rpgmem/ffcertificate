@@ -94,6 +94,7 @@ class AppointmentReminderScannerTest extends TestCase {
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 
 		$this->wpdb             = Mockery::mock( 'wpdb' );
 		$this->wpdb->prefix     = 'wp_';
@@ -109,7 +110,7 @@ class AppointmentReminderScannerTest extends TestCase {
 			function ( $sql ) {
 				$bound = $this->boundTo( (string) $sql );
 				if ( false !== strpos( (string) $sql, 'reminder_sent_at IS NULL' ) ) {
-					$this->windows[] = array( (string) $bound[3], (string) $bound[4] );
+					$this->windows[] = array( (string) $bound[5], (string) $bound[6] );
 					return $this->due;
 				}
 				if ( false !== strpos( (string) $sql, 'SELECT * FROM %i' ) && 'wp_ffc_self_scheduling_calendars' === ( $bound[1] ?? null ) ) {
@@ -184,8 +185,8 @@ class AppointmentReminderScannerTest extends TestCase {
 	}
 
 	/**
-	 * Run the scanner and assert every reminder-window query was bound to
-	 * now + `$hours`, read on both sides of the run.
+	 * Run the scanner and assert every reminder-window query runs from now
+	 * to now + `$hours` (#2244), now read on both sides of the run.
 	 */
 	private function runExpectingWindow( int $hours ): void {
 		$before = time();
@@ -193,9 +194,11 @@ class AppointmentReminderScannerTest extends TestCase {
 		$after = time();
 
 		$this->assertCount( 1, $this->windows, 'One reminder-window query, for the one window a calendar asked for.' );
-		$target = strtotime( $this->windows[0][0] . ' ' . $this->windows[0][1] . ' UTC' );
-		$this->assertGreaterThanOrEqual( $before + $hours * 3600, $target );
-		$this->assertLessThanOrEqual( $after + $hours * 3600, $target );
+		$from = strtotime( $this->windows[0][0] . ' UTC' );
+		$to   = strtotime( $this->windows[0][1] . ' UTC' );
+		$this->assertGreaterThanOrEqual( $before, $from );
+		$this->assertLessThanOrEqual( $after, $from );
+		$this->assertSame( $hours * 3600, $to - $from );
 	}
 
 	/** @return list<int> The ids the writer stamped `reminder_sent_at` on. */
