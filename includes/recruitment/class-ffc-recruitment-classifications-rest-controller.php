@@ -769,9 +769,22 @@ final class RecruitmentClassificationsRestController {
 	public function change_classification_status( \WP_REST_Request $request ) {
 		$id     = (int) $request->get_param( 'id' );
 		$reason = $request->get_param( 'reason' );
+		$status = (string) $request->get_param( 'status' );
+
+		// A call and its end belong to the call routes (#2245): `called` set
+		// here created no call row and skipped the queue rule, and `empty`
+		// left the call active, so its `.ics` still downloaded, "My calls"
+		// still showed the date and the next call made a second one.
+		if ( 'called' === $status ) {
+			return $this->wp_error_from_envelope( array( 'recruitment_status_called_requires_call' ), 409 );
+		}
+		if ( 'empty' === $status ) {
+			return $this->wp_error_from_envelope( array( 'recruitment_status_empty_requires_cancel' ), 409 );
+		}
+
 		$result = RecruitmentClassificationStateMachine::transition_to(
 			$id,
-			(string) $request->get_param( 'status' ),
+			$status,
 			is_string( $reason ) ? $reason : null
 		);
 		if ( ! $result['success'] ) {
@@ -963,7 +976,9 @@ final class RecruitmentClassificationsRestController {
 		$result  = RecruitmentCallService::cancel_call(
 			$call_id,
 			(string) $request->get_param( 'reason' ),
-			get_current_user_id()
+			get_current_user_id(),
+			(int) $request->get_param( 'id' ),
+			$this->notify_email_param( $request )
 		);
 		if ( ! $result['success'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 409 );

@@ -76,6 +76,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	 */
 	private array $reasons = array();
 
+	/** @var list<object> Call rows the active-call lookup answers. */
+	private array $calls = array();
+
 	/**
 	 * Every query the double answered, as [method, sql, bound args].
 	 *
@@ -202,6 +205,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 				}
 				if ( 'wp_ffc_recruitment_reason' === $table && str_contains( $sql, 'ORDER BY label ASC' ) ) {
 					return $this->reasons;
+				}
+				if ( 'wp_ffc_recruitment_call' === $table && str_contains( $sql, 'WHERE classification_id IN' ) ) {
+					return $this->calls;
 				}
 				throw new \LogicException( 'Unexpected get_results: ' . $sql );
 			}
@@ -422,8 +428,10 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-recruitment-status-preliminary', $html, 'the real status badge' );
 		// dual-path snapshot button when no definitive list exists.
 		$this->assertStringContainsString( 'ffcRecruitmentSnapshotPromote', $html );
-		// resolve_status_transitions drops definitive → still offers back-to-draft.
-		$this->assertStringContainsString( 'target_status', $html );
+		// No way back to draft (#2245): the only transition is the promotion,
+		// which has its own dual-path block, so no plain transition button.
+		$this->assertStringNotContainsString( 'target_status', $html );
+		$this->assertStringNotContainsString( 'Back to draft', $html );
 	}
 
 	public function test_render_status_section_preliminary_with_existing_definitive_single_button(): void {
@@ -574,6 +582,29 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'Cand 600', $html );
 		$this->assertStringContainsString( 'Cand 500', $html );
 		$this->assertStringContainsString( 'Reason 1', $html );
+	}
+
+	public function test_cancel_names_the_rows_active_call(): void {
+		$this->store_classifications( array(), array( $this->cls_row( 60, 1, 'called', 1, 600 ) ) );
+		$this->calls = array(
+			(object) array(
+				'id'                => '91',
+				'classification_id' => '60',
+				'cancelled_at'      => null,
+			),
+			(object) array(
+				'id'                => '90',
+				'classification_id' => '60',
+				'cancelled_at'      => '1777968000',
+			),
+		);
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice() );
+		$html = (string) ob_get_clean();
+
+		$this->assertMatchesRegularExpression( '/data-cls-action="cancel" data-call-id="91"/', $html );
+		$this->assertStringNotContainsString( 'data-call-id="90"', $html, 'A cancelled call is never the one to end.' );
 	}
 
 	public function test_render_classifications_section_empty_lists_render_no_rows_notice(): void {

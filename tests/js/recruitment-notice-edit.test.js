@@ -655,14 +655,25 @@ describe('fetch resolution branches', () => {
 		expect(btn.disabled).toBe(false);
 	});
 
-	it('per-row cancel action prompts for a reason and PUTs status=empty', () => {
-		document.body.innerHTML = '<button data-cls-id="8" data-cls-action="cancel">X</button>';
+	it('per-row cancel action prompts for a reason and POSTs the call cancel route', () => {
+		document.body.innerHTML = '<button data-cls-id="8" data-cls-action="cancel" data-call-id="31">X</button>';
 		window.fetch = vi.fn(() => new Promise(() => {}));
 		vi.spyOn(window, 'prompt').mockReturnValue('changed my mind');
 		loadScript(SCRIPT);
 		window.ffcRecruitmentClsAct(document.querySelector('button'));
-		expect(window.fetch.mock.calls[0][0]).toBe(CLASS + '8/status');
+		expect(window.fetch.mock.calls[0][0]).toBe(CLASS + '8/calls/31/cancel');
+		expect(window.fetch.mock.calls[0][1].method).toBe('POST');
 		expect(window.fetch.mock.calls[0][1].body).toContain('reason=changed');
+		expect(window.fetch.mock.calls[0][1].body).not.toContain('status=');
+	});
+
+	it('cancel sends nothing when the row names no active call', () => {
+		document.body.innerHTML = '<button data-cls-id="8" data-cls-action="cancel">X</button>';
+		window.fetch = vi.fn(() => new Promise(() => {}));
+		vi.spyOn(window, 'prompt').mockReturnValue('reason');
+		loadScript(SCRIPT);
+		window.ffcRecruitmentClsAct(document.querySelector('button'));
+		expect(window.fetch).not.toHaveBeenCalled();
 	});
 
 	it('bulk-call callback persists date/time and reloads on 2xx', async () => {
@@ -779,18 +790,18 @@ describe('fetch resolution branches', () => {
 		expect(btn.disabled).toBe(false);
 	});
 
-	it('reopen action prompts for a reason and PUTs status=empty', () => {
-		document.body.innerHTML = '<button data-cls-id="8" data-cls-action="reopen">R</button>';
+	it('reopen action prompts for a reason and ends the call through its route', () => {
+		document.body.innerHTML = '<button data-cls-id="8" data-cls-action="reopen" data-call-id="40">R</button>';
 		window.fetch = vi.fn(() => new Promise(() => {}));
 		vi.spyOn(window, 'prompt').mockReturnValue('reopening');
 		loadScript(SCRIPT);
 		window.ffcRecruitmentClsAct(document.querySelector('button'));
-		expect(window.fetch.mock.calls[0][0]).toBe(CLASS + '8/status');
+		expect(window.fetch.mock.calls[0][0]).toBe(CLASS + '8/calls/40/cancel');
 		expect(window.fetch.mock.calls[0][1].body).toContain('reason=reopening');
 	});
 
 	it('reopen action aborts when the reason prompt is cancelled', () => {
-		document.body.innerHTML = '<button data-cls-id="8" data-cls-action="reopen">R</button>';
+		document.body.innerHTML = '<button data-cls-id="8" data-cls-action="reopen" data-call-id="40">R</button>';
 		window.fetch = vi.fn(() => new Promise(() => {}));
 		vi.spyOn(window, 'prompt').mockReturnValue('');
 		loadScript(SCRIPT);

@@ -298,6 +298,14 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		if ( 1 === preg_match( '/^SELECT \* FROM (wp_\w+) WHERE id = (\d+)$/', $sql, $m ) ) {
 			return $this->rows[ $m[1] ][ (int) $m[2] ] ?? null;
 		}
+		if ( 1 === preg_match( '/^SELECT \* FROM ' . self::T_CALL . ' WHERE classification_id = (\d+) AND cancelled_at IS NULL/', $sql, $m ) ) {
+			foreach ( $this->rows[ self::T_CALL ] ?? array() as $call ) {
+				if ( (int) $call->classification_id === (int) $m[1] && null === $call->cancelled_at ) {
+					return $call;
+				}
+			}
+			return null;
+		}
 		if ( 1 === preg_match( '/^SELECT (?:\*|job_id, status) FROM ' . self::T_JOBS . ' WHERE job_id = (\S+)$/', $sql, $m ) ) {
 			return $this->jobs[ $m[1] ] ?? null;
 		}
@@ -505,6 +513,11 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	 * @param array<string, mixed> $overrides Column overrides.
 	 */
 	private function classification( int $id, array $overrides = array() ): void {
+		// Calls and outcomes need a definitive notice (#2245); a test that
+		// wants another state stores notice 1 itself.
+		if ( ! isset( $this->rows[ self::T_NOTICE ][1] ) ) {
+			$this->notice( 1, 'definitive' );
+		}
 		$this->store(
 			self::T_CLASSIFICATION,
 			array_merge(
@@ -1754,7 +1767,13 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		);
 
 		$response = $this->controller->cancel_call(
-			$this->make_request( array( 'call_id' => 99, 'reason' => 'mistake' ) )
+			$this->make_request(
+				array(
+					'id'      => 5,
+					'call_id' => 99,
+					'reason'  => 'mistake',
+				)
+			)
 		);
 
 		$this->assertSame( 200, $response->get_status() );
@@ -1779,11 +1798,94 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		);
 
 		$result = $this->controller->cancel_call(
-			$this->make_request( array( 'call_id' => 99, 'reason' => 'mistake' ) )
+			$this->make_request(
+				array(
+					'id'      => 5,
+					'call_id' => 99,
+					'reason'  => 'mistake',
+				)
+			)
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'recruitment_call_already_cancelled', $result->get_error_code() );
 		$this->assertSame( 409, $result->get_error_data()['status'] );
+	}
+
+	public function test_cancel_call_refuses_a_call_named_under_another_row(): void {
+		$this->classification( 5, array( 'status' => 'called' ) );
+		$this->store(
+			self::T_CALL,
+			array(
+				'id'                => 99,
+				'classification_id' => 5,
+				'cancelled_at'      => null,
+			)
+		);
+
+		$result = $this->controller->cancel_call(
+			$this->make_request(
+				array(
+					'id'      => 6,
+					'call_id' => 99,
+					'reason'  => 'mistake',
+				)
+			)
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_call_not_in_classification', $result->get_error_code() );
+		$this->assertSame( 'called', $this->rows[ self::T_CLASSIFICATION ][5]->status );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public function call_route_statuses(): array {
+		return array(
+			'called' => array( 'called', 'recruitment_status_called_requires_call' ),
+			'empty'  => array( 'empty', 'recruitment_status_empty_requires_cancel' ),
+		);
+	}
+
+	/**
+	 * @dataProvider call_route_statuses
+	 */
+	public function test_change_status_leaves_calls_to_the_call_routes( string $status, string $code ): void {
+		$this->classification( 5, array( 'status' => 'called' ) );
+
+		$result = $this->controller->change_classification_status(
+			$this->make_request(
+				array(
+					'id'     => 5,
+					'status' => $status,
+					'reason' => 'x',
+				)
+			)
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( $code, $result->get_error_code() );
+		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertSame( 'called', $this->rows[ self::T_CLASSIFICATION ][5]->status );
+	}
+
+	public function test_a_call_on_a_closed_notice_is_refused(): void {
+		$this->notice( 1, 'closed' );
+		$this->classification( 5 );
+
+		$result = $this->controller->call_classification(
+			$this->make_request(
+				array(
+					'id'             => 5,
+					'date_to_assume' => '2026-05-20',
+					'time_to_assume' => '09:00',
+				)
+			)
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_call_requires_definitive_notice', $result->get_error_code() );
+		$this->assertSame( array(), $this->writes_to( 'insert', self::T_CALL ) );
 	}
 }

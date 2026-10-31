@@ -35,7 +35,21 @@ class RecruitmentCallServiceTest extends TestCase {
 		$wpdb->insert_id = 0;
 		$this->wpdb      = $wpdb;
 
-		Functions\when( 'wp_cache_get' )->justReturn( false );
+		// The notice is served from the object cache: calls and outcomes need
+		// a definitive notice (#2245), and keeping it out of the `get_row`
+		// sequences below leaves those sequences about the call itself.
+		Functions\when( 'wp_cache_get' )->alias(
+			static function ( $key, $group = '' ) {
+				if ( 'ffc_recruitment_notice' === $group && 'id_5' === $key ) {
+					return (object) array(
+						'id'           => '5',
+						'status'       => 'definitive',
+						'was_reopened' => '0',
+					);
+				}
+				return false;
+			}
+		);
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'current_time' )->justReturn( '2026-05-01 10:00:00' );
@@ -376,7 +390,8 @@ class RecruitmentCallServiceTest extends TestCase {
 		// 1) cancel_call: load call.
 		// 2) cancel_call: load classification.
 		// 3) state-machine transition_to: load classification again.
-		$this->wpdb->shouldReceive( 'get_row' )->times( 3 )->andReturn( $call, $classification, $classification );
+		// 4) the cancellation e-mail loads the call, finds nothing more, and stops.
+		$this->wpdb->shouldReceive( 'get_row' )->times( 4 )->andReturn( $call, $classification, $classification, null );
 
 		$query_log = array();
 		$this->wpdb->shouldReceive( 'query' )
@@ -392,6 +407,48 @@ class RecruitmentCallServiceTest extends TestCase {
 		$this->assertTrue( $result['success'] );
 		$this->assertSame( array( 7 ), $result['call_ids'] );
 		$this->assertContains( 'COMMIT', $query_log );
+	}
+
+	public function test_cancel_call_refuses_a_call_of_another_classification(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->call_stub( 7, 10 ) );
+		$this->wpdb->shouldNotReceive( 'query' );
+
+		$result = RecruitmentCallService::cancel_call( 7, 'Reason', 1, 11 );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertSame( array( 'recruitment_call_not_in_classification' ), $result['errors'] );
+	}
+
+	public function test_reopen_ends_the_call_of_a_not_shown_row_without_an_email(): void {
+		$call           = $this->call_stub( 7, 10 );
+		$classification = $this->classification_stub( 10, 'not_shown' );
+		// Exactly three reads: no fourth one for the e-mail.
+		$this->wpdb->shouldReceive( 'get_row' )->times( 3 )->andReturn( $call, $classification, $classification );
+		$query_log = array();
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $sql ) use ( &$query_log ) {
+				$query_log[] = $sql;
+				return 1;
+			}
+		);
+
+		$result = RecruitmentCallService::cancel_call( 7, 'Vacancy reopened', 1, 10 );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertNotEmpty( array_filter( $query_log, static fn( $q ) => false !== strpos( (string) $q, 'SET cancellation_reason' ) ), 'The call row is cancelled.' );
+	}
+
+	public function test_a_call_is_refused_off_the_definitive_list(): void {
+		$classification            = $this->classification_stub( 10, 'empty' );
+		$classification->list_type = 'preview';
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $classification );
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
+		$this->wpdb->shouldNotReceive( 'insert' );
+
+		$result = RecruitmentCallService::call_single( 10, '2026-06-01', '08:00', 1 );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertSame( array( 'recruitment_call_requires_definitive_list' ), $result['errors'] );
 	}
 
 	public function test_cancel_call_rolls_back_when_state_machine_fails(): void {

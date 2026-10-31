@@ -221,12 +221,19 @@ final class RecruitmentCallService {
 	 * AND the call row gets `cancelled_at` stamped, both inside one
 	 * transaction.
 	 *
-	 * @param int    $call_id      Active call row ID.
-	 * @param string $reason       Cancellation reason (REQUIRED, non-empty).
-	 * @param int    $cancelled_by WP user ID performing the cancel.
+	 * Also the reopen of a `not_shown` row (#2245): the call that led to it
+	 * ends with it, so a reopened vacancy carries no active call into the next
+	 * one. The candidate is e-mailed when a call they could still act on is
+	 * cancelled (`called` / `accepted`), under the same send mode as the call.
+	 *
+	 * @param int       $call_id           Active call row ID.
+	 * @param string    $reason            Cancellation reason (REQUIRED, non-empty).
+	 * @param int       $cancelled_by      WP user ID performing the cancel.
+	 * @param int|null  $classification_id The classification the request named; the call must belong to it.
+	 * @param bool|null $notify_email      Per-call "notify by email" choice, consulted only in `ask` mode.
 	 * @return CallResult
 	 */
-	public static function cancel_call( int $call_id, string $reason, int $cancelled_by ): array {
+	public static function cancel_call( int $call_id, string $reason, int $cancelled_by, ?int $classification_id = null, ?bool $notify_email = null ): array {
 		if ( '' === trim( $reason ) ) {
 			return self::failure( 'recruitment_cancel_reason_required' );
 		}
@@ -234,6 +241,10 @@ final class RecruitmentCallService {
 		$call = RecruitmentCallReader::get_by_id( $call_id );
 		if ( null === $call ) {
 			return self::failure( 'recruitment_call_not_found' );
+		}
+
+		if ( null !== $classification_id && (int) $call->classification_id !== $classification_id ) {
+			return self::failure( 'recruitment_call_not_in_classification' );
 		}
 
 		if ( null !== $call->cancelled_at ) {
@@ -247,9 +258,9 @@ final class RecruitmentCallService {
 		}
 
 		$current_status = $classification->status;
-		if ( ! in_array( $current_status, array( 'called', 'accepted' ), true ) ) {
-			// `not_shown`/`hired`/`empty` mean the call has already moved on
-			// — admin should use a status transition instead.
+		if ( ! in_array( $current_status, array( 'called', 'accepted', 'not_shown' ), true ) ) {
+			// `hired`/`withdrew`/`empty` mean the call has already moved on —
+			// the admin override is the way back from a realized decision.
 			return self::failure( 'recruitment_cancel_only_from_called_or_accepted' );
 		}
 
@@ -280,16 +291,24 @@ final class RecruitmentCallService {
 			$wpdb->query( 'COMMIT' );
 
 			RecruitmentActivityLogger::call_cancelled( $call_id, $classification_id, $reason );
-
-			return array(
-				'success'  => true,
-				'call_ids' => array( $call_id ),
-				'errors'   => array(),
-			);
 		} catch ( \Throwable $e ) {
 			$wpdb->query( 'ROLLBACK' );
 			return self::failure( 'recruitment_cancel_unexpected_error: ' . $e->getMessage() );
 		}
+
+		// Best-effort, after the commit and outside the transaction's guard,
+		// like the call e-mail: a mail failure never undoes the cancel. A
+		// reopen of a `not_shown` row is not news to a candidate who did not
+		// come, so it sends nothing.
+		if ( 'not_shown' !== $current_status && RecruitmentEmailDispatcher::should_send( $notify_email ) ) {
+			RecruitmentEmailDispatcher::send_for_cancellation( $call_id );
+		}
+
+		return array(
+			'success'  => true,
+			'call_ids' => array( $call_id ),
+			'errors'   => array(),
+		);
 	}
 
 	/**
@@ -325,6 +344,11 @@ final class RecruitmentCallService {
 		$classification = RecruitmentClassificationRepository::get_by_id( $classification_id );
 		if ( null === $classification ) {
 			return self::inner_failure( 'recruitment_classification_not_found' );
+		}
+
+		$blocked = RecruitmentClassificationStateMachine::live_block( $classification );
+		if ( null !== $blocked ) {
+			return self::inner_failure( $blocked );
 		}
 
 		if ( 'empty' !== $classification->status ) {

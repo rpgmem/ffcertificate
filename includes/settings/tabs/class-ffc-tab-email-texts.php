@@ -201,6 +201,10 @@ class TabEmailTexts extends SettingsTab {
 				'label'  => __( 'Recruitment convocation', 'ffcertificate' ),
 				'tokens' => array( 'name', 'cpf_masked', 'rf_masked', 'email_masked', 'adjutancy', 'notice_code', 'notice_name', 'rank', 'score', 'is_pcd', 'date_to_assume', 'time_to_assume', 'called_at', 'site_name', 'site_url', 'notes' ),
 			),
+			'recruitment-cancellation'      => array(
+				'label'  => __( 'Recruitment call cancelled', 'ffcertificate' ),
+				'tokens' => array( 'name', 'adjutancy', 'notice_code', 'notice_name', 'rank', 'date_to_assume', 'time_to_assume', 'called_at', 'cancellation_reason', 'site_name', 'site_url' ),
+			),
 			'reregistration-invitation'     => array(
 				'label'  => __( 'Reregistration invitation', 'ffcertificate' ),
 				// `status_line`, `action_label` and `opening_line` are supplied per
@@ -343,7 +347,7 @@ class TabEmailTexts extends SettingsTab {
 				'appointment-waitlisted',
 				'calendar-deleted-cancellation',
 			),
-			__( 'Recruitment', 'ffcertificate' )        => array( 'recruitment-convocation' ),
+			__( 'Recruitment', 'ffcertificate' )        => array( 'recruitment-convocation', 'recruitment-cancellation' ),
 			__( 'Reregistration', 'ffcertificate' )     => array(
 				'reregistration-invitation',
 				'reregistration-reminder',
