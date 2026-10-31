@@ -30484,3 +30484,18 @@ msgid "Blocked. %d appointment was cancelled."
 msgid_plural "Blocked. %d appointments were cancelled."
 msgstr[0] ""
 msgstr[1] ""
+
+#. translators: %d: number of appointments
+#: includes/self-scheduling/class-ffc-self-scheduling-slot-grid-lock.php
+msgid "The appointment duration, interval and working hours were not changed: %d open appointment sits on a slot the change would move or remove. Cancel or move it first."
+msgid_plural "The appointment duration, interval and working hours were not changed: %d open appointments sit on slots the change would move or remove. Cancel or move them first."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "Once a regular calendar has bookings, a save that changes the appointment duration, the break or the working hours so that an open appointment (pending, confirmed or on the waitlist, from today on) would no longer sit on a slot of the same start and end keeps the previous duration, break and hours, and the editor lists the appointments that held them. A change that keeps every booked slot, such as longer hours, is saved. Cancel or move the listed appointments first to change the grid under them."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "This calendar has bookings: a change to the duration, the break or the working hours that would move or remove the slot of an open appointment is refused on save, and the appointments that hold it are listed."
+msgstr ""

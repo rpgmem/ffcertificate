@@ -261,6 +261,9 @@ class SelfSchedulingEditorTest extends TestCase {
 		$GLOBALS['wpdb']->shouldReceive( 'get_row' )->andReturn( null );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
+		// No grid refusal left by a save (#2244).
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_transient' )->justReturn( false );
 
 		$editor = new SelfSchedulingEditor();
 		ob_start();

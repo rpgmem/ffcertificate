@@ -30,6 +30,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SelfSchedulingSaveHandler {
 
 	/**
+	 * The open appointments the submitted grid would move, per calendar post,
+	 * worked out once per request (#2244).
+	 *
+	 * @var array<int, array<int, array<string, mixed>>>
+	 */
+	private array $grid_refusals = array();
+
+	/**
 	 * Register save hook.
 	 */
 	public function __construct() {
@@ -56,6 +64,11 @@ class SelfSchedulingSaveHandler {
 
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {
 			return;
+		}
+
+		$refused = $this->grid_refusal( $post_id );
+		if ( array() !== $refused ) {
+			SlotGridLock::remember( $post_id, $refused );
 		}
 
 		$this->save_config( $post_id );
@@ -157,6 +170,14 @@ class SelfSchedulingSaveHandler {
 			}
 		}
 
+		// The grid holds open appointments: keep its duration and interval (#2244).
+		if ( array() !== $this->grid_refusal( $post_id ) ) {
+			$stored                  = get_post_meta( $post_id, '_ffc_self_scheduling_config', true );
+			$stored                  = is_array( $stored ) ? $stored : array();
+			$config['slot_duration'] = self::config_int( $stored, 'slot_duration', 30 );
+			$config['slot_interval'] = self::config_int( $stored, 'slot_interval', 0 );
+		}
+
 		// If visibility is private, scheduling must also be private.
 		if ( 'private' === $config['visibility'] ) {
 			$config['scheduling_visibility'] = 'private';
@@ -200,8 +221,21 @@ class SelfSchedulingSaveHandler {
 	 * @param int $post_id Post ID.
 	 */
 	private function save_working_hours( int $post_id ): void {
-		if ( ! RequestInput::has_post( 'ffc_self_scheduling_working_hours' ) ) {
+		$working_hours = self::submitted_working_hours();
+		if ( null === $working_hours || array() !== $this->grid_refusal( $post_id ) ) {
 			return;
+		}
+		update_post_meta( $post_id, '_ffc_self_scheduling_working_hours', $working_hours );
+	}
+
+	/**
+	 * The working hours the request submits, or null when it submits none.
+	 *
+	 * @return array<int, array{day: int, start: string, end: string}>|null
+	 */
+	private static function submitted_working_hours(): ?array {
+		if ( ! RequestInput::has_post( 'ffc_self_scheduling_working_hours' ) ) {
+			return null;
 		}
 
 		// An empty container is not a write. `get_post_raw_array()` returns
@@ -212,7 +246,7 @@ class SelfSchedulingSaveHandler {
 		// key at all when there are no rows (#1075).
 		$rows = RequestInput::get_post_raw_array( 'ffc_self_scheduling_working_hours' );
 		if ( empty( $rows ) ) {
-			return;
+			return null;
 		}
 
 		$working_hours = array();
@@ -229,7 +263,76 @@ class SelfSchedulingSaveHandler {
 				'end'   => sanitize_text_field( ArrayValue::string( $hours, 'end', '17:00' ) ),
 			);
 		}
-		update_post_meta( $post_id, '_ffc_self_scheduling_working_hours', $working_hours );
+		return $working_hours;
+	}
+
+	/**
+	 * The open appointments a regular calendar's submitted grid would move or
+	 * remove (#2244); none for a custom calendar, a new one, or a submit that
+	 * leaves the duration, interval and hours as they are.
+	 *
+	 * @param int $post_id Calendar post.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function grid_refusal( int $post_id ): array {
+		if ( isset( $this->grid_refusals[ $post_id ] ) ) {
+			return $this->grid_refusals[ $post_id ];
+		}
+		$this->grid_refusals[ $post_id ] = array();
+
+		$stored = get_post_meta( $post_id, '_ffc_self_scheduling_config', true );
+		if ( ! is_array( $stored ) || 'custom' === ArrayValue::string( $stored, 'schedule_type' ) ) {
+			return array();
+		}
+		$raw = RequestInput::has_post( 'ffc_self_scheduling_config' ) ? RequestInput::get_post_raw_array( 'ffc_self_scheduling_config' ) : $stored;
+
+		$stored_hours = get_post_meta( $post_id, '_ffc_self_scheduling_working_hours', true );
+		$stored_hours = is_array( $stored_hours ) ? $stored_hours : array();
+		$old          = array(
+			'slot_duration' => self::config_int( $stored, 'slot_duration', 30 ),
+			'slot_interval' => self::config_int( $stored, 'slot_interval', 0 ),
+			'working_hours' => $stored_hours,
+		);
+		$new          = array(
+			'slot_duration' => self::config_int( $raw, 'slot_duration', 30 ),
+			'slot_interval' => self::config_int( $raw, 'slot_interval', 0 ),
+			'working_hours' => self::submitted_working_hours() ?? $stored_hours,
+		);
+		if ( $old == $new ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- Stored hours may carry the day as a string; equal values mean an unchanged grid.
+			return array();
+		}
+
+		$this->grid_refusals[ $post_id ] = SlotGridLock::moved( $old, $new, $this->open_future_appointments( $post_id ) );
+		return $this->grid_refusals[ $post_id ];
+	}
+
+	/**
+	 * The calendar's pending, confirmed and waitlisted appointments from today on.
+	 *
+	 * @param int $post_id Calendar post.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function open_future_appointments( int $post_id ): array {
+		global $wpdb;
+		$calendars    = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+		$appointments = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads the live open appointments joined from the plugin's own tables while the post is saved, so the save can refuse a grid that would move them.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT a.id, a.appointment_date, a.start_time, a.end_time FROM %i a INNER JOIN %i c ON c.id = a.calendar_id WHERE c.post_id = %d AND a.status IN ('pending','confirmed','waitlist') AND a.appointment_date >= %s ORDER BY a.appointment_date ASC, a.start_time ASC",
+				$appointments,
+				$calendars,
+				$post_id,
+				wp_date( 'Y-m-d' )
+			),
+			ARRAY_A
+		);
+		/**
+		 * Rows of the four selected columns.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $rows ) ? $rows : array();
 	}
 
 	/**

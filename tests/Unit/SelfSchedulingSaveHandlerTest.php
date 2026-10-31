@@ -588,4 +588,101 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
 		$this->assertSame( '[ffc_self_scheduling id="1"', $lookups[0]['s'], 'It purges the pages embedding this calendar.' );
 		$this->assertEmpty( $this->saved_meta );
 	}
+
+	// ==================================================================
+	// Grid lock (#2244)
+	// ==================================================================
+
+	/**
+	 * A regular calendar stored at 30 minutes, 09:00–12:00 every day, with an
+	 * open appointment at 09:30.
+	 *
+	 * @return array<int, array<string, string>> The working hours rows.
+	 */
+	private function booked_regular_calendar(): array {
+		$hours = array();
+		for ( $day = 0; $day <= 6; $day++ ) {
+			$hours[] = array( 'day' => $day, 'start' => '09:00', 'end' => '12:00' );
+		}
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $post_id, $key ) use ( $hours ) {
+				if ( '_ffc_self_scheduling_working_hours' === $key ) {
+					return $hours;
+				}
+				return array( 'schedule_type' => 'regular', 'slot_duration' => 30, 'slot_interval' => 0 );
+			}
+		);
+		Functions\when( 'wp_date' )->justReturn( '2032-05-01' );
+		global $wpdb;
+		$wpdb->shouldReceive( 'get_results' )->andReturn(
+			array( array( 'id' => 9, 'appointment_date' => '2032-05-20', 'start_time' => '09:30:00', 'end_time' => '10:00:00' ) )
+		);
+		return $hours;
+	}
+
+	public function test_a_duration_that_moves_a_booked_slot_keeps_the_stored_grid(): void {
+		$this->booked_regular_calendar();
+		$_POST['ffc_self_scheduling_config'] = array( 'slot_duration' => '45', 'slot_interval' => '0', 'schedule_type' => 'regular' );
+
+		$this->invoke( 'save_config', array( 100 ) );
+
+		$this->assertSame( 30, $this->saved_meta['_ffc_self_scheduling_config']['slot_duration'] );
+	}
+
+	public function test_hours_that_remove_a_booked_slot_are_not_written(): void {
+		$this->booked_regular_calendar();
+		$_POST['ffc_self_scheduling_config']        = array( 'slot_duration' => '30', 'slot_interval' => '0' );
+		$_POST['ffc_self_scheduling_working_hours'] = array( array( 'day' => '4', 'start' => '10:00', 'end' => '12:00' ) );
+
+		$this->invoke( 'save_working_hours', array( 100 ) );
+
+		$this->assertArrayNotHasKey( '_ffc_self_scheduling_working_hours', $this->saved_meta );
+	}
+
+	public function test_a_change_that_keeps_every_booked_slot_is_saved(): void {
+		$this->booked_regular_calendar();
+		$_POST['ffc_self_scheduling_config']        = array( 'slot_duration' => '30', 'slot_interval' => '0' );
+		$_POST['ffc_self_scheduling_working_hours'] = array( array( 'day' => '4', 'start' => '09:00', 'end' => '18:00' ) );
+
+		$this->invoke( 'save_working_hours', array( 100 ) );
+		$this->invoke( 'save_config', array( 100 ) );
+
+		$this->assertSame( '18:00', $this->saved_meta['_ffc_self_scheduling_working_hours'][0]['end'] );
+		$this->assertSame( 30, $this->saved_meta['_ffc_self_scheduling_config']['slot_duration'] );
+	}
+
+	public function test_a_refused_save_leaves_the_list_for_the_editor(): void {
+		$this->booked_regular_calendar();
+		$_POST['ffc_self_scheduling_config_nonce'] = 'n';
+		$_POST['ffc_self_scheduling_config']       = array( 'slot_duration' => '45', 'slot_interval' => '0' );
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		$stored = array();
+		Functions\when( 'set_transient' )->alias( static function ( $key, $value ) use ( &$stored ) { $stored[ $key ] = $value; return true; } );
+		Functions\when( 'delete_post_meta' )->justReturn( true );
+		$GLOBALS['wpdb']->shouldReceive( 'get_var' )->andReturn( 0 );
+
+		try {
+			$this->handler->save_calendar_data( 100, new \stdClass(), true );
+		} catch ( \Throwable $e ) {
+			// The page-cache purge after the save is not under test.
+			unset( $e );
+		} finally {
+			unset( $_POST['ffc_self_scheduling_config_nonce'] );
+		}
+
+		$this->assertSame( array( array( 'date' => '2032-05-20', 'start' => '09:30', 'end' => '10:00' ) ), $stored['ffc_ss_grid_lock_3_100'] );
+	}
+
+	public function test_a_custom_calendar_is_not_grid_locked(): void {
+		Functions\when( 'get_post_meta' )->justReturn( array( 'schedule_type' => 'custom', 'slot_duration' => 30 ) );
+		global $wpdb;
+		$wpdb->shouldNotReceive( 'get_results' );
+		$_POST['ffc_self_scheduling_config'] = array( 'slot_duration' => '45', 'schedule_type' => 'custom' );
+
+		$this->invoke( 'save_config', array( 100 ) );
+
+		$this->assertSame( 45, $this->saved_meta['_ffc_self_scheduling_config']['slot_duration'] );
+	}
 }

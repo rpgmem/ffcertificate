@@ -201,6 +201,10 @@ class SelfSchedulingEditorFieldParityTest extends TestCase {
 			}
 		);
 
+		// No grid refusal left by a save (#2244).
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_transient' )->justReturn( false );
+
 		$editor = new SelfSchedulingEditor();
 		$editor->add_custom_metaboxes();
 
