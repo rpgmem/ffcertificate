@@ -304,7 +304,7 @@ class AppointmentValidator {
 
 			if ( $user_identifier ) {
 				$interval_hours = (int) $calendar['minimum_interval_between_bookings'];
-				$interval_check = $this->check_booking_interval( $user_identifier, $data['calendar_id'], $interval_hours );
+				$interval_check = $this->check_booking_interval( $user_identifier, (int) $data['calendar_id'], $interval_hours, (string) $data['appointment_date'], (string) $data['start_time'] );
 
 				if ( is_wp_error( $interval_check ) ) {
 					$refused = $rule( $interval_check );
@@ -555,54 +555,60 @@ class AppointmentValidator {
 	}
 
 	/**
-	 * Check minimum interval between bookings for a user
+	 * Check minimum interval between bookings for a user (#2244).
 	 *
-	 * @param mixed $user_identifier User ID, email, or CPF/RF.
-	 * @param int   $calendar_id Calendar ID.
-	 * @param int   $interval_hours Minimum hours between bookings.
+	 * The requested slot is compared with the person's last booked
+	 * appointment on the calendar, the one booked most recently that is not
+	 * cancelled: a new booking less than the interval before or after it is
+	 * refused. A cancelled appointment does not count, so cancelling and
+	 * booking again (a reschedule) is never held up by the one cancelled.
+	 * Without a requested slot the check compares with now, as before.
+	 *
+	 * @param mixed  $user_identifier User ID, email, or CPF/RF.
+	 * @param int    $calendar_id     Calendar ID.
+	 * @param int    $interval_hours  Minimum hours between bookings.
+	 * @param string $date            Requested date (Y-m-d), or '' for now.
+	 * @param string $start_time      Requested start time.
 	 * @return true|\WP_Error
 	 */
-	public function check_booking_interval( $user_identifier, int $calendar_id, int $interval_hours ) {
-		$now         = time();
-		$cutoff_time = $now + ( $interval_hours * 3600 );
-
-		$recent_appointments = array();
+	public function check_booking_interval( $user_identifier, int $calendar_id, int $interval_hours, string $date = '', string $start_time = '' ) {
+		$requested = '' !== $date ? self::wall_clock_to_timestamp( $date, '' !== $start_time ? $start_time : '00:00' ) : time();
 
 		if ( is_int( $user_identifier ) ) {
-			$recent_appointments = $this->appointment_repository->findByUserId( $user_identifier );
+			$appointments = $this->appointment_repository->findByUserId( $user_identifier );
 		} elseif ( filter_var( $user_identifier, FILTER_VALIDATE_EMAIL ) ) {
-				$recent_appointments = $this->appointment_repository->findByEmail( $user_identifier );
+			$appointments = $this->appointment_repository->findByEmail( $user_identifier );
 		} else {
-			$recent_appointments = $this->appointment_repository->findByCpfRf( $user_identifier );
+			$appointments = $this->appointment_repository->findByCpfRf( $user_identifier );
 		}
 
-		foreach ( $recent_appointments as $appointment ) {
-			if ( 'cancelled' === $appointment['status'] ) {
+		$last = null;
+		foreach ( $appointments as $appointment ) {
+			if ( 'cancelled' === $appointment['status'] || (int) $appointment['calendar_id'] !== $calendar_id ) {
 				continue;
 			}
-
-			if ( (int) $appointment['calendar_id'] !== $calendar_id ) {
-				continue;
-			}
-
-			$apt_timestamp = self::wall_clock_to_timestamp( $appointment['appointment_date'], $appointment['start_time'] );
-
-			if ( $apt_timestamp >= $now && $apt_timestamp <= $cutoff_time ) {
-				$next_available = \FreeFormCertificate\Core\DateFormatter::format_datetime( $apt_timestamp + ( $interval_hours * 3600 ) );
-
-				return new \WP_Error(
-					'booking_too_soon',
-					sprintf(
-						/* translators: %1$d: number of hours, %2$s: next available date/time */
-						__( 'You already have an appointment scheduled within the next %1$d hours. You can book again after %2$s.', 'ffcertificate' ),
-						$interval_hours,
-						$next_available
-					)
-				);
+			if ( null === $last || (int) ( $appointment['id'] ?? 0 ) > (int) ( $last['id'] ?? 0 ) ) {
+				$last = $appointment;
 			}
 		}
+		if ( null === $last ) {
+			return true;
+		}
 
-		return true;
+		$last_ts = self::wall_clock_to_timestamp( (string) $last['appointment_date'], (string) $last['start_time'] );
+		if ( abs( $requested - $last_ts ) >= $interval_hours * 3600 ) {
+			return true;
+		}
+
+		return new \WP_Error(
+			'booking_too_soon',
+			sprintf(
+				/* translators: %1$s: date and time of the last appointment, %2$d: number of hours */
+				__( 'Your last appointment on this calendar is on %1$s. A new one must be at least %2$d hours before or after it.', 'ffcertificate' ),
+				\FreeFormCertificate\Core\DateFormatter::format_datetime( $last_ts ),
+				$interval_hours
+			)
+		);
 	}
 
 	/**

@@ -578,6 +578,35 @@ class AppointmentsListViewTest extends TestCase {
 		$this->assertStringContainsString( 'may have changed meanwhile', $notice['message'] );
 	}
 
+	public function test_bulk_no_show_marks_the_confirmed_rows_whose_date_has_come(): void {
+		$this->appointments[5] = array( 'id' => 5, 'status' => 'confirmed', 'appointment_date' => '2026-05-10' );
+		$this->appointments[6] = array( 'id' => 6, 'status' => 'confirmed', 'appointment_date' => '2026-05-12' );
+		$_GET['action']        = 'bulk_no_show';
+		$_GET['appointment']   = array( '5', '6' );
+		$referers              = array();
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( $nonce_action ) use ( &$referers ) {
+				$referers[] = $nonce_action;
+				return true;
+			}
+		);
+		Functions\when( 'wp_date' )->justReturn( '2026-05-10' );
+		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+
+		try {
+			$this->include_view_expecting_stop( 'redirected' );
+		} finally {
+			unset( $_GET['action'] );
+		}
+
+		$this->assertSame( array( 'bulk-appointments' ), $referers );
+		$this->assertCount( 1, $this->updates );
+		$this->assertSame( 'no_show', $this->updates[0][1]['status'] );
+		$this->assertSame( array( 'id' => 5, 'status' => 'confirmed' ), $this->updates[0][2] );
+		$this->assertSame( 'success', $this->transients[0][1]['type'] );
+		$this->assertStringStartsWith( '1 marked as no-show; 1 skipped', $this->transients[0][1]['message'] );
+	}
+
 	public function test_undo_attendance_puts_the_row_back_to_confirmed(): void {
 		$this->appointments[5] = array( 'id' => 5, 'status' => 'no_show', 'appointment_date' => '2026-05-01' );
 

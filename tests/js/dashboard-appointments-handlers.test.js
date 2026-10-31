@@ -28,6 +28,11 @@ beforeAll(() => {
 		cancelKeepBtn: 'Keep appointment',
 		close: 'Close',
 		cancelSuccess: 'Cancelled OK',
+		reschedule: 'Reschedule',
+		rescheduleTitle: 'Reschedule appointment',
+		rescheduleIntro: 'Cancelled first, then the calendar opens.',
+		rescheduleConfirmBtn: 'Cancel and book a new time',
+		rescheduleReason: 'Rescheduled by the participant',
 		cancelError: 'Cancel failed',
 		noPermission: 'No permission',
 		name: 'Name:',
@@ -390,6 +395,117 @@ describe('appointments cancellation dialog', () => {
 		await flushPromises();
 
 		expect(alertSpy).toHaveBeenCalledWith('Cancel failed');
+	});
+});
+
+// ----------------------------------------------------------------------
+// Reschedule (#2244): the cancel dialog in its second mode
+// ----------------------------------------------------------------------
+
+describe('appointments reschedule', () => {
+	const BOOK = 'https://x.test/book/';
+	let originalLocation;
+	let assigned;
+
+	function mount(id = 66, over = {}) {
+		document.getElementById('ffc-tabpanel-appointments').innerHTML =
+			`<button class="ffc-reschedule-appointment" data-id="${id}">Reschedule</button>`;
+		panel().state = [makeAppt(Object.assign({ id, can_cancel: true, reschedule_url: BOOK }, over))];
+	}
+
+	function postChain(opts) {
+		const chain = { done: () => chain, fail: () => chain };
+		if (opts.done) chain.done = (cb) => { cb(opts.done); return chain; };
+		return chain;
+	}
+
+	const dialog = () => document.getElementById('ffc-cancel-appointment-modal');
+
+	beforeEach(() => {
+		assigned = [];
+		originalLocation = window.location;
+		Object.defineProperty(window, 'location', {
+			configurable: true,
+			writable: true,
+			value: { assign: (url) => assigned.push(url), href: originalLocation.href },
+		});
+	});
+
+	afterEach(() => {
+		Object.defineProperty(window, 'location', { configurable: true, writable: true, value: originalLocation });
+		const el = dialog();
+		if (el) el.remove();
+	});
+
+	it('opens the dialog in reschedule mode, without the reason field', () => {
+		mount();
+		window.$('.ffc-reschedule-appointment').trigger('click');
+
+		expect(dialog().textContent).toContain('Reschedule appointment');
+		expect(dialog().textContent).toContain('Cancelled first, then the calendar opens.');
+		expect(document.getElementById('ffc-cancel-reason')).toBeNull();
+		expect(dialog().querySelector('.ffc-reschedule-confirm.ffc-btn-caution.ffc-icon-calendar')).not.toBeNull();
+		expect(dialog().querySelector('.ffc-cancel-confirm')).toBeNull();
+	});
+
+	it('warns in the dialog about the appointment the interval rule will measure from', () => {
+		mount(66, { reschedule_note: 'You also have an appointment on 11/01.' });
+		window.$('.ffc-reschedule-appointment').trigger('click');
+
+		const note = dialog().querySelector('.ffc-notice-warning');
+		expect(note).not.toBeNull();
+		expect(note.textContent).toContain('You also have an appointment on 11/01.');
+	});
+
+	it('draws no warning when the rule does not apply', () => {
+		mount(66, { reschedule_note: '' });
+		window.$('.ffc-reschedule-appointment').trigger('click');
+
+		expect(dialog().querySelector('.ffc-notice')).toBeNull();
+	});
+
+	it('cancels with the fixed reason, then opens the calendar page instead of reloading', async () => {
+		mount(66);
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const loadSpy = vi.spyOn(panel(), 'load').mockImplementation(() => {});
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
+
+		window.$('.ffc-reschedule-appointment').trigger('click');
+		window.$('.ffc-reschedule-confirm').trigger('click');
+		await flushPromises();
+
+		expect(postSpy.mock.calls[0][1]).toMatchObject({
+			action: 'ffc_cancel_appointment',
+			appointment_id: 66,
+			reason: 'Rescheduled by the participant',
+		});
+		expect(assigned).toEqual([BOOK]);
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(loadSpy).not.toHaveBeenCalled();
+	});
+
+	it('stays on the dashboard when the cancellation is refused', async () => {
+		mount();
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Too late' } } }));
+
+		window.$('.ffc-reschedule-appointment').trigger('click');
+		window.$('.ffc-reschedule-confirm').trigger('click');
+		await flushPromises();
+
+		expect(alertSpy).toHaveBeenCalledWith('Too late');
+		expect(assigned).toEqual([]);
+	});
+
+	it('draws the button only when the row can be cancelled and the calendar is on a page', () => {
+		panel().render([
+			makeAppt({ id: 1, can_cancel: true, reschedule_url: BOOK }),
+			makeAppt({ id: 2, can_cancel: true, reschedule_url: '' }),
+			makeAppt({ id: 3, can_cancel: false, reschedule_url: BOOK }),
+		], 1);
+
+		const ids = Array.from(document.querySelectorAll('.ffc-reschedule-appointment')).map((b) => b.getAttribute('data-id'));
+		expect(ids).toEqual(['1']);
 	});
 });
 

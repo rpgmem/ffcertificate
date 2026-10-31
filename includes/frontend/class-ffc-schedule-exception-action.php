@@ -351,32 +351,7 @@ final class ScheduleExceptionAction {
 			return $candidate;
 		}
 
-		// WordPress parses `id="N"`, `id='N'` and `id=N` alike, so the
-		// search narrows to pages that hold the shortcode at all and the
-		// attribute is matched here, in every spelling (#2024).
-		$pages = get_posts(
-			array(
-				'post_type'      => array( 'page', 'post' ),
-				'post_status'    => 'publish',
-				's'              => '[ffc_form',
-				'orderby'        => 'date',
-				'order'          => 'DESC',
-				'posts_per_page' => 50,
-				'fields'         => 'ids',
-			)
-		);
-
-		foreach ( $pages as $page_id ) {
-			if ( ! self::embeds_form( (string) get_post_field( 'post_content', (int) $page_id ), $form_id ) ) {
-				continue;
-			}
-			$url = get_permalink( (int) $page_id );
-			if ( is_string( $url ) && '' !== $url ) {
-				return $url;
-			}
-		}
-
-		return '';
+		return \FreeFormCertificate\Core\ShortcodePage::url( 'ffc_form', $form_id );
 	}
 
 	/**
@@ -389,6 +364,6 @@ final class ScheduleExceptionAction {
 	 * @return bool
 	 */
 	public static function embeds_form( string $content, int $form_id ): bool {
-		return 1 === preg_match( '/\[ffc_form\b[^\]]*?\bid\s*=\s*(["\']?)' . $form_id . '\1(?=[\s\]\/])/i', $content );
+		return \FreeFormCertificate\Core\ShortcodePage::embeds( $content, 'ffc_form', $form_id );
 	}
 }

@@ -295,6 +295,13 @@ class DashboardAssetManager {
 					'cancelConfirmBtn'         => __( 'Confirm cancellation', 'ffcertificate' ),
 					'cancelKeepBtn'            => __( 'Keep appointment', 'ffcertificate' ),
 					'close'                    => __( 'Close', 'ffcertificate' ),
+					// Rescheduling is cancel-then-book (#2244); the confirm label
+					// and the recorded reason are the cancellation page's too.
+					'reschedule'               => __( 'Reschedule', 'ffcertificate' ),
+					'rescheduleTitle'          => __( 'Reschedule appointment', 'ffcertificate' ),
+					'rescheduleIntro'          => __( 'This appointment is cancelled first, then the calendar opens so you can pick a new time. The old time is released at once and may be taken by someone else.', 'ffcertificate' ),
+					'rescheduleConfirmBtn'     => __( 'Cancel and book a new time', 'ffcertificate' ),
+					'rescheduleReason'         => __( 'Rescheduled by the participant', 'ffcertificate' ),
 					'noPermission'             => __( 'You do not have permission to view this content.', 'ffcertificate' ),
 					// Calendar export.
 					'exportToCalendar'         => __( 'Export to Calendar', 'ffcertificate' ),

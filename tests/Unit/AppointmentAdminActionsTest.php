@@ -128,4 +128,22 @@ class AppointmentAdminActionsTest extends TestCase {
 		$this->assertTrue( $this->actions->cancel( 5, 1, 'r' ) );
 		$this->assertSame( array( 'ffcertificate_appointment_cancelled' ), $fired );
 	}
+
+	public function test_bulk_no_show_marks_only_confirmed_appointments_whose_date_has_come(): void {
+		Functions\when( 'wp_date' )->justReturn( '2032-05-10' );
+		$rows = array(
+			1 => array( 'id' => 1, 'status' => 'confirmed', 'appointment_date' => '2032-05-10' ),
+			2 => array( 'id' => 2, 'status' => 'confirmed', 'appointment_date' => '2032-05-11' ),
+			3 => array( 'id' => 3, 'status' => 'pending', 'appointment_date' => '2032-05-01' ),
+			4 => array( 'id' => 4, 'status' => 'confirmed', 'appointment_date' => '2032-05-02' ),
+		);
+		$this->appointments->shouldReceive( 'findById' )->andReturnUsing( static fn( $id ) => $rows[ $id ] ?? null );
+		$this->appointments->shouldReceive( 'markNoShow' )->once()->with( 1 )->andReturn( 1 );
+		$this->appointments->shouldReceive( 'markNoShow' )->once()->with( 4 )->andReturn( 0 );
+
+		$result = $this->actions->mark_no_show_many( array( 1, 2, 3, 4, 4, 9, 0 ) );
+
+		// 4 lost a race (0 rows), 9 is missing, 0 and the duplicate are dropped.
+		$this->assertSame( array( 'marked' => 1, 'skipped' => 4 ), $result );
+	}
 }

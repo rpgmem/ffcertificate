@@ -29,11 +29,24 @@
      * `<body>`, outside the dashboard container that would otherwise provide
      * that scope.
      *
-     * @param {Object} apt Appointment row from the panel's own state.
+     * In reschedule mode (#2244) the same dialog says the booking is
+     * cancelled first and the calendar opens next; the reason is fixed, so
+     * the field is not drawn.
+     *
+     * @param {Object}  apt        Appointment row from the panel's own state.
+     * @param {boolean} reschedule Whether the dialog cancels to rebook.
      * @returns {jQuery}
      */
-    function buildModal(apt) {
+    function buildModal(apt, reschedule) {
         var s = ffcDashboard.strings;
+        var confirm = reschedule
+            ? window.FFC.buttonHtml({ label: s.rescheduleConfirmBtn, category: 'caution', icon: 'calendar', className: 'ffc-reschedule-confirm', attrs: { 'data-id': String(apt.id) } })
+            : window.FFC.buttonHtml({ label: s.cancelConfirmBtn, category: 'danger', icon: 'cross', className: 'ffc-cancel-confirm', attrs: { 'data-id': String(apt.id) } });
+        var reason = reschedule ? '' :
+            '<div class="ffc-form-group">' +
+                '<label for="ffc-cancel-reason">' + helpers.esc(s.cancelReasonLabel) + '</label>' +
+                '<textarea id="ffc-cancel-reason" rows="3"></textarea>' +
+            '</div>';
         var when = apt.appointment_date + (apt.start_time ? ' · ' + apt.start_time : '');
 
         var html = '' +
@@ -41,24 +54,22 @@
                 '<div class="ffc-modal-backdrop"></div>' +
                 '<div class="ffc-modal-content">' +
                     '<div class="ffc-modal-header">' +
-                        '<h3 class="ffc-modal-title" id="' + MODAL_ID + '-title">' + helpers.esc(s.cancelTitle) + '</h3>' +
+                        '<h3 class="ffc-modal-title" id="' + MODAL_ID + '-title">' + helpers.esc(reschedule ? s.rescheduleTitle : s.cancelTitle) + '</h3>' +
                         '<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="' + helpers.escAttr(s.close) + '" title="' + helpers.escAttr(s.close) + '"></button>' +
                     '</div>' +
                     '<div class="ffc-modal-body">' +
-                        '<p>' + helpers.esc(s.cancelIntro) + '</p>' +
+                        '<p>' + helpers.esc(reschedule ? s.rescheduleIntro : s.cancelIntro) + '</p>' +
+                        (reschedule && apt.reschedule_note ? window.FFC.notice('warning', 'warning', apt.reschedule_note, '', { role: 'note' }).outerHTML : '') +
                         '<dl class="ffc-cancel-summary">' +
                             '<dt>' + helpers.esc(s.cancelService) + '</dt>' +
                             '<dd>' + helpers.esc(apt.calendar_title) + '</dd>' +
                             (when ? '<dt>' + helpers.esc(s.cancelWhen) + '</dt><dd>' + helpers.esc(when) + '</dd>' : '') +
                         '</dl>' +
-                        '<div class="ffc-form-group">' +
-                            '<label for="ffc-cancel-reason">' + helpers.esc(s.cancelReasonLabel) + '</label>' +
-                            '<textarea id="ffc-cancel-reason" rows="3"></textarea>' +
-                        '</div>' +
+                        reason +
                     '</div>' +
                     '<div class="ffc-modal-footer">' +
                         window.FFC.buttonHtml({ label: s.cancelKeepBtn, category: 'neutral', icon: 'calendar-check', className: 'ffc-cancel-keep' }) +
-                        window.FFC.buttonHtml({ label: s.cancelConfirmBtn, category: 'danger', icon: 'cross', className: 'ffc-cancel-confirm', attrs: { 'data-id': String(apt.id) } }) +
+                        confirm +
                     '</div>' +
                 '</div>' +
             '</div>';
@@ -77,8 +88,9 @@
      * attributes — the list the user is looking at is already in memory.
      *
      * @param {number|string} appointmentId
+     * @param {boolean}       [reschedule] Open in reschedule mode.
      */
-    function openCancelDialog(appointmentId) {
+    function openCancelDialog(appointmentId, reschedule) {
         var rows = FFCDashboard.panels.appointments.state || [];
         var apt = null;
         for (var i = 0; i < rows.length; i++) {
@@ -92,9 +104,9 @@
         }
 
         closeModal();
-        var $modal = buildModal(apt);
+        var $modal = buildModal(apt, !!reschedule);
         $('body').append($modal);
-        $modal.find('#ffc-cancel-reason').trigger('focus');
+        $modal.find(reschedule ? '.ffc-cancel-keep' : '#ffc-cancel-reason').trigger('focus');
 
         $(document).on('keydown.ffcCancelModal', function (e) {
             if (e.key === 'Escape') {
@@ -106,10 +118,14 @@
     /**
      * Send the cancellation, with whatever reason was typed.
      *
+     * With `next`, the browser goes there once the booking is cancelled
+     * instead of reloading the list: rescheduling is cancel-then-book.
+     *
      * @param {number|string} appointmentId
      * @param {string}        reason
+     * @param {string}        [next] URL to open after the cancellation.
      */
-    function cancelAppointment(appointmentId, reason) {
+    function cancelAppointment(appointmentId, reason, next) {
         var payload = { appointment_id: appointmentId };
         if (reason) payload.reason = reason;
         if (ffcDashboard.viewAsUserId) payload.viewAsUserId = ffcDashboard.viewAsUserId;
@@ -117,6 +133,10 @@
         FFC.request('ffc_cancel_appointment', payload, { nonce: ffcDashboard.schedulingNonce })
             .then(function () {
                 closeModal();
+                if (next) {
+                    window.location.assign(next);
+                    return;
+                }
                 alert(ffcDashboard.strings.cancelSuccess);
                 var panel = FFCDashboard.panels.appointments;
                 panel.state = null;
@@ -172,6 +192,16 @@
             });
         }
 
+        if (apt.can_cancel && apt.reschedule_url) {
+            html += window.FFC.buttonHtml({
+                label: ffcDashboard.strings.reschedule,
+                category: 'caution',
+                icon: 'calendar',
+                className: 'ffc-reschedule-appointment',
+                attrs: { 'data-id': apt.id }
+            });
+        }
+
         if (apt.can_cancel) {
             html += window.FFC.buttonHtml({
                 label: ffcDashboard.strings.cancelAppointment,
@@ -209,6 +239,25 @@
             $(document).on('click', '.ffc-cancel-appointment', function (e) {
                 e.preventDefault();
                 openCancelDialog($(this).data('id'));
+            });
+
+            $(document).on('click', '.ffc-reschedule-appointment', function (e) {
+                e.preventDefault();
+                openCancelDialog($(this).data('id'), true);
+            });
+
+            $(document).on('click', '#' + MODAL_ID + ' .ffc-reschedule-confirm', function (e) {
+                e.preventDefault();
+                var id = $(this).data('id');
+                var rows = FFCDashboard.panels.appointments.state || [];
+                var next = '';
+                for (var i = 0; i < rows.length; i++) {
+                    if (String(rows[i].id) === String(id)) {
+                        next = rows[i].reschedule_url || '';
+                        break;
+                    }
+                }
+                cancelAppointment(id, ffcDashboard.strings.rescheduleReason, next);
             });
 
             // Delegated on `document` because the dialog is appended to

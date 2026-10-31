@@ -342,6 +342,124 @@ class UserAppointmentsRestControllerTest extends TestCase {
 	}
 
 	/**
+	 * Reschedule is cancel-then-book (#2244): a row that can be cancelled
+	 * carries the page that publishes its calendar, looked up once per
+	 * calendar; a calendar on no page carries none.
+	 */
+	public function test_reschedule_url_is_the_page_that_publishes_the_calendar(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$searches = 0;
+		Functions\when( 'get_posts' )->alias(
+			static function ( array $args ) use ( &$searches ) {
+				++$searches;
+				return '[ffc_self_scheduling' === $args['s'] ? array( 70 ) : array();
+			}
+		);
+		Functions\when( 'get_post_field' )->justReturn( 'Book here: [ffc_self_scheduling id="31"]' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/book/' );
+
+		$future = date( 'Y-m-d', strtotime( '+30 days' ) );
+		$row    = static fn( string $id, string $calendar ) => array(
+			'id'                 => $id,
+			'calendar_id'        => $calendar,
+			'appointment_date'   => $future,
+			'start_time'         => '14:00:00',
+			'status'             => 'confirmed',
+			'confirmation_token' => 'tok-' . $id,
+		);
+		$this->appointments = array( $row( '10', '2' ), $row( '11', '2' ), $row( '12', '3' ) );
+		$this->calendars    = array(
+			array( 'id' => '2', 'post_id' => '31', 'title' => 'Published', 'allow_cancellation' => '1' ),
+			array( 'id' => '3', 'post_id' => '32', 'title' => 'Not published', 'allow_cancellation' => '1' ),
+		);
+
+		$result = ( new UserAppointmentsRestController( 'ffc/v1' ) )->get_user_appointments( $this->make_request() );
+
+		$urls = array_column( $result['appointments'], 'reschedule_url', 'id' );
+		$this->assertSame( 'https://example.com/book/', $urls[10] );
+		$this->assertSame( 'https://example.com/book/', $urls[11] );
+		$this->assertSame( '', $urls[12], 'Calendar 32 is on no page: the page found embeds calendar 31.' );
+		$this->assertSame( 2, $searches, 'One page lookup per calendar, not per row.' );
+	}
+
+	/**
+	 * Rescheduling is measured by the interval rule from the person's other
+	 * appointment on the calendar (#2244); the row says so before anything is
+	 * cancelled. A cancelled row and another calendar's row do not count.
+	 */
+	public function test_reschedule_note_names_the_other_appointment_the_interval_rule_reads(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_posts' )->justReturn( array( 70 ) );
+		Functions\when( 'get_post_field' )->justReturn( '[ffc_self_scheduling id="31"]' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/book/' );
+
+		$row = static fn( string $id, string $calendar, string $date, string $status = 'confirmed' ) => array(
+			'id'                 => $id,
+			'calendar_id'        => $calendar,
+			'appointment_date'   => $date,
+			'start_time'         => '14:00:00',
+			'status'             => $status,
+			'confirmation_token' => 'tok-' . $id,
+		);
+		$this->appointments = array(
+			$row( '10', '2', '2999-01-10' ),
+			$row( '11', '2', '2999-01-11' ),
+			$row( '12', '2', '2999-01-12', 'cancelled' ),
+			$row( '13', '3', '2999-01-13' ),
+		);
+		$this->calendars    = array(
+			array( 'id' => '2', 'post_id' => '31', 'title' => 'With interval', 'allow_cancellation' => '1', 'minimum_interval_between_bookings' => '24' ),
+			array( 'id' => '3', 'post_id' => '31', 'title' => 'Without', 'allow_cancellation' => '1', 'minimum_interval_between_bookings' => '0' ),
+		);
+
+		$result = ( new UserAppointmentsRestController( 'ffc/v1' ) )->get_user_appointments( $this->make_request() );
+		$notes  = array_column( $result['appointments'], 'reschedule_note', 'id' );
+
+		$this->assertStringContainsString( 'January 11, 2999', $notes[10], 'Row 10 is measured from row 11, the highest other id.' );
+		$this->assertStringContainsString( '24', $notes[10] );
+		$this->assertStringContainsString( 'January 10, 2999', $notes[11], 'Row 12 is cancelled, so row 11 is measured from row 10.' );
+		$this->assertSame( '', $notes[13], 'No interval on that calendar.' );
+	}
+
+	/**
+	 * A row that cannot be cancelled cannot be rescheduled either, and no
+	 * page is searched for it.
+	 */
+	public function test_no_reschedule_url_where_cancelling_is_not_allowed(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		// The participant holds the capability but is not an administrator,
+		// so the calendar's own cancellation rule decides.
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'manage_options' !== $cap );
+		$searched = false;
+		Functions\when( 'get_posts' )->alias(
+			static function () use ( &$searched ) {
+				$searched = true;
+				return array();
+			}
+		);
+
+		$this->appointments = array(
+			array(
+				'id'                 => '10',
+				'calendar_id'        => '2',
+				'appointment_date'   => date( 'Y-m-d', strtotime( '+30 days' ) ),
+				'start_time'         => '14:00:00',
+				'status'             => 'confirmed',
+				'confirmation_token' => 'tok',
+			),
+		);
+		$this->calendars    = array( array( 'id' => '2', 'post_id' => '31', 'title' => 'No cancelling', 'allow_cancellation' => '0' ) );
+
+		$result = ( new UserAppointmentsRestController( 'ffc/v1' ) )->get_user_appointments( $this->make_request() );
+
+		$this->assertFalse( $result['appointments'][0]['can_cancel'] );
+		$this->assertSame( '', $result['appointments'][0]['reschedule_url'] );
+		$this->assertFalse( $searched );
+	}
+
+	/**
 	 * "View as user" gets no receipt link (#2244): it carries the person's
 	 * token, which opens their receipt unmasked and cancels as a guest.
 	 */

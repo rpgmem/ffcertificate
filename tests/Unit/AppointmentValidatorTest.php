@@ -593,13 +593,14 @@ class AppointmentValidatorTest extends TestCase {
 	public function test_validate_interval_error_bubbles_up(): void {
 		$calendar                                        = $this->permissive_calendar();
 		$calendar['minimum_interval_between_bookings']   = 24;
-		$soon_ts                                         = time() + 3600;
+		// The requested slot is 2030-01-15 10:00; the last booked one is two
+		// hours before it (#2244).
 		$this->appointmentRepo->shouldReceive( 'findByUserId' )->andReturn( array(
 			array(
 				'status'           => 'confirmed',
 				'calendar_id'      => 1,
-				'appointment_date' => gmdate( 'Y-m-d', $soon_ts ),
-				'start_time'       => gmdate( 'H:i:s', $soon_ts ),
+				'appointment_date' => '2030-01-15',
+				'start_time'       => '08:00:00',
 			),
 		) );
 		$data            = $this->valid_data();
@@ -730,6 +731,43 @@ class AppointmentValidatorTest extends TestCase {
 		$result = $this->validator->check_booking_interval( 1, 1, 24 );
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'booking_too_soon', $result->get_error_code() );
+	}
+
+	/**
+	 * The requested slot, not now, is compared with the last booked
+	 * appointment (#2244): a booking a week away from it passes even when
+	 * that appointment is tomorrow, and one inside the interval of a far
+	 * future appointment is refused.
+	 */
+	public function test_interval_compares_the_requested_slot_with_the_last_booking(): void {
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		$this->appointmentRepo->shouldReceive( 'findByUserId' )->andReturn(
+			array(
+				array( 'id' => 5, 'status' => 'confirmed', 'calendar_id' => 1, 'appointment_date' => '2030-03-10', 'start_time' => '10:00:00' ),
+			)
+		);
+
+		$this->assertTrue( $this->validator->check_booking_interval( 1, 1, 24, '2030-03-17', '10:00' ) );
+		$refused = $this->validator->check_booking_interval( 1, 1, 24, '2030-03-11', '09:00' );
+		$this->assertInstanceOf( \WP_Error::class, $refused );
+		$this->assertSame( 'booking_too_soon', $refused->get_error_code() );
+		$this->assertTrue( $this->validator->check_booking_interval( 1, 1, 24, '2030-03-11', '10:00' ), 'Exactly the interval apart is allowed.' );
+	}
+
+	public function test_interval_uses_only_the_last_booked_appointment(): void {
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		$this->appointmentRepo->shouldReceive( 'findByUserId' )->andReturn(
+			array(
+				array( 'id' => 9, 'status' => 'confirmed', 'calendar_id' => 1, 'appointment_date' => '2030-06-01', 'start_time' => '10:00:00' ),
+				array( 'id' => 4, 'status' => 'completed', 'calendar_id' => 1, 'appointment_date' => '2030-03-10', 'start_time' => '10:00:00' ),
+				array( 'id' => 12, 'status' => 'cancelled', 'calendar_id' => 1, 'appointment_date' => '2030-03-10', 'start_time' => '11:00:00' ),
+			)
+		);
+
+		// An older appointment the same day does not count; the cancelled
+		// newest one neither — a reschedule is never held up by it.
+		$this->assertTrue( $this->validator->check_booking_interval( 1, 1, 24, '2030-03-10', '14:00' ) );
+		$this->assertInstanceOf( \WP_Error::class, $this->validator->check_booking_interval( 1, 1, 24, '2030-06-01', '15:00' ) );
 	}
 
 	public function test_interval_no_recent_returns_true(): void {

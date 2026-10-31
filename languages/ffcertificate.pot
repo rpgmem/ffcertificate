@@ -19443,12 +19443,6 @@ msgstr ""
 msgid "You (%1$s) are viewing the dashboard as: %2$s"
 msgstr ""
 
-#. %1$d: number of hours, %2$s: next available date/time
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:439
-#, php-format
-msgid "You already have an appointment scheduled within the next %1$d hours. You can book again after %2$s."
-msgstr ""
-
 #: includes/security/class-ffc-rate-limit-checker.php:74 includes/settings/tabs/class-ffc-tab-rate-limit.php:74
 msgid "You already have {count} certificates."
 msgstr ""
@@ -22682,9 +22676,6 @@ msgid "Reveal the decrypted CPF / RF / email, and the IP on the edit screen, on 
 msgstr ""
 
 msgid "Minimum interval between bookings"
-msgstr ""
-
-msgid "Stops a user from booking again within this many hours of their last booking (default 24; 0 disables it)."
 msgstr ""
 
 msgid "Business-hours restrictions"
@@ -30528,4 +30519,59 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php
 msgid "This calendar has bookings: a change to the duration, the break or the working hours that would move or remove the slot of an open appointment is refused on save, and the appointments that hold it are listed."
+msgstr ""
+
+#. translators: 1: number marked, 2: number skipped.
+#: includes/self-scheduling/views/appointments-list.php:80
+msgid "%1$d marked as no-show; %2$d skipped (only confirmed appointments whose date has come can be marked)."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-cancellation-handler.php:336
+msgid "Cancel and book a new time"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:153
+msgid "Mark as no-show"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:300
+msgid "Reschedule"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:301
+msgid "Reschedule appointment"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-cancellation-handler.php:267
+msgid "Rescheduled by the participant"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-cancellation-handler.php:341
+msgid "This appointment is cancelled first, then the calendar opens so you can pick a new time. The old time is released at once and may be taken by someone else."
+msgstr ""
+
+#. translators: 1: date and time of the last appointment, 2: minimum hours between appointments.
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:607
+msgid "Your last appointment on this calendar is on %1$s. A new one must be at least %2$d hours before or after it."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:46
+msgid "A new booking must start at least this many hours before or after the person's last booking on the same calendar (default 24; 0 disables it). Cancelled bookings do not count, so cancelling to rebook is never blocked by the old time."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:64
+msgid "Mark as no-show in the bulk actions does the same for several rows at once; a selected row that is not confirmed, or whose date has not come, is skipped and counted in the notice."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:62
+msgid "Wherever cancelling is allowed and the calendar is published on a page, the dashboard offers Reschedule and the cancellation link offers Cancel and book a new time: the appointment is cancelled with the reason \"Rescheduled by the participant\" (unless the person typed one) and the calendar's page opens to pick a new time. The old time is released at once, so it is not held for the new booking."
+msgstr ""
+
+#. translators: 1: date and time of the person's other appointment, 2: minimum hours between appointments
+#: includes/api/class-ffc-user-appointments-rest-controller.php:300
+msgid "You also have an appointment on this calendar on %1$s. The new time must be at least %2$d hours before or after it."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:62
+msgid "When the calendar sets a minimum interval and the person holds another appointment on it, the dashboard's Reschedule dialog names that appointment first, because the new time is measured from it."
 msgstr ""

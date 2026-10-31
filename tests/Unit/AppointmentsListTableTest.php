@@ -224,6 +224,15 @@ class AppointmentsListTableTest extends TestCase {
 		return $ref->invokeArgs( $table, $args );
 	}
 
+	public function test_bulk_no_show_is_offered_to_the_manage_capability_only(): void {
+		$table = new AppointmentsListTable();
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$this->assertSame( array( 'bulk_no_show' => 'Mark as no-show' ), $this->call_protected( $table, 'get_bulk_actions' ) );
+
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$this->assertSame( array(), $this->call_protected( $table, 'get_bulk_actions' ) );
+	}
+
 	public function test_get_columns_declares_expected_keys(): void {
 		$table = new AppointmentsListTable();
 		$cols  = $table->get_columns();
