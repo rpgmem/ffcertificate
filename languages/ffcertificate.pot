@@ -31036,3 +31036,79 @@ msgstr[1] ""
 #: includes/settings/views/documentation/feature-recruitment.php
 msgid "Calling one candidate opens one dialog with the date and time to assume, the justification when the call skips a higher-ranked candidate, and, under the ask send mode, whether to e-mail the candidate; the date and time are remembered for the next call. A date that is already over is accepted, so a call made by phone can be recorded afterwards, but nothing is e-mailed for it: the dialog says so and drops the e-mail option, and a bulk call does the same. Cancel call, Reopen and Undo decision open the same dialog with a required, audited reason. Deleting an adjutancy or a reason that is still in use is refused with a notice that says why."
 msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Called by"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Calls of this notice"
+msgstr ""
+
+#. translators: %s: date and time
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+#, php-format
+msgid "Cancelled on %s"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Clear the selection"
+msgstr ""
+
+#. translators: %d: user ID
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+#, php-format
+msgid "Deleted user #%d"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Every call made on this notice, newest first, with who made it and who cancelled it."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Every call made on this notice, newest first."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Filter by status"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "See who called"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Show who made and who cancelled each call on the notice screen."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "The definitive list shows, for each row with a call in force, the date and time to assume and when the call was made, and who made it to a WordPress administrator or the FFC Recruitment - Administrator role. Above it, one link per status gives the count of rows in that status under the other filters and narrows the list to it. Checking every waiting row of a page offers to extend the selection to the waiting rows of every page, so a bulk call is not limited to one page. Below the lists, the Calls record lists every call made on the notice, newest first, cancelled ones included, with the out-of-order justification and, for a cancelled call, when and why it was cancelled; who made or cancelled it is shown only to the same two roles."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "see who made and who cancelled each call, on the definitive list and in the Calls record. Held by the FFC Recruitment - Administrator role and by WordPress administrators."
+msgstr ""
+
+#. translators: %s: number of waiting rows on this page
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+#, php-format
+msgid "The %s waiting row on this page is selected."
+msgid_plural "All %s waiting rows on this page are selected."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of waiting rows on every page
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+#, php-format
+msgid "Select the %s waiting row on every page"
+msgid_plural "Select all %s waiting rows on every page"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of waiting rows on every page
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+#, php-format
+msgid "The %s waiting row on every page is selected."
+msgid_plural "All %s waiting rows on every page are selected."
+msgstr[0] ""
+msgstr[1] ""

@@ -152,6 +152,9 @@ class CapabilityManager {
 		'ffc_import_recruitment',
 		'ffc_call_recruitment',
 		'ffc_view_recruitment_pii',
+		// Who made and cancelled each call (#2245): the module's Administrator
+		// tier and WordPress administrators only.
+		'ffc_view_recruitment_history',
 		'ffc_manage_recruitment_settings',
 		'ffc_manage_recruitment_reasons',
 
@@ -1102,7 +1105,7 @@ class CapabilityManager {
 			),
 			'ffc_recruitment_admin'        => array(
 				'label' => __( 'FFC Recruitment - Administrator', 'ffcertificate' ),
-				'caps'  => array_merge( $recruitment_manager, array( 'ffc_view_recruitment_settings', 'ffc_manage_recruitment_settings' ) ),
+				'caps'  => array_merge( $recruitment_manager, array( 'ffc_view_recruitment_settings', 'ffc_manage_recruitment_settings', 'ffc_view_recruitment_history' ) ),
 			),
 
 			// ── Short URLs ───────────────────────────────────────────────

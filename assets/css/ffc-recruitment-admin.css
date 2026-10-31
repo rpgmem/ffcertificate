@@ -354,3 +354,32 @@
     outline: 2px solid var(--ffc-danger);
     outline-offset: 2px;
 }
+
+/* Status filter above the definitive list (#2245). */
+.ffc-rec-status-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
+    margin: 0 0 var(--ffc-spacing-sm);
+    padding: 0;
+    list-style: none;
+}
+
+.ffc-rec-status-filter a.current {
+    font-weight: 600;
+    color: var(--ffc-text);
+    text-decoration: none;
+}
+
+.ffc-rec-status-count {
+    color: var(--ffc-text-muted);
+}
+
+/* "Select all across pages" prompt of the definitive list (#2245). */
+.ffc-rec-select-all-pages {
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
+    border-radius: var(--ffc-radius-sm);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+    margin-bottom: var(--ffc-spacing-sm);
+}

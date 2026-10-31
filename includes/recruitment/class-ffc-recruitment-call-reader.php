@@ -30,6 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 6.12.0
  *
  * @phpstan-type CallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: numeric-string|int, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: numeric-string|int|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string}
+ * @phpstan-type NoticeCallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: numeric-string|int, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: numeric-string|int|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string, candidate_id: numeric-string, adjutancy_id: numeric-string, rank: numeric-string}
  */
 class RecruitmentCallReader {
 
@@ -196,6 +197,36 @@ class RecruitmentCallReader {
 		 */
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The argument is the string $wpdb->prepare() returned above; the sniff cannot follow a prepared string across an assignment.
 		$results = $wpdb->get_results( $prepared );
+
+		return is_array( $results ) ? $results : array();
+	}
+
+	/**
+	 * Every call of a notice, cancelled ones included, newest first, with the
+	 * classification it was made on (#2245): the record of who called whom.
+	 *
+	 * @param int $notice_id Notice ID.
+	 * @return list<NoticeCallRow>
+	 */
+	public static function get_for_notice( int $notice_id ): array {
+		if ( $notice_id <= 0 ) {
+			return array();
+		}
+		$wpdb = self::db();
+
+		/**
+		 * Cast wpdb results to typed shape.
+		 *
+		 * @var list<NoticeCallRow>|null $results
+		 */
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT c.*, cl.candidate_id, cl.adjutancy_id, cl.rank FROM %i c INNER JOIN %i cl ON cl.id = c.classification_id WHERE cl.notice_id = %d ORDER BY c.called_at DESC, c.id DESC',
+				self::get_table_name(),
+				$wpdb->prefix . 'ffc_recruitment_classification',
+				$notice_id
+			)
+		);
 
 		return is_array( $results ) ? $results : array();
 	}

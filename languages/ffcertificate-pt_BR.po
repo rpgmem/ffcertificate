@@ -31119,3 +31119,79 @@ msgstr[1] "%d motivos não foram excluídos: uma classificação ainda os usa."
 #: includes/settings/views/documentation/feature-recruitment.php
 msgid "Calling one candidate opens one dialog with the date and time to assume, the justification when the call skips a higher-ranked candidate, and, under the ask send mode, whether to e-mail the candidate; the date and time are remembered for the next call. A date that is already over is accepted, so a call made by phone can be recorded afterwards, but nothing is e-mailed for it: the dialog says so and drops the e-mail option, and a bulk call does the same. Cancel call, Reopen and Undo decision open the same dialog with a required, audited reason. Deleting an adjutancy or a reason that is still in use is refused with a notice that says why."
 msgstr "Convocar um candidato abre uma única caixa de diálogo com a data e o horário para assumir, a justificativa quando a convocação pula um candidato mais bem classificado e, no modo de envio \"perguntar\", se o candidato deve receber e-mail; a data e o horário ficam lembrados para a próxima convocação. Uma data que já passou é aceita, para que uma convocação feita por telefone possa ser registrada depois, mas nenhum e-mail é enviado por ela: a caixa avisa e remove a opção de e-mail, e a convocação em lote faz o mesmo. Cancelar convocação, Reabrir e Desfazer decisão abrem a mesma caixa com um motivo obrigatório e auditado. Excluir uma atribuição ou um motivo que ainda está em uso é recusado com um aviso que diz o porquê."
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Called by"
+msgstr "Convocado por"
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Calls of this notice"
+msgstr "Convocações deste edital"
+
+#. translators: %s: date and time
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+#, php-format
+msgid "Cancelled on %s"
+msgstr "Cancelada em %s"
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Clear the selection"
+msgstr "Limpar a seleção"
+
+#. translators: %d: user ID
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+#, php-format
+msgid "Deleted user #%d"
+msgstr "Usuário excluído #%d"
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Every call made on this notice, newest first, with who made it and who cancelled it."
+msgstr "Todas as convocações feitas neste edital, da mais recente para a mais antiga, com quem fez e quem cancelou cada uma."
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Every call made on this notice, newest first."
+msgstr "Todas as convocações feitas neste edital, da mais recente para a mais antiga."
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Filter by status"
+msgstr "Filtrar por status"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "See who called"
+msgstr "Ver quem convocou"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Show who made and who cancelled each call on the notice screen."
+msgstr "Mostra quem fez e quem cancelou cada convocação na tela do edital."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "The definitive list shows, for each row with a call in force, the date and time to assume and when the call was made, and who made it to a WordPress administrator or the FFC Recruitment - Administrator role. Above it, one link per status gives the count of rows in that status under the other filters and narrows the list to it. Checking every waiting row of a page offers to extend the selection to the waiting rows of every page, so a bulk call is not limited to one page. Below the lists, the Calls record lists every call made on the notice, newest first, cancelled ones included, with the out-of-order justification and, for a cancelled call, when and why it was cancelled; who made or cancelled it is shown only to the same two roles."
+msgstr "A lista definitiva mostra, para cada linha com uma convocação em vigor, a data e o horário para assumir e quando a convocação foi feita, e quem a fez para um administrador do WordPress ou para o papel FFC Recruitment - Administrator. Acima dela, um link por status dá a quantidade de linhas naquele status sob os demais filtros e restringe a lista a ele. Marcar todas as linhas aguardando de uma página oferece estender a seleção às linhas aguardando de todas as páginas, para que a convocação em lote não fique limitada a uma página. Abaixo das listas, o registro de Convocações lista todas as convocações feitas no edital, da mais recente para a mais antiga, incluindo as canceladas, com a justificativa de fora de ordem e, para uma convocação cancelada, quando e por que foi cancelada; quem a fez ou cancelou aparece apenas para os mesmos dois papéis."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "see who made and who cancelled each call, on the definitive list and in the Calls record. Held by the FFC Recruitment - Administrator role and by WordPress administrators."
+msgstr "ver quem fez e quem cancelou cada convocação, na lista definitiva e no registro de Convocações. Concedido ao papel FFC Recruitment - Administrator e aos administradores do WordPress."
+
+#. translators: %s: number of waiting rows on this page
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+#, php-format
+msgid "The %s waiting row on this page is selected."
+msgid_plural "All %s waiting rows on this page are selected."
+msgstr[0] "A %s linha aguardando desta página está selecionada."
+msgstr[1] "Todas as %s linhas aguardando desta página estão selecionadas."
+
+#. translators: %s: number of waiting rows on every page
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+#, php-format
+msgid "Select the %s waiting row on every page"
+msgid_plural "Select all %s waiting rows on every page"
+msgstr[0] "Selecionar a %s linha aguardando de todas as páginas"
+msgstr[1] "Selecionar todas as %s linhas aguardando de todas as páginas"
+
+#. translators: %s: number of waiting rows on every page
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+#, php-format
+msgid "The %s waiting row on every page is selected."
+msgid_plural "All %s waiting rows on every page are selected."
+msgstr[0] "A %s linha aguardando de todas as páginas está selecionada."
+msgstr[1] "Todas as %s linhas aguardando de todas as páginas estão selecionadas."
