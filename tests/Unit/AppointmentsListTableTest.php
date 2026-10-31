@@ -11,6 +11,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\SelfScheduling\AppointmentsListTable;
 use FreeFormCertificate\Tests\Support\CallLog;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for the self-scheduling appointments WP_List_Table.
@@ -517,7 +518,7 @@ class AppointmentsListTableTest extends TestCase {
 	 * @return array<string, array{0: array<string, string>, 1: string}>
 	 */
 	public function provider_list_filters(): array {
-		$cpf_hash   = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', '12345678909' );
+		$cpf_hash   = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A );
 		$email_hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'email', 'ana@example.com' );
 
 		return array(
@@ -525,7 +526,7 @@ class AppointmentsListTableTest extends TestCase {
 			'from only'        => array( array( 'date_from' => '2026-05-10' ), "WHERE appointment_date >= '2026-05-10'" ),
 			'bad date dropped' => array( array( 'date_from' => '10/05/2026', 's' => 'Ana' ), "WHERE name LIKE '%Ana%'" ),
 			'bad status'       => array( array( 'status' => 'bogus', 's' => 'Ana' ), "WHERE name LIKE '%Ana%'" ),
-			'cpf with dots'    => array( array( 's' => '123.456.789-09' ), "WHERE (cpf_hash = '{$cpf_hash}' OR rf_hash = '{$cpf_hash}' OR id = 12345678909)" ),
+			'cpf with dots'    => array( array( 's' => vsprintf( '%s.%s.%s-%s', str_split( Identifiers::CPF_A, 3 ) ) ), "WHERE (cpf_hash = '{$cpf_hash}' OR rf_hash = '{$cpf_hash}' OR id = " . Identifiers::CPF_A . ')' ),
 			'email'            => array( array( 's' => 'ana@example.com' ), "WHERE email_hash = '{$email_hash}'" ),
 		);
 	}
