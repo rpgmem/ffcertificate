@@ -26605,9 +26605,6 @@ msgstr "Final"
 msgid "Final classification first; a preliminary one may still change."
 msgstr "Classificação final primeiro; a preliminar ainda pode mudar."
 
-#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
-msgid "Hired, withdrew, did not show up, or the presentation deadline passed."
-msgstr "Contratado, desistiu, não compareceu ou prazo de apresentação encerrado."
 
 #: includes/recruitment/class-ffc-recruitment-dashboard-section.php
 #, php-format
@@ -30911,3 +30908,15 @@ msgstr "Importe primeiro a lista preliminar: a lista definitiva só é importada
 #: templates/admin/recruitment/notice-edit/csv-import-section.php
 msgid "The definitive list can be imported once the preliminary list has been imported."
 msgstr "A lista definitiva pode ser importada depois que a lista preliminar for importada."
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Notice closed"
+msgstr "Edital encerrado"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Hired, withdrew, did not show up, the presentation deadline passed, or the notice was closed."
+msgstr "Contratado, desistiu, não compareceu, prazo de apresentação encerrado ou edital encerrado."
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "Closed shows each row's position and score, as Waiting does. When a notice is closed, its rows leave Called and Waiting and are listed under Closed. A row with no result yet reads \"Notice closed\"; a recorded result or a passed deadline keeps its own badge. Only the label changes: the candidate's status in the notice stays as it was."
+msgstr "Encerradas mostra a posição e a pontuação de cada linha, como Aguardando convocação. Quando um edital é encerrado, suas linhas saem de Convocado e Aguardando convocação e passam para Encerradas. Uma linha ainda sem resultado mostra \"Edital encerrado\"; um resultado registrado ou um prazo vencido mantém o próprio selo. Só o rótulo muda: o status do candidato no edital continua o mesmo."

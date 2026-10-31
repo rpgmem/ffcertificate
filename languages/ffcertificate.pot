@@ -26523,9 +26523,6 @@ msgstr ""
 msgid "Final classification first; a preliminary one may still change."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
-msgid "Hired, withdrew, did not show up, or the presentation deadline passed."
-msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-dashboard-section.php
 #, php-format
@@ -30827,4 +30824,16 @@ msgstr ""
 
 #: templates/admin/recruitment/notice-edit/csv-import-section.php
 msgid "The definitive list can be imported once the preliminary list has been imported."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Notice closed"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Hired, withdrew, did not show up, the presentation deadline passed, or the notice was closed."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "Closed shows each row's position and score, as Waiting does. When a notice is closed, its rows leave Called and Waiting and are listed under Closed. A row with no result yet reads \"Notice closed\"; a recorded result or a passed deadline keeps its own badge. Only the label changes: the candidate's status in the notice stays as it was."
 msgstr ""
