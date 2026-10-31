@@ -242,7 +242,8 @@ class AudienceAdminPage {
 			self::MENU_SLUG,
 			__( 'Settings', 'ffcertificate' ),
 			__( 'Settings', 'ffcertificate' ),
-			'ffc_view_audiences',
+			// A Personal Calendars Setup holder reaches it for the global holidays (#2244).
+			AudienceAdminSettings::menu_capability(),
 			self::MENU_SLUG . '-settings',
 			array( $this->settings, 'render_page' )
 		);

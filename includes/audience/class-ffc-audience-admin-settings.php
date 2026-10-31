@@ -43,15 +43,69 @@ class AudienceAdminSettings {
 	private AudienceAdminImport $import;
 
 	/**
+	 * The personal-calendar appointments a global holiday closes (#2244).
+	 *
+	 * @var \FreeFormCertificate\SelfScheduling\ClosedDayAppointments|null
+	 */
+	private $closed_appointments;
+
+	/**
 	 * Constructor
 	 *
-	 * @param string              $menu_slug Menu slug prefix.
-	 * @param AudienceAdminImport $import    Import & Export renderer, embedded
-	 *                                       as the 4th tab.
+	 * @param string                                                         $menu_slug           Menu slug prefix.
+	 * @param AudienceAdminImport                                            $import              Import & Export renderer, embedded
+	 *                                                                                            as the 4th tab.
+	 * @param \FreeFormCertificate\SelfScheduling\ClosedDayAppointments|null $closed_appointments Appointments of a closed day; built on first use when null.
 	 */
-	public function __construct( string $menu_slug, AudienceAdminImport $import ) {
-		$this->menu_slug = $menu_slug;
-		$this->import    = $import;
+	public function __construct( string $menu_slug, AudienceAdminImport $import, $closed_appointments = null ) {
+		$this->menu_slug           = $menu_slug;
+		$this->import              = $import;
+		$this->closed_appointments = $closed_appointments;
+	}
+
+	/**
+	 * Whether the current user may add, edit and remove global holidays:
+	 * an audience manager, or a holder of the Personal Calendars Setup
+	 * capability, since a holiday closes both kinds of calendar (#2244).
+	 *
+	 * @return bool
+	 */
+	public static function can_manage_holidays(): bool {
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' )
+			|| \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_calendars' );
+	}
+
+	/**
+	 * Whether the current user reaches the audience half of this screen.
+	 * A Personal Calendars Setup holder without it sees the General tab's
+	 * status and holidays only.
+	 *
+	 * @return bool
+	 */
+	public static function can_view_audiences(): bool {
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_audiences' );
+	}
+
+	/**
+	 * The capability the Settings submenu asks for: the audience one, or the
+	 * Personal Calendars Setup one for a user who holds only that.
+	 *
+	 * @return string
+	 */
+	public static function menu_capability(): string {
+		return ! self::can_view_audiences() && \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_calendars' ) ? 'ffc_manage_calendars' : 'ffc_view_audiences';
+	}
+
+	/**
+	 * The appointments of a closed day.
+	 *
+	 * @return \FreeFormCertificate\SelfScheduling\ClosedDayAppointments
+	 */
+	private function closed_appointments(): \FreeFormCertificate\SelfScheduling\ClosedDayAppointments {
+		if ( null === $this->closed_appointments ) {
+			$this->closed_appointments = new \FreeFormCertificate\SelfScheduling\ClosedDayAppointments();
+		}
+		return $this->closed_appointments;
 	}
 
 	/**
@@ -101,6 +155,10 @@ class AudienceAdminSettings {
 			},
 			array( 'general' )
 		);
+		if ( ! self::can_view_audiences() ) {
+			// A Personal Calendars Setup holder reaches the holidays only (#2244).
+			$tabs = array_intersect_key( $tabs, array( 'general' => true ) );
+		}
 		if ( ! isset( $tabs[ $active_tab ] ) ) {
 			$active_tab = 'general';
 		}
@@ -185,6 +243,7 @@ class AudienceAdminSettings {
 		$calendars_count       = wp_count_posts( 'ffc_self_scheduling' );
 		$published             = isset( $calendars_count->publish ) ? $calendars_count->publish : 0;
 		$audience_active_count = absint( AudienceScheduleRepository::count( array( 'status' => 'active' ) ) );
+		$ffc_audience_access   = self::can_view_audiences();
 
 		include FFC_PLUGIN_DIR . 'templates/admin/audience/general-tab.php';
 	}
@@ -333,10 +392,11 @@ class AudienceAdminSettings {
 	 * Add a global holiday (#2243).
 	 *
 	 * A date already in the list is refused with a message; the screen used
-	 * to report it added. A date that holds active audience bookings on any
-	 * calendar is not saved until the request confirms it: the General tab
-	 * lists those bookings, and the confirmation saves the date and cancels
-	 * each of them, telling their participants.
+	 * to report it added. A date that holds active audience bookings, or open
+	 * personal-calendar appointments (#2244), on any calendar is not saved
+	 * until the request confirms it: the General tab lists them, and the
+	 * confirmation saves the date and cancels each of them, telling the
+	 * people where the calendar sends that e-mail.
 	 *
 	 * @param string $date        Date (Y-m-d).
 	 * @param string $description Description, may be empty.
@@ -356,8 +416,9 @@ class AudienceAdminSettings {
 			}
 		}
 
-		$bookings = AudienceClosedDay::bookings_on( $date );
-		if ( ! empty( $bookings ) && ! AudienceClosedDay::confirmed() ) {
+		$bookings     = AudienceClosedDay::bookings_on( $date );
+		$appointments = $this->closed_appointments()->on( $date );
+		if ( ( ! empty( $bookings ) || ! empty( $appointments ) ) && ! AudienceClosedDay::confirmed() ) {
 			AudienceClosedDay::hold(
 				$date,
 				$kind,
@@ -369,7 +430,8 @@ class AudienceAdminSettings {
 					'global_holiday_date'        => $date,
 					'global_holiday_description' => $description,
 					'global_holiday_kind'        => $kind,
-				)
+				),
+				$appointments
 			);
 			return null;
 		}
@@ -381,9 +443,13 @@ class AudienceAdminSettings {
 		);
 		update_option( 'ffc_global_holidays', $holidays );
 
-		$cancelled = AudienceClosedDay::cancel_bookings( $bookings, $date, $description );
+		$cancelled   = AudienceClosedDay::cancel_bookings( $bookings, $date, $description );
+		$appointment = $this->closed_appointments()->cancel( $appointments, AudienceClosedDay::reason( $date, $description ) );
 
-		return 0 === $cancelled ? 'holiday_added' : 'holiday_added_cancelled&cancelled=' . $cancelled;
+		if ( 0 === $cancelled && 0 === $appointment ) {
+			return 'holiday_added';
+		}
+		return 'holiday_added_cancelled&cancelled=' . $cancelled . '&appointments=' . $appointment;
 	}
 
 	/**
@@ -410,14 +476,7 @@ class AudienceAdminSettings {
 			} elseif ( 'holiday_exists' === $message ) {
 				add_settings_error( 'ffc_audience', 'ffc_message', __( 'Not added: that date is already a global holiday.', 'ffcertificate' ), 'error' );
 			} elseif ( 'holiday_added_cancelled' === $message ) {
-				$cancelled = RequestInput::get_get_int( 'cancelled' );
-				add_settings_error(
-					'ffc_audience',
-					'ffc_message',
-					/* translators: %d: number of bookings cancelled */
-					sprintf( _n( 'Holiday added. %d booking was cancelled and its participants were e-mailed.', 'Holiday added. %d bookings were cancelled and their participants were e-mailed.', $cancelled, 'ffcertificate' ), $cancelled ),
-					'success'
-				);
+				add_settings_error( 'ffc_audience', 'ffc_message', self::cancelled_notice( RequestInput::get_get_int( 'cancelled' ), RequestInput::get_get_int( 'appointments' ) ), 'success' );
 			}
 		}
 
@@ -456,7 +515,7 @@ class AudienceAdminSettings {
 				return;
 			}
 
-			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+			if ( ! self::can_manage_holidays() ) {
 				return;
 			}
 
@@ -483,7 +542,7 @@ class AudienceAdminSettings {
 				return;
 			}
 
-			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+			if ( ! self::can_manage_holidays() ) {
 				return;
 			}
 
@@ -511,7 +570,7 @@ class AudienceAdminSettings {
 				return;
 			}
 
-			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+			if ( ! self::can_manage_holidays() ) {
 				return;
 			}
 
@@ -529,6 +588,30 @@ class AudienceAdminSettings {
 			wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=general&message=holiday_deleted' ) );
 			exit;
 		}
+	}
+
+	/**
+	 * The notice after a holiday cancelled what its day held: the audience
+	 * bookings, the personal-calendar appointments (#2244), or both.
+	 *
+	 * @param int $bookings     Audience bookings cancelled.
+	 * @param int $appointments Personal-calendar appointments cancelled.
+	 * @return string
+	 */
+	private static function cancelled_notice( int $bookings, int $appointments ): string {
+		$parts = array();
+		if ( $bookings > 0 ) {
+			/* translators: %d: number of bookings cancelled */
+			$parts[] = sprintf( _n( 'Holiday added. %d booking was cancelled and its participants were e-mailed.', 'Holiday added. %d bookings were cancelled and their participants were e-mailed.', $bookings, 'ffcertificate' ), $bookings );
+		}
+		if ( $appointments > 0 ) {
+			$parts[] = 0 === $bookings
+				/* translators: %d: number of personal-calendar appointments cancelled */
+				? sprintf( _n( 'Holiday added. %d personal calendar appointment was cancelled.', 'Holiday added. %d personal calendar appointments were cancelled.', $appointments, 'ffcertificate' ), $appointments )
+				/* translators: %d: number of personal-calendar appointments cancelled */
+				: sprintf( _n( '%d personal calendar appointment was cancelled.', '%d personal calendar appointments were cancelled.', $appointments, 'ffcertificate' ), $appointments );
+		}
+		return array() === $parts ? __( 'Holiday added successfully.', 'ffcertificate' ) : implode( ' ', $parts );
 	}
 
 	/**

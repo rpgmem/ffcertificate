@@ -998,6 +998,35 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertStringNotContainsString( 'style=', $html );
 	}
 
+	/**
+	 * A global holiday also lists the personal-calendar appointments it
+	 * cancels (#2244); a day with appointments only shows no booking table.
+	 */
+	public function test_the_confirmation_lists_personal_appointments_without_bookings(): void {
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts ) => gmdate( $format, $ts ) );
+		\FreeFormCertificate\Audience\AudienceClosedDay::hold(
+			'2026-12-25',
+			'holiday',
+			'Xmas',
+			array(),
+			array( 'ffc_action' => 'add_global_holiday' ),
+			array( array( 'id' => 8, 'start_time' => '09:00:00', 'end_time' => '09:30:00', 'calendar_title' => 'Clinic' ) )
+		);
+
+		ob_start();
+		\FreeFormCertificate\Audience\AudienceClosedDay::render_pending();
+		$html = (string) ob_get_clean();
+		\FreeFormCertificate\Audience\AudienceClosedDay::reset();
+
+		$this->assertStringNotContainsString( 'its participants e-mailed', $html );
+		$this->assertStringContainsString( '1 personal calendar appointment will be cancelled', $html );
+		$this->assertStringContainsString( '09:00–09:30', $html );
+		$this->assertStringContainsString( 'Clinic', $html );
+		$this->assertStringContainsString( 'Close the day and cancel everything listed', $html );
+		$this->assertStringNotContainsString( 'style=', $html );
+	}
+
 	public function test_a_confirmed_closure_saves_the_date_and_cancels_each_booking(): void {
 		\FreeFormCertificate\Audience\AudienceClosedDay::reset();
 		$this->day_bookings = array(

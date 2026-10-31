@@ -26,6 +26,8 @@ class AudienceAdminPageTest extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
+		// The Settings submenu asks who is reading (#2244); an audience viewer by default.
+		Functions\when( 'current_user_can' )->justReturn( true );
 	}
 
 	protected function tearDown(): void {
@@ -147,6 +149,24 @@ class AudienceAdminPageTest extends TestCase {
 		$this->assertContains( 'ffc-scheduling-attendance', $submenu_slugs );
 		$this->assertContains( 'ffc-scheduling-settings', $submenu_slugs );
 		$this->assertNotContains( 'ffc-scheduling-import', $submenu_slugs );
+	}
+
+	public function test_the_settings_submenu_opens_to_a_personal_calendars_setup_holder(): void {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_calendars' === $cap );
+		$page = new AudienceAdminPage();
+		$page->init();
+
+		Functions\when( 'add_menu_page' )->justReturn( '' );
+		$caps = array();
+		Functions\when( 'add_submenu_page' )->alias( function () use ( &$caps ) {
+			$args              = func_get_args();
+			$caps[ $args[4] ] = $args[3];
+		} );
+
+		$page->add_admin_menus();
+
+		$this->assertSame( 'ffc_manage_calendars', $caps['ffc-scheduling-settings'] );
+		$this->assertSame( 'ffc_view_audiences', $caps['ffc-scheduling-audiences'], 'Only Settings opens to them.' );
 	}
 
 	public function test_every_remaining_slug_keeps_its_capability_and_environments_is_hidden(): void {
