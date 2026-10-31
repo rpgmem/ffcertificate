@@ -867,6 +867,41 @@ describe('profile — view as user', () => {
 		expect(input.value).toBe('1990-05-20');
 	});
 
+	it('offers Reveal inside the edit form and reopens it unlocked, keeping what was typed (#2246)', async () => {
+		panel().render({ ...VIEWED });
+		window.$('.ffc-profile-edit-btn').trigger('click');
+		expect(window.$('.ffc-profile-edit-form .ffc-profile-edit-reveal-btn').map((i, b) => window.$(b).data('field')).get()).toEqual(['phone', 'birth_date']);
+
+		document.getElementById('ffc-edit-department').value = 'Typed department';
+		mockAjaxSuccess({ field: 'phone', value: '(11) 99999-0000' });
+		window.$('.ffc-profile-edit-reveal-btn[data-field="phone"]').trigger('click');
+		await flush();
+
+		expect(document.querySelector('.ffc-profile-edit-form')).not.toBeNull();
+		const phone = document.getElementById('ffc-edit-phone');
+		expect(phone.disabled).toBe(false);
+		expect(phone.value).toBe('(11) 99999-0000');
+		expect(document.getElementById('ffc-edit-department').value).toBe('Typed department');
+		expect(document.getElementById('ffc-edit-birth-date').disabled).toBe(true);
+	});
+
+	it('leaves an empty phone or birth date open to fill in, with nothing to reveal (#2246)', () => {
+		panel().render({ ...VIEWED, phone: '', birth_date_display: '' });
+		window.$('.ffc-profile-edit-btn').trigger('click');
+
+		expect(document.getElementById('ffc-edit-phone').disabled).toBe(false);
+		expect(document.getElementById('ffc-edit-birth-date').disabled).toBe(false);
+		expect(window.$('.ffc-profile-edit-reveal-btn').length).toBe(0);
+	});
+
+	it('draws no edit-form Reveal for a viewer the policy keeps masked', () => {
+		panel().render({ ...VIEWED, can_reveal: false });
+		window.$('.ffc-profile-edit-btn').trigger('click');
+
+		expect(document.getElementById('ffc-edit-phone').disabled).toBe(true);
+		expect(window.$('.ffc-profile-edit-reveal-btn').length).toBe(0);
+	});
+
 	it('re-enables the button and alerts when the reveal fails', async () => {
 		panel().render({ ...VIEWED });
 		mockAjaxError({ status: 403, responseJSON: { message: 'No.' } });
