@@ -80,6 +80,20 @@ describe('FFCDashboard.panels.profile.render', () => {
 		expect(document.querySelector('#ffc-tabpanel-profile').textContent).not.toContain('Log Out');
 	});
 
+	it('links the password form to WordPress\'s own reset (#2246)', () => {
+		window.ffcDashboard.lostPasswordUrl = 'https://example.test/wp-login.php?action=lostpassword';
+		window.ffcDashboard.strings.forgotPassword = 'Forgot your password?';
+		panel().render(makeProfile());
+		const link = document.querySelector('#ffc-tabpanel-profile .ffc-password-form .ffc-password-forgot');
+		expect(link).not.toBeNull();
+		expect(link.getAttribute('href')).toBe('https://example.test/wp-login.php?action=lostpassword');
+		expect(link.textContent).toBe('Forgot your password?');
+
+		delete window.ffcDashboard.lostPasswordUrl;
+		panel().render(makeProfile());
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-password-forgot')).toBeNull();
+	});
+
 	it('renders core fields with their localised labels', () => {
 		panel().render(makeProfile({
 			phone: '11 99999-0000',

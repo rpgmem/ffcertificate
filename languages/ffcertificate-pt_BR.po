@@ -31273,6 +31273,26 @@ msgstr "Tentativa do quiz"
 msgid "Under Form answers, the quiz result the plugin records is listed with readable names among the protected fields: the score in points and in percent, the maximum score, whether the quiz was passed, the questions answered correctly, the scored questions, the attempt number and the times the quiz window was left. None of them is an answer, so a correction cannot change them."
 msgstr "Em Respostas do formulário, o resultado do quiz que o plugin registra aparece com nomes legíveis entre os campos protegidos: a nota em pontos e em porcentagem, a nota máxima, se houve aprovação, as questões respondidas corretamente, as questões pontuadas, o número da tentativa e as vezes em que a janela do quiz foi deixada. Nenhum deles é uma resposta, por isso uma correção não pode alterá-los."
 
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Forgot your password?"
+msgstr "Esqueceu a senha?"
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "Password-set link:"
+msgstr "Link para definir a senha:"
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "the link in an invitation e-mail opens the dashboard's password screen and lasts seven days unless the reregistration settings say otherwise. The key leaves the address bar on the first visit and is kept in a short-lived cookie the page's scripts cannot read, so it is not left in the browser history or sent to other sites. The change-password form links to WordPress's own \"Lost your password?\" for a member who no longer knows the current one."
+msgstr "o link do e-mail de convite abre a tela de senha do painel e vale sete dias, salvo outro prazo nas configurações do recadastramento. A chave sai da barra de endereço na primeira visita e fica guardada num cookie de curta duração que os scripts da página não conseguem ler, por isso não fica no histórico do navegador nem é enviada a outros sites. O formulário de troca de senha tem um link para o \"Perdeu a senha?\" do próprio WordPress, para quem não sabe mais a senha atual."
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "Staff accounts:"
+msgstr "Contas da equipe:"
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "an account that is a WordPress administrator or holds any capability to reveal personal data never receives a password-set link, and a link issued before it became one stops working: such an account resets its password through WordPress. When an import or a form matches a staff account by e-mail, the record is linked to it but its name, profile data and roles are left as they are."
+msgstr "uma conta que é administradora do WordPress ou tem qualquer capacidade de revelar dados pessoais nunca recebe link para definir a senha, e um link emitido antes de ela passar a ter deixa de funcionar: essa conta redefine a senha pelo WordPress. Quando uma importação ou um formulário encontra uma conta da equipe pelo e-mail, o registro é vinculado a ela, mas o nome, os dados de perfil e os papéis dela ficam como estão."
+
 #: includes/shortcodes/class-ffc-dashboard-view-mode.php
 msgid "This view-as link has expired or is not valid for your account. Open it again from the Users screen."
 msgstr "Este link de visualização como usuário expirou ou não é válido para a sua conta. Abra-o novamente a partir da tela Usuários."

@@ -31190,6 +31190,26 @@ msgstr ""
 msgid "Under Form answers, the quiz result the plugin records is listed with readable names among the protected fields: the score in points and in percent, the maximum score, whether the quiz was passed, the questions answered correctly, the scored questions, the attempt number and the times the quiz window was left. None of them is an answer, so a correction cannot change them."
 msgstr ""
 
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Forgot your password?"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "Password-set link:"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "the link in an invitation e-mail opens the dashboard's password screen and lasts seven days unless the reregistration settings say otherwise. The key leaves the address bar on the first visit and is kept in a short-lived cookie the page's scripts cannot read, so it is not left in the browser history or sent to other sites. The change-password form links to WordPress's own \"Lost your password?\" for a member who no longer knows the current one."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "Staff accounts:"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "an account that is a WordPress administrator or holds any capability to reveal personal data never receives a password-set link, and a link issued before it became one stops working: such an account resets its password through WordPress. When an import or a form matches a staff account by e-mail, the record is linked to it but its name, profile data and roles are left as they are."
+msgstr ""
+
 #: includes/shortcodes/class-ffc-dashboard-view-mode.php
 msgid "This view-as link has expired or is not valid for your account. Open it again from the Users screen."
 msgstr ""

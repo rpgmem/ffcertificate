@@ -1679,6 +1679,7 @@ class CapabilityManagerTest extends TestCase {
 			5 => array(),
 		);
 		Functions\when( 'user_can' )->alias( static fn( $user_id, $cap ) => in_array( $cap, $held[ (int) $user_id ] ?? array(), true ) );
+		Functions\when( 'get_userdata' )->alias( static fn( $user_id ) => (object) array( 'allcaps' => array_fill_keys( $held[ (int) $user_id ] ?? array(), true ) ) );
 
 		$this->assertTrue( CapabilityManager::is_staff_account( 1 ) );
 		$this->assertTrue( CapabilityManager::is_staff_account( 2 ) );
