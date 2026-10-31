@@ -51,6 +51,7 @@ final class EmailTemplates {
 		'quiz-graded-passed',
 		'quiz-graded-not-passed',
 		'recruitment-convocation',
+		'recruitment-cancellation',
 		'selfscheduling-confirmation',
 		'appointment-approval',
 		'appointment-cancellation',

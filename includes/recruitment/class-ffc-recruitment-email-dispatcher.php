@@ -114,6 +114,31 @@ final class RecruitmentEmailDispatcher {
 	 * @return bool True on send attempted; false on missing email.
 	 */
 	public static function send_for_call( int $call_id ): bool {
+		return self::send( $call_id, 'recruitment-convocation' );
+	}
+
+	/**
+	 * Send the cancellation e-mail for a call that was just cancelled (#2245).
+	 *
+	 * Same pipeline, recipient and failure rule as {@see send_for_call()};
+	 * the `{{cancellation_reason}}` token carries the reason the operator
+	 * typed.
+	 *
+	 * @param int $call_id Cancelled call row ID.
+	 * @return bool True on send attempted; false on missing email.
+	 */
+	public static function send_for_cancellation( int $call_id ): bool {
+		return self::send( $call_id, 'recruitment-cancellation' );
+	}
+
+	/**
+	 * Render one recruitment e-mail for a call row and send it.
+	 *
+	 * @param int    $call_id  Call row ID.
+	 * @param string $template Allowlisted template name.
+	 * @return bool True on send attempted; false when anything is missing.
+	 */
+	private static function send( int $call_id, string $template ): bool {
 		$call = RecruitmentCallReader::get_by_id( $call_id );
 		if ( null === $call ) {
 			return false;
@@ -150,14 +175,14 @@ final class RecruitmentEmailDispatcher {
 		// is the same text this email always used, so a default install is
 		// unchanged. Tokens then substitute as before.
 		$subject = self::render(
-			\FreeFormCertificate\Core\EmailTemplates::effective_body( 'recruitment-convocation', 'subject' ),
+			\FreeFormCertificate\Core\EmailTemplates::effective_body( $template, 'subject' ),
 			$tokens
 		);
 		// The editable body is the "email body": wrap it in the single configurable
 		// chrome ("Email Model") like every other plugin email (#662 PR-5). The
 		// text/plain alternative stays derived from the email body.
 		$email_body = self::render(
-			\FreeFormCertificate\Core\EmailTemplates::effective_body( 'recruitment-convocation', 'body' ),
+			\FreeFormCertificate\Core\EmailTemplates::effective_body( $template, 'body' ),
 			$tokens
 		);
 		$plain      = wp_strip_all_tags( $email_body );
@@ -230,25 +255,26 @@ final class RecruitmentEmailDispatcher {
 		$is_pcd = RecruitmentPcdHasher::verify( $candidate->pcd_hash, (int) $candidate->id );
 
 		return array(
-			'name'           => $candidate->name,
-			'cpf_masked'     => null === $cpf_plain ? '' : DocumentFormatter::mask_cpf( $cpf_plain ),
-			'rf_masked'      => null === $rf_plain ? '' : DocumentFormatter::mask_rf( $rf_plain ),
-			'email_masked'   => null === $email_plain ? '' : DocumentFormatter::mask_email( $email_plain ),
-			'adjutancy'      => $adjutancy->name,
-			'notice_code'    => $notice->code,
-			'notice_name'    => $notice->name,
-			'rank'           => (string) $classification->rank,
-			'score'          => $classification->score,
-			'is_pcd'         => true === $is_pcd ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' ),
-			'date_to_assume' => $call->date_to_assume,
-			'time_to_assume' => $call->time_to_assume,
+			'name'                => $candidate->name,
+			'cpf_masked'          => null === $cpf_plain ? '' : DocumentFormatter::mask_cpf( $cpf_plain ),
+			'rf_masked'           => null === $rf_plain ? '' : DocumentFormatter::mask_rf( $rf_plain ),
+			'email_masked'        => null === $email_plain ? '' : DocumentFormatter::mask_email( $email_plain ),
+			'adjutancy'           => $adjutancy->name,
+			'notice_code'         => $notice->code,
+			'notice_name'         => $notice->name,
+			'rank'                => (string) $classification->rank,
+			'score'               => $classification->score,
+			'is_pcd'              => true === $is_pcd ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' ),
+			'date_to_assume'      => $call->date_to_assume,
+			'time_to_assume'      => $call->time_to_assume,
 			// `called_at` is unix UTC int since 6.6.0 (#249 sub-escopo c). The
 			// {{called_at}} placeholder lands in user-facing emails, so format
 			// via DateFormatter so the site's date/time format applies.
-			'called_at'      => \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $call->called_at ),
-			'site_name'      => wp_specialchars_decode( (string) get_option( 'blogname', '' ), ENT_QUOTES ),
-			'site_url'       => (string) get_option( 'siteurl', '' ),
-			'notes'          => null === $call->notes ? '' : $call->notes,
+			'called_at'           => \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $call->called_at ),
+			'site_name'           => wp_specialchars_decode( (string) get_option( 'blogname', '' ), ENT_QUOTES ),
+			'site_url'            => (string) get_option( 'siteurl', '' ),
+			'notes'               => null === $call->notes ? '' : $call->notes,
+			'cancellation_reason' => $call->cancellation_reason ?? '',
 		);
 	}
 

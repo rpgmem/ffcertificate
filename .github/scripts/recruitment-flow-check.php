@@ -35,6 +35,7 @@ declare(strict_types=1);
 use FreeFormCertificate\Core\SensitiveFieldRegistry;
 use FreeFormCertificate\Recruitment\RecruitmentAccountLinker;
 use FreeFormCertificate\Recruitment\RecruitmentAdjutancyWriter;
+use FreeFormCertificate\Recruitment\RecruitmentCallReader;
 use FreeFormCertificate\Recruitment\RecruitmentCallService;
 use FreeFormCertificate\Recruitment\RecruitmentCandidateReader;
 use FreeFormCertificate\Recruitment\RecruitmentCsvImporter;
@@ -246,11 +247,24 @@ if ( $deleted['success'] || ffc_rf_rows( $notice, 'definitive' ) !== $before ) {
 	ffc_rf_fail( 'A published notice was deleted, or lost rows.' );
 }
 
-// 7. The call is cancelled.
-$cancel = RecruitmentCallService::cancel_call( (int) $call['call_ids'][0], 'CI flow check', 1 );
+// 7. The call is cancelled, through the row it belongs to, and ends with it
+// (#2245): no active call is left behind, and the row can be called again.
+$cancel = RecruitmentCallService::cancel_call( (int) $call['call_ids'][0], 'CI flow check', 1, $first, false );
 if ( ! $cancel['success'] ) {
 	ffc_rf_fail( 'Cancelling the call failed: ' . implode( ' | ', $cancel['errors'] ) );
 }
+if ( null !== RecruitmentCallReader::get_active_for_classification( $first ) ) {
+	ffc_rf_fail( 'The cancelled call is still active.' );
+}
+$recall = RecruitmentCallService::call_single( $first, gmdate( 'Y-m-d', time() + WEEK_IN_SECONDS ), '10:00', 1, null, null, false );
+if ( ! $recall['success'] ) {
+	ffc_rf_fail( 'The row could not be called again after the cancel: ' . implode( ' | ', $recall['errors'] ) );
+}
+$wrong = RecruitmentCallService::cancel_call( (int) $recall['call_ids'][0], 'CI flow check', 1, $first + 100000, false );
+if ( $wrong['success'] || array( 'recruitment_call_not_in_classification' ) !== $wrong['errors'] ) {
+	ffc_rf_fail( 'A call was cancelled under another row: ' . wp_json_encode( $wrong ) );
+}
+RecruitmentCallService::cancel_call( (int) $recall['call_ids'][0], 'CI flow check', 1, $first, false );
 
 // A draft is deleted with its rows.
 $draft = RecruitmentNoticeWriter::create( 'CI-FLOW-D-' . $suffix, 'CI flow draft' );
@@ -263,6 +277,12 @@ RecruitmentNoticeAdjutancyRepository::attach( $draft, (int) $adjutancy );
 $result = RecruitmentCsvImporter::import_preview( $draft, $csv );
 if ( ! $result['success'] ) {
 	ffc_rf_fail( 'Preview import on the second draft failed: ' . implode( ' | ', $result['errors'] ) );
+}
+// Nobody is called on a draft notice, nor on a preview row (#2245).
+$draft_rows = ffc_rf_rows( $draft, 'preview' );
+$refused    = RecruitmentCallService::call_single( (int) array_key_first( $draft_rows ), gmdate( 'Y-m-d', time() + WEEK_IN_SECONDS ), '09:00', 1, null, null, false );
+if ( $refused['success'] || array( 'recruitment_call_requires_definitive_list' ) !== $refused['errors'] ) {
+	ffc_rf_fail( 'A preview row on a draft notice was called: ' . wp_json_encode( $refused ) );
 }
 // Identity (#2245): a row naming somebody else than the stored candidate
 // waits for the operator, keeps the stored identity once acknowledged, and a
@@ -304,5 +324,5 @@ if ( 0 !== $left || array() !== $junction || null !== RecruitmentNoticeReader::g
 }
 
 ffc_rf_cleanup();
-echo "Recruitment flow: draft import makes no account, the batch links once, the definitive import promotes in one change and refuses a second, a published notice is not deleted, a row naming somebody else waits for the operator and keeps the stored identity, a CPF and an RF of two candidates are refused, a draft is deleted with its rows.\n";
+echo "Recruitment flow: draft import makes no account, the batch links once, the definitive import promotes in one change and refuses a second, a published notice is not deleted, a cancelled call ends and the row can be called again, nobody is called on a draft, a row naming somebody else waits for the operator and keeps the stored identity, a CPF and an RF of two candidates are refused, a draft is deleted with its rows.\n";
 exit( 0 );

@@ -58,6 +58,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * {@see RecruitmentNoticeStateMachine}.
  *
  * @phpstan-type TransitionResult array{success: bool, errors: list<string>}
+ * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
  */
 final class RecruitmentClassificationStateMachine {
 
@@ -128,6 +129,11 @@ final class RecruitmentClassificationStateMachine {
 			return self::success();
 		}
 
+		$blocked = self::live_block( $classification );
+		if ( null !== $blocked ) {
+			return self::failure( $blocked );
+		}
+
 		// Validate the requested transition.
 		$allowed = self::TRANSITIONS[ $current ] ?? array();
 		if ( ! in_array( $new_status, $allowed, true ) ) {
@@ -177,6 +183,32 @@ final class RecruitmentClassificationStateMachine {
 		);
 
 		return self::success();
+	}
+
+	/**
+	 * Why a call or an outcome may not change on this classification, or
+	 * null when it may (#2245).
+	 *
+	 * Calls and their outcomes belong to the definitive list of a notice in
+	 * `definitive`. A preview row, a draft or preliminary notice, and a closed
+	 * one are not live: a call there e-mailed a candidate about a list that
+	 * was not published, or changed a notice its close dialog promised was
+	 * frozen. Shared by the call, cancel and outcome paths so all three refuse
+	 * the same rows.
+	 *
+	 * @param object $classification Classification row.
+	 * @phpstan-param ClassificationRow $classification
+	 * @return string|null Error code, or null.
+	 */
+	public static function live_block( object $classification ): ?string {
+		if ( 'definitive' !== (string) $classification->list_type ) {
+			return 'recruitment_call_requires_definitive_list';
+		}
+		$notice = RecruitmentNoticeReader::get_by_id( (int) $classification->notice_id );
+		if ( null === $notice || 'definitive' !== (string) $notice->status ) {
+			return 'recruitment_call_requires_definitive_notice';
+		}
+		return null;
 	}
 
 	/**
@@ -235,6 +267,14 @@ final class RecruitmentClassificationStateMachine {
 		);
 		if ( 1 !== $affected ) {
 			return self::failure( 'recruitment_state_locked' );
+		}
+
+		// The call that led to the decision ends with it (#2245): left active,
+		// it kept its `.ics`, stayed in "My calls" and a later call created a
+		// second active one.
+		$active = RecruitmentCallReader::get_active_for_classification( $classification_id );
+		if ( null !== $active ) {
+			RecruitmentCallWriter::mark_cancelled( (int) $active->id, $reason, get_current_user_id() );
 		}
 
 		RecruitmentActivityLogger::classification_override_to_empty(

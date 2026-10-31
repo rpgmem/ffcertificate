@@ -155,6 +155,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Recruitment: the definitive import and notice deletion no longer destroy published data** (#2245). The definitive list is imported only on a preliminary notice with no calls, and promotes it in the same transaction, on both the single-request and the batched path; before, it wiped called and hired rows and only then refused. Only a draft notice can be deleted, with its lists and adjutancy links in one transaction.
 - **Recruitment: a new row reports its own id** (#2245). Each `create()` read `insert_id` after announcing the change, and the first announcement on a fresh site adds an option, so an adjutancy, notice or candidate created first was returned under that option's id and the next step attached data to a row that was not it.
 - **Recruitment: an import no longer rewrites a candidate's identity** (#2245). Lines whose name, CPF, RF or e-mail differ from the stored candidate are listed and wait for confirmation; a CPF and an RF of two candidates refuse the file; a stored name or identifier is never overwritten, only filled in.
+- **Recruitment: a cancelled call is cancelled everywhere** (#2245). Cancel and Reopen end the call row, so its `.ics`, "My calls" and the next call agree, and the candidate is e-mailed; calls and outcomes are refused off the definitive list of a definitive notice; a call is cancelled only under its own row; "Back to draft" is gone.
 
 ### Security
 

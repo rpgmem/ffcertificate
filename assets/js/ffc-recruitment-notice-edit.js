@@ -344,22 +344,17 @@
 			}
 			url = callUrl;
 			init = callInit;
-		} else if (action === 'cancel') {
-			var reason = prompt(strings.cancellationReason || '');
-			if (!reason) { return; }
+		} else if (action === 'cancel' || action === 'reopen') {
+			// Both end the active call through its own route (#2245), so the
+			// call row is cancelled with the status: no `.ics`, nothing in
+			// "My calls", and the next call is the only active one.
+			var callId = btn.getAttribute('data-call-id');
+			var reason = prompt((action === 'cancel' ? strings.cancellationReason : strings.reopenReason) || '');
+			if (!reason || !callId) { return; }
 			var p = new URLSearchParams();
-			p.append('status', 'empty');
 			p.append('reason', reason);
-			url = base + id + '/status';
-			init = { method: 'PUT', headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString(), credentials: 'same-origin' };
-		} else if (action === 'reopen') {
-			var reason2 = prompt(strings.reopenReason || '');
-			if (!reason2) { return; }
-			var p2 = new URLSearchParams();
-			p2.append('status', 'empty');
-			p2.append('reason', reason2);
-			url = base + id + '/status';
-			init = { method: 'PUT', headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p2.toString(), credentials: 'same-origin' };
+			url = base + id + '/calls/' + callId + '/cancel';
+			init = { method: 'POST', headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString(), credentials: 'same-origin' };
 		} else if (action === 'override') {
 			// Admin override (#Item 8): undo a realized hired/withdrew/not_shown
 			// decision. Destructive — confirm first, then require an audited

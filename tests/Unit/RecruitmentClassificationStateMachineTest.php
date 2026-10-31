@@ -46,13 +46,39 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( 'add_action' )->justReturn( true );
 
+		// Interpolate the table, so the double can tell a notice read from a
+		// classification read and from the call lookup (#2245).
 		$this->wpdb->shouldReceive( 'prepare' )
 			->andReturnUsing(
-				function () {
-					return func_get_args()[0];
+				static function ( $query, ...$args ) {
+					foreach ( $args as $arg ) {
+						$query = (string) preg_replace( '/%[ids]/', (string) $arg, (string) $query, 1 );
+					}
+					return $query;
 				}
 			)
 			->byDefault();
+	}
+
+	/**
+	 * Answer reads by table: the classification, its notice, and no active call.
+	 *
+	 * @param object|null $classification Classification row, or null.
+	 * @param object|null $notice         Notice row; a definitive one when null.
+	 */
+	private function rows( ?object $classification, ?object $notice = null, ?object $active_call = null ): void {
+		$notice = $notice ?? $this->notice_stub( '0' );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			static function ( string $sql ) use ( $classification, $notice, $active_call ) {
+				if ( 1 === preg_match( '/ffc_recruitment_notice\b/', $sql ) ) {
+					return $notice;
+				}
+				if ( false !== strpos( $sql, 'ffc_recruitment_call' ) ) {
+					return $active_call;
+				}
+				return $classification;
+			}
+		);
 	}
 
 	protected function tearDown(): void {
@@ -103,7 +129,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_transition_returns_failure_when_classification_unknown(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
+		$this->rows( null );
 
 		$result = RecruitmentClassificationStateMachine::transition_to( 999, 'called' );
 
@@ -112,7 +138,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_same_state_transition_is_idempotent_success(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'empty' ) );
+		$this->rows( $this->classification_stub( 'empty' ) );
 
 		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'empty' );
 
@@ -121,7 +147,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 
 	public function test_invalid_transition_is_rejected(): void {
 		// empty → hired is not allowed (must go through called first).
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'empty' ) );
+		$this->rows( $this->classification_stub( 'empty' ) );
 
 		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'hired' );
 
@@ -130,7 +156,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_hired_is_terminal(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'hired' ) );
+		$this->rows( $this->classification_stub( 'hired' ) );
 
 		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'empty', 'attempt to undo' );
 
@@ -139,7 +165,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_called_to_withdrew_is_allowed(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'called' ) );
+		$this->rows( $this->classification_stub( 'called' ) );
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
 
 		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'withdrew' );
@@ -148,7 +174,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_accepted_to_withdrew_is_allowed(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'accepted' ) );
+		$this->rows( $this->classification_stub( 'accepted' ) );
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
 
 		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'withdrew' );
@@ -157,7 +183,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_withdrew_is_terminal(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'withdrew' ) );
+		$this->rows( $this->classification_stub( 'withdrew' ) );
 
 		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'empty', 'attempt to undo' );
 
@@ -166,7 +192,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_called_to_empty_requires_reason(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'called' ) );
+		$this->rows( $this->classification_stub( 'called' ) );
 
 		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'empty' );
 
@@ -175,7 +201,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_called_to_empty_succeeds_with_reason(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'called' ) );
+		$this->rows( $this->classification_stub( 'called' ) );
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
 
 		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'empty', 'Admin cancelled call' );
@@ -184,7 +210,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_called_to_accepted_succeeds_without_reason(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'called' ) );
+		$this->rows( $this->classification_stub( 'called' ) );
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
 
 		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'accepted' );
@@ -193,7 +219,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_called_to_hired_succeeds(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'called' ) );
+		$this->rows( $this->classification_stub( 'called' ) );
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
 
 		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'hired' );
@@ -202,7 +228,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_accepted_to_hired_succeeds(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'accepted' ) );
+		$this->rows( $this->classification_stub( 'accepted' ) );
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
 
 		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'hired' );
@@ -211,7 +237,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_accepted_to_empty_requires_reason(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'accepted' ) );
+		$this->rows( $this->classification_stub( 'accepted' ) );
 
 		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'empty' );
 
@@ -220,12 +246,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_not_shown_to_empty_succeeds_when_notice_not_reopened(): void {
-		$this->wpdb->shouldReceive( 'get_row' )
-			->twice()
-			->andReturn(
-				$this->classification_stub( 'not_shown' ),
-				$this->notice_stub( '0' )
-			);
+		$this->rows( $this->classification_stub( 'not_shown' ), $this->notice_stub( '0' ) );
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
 
 		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'empty', 'Reopen' );
@@ -234,12 +255,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_not_shown_to_empty_blocked_when_notice_was_reopened(): void {
-		$this->wpdb->shouldReceive( 'get_row' )
-			->twice()
-			->andReturn(
-				$this->classification_stub( 'not_shown' ),
-				$this->notice_stub( '1' )
-			);
+		$this->rows( $this->classification_stub( 'not_shown' ), $this->notice_stub( '1' ) );
 		// query() must NOT be called — the reopen-freeze gate fires first.
 		$this->wpdb->shouldNotReceive( 'query' );
 
@@ -250,7 +266,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_set_status_lost_race_surfaces_error(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'called' ) );
+		$this->rows( $this->classification_stub( 'called' ) );
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 0 );
 
 		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'accepted' );
@@ -259,10 +275,61 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 		$this->assertSame( array( 'recruitment_state_locked' ), $result['errors'] );
 	}
 
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public function not_live(): array {
+		return array(
+			'preview list'        => array( 'preview', 'definitive' ),
+			'draft notice'        => array( 'definitive', 'draft' ),
+			'preliminary notice'  => array( 'definitive', 'preliminary' ),
+			'closed notice'       => array( 'definitive', 'closed' ),
+		);
+	}
+
+	/**
+	 * @dataProvider not_live
+	 */
+	public function test_outcomes_change_only_on_the_definitive_list_of_a_definitive_notice( string $list, string $status ): void {
+		$classification            = $this->classification_stub( 'called' );
+		$classification->list_type = $list;
+		$notice                    = $this->notice_stub( '0' );
+		$notice->status            = $status;
+		$this->rows( $classification, $notice );
+		$this->wpdb->shouldNotReceive( 'query' );
+
+		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'hired' );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertSame(
+			array( 'preview' === $list ? 'recruitment_call_requires_definitive_list' : 'recruitment_call_requires_definitive_notice' ),
+			$result['errors']
+		);
+	}
+
+	public function test_override_ends_the_active_call(): void {
+		$this->rows( $this->classification_stub( 'hired' ), null, (object) array( 'id' => '77', 'classification_id' => '10', 'cancelled_at' => null ) );
+		$queries = array();
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( string $sql ) use ( &$queries ) {
+				$queries[] = $sql;
+				return 1;
+			}
+		);
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( 10, 'Hired by mistake' );
+
+		$this->assertTrue( $result['success'] );
+		$cancels = array_values( array_filter( $queries, static fn( string $q ): bool => false !== strpos( $q, 'SET cancellation_reason' ) ) );
+		$this->assertCount( 1, $cancels, 'The call that led to the decision is cancelled with it.' );
+		$this->assertStringContainsString( 'WHERE id = 77', $cancels[0] );
+	}
+
 	// -- admin_override_to_empty (#Item 8) -----------------------------------
 
 	public function test_override_hired_to_empty_succeeds(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'hired' ) );
+		$this->rows( $this->classification_stub( 'hired' ) );
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
 
 		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( 10, 'Hired by mistake' );
@@ -272,7 +339,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_override_withdrew_to_empty_succeeds(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'withdrew' ) );
+		$this->rows( $this->classification_stub( 'withdrew' ) );
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
 
 		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( 10, 'Logged the wrong candidate' );
@@ -284,11 +351,10 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	 * The override deliberately bypasses the reopen-freeze: a `not_shown`
 	 * row on a reopened notice is unreachable via `transition_to` (see
 	 * test_not_shown_to_empty_blocked_when_notice_was_reopened) but the
-	 * admin override resets it. Proof: the notice is never fetched (only one
-	 * get_row, for the classification), so no freeze gate runs.
+	 * admin override resets it, on a notice that was reopened.
 	 */
 	public function test_override_not_shown_to_empty_bypasses_reopen_freeze(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'not_shown' ) );
+		$this->rows( $this->classification_stub( 'not_shown' ), $this->notice_stub( '1' ) );
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
 
 		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( 10, 'Candidate did show — operator error' );
@@ -307,7 +373,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_override_unknown_classification_fails(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
+		$this->rows( null );
 
 		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( 999, 'Undo' );
 
@@ -316,7 +382,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_override_idempotent_when_already_empty(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'empty' ) );
+		$this->rows( $this->classification_stub( 'empty' ) );
 		$this->wpdb->shouldNotReceive( 'query' );
 
 		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( 10, 'Already waiting' );
@@ -327,7 +393,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	public function test_override_rejects_non_overridable_status(): void {
 		// `called` is reversible via the normal cancel flow — the override
 		// refuses it so it can't double as a generic "set any status" backdoor.
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'called' ) );
+		$this->rows( $this->classification_stub( 'called' ) );
 		$this->wpdb->shouldNotReceive( 'query' );
 
 		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( 10, 'Trying to shortcut' );
@@ -337,7 +403,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 	}
 
 	public function test_override_lost_race_surfaces_error(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'hired' ) );
+		$this->rows( $this->classification_stub( 'hired' ) );
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 0 );
 
 		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( 10, 'Undo hire' );

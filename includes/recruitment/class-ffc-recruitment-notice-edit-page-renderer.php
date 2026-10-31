@@ -275,16 +275,6 @@ final class RecruitmentNoticeEditPageRenderer {
 				'cta'          => __( 'Close notice', 'ffcertificate' ),
 				'style'        => 'destructive',
 			),
-			'draft'       => array(
-				'title'        => __( 'Move notice back to draft?', 'ffcertificate' ),
-				'body'         => __( 'The notice returns to `draft`.', 'ffcertificate' ),
-				'consequences' => array(
-					__( 'The candidate list is hidden from the public shortcode.', 'ffcertificate' ),
-					__( 'No data is lost — you can publish again later.', 'ffcertificate' ),
-				),
-				'cta'          => __( 'Move to draft', 'ffcertificate' ),
-				'style'        => 'primary',
-			),
 		);
 	}
 
@@ -684,6 +674,10 @@ final class RecruitmentNoticeEditPageRenderer {
 		// existing Status badge.
 		$is_preview_tab = ! $with_actions;
 
+		// The active call of each row that has one, so Cancel and Reopen name
+		// the call they end (#2245). One query for the page.
+		$active_calls = $with_actions ? self::active_calls_for( $rows ) : array();
+
 		echo '<table class="widefat striped"><thead><tr>';
 		if ( $with_actions ) {
 			echo '<th class="ffc-rec-col-checkbox"><input type="checkbox" id="ffc-cls-bulk-all" onclick="ffcRecruitmentClsToggleAll(this);" title="' . esc_attr__( 'Select all waiting rows on this page', 'ffcertificate' ) . '"></th>';
@@ -747,7 +741,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			}
 			if ( $with_actions ) {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_classification_actions returns escaped HTML.
-				echo '<td>' . self::render_classification_actions( (int) $row->id, (string) $row->status ) . '</td>';
+				echo '<td>' . self::render_classification_actions( (int) $row->id, (string) $row->status, $active_calls[ (int) $row->id ] ?? 0 ) . '</td>';
 			}
 			echo '</tr>';
 		}
@@ -909,9 +903,10 @@ final class RecruitmentNoticeEditPageRenderer {
 	 *
 	 * @param int    $id      Classification ID.
 	 * @param string $current Current status.
+	 * @param int    $call_id The row's active call, or 0 when it has none.
 	 * @return string
 	 */
-	private static function render_classification_actions( int $id, string $current ): string {
+	private static function render_classification_actions( int $id, string $current, int $call_id = 0 ): string {
 		$out = '';
 		switch ( $current ) {
 			case 'empty':
@@ -922,16 +917,16 @@ final class RecruitmentNoticeEditPageRenderer {
 				$out .= self::cls_button( $id, 'hired', __( 'Mark hired', 'ffcertificate' ), 'neutral', 'user-check' );
 				$out .= self::cls_button( $id, 'not_shown', __( 'Mark not_shown', 'ffcertificate' ), 'neutral', 'flag' );
 				$out .= self::cls_button( $id, 'withdrew', __( 'Mark withdrew', 'ffcertificate' ), 'neutral', 'user-minus' );
-				$out .= self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'caution', 'cross' );
+				$out .= self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'caution', 'cross', $call_id );
 				break;
 			case 'accepted':
 				$out .= self::cls_button( $id, 'hired', __( 'Mark hired', 'ffcertificate' ), 'neutral', 'user-check' );
 				$out .= self::cls_button( $id, 'not_shown', __( 'Mark not_shown', 'ffcertificate' ), 'neutral', 'flag' );
 				$out .= self::cls_button( $id, 'withdrew', __( 'Mark withdrew', 'ffcertificate' ), 'neutral', 'user-minus' );
-				$out .= self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'caution', 'cross' );
+				$out .= self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'caution', 'cross', $call_id );
 				break;
 			case 'not_shown':
-				$out .= self::cls_button( $id, 'reopen', __( 'Reopen (if not frozen)', 'ffcertificate' ), 'caution', 'unlock' );
+				$out .= self::cls_button( $id, 'reopen', __( 'Reopen (if not frozen)', 'ffcertificate' ), 'caution', 'unlock', $call_id );
 				// Admin override (#Item 8): reset to waiting even when the
 				// reopen-freeze would block the plain `reopen` above.
 				$out .= self::cls_button( $id, 'override', __( 'Undo decision (admin)', 'ffcertificate' ), 'caution', 'restore' );
@@ -961,17 +956,43 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * @param string $label    Button label (already i18n'd).
 	 * @param string $category A `Core\Button` category.
 	 * @param string $icon     A `Core\Icons` class name without `ffc-icon-`.
+	 * @param int    $call_id  The call the action ends, or 0.
 	 * @return string
 	 */
-	private static function cls_button( int $id, string $action, string $label, string $category, string $icon ): string {
+	private static function cls_button( int $id, string $action, string $label, string $category, string $icon, int $call_id = 0 ): string {
 		return sprintf(
-			'<button type="button" class="ffc-btn ffc-btn-%s ffc-icon-%s ffc-rec-mr-quarter" data-cls-id="%d" data-cls-action="%s" onclick="ffcRecruitmentClsAct(this);">%s</button>',
+			'<button type="button" class="ffc-btn ffc-btn-%s ffc-icon-%s ffc-rec-mr-quarter" data-cls-id="%d" data-cls-action="%s"%s onclick="ffcRecruitmentClsAct(this);">%s</button>',
 			esc_attr( $category ),
 			esc_attr( $icon ),
 			$id,
 			esc_attr( $action ),
+			$call_id > 0 ? ' data-call-id="' . esc_attr( (string) $call_id ) . '"' : '',
 			esc_html( $label )
 		);
+	}
+
+	/**
+	 * The active call of each row that has one: classification ID → call ID.
+	 *
+	 * @param array $rows Classification rows on the page.
+	 * @phpstan-param list<ClassificationRow> $rows
+	 * @return array<int, int>
+	 */
+	private static function active_calls_for( array $rows ): array {
+		$ids = array();
+		foreach ( $rows as $row ) {
+			if ( in_array( (string) $row->status, array( 'called', 'accepted', 'not_shown' ), true ) ) {
+				$ids[] = (int) $row->id;
+			}
+		}
+		$out = array();
+		foreach ( RecruitmentCallReader::get_history_for_classifications( $ids ) as $call ) {
+			$cls = (int) $call->classification_id;
+			if ( null === $call->cancelled_at && ! isset( $out[ $cls ] ) ) {
+				$out[ $cls ] = (int) $call->id;
+			}
+		}
+		return $out;
 	}
 
 
@@ -1052,9 +1073,11 @@ final class RecruitmentNoticeEditPageRenderer {
 			case 'draft':
 				return array( 'preliminary' => __( 'Move to preliminary', 'ffcertificate' ) );
 			case 'preliminary':
+				// No way back to draft (#2245): the state machine has no such
+				// edge, because reaching preliminary already published the
+				// list and queued the candidates' accounts.
 				return array(
 					'definitive' => __( 'Promote to definitive', 'ffcertificate' ),
-					'draft'      => __( 'Back to draft', 'ffcertificate' ),
 				);
 			case 'definitive':
 				return array(

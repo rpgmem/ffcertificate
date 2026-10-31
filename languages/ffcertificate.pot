@@ -2718,10 +2718,6 @@ msgstr ""
 msgid "Back to Candidates"
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:1040
-msgid "Back to draft"
-msgstr ""
-
 #: includes/self-scheduling/views/appointments-list.php:244 includes/self-scheduling/views/appointments-list.php:307
 msgid "Back to List"
 msgstr ""
@@ -10932,10 +10928,6 @@ msgstr ""
 msgid "Move images referenced from the legacy html/ folder into the Media Library and update stored certificate layouts, backgrounds and template-pool bodies to point at the new attachments. Idempotent; missing files are reported as errors."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:261
-msgid "Move notice back to draft?"
-msgstr ""
-
 #: includes/admin/class-ffc-admin-conditional-assets.php:334
 msgid "Move submissions"
 msgstr ""
@@ -10946,10 +10938,6 @@ msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:537
 msgid "Move the form's close time later within the same day. One-shot per form."
-msgstr ""
-
-#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:267
-msgid "Move to draft"
 msgstr ""
 
 #: includes/admin/class-ffc-submissions-list.php:392
@@ -11297,10 +11285,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:55
 msgid "no CPF check."
-msgstr ""
-
-#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:265
-msgid "No data is lost — you can publish again later."
 msgstr ""
 
 #: includes/api/class-ffc-operator-certificates-rest-controller.php:160 includes/api/class-ffc-appointment-rest-controller.php:130
@@ -11880,10 +11864,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-restriction-metabox.php:86
 msgid "Only approved CPF/RF can submit"
-msgstr ""
-
-#: includes/recruitment/class-ffc-recruitment-error-messages.php:157
-msgid "Only calls in `called` or `accepted` state can be cancelled."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:126
@@ -16588,10 +16568,6 @@ msgstr ""
 msgid "the campaign ended before submission."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:264
-msgid "The candidate list is hidden from the public shortcode."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-candidates-list-table.php:152
 msgid "The candidate record will be permanently removed."
 msgstr ""
@@ -16891,10 +16867,6 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:226
 msgid "The notice moves to `preliminary`."
-msgstr ""
-
-#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:262
-msgid "The notice returns to `draft`."
 msgstr ""
 
 #: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php:33 templates/admin/recruitment/notice-edit/promote-to-definitive-options.php:67
@@ -30703,4 +30675,48 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-import-identity-check.php:133
 msgid "name"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:164
+msgid "A call is undone through Cancel call or Reopen, which end the call itself."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:163
+msgid "A candidate is called through Call, which records the call and its date."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:165
+msgid "Calls and outcomes are recorded on the definitive list only."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php:70
+msgid "Calls and outcomes are recorded only on the definitive list of a notice in definitive. A draft, preliminary or closed notice takes none, so nobody is called about a list that was not published or after the notice closed. Cancel call and Reopen end the call itself: its .ics stops downloading, it leaves \"My calls\", and the next call is the only active one. The candidate is e-mailed when a call is cancelled, under the same send mode as the call; reopening a not shown row sends nothing. A notice in preliminary cannot go back to draft."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:166
+msgid "Calls and outcomes are recorded only while the notice is definitive. A draft, preliminary or closed notice takes none."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:161
+msgid "Only a call that is called, accepted or not shown can be cancelled."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:205
+msgid "Recruitment call cancelled"
+msgstr ""
+
+#: templates/emails/recruitment-cancellation.php:18
+msgid "Recruitment call cancelled: {{notice_name}}"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:162
+msgid "This call does not belong to that candidate row. Reload the page and try again."
+msgstr ""
+
+#: templates/emails/recruitment-cancellation.php:27
+msgid "You keep your place on the list."
+msgstr ""
+
+#: templates/emails/recruitment-cancellation.php:21
+msgid "Your call for notice {{notice_code}} — {{notice_name}} in adjutancy {{adjutancy}} was cancelled. Do not attend on the date it gave."
 msgstr ""
