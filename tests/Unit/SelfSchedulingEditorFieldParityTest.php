@@ -323,7 +323,8 @@ class SelfSchedulingEditorFieldParityTest extends TestCase {
 		$this->assertSame( 1, substr_count( $html, 'name="ffc_self_scheduling_config_nonce"' ) );
 		$this->assertSame( 1, substr_count( $html, 'data-ffc-vtabs' ) );
 
-		$keys = array( 'calendar', 'slots', 'window', 'cancellation', 'approval', 'access', 'bypass', 'names', 'emails' );
+		// The Blocked dates tab (#2244) sits after the booking window on a saved calendar.
+		$keys = array( 'calendar', 'slots', 'window', 'blocks', 'cancellation', 'approval', 'access', 'bypass', 'names', 'emails' );
 		if ( array() !== $meta ) {
 			$keys[] = 'occupancy'; // A saved custom-mode calendar, as the report box required.
 		}

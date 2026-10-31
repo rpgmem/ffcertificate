@@ -30,7 +30,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: Edit in the day's list** (#2243). Who may cancel a booking may open it in the booking dialog, move it to another date, hours or space, or change its text; who it is for stays as booked.
 - **Personal Calendars: mark attendance on the Appointments list** (#2284). A confirmed appointment offers Attended and No-show from its date on, and either mark can be undone back to confirmed. Each write applies only over the status read, so a row changed meanwhile is left alone.
 - **Personal Calendars: old appointments close themselves** (#2285). Once a day, an appointment whose date passed a set number of days ago (default 7, 0 turns it off) is closed: confirmed becomes completed, pending is cancelled as never approved. No e-mail; the Appointments list offers the same close-out on demand.
-
+- **Personal Calendars: a Blocked dates tab** (#2244). A saved calendar closes whole days or a time range on one date; a block that reaches open appointments asks with the count, then cancels them with the reason and the calendar's e-mail. Duplicates are refused, a time range closes every slot it overlaps, and a block without an end date is one day everywhere.
 ### Changed
 
 - **Tests: duplicates removed, `UtilsTest` split by subject** (#2092). Four pairs of identical tests now each build the case their name describes, which found that the `{{schedule}}` test only passed through the legacy reader. `UtilsTest` keeps its 19 `Utils` cases; 37 that repeated another file were removed and the rest moved to their class's file. Coverage unchanged.
