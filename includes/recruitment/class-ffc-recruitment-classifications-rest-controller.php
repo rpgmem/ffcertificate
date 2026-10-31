@@ -923,6 +923,13 @@ final class RecruitmentClassificationsRestController {
 			return new \WP_Error( 'ffc_classification_not_found', __( 'Classification not found.', 'ffcertificate' ), array( 'status' => 404 ) );
 		}
 
+		// A published definitive list, and a closed notice, keep each row
+		// under the adjutancy it was published with (#2245).
+		$notice = RecruitmentNoticeReader::get_by_id( (int) $cls->notice_id );
+		if ( null === $notice || ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::ROW_ADJUTANCY, (string) $notice->status ) ) {
+			return new \WP_Error( 'recruitment_row_adjutancy_locked', RecruitmentErrorMessages::translate( 'recruitment_row_adjutancy_locked' ), array( 'status' => 409 ) );
+		}
+
 		$current_adjutancy = (int) $cls->adjutancy_id;
 		if ( $current_adjutancy === $new_adjutancy_id ) {
 			return new \WP_Error( 'ffc_classification_adjutancy_unchanged', __( 'New adjutancy is the same as the current one.', 'ffcertificate' ), array( 'status' => 409 ) );

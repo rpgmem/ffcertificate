@@ -37,6 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * | Import the definitive list     |       |      ✓      |            |        |
  * | Promote the preliminary list   |       |      ✓      |            |        |
  * | Attach or detach adjutancies   |   ✓   |      ✓      |            |        |
+ * | Move a row to another adjutancy|   ✓   |      ✓      |            |        |
  * | Preliminary statuses / reasons |       |      ✓      |            |        |
  * | Calls, outcomes, cancel, undo  |       |             |     ✓      |        |
  * | Delete the notice              |   ✓   |             |            |        |
@@ -54,6 +55,9 @@ final class RecruitmentNoticeLocks {
 
 	/** Attach or detach adjutancies. */
 	public const ADJUTANCIES = 'adjutancies';
+
+	/** Move one candidate row to another of the notice's adjutancies. */
+	public const ROW_ADJUTANCY = 'row_adjutancy';
 
 	/** Set a preliminary-list row's status and reason. */
 	public const PREVIEW_MARKS = 'preview_marks';
@@ -74,6 +78,7 @@ final class RecruitmentNoticeLocks {
 		self::IMPORT_DEFINITIVE => array( 'preliminary' ),
 		self::PROMOTE           => array( 'preliminary' ),
 		self::ADJUTANCIES       => array( 'draft', 'preliminary' ),
+		self::ROW_ADJUTANCY     => array( 'draft', 'preliminary' ),
 		self::PREVIEW_MARKS     => array( 'preliminary' ),
 		self::CALLS             => array( 'definitive' ),
 		self::DELETE            => array( 'draft' ),

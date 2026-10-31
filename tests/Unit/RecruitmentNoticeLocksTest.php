@@ -25,6 +25,7 @@ class RecruitmentNoticeLocksTest extends TestCase {
 		RecruitmentNoticeLocks::IMPORT_DEFINITIVE => array( 'preliminary' ),
 		RecruitmentNoticeLocks::PROMOTE           => array( 'preliminary' ),
 		RecruitmentNoticeLocks::ADJUTANCIES       => array( 'draft', 'preliminary' ),
+		RecruitmentNoticeLocks::ROW_ADJUTANCY     => array( 'draft', 'preliminary' ),
 		RecruitmentNoticeLocks::PREVIEW_MARKS     => array( 'preliminary' ),
 		RecruitmentNoticeLocks::CALLS             => array( 'definitive' ),
 		RecruitmentNoticeLocks::DELETE            => array( 'draft' ),

@@ -173,6 +173,7 @@ final class RecruitmentErrorMessages {
 
 			// Notice-status locks (#2245).
 			'recruitment_notice_adjutancies_locked'        => __( 'Adjutancies are attached or detached only while the notice is in draft or preliminary.', 'ffcertificate' ),
+			'recruitment_row_adjutancy_locked'             => __( 'A candidate moves to another adjutancy only while the notice is in draft or preliminary.', 'ffcertificate' ),
 			'recruitment_preview_status_locked'            => __( 'Preliminary statuses and reasons are set only while the notice is preliminary.', 'ffcertificate' ),
 
 			// Preview status / reasons.

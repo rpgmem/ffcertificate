@@ -802,6 +802,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_change_classification_adjutancy_returns_409_when_unchanged(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 7, array( 'adjutancy_id' => 5 ) );
 
 		$result = $this->controller->change_classification_adjutancy(
@@ -813,6 +814,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_change_classification_adjutancy_rejects_when_not_attached_to_notice(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 7, array( 'adjutancy_id' => 3 ) );
 
 		$result = $this->controller->change_classification_adjutancy(
@@ -826,6 +828,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_change_classification_adjutancy_success_path_returns_envelope(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 7, array( 'adjutancy_id' => 3 ) );
 		$this->attached[1] = array( 9 );
 
@@ -857,7 +860,36 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @dataProvider adjutancy_row_locked_statuses
+	 */
+	public function test_change_classification_adjutancy_is_refused_once_the_notice_is_past_preliminary( string $status ): void {
+		$this->notice( 1, $status );
+		$this->classification( 7, array( 'adjutancy_id' => 3 ) );
+		$this->attached[1] = array( 9 );
+
+		$result = $this->controller->change_classification_adjutancy(
+			$this->make_request( array( 'id' => 7, 'adjutancy_id' => 9 ) )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_row_adjutancy_locked', $result->get_error_code() );
+		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->writes_to( 'update', self::T_CLASSIFICATION ), 'A published row keeps its adjutancy (#2245).' );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function adjutancy_row_locked_statuses(): array {
+		return array(
+			'definitive' => array( 'definitive' ),
+			'closed'     => array( 'closed' ),
+		);
+	}
+
 	public function test_change_classification_adjutancy_returns_500_when_update_fails(): void {
+		$this->notice( 1, 'preliminary' );
 		$this->classification( 7, array( 'adjutancy_id' => 3 ) );
 		$this->attached[1] = array( 9 );
 		$this->update_result[ self::T_CLASSIFICATION ] = false;
