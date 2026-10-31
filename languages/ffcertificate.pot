@@ -9160,10 +9160,6 @@ msgstr ""
 msgid "Import candidates (CSV)"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-recruitment.php:78
-msgid "import candidates / record call-ups."
-msgstr ""
-
 #: includes/migrations/class-ffc-migration-registry.php:100
 msgid "Import certificate layouts left in the plugin's html/ drop-folder into the reusable template pool (Certificate → Templates). Non-destructive and idempotent: shipped defaults are skipped and each file is imported once."
 msgstr ""
@@ -30749,4 +30745,16 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php
 msgid "The REST API edits a candidate under the edit screen's rules: name, phone and notes for the manage capability, the e-mail only for whoever may reveal it, CPF and RF never, and every change logged. Every reveal of a CPF, RF or e-mail is logged; there is no setting to turn that off. The PCD filter of the public list exists only when the notice shows the PCD column, and the candidate's own API answer carries the score only when the notice shows it, never the staff fields of a call."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "Only the operator who made this call, or a manager, can cancel it."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "The notice screen opens to everyone who can view recruitment. A Viewer reads the lists. An Operator also calls candidates, records outcomes (accepted, not shown, hired, withdrew) and cancels or reopens the calls they made. The notice's name, public columns, status and adjutancies, the preliminary statuses, imports, deletion and undoing a decision stay with the Manager, who can also cancel any call."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "import candidates / call candidates, record outcomes and cancel their own calls."
 msgstr ""

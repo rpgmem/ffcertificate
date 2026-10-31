@@ -290,9 +290,10 @@ final class RecruitmentNoticeEditPageRenderer {
 	 *
 	 * @param object $notice Notice row.
 	 * @phpstan-param NoticeRow $notice
+	 * @param bool   $can_manage False hides the transitions from a reader who does not manage the notice.
 	 * @return void
 	 */
-	public static function render_status_section( object $notice ): void {
+	public static function render_status_section( object $notice, bool $can_manage = true ): void {
 		$current      = (string) $notice->status;
 		$nonce_action = 'ffc_recruitment_transition_notice_' . (int) $notice->id;
 
@@ -300,7 +301,8 @@ final class RecruitmentNoticeEditPageRenderer {
 		// set for the current state (minus the prelim → definitive path,
 		// surfaced separately), and the per-target confirm-modal copy.
 		$status_badge = RecruitmentAdminPage::notice_status_badge( $current );
-		$transitions  = self::resolve_status_transitions( $current );
+		// Moving the status is the Manager's (#2245); the Operator sees it.
+		$transitions  = $can_manage ? self::resolve_status_transitions( $current ) : array();
 		$modal_config = self::transition_modal_config( $current );
 
 		// Special-case the preliminary → definitive transition: it has two
@@ -309,7 +311,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		// (only relevant while preliminary) so the template stays free of
 		// the private renderer helper.
 		$prelim_options_html = '';
-		if ( 'preliminary' === $current ) {
+		if ( 'preliminary' === $current && $can_manage ) {
 			ob_start();
 			self::render_preliminary_to_final_options( $notice, $nonce_action );
 			$prelim_options_html = (string) ob_get_clean();
@@ -499,7 +501,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		$preliminary_table_html = (string) ob_get_clean();
 
 		ob_start();
-		self::render_classifications_table( $definitive_rows, true, 'definitive' );
+		self::render_classifications_table( $definitive_rows, RecruitmentNoticeEditPage::can_call(), 'definitive' );
 		$definitive_table_html = (string) ob_get_clean();
 
 		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/classifications-section.php';
@@ -608,7 +610,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		// (the §5.2 invariant), so we replace it with the editable
 		// preview_status + reason dropdown. The Definitive tab keeps the
 		// existing Status badge.
-		$is_preview_tab = ! $with_actions;
+		$is_preview_tab = 'preliminary' === $tab_key;
 		$reasons        = $is_preview_tab ? RecruitmentReasonReader::get_all() : array();
 
 		return array(
@@ -672,7 +674,8 @@ final class RecruitmentNoticeEditPageRenderer {
 		// (the §5.2 invariant), so we replace it with the editable
 		// preview_status + reason dropdown. The Definitive tab keeps the
 		// existing Status badge.
-		$is_preview_tab = ! $with_actions;
+		$is_preview_tab = 'preliminary' === $tab_key;
+		$can_manage     = RecruitmentNoticeEditPage::can_manage();
 
 		// The active call of each row that has one, so Cancel and Reopen name
 		// the call they end (#2245). One query for the page.
@@ -732,16 +735,24 @@ final class RecruitmentNoticeEditPageRenderer {
 				$current_preview = isset( $row->preview_status ) ? (string) $row->preview_status : 'empty';
 				$current_reason  = isset( $row->preview_reason_id ) ? (int) $row->preview_reason_id : 0;
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
-				echo '<td>' . self::render_preview_status_select( (int) $row->id, $current_preview ) . '</td>';
+				echo '<td>' . self::render_preview_status_select( (int) $row->id, $current_preview, $can_manage ) . '</td>';
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
-				echo '<td>' . self::render_preview_reason_select( (int) $row->id, $current_preview, $current_reason, $reasons ) . '</td>';
+				echo '<td>' . self::render_preview_reason_select( (int) $row->id, $current_preview, $current_reason, $reasons, $can_manage ) . '</td>';
 			} else {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
 				echo '<td>' . RecruitmentAdminPage::classification_status_badge( (string) $row->status ) . '</td>';
 			}
 			if ( $with_actions ) {
+				$call    = $active_calls[ (int) $row->id ] ?? null;
+				$actions = self::render_classification_actions(
+					(int) $row->id,
+					(string) $row->status,
+					null === $call ? 0 : $call['id'],
+					$can_manage,
+					null !== $call && ( $can_manage || get_current_user_id() === $call['created_by'] )
+				);
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_classification_actions returns escaped HTML.
-				echo '<td>' . self::render_classification_actions( (int) $row->id, (string) $row->status, $active_calls[ (int) $row->id ] ?? 0 ) . '</td>';
+				echo '<td>' . $actions . '</td>';
 			}
 			echo '</tr>';
 		}
@@ -825,13 +836,14 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * The change handler installed by {@see self::render_preview_status_script()}
 	 * PATCHes the row via REST when the operator commits a value.
 	 *
-	 * @param int    $cls_id  Classification ID.
-	 * @param string $current Current `preview_status` enum value.
+	 * @param int    $cls_id   Classification ID.
+	 * @param string $current  Current `preview_status` enum value.
+	 * @param bool   $editable False for a reader who does not manage the notice.
 	 * @return string Already-escaped HTML.
 	 */
-	private static function render_preview_status_select( int $cls_id, string $current ): string {
+	private static function render_preview_status_select( int $cls_id, string $current, bool $editable = true ): string {
 		$options = self::preview_status_label_map();
-		$html    = '<select class="ffc-cls-preview-status" data-cls-id="' . esc_attr( (string) $cls_id ) . '">';
+		$html    = '<select class="ffc-cls-preview-status" data-cls-id="' . esc_attr( (string) $cls_id ) . '"' . ( $editable ? '' : ' disabled' ) . '>';
 		foreach ( $options as $value => $label ) {
 			$html .= '<option value="' . esc_attr( $value ) . '"' . selected( $value, $current, false ) . '>' . esc_html( $label ) . '</option>';
 		}
@@ -854,10 +866,11 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * @param int                $reason_id   Currently-selected reason id (0 = none).
 	 * @param array<int, object> $reasons     Full reason catalog (passed in from the caller to avoid N+1 lookups).
 	 * @phpstan-param list<ReasonRow> $reasons
+	 * @param bool               $editable    False for a reader who does not manage the notice.
 	 * @return string Already-escaped HTML.
 	 */
-	private static function render_preview_reason_select( int $cls_id, string $current, int $reason_id, array $reasons ): string {
-		$disabled = ( 'empty' === $current ) ? ' disabled' : '';
+	private static function render_preview_reason_select( int $cls_id, string $current, int $reason_id, array $reasons, bool $editable = true ): string {
+		$disabled = ( 'empty' === $current || ! $editable ) ? ' disabled' : '';
 		$html     = '<select class="ffc-cls-preview-reason" data-cls-id="' . esc_attr( (string) $cls_id ) . '"' . $disabled . '>';
 		$html    .= '<option value="0">' . esc_html__( '— none —', 'ffcertificate' ) . '</option>';
 		foreach ( $reasons as $reason ) {
@@ -901,12 +914,18 @@ final class RecruitmentNoticeEditPageRenderer {
 	 *
 	 * Returns escaped HTML — already safe to echo.
 	 *
-	 * @param int    $id      Classification ID.
-	 * @param string $current Current status.
-	 * @param int    $call_id The row's active call, or 0 when it has none.
+	 * Outcomes are recorded by whoever calls; ending a call (Cancel,
+	 * Reopen) by whoever made it or a Manager; undoing a decision only by a
+	 * Manager (#2245).
+	 *
+	 * @param int    $id         Classification ID.
+	 * @param string $current    Current status.
+	 * @param int    $call_id    The row's active call, or 0 when it has none.
+	 * @param bool   $can_manage Whether the user manages the notice.
+	 * @param bool   $can_end    Whether the user may end the active call.
 	 * @return string
 	 */
-	private static function render_classification_actions( int $id, string $current, int $call_id = 0 ): string {
+	private static function render_classification_actions( int $id, string $current, int $call_id = 0, bool $can_manage = true, bool $can_end = true ): string {
 		$out = '';
 		switch ( $current ) {
 			case 'empty':
@@ -917,26 +936,26 @@ final class RecruitmentNoticeEditPageRenderer {
 				$out .= self::cls_button( $id, 'hired', __( 'Mark hired', 'ffcertificate' ), 'neutral', 'user-check' );
 				$out .= self::cls_button( $id, 'not_shown', __( 'Mark not_shown', 'ffcertificate' ), 'neutral', 'flag' );
 				$out .= self::cls_button( $id, 'withdrew', __( 'Mark withdrew', 'ffcertificate' ), 'neutral', 'user-minus' );
-				$out .= self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'caution', 'cross', $call_id );
+				$out .= $can_end ? self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'caution', 'cross', $call_id ) : '';
 				break;
 			case 'accepted':
 				$out .= self::cls_button( $id, 'hired', __( 'Mark hired', 'ffcertificate' ), 'neutral', 'user-check' );
 				$out .= self::cls_button( $id, 'not_shown', __( 'Mark not_shown', 'ffcertificate' ), 'neutral', 'flag' );
 				$out .= self::cls_button( $id, 'withdrew', __( 'Mark withdrew', 'ffcertificate' ), 'neutral', 'user-minus' );
-				$out .= self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'caution', 'cross', $call_id );
+				$out .= $can_end ? self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'caution', 'cross', $call_id ) : '';
 				break;
 			case 'not_shown':
-				$out .= self::cls_button( $id, 'reopen', __( 'Reopen (if not frozen)', 'ffcertificate' ), 'caution', 'unlock', $call_id );
+				$out .= $can_end ? self::cls_button( $id, 'reopen', __( 'Reopen (if not frozen)', 'ffcertificate' ), 'caution', 'unlock', $call_id ) : '';
 				// Admin override (#Item 8): reset to waiting even when the
 				// reopen-freeze would block the plain `reopen` above.
-				$out .= self::cls_button( $id, 'override', __( 'Undo decision (admin)', 'ffcertificate' ), 'caution', 'restore' );
+				$out .= $can_manage ? self::cls_button( $id, 'override', __( 'Undo decision (admin)', 'ffcertificate' ), 'caution', 'restore' ) : '';
 				break;
 			case 'hired':
 			case 'withdrew':
 				// Terminal under the normal lifecycle — but an admin may undo a
 				// realized decision via the audited override (#Item 8): reopens
 				// the vacancy and returns the candidate to the waiting queue.
-				$out .= self::cls_button( $id, 'override', __( 'Undo decision (admin)', 'ffcertificate' ), 'caution', 'restore' );
+				$out .= $can_manage ? self::cls_button( $id, 'override', __( 'Undo decision (admin)', 'ffcertificate' ), 'caution', 'restore' ) : '';
 				break;
 		}
 		return $out;
@@ -972,11 +991,12 @@ final class RecruitmentNoticeEditPageRenderer {
 	}
 
 	/**
-	 * The active call of each row that has one: classification ID → call ID.
+	 * The active call of each row that has one: classification ID → the
+	 * call's ID and the user who made it.
 	 *
 	 * @param array $rows Classification rows on the page.
 	 * @phpstan-param list<ClassificationRow> $rows
-	 * @return array<int, int>
+	 * @return array<int, array{id: int, created_by: int}>
 	 */
 	private static function active_calls_for( array $rows ): array {
 		$ids = array();
@@ -989,7 +1009,10 @@ final class RecruitmentNoticeEditPageRenderer {
 		foreach ( RecruitmentCallReader::get_history_for_classifications( $ids ) as $call ) {
 			$cls = (int) $call->classification_id;
 			if ( null === $call->cancelled_at && ! isset( $out[ $cls ] ) ) {
-				$out[ $cls ] = (int) $call->id;
+				$out[ $cls ] = array(
+					'id'         => (int) $call->id,
+					'created_by' => (int) $call->created_by,
+				);
 			}
 		}
 		return $out;

@@ -671,6 +671,21 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->assertStringContainsString( '/override-to-empty', $combined );
 	}
 
+	public function test_the_operator_tier_reaches_outcomes_and_cancel_but_not_the_managers_routes(): void {
+		$this->controller->register_routes();
+
+		$perm = array();
+		foreach ( $this->registered_routes as $r ) {
+			$args                = isset( $r['args']['permission_callback'] ) ? $r['args'] : $r['args'][0];
+			$perm[ $r['route'] ] = $args['permission_callback'][1];
+		}
+
+		$this->assertSame( 'check_can_call_candidates', $perm['/recruitment/classifications/(?P<id>\\d+)/status'], 'Outcomes are the Operator\'s (#2245).' );
+		$this->assertSame( 'check_can_call_candidates', $perm['/recruitment/classifications/(?P<id>\\d+)/calls/(?P<call_id>\\d+)/cancel'] );
+		$this->assertSame( 'check_admin_cap', $perm['/recruitment/classifications/(?P<id>\\d+)/override-to-empty'], 'Undoing a decision stays with the Manager.' );
+		$this->assertSame( 'check_admin_cap', $perm['/recruitment/classifications/(?P<id>\\d+)/preview-status'] );
+	}
+
 	// ------------------------------------------------------------------
 	// override_classification_to_empty() — #Item 8
 	// ------------------------------------------------------------------
@@ -1763,6 +1778,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 				'id'                => 99,
 				'classification_id' => 5,
 				'cancelled_at'      => null,
+				'created_by'        => self::OPERATOR,
 			)
 		);
 
@@ -1794,6 +1810,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 				'id'                => 99,
 				'classification_id' => 5,
 				'cancelled_at'      => 1800000000,
+				'created_by'        => self::OPERATOR,
 			)
 		);
 
@@ -1812,6 +1829,61 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->assertSame( 409, $result->get_error_data()['status'] );
 	}
 
+	public function test_cancel_call_refuses_an_operator_another_operators_call(): void {
+		$this->classification( 5, array( 'status' => 'called' ) );
+		$this->store(
+			self::T_CALL,
+			array(
+				'id'                => 99,
+				'classification_id' => 5,
+				'cancelled_at'      => null,
+				'created_by'        => self::OPERATOR + 1,
+			)
+		);
+
+		$result = $this->controller->cancel_call(
+			$this->make_request(
+				array(
+					'id'      => 5,
+					'call_id' => 99,
+					'reason'  => 'mistake',
+				)
+			)
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_call_not_yours', $result->get_error_code() );
+		$this->assertSame( 403, $result->get_error_data()['status'] );
+		$this->assertSame( 'called', $this->rows[ self::T_CLASSIFICATION ][5]->status, 'Nothing was cancelled.' );
+	}
+
+	public function test_cancel_call_lets_a_manager_end_anyones_call(): void {
+		Functions\when( 'current_user_can' )->alias( fn( $c ) => 'ffc_manage_recruitment' === $c );
+		$this->classification( 5, array( 'status' => 'called' ) );
+		$this->store(
+			self::T_CALL,
+			array(
+				'id'                => 99,
+				'classification_id' => 5,
+				'cancelled_at'      => null,
+				'created_by'        => self::OPERATOR + 1,
+			)
+		);
+
+		$response = $this->controller->cancel_call(
+			$this->make_request(
+				array(
+					'id'      => 5,
+					'call_id' => 99,
+					'reason'  => 'mistake',
+				)
+			)
+		);
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 'empty', $this->rows[ self::T_CLASSIFICATION ][5]->status );
+	}
+
 	public function test_cancel_call_refuses_a_call_named_under_another_row(): void {
 		$this->classification( 5, array( 'status' => 'called' ) );
 		$this->store(
@@ -1820,6 +1892,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 				'id'                => 99,
 				'classification_id' => 5,
 				'cancelled_at'      => null,
+				'created_by'        => self::OPERATOR,
 			)
 		);
 

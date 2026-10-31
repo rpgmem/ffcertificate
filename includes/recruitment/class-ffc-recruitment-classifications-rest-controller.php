@@ -220,7 +220,7 @@ final class RecruitmentClassificationsRestController {
 			array(
 				'methods'             => \WP_REST_Server::EDITABLE,
 				'callback'            => array( $this, 'change_classification_status' ),
-				'permission_callback' => array( $this, 'check_admin_cap' ),
+				'permission_callback' => array( $this, 'check_can_call_candidates' ),
 				'args'                => array(
 					'status' => array(
 						'type'              => 'string',
@@ -306,7 +306,7 @@ final class RecruitmentClassificationsRestController {
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'cancel_call' ),
-				'permission_callback' => array( $this, 'check_admin_cap' ),
+				'permission_callback' => array( $this, 'check_can_call_candidates' ),
 				'args'                => array(
 					'reason' => array(
 						'type'              => 'string',
@@ -973,7 +973,16 @@ final class RecruitmentClassificationsRestController {
 	 */
 	public function cancel_call( \WP_REST_Request $request ) {
 		$call_id = (int) $request->get_param( 'call_id' );
-		$result  = RecruitmentCallService::cancel_call(
+
+		// An Operator ends the calls they made; a Manager ends any (#2245).
+		if ( ! current_user_can( 'ffc_manage_recruitment' ) ) {
+			$call = RecruitmentCallReader::get_by_id( $call_id );
+			if ( null !== $call && get_current_user_id() !== (int) $call->created_by ) {
+				return $this->wp_error_from_envelope( array( 'recruitment_call_not_yours' ), 403 );
+			}
+		}
+
+		$result = RecruitmentCallService::cancel_call(
 			$call_id,
 			(string) $request->get_param( 'reason' ),
 			get_current_user_id(),

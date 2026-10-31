@@ -232,9 +232,18 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 	// render_page() — edit-screen hijack
 	// ------------------------------------------------------------------
 
-	public function test_render_page_edit_notice_requires_manage_cap(): void {
+	public function test_render_page_edit_notice_opens_to_a_viewer(): void {
 		$this->granted = array( 'ffc_view_recruitment' ); // view only, not manage
 		$_GET          = array( 'action' => 'edit-notice' );
+
+		$out = $this->render();
+
+		$this->assertStringContainsString( 'Notice not found.', $out, 'The notice screen opens to view holders (#2245).' );
+	}
+
+	public function test_render_page_edit_candidate_still_requires_manage_cap(): void {
+		$this->granted = array( 'ffc_view_recruitment', 'ffc_call_recruitment' );
+		$_GET          = array( 'action' => 'edit-candidate' );
 
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'wp_die:' );

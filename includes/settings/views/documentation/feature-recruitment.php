@@ -75,6 +75,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'A candidate linked to an account reads their own data unmasked, so a link is a grant of access. Nobody can link a candidate to their own account. Without the PII capability, a candidate can only be linked to the account that carries its own CPF, RF or e-mail. Every link and unlink is recorded in the activity log and in the candidate\'s history.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'The REST API edits a candidate under the edit screen\'s rules: name, phone and notes for the manage capability, the e-mail only for whoever may reveal it, CPF and RF never, and every change logged. Every reveal of a CPF, RF or e-mail is logged; there is no setting to turn that off. The PCD filter of the public list exists only when the notice shows the PCD column, and the candidate\'s own API answer carries the score only when the notice shows it, never the staff fields of a call.', 'ffcertificate' ); ?></p>
 
+	<p><?php esc_html_e( 'The notice screen opens to everyone who can view recruitment. A Viewer reads the lists. An Operator also calls candidates, records outcomes (accepted, not shown, hired, withdrew) and cancels or reopens the calls they made. The notice\'s name, public columns, status and adjutancies, the preliminary statuses, imports, deletion and undoing a decision stay with the Manager, who can also cancel any call.', 'ffcertificate' ); ?></p>
+
 	<h4><?php esc_html_e( 'Capabilities', 'ffcertificate' ); ?></h4>
 	<table class="widefat striped">
 		<thead>
@@ -86,7 +88,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<tbody>
 			<tr><td><code>ffc_view_recruitment</code></td><td><?php esc_html_e( 'read-only access to the admin pages.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_manage_recruitment</code></td><td><?php esc_html_e( 'create / edit notices, candidates and adjutancies.', 'ffcertificate' ); ?></td></tr>
-			<tr><td><code>ffc_import_recruitment</code> / <code>ffc_call_recruitment</code></td><td><?php esc_html_e( 'import candidates / record call-ups.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>ffc_import_recruitment</code> / <code>ffc_call_recruitment</code></td><td><?php esc_html_e( 'import candidates / call candidates, record outcomes and cancel their own calls.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_delete_recruitment</code></td><td><?php esc_html_e( 'delete notices, candidates and adjutancies.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_view_recruitment_reasons</code> / <code>ffc_manage_recruitment_reasons</code></td><td><?php esc_html_e( 'view / edit the reason catalog.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_view_recruitment_settings</code> / <code>ffc_manage_recruitment_settings</code></td><td><?php esc_html_e( 'view / save the Settings tab.', 'ffcertificate' ); ?></td></tr>
