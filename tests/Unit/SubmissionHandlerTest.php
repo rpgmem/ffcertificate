@@ -67,6 +67,9 @@ class SubmissionHandlerTest extends TestCase {
 		class_exists( '\\FreeFormCertificate\\Submissions\\SubmissionHandler' );
 		class_exists( '\\FreeFormCertificate\\Submissions\\SubmissionLifecycleService' );
 
+		// An anonymous visitor by default: the resolver then adopts nothing (#2244).
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+
 		// Mock global $wpdb
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
@@ -834,6 +837,32 @@ class SubmissionHandlerTest extends TestCase {
 
 		$this->assertSame( 0, $captured['consent_given'] );
 		$this->assertNull( $captured['consent_date'] );
+	}
+
+	/**
+	 * Adoption runs only for a logged-in submitter (#2244): an anonymous form
+	 * proves no identifier, so it claims no one else's unlinked records.
+	 */
+	public function test_only_a_logged_in_submission_adopts_unlinked_records(): void {
+		$adoptions = function (): array {
+			return array_values(
+				array_filter(
+					$this->prepared,
+					static fn( array $args ): bool => 0 === strpos( (string) $args[0], 'UPDATE %i SET user_id = %d WHERE (' )
+				)
+			);
+		};
+		$this->mockRepo->shouldReceive( 'insert' )->andReturn( 31 );
+
+		$data = array( 'name' => 'X', 'cpf_rf' => '518.178.420-80' );
+		$this->handler->process_submission( 1, 'Form', $data, 'x@test.com', array(), array() );
+		$this->assertSame( array(), $adoptions(), 'The anonymous submission adopted records.' );
+
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		$this->prepared = array();
+		$data           = array( 'name' => 'X', 'cpf_rf' => '518.178.420-80' );
+		$this->handler->process_submission( 1, 'Form', $data, 'x@test.com', array(), array() );
+		$this->assertNotSame( array(), $adoptions(), 'A logged-in submission adopts, so the check above measures something.' );
 	}
 
 	/**

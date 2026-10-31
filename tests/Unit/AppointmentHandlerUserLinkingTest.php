@@ -52,6 +52,9 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 	/** @var array<string, mixed> Captured createAppointment() payload. */
 	private array $captured = array();
 
+	/** @var int|null The account the committed row was linked to afterwards (#2244). */
+	private ?int $linked = null;
+
 	/** @var array<string, mixed> Stored options, by name. */
 	private array $options = array();
 
@@ -73,6 +76,9 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 	/** @var mixed What wp_create_user() answers. */
 	private $create_user_result = 900;
 
+	/** @var list<string> Adoption UPDATEs the linking ran. */
+	private array $adoptions = array();
+
 	/** @var list<string> Queries the double was not written to answer. */
 	private array $unexpected = array();
 
@@ -87,6 +93,7 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 		Monkey\setUp();
 
 		$this->captured           = array();
+		$this->linked             = null;
 		$this->options            = array();
 		$this->profiles           = array();
 		$this->lookups            = array();
@@ -95,6 +102,7 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 		$this->created_accounts   = array();
 		$this->create_user_result = 900;
 		$this->unexpected         = array();
+		$this->adoptions          = array();
 
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
@@ -284,6 +292,7 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 			function ( $sql ) {
 				// The linking adopts the person's unlinked records: none here.
 				if ( preg_match( '/^UPDATE `(' . self::SUBMISSIONS . '|' . self::APPOINTMENTS . ')` SET user_id = \d+ WHERE \(?(cpf_hash|rf_hash) = /', $sql ) ) {
+					$this->adoptions[] = $sql;
 					return 0;
 				}
 				$this->unexpected[] = 'query: ' . $sql;
@@ -353,6 +362,13 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 			} ) )
 			->andReturn( $new_id );
 		$this->appointmentRepo->shouldReceive( 'commit' )->once();
+		// The account is linked after the commit, by an update of the row (#2244).
+		$this->appointmentRepo->shouldReceive( 'update' )
+			->with( $new_id, Mockery::on( function ( $data ) {
+				$this->linked = (int) $data['user_id'];
+				return true;
+			} ) )
+			->andReturn( 1 );
 		$this->appointmentRepo->shouldReceive( 'findById' )->with( $new_id )->andReturn( array(
 			'id' => $new_id, 'confirmation_token' => 'tok' . $new_id,
 		) );
@@ -427,7 +443,7 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 		$where = $this->lookups[0][1];
 		$this->assertSame( "{$column} = '{$hash}'", $where, "The hash of '{$typed}' is not in the argument its kind names, so the lookup reads the wrong column." );
 		$this->assertStringNotContainsString( $other, $where, "The other identifier argument is not null for '{$typed}', so the resolver would search a column this value was never written to." );
-		$this->assertSame( self::PERSON_ID, $this->captured['user_id'], 'The account the index files the identifier under was not linked.' );
+		$this->assertSame( self::PERSON_ID, $this->linked, 'The account the index files the identifier under was not linked.' );
 	}
 
 	/**
@@ -449,8 +465,46 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 
 		$this->assertIsArray( $result );
 		$this->assertTrue( $result['success'] );
-		$this->assertSame( self::PERSON_ID, $this->captured['user_id'] );
+		$this->assertSame( 0, $this->captured['user_id'], 'The row is inserted before any account is touched.' );
+		$this->assertSame( self::PERSON_ID, $this->linked );
 		$this->assertSame( array(), $this->created_accounts, 'A person the index already knows must not get a second account.' );
+	}
+
+	public function test_a_refused_booking_creates_and_links_no_account(): void {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'rollback' )->once();
+		$this->validator->shouldReceive( 'validate' )->andReturn( new \WP_Error( 'slot_full', 'full' ) );
+		$this->appointmentRepo->shouldNotReceive( 'createAppointment' );
+		$this->appointmentRepo->shouldNotReceive( 'update' );
+
+		$result = $this->handler->process_appointment( $this->booking_data() );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( array(), $this->lookups, 'The identity was never resolved for a refused booking (#2244).' );
+		$this->assertSame( array(), $this->email_lookups );
+		$this->assertSame( array(), $this->created_accounts, 'No account, so no welcome e-mail.' );
+	}
+
+	public function test_an_anonymous_booking_claims_no_one_elses_records(): void {
+		$this->store_profile( 'cpf_hash', (string) SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A ) );
+		$this->expect_successful_insert( 330 );
+
+		$this->handler->process_appointment( $this->booking_data() );
+
+		$this->assertSame( self::PERSON_ID, $this->linked, 'The booking itself is still filed under the account.' );
+		$this->assertSame( array(), $this->adoptions, 'An identifier typed into a public form adopts nothing (#2244).' );
+	}
+
+	public function test_a_logged_in_booking_still_adopts_the_persons_records(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		$this->store_profile( 'cpf_hash', (string) SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A ) );
+		$this->expect_successful_insert( 340 );
+
+		$this->handler->process_appointment( $this->booking_data() );
+
+		$this->assertSame( self::PERSON_ID, $this->linked );
+		$this->assertNotSame( array(), $this->adoptions );
 	}
 
 	public function test_wp_error_from_user_manager_leaves_user_id_unset(): void {

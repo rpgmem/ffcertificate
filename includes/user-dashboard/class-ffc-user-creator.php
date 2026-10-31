@@ -50,9 +50,21 @@ class UserCreator {
 	 *                                              the account notification. Has
 	 *                                              no effect on the two matching
 	 *                                              branches, which create nobody.
+	 * @param bool                 $adopt           Whether the resolved user also
+	 *                                              claims the unlinked records
+	 *                                              carrying these identifiers.
+	 *                                              False for an anonymous caller
+	 *                                              (#2244): an identifier typed
+	 *                                              into a public form proves
+	 *                                              nothing, so someone else's CPF
+	 *                                              beside one's own e-mail must
+	 *                                              not hand over that person's
+	 *                                              records. The identity index is
+	 *                                              still fed, for the record the
+	 *                                              caller is about to link.
 	 * @return int|\WP_Error User ID or error. Returns a WP_Error('ffc_user_no_identifier') when both hashes AND email are empty.
 	 */
-	public static function get_or_create_user_dual( ?string $cpf_hash, ?string $rf_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE, bool $notify = true ) {
+	public static function get_or_create_user_dual( ?string $cpf_hash, ?string $rf_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE, bool $notify = true, bool $adopt = true ) {
 		// Normalize empty strings to null so downstream branches can rely
 		// on `null !== $cpf_hash` semantics.
 		$cpf_hash = ( is_string( $cpf_hash ) && '' !== $cpf_hash ) ? $cpf_hash : null;
@@ -68,7 +80,7 @@ class UserCreator {
 		if ( $existing_user_id ) {
 			$uid = (int) $existing_user_id;
 			CapabilityManager::grant_context_capabilities( $uid, $context );
-			self::link_orphaned_records_dual( $cpf_hash, $rf_hash, $uid );
+			self::link_orphaned_records_dual( $cpf_hash, $rf_hash, $uid, $adopt );
 			return $uid;
 		}
 
@@ -83,7 +95,7 @@ class UserCreator {
 				self::sync_user_metadata( $uid, $submission_data );
 			}
 
-			self::link_orphaned_records_dual( $cpf_hash, $rf_hash, $uid );
+			self::link_orphaned_records_dual( $cpf_hash, $rf_hash, $uid, $adopt );
 			return $uid;
 		}
 
@@ -95,7 +107,7 @@ class UserCreator {
 			return $user_id;
 		}
 
-		self::link_orphaned_records_dual( $cpf_hash, $rf_hash, (int) $user_id );
+		self::link_orphaned_records_dual( $cpf_hash, $rf_hash, (int) $user_id, $adopt );
 		return (int) $user_id;
 	}
 
@@ -270,10 +282,16 @@ class UserCreator {
 	 * @param string|null $cpf_hash CPF hash (or null to skip).
 	 * @param string|null $rf_hash  RF hash (or null to skip).
 	 * @param int         $user_id  WordPress user ID to link.
+	 * @param bool        $adopt    False to feed the identity index only (#2244).
 	 * @return void
 	 */
-	private static function link_orphaned_records_dual( ?string $cpf_hash, ?string $rf_hash, int $user_id ): void {
+	private static function link_orphaned_records_dual( ?string $cpf_hash, ?string $rf_hash, int $user_id, bool $adopt = true ): void {
 		if ( null === $cpf_hash && null === $rf_hash ) {
+			return;
+		}
+
+		if ( ! $adopt ) {
+			self::feed_identity_index( $cpf_hash, $rf_hash, $user_id );
 			return;
 		}
 

@@ -3325,10 +3325,6 @@ msgstr ""
 msgid "Calendar — List (GET /calendars)"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:234
-msgid "Calendar — Slots (GET /calendars/{id}/slots)"
-msgstr ""
-
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:442
 msgid "Calendar-deletion cancellation"
 msgstr ""
@@ -30329,4 +30325,12 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:224
 msgid "The selected time is not one of this calendar's slots."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:362
+msgid "Calendar — Slots (GET /calendars/{id}/slots, and the booking form's slot and month reads)"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:58
+msgid "The account is created or linked only once the booking is accepted, so a refused booking leaves no account and sends no e-mail. A guest booking files only itself under the account: older unlinked records carrying the same CPF/RF are claimed when the person logs in or through Identity Resolution, never from a public form. Booking counts against the IP limit on the Rate Limit tab, and the slot and month reads against the Calendar — Slots read limit."
 msgstr ""
