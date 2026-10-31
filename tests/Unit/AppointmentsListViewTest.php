@@ -62,6 +62,12 @@ class AppointmentsListViewTest extends TestCase {
 	/** @var list<array<string, string>> What the close-out count reads (#2285). */
 	private array $closeout_due = array();
 
+	/** @var int What the locked slot recount answers. */
+	private int $slot_count = 1;
+
+	/** @var list<string> Transaction statements the double received during Confirm or Cancel. */
+	private array $queries = array();
+
 	/** @var list<string> Queries the double did not recognise. */
 	private array $unexpected = array();
 
@@ -137,6 +143,8 @@ class AppointmentsListViewTest extends TestCase {
 		$this->updates       = array();
 		$this->unexpected    = array();
 		$this->closeout_due  = array();
+		$this->slot_count    = 1;
+		$this->queries       = array();
 		$this->actions       = array();
 		$this->transients    = array();
 
@@ -221,6 +229,10 @@ class AppointmentsListViewTest extends TestCase {
 				if ( 'SELECT COUNT(*) FROM ' . self::APPOINTMENTS . ' ' === $sql ) {
 					return (string) count( $this->appointments );
 				}
+				// The slot recount Confirm takes under lock (#2244).
+				if ( str_starts_with( $sql, 'SELECT COUNT(*) FROM ' . self::APPOINTMENTS ) && str_contains( $sql, "status IN ('confirmed', 'pending') FOR UPDATE" ) ) {
+					return (string) $this->slot_count;
+				}
 				return $this->unexpected_query( $sql );
 			}
 		);
@@ -281,91 +293,198 @@ class AppointmentsListViewTest extends TestCase {
 	// Confirm mutation
 	// ==================================================================
 
-	public function test_view_confirm_success_redirects(): void {
+	/**
+	 * Run Confirm or Cancel on appointment 5 and return the notice it left.
+	 *
+	 * @param string $action confirm | cancel.
+	 * @return array<string, string>
+	 */
+	private function run_admin_action( string $action ): array {
 		$_GET['appointment'] = '5';
-		$_GET['ffc_action']  = 'confirm';
-		Functions\when( 'check_admin_referer' )->justReturn( true );
+		$_GET['ffc_action']  = $action;
+		$referers            = array();
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( $nonce_action ) use ( &$referers ) {
+				$referers[] = $nonce_action;
+				return true;
+			}
+		);
+		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
-
-		$this->appointments[5] = array( 'id' => 5, 'calendar_id' => 7 );
-		$this->calendars[7]    = array( 'id' => 7, 'title' => 'Cal' );
+		$GLOBALS['wpdb']->shouldReceive( 'query' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = $sql;
+				return true;
+			}
+		);
 
 		$this->include_view_expecting_stop( 'redirected' );
 
-		// The real writer confirmed appointment 5 on behalf of user 1.
-		$this->assertCount( 1, $this->updates );
-		$this->assertSame( self::APPOINTMENTS_TABLE, $this->updates[0][0] );
-		$this->assertSame( array( 'id' => 5 ), $this->updates[0][2] );
-		$this->assertSame( 'confirmed', $this->updates[0][1]['status'] );
-		$this->assertSame( 1, $this->updates[0][1]['approved_by'] );
-
-		$this->assertSame(
-			array(
-				array(
-					'ffcertificate_self_scheduling_appointment_confirmed_email',
-					array( 'id' => 5, 'calendar_id' => 7 ),
-					array( 'id' => 7, 'title' => 'Cal' ),
-				),
-			),
-			$this->actions
-		);
-		$this->assertSame( 'success', $this->transients[0][1]['type'] );
+		$this->assertSame( array( 'ffc_' . $action . '_appointment_5' ), $referers );
+		$this->assertCount( 1, $this->transients );
+		return $this->transients[0][1];
 	}
 
-	public function test_view_confirm_failure_redirects(): void {
-		$_GET['appointment'] = '5';
-		$_GET['ffc_action']  = 'confirm';
-		Functions\when( 'check_admin_referer' )->justReturn( true );
-		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+	/**
+	 * A calendar row with the given e-mail switches.
+	 *
+	 * @param array<string, int> $email Switches.
+	 * @return array<string, mixed>
+	 */
+	private static function calendar_row( array $email ): array {
+		return array(
+			'id'                        => 7,
+			'title'                     => 'Cal',
+			'schedule_type'             => 'regular',
+			'max_appointments_per_slot' => 1,
+			'email_config'              => (string) json_encode( $email ),
+		);
+	}
 
-		// The stored write fails, so confirm() reports false.
-		$this->update_result = false;
+	public function test_confirm_writes_only_over_pending_and_sends_the_approval_notice_when_switched_on(): void {
+		$this->appointments[5] = array( 'id' => 5, 'calendar_id' => 7, 'status' => 'pending', 'appointment_date' => '2032-05-10', 'start_time' => '09:00:00' );
+		$this->calendars[7]    = self::calendar_row( array( 'send_approval_notification' => 1 ) );
 
-		$this->include_view_expecting_stop( 'redirected' );
+		$notice = $this->run_admin_action( 'confirm' );
 
+		$this->assertSame( array( 'type' => 'success', 'message' => 'Appointment confirmed successfully.' ), $notice );
 		$this->assertCount( 1, $this->updates );
-		$this->assertSame( array( 'id' => 5 ), $this->updates[0][2] );
+		$this->assertSame( array( 'id' => 5, 'status' => 'pending' ), $this->updates[0][2] );
 		$this->assertSame( 'confirmed', $this->updates[0][1]['status'] );
 		$this->assertSame( 1, $this->updates[0][1]['approved_by'] );
-		$this->assertSame(
-			array(
-				'type'    => 'error',
-				'message' => 'Failed to confirm appointment.',
-			),
-			$this->transients[0][1]
+		$this->assertSame( array( 'START TRANSACTION', 'COMMIT' ), $this->queries );
+		$this->assertSame( array( 'ffcertificate_self_scheduling_appointment_confirmed_email' ), array_column( $this->actions, 0 ) );
+	}
+
+	public function test_confirm_respects_the_approval_notice_switch(): void {
+		$this->appointments[5] = array( 'id' => 5, 'calendar_id' => 7, 'status' => 'pending', 'appointment_date' => '2032-05-10', 'start_time' => '09:00:00' );
+		$this->calendars[7]    = self::calendar_row( array( 'send_approval_notification' => 0 ) );
+
+		$this->assertSame( 'success', $this->run_admin_action( 'confirm' )['type'] );
+		$this->assertSame( array(), $this->actions, 'No approval e-mail when the calendar does not send one.' );
+	}
+
+	/** @return array<string, array{string}> */
+	public function not_pending(): array {
+		return array(
+			'waitlist'  => array( 'waitlist' ),
+			'cancelled' => array( 'cancelled' ),
+			'confirmed' => array( 'confirmed' ),
+			'completed' => array( 'completed' ),
 		);
+	}
+
+	/**
+	 * @dataProvider not_pending
+	 */
+	public function test_confirm_refuses_a_row_that_is_not_pending( string $status ): void {
+		$this->appointments[5] = array( 'id' => 5, 'calendar_id' => 7, 'status' => $status, 'appointment_date' => '2032-05-10', 'start_time' => '09:00:00' );
+		$this->calendars[7]    = self::calendar_row( array( 'send_approval_notification' => 1 ) );
+
+		$notice = $this->run_admin_action( 'confirm' );
+
+		$this->assertSame( array( 'type' => 'error', 'message' => 'Only a pending appointment can be confirmed.' ), $notice );
+		$this->assertSame( array(), $this->updates );
+		$this->assertSame( array(), $this->actions );
+	}
+
+	public function test_confirm_refuses_a_slot_that_filled_meanwhile(): void {
+		$this->appointments[5] = array( 'id' => 5, 'calendar_id' => 7, 'status' => 'pending', 'appointment_date' => '2032-05-10', 'start_time' => '09:00:00' );
+		$this->calendars[7]    = self::calendar_row( array( 'send_approval_notification' => 1 ) );
+		$this->slot_count      = 2; // This row plus one more, on a slot of one.
+
+		$notice = $this->run_admin_action( 'confirm' );
+
+		$this->assertSame( 'The slot is already full, so the appointment cannot be confirmed.', $notice['message'] );
+		$this->assertSame( array(), $this->updates );
+		$this->assertSame( array( 'START TRANSACTION', 'ROLLBACK' ), $this->queries );
+	}
+
+	public function test_confirm_reports_a_row_another_request_moved(): void {
+		$this->appointments[5] = array( 'id' => 5, 'calendar_id' => 7, 'status' => 'pending', 'appointment_date' => '2032-05-10', 'start_time' => '09:00:00' );
+		$this->calendars[7]    = self::calendar_row( array( 'send_approval_notification' => 1 ) );
+		$this->update_result   = 0;
+
+		$this->assertSame( 'This appointment changed meanwhile. Reload the page and try again.', $this->run_admin_action( 'confirm' )['message'] );
+		$this->assertSame( array(), $this->actions );
+	}
+
+	public function test_confirm_reports_a_failed_write(): void {
+		$this->appointments[5] = array( 'id' => 5, 'calendar_id' => 7, 'status' => 'pending', 'appointment_date' => '2032-05-10', 'start_time' => '09:00:00' );
+		$this->calendars[7]    = self::calendar_row( array() );
+		$this->update_result   = false;
+
+		$this->assertSame( array( 'type' => 'error', 'message' => 'Failed to confirm appointment.' ), $this->run_admin_action( 'confirm' ) );
 	}
 
 	// ==================================================================
 	// Cancel mutation
 	// ==================================================================
 
-	public function test_view_cancel_success_redirects(): void {
-		$_GET['appointment'] = '5';
-		$_GET['ffc_action']  = 'cancel';
-		$_GET['reason']      = 'Admin closed slot';
-		Functions\when( 'check_admin_referer' )->justReturn( true );
-		Functions\when( 'sanitize_textarea_field' )->returnArg();
-		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
-
-		// The waitlist promoter (#941 phase 2) snapshots the row before cancel and
-		// fires ffcertificate_appointment_cancelled with it.
-		$row                   = array( 'status' => 'confirmed', 'calendar_id' => 1, 'appointment_date' => '2026-01-01', 'start_time' => '09:00:00' );
+	public function test_cancel_fires_the_shared_action_and_mails_the_reason(): void {
+		$_GET['reason'] = 'Admin closed slot';
+		$row            = array( 'id' => 5, 'status' => 'confirmed', 'calendar_id' => 7, 'appointment_date' => '2032-01-01', 'start_time' => '09:00:00' );
 		$this->appointments[5] = $row;
+		$this->calendars[7]    = self::calendar_row( array( 'send_cancellation_notification' => 1 ) );
 
-		$this->include_view_expecting_stop( 'redirected' );
+		$notice = $this->run_admin_action( 'cancel' );
 
+		$this->assertSame( array( 'type' => 'success', 'message' => 'Appointment cancelled successfully.' ), $notice );
 		$this->assertCount( 1, $this->updates );
 		$this->assertSame( self::APPOINTMENTS_TABLE, $this->updates[0][0] );
-		$this->assertSame( array( 'id' => 5 ), $this->updates[0][2] );
+		$this->assertSame( array( 'id' => 5, 'status' => 'confirmed' ), $this->updates[0][2] );
 		$this->assertSame( 'cancelled', $this->updates[0][1]['status'] );
 		$this->assertSame( 1, $this->updates[0][1]['cancelled_by'] );
 		$this->assertSame( 'Admin closed slot', $this->updates[0][1]['cancellation_reason'] );
 
-		$this->assertSame(
-			array( array( 'ffcertificate_appointment_cancelled', 5, $row, 'Admin closed slot', 1 ) ),
-			$this->actions
+		$this->assertSame( array( 'ffcertificate_appointment_cancelled', 5, $row, 'Admin closed slot', 1 ), $this->actions[0] );
+		$this->assertSame( 'ffcertificate_self_scheduling_appointment_cancelled_email', $this->actions[1][0] );
+		$this->assertSame( 'Admin closed slot', $this->actions[1][1]['cancellation_reason'], 'The e-mail carries the reason.' );
+		$this->assertSame( 'cancelled', $this->actions[1][1]['status'] );
+		$this->assertCount( 2, $this->actions );
+	}
+
+	public function test_rejecting_a_pending_row_mails_it_too_and_an_empty_reason_falls_back(): void {
+		$_GET['reason']        = '   ';
+		$this->appointments[5] = array( 'id' => 5, 'status' => 'pending', 'calendar_id' => 7, 'appointment_date' => '2032-01-01', 'start_time' => '09:00:00' );
+		$this->calendars[7]    = self::calendar_row( array( 'send_cancellation_notification' => 1 ) );
+
+		$this->assertSame( 'success', $this->run_admin_action( 'cancel' )['type'] );
+		$this->assertSame( array( 'id' => 5, 'status' => 'pending' ), $this->updates[0][2] );
+		$this->assertSame( 'Cancelled by admin', $this->actions[1][1]['cancellation_reason'] );
+	}
+
+	public function test_cancel_mails_nobody_when_the_calendar_sends_no_cancellation_notice(): void {
+		$this->appointments[5] = array( 'id' => 5, 'status' => 'waitlist', 'calendar_id' => 7, 'appointment_date' => '2032-01-01', 'start_time' => '09:00:00' );
+		$this->calendars[7]    = self::calendar_row( array() );
+
+		$this->run_admin_action( 'cancel' );
+
+		$this->assertSame( array( 'ffcertificate_appointment_cancelled' ), array_column( $this->actions, 0 ) );
+	}
+
+	/** @return array<string, array{string, string}> */
+	public function closed_rows(): array {
+		return array(
+			'cancelled' => array( 'cancelled', 'This appointment is already cancelled.' ),
+			'completed' => array( 'completed', 'This appointment has already taken place and can no longer be cancelled.' ),
+			'no-show'   => array( 'no_show', 'This appointment has already taken place and can no longer be cancelled.' ),
 		);
+	}
+
+	/**
+	 * @dataProvider closed_rows
+	 */
+	public function test_cancel_refuses_a_closed_row( string $status, string $message ): void {
+		$this->appointments[5] = array( 'id' => 5, 'status' => $status, 'calendar_id' => 7, 'appointment_date' => '2032-01-01', 'start_time' => '09:00:00' );
+
+		$this->assertSame( array( 'type' => 'error', 'message' => $message ), $this->run_admin_action( 'cancel' ) );
+		$this->assertSame( array(), $this->updates );
+		$this->assertSame( array(), $this->actions );
+	}
+
+	public function test_cancel_of_a_missing_row_reports_it(): void {
+		$this->assertSame( array( 'type' => 'error', 'message' => 'Appointment not found.' ), $this->run_admin_action( 'cancel' ) );
 	}
 
 	// ==================================================================

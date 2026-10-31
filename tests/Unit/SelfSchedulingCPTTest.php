@@ -289,6 +289,41 @@ class SelfSchedulingCPTTest extends TestCase {
 		$this->assertStringContainsString( 'Duplicate', $result['duplicate'] );
 	}
 
+	public function test_permanent_delete_link_states_how_many_appointments_it_cancels(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'current_time' )->justReturn( '2026-01-01' );
+		Functions\when( '_n' )->alias( static fn( $one, $many, $n ) => 1 === $n ? $one : $many );
+		$this->calendars[20]   = array( 'id' => 5, 'post_id' => 20, 'title' => 'Cal A' );
+		$this->appointments[5] = array( array( 'id' => 1 ), array( 'id' => 2 ) );
+
+		$cpt    = new SelfSchedulingCPT();
+		$result = $cpt->add_duplicate_link(
+			array( 'delete' => '<a href="post.php?action=delete" class="submitdelete">Delete Permanently</a>' ),
+			(object) array( 'post_type' => 'ffc_self_scheduling', 'ID' => 20, 'post_status' => 'trash' )
+		);
+
+		$this->assertSame(
+			'<a data-confirm="Deleting this calendar cancels 2 open appointments (pending, confirmed or waitlisted) and e-mails each person. Delete it permanently?" href="post.php?action=delete" class="submitdelete">Delete Permanently</a>',
+			$result['delete']
+		);
+		$this->assertStringContainsString( 'status IN (pending,confirmed,waitlist)', $this->queries[1] );
+	}
+
+	public function test_permanent_delete_link_is_left_alone_with_nothing_to_cancel_or_outside_the_trash(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'current_time' )->justReturn( '2026-01-01' );
+		$this->calendars[20] = array( 'id' => 5, 'post_id' => 20, 'title' => 'Cal A' );
+		$link                = '<a href="post.php?action=delete">Delete Permanently</a>';
+		$cpt                 = new SelfSchedulingCPT();
+
+		$empty = $cpt->add_duplicate_link( array( 'delete' => $link ), (object) array( 'post_type' => 'ffc_self_scheduling', 'ID' => 20, 'post_status' => 'trash' ) );
+		$this->assertSame( $link, $empty['delete'] );
+
+		$this->appointments[5] = array( array( 'id' => 1 ) );
+		$published             = $cpt->add_duplicate_link( array( 'delete' => $link ), (object) array( 'post_type' => 'ffc_self_scheduling', 'ID' => 20, 'post_status' => 'publish' ) );
+		$this->assertSame( $link, $published['delete'] );
+	}
+
 	/**
 	 * Duplicating creates a calendar, so the link and its handler both take
 	 * the post type's write cap, never the bookings' one (#1769).
@@ -689,10 +724,10 @@ class SelfSchedulingCPTTest extends TestCase {
 		);
 		Functions\when( 'is_email' )->justReturn( true );
 		Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
-		$captured_mail = null;
+		$mails = array();
 		Functions\when( 'wp_mail' )->alias(
-			static function ( $to, $subj, $body ) use ( &$captured_mail ) {
-				$captured_mail = compact( 'to', 'subj', 'body' );
+			static function ( $to, $subj, $body ) use ( &$mails ) {
+				$mails[] = compact( 'to', 'subj', 'body' );
 				return true;
 			}
 		);
@@ -734,6 +769,15 @@ class SelfSchedulingCPTTest extends TestCase {
 				'start_time'       => '09:00:00',
 				'email_encrypted'  => (string) Encryption::encrypt( 'user@example.com' ),
 			),
+			// A waitlisted person is told too (#2244).
+			array(
+				'id'               => 101,
+				'calendar_id'      => 5,
+				'status'           => 'waitlist',
+				'appointment_date' => '2026-02-01',
+				'start_time'       => '09:00:00',
+				'email_encrypted'  => (string) Encryption::encrypt( 'queued@example.com' ),
+			),
 		);
 
 		$cpt  = new SelfSchedulingCPT();
@@ -747,11 +791,15 @@ class SelfSchedulingCPTTest extends TestCase {
 			'The cancellation reads the calendar\'s appointments from today on.'
 		);
 
-		// The one future appointment is cancelled, by the deleting user.
-		$this->assertCount( 1, $this->updates, 'Exactly one appointment is cancelled.' );
+		$this->assertStringContainsString( "status IN (pending,confirmed,waitlist)", $this->queries[1] ?? '', 'Waitlisted rows are cancelled with the rest.' );
+
+		// Both open appointments are cancelled, by the deleting user, each over
+		// the status it was read with.
+		$this->assertCount( 2, $this->updates );
+		$this->assertSame( array( 'id' => 101, 'status' => 'waitlist' ), $this->updates[1][2] );
 		list( $table, $data, $where ) = $this->updates[0];
 		$this->assertSame( self::APPOINTMENTS, $table );
-		$this->assertSame( array( 'id' => 100 ), $where );
+		$this->assertSame( array( 'id' => 100, 'status' => 'confirmed' ), $where );
 		$this->assertSame( 'cancelled', $data['status'] );
 		$this->assertSame( 3, $data['cancelled_by'] );
 		$this->assertSame( 'Calendar "Cal A" was deleted', $data['cancellation_reason'] );
@@ -763,8 +811,8 @@ class SelfSchedulingCPTTest extends TestCase {
 		// carries the calendar title + wall-clock date/time resolved through the
 		// token map, and its subject the calendar-title token (#976 standard —
 		// "Event: {{ref}}", no bracketed site-name prefix).
-		$this->assertNotNull( $captured_mail, 'calendar-deletion email should be sent' );
-		$this->assertSame( 'user@example.com', $captured_mail['to'] );
+		$this->assertSame( array( 'user@example.com', 'queued@example.com' ), array_column( $mails, 'to' ) );
+		$captured_mail = $mails[0];
 		$this->assertStringContainsString( 'Cal A', $captured_mail['body'] );
 		$this->assertStringContainsString( '01/02/2026', $captured_mail['body'] );
 		$this->assertSame( 'Appointment cancelled: Cal A', $captured_mail['subj'] );
