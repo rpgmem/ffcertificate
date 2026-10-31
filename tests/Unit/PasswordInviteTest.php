@@ -6,6 +6,7 @@ namespace FreeFormCertificate\Tests\Unit;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Core\PasswordInvite;
+use FreeFormCertificate\Tests\Support\CallLog;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -37,6 +38,9 @@ class PasswordInviteTest extends TestCase {
 	/** @var array<mixed> */
 	private $get_backup = array();
 
+	/** @var array<mixed> */
+	private $cookie_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -45,6 +49,13 @@ class PasswordInviteTest extends TestCase {
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'sanitize_user' )->returnArg();
+		Functions\when( 'is_ssl' )->justReturn( true );
+		Functions\when( 'setcookie' )->justReturn( true );
+		Functions\when( 'nocache_headers' )->justReturn( null );
+		// Nobody is staff unless a test says so.
+		Functions\when( 'user_can' )->justReturn( false );
+		Functions\when( 'get_userdata' )->justReturn( false );
 		Functions\when( 'is_wp_error' )->alias( static function ( $thing ) {
 			return $thing instanceof \WP_Error;
 		} );
@@ -62,14 +73,17 @@ class PasswordInviteTest extends TestCase {
 		} );
 
 		$this->post_backup = $_POST ?? array();
-		$this->get_backup  = $_GET ?? array();
-		$_POST             = array();
-		$_GET              = array();
+		$this->get_backup    = $_GET ?? array();
+		$this->cookie_backup = $_COOKIE ?? array();
+		$_POST               = array();
+		$_GET                = array();
+		$_COOKIE             = array();
 	}
 
 	protected function tearDown(): void {
 		$_POST = $this->post_backup;
-		$_GET  = $this->get_backup;
+		$_GET    = $this->get_backup;
+		$_COOKIE = $this->cookie_backup;
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -193,7 +207,8 @@ class PasswordInviteTest extends TestCase {
 	 * @param array<string, string> $post
 	 */
 	private function submitExpectingRedirect( array $post, string $expectedFragment ): void {
-		$_POST = $post;
+		$_POST                             = $post;
+		$_COOKIE[ PasswordInvite::COOKIE ] = 'maria:ABC123';
 
 		Functions\expect( 'wp_safe_redirect' )
 			->once()
@@ -232,8 +247,6 @@ class PasswordInviteTest extends TestCase {
 		$this->submitExpectingRedirect(
 			array(
 				'_ffc_nonce'              => 'ok',
-				PasswordInvite::ARG_KEY   => 'ABC123',
-				PasswordInvite::ARG_LOGIN => 'maria',
 			),
 			'ffc_password_error=expired'
 		);
@@ -253,8 +266,6 @@ class PasswordInviteTest extends TestCase {
 		$this->submitExpectingRedirect(
 			array(
 				'_ffc_nonce'              => 'ok',
-				PasswordInvite::ARG_KEY   => 'ABC123',
-				PasswordInvite::ARG_LOGIN => 'maria',
 				'ffc_pass1'               => 'aGoodPassword1',
 				'ffc_pass2'               => 'outraSenha99',
 			),
@@ -275,8 +286,6 @@ class PasswordInviteTest extends TestCase {
 		$this->submitExpectingRedirect(
 			array(
 				'_ffc_nonce'              => 'ok',
-				PasswordInvite::ARG_KEY   => 'ABC123',
-				PasswordInvite::ARG_LOGIN => 'maria',
 				'ffc_pass1'               => $short,
 				'ffc_pass2'               => $short,
 			),
@@ -300,8 +309,6 @@ class PasswordInviteTest extends TestCase {
 		$this->submitExpectingRedirect(
 			array(
 				'_ffc_nonce'              => 'ok',
-				PasswordInvite::ARG_KEY   => 'ABC123',
-				PasswordInvite::ARG_LOGIN => 'maria',
 				'ffc_pass1'               => 'aGoodPassword1',
 				'ffc_pass2'               => 'aGoodPassword1',
 			),
@@ -326,8 +333,6 @@ class PasswordInviteTest extends TestCase {
 		$this->submitExpectingRedirect(
 			array(
 				'_ffc_nonce'              => 'ok',
-				PasswordInvite::ARG_KEY   => 'ABC123',
-				PasswordInvite::ARG_LOGIN => 'maria',
 				'user_id'                 => '99',
 				'ffc_pass1'               => 'aGoodPassword1',
 				'ffc_pass2'               => 'aGoodPassword1',
@@ -340,13 +345,174 @@ class PasswordInviteTest extends TestCase {
 	// Reading the request
 	// ==================================================================
 
-	public function test_request_has_link_needs_both_args(): void {
+	public function test_request_has_link_reads_the_cookie_and_not_the_url(): void {
+		// The key leaves the URL at the first request (#2246); a link still
+		// sitting in the query string is not what the dashboard reads.
+		$_GET[ PasswordInvite::ARG_KEY ]   = 'ABC123';
+		$_GET[ PasswordInvite::ARG_LOGIN ] = 'maria';
 		$this->assertFalse( PasswordInvite::request_has_link() );
+
+		$_COOKIE[ PasswordInvite::COOKIE ] = 'maria';
+		$this->assertFalse( PasswordInvite::request_has_link(), 'A cookie without both halves is not a link.' );
+
+		$_COOKIE[ PasswordInvite::COOKIE ] = rawurlencode( 'ana.maria@example.test' ) . ':ABC123';
+		$this->assertTrue( PasswordInvite::request_has_link() );
+		$this->assertSame(
+			array(
+				'key'   => 'ABC123',
+				'login' => 'ana.maria@example.test',
+			),
+			PasswordInvite::request_pair()
+		);
+	}
+
+	// ==================================================================
+	// capture_link -- the key leaves the URL
+	// ==================================================================
+
+	public function test_capture_link_does_nothing_without_the_pair(): void {
+		$cookies = CallLog::record( 'setcookie', true );
+		Functions\expect( 'wp_safe_redirect' )->never();
 
 		$_GET[ PasswordInvite::ARG_KEY ] = 'ABC123';
-		$this->assertFalse( PasswordInvite::request_has_link() );
+		PasswordInvite::capture_link();
 
+		$this->assertSame( 0, $cookies->count() );
+	}
+
+	public function test_capture_link_moves_the_pair_into_an_http_only_cookie_and_redirects_clean(): void {
+		$cookies = CallLog::record( 'setcookie', true );
+		Functions\expect( 'wp_safe_redirect' )
+			->once()
+			->andReturnUsing( static function ( $url ) {
+				throw new \RuntimeException( 'redirect:' . $url );
+			} );
+
+		$_GET[ PasswordInvite::ARG_KEY ]   = 'ABC123';
 		$_GET[ PasswordInvite::ARG_LOGIN ] = 'maria';
-		$this->assertTrue( PasswordInvite::request_has_link() );
+
+		try {
+			PasswordInvite::capture_link();
+			$this->fail( 'capture_link did not redirect.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect:https://example.test/dashboard', $e->getMessage(), 'The redirect carries no key.' );
+		}
+
+		$this->assertSame( 1, $cookies->count() );
+		$call = $cookies->calls()[0];
+		$this->assertSame( PasswordInvite::COOKIE, $call[0] );
+		$this->assertSame( 'maria:ABC123', $call[1] );
+		$this->assertTrue( $call[2]['httponly'] );
+		$this->assertTrue( $call[2]['secure'] );
+		$this->assertSame( 'Lax', $call[2]['samesite'] );
+	}
+
+	// ==================================================================
+	// Staff accounts
+	// ==================================================================
+
+	public function test_issue_for_refuses_a_staff_account(): void {
+		Functions\when( 'get_userdata' )->justReturn( $this->makeUser() );
+		Functions\when( 'user_can' )->alias( static fn ( $id, $cap ) => 'manage_options' === $cap );
+		Functions\expect( 'get_password_reset_key' )->never();
+
+		$this->assertSame( '', PasswordInvite::issue_for( 7 ) );
+	}
+
+	public function test_validate_refuses_a_key_held_by_a_staff_account(): void {
+		// The key was issued before the account was given a `_pii` capability.
+		$this->mockSettings();
+		Functions\when( 'add_filter' )->justReturn( true );
+		Functions\when( 'remove_filter' )->justReturn( true );
+		Functions\when( 'check_password_reset_key' )->justReturn( $this->makeUser() );
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'allcaps' => array( 'ffc_view_certificates_pii' => true ) ) );
+		Functions\when( 'user_can' )->alias( static fn ( $id, $cap ) => 'ffc_view_certificates_pii' === $cap );
+
+		$result = PasswordInvite::validate( 'ABC123', 'maria' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'invalid_key', $result->get_error_code() );
+	}
+
+	// ==================================================================
+	// The cookie's lifetime
+	// ==================================================================
+
+	public function test_handle_submit_ignores_a_posted_key(): void {
+		// The pair comes from the cookie. A key in the POST is not read.
+		$this->mockSettings();
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'add_filter' )->justReturn( true );
+		Functions\when( 'remove_filter' )->justReturn( true );
+		Functions\expect( 'check_password_reset_key' )->once()->with( 'ABC123', 'maria' )->andReturn( new \WP_Error( 'invalid_key', 'x' ) );
+
+		$this->submitExpectingRedirect(
+			array(
+				'_ffc_nonce'              => 'ok',
+				PasswordInvite::ARG_KEY   => 'POSTED',
+				PasswordInvite::ARG_LOGIN => 'someone-else',
+			),
+			'ffc_password_error=invalid'
+		);
+	}
+
+	public function test_handle_submit_clears_the_cookie_when_the_key_is_rejected(): void {
+		$this->mockSettings();
+		$cookies = CallLog::record( 'setcookie', true );
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'add_filter' )->justReturn( true );
+		Functions\when( 'remove_filter' )->justReturn( true );
+		Functions\when( 'check_password_reset_key' )->justReturn( new \WP_Error( 'expired_key', 'x' ) );
+
+		$this->submitExpectingRedirect( array( '_ffc_nonce' => 'ok' ), 'ffc_password_error=expired' );
+
+		$this->assertSame( 1, $cookies->count() );
+		$this->assertSame( '', $cookies->calls()[0][1] );
+		$this->assertArrayNotHasKey( PasswordInvite::COOKIE, $_COOKIE );
+	}
+
+	public function test_handle_submit_keeps_the_cookie_when_the_passwords_differ(): void {
+		// A typo must not burn the invitation: neither the token nor its cookie.
+		$this->mockSettings();
+		$cookies = CallLog::record( 'setcookie', true );
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'add_filter' )->justReturn( true );
+		Functions\when( 'remove_filter' )->justReturn( true );
+		Functions\when( 'check_password_reset_key' )->justReturn( $this->makeUser() );
+
+		$this->submitExpectingRedirect(
+			array(
+				'_ffc_nonce' => 'ok',
+				'ffc_pass1'  => 'aGoodPassword1',
+				'ffc_pass2'  => 'outraSenha99',
+			),
+			'https://example.test/dashboard|ffc_password_error=mismatch'
+		);
+
+		$this->assertSame( 0, $cookies->count() );
+	}
+
+	public function test_handle_submit_clears_the_cookie_once_the_password_is_set(): void {
+		$this->mockSettings();
+		$cookies = CallLog::record( 'setcookie', true );
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'add_filter' )->justReturn( true );
+		Functions\when( 'remove_filter' )->justReturn( true );
+		Functions\when( 'check_password_reset_key' )->justReturn( $this->makeUser() );
+		Functions\when( 'reset_password' )->justReturn( null );
+		Functions\when( 'wp_set_current_user' )->justReturn( null );
+		Functions\when( 'wp_set_auth_cookie' )->justReturn( null );
+
+		$this->submitExpectingRedirect(
+			array(
+				'_ffc_nonce' => 'ok',
+				'ffc_pass1'  => 'aGoodPassword1',
+				'ffc_pass2'  => 'aGoodPassword1',
+			),
+			'ffc_password=set'
+		);
+
+		$this->assertSame( 1, $cookies->count() );
+		$this->assertSame( '', $cookies->calls()[0][1] );
 	}
 }

@@ -245,6 +245,9 @@ class DashboardAssetManager {
 				'siteName'                => get_bloginfo( 'name' ),
 				'wpTimezone'              => wp_timezone_string(),
 				'mainAddress'             => \FreeFormCertificate\Settings\SettingsReader::get( 'main_address', '' ),
+				// WordPress's own reset, for a member who no longer knows the
+				// current password the change form asks for (#2246).
+				'lostPasswordUrl'         => wp_lostpassword_url(),
 				'strings'                 => array(
 					'loading'                  => __( 'Loading...', 'ffcertificate' ),
 					'error'                    => __( 'Error loading data', 'ffcertificate' ),
@@ -343,6 +346,7 @@ class DashboardAssetManager {
 					'securitySection'          => __( 'Security', 'ffcertificate' ),
 					'changePassword'           => __( 'Change Password', 'ffcertificate' ),
 					'currentPassword'          => __( 'Current Password', 'ffcertificate' ),
+					'forgotPassword'           => __( 'Forgot your password?', 'ffcertificate' ),
 					'newPassword'              => __( 'New Password', 'ffcertificate' ),
 					'confirmPassword'          => __( 'Confirm New Password', 'ffcertificate' ),
 					'passwordChanged'          => __( 'Password changed successfully!', 'ffcertificate' ),
@@ -355,7 +359,7 @@ class DashboardAssetManager {
 					'requestDeletion'          => __( 'Request Data Deletion', 'ffcertificate' ),
 					'exportDataDesc'           => __( 'Request a copy of all your personal data stored in the system.', 'ffcertificate' ),
 					'deletionDataDesc'         => __( 'Request deletion of your personal data. An administrator will review your request.', 'ffcertificate' ),
-					'privacyRequestSent'       => __( 'Request sent! The administrator will review it.', 'ffcertificate' ),
+					'privacyRequestSent'       => __( 'Check your e-mail to confirm the request. Nothing happens until you confirm it.', 'ffcertificate' ),
 					'privacyRequestError'      => __( 'Error sending request', 'ffcertificate' ),
 					'confirmDeletion'          => __( 'Are you sure you want to request deletion of your personal data? This will be reviewed by an administrator.', 'ffcertificate' ),
 					// Audience self-join.

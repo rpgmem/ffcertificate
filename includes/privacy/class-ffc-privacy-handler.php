@@ -149,6 +149,14 @@ class PrivacyHandler {
 			'exporter_friendly_name' => __( 'FFC Recruitment', 'ffcertificate' ),
 			'callback'               => array( PrivacyExporters::class, 'export_recruitment' ),
 		);
+		$exporters['ffcertificate-activity-log']          = array(
+			'exporter_friendly_name' => __( 'FFC Activity Log', 'ffcertificate' ),
+			'callback'               => array( PrivacyExporters::class, 'export_activity_log' ),
+		);
+		$exporters['ffcertificate-date-messages']         = array(
+			'exporter_friendly_name' => __( 'FFC Date Messages', 'ffcertificate' ),
+			'callback'               => array( PrivacyExporters::class, 'export_date_message_log' ),
+		);
 		$exporters['ffcertificate-usermeta']              = array(
 			'exporter_friendly_name' => __( 'FFC User Settings', 'ffcertificate' ),
 			'callback'               => array( PrivacyExporters::class, 'export_usermeta' ),

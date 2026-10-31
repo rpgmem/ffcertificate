@@ -60,4 +60,42 @@ class Capabilities {
 		}
 		return '' !== $granular_cap && current_user_can( $granular_cap );
 	}
+
+	/**
+	 * Whether an account is staff that an automated path must never rewrite
+	 * or hand a credential link to (#2242, #2246).
+	 *
+	 * A WordPress administrator, or anyone holding a `_pii` capability. The
+	 * second covers FFC Administrator and every module's Administrator and
+	 * Manager tier, because those are the tiers the PII caps sit on, so a new
+	 * module's roles are covered the day they ship.
+	 *
+	 * It reads the account's own capability map rather than a list of the
+	 * plugin's capabilities, so Core needs no feature module to answer it;
+	 * each candidate is confirmed through `user_can()`.
+	 *
+	 * @param int $user_id WordPress user ID.
+	 * @return bool
+	 */
+	public static function is_staff_account( int $user_id ): bool {
+		if ( $user_id <= 0 ) {
+			return false;
+		}
+		if ( user_can( $user_id, 'manage_options' ) ) {
+			return true;
+		}
+		$user = get_userdata( $user_id );
+		if ( ! is_object( $user ) ) {
+			return false;
+		}
+		// Read through get_object_vars(): a user object that was never given
+		// its capability map (a partial double, a cached stub) reads as none.
+		$caps = (array) ( get_object_vars( $user )['allcaps'] ?? array() );
+		foreach ( $caps as $cap => $granted ) {
+			if ( $granted && is_string( $cap ) && str_ends_with( $cap, '_pii' ) && user_can( $user_id, $cap ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
 }

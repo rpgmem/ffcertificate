@@ -234,7 +234,10 @@ class PrivacyHandlerTest extends TestCase {
 	public function test_register_exporters_adds_every_entry(): void {
 		$result = PrivacyHandler::register_exporters(array());
 
-		$this->assertCount(10, $result);
+		$this->assertCount(12, $result);
+		// The activity log and the date-message log joined in #2246.
+		$this->assertArrayHasKey('ffcertificate-activity-log', $result);
+		$this->assertArrayHasKey('ffcertificate-date-messages', $result);
 		$this->assertArrayHasKey('ffcertificate-audience-attendance', $result);
 		$this->assertArrayHasKey('ffcertificate-audience-form-invites', $result);
 		// Reregistration and recruitment joined in #1574.
@@ -258,7 +261,7 @@ class PrivacyHandlerTest extends TestCase {
 
 		$result = PrivacyHandler::register_exporters($existing);
 
-		$this->assertCount(11, $result);
+		$this->assertCount(13, $result);
 		$this->assertArrayHasKey('other-plugin', $result);
 	}
 
@@ -941,6 +944,120 @@ class PrivacyHandlerTest extends TestCase {
 		$this->assertSame(array('Workshop', 'Evaluation'), array_slice($values, 0, 2));
 		$this->assertStringContainsString('2027', $values[2], 'The last send, formatted.');
 		$this->assertSame('2', $values[3]);
+	}
+
+	// ==================================================================
+	// Paging stability and the two groups added in #2246
+	// ==================================================================
+
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public static function paged_exporters(): array {
+		return array(
+			'certificates' => array( 'export_certificates', 't.submission_date DESC, t.id DESC' ),
+			'appointments' => array( 'export_appointments', 't.appointment_date DESC, t.id DESC' ),
+			'bookings'     => array( 'export_audience_bookings', 'b.booking_date DESC, b.id DESC' ),
+		);
+	}
+
+	/**
+	 * Two rows on the same date must not swap between pages, or one is
+	 * exported twice and another never (#2246).
+	 *
+	 * @dataProvider paged_exporters
+	 */
+	public function test_a_paged_exporter_breaks_ties_on_the_id( string $method, string $order ): void {
+		Functions\when('get_user_by')->justReturn($this->make_user());
+		Functions\when('get_option')->justReturn(array());
+		$this->mock_all_tables_exist();
+		$sql = '';
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(
+			function ($query) use (&$sql) {
+				if (false !== strpos((string) $query, 'LIMIT')) {
+					$sql = (string) $query;
+				}
+				return array();
+			}
+		);
+
+		PrivacyExporters::$method('user@example.com');
+
+		$this->assertStringContainsString('ORDER BY ' . $order, preg_replace('/\s+/', ' ', $sql));
+	}
+
+	public function test_export_activity_log_returns_empty_without_a_user_or_a_table(): void {
+		Functions\when('get_user_by')->justReturn(false);
+		$this->assertSame(array('data' => array(), 'done' => true), PrivacyExporters::export_activity_log('nobody@example.com'));
+
+		Functions\when('get_user_by')->justReturn($this->make_user());
+		$this->mock_no_tables_exist();
+		$this->assertSame(array('data' => array(), 'done' => true), PrivacyExporters::export_activity_log('user@example.com'));
+	}
+
+	public function test_export_activity_log_lists_the_user_entries_without_their_context(): void {
+		Functions\when('get_user_by')->justReturn($this->make_user());
+		$this->mock_all_tables_exist();
+		$this->wpdb->shouldReceive('esc_like')->andReturnUsing(static fn($v) => $v);
+		$sql = '';
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(
+			function ($query) use (&$sql) {
+				if (false !== strpos((string) $query, 'SHOW COLUMNS')) {
+					return array(); // An install with no encrypted address column.
+				}
+				$sql = (string) $query;
+				return array(
+					array('id' => '9', 'action' => 'privacy_request', 'level' => 'info', 'created_at' => '2026-10-30 10:00:00'),
+				);
+			}
+		);
+
+		$result = PrivacyExporters::export_activity_log('user@example.com');
+
+		$this->assertTrue($result['done']);
+		$this->assertSame('ffc-activity-log', $result['data'][0]['group_id']);
+		$this->assertSame('ffc-activity-9', $result['data'][0]['item_id']);
+		$this->assertSame(
+			array('privacy_request', 'info', '2026-10-30 10:00:00'),
+			array_column($result['data'][0]['data'], 'value')
+		);
+		$this->assertStringNotContainsString('context', $sql, 'The operator-facing context is never read.');
+		$this->assertStringContainsString('ORDER BY created_at DESC, id DESC', $sql);
+	}
+
+	public function test_export_date_message_log_lists_each_delivery(): void {
+		Functions\when('get_user_by')->justReturn($this->make_user());
+		$this->mock_all_tables_exist();
+		Functions\when('get_option')->justReturn(array());
+		Functions\when('wp_date')->alias(static fn($format, $ts) => gmdate('Y-m-d', (int) $ts));
+		Functions\when('wp_timezone')->justReturn(new \DateTimeZone('UTC'));
+		$sql = '';
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(
+			function ($query) use (&$sql) {
+				$sql = (string) $query;
+				return array(
+					array('id' => '3', 'occurrence_key' => '2026-05-20', 'sent_at' => '1800000000', 'rule_name' => 'Birthday'),
+				);
+			}
+		);
+
+		$result = PrivacyExporters::export_date_message_log('user@example.com');
+
+		$this->assertTrue($result['done']);
+		$this->assertSame('ffc-date-messages', $result['data'][0]['group_id']);
+		$this->assertSame('ffc-date-message-3', $result['data'][0]['item_id']);
+		$values = array_column($result['data'][0]['data'], 'value');
+		$this->assertSame('Birthday', $values[0]);
+		$this->assertStringContainsString('2026', $values[1]);
+		$this->assertStringContainsString('2027', $values[2]);
+		$this->assertStringContainsString('ORDER BY l.sent_at DESC, l.id DESC', preg_replace('/\s+/', ' ', $sql));
+	}
+
+	public function test_export_date_message_log_returns_empty_without_the_module_table(): void {
+		Functions\when('get_user_by')->justReturn($this->make_user());
+		$this->mock_no_tables_exist();
+
+		$this->assertSame(array('data' => array(), 'done' => true), PrivacyExporters::export_date_message_log('user@example.com'));
 	}
 
 	public function test_export_audience_bookings_shows_all_day_label(): void {

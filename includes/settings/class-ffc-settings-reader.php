@@ -568,7 +568,7 @@ final class SettingsReader {
 	 * bound lives in one place only (#1212).
 	 */
 	public static function invite_password_link_hours(): int {
-		return self::get_int( 'invite_password_link_hours', 48 );
+		return self::get_int( 'invite_password_link_hours', 168 );
 	}
 
 	/**

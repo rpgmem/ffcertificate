@@ -580,8 +580,11 @@ class UserProfileRestController {
 	/**
 	 * POST /user/privacy-request
 	 *
-	 * Creates a WordPress privacy request (export or erasure).
-	 * Erasure requests require admin approval.
+	 * Creates a WordPress privacy request (export or erasure) and sends the
+	 * confirmation e-mail. WordPress does not act on a request until the
+	 * person confirms it from that e-mail, so a request created without it
+	 * sat as "pending confirmation" forever while the screen said it had been
+	 * sent (#2246). Erasure is still reviewed by an administrator afterwards.
 	 *
 	 * @since 4.9.8
 	 * @param \WP_REST_Request $request REST request.
@@ -628,6 +631,18 @@ class UserProfileRestController {
 				\FreeFormCertificate\Core\ActivityLog::log_privacy_request( $user_id, $type );
 			}
 
+			// The request exists from here on; WordPress lists it under Tools
+			// whether or not the e-mail goes out, so a failed send is reported
+			// as such rather than as a request that was never made.
+			$sent = wp_send_user_request( (int) $result );
+			if ( is_wp_error( $sent ) ) {
+				return new \WP_Error(
+					'privacy_request_email_failed',
+					__( 'Your request was recorded, but the confirmation e-mail could not be sent. Please contact the site administrator.', 'ffcertificate' ),
+					array( 'status' => 500 )
+				);
+			}
+
 			$admin_hint = '';
 			if ( current_user_can( 'manage_options' ) ) {
 				$admin_hint = ' ' . sprintf(
@@ -642,7 +657,7 @@ class UserProfileRestController {
 			return rest_ensure_response(
 				array(
 					'success' => true,
-					'message' => __( 'Request sent! The administrator will review it.', 'ffcertificate' ) . $admin_hint,
+					'message' => __( 'Check your e-mail to confirm the request. Nothing happens until you confirm it.', 'ffcertificate' ) . $admin_hint,
 				)
 			);
 

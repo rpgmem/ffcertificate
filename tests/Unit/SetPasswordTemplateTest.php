@@ -42,8 +42,6 @@ class SetPasswordTemplateTest extends TestCase {
 	 * @param string $error The ffc_password_error code.
 	 */
 	private function render( string $error ): string {
-		$ffc_key     = 'k';
-		$ffc_login   = 'maria';
 		$ffc_error   = $error;
 		$ffc_min_len = 12;
 
@@ -61,6 +59,16 @@ class SetPasswordTemplateTest extends TestCase {
 			$html
 		);
 		$this->assertStringNotContainsString( 'ffc-dashboard-notice', $html );
+	}
+
+	public function test_the_form_carries_neither_the_key_nor_the_login(): void {
+		// The pair travels in an HttpOnly cookie (#2246); a hidden field would
+		// put it back in the page, where any script can read it.
+		$html = $this->render( '' );
+
+		$this->assertStringNotContainsString( 'name="ffc_key"', $html );
+		$this->assertStringNotContainsString( 'name="ffc_login"', $html );
+		$this->assertStringContainsString( 'name="ffc_pass1"', $html );
 	}
 
 	public function test_no_error_renders_no_notice(): void {

@@ -156,6 +156,8 @@ class ReregistrationReminderBatchTest extends TestCase {
 		// The password invite is the real class: a key per user, appended to
 		// the dashboard URL.
 		Functions\when( 'get_password_reset_key' )->alias( static fn ( $user ) => 'key' . $user->ID );
+		// `issue_for()` refuses staff accounts (#2246); these recipients are not.
+		Functions\when( 'user_can' )->justReturn( false );
 		Functions\when( 'add_query_arg' )->alias(
 			static fn ( $args, $url ) => $url . '?' . http_build_query( (array) $args )
 		);

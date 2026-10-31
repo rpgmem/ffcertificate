@@ -1142,6 +1142,9 @@ class UserProfileRestControllerTest extends TestCase {
 		$user = $this->make_user( 5 );
 		Functions\when( 'get_user_by' )->justReturn( $user );
 		Functions\when( 'wp_create_user_request' )->justReturn( 42 );
+		// The confirmation e-mail is what makes WordPress act on the request
+		// (#2246): it goes out once, for the request just created.
+		Functions\expect( 'wp_send_user_request' )->once()->with( 42 )->andReturn( true );
 
 		$ctrl    = new UserProfileRestController( 'ffc/v1' );
 		$request = $this->make_request( array( 'type' => 'export_personal_data' ) );
@@ -1149,6 +1152,36 @@ class UserProfileRestControllerTest extends TestCase {
 
 		$this->assertIsArray( $result );
 		$this->assertTrue( $result['success'] );
+		$this->assertStringContainsString( 'Check your e-mail to confirm', $result['message'] );
+	}
+
+	public function test_create_privacy_request_reports_a_confirmation_e_mail_that_did_not_go_out(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'get_user_by' )->justReturn( $this->make_user( 5 ) );
+		Functions\when( 'wp_create_user_request' )->justReturn( 42 );
+		Functions\when( 'wp_send_user_request' )->justReturn( new \WP_Error( 'privacy_email_error', 'Unable to send' ) );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->create_privacy_request(
+			$this->make_request( array( 'type' => 'remove_personal_data' ) )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'privacy_request_email_failed', $result->get_error_code() );
+		$this->assertSame( 500, $result->get_error_data()['status'] );
+	}
+
+	public function test_create_privacy_request_sends_no_e_mail_when_the_request_was_refused(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'get_user_by' )->justReturn( $this->make_user( 5 ) );
+		Functions\when( 'wp_create_user_request' )->justReturn( new \WP_Error( 'dup', 'already pending' ) );
+		Functions\expect( 'wp_send_user_request' )->never();
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->create_privacy_request(
+			$this->make_request( array( 'type' => 'export_personal_data' ) )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
 	}
 
 	// ==================================================================
@@ -1340,6 +1373,7 @@ class UserProfileRestControllerTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true ); // admin → hint appended.
 		Functions\when( 'get_user_by' )->justReturn( $this->make_user( 5 ) );
 		Functions\when( 'wp_create_user_request' )->justReturn( 42 );
+		Functions\when( 'wp_send_user_request' )->justReturn( true );
 
 		$result = ( new UserProfileRestController( 'ffc/v1' ) )->create_privacy_request(
 			$this->make_request( array( 'type' => 'export_personal_data' ) )

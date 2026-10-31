@@ -1049,6 +1049,12 @@
     max-width: 340px;
 }
 
+.ffc-password-form .ffc-password-forgot {
+    display: inline-block;
+    margin-top: var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-sm);
+}
+
 /* ==========================================================================
    PROFILE SECTIONS (Notifications, LGPD, Audience Join)
    ========================================================================== */
