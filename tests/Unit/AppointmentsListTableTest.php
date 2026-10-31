@@ -68,6 +68,7 @@ class AppointmentsListTableTest extends TestCase {
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_attr_e' )->alias( static function ( $text ) { echo $text; } );
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
 		Functions\when( 'esc_attr__' )->returnArg();
@@ -128,7 +129,7 @@ class AppointmentsListTableTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $_GET['calendar_id'], $_GET['status'], $_GET['orderby'], $_GET['order'] );
+		unset( $_GET['calendar_id'], $_GET['status'], $_GET['orderby'], $_GET['order'], $_GET['date_from'], $_GET['date_to'], $_GET['s'] );
 		if ( $this->had_wpdb ) {
 			$GLOBALS['wpdb'] = $this->wpdb_backup;
 		} else {
@@ -152,6 +153,7 @@ class AppointmentsListTableTest extends TestCase {
 		$wpdb             = Mockery::mock( 'wpdb' );
 		$wpdb->prefix     = 'wp_';
 		$wpdb->last_error = '';
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $t ) => addcslashes( (string) $t, '_%\\' ) );
 		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
 			static function ( $sql, ...$args ) {
 				$args = 1 === count( $args ) && is_array( $args[0] ) ? $args[0] : $args;
@@ -468,7 +470,7 @@ class AppointmentsListTableTest extends TestCase {
 		$table = new AppointmentsListTable();
 		$table->prepare_items();
 
-		$where = "WHERE `calendar_id` = '9' AND `status` = 'confirmed'";
+		$where = "WHERE calendar_id IN (9) AND status IN ('confirmed')";
 		$this->assertSame(
 			array(
 				'SELECT * FROM ' . self::APPOINTMENTS . " {$where} ORDER BY appointment_date DESC, start_time DESC, id DESC LIMIT 20 OFFSET 0",
@@ -486,6 +488,45 @@ class AppointmentsListTableTest extends TestCase {
 				'total_pages' => 1,
 			),
 			$pagination->getValue( $table )
+		);
+	}
+
+	/**
+	 * The date range and the search box narrow the list (#2244). CPF/RF and
+	 * e-mail are encrypted, so they match only through their hash columns;
+	 * a name matches in clear; a date that is not Y-m-d and a status the list
+	 * does not offer are dropped.
+	 *
+	 * @dataProvider provider_list_filters
+	 * @param array<string, string> $query    Request query vars.
+	 * @param string                $expected WHERE clause the list query carries.
+	 */
+	public function test_prepare_items_applies_the_date_range_and_the_search( array $query, string $expected ): void {
+		unset( $_GET['date_from'], $_GET['date_to'], $_GET['s'], $_GET['status'], $_GET['calendar_id'] );
+		foreach ( $query as $key => $value ) {
+			$_GET[ $key ] = $value;
+		}
+
+		( new AppointmentsListTable() )->prepare_items();
+
+		$this->assertStringContainsString( ' ' . $expected . ' ORDER BY', $this->ran[0] );
+		$this->assertStringEndsWith( ' ' . $expected, $this->ran[1], 'The count reads the same WHERE.' );
+	}
+
+	/**
+	 * @return array<string, array{0: array<string, string>, 1: string}>
+	 */
+	public function provider_list_filters(): array {
+		$cpf_hash   = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', '12345678909' );
+		$email_hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'email', 'ana@example.com' );
+
+		return array(
+			'one day'          => array( array( 'date_from' => '2026-05-10', 'date_to' => '2026-05-10' ), "WHERE appointment_date BETWEEN '2026-05-10' AND '2026-05-10'" ),
+			'from only'        => array( array( 'date_from' => '2026-05-10' ), "WHERE appointment_date >= '2026-05-10'" ),
+			'bad date dropped' => array( array( 'date_from' => '10/05/2026', 's' => 'Ana' ), "WHERE name LIKE '%Ana%'" ),
+			'bad status'       => array( array( 'status' => 'bogus', 's' => 'Ana' ), "WHERE name LIKE '%Ana%'" ),
+			'cpf with dots'    => array( array( 's' => '123.456.789-09' ), "WHERE (cpf_hash = '{$cpf_hash}' OR rf_hash = '{$cpf_hash}' OR id = 12345678909)" ),
+			'email'            => array( array( 's' => 'ana@example.com' ), "WHERE email_hash = '{$email_hash}'" ),
 		);
 	}
 
@@ -692,5 +733,24 @@ class AppointmentsListTableTest extends TestCase {
 		$this->assertStringContainsString( 'All Statuses', $out );
 		// The filter submits under the name it always had, as a family button (#1904).
 		$this->assertStringContainsString( '<button type="submit" class="ffc-btn ffc-btn-neutral ffc-icon-filter" name="filter_action" value="Filter">Filter</button>', $out );
+		$this->assertStringContainsString( 'name="date_from"', $out );
+		$this->assertStringContainsString( 'name="date_to"', $out );
+		$this->assertStringContainsString( 'type="search" name="s"', $out );
+	}
+
+	/**
+	 * "Today" opens the day's agenda in time order and keeps the calendar
+	 * chosen (#2244).
+	 */
+	public function test_extra_tablenav_links_to_todays_agenda(): void {
+		$_GET['calendar_id'] = '1';
+		$this->calendars[1]  = array( 'id' => 1, 'title' => 'Cal One', 'status' => 'active' );
+		Functions\when( 'wp_date' )->justReturn( '2026-05-10' );
+
+		ob_start();
+		$this->call_protected( new AppointmentsListTable(), 'extra_tablenav', array( 'top' ) );
+		$out = (string) ob_get_clean();
+
+		$this->assertMatchesRegularExpression( '/<a [^>]*href="[^"]*page=ffc-appointments[^"]*calendar_id=1[^"]*date_from=2026-05-10[^"]*date_to=2026-05-10[^"]*orderby=appointment_date[^"]*order=asc[^"]*"[^>]*>Today</', $out );
 	}
 }

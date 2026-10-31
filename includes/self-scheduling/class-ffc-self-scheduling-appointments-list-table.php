@@ -415,24 +415,11 @@ class AppointmentsListTable extends \WP_List_Table {
 		$current_page = $this->get_pagenum();
 		$offset       = ( $current_page - 1 ) * $per_page;
 
-		// Get filter parameters.
-		$calendar_id = RequestInput::get_get_int( 'calendar_id' );
-		$status      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
-
-		// Build conditions.
-		$conditions = array();
-		if ( $calendar_id ) {
-			$conditions['calendar_id'] = $calendar_id;
-		}
-		if ( $status ) {
-			$conditions['status'] = $status;
-		}
-
-		// Get items.
+		$filters                  = self::request_filters();
 		list( $order_by, $order ) = $this->resolve_order();
 
-		$items       = $this->appointment_repository->findAll( $conditions, $order_by, $order, $per_page, $offset );
-		$total_items = $this->appointment_repository->count( $conditions );
+		$items       = $this->appointment_repository->findForList( $filters, $order_by, $order, $per_page, $offset );
+		$total_items = $this->appointment_repository->countForList( $filters );
 
 		$this->items = $items;
 
@@ -448,6 +435,30 @@ class AppointmentsListTable extends \WP_List_Table {
 			$this->get_columns(),
 			array(), // Hidden columns.
 			$this->get_sortable_columns(),
+		);
+	}
+
+	/**
+	 * The list's filters as the request carries them (#2244), shared with the
+	 * Export CSV button so the file holds what the screen shows.
+	 *
+	 * A date that is not `Y-m-d`, or a status the list does not offer, is
+	 * dropped rather than passed on.
+	 *
+	 * @return array{calendar_id: int, status: string, start_date: string, end_date: string, search: string}
+	 */
+	public static function request_filters(): array {
+		$date   = static function ( string $value ): string {
+			return 1 === preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ? $value : '';
+		};
+		$status = RequestInput::get_get_string( 'status' );
+
+		return array(
+			'calendar_id' => RequestInput::get_get_int( 'calendar_id' ),
+			'status'      => in_array( $status, array( 'pending', 'confirmed', 'cancelled', 'completed', 'no_show', 'waitlist' ), true ) ? $status : '',
+			'start_date'  => $date( RequestInput::get_get_string( 'date_from' ) ),
+			'end_date'    => $date( RequestInput::get_get_string( 'date_to' ) ),
+			'search'      => RequestInput::get_get_string( 's' ),
 		);
 	}
 
@@ -481,8 +492,10 @@ class AppointmentsListTable extends \WP_List_Table {
 			return;
 		}
 
-		$calendar_id = RequestInput::get_get_int( 'calendar_id' );
-		$status      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
+		$filters     = self::request_filters();
+		$calendar_id = $filters['calendar_id'];
+		$status      = $filters['status'];
+		$today       = wp_date( 'Y-m-d' );
 
 		// Get all calendars for filter.
 		$calendars = $this->calendar_repository->getActiveCalendars();
@@ -508,6 +521,10 @@ class AppointmentsListTable extends \WP_List_Table {
 			<option value="waitlist" <?php selected( $status, 'waitlist' ); ?>><?php esc_html_e( 'Waitlist', 'ffcertificate' ); ?></option>
 		</select>
 
+		<input type="date" name="date_from" value="<?php echo esc_attr( $filters['start_date'] ); ?>" aria-label="<?php esc_attr_e( 'From', 'ffcertificate' ); ?>">
+		<input type="date" name="date_to" value="<?php echo esc_attr( $filters['end_date'] ); ?>" aria-label="<?php esc_attr_e( 'To', 'ffcertificate' ); ?>">
+		<input type="search" name="s" value="<?php echo esc_attr( $filters['search'] ); ?>" placeholder="<?php esc_attr_e( 'Name, e-mail, CPF/RF or ID', 'ffcertificate' ); ?>" aria-label="<?php esc_attr_e( 'Search appointments', 'ffcertificate' ); ?>">
+
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_button(
 			array(
@@ -516,6 +533,24 @@ class AppointmentsListTable extends \WP_List_Table {
 				'type'  => 'submit',
 				'name'  => 'filter_action',
 				'value' => __( 'Filter', 'ffcertificate' ),
+			)
+		);
+		// Today's agenda: one click to the day, keeping the calendar chosen.
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Today', 'ffcertificate' ),
+				'icon'  => 'calendar',
+				'href'  => add_query_arg(
+					array(
+						'page'        => 'ffc-appointments',
+						'calendar_id' => $calendar_id > 0 ? $calendar_id : false,
+						'date_from'   => $today,
+						'date_to'     => $today,
+						'orderby'     => 'appointment_date',
+						'order'       => 'asc',
+					),
+					admin_url( 'admin.php' )
+				),
 			)
 		);
 		?>

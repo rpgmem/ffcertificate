@@ -835,9 +835,10 @@ class AppointmentReader extends AbstractRepository {
 	 * @param array<int, string>   $statuses     Status filter (empty = all).
 	 * @param string|null          $start_date   Start date (`Y-m-d`).
 	 * @param string|null          $end_date     End date (`Y-m-d`).
+	 * @param string               $search       Name, e-mail, CPF/RF or id (#2244); '' for none.
 	 * @return array{0: string, 1: array<int, mixed>}
 	 */
-	private function build_export_where( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date ): array {
+	private function build_export_where( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, string $search = '' ): array {
 		$where = array();
 		$args  = array( $this->table );
 
@@ -866,9 +867,119 @@ class AppointmentReader extends AbstractRepository {
 			$args[]  = $end_date;
 		}
 
+		$search_clause = $this->search_clause( $search );
+		if ( null !== $search_clause ) {
+			$where[] = $search_clause[0];
+			$args    = array_merge( $args, $search_clause[1] );
+		}
+
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
 		return array( $where_clause, $args );
+	}
+
+	/**
+	 * The search box of the Appointments list (#2244), as one WHERE fragment.
+	 *
+	 * CPF, RF and e-mail are stored encrypted, so they match through their
+	 * hash columns and only whole: an e-mail is looked up as typed, digits as
+	 * a CPF or RF (punctuation dropped) and also as an appointment id. Anything
+	 * else matches the name, which is stored in clear.
+	 *
+	 * @param string $search Raw search text.
+	 * @return array{0: string, 1: array<int, mixed>}|null Null when there is nothing to match.
+	 */
+	private function search_clause( string $search ): ?array {
+		$search = trim( $search );
+		if ( '' === $search ) {
+			return null;
+		}
+
+		if ( false !== strpos( $search, '@' ) ) {
+			$hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'email', $search );
+			return array( 'email_hash = %s', array( (string) $hash ) );
+		}
+
+		$digits = preg_replace( '/[\s.\-\/]/', '', $search );
+		if ( is_string( $digits ) && '' !== $digits && ctype_digit( $digits ) ) {
+			$hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $digits );
+			return array( '(cpf_hash = %s OR rf_hash = %s OR id = %d)', array( (string) $hash, (string) $hash, (int) $digits ) );
+		}
+
+		return array( 'name LIKE %s', array( '%' . $this->wpdb->esc_like( $search ) . '%' ) );
+	}
+
+	/**
+	 * One page of the Appointments list under its filters (#2244).
+	 *
+	 * The export reads the same WHERE through build_export_where(), so the
+	 * file holds exactly what the list shows.
+	 *
+	 * @param array<string, mixed> $filters  calendar_id / status / start_date / end_date / search.
+	 * @param string               $order_by Allowlisted column.
+	 * @param string               $order    `ASC` or `DESC`.
+	 * @param int                  $limit    Page size.
+	 * @param int                  $offset   Offset.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function findForList( array $filters, string $order_by, string $order, int $limit, int $offset ): array {
+		list( $where_clause, $args ) = $this->list_where( $filters );
+
+		$order    = 'ASC' === strtoupper( $order ) ? 'ASC' : 'DESC';
+		$order_by = $this->order_clause( $this->sanitize_order_column( $order_by ), $order );
+		$args[]   = $limit;
+		$args[]   = $offset;
+
+		$sql = "SELECT * FROM %i {$where_clause} ORDER BY {$order_by} LIMIT %d OFFSET %d";
+		/**
+		 * $args is a merged identifier + value list bound by wpdb->prepare;
+		 * `{$order_by}` is an allowlisted column and a collapsed direction.
+		 *
+		 * @phpstan-ignore argument.type
+		 */
+		$sql  = $this->wpdb->prepare( $sql, ...$args );
+		$rows = $this->wpdb->get_results( $sql, ARRAY_A );
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * How many appointments the Appointments list's filters match.
+	 *
+	 * @param array<string, mixed> $filters calendar_id / status / start_date / end_date / search.
+	 * @return int
+	 */
+	public function countForList( array $filters ): int {
+		list( $where_clause, $args ) = $this->list_where( $filters );
+
+		$sql = "SELECT COUNT(*) FROM %i {$where_clause}";
+		/**
+		 * $args is a merged identifier + value list bound by wpdb->prepare.
+		 *
+		 * @phpstan-ignore argument.type
+		 */
+		$sql = $this->wpdb->prepare( $sql, ...$args );
+		return (int) $this->wpdb->get_var( $sql );
+	}
+
+	/**
+	 * The list's filter array, through the export's WHERE builder.
+	 *
+	 * @param array<string, mixed> $filters calendar_id / status / start_date / end_date / search.
+	 * @return array{0: string, 1: array<int, mixed>}
+	 */
+	private function list_where( array $filters ): array {
+		$calendar_id = \FreeFormCertificate\Core\ArrayValue::int( $filters, 'calendar_id' );
+		$status      = \FreeFormCertificate\Core\ArrayValue::string( $filters, 'status' );
+		$start_date  = \FreeFormCertificate\Core\ArrayValue::string( $filters, 'start_date' );
+		$end_date    = \FreeFormCertificate\Core\ArrayValue::string( $filters, 'end_date' );
+
+		return $this->build_export_where(
+			$calendar_id > 0 ? array( $calendar_id ) : null,
+			'' !== $status ? array( $status ) : array(),
+			'' !== $start_date ? $start_date : null,
+			'' !== $end_date ? $end_date : null,
+			\FreeFormCertificate\Core\ArrayValue::string( $filters, 'search' )
+		);
 	}
 
 	/**
@@ -879,10 +990,11 @@ class AppointmentReader extends AbstractRepository {
 	 * @param array<int, string>   $statuses     Status filter (empty = all).
 	 * @param string|null          $start_date   Start date (`Y-m-d`).
 	 * @param string|null          $end_date     End date (`Y-m-d`).
+	 * @param string               $search       List search text (#2244).
 	 * @return int
 	 */
-	public function countForExport( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date ): int {
-		list( $where_clause, $args ) = $this->build_export_where( $calendar_ids, $statuses, $start_date, $end_date );
+	public function countForExport( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, string $search = '' ): int {
+		list( $where_clause, $args ) = $this->build_export_where( $calendar_ids, $statuses, $start_date, $end_date, $search );
 
 		$sql = "SELECT COUNT(*) FROM %i {$where_clause}";
 		/**
@@ -907,10 +1019,11 @@ class AppointmentReader extends AbstractRepository {
 	 * @param string|null          $end_date     End date (`Y-m-d`).
 	 * @param int                  $cursor_id    Exclusive upper-bound id (PHP_INT_MAX on the first page).
 	 * @param int                  $limit        Page size.
+	 * @param string               $search       List search text (#2244).
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function getExportBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit ): array {
-		list( $where_clause, $args ) = $this->build_export_where( $calendar_ids, $statuses, $start_date, $end_date );
+	public function getExportBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit, string $search = '' ): array {
+		list( $where_clause, $args ) = $this->build_export_where( $calendar_ids, $statuses, $start_date, $end_date, $search );
 
 		$where_clause = '' === $where_clause ? 'WHERE id < %d' : $where_clause . ' AND id < %d';
 		$args[]       = $cursor_id;
@@ -940,10 +1053,11 @@ class AppointmentReader extends AbstractRepository {
 	 * @param string|null          $end_date     End date (`Y-m-d`).
 	 * @param int                  $cursor_id    Exclusive upper-bound id (PHP_INT_MAX on the first page).
 	 * @param int                  $limit        Page size.
+	 * @param string               $search       List search text (#2244).
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function getExportKeysBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit ): array {
-		list( $where_clause, $args ) = $this->build_export_where( $calendar_ids, $statuses, $start_date, $end_date );
+	public function getExportKeysBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit, string $search = '' ): array {
+		list( $where_clause, $args ) = $this->build_export_where( $calendar_ids, $statuses, $start_date, $end_date, $search );
 
 		$where_clause = '' === $where_clause ? 'WHERE id < %d' : $where_clause . ' AND id < %d';
 		$args[]       = $cursor_id;

@@ -373,10 +373,11 @@ class AppointmentRepository extends AbstractRepository {
 	 * @param array<int, string>   $statuses     Status filter (empty = all).
 	 * @param string|null          $start_date   Start date (`Y-m-d`).
 	 * @param string|null          $end_date     End date (`Y-m-d`).
+	 * @param string               $search       List search text (#2244).
 	 * @return int
 	 */
-	public function countForExport( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date ): int {
-		return $this->reader->countForExport( $calendar_ids, $statuses, $start_date, $end_date );
+	public function countForExport( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, string $search = '' ): int {
+		return $this->reader->countForExport( $calendar_ids, $statuses, $start_date, $end_date, $search );
 	}
 
 	/**
@@ -389,10 +390,11 @@ class AppointmentRepository extends AbstractRepository {
 	 * @param string|null          $end_date     End date (`Y-m-d`).
 	 * @param int                  $cursor_id    Exclusive upper-bound id.
 	 * @param int                  $limit        Page size.
+	 * @param string               $search       List search text (#2244).
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function getExportBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit ): array {
-		return $this->reader->getExportBatch( $calendar_ids, $statuses, $start_date, $end_date, $cursor_id, $limit );
+	public function getExportBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit, string $search = '' ): array {
+		return $this->reader->getExportBatch( $calendar_ids, $statuses, $start_date, $end_date, $cursor_id, $limit, $search );
 	}
 
 	/**
@@ -405,10 +407,35 @@ class AppointmentRepository extends AbstractRepository {
 	 * @param string|null          $end_date     End date (`Y-m-d`).
 	 * @param int                  $cursor_id    Exclusive upper-bound id.
 	 * @param int                  $limit        Page size.
+	 * @param string               $search       List search text (#2244).
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function getExportKeysBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit ): array {
-		return $this->reader->getExportKeysBatch( $calendar_ids, $statuses, $start_date, $end_date, $cursor_id, $limit );
+	public function getExportKeysBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit, string $search = '' ): array {
+		return $this->reader->getExportKeysBatch( $calendar_ids, $statuses, $start_date, $end_date, $cursor_id, $limit, $search );
+	}
+
+	/**
+	 * One page of the Appointments list under its filters (#2244).
+	 *
+	 * @param array<string, mixed> $filters  calendar_id / status / start_date / end_date / search.
+	 * @param string               $order_by Allowlisted column.
+	 * @param string               $order    `ASC` or `DESC`.
+	 * @param int                  $limit    Page size.
+	 * @param int                  $offset   Offset.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function findForList( array $filters, string $order_by, string $order, int $limit, int $offset ): array {
+		return $this->reader->findForList( $filters, $order_by, $order, $limit, $offset );
+	}
+
+	/**
+	 * How many appointments the Appointments list's filters match.
+	 *
+	 * @param array<string, mixed> $filters calendar_id / status / start_date / end_date / search.
+	 * @return int
+	 */
+	public function countForList( array $filters ): int {
+		return $this->reader->countForList( $filters );
 	}
 
 	// ─────────────────────────────────────────────.

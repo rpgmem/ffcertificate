@@ -197,7 +197,18 @@ $open   = array(
 		)
 	),
 );
+// The Appointments list's filters (#2244): the day, then a search nothing matches.
+$listed = array(
+	$reader->countForList( array( 'calendar_id' => $calendar_id, 'start_date' => $day, 'end_date' => $day ) ),
+	count( $reader->findForList( array( 'calendar_id' => $calendar_id, 'start_date' => $day, 'end_date' => $day, 'status' => 'confirmed' ), 'appointment_date', 'ASC', 20, 0 ) ),
+	$reader->countForList( array( 'calendar_id' => $calendar_id, 'search' => 'nobody by this name' ) ),
+	$reader->countForList( array( 'calendar_id' => $calendar_id, 'search' => '123.456.789-09' ) ),
+);
 $wpdb->delete( $table, array( 'calendar_id' => $calendar_id ), array( '%d' ) );
+
+if ( array( 3, 2, 0, 0 ) !== $listed ) {
+	ffc_ss_query_fail( 'The list filters answered ' . wp_json_encode( $listed ) . ' (expected [3,2,0,0]).' );
+}
 
 if ( array( false, true, 2, 2 ) !== $open ) {
 	ffc_ss_query_fail( 'The capacity queries answered ' . wp_json_encode( $open ) . ' for two confirmed and one cancelled at 09:00 (expected [false,true,2,2]).' );

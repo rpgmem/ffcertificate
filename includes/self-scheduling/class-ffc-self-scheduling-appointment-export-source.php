@@ -177,12 +177,14 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 		$status      = RequestInput::get_post_string( 'status' );
 		$start_date  = RequestInput::get_post_string( 'start_date' );
 		$end_date    = RequestInput::get_post_string( 'end_date' );
+		$search      = RequestInput::get_post_string( 's' );
 
 		return array(
 			'calendar_ids' => $calendar_id > 0 ? array( $calendar_id ) : null,
 			'statuses'     => '' !== $status ? array( sanitize_key( $status ) ) : array(),
 			'start_date'   => '' !== $start_date ? $start_date : null,
 			'end_date'     => '' !== $end_date ? $end_date : null,
+			'search'       => $search,
 		);
 	}
 
@@ -197,7 +199,8 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 			$filters['calendar_ids'],
 			(array) $filters['statuses'],
 			$filters['start_date'],
-			$filters['end_date']
+			$filters['end_date'],
+			\FreeFormCertificate\Core\ArrayValue::string( $filters, 'search' )
 		);
 	}
 
@@ -270,7 +273,8 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 			$filters['start_date'],
 			$filters['end_date'],
 			$cursor,
-			$size
+			$size,
+			\FreeFormCertificate\Core\ArrayValue::string( $filters, 'search' )
 		);
 	}
 
@@ -354,7 +358,8 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 				$filters['start_date'],
 				$filters['end_date'],
 				$cursor,
-				self::KEYS_BATCH_SIZE
+				self::KEYS_BATCH_SIZE,
+				\FreeFormCertificate\Core\ArrayValue::string( $filters, 'search' )
 			);
 			if ( empty( $batch ) ) {
 				break;

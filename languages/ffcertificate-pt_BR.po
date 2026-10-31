@@ -30658,3 +30658,15 @@ msgstr "Você também tem um agendamento neste calendário em %1$s. O novo horá
 #: includes/settings/views/documentation/feature-self-scheduling.php:62
 msgid "When the calendar sets a minimum interval and the person holds another appointment on it, the dashboard's Reschedule dialog names that appointment first, because the new time is measured from it."
 msgstr "Quando o calendário define um intervalo mínimo e a pessoa tem outro agendamento nele, o diálogo Reagendar do painel mostra esse agendamento antes, porque o novo horário é medido a partir dele."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:526
+msgid "Name, e-mail, CPF/RF or ID"
+msgstr "Nome, e-mail, CPF/RF ou ID"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:526
+msgid "Search appointments"
+msgstr "Buscar agendamentos"
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:61
+msgid "The Appointments list filters by calendar, status and a date range, and Today opens the day's agenda in time order. The search box takes a name, an e-mail, a CPF or RF, or an appointment ID; CPF, RF and e-mail are stored encrypted, so they match only when typed in full. Export CSV exports exactly what the filters show."
+msgstr "A lista de Agendamentos filtra por calendário, status e intervalo de datas, e Hoje abre a agenda do dia em ordem de horário. A busca aceita nome, e-mail, CPF ou RF, ou o ID do agendamento; CPF, RF e e-mail são guardados criptografados, então só encontram quando digitados por completo. Exportar CSV exporta exatamente o que os filtros mostram."
