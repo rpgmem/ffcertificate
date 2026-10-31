@@ -36,6 +36,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Personal Calendars: the participant dashboard and the calendar for everyone** (#2244). A waitlisted appointment is labelled and can be left; an open one that can no longer be cancelled says why; the booking calendar's days are named buttons operated from the keyboard, and the month arrows are labelled.
 - **Recruitment: the definitive list says who was called, when and by whom (#2245).** Rows show the date to assume and when the call was made; a status filter with per-status counts narrows the list; a bulk call can select the waiting rows of every page; a Calls record lists every call of the notice. Who made or cancelled a call shows only to the new `ffc_view_recruitment_history` (Recruitment Administrator) and WordPress administrators.
 - **Recruitment: a notice's definitive list and calls download as CSV (#2245).** Two buttons export the whole definitive list or every call of the notice, cancelled ones included, through the batched engine; neither file carries CPF, RF or e-mail, and callers are written only for `ffc_view_recruitment_history`. Gated by the new `ffc_export_recruitment` (Recruitment Manager and Administrator).
+- **Privacy export: activity log and date messages** (#2246). Tools → Export Personal Data now lists the activity-log entries recorded against the person (address included, operator details left out) and the date messages sent to them; paged groups break ties on the id so no row is exported twice.
 
 ### Changed
 
@@ -175,6 +176,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Submissions: the list search finds a submission by the name of its linked account (#2319).** The name is stored only encrypted, so the search matches the display name or login of the WordPress account a submission belongs to; one sent without an account is still not found by name.
 - **Submissions: the edit screen names the quiz result (#2321).** Score in points and percent, maximum score, passed (Yes/No), questions answered correctly, scored questions and attempt now read with translated labels among the protected fields instead of as raw `_quiz_*` keys among the answers.
 - **User dashboard: appointment dates no longer shift by the site timezone (#2246).** The appointments list and the summary's next appointment render the stored day and time; the next appointment and the Upcoming/Past split use the site's today, not the server's or the browser's UTC date, and one day orders by start time.
+- **User dashboard: privacy requests reach WordPress, and a deleted account leaves nothing behind** (#2246). A request from the dashboard now sends WordPress's confirmation e-mail and says so; deleting an account cleans up trashed certificates, cancelled appointments, a lone profile row, bookings and schedule permissions.
 
 ### Security
 

@@ -13844,9 +13844,6 @@ msgstr ""
 msgid "Request failed"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:273 includes/api/class-ffc-user-profile-rest-controller.php:447
-msgid "Request sent! The administrator will review it."
-msgstr ""
 
 #: includes/audience/class-ffc-audience-shortcode.php:824
 msgid "Request timed out. Please try again."
@@ -31224,4 +31221,40 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "Viewing as someone needs ffc_view_as_user and permission to edit that account in wp-admin, for the page and for every request it makes. The password cannot be changed while viewing as another account, and an expired or invalid link shows a notice instead of a dashboard."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php
+msgid "They also list the activity-log entries recorded against the person, with the address they came from but without the operator-facing details, and the date messages sent to them."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php
+msgid "From the dashboard"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php
+msgid "a member asks for an export or an erasure with the Privacy & Data buttons on their Profile tab. WordPress e-mails them a confirmation link, and the request is acted on only once they confirm it; it then appears under Tools for the administrator."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php
+msgid "The cleanup runs whenever the account has any row it would change, a certificate in the trash, a cancelled appointment, a stored profile, a booking or a schedule permission included."
+msgstr ""
+
+#: includes/api/class-ffc-user-profile-rest-controller.php
+msgid "Check your e-mail to confirm the request. Nothing happens until you confirm it."
+msgstr ""
+
+#: includes/api/class-ffc-user-profile-rest-controller.php
+msgid "Your request was recorded, but the confirmation e-mail could not be sent. Please contact the site administrator."
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+msgid "FFC Activity Log"
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+msgid "FFC Date Messages"
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+msgid "Date it was about"
 msgstr ""

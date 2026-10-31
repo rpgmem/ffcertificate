@@ -13875,9 +13875,6 @@ msgstr "Solicite a exclusão dos seus dados pessoais. Um administrador analisar�
 msgid "Request failed"
 msgstr "A solicitação falhou"
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:273 includes/api/class-ffc-user-profile-rest-controller.php:447
-msgid "Request sent! The administrator will review it."
-msgstr "Solicitação enviada! O administrador irá analisá-la."
 
 #: includes/audience/class-ffc-audience-shortcode.php:824
 msgid "Request timed out. Please try again."
@@ -31308,3 +31305,39 @@ msgstr "A senha não pode ser alterada enquanto você visualiza como outra conta
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "Viewing as someone needs ffc_view_as_user and permission to edit that account in wp-admin, for the page and for every request it makes. The password cannot be changed while viewing as another account, and an expired or invalid link shows a notice instead of a dashboard."
 msgstr "Visualizar como alguém exige ffc_view_as_user e permissão para editar essa conta no wp-admin, tanto na página quanto em cada requisição que ela faz. A senha não pode ser alterada enquanto você visualiza como outra conta, e um link expirado ou inválido mostra um aviso no lugar do painel."
+
+#: includes/settings/views/documentation/reference-privacy.php
+msgid "They also list the activity-log entries recorded against the person, with the address they came from but without the operator-facing details, and the date messages sent to them."
+msgstr "Eles também listam as entradas do registro de atividades feitas em nome da pessoa, com o endereço de origem mas sem os detalhes destinados à equipe, e as mensagens por data enviadas a ela."
+
+#: includes/settings/views/documentation/reference-privacy.php
+msgid "From the dashboard"
+msgstr "Pelo painel"
+
+#: includes/settings/views/documentation/reference-privacy.php
+msgid "a member asks for an export or an erasure with the Privacy & Data buttons on their Profile tab. WordPress e-mails them a confirmation link, and the request is acted on only once they confirm it; it then appears under Tools for the administrator."
+msgstr "o membro pede uma exportação ou uma exclusão pelos botões Privacidade e Dados da aba Perfil. O WordPress envia a ele um link de confirmação por e-mail, e o pedido só é atendido depois que ele confirma; aí aparece em Ferramentas para o administrador."
+
+#: includes/settings/views/documentation/reference-privacy.php
+msgid "The cleanup runs whenever the account has any row it would change, a certificate in the trash, a cancelled appointment, a stored profile, a booking or a schedule permission included."
+msgstr "A limpeza é feita sempre que a conta tiver alguma linha que ela alteraria, inclusive um certificado na lixeira, um agendamento cancelado, um perfil armazenado, uma reserva ou uma permissão de agenda."
+
+#: includes/api/class-ffc-user-profile-rest-controller.php
+msgid "Check your e-mail to confirm the request. Nothing happens until you confirm it."
+msgstr "Confira seu e-mail para confirmar o pedido. Nada acontece até você confirmar."
+
+#: includes/api/class-ffc-user-profile-rest-controller.php
+msgid "Your request was recorded, but the confirmation e-mail could not be sent. Please contact the site administrator."
+msgstr "Seu pedido foi registrado, mas não foi possível enviar o e-mail de confirmação. Entre em contato com o administrador do site."
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+msgid "FFC Activity Log"
+msgstr "Registro de atividades FFC"
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+msgid "FFC Date Messages"
+msgstr "Mensagens por data FFC"
+
+#: includes/privacy/class-ffc-privacy-exporters.php
+msgid "Date it was about"
+msgstr "Data a que se referia"
