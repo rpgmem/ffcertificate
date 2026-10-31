@@ -62,7 +62,7 @@ if ( ! empty( $adjutancies ) ) {
 echo ' <select name="ffc_cls_sub">';
 echo '<option value=""' . selected( '', $subscription, false ) . '>' . esc_html__( 'All subscription types', 'ffcertificate' ) . '</option>';
 echo '<option value="pcd"' . selected( 'pcd', $subscription, false ) . '>' . esc_html__( 'PCD only', 'ffcertificate' ) . '</option>';
-echo '<option value="geral"' . selected( 'geral', $subscription, false ) . '>' . esc_html__( 'GERAL only', 'ffcertificate' ) . '</option>';
+echo '<option value="geral"' . selected( 'geral', $subscription, false ) . '>' . esc_html__( 'General only', 'ffcertificate' ) . '</option>';
 echo '</select>';
 
 echo ' ';

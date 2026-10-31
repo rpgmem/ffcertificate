@@ -40,6 +40,8 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 		// The badge colour block is attached to the sheet's handle (#1193).
 		Functions\when( 'wp_add_inline_style' )->justReturn( true );
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
+		Functions\when( 'esc_html_x' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
@@ -494,4 +496,51 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 		$this->assertSame( array(), $handles );
 	}
 
+	public function test_many_writes_in_one_request_bump_the_cache_twice_at_most(): void {
+		RecruitmentPublicShortcode::reset_bump_state();
+		$bumps   = 0;
+		$actions = array();
+		Functions\when( 'update_option' )->alias(
+			static function () use ( &$bumps ) {
+				++$bumps;
+				return true;
+			}
+		);
+		Functions\when( 'add_action' )->alias(
+			static function ( $hook, $cb ) use ( &$actions ) {
+				$actions[] = $hook;
+				return true;
+			}
+		);
+
+		for ( $i = 0; $i < 50; $i++ ) {
+			RecruitmentPublicShortcode::invalidate_public_cache();
+		}
+		$this->assertSame( 1, $bumps, 'The first write bumps at once.' );
+		$this->assertSame( array( 'shutdown' ), $actions, 'The rest defer one bump to shutdown, scheduled once.' );
+
+		RecruitmentPublicShortcode::flush_pending_bump();
+		RecruitmentPublicShortcode::flush_pending_bump();
+		$this->assertSame( 2, $bumps, 'Shutdown bumps once more, and only once.' );
+		RecruitmentPublicShortcode::reset_bump_state();
+	}
+
+	public function test_a_single_write_bumps_once_and_defers_nothing(): void {
+		RecruitmentPublicShortcode::reset_bump_state();
+		$bumps = 0;
+		Functions\when( 'update_option' )->alias(
+			static function () use ( &$bumps ) {
+				++$bumps;
+				return true;
+			}
+		);
+		$log = \FreeFormCertificate\Tests\Support\CallLog::record( 'add_action', true );
+
+		RecruitmentPublicShortcode::invalidate_public_cache();
+		RecruitmentPublicShortcode::flush_pending_bump();
+
+		$this->assertSame( 1, $bumps );
+		$this->assertSame( 0, $log->count() );
+		RecruitmentPublicShortcode::reset_bump_state();
+	}
 }

@@ -136,7 +136,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	 * helpers echo or return a tiny recognizable token.
 	 */
 	private function stub_wp_functions(): void {
-		foreach ( array( '__', 'esc_html', 'esc_attr', 'esc_textarea', 'wp_kses_post', 'sanitize_key', 'esc_html__', 'esc_attr__', 'number_format_i18n' ) as $fn ) {
+		foreach ( array( '__', '_x', 'esc_html_x', 'esc_html', 'esc_attr', 'esc_textarea', 'wp_kses_post', 'sanitize_key', 'esc_html__', 'esc_attr__', 'number_format_i18n' ) as $fn ) {
 			Functions\when( $fn )->returnArg();
 		}
 

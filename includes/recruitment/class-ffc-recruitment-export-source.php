@@ -339,7 +339,7 @@ class RecruitmentExportSource implements BatchedExportSourceInterface {
 			(string) ( $row['rank'] ?? '' ),
 			(string) ( $row['_candidate'] ?? '' ),
 			(string) ( $row['_adjutancy'] ?? '' ),
-			RecruitmentPcdHasher::row_is_pcd( (object) $row ) ? __( 'PCD', 'ffcertificate' ) : __( 'GERAL', 'ffcertificate' ),
+			RecruitmentPcdHasher::row_is_pcd( (object) $row ) ? __( 'PCD', 'ffcertificate' ) : _x( 'General', 'recruitment subscription type', 'ffcertificate' ),
 			(string) ( $row['score'] ?? '' ),
 			RecruitmentAdminPage::classification_status_label( (string) ( $row['status'] ?? '' ) ),
 			null === $call ? '' : DateFormatter::format_wallclock_date( (string) ( $call['date_to_assume'] ?? '' ) ),

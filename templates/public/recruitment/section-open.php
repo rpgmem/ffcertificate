@@ -8,8 +8,7 @@
  *
  * @var string             $heading     Section title.
  * @var string             $count_label Post-filter count label.
- * @var array<string,bool> $columns     Column visibility map.
- * @var bool               $show_date   Whether the date/time columns render.
+ * @var array<string,string> $labels    Header of every visible column, in order.
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.16.0
@@ -24,44 +23,10 @@ echo '<h3 class="ffc-recruitment-section-heading">'
 	. '<span class="ffc-recruitment-section-title">' . esc_html( $heading ) . '</span>'
 	. '<span class="ffc-recruitment-section-count">' . esc_html( $count_label ) . '</span>'
 	. '</h3>';
-echo '<table class="ffc-recruitment-table"><thead><tr>';
-if ( $columns['rank'] ) {
-	echo '<th>' . esc_html__( 'Rank', 'ffcertificate' ) . '</th>';
-}
-if ( $columns['name'] ) {
-	echo '<th>' . esc_html__( 'Name', 'ffcertificate' ) . '</th>';
-}
-if ( $columns['adjutancy'] ) {
-	echo '<th>' . esc_html__( 'Adjutancy', 'ffcertificate' ) . '</th>';
-}
-if ( $columns['cpf_masked'] ) {
-	echo '<th>' . esc_html__( 'CPF', 'ffcertificate' ) . '</th>';
-}
-if ( $columns['rf_masked'] ) {
-	echo '<th>' . esc_html__( 'RF', 'ffcertificate' ) . '</th>';
-}
-if ( $columns['email_masked'] ) {
-	echo '<th>' . esc_html__( 'E-mail', 'ffcertificate' ) . '</th>';
-}
-if ( $columns['score'] ) {
-	echo '<th>' . esc_html__( 'Score', 'ffcertificate' ) . '</th>';
-}
-if ( $columns['time_points'] ) {
-	echo '<th>' . esc_html__( 'Time points', 'ffcertificate' ) . '</th>';
-}
-if ( $columns['hab_emebs'] ) {
-	echo '<th>' . esc_html__( 'HAB. EMEBs', 'ffcertificate' ) . '</th>';
-}
-if ( $columns['status'] ) {
-	echo '<th>' . esc_html__( 'Status', 'ffcertificate' ) . '</th>';
-}
-if ( $columns['pcd_badge'] ) {
-	echo '<th>' . esc_html__( 'Subscription', 'ffcertificate' ) . '</th>';
-}
-if ( $show_date && $columns['date_to_assume'] ) {
-	echo '<th>' . esc_html__( 'Date to assume', 'ffcertificate' ) . '</th>';
-}
-if ( $show_date && $columns['time_to_assume'] ) {
-	echo '<th>' . esc_html__( 'Time', 'ffcertificate' ) . '</th>';
+// A caption names the table for a screen reader, and every header cell
+// is a column header (#2245).
+echo '<table class="ffc-recruitment-table"><caption class="ffc-recruitment-caption">' . esc_html( $heading . ' — ' . $count_label ) . '</caption><thead><tr>';
+foreach ( $labels as $label ) {
+	echo '<th scope="col">' . esc_html( $label ) . '</th>';
 }
 echo '</tr></thead><tbody>';

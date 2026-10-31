@@ -38,6 +38,8 @@ class RecruitmentPublicShortcodeRendererTest extends TestCase {
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
+		Functions\when( 'esc_html_x' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		// Escape stubs intentionally reflect the WP semantics so the
 		// assertions can detect missing-escape regressions.
@@ -283,7 +285,7 @@ class RecruitmentPublicShortcodeRendererTest extends TestCase {
 		$geral = RecruitmentPublicShortcodeRenderer::render_subscription_badge( false );
 
 		$this->assertSame( BadgeHtml::render( 'ffc-recruitment-subscription-badge', 'ffc-recruitment-subscription-pcd', 'PCD' ), $pcd );
-		$this->assertSame( BadgeHtml::render( 'ffc-recruitment-subscription-badge', 'ffc-recruitment-subscription-geral', 'GERAL' ), $geral );
+		$this->assertSame( BadgeHtml::render( 'ffc-recruitment-subscription-badge', 'ffc-recruitment-subscription-geral', 'General' ), $geral );
 	}
 
 	public function test_render_status_badge_names_the_variant_class(): void {

@@ -78,6 +78,8 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 		class_exists( '\FreeFormCertificate\Recruitment\RecruitmentPublicShortcodeRenderer' );
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
+		Functions\when( 'esc_html_x' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'esc_html' )->alias( fn( $s ) => htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' ) );
@@ -184,6 +186,22 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 		if ( 'get_col' === $method && 'ffc_recruitment_notice_adjutancy' === $table ) {
 			return array_map( 'strval', $this->attached[ (int) $bound[1] ] ?? array() );
 		}
+		if ( 'get_results' === $method && 'ffc_recruitment_call' === $table && false !== strpos( $sql, 'classification_id IN (' ) ) {
+			// The page's active calls, in one query (#2245).
+			$out = array();
+			foreach ( array_map( 'intval', array_slice( $bound, 1 ) ) as $cls ) {
+				if ( isset( $this->calls[ $cls ] ) ) {
+					$out[] = (object) array_merge(
+						array(
+							'classification_id' => (string) $cls,
+							'cancelled_at'      => null,
+						),
+						(array) $this->calls[ $cls ]
+					);
+				}
+			}
+			return $out;
+		}
 		if ( 'get_row' === $method && 'ffc_recruitment_call' === $table && false !== strpos( $sql, 'classification_id = %d' ) ) {
 			return $this->calls[ (int) $bound[1] ] ?? null;
 		}
@@ -281,9 +299,9 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 
 		$this->assertStringContainsString( '<section class="ffc-recruitment-section">', $out );
 		$this->assertStringContainsString( 'Candidate 1', $out );
-		$this->assertStringContainsString( '<td>' . DocumentFormatter::mask_cpf( Identifiers::CPF_A ) . '</td>', $out ); // decrypted, then masked
-		$this->assertStringContainsString( '<td>' . DocumentFormatter::mask_rf( Identifiers::RF_A ) . '</td>', $out );
-		$this->assertStringContainsString( '<td>' . DocumentFormatter::mask_email( self::EMAIL ) . '</td>', $out );
+		$this->assertStringContainsString( '<td data-label="CPF">' . DocumentFormatter::mask_cpf( Identifiers::CPF_A ) . '</td>', $out ); // decrypted, then masked
+		$this->assertStringContainsString( '<td data-label="RF">' . DocumentFormatter::mask_rf( Identifiers::RF_A ) . '</td>', $out );
+		$this->assertStringContainsString( '<td data-label="E-mail">' . DocumentFormatter::mask_email( self::EMAIL ) . '</td>', $out );
 		$this->assertStringNotContainsString( Identifiers::CPF_A, $out, 'The clear CPF never reaches the page.' );
 		$this->assertStringNotContainsString( self::EMAIL, $out, 'The clear e-mail never reaches the page.' );
 		$this->assertStringContainsString( '53.00', $out );           // score, 2 decimals
@@ -400,7 +418,7 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 		// Row still renders; the date/time cells are simply blank.
 		$this->assertStringContainsString( 'Candidate 1', $out );
 		$this->assertStringNotContainsString( '20-05-2026', $out );
-		$this->assertStringEndsWith( '<td></td><td></td></tr></tbody></table></section>', $out );
+		$this->assertStringEndsWith( '<td data-label="Date to assume"></td><td data-label="Time"></td></tr></tbody></table></section>', $out );
 	}
 
 	public function test_render_row_pcd_false_renders_geral_badge(): void {

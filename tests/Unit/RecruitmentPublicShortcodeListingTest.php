@@ -67,6 +67,8 @@ class RecruitmentPublicShortcodeListingTest extends TestCase {
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
+		Functions\when( 'esc_html_x' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'esc_html' )->alias( static fn ( $s ) => htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' ) );
@@ -181,9 +183,9 @@ class RecruitmentPublicShortcodeListingTest extends TestCase {
 		if ( 'get_col' === $method && 'ffc_recruitment_notice_adjutancy' === $table ) {
 			return array_map( 'strval', $this->attached[ (int) $bound[1] ] ?? array() );
 		}
-		if ( 'get_row' === $method && 'ffc_recruitment_call' === $table ) {
+		if ( 'ffc_recruitment_call' === $table ) {
 			// No classification here has an active call.
-			return null;
+			return 'get_results' === $method ? array() : null;
 		}
 		$this->fail( "Unexpected {$method}() on {$table}: {$sql}" );
 	}
@@ -251,7 +253,7 @@ class RecruitmentPublicShortcodeListingTest extends TestCase {
 		$out = array();
 		foreach ( $matches[1] as $section ) {
 			preg_match( '#<span class="ffc-recruitment-section-title">(.*?)</span>#', $section, $title );
-			preg_match_all( '#<td>Candidate (\d+)</td>#', $section, $names );
+			preg_match_all( '#<td data-label="Name">Candidate (\d+)</td>#', $section, $names );
 			$out[] = array(
 				'heading'    => $title[1] ?? '',
 				'candidates' => array_map( 'intval', $names[1] ),
@@ -372,9 +374,14 @@ class RecruitmentPublicShortcodeListingTest extends TestCase {
 		$sections = $this->sections( $html );
 		$this->assertCount( 1, $sections );
 		$this->assertSame( 'Waiting called', $sections[0]['heading'] );
-		$this->assertStringContainsString( '<td>Ana ÁVILA</td>', $sections[0]['html'] );
+		$this->assertStringContainsString( '<td data-label="Name">Ana ÁVILA</td>', $sections[0]['html'] );
 		$this->assertStringNotContainsString( 'Bruno', $html );
 		$this->assertStringContainsString( '1 candidate<', $sections[0]['html'], 'Only the one match is counted.' );
+		$this->assertSame(
+			array(),
+			array_filter( $this->queriesOn( 'ffc_recruitment_candidate' ), static fn( array $q ): bool => 'get_row' === $q[0] ),
+			'The name search loads its candidates in batches, never one query per row (#2245).'
+		);
 	}
 
 	public function test_the_subscription_filter_keeps_only_the_matching_quota(): void {

@@ -205,7 +205,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			// (existing notices' public_columns_config JSON keeps working);
 			// surfaced as "Subscription type" because the PCD column on
 			// the CSV is a boolean PCD/GERAL flag.
-			'pcd_badge'      => __( 'Subscription type (PCD / GERAL)', 'ffcertificate' ),
+			'pcd_badge'      => __( 'Subscription type (PCD / General)', 'ffcertificate' ),
 			'date_to_assume' => __( 'Date to assume', 'ffcertificate' ),
 			'time_to_assume' => __( 'Time to assume', 'ffcertificate' ),
 			'score'          => __( 'Score', 'ffcertificate' ),
