@@ -164,6 +164,8 @@ class SelfSchedulingCPT {
 			return $actions;
 		}
 
+		$actions = $this->confirm_permanent_delete( $actions, $post );
+
 		// Duplicating creates a calendar, so it takes the post type's write
 		// cap — the same one handle_calendar_duplication() checks (#1769).
 		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_calendars' ) ) {
@@ -176,6 +178,57 @@ class SelfSchedulingCPT {
 		);
 
 		$actions['duplicate'] = '<a href="' . esc_url( $url ) . '" title="' . esc_attr__( 'Duplicate this calendar', 'ffcertificate' ) . '">' . esc_html__( 'Duplicate', 'ffcertificate' ) . '</a>';
+
+		return $actions;
+	}
+
+	/**
+	 * Ask before a permanent delete that cancels appointments (#2244).
+	 *
+	 * Deleting a trashed calendar cancels its open appointments and e-mails
+	 * each person, so the "Delete Permanently" link says how many first. The
+	 * shared `[data-confirm]` handler in `ffc-core.js` (enqueued on this list
+	 * by `SelfSchedulingAdmin`) asks the question; no inline script.
+	 *
+	 * @param array<string, string> $actions Row actions.
+	 * @param object                $post    Calendar post.
+	 * @phpstan-param \WP_Post $post
+	 * @return array<string, string>
+	 */
+	private function confirm_permanent_delete( array $actions, object $post ): array {
+		if ( empty( $actions['delete'] ) || 'trash' !== $post->post_status ) {
+			return $actions;
+		}
+
+		$this->init_repository();
+		$calendar = $this->calendar_repo()->findByPostId( (int) $post->ID );
+		if ( ! $calendar ) {
+			return $actions;
+		}
+
+		$open = count(
+			( new \FreeFormCertificate\Repositories\AppointmentRepository() )->findByCalendarAfterWithStatus(
+				(int) $calendar['id'],
+				current_time( 'Y-m-d' ),
+				AppointmentHandler::CANCELLABLE_STATUSES
+			)
+		);
+		if ( 0 === $open ) {
+			return $actions;
+		}
+
+		$question = sprintf(
+			/* translators: %d: number of open appointments */
+			_n(
+				'Deleting this calendar cancels %d open appointment (pending, confirmed or waitlisted) and e-mails the person. Delete it permanently?',
+				'Deleting this calendar cancels %d open appointments (pending, confirmed or waitlisted) and e-mails each person. Delete it permanently?',
+				$open,
+				'ffcertificate'
+			),
+			$open
+		);
+
+		$actions['delete'] = (string) preg_replace( '/^<a /', '<a data-confirm="' . esc_attr( $question ) . '" ', $actions['delete'], 1 );
 
 		return $actions;
 	}
@@ -406,7 +459,8 @@ class SelfSchedulingCPT {
 	 * Cleanup calendar data when post is deleted
 	 *
 	 * Deletes the calendar record and optionally cancels all future appointments.
-	 * The cancellation behavior can be controlled via the 'ffc_self_scheduling_cancel_appointments_on_delete' filter.
+	 * The cancellation behavior can be controlled via the
+	 * 'ffcertificate_self_scheduling_cancel_appointments_on_delete' filter.
 	 *
 	 * @param int    $post_id Post ID.
 	 * @param object $post    Post object.
@@ -457,8 +511,11 @@ class SelfSchedulingCPT {
 	/**
 	 * Cancel all future appointments for a calendar
 	 *
-	 * Cancels all pending and confirmed appointments with dates >= today.
-	 * Sends notification emails to affected users (if email notifications are enabled).
+	 * Cancels every pending, confirmed and waitlisted appointment dated today
+	 * or later, and e-mails each person (#2244: waitlisted people were left
+	 * queued for a calendar that no longer existed, and told nothing). Each
+	 * cancel writes only over the status read, so a row another request
+	 * moved meanwhile is neither cancelled twice nor e-mailed twice.
 	 *
 	 * @param int    $calendar_id Calendar ID.
 	 * @param string $calendar_title Calendar title for notification.
@@ -468,7 +525,7 @@ class SelfSchedulingCPT {
 		$today            = current_time( 'Y-m-d' );
 		$appointment_repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
 
-		$future_appointments = $appointment_repo->findByCalendarAfterWithStatus( $calendar_id, $today );
+		$future_appointments = $appointment_repo->findByCalendarAfterWithStatus( $calendar_id, $today, AppointmentHandler::CANCELLABLE_STATUSES );
 
 		if ( empty( $future_appointments ) ) {
 			return 0;
@@ -478,8 +535,9 @@ class SelfSchedulingCPT {
 
 		foreach ( $future_appointments as $appointment ) {
 			// Cancel the appointment.
-			$result = $appointment_repo->cancel(
+			$result = $appointment_repo->cancelFrom(
 				(int) $appointment['id'],
+				(string) $appointment['status'],
 				get_current_user_id(),
 				/* translators: %s: calendar title */
 				sprintf( __( 'Calendar "%s" was deleted', 'ffcertificate' ), $calendar_title )

@@ -30417,3 +30417,38 @@ msgstr "Calendário — Vagas (GET /calendars/{id}/slots, e as leituras de vagas
 #: includes/settings/views/documentation/feature-self-scheduling.php:58
 msgid "The account is created or linked only once the booking is accepted, so a refused booking leaves no account and sends no e-mail. A guest booking files only itself under the account: older unlinked records carrying the same CPF/RF are claimed when the person logs in or through Identity Resolution, never from a public form. Booking counts against the IP limit on the Rate Limit tab, and the slot and month reads against the Calendar — Slots read limit."
 msgstr "A conta é criada ou vinculada só depois que o agendamento é aceito, então um agendamento recusado não deixa conta nem envia e-mail. Um agendamento de visitante vincula à conta apenas a si mesmo: registros antigos sem vínculo com o mesmo CPF/RF são associados quando a pessoa entra na conta ou pela Resolução de identidade, nunca a partir de um formulário público. O agendamento conta no limite por IP da aba Taxa Limite, e as leituras de vagas e do mês no limite de leitura Calendário — Vagas."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-admin-actions.php:87
+msgid "Only a pending appointment can be confirmed."
+msgstr "Somente um agendamento pendente pode ser confirmado."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-admin-actions.php:106
+msgid "The slot is already full, so the appointment cannot be confirmed."
+msgstr "O horário já está lotado, então o agendamento não pode ser confirmado."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-admin-actions.php:119
+msgid "This appointment changed meanwhile. Reload the page and try again."
+msgstr "Este agendamento foi alterado nesse meio-tempo. Recarregue a página e tente novamente."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-admin-actions.php:152
+msgid "This appointment has already taken place and can no longer be cancelled."
+msgstr "Este agendamento já aconteceu e não pode mais ser cancelado."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:61
+msgid "On the Appointments list, Confirm is offered only on a pending appointment: it recounts the slot first and refuses one that has filled, and it sends the approval notice only when the calendar's Emails tab turns it on. Cancel, which on a pending appointment is how a booking is rejected, asks for a reason, is offered while the appointment is pending, confirmed or on the waitlist, and sends the person the calendar's cancellation e-mail carrying that reason when the Emails tab turns it on. A cancelled, completed or no-show appointment can no longer be confirmed or cancelled."
+msgstr "Na lista de Agendamentos, Confirmar só é oferecido em um agendamento pendente: ele reconta o horário antes e recusa um que já lotou, e só envia o aviso de aprovação quando a aba E-mails do calendário o ativa. Cancelar, que num agendamento pendente é a forma de recusar uma reserva, pede um motivo, é oferecido enquanto o agendamento está pendente, confirmado ou na lista de espera, e envia à pessoa o e-mail de cancelamento do calendário com esse motivo quando a aba E-mails o ativa. Um agendamento cancelado, concluído ou com falta não pode mais ser confirmado nem cancelado."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:62
+msgid "Without the scheduling bypass, an appointment can be cancelled through its cancellation link or from the person's dashboard only while it is pending, confirmed or on the waitlist and has not started. A slot that has started takes nobody from the waitlist."
+msgstr "Sem a liberação de agendamento, um agendamento só pode ser cancelado pelo link de cancelamento ou pelo painel da pessoa enquanto está pendente, confirmado ou na lista de espera e ainda não começou. Um horário que já começou não chama ninguém da lista de espera."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:63
+msgid "Deleting a calendar permanently cancels every appointment from today on that is pending, confirmed or on the waitlist, and sends each person the calendar-deleted notice. The Delete Permanently link in the trash says how many appointments that is before it deletes."
+msgstr "Excluir um calendário permanentemente cancela todos os agendamentos de hoje em diante que estejam pendentes, confirmados ou na lista de espera, e envia a cada pessoa o aviso de calendário excluído. O link Excluir permanentemente na lixeira informa quantos agendamentos são antes de excluir."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cpt.php:222
+#, php-format
+msgid "Deleting this calendar cancels %d open appointment (pending, confirmed or waitlisted) and e-mails the person. Delete it permanently?"
+msgid_plural "Deleting this calendar cancels %d open appointments (pending, confirmed or waitlisted) and e-mails each person. Delete it permanently?"
+msgstr[0] "Excluir este calendário cancela %d agendamento aberto (pendente, confirmado ou na lista de espera) e avisa a pessoa por e-mail. Excluir permanentemente?"
+msgstr[1] "Excluir este calendário cancela %d agendamentos abertos (pendentes, confirmados ou na lista de espera) e avisa cada pessoa por e-mail. Excluir permanentemente?"

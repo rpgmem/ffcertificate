@@ -171,11 +171,11 @@ class AppointmentsListTable extends \WP_List_Table {
 			);
 		}
 
-		// A waitlisted entry can leave the queue the same way (#1770): the cancel
-		// handler accepts any status, and the waitlist promoter promotes nobody
-		// when the cancelled row was itself `waitlist`. It is NOT offered Confirm:
-		// `confirm()` does not recount the slot, so confirming a queued entry would
-		// overbook it — promotion is the only way out of the queue into the slot.
+		// A waitlisted entry can leave the queue the same way (#1770), and the
+		// waitlist promoter promotes nobody when the cancelled row was itself
+		// `waitlist`. It is NOT offered Confirm: AppointmentAdminActions confirms
+		// only a pending row (#2244), so promotion is the only way out of the
+		// queue into the slot.
 		if ( $ffc_can_edit_appt && in_array( $item['status'], array( 'pending', 'confirmed', 'waitlist' ), true ) ) {
 			$cancel_url        = wp_nonce_url(
 				add_query_arg(

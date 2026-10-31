@@ -56,6 +56,11 @@ class AppointmentHandler {
 	private AppointmentValidator $validator;
 
 	/**
+	 * The statuses an appointment can be cancelled from (#2244).
+	 */
+	public const CANCELLABLE_STATUSES = array( 'pending', 'confirmed', 'waitlist' );
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -685,6 +690,23 @@ class AppointmentHandler {
 			return new \WP_Error( 'unauthorized', __( 'You do not have permission to cancel this appointment.', 'ffcertificate' ) );
 		}
 
+		// Only an appointment that is still open can be cancelled (#2244): a
+		// finished one is a record, and a cancelled one has nothing left to do.
+		$status = (string) ( $appointment['status'] ?? '' );
+		if ( 'cancelled' === $status ) {
+			return new \WP_Error( 'already_cancelled', __( 'This appointment is already cancelled.', 'ffcertificate' ) );
+		}
+		if ( ! in_array( $status, self::CANCELLABLE_STATUSES, true ) ) {
+			return new \WP_Error( 'not_cancellable', __( 'This appointment has already taken place and can no longer be cancelled.', 'ffcertificate' ) );
+		}
+
+		// Without the bypass, an appointment that has started is history: a
+		// token or the owner cannot cancel it, and the waitlist would otherwise
+		// promote someone into the past.
+		if ( ! $has_bypass && WaitlistPromoter::has_started( (string) $appointment['appointment_date'], (string) $appointment['start_time'] ) ) {
+			return new \WP_Error( 'not_cancellable', __( 'This appointment has already taken place and can no longer be cancelled.', 'ffcertificate' ) );
+		}
+
 		// Check if calendar allows cancellation (admin always can — unless per-calendar bypass is off).
 		if ( ! $has_bypass && ! $calendar['allow_cancellation'] ) {
 			return new \WP_Error( 'cancellation_disabled', __( 'Cancellation is not allowed for this calendar.', 'ffcertificate' ) );
@@ -708,16 +730,15 @@ class AppointmentHandler {
 			}
 		}
 
-		// Check if already cancelled.
-		if ( 'cancelled' === $appointment['status'] ) {
-			return new \WP_Error( 'already_cancelled', __( 'This appointment is already cancelled.', 'ffcertificate' ) );
-		}
-
-		// Cancel appointment.
-		$result = $this->appointment_repository->cancel( $appointment_id, $cancelled_by, $reason );
+		// Cancel only over the status read, so two requests cannot both cancel
+		// (and both notify).
+		$result = $this->appointment_repository->cancelFrom( $appointment_id, $status, $cancelled_by, $reason );
 
 		if ( false === $result ) {
 			return new \WP_Error( 'cancellation_failed', __( 'Failed to cancel appointment.', 'ffcertificate' ) );
+		}
+		if ( 0 === $result ) {
+			return new \WP_Error( 'status_changed', __( 'This appointment changed meanwhile. Reload the page and try again.', 'ffcertificate' ) );
 		}
 
 		/**
@@ -742,10 +763,13 @@ class AppointmentHandler {
 	 *
 	 * @param array<string, mixed> $appointment Appointment.
 	 * @param array<string, mixed> $calendar Calendar.
-	 * @param string               $event (created, confirmed, cancelled, reminder).
+	 * Public since #2244: the admin Confirm and Cancel go through the same
+	 * switches as the booking path.
+	 *
+	 * @param string               $event (created, confirmed, cancelled, waitlisted, promoted).
 	 */
-	private function schedule_email_notifications( array $appointment, array $calendar, string $event ): void {
-		$email_config = json_decode( $calendar['email_config'], true );
+	public function schedule_email_notifications( array $appointment, array $calendar, string $event ): void {
+		$email_config = json_decode( (string) ( $calendar['email_config'] ?? '' ), true );
 
 		if ( ! is_array( $email_config ) ) {
 			return;
