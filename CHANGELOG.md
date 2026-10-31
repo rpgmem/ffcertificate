@@ -171,6 +171,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Recruitment: refusals say why (#2245).** A lost race, a refused bulk call and a forbidden status change read as sentences instead of codes; deleting an adjutancy or reason in use shows a notice instead of nothing; the call's date and time are validated as real values; stale import jobs are swept by a cutoff in the site's time zone, not the database's `NOW()`.
 - **Recruitment: the public list no longer queries per row, and a bulk write bumps its cache twice, not once per row (#2245).** The name search and each page's dates to assume load in one query each; an import or bulk call that touches many rows retires the cached list at once and again at shutdown.
 - **Submissions: the list search finds a submission by the name of its linked account (#2319).** The name is stored only encrypted, so the search matches the display name or login of the WordPress account a submission belongs to; one sent without an account is still not found by name.
+- **Submissions: the edit screen names the quiz result (#2321).** Score in points and percent, maximum score, passed (Yes/No), questions answered correctly, scored questions and attempt now read with translated labels among the protected fields instead of as raw `_quiz_*` keys among the answers.
 
 ### Security
 

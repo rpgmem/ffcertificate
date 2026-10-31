@@ -907,6 +907,53 @@ class AdminSubmissionEditPage {
 	}
 
 	/**
+	 * Whether a data key is one the plugin writes itself (a leading underscore).
+	 *
+	 * @param string $key Data key.
+	 * @return bool
+	 */
+	private static function is_internal_key( string $key ): bool {
+		return '' !== $key && '_' === $key[0];
+	}
+
+	/**
+	 * Labels of the quiz keys the plugin writes into a submission's data, so
+	 * the screen names them instead of printing the key.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function internal_labels(): array {
+		return array(
+			'_quiz_score'          => __( 'Quiz score (points)', 'ffcertificate' ),
+			'_quiz_max_score'      => __( 'Quiz maximum score (points)', 'ffcertificate' ),
+			'_quiz_percent'        => __( 'Quiz score (%)', 'ffcertificate' ),
+			'_quiz_passed'         => __( 'Quiz passed', 'ffcertificate' ),
+			'_quiz_correct_count'  => __( 'Questions answered correctly', 'ffcertificate' ),
+			'_quiz_question_count' => __( 'Scored questions', 'ffcertificate' ),
+			'_quiz_attempt'        => __( 'Quiz attempt', 'ffcertificate' ),
+			'_quiz_focus_losses'   => __( 'Times the quiz window was left', 'ffcertificate' ),
+		);
+	}
+
+	/**
+	 * An internal value as a reader expects it: the pass flag in words, the
+	 * percentage with its sign.
+	 *
+	 * @param string $key   Data key.
+	 * @param string $value Stored value as text.
+	 * @return string
+	 */
+	private static function internal_value( string $key, string $value ): string {
+		if ( '_quiz_passed' === $key ) {
+			return '1' === $value ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' );
+		}
+		if ( '_quiz_percent' === $key && is_numeric( $value ) ) {
+			return $value . '%';
+		}
+		return $value;
+	}
+
+	/**
 	 * Render dynamic fields from JSON data
 	 *
 	 * The form answers as editable fields. A protected internal field
@@ -915,12 +962,11 @@ class AdminSubmissionEditPage {
 	 * field left out of the POST would be deleted.
 	 */
 	private function render_dynamic_fields(): void {
-		// Protected fields (read-only within JSON). The window-leave count
-		// is the browser's record of the attempt, not an answer (#1731).
-		$protected_json_fields = array( 'auth_code', 'fill_date', 'ticket', '_quiz_focus_losses' );
-		$internal_labels       = array(
-			'_quiz_focus_losses' => __( 'Times the quiz window was left', 'ffcertificate' ),
-		);
+		// Protected fields (read-only within JSON): the system keys, and every
+		// key the plugin writes with a leading underscore — the quiz result
+		// and the browser's record of the attempt (#1731) — none an answer.
+		$protected_json_fields = array( 'auth_code', 'fill_date', 'ticket' );
+		$internal_labels       = self::internal_labels();
 
 		\FreeFormCertificate\Admin\AdminUI::render_section_open(
 			array(
@@ -948,8 +994,9 @@ class AdminSubmissionEditPage {
 
 			$display_value = is_array( $v ) ? implode( ', ', $v ) : (string) $v;
 
-			if ( in_array( $k, $protected_json_fields, true ) ) {
-				$protected .= sprintf(
+			if ( in_array( $k, $protected_json_fields, true ) || self::is_internal_key( (string) $k ) ) {
+				$display_value = self::internal_value( (string) $k, $display_value );
+				$protected    .= sprintf(
 					'<dt class="ffc-facts__label">%1$s</dt><dd class="ffc-facts__value">%2$s<span class="description ffc-edit-note">%3$s</span></dd>',
 					esc_html( (string) $lbl ),
 					esc_html( $display_value ),

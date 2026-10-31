@@ -788,6 +788,56 @@ class AdminSubmissionEditPageTest extends TestCase {
 	}
 
 	/**
+	 * The quiz result the plugin writes reads as named, protected facts, with
+	 * the pass flag in words and the percentage with its sign — never the key.
+	 */
+	public function test_render_names_the_quiz_result_keys(): void {
+		$row = $this->submission_row(
+			array(
+				'data' => self::json(
+					array(
+						'_quiz_score'          => 8,
+						'_quiz_max_score'      => 10,
+						'_quiz_percent'        => 80,
+						'_quiz_passed'         => '1',
+						'_quiz_correct_count'  => 4,
+						'_quiz_question_count' => 5,
+						'_quiz_attempt'        => 2,
+						'_quiz_new_key'        => 'x',
+					)
+				),
+			)
+		);
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $row );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		foreach ( array( 'Quiz score (points)', 'Quiz maximum score (points)', 'Quiz score (%)', 'Quiz passed', 'Questions answered correctly', 'Scored questions', 'Quiz attempt' ) as $label ) {
+			$this->assertStringContainsString( '<dt class="ffc-facts__label">' . $label . '</dt>', $html, $label );
+		}
+		$this->assertStringContainsString( '<dd class="ffc-facts__value">80%<', $html );
+		$this->assertStringContainsString( '<dd class="ffc-facts__value">Yes<', $html );
+		$this->assertStringNotContainsString( '>_quiz_score<', $html, 'A known key is never printed raw.' );
+		// An internal key with no label still reads as protected, not as an answer.
+		preg_match( '#<dl class="ffc-facts ffc-edit-protected">(.*?)</dl>#s', $html, $protected );
+		$this->assertStringContainsString( '_quiz_new_key', $protected[1] ?? '' );
+		$this->assertStringNotContainsString( 'ffc-edit-answers', $html, 'None of these is an answer.' );
+	}
+
+	public function test_render_says_no_when_the_quiz_was_failed(): void {
+		$row = $this->submission_row( array( 'data' => self::json( array( '_quiz_passed' => '0' ) ) ) );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $row );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<dd class="ffc-facts__value">No<', $html );
+	}
+
+	/**
 	 * #1732 — the grading records are lists a text field would flatten, so
 	 * the form neither shows nor posts them, and a save carries them over.
 	 */
