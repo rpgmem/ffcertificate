@@ -486,8 +486,8 @@ class LoaderCapabilitiesTest extends TestCase {
 
 		$this->invoke_private( $loader, 'define_admin_hooks' );
 
-		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added );
-		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $added );
+		$this->assertContains( 'ffc_daily_cleanup', $added );
+		$this->assertContains( 'ffc_reregistration_expire', $added );
 		$this->assertContains( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, $added );
 
 		// The expired-tickets scan (#1234). It used to live in `AdminLoader`,
@@ -502,7 +502,7 @@ class LoaderCapabilitiesTest extends TestCase {
 		);
 
 		// Three daily-cleanup callbacks + two expiry callbacks registered.
-		$daily = array_filter( $added, static fn ( $h ) => 'ffcertificate_daily_cleanup_hook' === $h );
+		$daily = array_filter( $added, static fn ( $h ) => 'ffc_daily_cleanup' === $h );
 		$this->assertCount( 3, $daily, 'submission cleanup + CSV reap + schedule-exception reap.' );
 	}
 
@@ -513,7 +513,7 @@ class LoaderCapabilitiesTest extends TestCase {
 		$callbacks = array();
 		Functions\when( 'add_action' )->alias(
 			function ( $hook, $callback = null ) use ( &$callbacks ) {
-				if ( 'ffcertificate_reregistration_expire_hook' === $hook && is_array( $callback ) ) {
+				if ( 'ffc_reregistration_expire' === $hook && is_array( $callback ) ) {
 					$callbacks[] = $callback[1];
 				}
 				return true;
@@ -559,8 +559,8 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->invoke_private( $loader, 'define_admin_hooks' );
 
 		// The core daily cleanup stays wired; the disabled modules' crons don't.
-		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added );
-		$this->assertNotContains( 'ffcertificate_reregistration_expire_hook', $added );
+		$this->assertContains( 'ffc_daily_cleanup', $added );
+		$this->assertNotContains( 'ffc_reregistration_expire', $added );
 		$this->assertNotContains( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, $added );
 		// Certificates is still on in this scenario, so the scan of
 		// tickets is still composed -- which separates the MODULE gate
@@ -599,7 +599,7 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->invoke_private( $loader, 'define_admin_hooks' );
 
 		$this->assertNotContains( \FreeFormCertificate\Admin\ExpiredTicketsCleanup::CRON_HOOK, $added );
-		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added, 'The core daily cleanup does not depend on the module.' );
+		$this->assertContains( 'ffc_daily_cleanup', $added, 'The core daily cleanup does not depend on the module.' );
 	}
 
 	// ==================================================================

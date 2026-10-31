@@ -87,9 +87,9 @@ class DeactivatorTest extends TestCase {
 
 		Deactivator::deactivate();
 
-		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $cleared );
-		$this->assertContains( 'ffcertificate_self_scheduling_reminder_scan', $cleared );
-		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $cleared );
+		$this->assertContains( 'ffc_daily_cleanup', $cleared );
+		$this->assertContains( 'ffc_self_scheduling_reminder_scan', $cleared );
+		$this->assertContains( 'ffc_reregistration_expire', $cleared );
 		$this->assertContains( 'ffc_cloudflare_cidr_refresh', $cleared );
 		// A pending reminder batch was cleared nowhere until #1538.
 		$this->assertContains( 'ffc_reregistration_reminder_batch', $cleared );
@@ -103,13 +103,17 @@ class DeactivatorTest extends TestCase {
 		// The form-cache warming (#1541).
 		$this->assertContains( 'ffcertificate_warm_cache_hook', $cleared );
 		// The bulk-issue purge of unfinished imports (#1945).
-		$this->assertContains( 'ffcertificate_bulk_issue_purge', $cleared );
-		$this->assertContains( 'ffcertificate_audience_post_event_invites', $cleared );
+		$this->assertContains( 'ffc_bulk_issue_purge', $cleared );
+		$this->assertContains( 'ffc_audience_post_event_invites', $cleared );
 		// The old-appointment close-out (#2285).
-		$this->assertContains( 'ffcertificate_self_scheduling_closeout', $cleared );
+		$this->assertContains( 'ffc_self_scheduling_closeout', $cleared );
 		// The recruitment account batch (#2245).
 		$this->assertContains( 'ffc_recruitment_account_link_batch', $cleared );
-		$this->assertCount( 16, $cleared );
+		// The pre-#2323 names, for one deprecation cycle.
+		foreach ( array_keys( \FreeFormCertificate\Core\ScheduledTasks::LEGACY_HOOKS ) as $legacy ) {
+			$this->assertContains( $legacy, $cleared );
+		}
+		$this->assertCount( 22, $cleared );
 	}
 
 	public function test_deactivate_flushes_rewrite_rules(): void {
@@ -208,18 +212,21 @@ class DeactivatorTest extends TestCase {
 
 		Deactivator::uninstall_cleanup();
 
-		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $cleared );
+		$this->assertContains( 'ffc_daily_cleanup', $cleared );
 		$this->assertContains( 'ffcertificate_process_submission_hook', $cleared );
 		// #1248's internal hook is the one that is now SCHEDULED; the public one
 		// above stays in the cleanup because a pending event of the old shape may
 		// still exist at uninstall time.
 		$this->assertContains( 'ffc_process_submission_async', $cleared );
-		$this->assertContains( 'ffcertificate_self_scheduling_reminder_scan', $cleared );
-		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $cleared );
+		$this->assertContains( 'ffc_self_scheduling_reminder_scan', $cleared );
+		$this->assertContains( 'ffc_reregistration_expire', $cleared );
 		$this->assertContains( 'ffc_cloudflare_cidr_refresh', $cleared );
-		$this->assertContains( 'ffcertificate_bulk_issue_purge', $cleared );
-		$this->assertContains( 'ffcertificate_self_scheduling_closeout', $cleared );
-		$this->assertCount( 8, $cleared );
+		$this->assertContains( 'ffc_bulk_issue_purge', $cleared );
+		$this->assertContains( 'ffc_self_scheduling_closeout', $cleared );
+		foreach ( array_keys( \FreeFormCertificate\Core\ScheduledTasks::LEGACY_HOOKS ) as $legacy ) {
+			$this->assertContains( $legacy, $cleared );
+		}
+		$this->assertCount( 14, $cleared );
 	}
 
 	public function test_uninstall_cleanup_deletes_form_posts(): void {

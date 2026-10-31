@@ -104,6 +104,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Recruitment: re-importing a corrected list (#2245).** A file that replaces a list with rows shows what enters, leaves or changes and writes nothing until confirmed; manual preliminary statuses and reasons are kept per candidate. Promotion copies or imports the definitive list and replaces one left by an earlier cycle; the bare status flip is gone.
 - **Recruitment: PCD is recorded per notice (#2245).** An import sets PCD only on that notice's classifications, so one notice no longer overwrites another, and the flag is keyed on the plugin's hash salt instead of `wp_salt( 'auth' )`. The "Recruitment: PCD per Notice" card copies the old flags, recording an unreadable one as general and counting it; the key rotation rewrites flags hashed before `FFC_HASH_SALT`. ⚠ `GET /candidates/{id}` returns `pcd` per classification instead of `is_pcd`.
 - **Recruitment: one dialog per call action (#2245).** Calling a candidate asks for the date, the time, an out-of-order justification and, in ask mode, the e-mail in one dialog that remembers the last date and time; cancel, reopen and undo ask their audited reason the same way. A date already over is recorded without an e-mail, the dialog says so, and a bulk call does the same.
+- **Scheduled tasks: six cron hooks take the `ffc_` prefix (#2323).** `ffc_daily_cleanup`, `ffc_reregistration_expire`, `ffc_self_scheduling_reminder_scan`, `ffc_self_scheduling_closeout`, `ffc_audience_post_event_invites` and `ffc_bulk_issue_purge`; an upgraded install moves each scheduled event with its next run, last run and chosen time.
 
 ### Deprecated
 
@@ -111,6 +112,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Five one-shot migration cards leave in 6.45.0** (#2115): Split CPF/RF, Rehash Email Lookup Hashes, Activity Log: Clear Plaintext on Encrypted Rows, Import Legacy Certificate Templates and Rewrite html/ Image References. Each card says so; run any that still shows records pending before updating to 6.45.0.
 - **Certificates: the form-settings cache, its daily warming and four unused submission lookups** (#2241). `FormCache`'s getters, warming and clearing, `SettingsReader::cache_expiration_seconds()`, and `SubmissionRepository`/`SubmissionReader::getForExport`, `findByFormId`, `findByEmail` and `findByCpfRf` warn and leave in 6.45.0.
 - **`SubmissionReader`'s four identity-audit queries** (#2241): `find_orphan_user_links`, `find_users_with_multiple_identities`, `find_unlinked_with_matching_identity` and `find_shared_identities` moved to `SubmissionIdentityAudit`; the reader's copies delegate, warn and leave in 6.45.0.
+- **The `ffcertificate_*` names of those six cron hooks (#2323).** A callback still attached to an old name keeps running through `do_action_deprecated()`, naming the replacement; deactivation and uninstall clear both names until the cycle ends.
 
 ### Removed
 

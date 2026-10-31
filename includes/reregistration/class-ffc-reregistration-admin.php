@@ -567,7 +567,7 @@ class ReregistrationAdmin {
 	 * @return string
 	 */
 	public static function invitations_scheduled_message(): string {
-		$next = wp_next_scheduled( 'ffcertificate_reregistration_expire_hook' );
+		$next = wp_next_scheduled( 'ffc_reregistration_expire' );
 
 		if ( false === $next ) {
 			return __( 'No invitation was sent yet. They go out with the daily reregistration run, which is not scheduled on this site right now; check Settings → Scheduled Tasks.', 'ffcertificate' );

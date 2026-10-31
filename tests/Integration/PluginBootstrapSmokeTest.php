@@ -63,12 +63,12 @@ class PluginBootstrapSmokeTest extends IntegrationTestCase {
 
 		// The three always-on maintenance crons are scheduled when none exists yet.
 		$this->assertContains(
-			'ffcertificate_daily_cleanup_hook',
+			'ffc_daily_cleanup',
 			$this->scheduled,
 			'Daily cleanup cron should be scheduled on boot.'
 		);
 		$this->assertContains(
-			'ffcertificate_reregistration_expire_hook',
+			'ffc_reregistration_expire',
 			$this->scheduled,
 			'Reregistration expiry cron should be scheduled on boot.'
 		);
@@ -97,7 +97,7 @@ class PluginBootstrapSmokeTest extends IntegrationTestCase {
 			'Admin bootstrap must still defer FFC role registration to init.'
 		);
 		$this->assertContains(
-			'ffcertificate_daily_cleanup_hook',
+			'ffc_daily_cleanup',
 			$this->scheduled,
 			'Admin bootstrap still schedules the daily cleanup cron.'
 		);
@@ -118,6 +118,9 @@ class PluginBootstrapSmokeTest extends IntegrationTestCase {
 	 */
 	public function test_bootstrap_does_not_reschedule_existing_crons(): void {
 		\Brain\Monkey\Functions\when( 'wp_next_scheduled' )->justReturn( 123456789 );
+		// Every name reports an event, the pre-#2323 ones included: the move
+		// clears the old one and finds the new one there, so nothing is added.
+		\Brain\Monkey\Functions\when( 'wp_get_schedule' )->justReturn( 'daily' );
 
 		$loader = new Loader();
 		$loader->init_plugin();

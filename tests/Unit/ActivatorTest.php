@@ -133,7 +133,7 @@ class ActivatorTest extends TestCase {
 
 		$scheduled = false;
 		Functions\when( 'wp_schedule_event' )->alias( function ( $time, $recurrence, $hook ) use ( &$scheduled ) {
-			if ( $hook === 'ffcertificate_daily_cleanup_hook' && $recurrence === 'daily' ) {
+			if ( $hook === 'ffc_daily_cleanup' && $recurrence === 'daily' ) {
 				$scheduled = true;
 			}
 		} );

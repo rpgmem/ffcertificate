@@ -36,7 +36,7 @@ final class BulkIssueRunner {
 	public const BATCH_SIZE = 25;
 
 	/** Daily cron hook that expires jobs left unfinished. */
-	public const PURGE_HOOK = 'ffcertificate_bulk_issue_purge';
+	public const PURGE_HOOK = 'ffc_bulk_issue_purge';
 
 	/** Age, in seconds, after which an unfinished job is expired (7 days). */
 	public const STALE_AFTER = 604800;

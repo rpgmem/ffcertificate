@@ -135,7 +135,7 @@ class ReregistrationEmailHandler {
 	 * invitations gets its first batch now, and a full batch schedules the
 	 * next one.
 	 *
-	 * Hooked on `ffcertificate_reregistration_expire_hook` AFTER
+	 * Hooked on `ffc_reregistration_expire` AFTER
 	 * `expire_overdue`, so a campaign that has just closed is not swept.
 	 *
 	 * @return void
