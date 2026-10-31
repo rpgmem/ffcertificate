@@ -93,7 +93,18 @@ class BlockedDateRepository extends AbstractRepository {
 	 * @return bool
 	 */
 	public function isDateBlocked( int $calendar_id, string $date, ?string $time = null ): bool {
-		// Check calendar-specific and global blocks.
+		return self::blocksMatch( $this->getBlocksForDate( $calendar_id, $date ), $date, $time );
+	}
+
+	/**
+	 * The calendar-specific and global blocks that reach a date, in one query,
+	 * so a caller checking every slot of the day reads them once (#2244).
+	 *
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $date        Date in Y-m-d format.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getBlocksForDate( int $calendar_id, string $date ): array {
 		$blocks_raw = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				'SELECT * FROM %i
@@ -113,7 +124,19 @@ class BlockedDateRepository extends AbstractRepository {
 		 * @var array<int, array<string, mixed>> $blocks
 		 */
 		$blocks = is_array( $blocks_raw ) ? $blocks_raw : array();
+		return $blocks;
+	}
 
+	/**
+	 * Whether any of the blocks read by getBlocksForDate() closes the date, or
+	 * the time on it.
+	 *
+	 * @param array<int, array<string, mixed>> $blocks Blocks for the date.
+	 * @param string                           $date   Date in Y-m-d format.
+	 * @param string|null                      $time   Optional time to check for partial blocks.
+	 * @return bool
+	 */
+	public static function blocksMatch( array $blocks, string $date, ?string $time = null ): bool {
 		foreach ( $blocks as $block ) {
 			// Full day block.
 			if ( 'full_day' === $block['block_type'] ) {
@@ -136,7 +159,7 @@ class BlockedDateRepository extends AbstractRepository {
 				// json_decode() of a non-JSON string is null, which
 				// matchesRecurringPattern() already accepts.
 				$pattern = json_decode( ArrayValue::string( $block, 'recurring_pattern' ), true );
-				if ( $this->matchesRecurringPattern( $date, $time, is_array( $pattern ) ? $pattern : array() ) ) {
+				if ( self::matchesRecurringPattern( $date, $time, is_array( $pattern ) ? $pattern : array() ) ) {
 					return true;
 				}
 			}
@@ -297,7 +320,7 @@ class BlockedDateRepository extends AbstractRepository {
 	 * @param array<string, mixed> $pattern Pattern.
 	 * @return bool
 	 */
-	private function matchesRecurringPattern( string $date, ?string $time, array $pattern ): bool {
+	private static function matchesRecurringPattern( string $date, ?string $time, array $pattern ): bool {
 		if ( empty( $pattern['type'] ) ) {
 			return false;
 		}

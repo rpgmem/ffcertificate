@@ -135,6 +135,7 @@ class CalendarRestControllerTest extends TestCase {
 			}
 		);
 		Functions\when( 'current_time' )->justReturn( '2026-04-01 12:00:00' );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
@@ -658,7 +659,7 @@ class CalendarRestControllerTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_get_calendar_slots_returns_slots_on_success(): void {
-		// 2026-04-01 is a Wednesday (day 3); 09:00-10:00 in 30-minute slots.
+		// 2032-03-10 is a Wednesday, in the future so no slot has passed (day 3); 09:00-10:00 in 30-minute slots.
 		$this->store_calendar(
 			array(
 				'id'            => 3,
@@ -671,13 +672,13 @@ class CalendarRestControllerTest extends TestCase {
 		);
 
 		$ctrl = new CalendarRestController( 'ffc/v1' );
-		$request = $this->make_request( array( 'id' => 3, 'date' => '2026-04-01' ) );
+		$request = $this->make_request( array( 'id' => 3, 'date' => '2032-03-10' ) );
 		$result = $ctrl->get_calendar_slots( $request );
 
 		$this->assertIsArray( $result );
 		$this->assertSame( array( '09:00:00', '09:30:00' ), array_column( $result['slots'], 'time' ) );
 		$this->assertSame( array( 1, 1 ), array_column( $result['slots'], 'available' ) );
-		$this->assertSame( '2026-04-01', $result['date'] );
+		$this->assertSame( '2032-03-10', $result['date'] );
 		$this->assertSame( 3, $result['calendar_id'] );
 	}
 
@@ -699,7 +700,7 @@ class CalendarRestControllerTest extends TestCase {
 	 * as an integer like the other calendar endpoints (#2146).
 	 */
 	public function test_get_calendar_slots_answers_with_a_string_id(): void {
-		// 2026-04-01 is a Wednesday (day 3); 09:00-10:00 in 30-minute slots.
+		// 2032-03-10 is a Wednesday, in the future so no slot has passed (day 3); 09:00-10:00 in 30-minute slots.
 		$this->store_calendar(
 			array(
 				'id'            => 3,
@@ -712,7 +713,7 @@ class CalendarRestControllerTest extends TestCase {
 		);
 
 		$result = ( new CalendarRestController( 'ffc/v1' ) )->get_calendar_slots(
-			$this->make_request( array( 'id' => '3', 'date' => '2026-04-01' ) )
+			$this->make_request( array( 'id' => '3', 'date' => '2032-03-10' ) )
 		);
 
 		$this->assertIsArray( $result );

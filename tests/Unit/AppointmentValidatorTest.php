@@ -117,7 +117,14 @@ class AppointmentValidatorTest extends TestCase {
 			'max_appointments_per_slot'         => 10,
 			'slots_per_day'                     => 0,
 			'minimum_interval_between_bookings' => 0,
-			'working_hours'                     => array(),
+			// Every day 08:00-18:00 on a 30-minute grid, so valid_data()'s
+			// 10:00 is a slot the listing offers (#2244).
+			'working_hours'                     => array_map(
+				static fn( int $day ): array => array( 'day' => $day, 'start' => '08:00', 'end' => '18:00' ),
+				range( 0, 6 )
+			),
+			'slot_duration'                     => 30,
+			'slot_interval'                     => 0,
 			'scheduling_visibility'             => 'public',
 			'restrict_booking_to_hours'         => false,
 		);
@@ -157,10 +164,11 @@ class AppointmentValidatorTest extends TestCase {
 	}
 
 	public function test_validate_custom_uses_block_capacity(): void {
-		// The block capacity (40), not the calendar max (10), must be passed.
+		// The block capacity (40), not the calendar max (10), must be passed,
+		// against the normalised start (#2244).
 		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )
 			->once()
-			->with( 1, '2030-01-15', '10:00', 40, false )
+			->with( 1, '2030-01-15', '10:00:00', 40, false )
 			->andReturn( true );
 
 		$result = $this->validator->validate( $this->valid_data(), $this->custom_calendar( 40 ) );
@@ -280,6 +288,38 @@ class AppointmentValidatorTest extends TestCase {
 	// ==================================================================
 	// validate() — slot availability (never bypassed)
 	// ==================================================================
+
+	public function test_validate_refuses_a_start_between_two_slots_even_with_the_bypass(): void {
+		$data               = $this->valid_data();
+		$data['start_time'] = '10:05';
+
+		$result = $this->validator->validate( $data, $this->permissive_calendar() );
+		$this->assertSame( 'invalid_slot', $result->get_error_code(), 'Each off-grid start would count its own capacity (#2244).' );
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$result = $this->validator->validate( $data, $this->permissive_calendar() );
+		$this->assertSame( 'invalid_slot', $result->get_error_code(), 'Not a rule the bypass confirms.' );
+	}
+
+	public function test_validate_refuses_a_slot_that_would_end_after_closing(): void {
+		$calendar                  = $this->permissive_calendar();
+		$calendar['slot_duration'] = 45;
+		$data                      = $this->valid_data();
+		$data['start_time']        = '17:45'; // On the 45-minute step, ends 18:30.
+
+		$this->assertSame( 'invalid_slot', $this->validator->validate( $data, $calendar )->get_error_code() );
+	}
+
+	public function test_validate_counts_capacity_on_the_normalised_start(): void {
+		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )
+			->once()
+			->with( 1, '2030-01-15', '10:00:00', 10, false )
+			->andReturn( true );
+		$data               = $this->valid_data();
+		$data['start_time'] = '10:00:42';
+
+		$this->assertTrue( $this->validator->validate( $data, $this->permissive_calendar() ) );
+	}
 
 	public function test_validate_slot_full_returns_error(): void {
 		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )

@@ -112,8 +112,17 @@ class AppointmentHandler {
 			return new \WP_Error( 'calendar_inactive', __( 'This calendar is not accepting bookings.', 'ffcertificate' ) );
 		}
 
+		// One spelling per slot (#2244): seconds never make a slot of their own,
+		// since capacity is counted per exact start_time.
+		$start = SlotGrid::normalize( (string) ( $data['start_time'] ?? '' ) );
+		if ( null === $start ) {
+			return new \WP_Error( 'invalid_time', __( 'Invalid time format.', 'ffcertificate' ) );
+		}
+		$data['start_time'] = $start;
+
 		// Calculate end time. Custom mode (#941): the chosen block carries its own
-		// explicit end; regular mode derives it from the calendar slot duration.
+		// explicit end; regular mode takes it from the slot grid, which is the
+		// only set of start times accepted (#2244).
 		if ( 'custom' === ( $calendar['schedule_type'] ?? 'regular' ) ) {
 			$block = \FreeFormCertificate\SelfScheduling\CustomSlots::find(
 				$calendar['custom_slots'] ?? '',
@@ -125,9 +134,20 @@ class AppointmentHandler {
 			}
 			$data['end_time'] = \FreeFormCertificate\SelfScheduling\CustomSlots::hm( $block['end'] ) . ':00';
 		} else {
-			$start_datetime   = $data['appointment_date'] . ' ' . $data['start_time'];
-			$end_timestamp    = strtotime( $start_datetime ) + ( $calendar['slot_duration'] * 60 );
-			$data['end_time'] = gmdate( 'H:i:s', $end_timestamp );
+			$slot = SlotGrid::find(
+				$calendar,
+				(string) $data['appointment_date'],
+				$start,
+				\FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null )
+			);
+			// Off the grid the validator decides (outside hours, which a bypass
+			// holder may confirm, or a start the listing never offered); an end
+			// past midnight is refused here, since no time column can hold it.
+			$end = null !== $slot ? $slot['end'] : SlotGrid::end_after( $start, (int) $calendar['slot_duration'] );
+			if ( null === $end ) {
+				return new \WP_Error( 'invalid_slot', __( 'The appointment would end after midnight.', 'ffcertificate' ) );
+			}
+			$data['end_time'] = $end;
 		}
 
 		// Check LGPD consent (outside transaction — no DB needed).
@@ -421,102 +441,76 @@ class AppointmentHandler {
 		$calendar_post_id = isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
 		$has_bypass       = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $calendar_post_id );
 
-		// Check global holidays and blocked dates (bypass can see slots on these dates).
-		if ( ! $has_bypass ) {
-			if ( \FreeFormCertificate\Scheduling\DateBlockingService::is_global_holiday( $date ) ) {
-				return array(); // Global holiday - no slots.
-			}
-			if ( $this->blocked_date_repository->isDateBlocked( $calendar_id, $date ) ) {
-				return array(); // No slots available.
-			}
+		// Global holidays close the date before anything else is read (bypass
+		// can see slots on these dates).
+		if ( ! $has_bypass && \FreeFormCertificate\Scheduling\DateBlockingService::is_global_holiday( $date ) ) {
+			return array();
 		}
+
+		// Blocks are read once for the date and matched per slot in PHP (#2244).
+		$blocks = $this->blocked_date_repository->getBlocksForDate( $calendar_id, $date );
+		if ( ! $has_bypass && \FreeFormCertificate\Repositories\BlockedDateRepository::blocksMatch( $blocks, $date ) ) {
+			return array(); // A full-day block.
+		}
+
+		// A slot that already started, or starts inside the minimum notice, is
+		// not offered to anyone the validator would refuse it to (#2244).
+		$earliest = $has_bypass ? null : time() + max( 0, (int) ( $calendar['advance_booking_min'] ?? 0 ) ) * 3600;
 
 		// Custom mode (#941): explicit date/time blocks instead of the weekly
 		// working-hours pattern. Holiday / blocked-date subtraction above still
 		// applies (holiday wins over a block).
 		if ( 'custom' === ( $calendar['schedule_type'] ?? 'regular' ) ) {
-			return $this->get_custom_slots_for_date( $calendar, $calendar_id, $date, $has_bypass );
+			return $this->get_custom_slots_for_date( $calendar, $calendar_id, $date, $has_bypass, $blocks, $earliest );
 		}
 
-		// Get day of week.
-		$date_ts     = strtotime( $date );
-		$day_of_week = \FreeFormCertificate\Core\Utils::get_day_of_week_number( $date_ts ? $date_ts : null );
-
-		// Get working hours for this day.
-		$working_hours = $calendar['working_hours'] ?? array();
-		$day_hours     = array_filter(
-			$working_hours,
-			function ( $hours ) use ( $day_of_week ) {
-				return (int) $hours['day'] === $day_of_week;
-			}
-		);
-
-		if ( empty( $day_hours ) ) {
-			// Admin bypass: generate default slots (09:00-18:00) for non-working days.
-			if ( $has_bypass ) {
-				$day_hours = array(
-					array(
-						'start' => '09:00',
-						'end'   => '18:00',
-						'day'   => $day_of_week,
-					),
-				);
-			} else {
-				return array(); // Not a working day.
-			}
+		// The grid the validator accepts (#2244): working ranges stepped by
+		// duration plus interval, each slot ending by closing time. A bypass
+		// holder sees 09:00-18:00 on a day without hours (#1870).
+		$grid = SlotGrid::slots( $calendar, $date, $has_bypass );
+		if ( array() === $grid ) {
+			return array();
 		}
 
 		// Get existing appointments for this date.
 		$existing_appointments = $this->appointment_repository->getAppointmentsByDate( $calendar_id, $date );
 
 		// Build slot list.
-		$slots         = array();
-		$slot_duration = (int) $calendar['slot_duration'];
-		$slot_interval = (int) $calendar['slot_interval'];
-		$max_per_slot  = (int) $calendar['max_appointments_per_slot'];
+		$slots        = array();
+		$max_per_slot = (int) $calendar['max_appointments_per_slot'];
 
-		foreach ( $day_hours as $hours ) {
-			$start_ts     = strtotime( $date . ' ' . $hours['start'] );
-			$current_time = $start_ts ? $start_ts : time();
-			$end_ts       = strtotime( $date . ' ' . $hours['end'] );
-			$end_time     = $end_ts ? $end_ts : time();
+		foreach ( $grid as $grid_slot ) {
+			$slot_time = $grid_slot['start'];
 
-			while ( $current_time < $end_time ) {
-				$slot_time = gmdate( 'H:i:s', $current_time );
+			// Time-range blocks and the notice window (bypass skips both).
+			if ( ! $has_bypass && ( \FreeFormCertificate\Repositories\BlockedDateRepository::blocksMatch( $blocks, $date, $slot_time ) || self::starts_before( $date, $slot_time, (int) $earliest ) ) ) {
+				continue;
+			}
 
-				// Check if slot is not blocked by time-range blocks (bypass skips this check).
-				if ( $has_bypass || ! $this->blocked_date_repository->isDateBlocked( $calendar_id, $date, $slot_time ) ) {
-					// Count existing appointments for this slot.
-					$count = 0;
-					foreach ( $existing_appointments as $apt ) {
-						if ( $apt['start_time'] === $slot_time ) {
-							++$count;
-						}
-					}
-
-					// Check availability. A full slot is still emitted when the
-					// calendar's waitlist has room, so the frontend can offer to
-					// join the queue instead of hiding it (#941 phase 2).
-					$is_full            = $count >= $max_per_slot;
-					$waitlist_available = $is_full && $this->slot_waitlist_available( $calendar, $calendar_id, $date, $slot_time );
-					if ( ! $is_full || $waitlist_available ) {
-						$slots[] = array(
-							'time'               => $slot_time,
-							// $slot_time is a wall-clock TIME (Category B) — render
-							// it as-is, no timezone shift (see DateFormatter::
-							// format_wallclock_time). Passing $current_time (a UTC
-							// unix int) to format_time() previously shifted the
-							// displayed slot by the site offset.
-							'display'            => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $slot_time ),
-							'available'          => max( 0, $max_per_slot - $count ),
-							'total'              => $max_per_slot,
-							'waitlist_available' => $waitlist_available,
-						);
-					}
+			// Count existing appointments for this slot.
+			$count = 0;
+			foreach ( $existing_appointments as $apt ) {
+				if ( SlotGrid::normalize( (string) $apt['start_time'] ) === $slot_time ) {
+					++$count;
 				}
+			}
 
-				// Move to next slot.
-				$current_time += ( $slot_duration + $slot_interval ) * 60;
+			// Check availability. A full slot is still emitted when the
+			// calendar's waitlist has room, so the frontend can offer to
+			// join the queue instead of hiding it (#941 phase 2).
+			$is_full            = $count >= $max_per_slot;
+			$waitlist_available = $is_full && $this->slot_waitlist_available( $calendar, $calendar_id, $date, $slot_time );
+			if ( ! $is_full || $waitlist_available ) {
+				$slots[] = array(
+					'time'               => $slot_time,
+					// $slot_time is a wall-clock TIME (Category B) — render
+					// it as-is, no timezone shift (see DateFormatter::
+					// format_wallclock_time).
+					'display'            => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $slot_time ),
+					'available'          => max( 0, $max_per_slot - $count ),
+					'total'              => $max_per_slot,
+					'waitlist_available' => $waitlist_available,
+				);
 			}
 		}
 
@@ -540,13 +534,15 @@ class AppointmentHandler {
 	 * render them as "esgotado" rather than hiding them. Capacity is the block's
 	 * own value; `end` is the block's explicit end.
 	 *
-	 * @param array<string, mixed> $calendar    Calendar row (carries custom_slots).
-	 * @param int                  $calendar_id Calendar id.
-	 * @param string               $date        Date (Y-m-d).
-	 * @param bool                 $has_bypass  Whether the current user bypasses blocked-date checks.
+	 * @param array<string, mixed>             $calendar    Calendar row (carries custom_slots).
+	 * @param int                              $calendar_id Calendar id.
+	 * @param string                           $date        Date (Y-m-d).
+	 * @param bool                             $has_bypass  Whether the current user bypasses blocked-date checks.
+	 * @param array<int, array<string, mixed>> $closed   Blocked dates reaching the date.
+	 * @param int|null                         $earliest    First bookable instant, or null for a bypass holder.
 	 * @return array<int, array<string, mixed>>
 	 */
-	private function get_custom_slots_for_date( array $calendar, int $calendar_id, string $date, bool $has_bypass ): array {
+	private function get_custom_slots_for_date( array $calendar, int $calendar_id, string $date, bool $has_bypass, array $closed, ?int $earliest ): array {
 		$blocks = \FreeFormCertificate\SelfScheduling\CustomSlots::for_date( $calendar['custom_slots'] ?? '', $date );
 		if ( empty( $blocks ) ) {
 			return array();
@@ -560,8 +556,8 @@ class AppointmentHandler {
 			$end_hm    = \FreeFormCertificate\SelfScheduling\CustomSlots::hm( $block['end'] );
 			$slot_time = $start_hm . ':00';
 
-			// Time-range blocked-date subtraction still applies (bypass skips it).
-			if ( ! $has_bypass && $this->blocked_date_repository->isDateBlocked( $calendar_id, $date, $slot_time ) ) {
+			// Time-range blocks and the notice window still apply (bypass skips them).
+			if ( ! $has_bypass && ( \FreeFormCertificate\Repositories\BlockedDateRepository::blocksMatch( $closed, $date, $slot_time ) || self::starts_before( $date, $slot_time, (int) $earliest ) ) ) {
 				continue;
 			}
 
@@ -590,6 +586,19 @@ class AppointmentHandler {
 
 		/** This filter is documented in self::get_available_slots(). */
 		return apply_filters( 'ffcertificate_available_slots', $slots, $calendar_id, $date, $calendar );
+	}
+
+	/**
+	 * Whether a wall-clock start, read in the site timezone, falls before an
+	 * instant (#2244).
+	 *
+	 * @param string $date     Date (Y-m-d).
+	 * @param string $time     Start time (H:i:s).
+	 * @param int    $earliest Unix timestamp.
+	 * @return bool
+	 */
+	private static function starts_before( string $date, string $time, int $earliest ): bool {
+		return ( new \DateTimeImmutable( $date . ' ' . $time, wp_timezone() ) )->getTimestamp() < $earliest;
 	}
 
 	/**

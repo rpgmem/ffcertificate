@@ -81,6 +81,8 @@ class AppointmentValidatorBusinessHoursTest extends TestCase {
 			'scheduling_visibility'             => 'public',
 			'restrict_booking_to_hours'         => true,
 			'working_hours'                     => array( array( 'day' => 2, 'start' => '00:00', 'end' => '23:59' ) ),
+			'slot_duration'                     => 30,
+			'slot_interval'                     => 0,
 		), $overrides );
 	}
 

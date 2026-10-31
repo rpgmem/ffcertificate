@@ -142,6 +142,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: closing a day refuses a duplicate and asks before cancelling its bookings** (#2243). A duplicate closed date reported success while the database refused it; it now says why. A closed date (calendar or global) that holds audience bookings lists them first, and the confirmation cancels each with the reason "Closed day: <description>" and e-mails its participants.
 - **Audience Calendars: the bookings list reads newest first** (#2290). `get_all()` sent a `b.`-prefixed column through `sanitize_sql_orderby()`, which refuses the prefix, so every order fell back to oldest first; the order now comes from an allowlist.
 - **Personal-calendar reminders are sent** (#2244). The reminder query compared against a `DATE_SUB` that MariaDB returns as NULL, in UTC against wall-clock dates, over a one-hour window, so no reminder ever went out. It now selects confirmed appointments starting between now and now plus the calendar's hours, in the site timezone; a real-database check in CI pins it.
+- **Personal Calendars: bookings land only on the offered slot grid** (#2244). A crafted start between two slots, or with seconds, used to count its own capacity; the last slot could end after closing or wrap past midnight; past and too-soon slots were offered. One `SlotGrid` now drives the listing and the validator, and blocks are read once per date.
 
 ### Security
 

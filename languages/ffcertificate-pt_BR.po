@@ -30401,3 +30401,15 @@ msgstr "Dentro de um dia, o horário mais tarde vem primeiro. Clique no cabeçal
 #: includes/settings/views/documentation/feature-self-scheduling.php:68
 msgid "An hourly task sends each reminder once, to a confirmed appointment that starts within the calendar's reminder hours, measured in the timezone set in WordPress. A run that was missed is caught up by the next one; an appointment booked closer than that is reminded at the next run."
 msgstr "Uma tarefa de hora em hora envia cada lembrete uma vez, para um agendamento confirmado que começa dentro das horas de lembrete do calendário, medidas no fuso horário definido no WordPress. Uma execução perdida é recuperada pela seguinte; um agendamento feito com antecedência menor que essa recebe o lembrete na próxima execução."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:39
+msgid "Each working range is stepped by the duration plus the break, and a slot that would end after the range closes is not offered. A booking is accepted only at one of those start times; slots that already started, or that start inside the minimum notice, are hidden from anyone without the bypass."
+msgstr "Cada faixa de expediente é percorrida em passos da duração mais o intervalo, e um horário que terminaria depois do fim da faixa não é oferecido. Um agendamento só é aceito em um desses horários de início; horários que já começaram, ou que começam dentro da antecedência mínima, ficam ocultos para quem não tem a exceção."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:148
+msgid "The appointment would end after midnight."
+msgstr "O agendamento terminaria depois da meia-noite."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:224
+msgid "The selected time is not one of this calendar's slots."
+msgstr "O horário selecionado não é um dos horários deste calendário."
