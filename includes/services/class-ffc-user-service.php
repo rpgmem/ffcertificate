@@ -189,15 +189,56 @@ class UserService {
 	}
 
 	/**
-	 * Check if a user has any FFC data
+	 * Tables the deletion cleanup touches by `user_id`, under the prefix.
 	 *
-	 * Useful for determining if a user needs FFC cleanup on deletion.
+	 * The footprint check below reads exactly these, so a row the cleanup
+	 * would change is never skipped because a check looked elsewhere (#2246).
+	 */
+	private const FOOTPRINT_TABLES = array(
+		'ffc_self_scheduling_appointments',
+		'ffc_activity_log',
+		'ffc_audience_members',
+		'ffc_audience_booking_users',
+		'ffc_audience_schedule_permissions',
+		'ffc_user_profiles',
+	);
+
+	/**
+	 * Whether the user has any row the deletion cleanup would change.
+	 *
+	 * `UserCleanup::anonymize_user_data()` skips its per-table UPDATE and
+	 * DELETE statements when this is false, so it has to look where those
+	 * statements look, with no status filter: a trashed certificate or a
+	 * cancelled appointment still carries the `user_id` the cleanup nulls, and
+	 * a profile row, a booking or a schedule permission with no membership is
+	 * still a row the cleanup deletes (#2246). That is why it does not reuse
+	 * `get_user_statistics()`, which counts what a person sees on the
+	 * dashboard. Each table answers with an indexed `LIMIT 1` and the check
+	 * stops at the first hit.
 	 *
 	 * @param int $user_id WordPress user ID.
 	 * @return bool
 	 */
 	public static function user_has_ffc_data( int $user_id ): bool {
-		$stats = self::get_user_statistics( $user_id );
-		return ( $stats['certificates'] + $stats['appointments'] + $stats['audience_groups'] ) > 0;
+		global $wpdb;
+
+		$tables = array( \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table() );
+		foreach ( self::FOOTPRINT_TABLES as $basename ) {
+			$table = $wpdb->prefix . $basename;
+			if ( self::table_exists( $table ) ) {
+				$tables[] = $table;
+			}
+		}
+
+		foreach ( $tables as $table ) {
+			$hit = $wpdb->get_var(
+				$wpdb->prepare( 'SELECT 1 FROM %i WHERE user_id = %d LIMIT 1', $table, $user_id )
+			);
+			if ( null !== $hit ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

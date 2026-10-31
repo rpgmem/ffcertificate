@@ -47,6 +47,13 @@ class UserServiceTest extends TestCase {
 	private array $tables = [];
 
 	/**
+	 * Rows per table, whatever their status, read by the footprint probe.
+	 *
+	 * @var array<string, int>
+	 */
+	private array $rows = [];
+
+	/**
 	 * What a `COUNT(*)` answers, by table.
 	 *
 	 * @var array<string, string>
@@ -86,6 +93,7 @@ class UserServiceTest extends TestCase {
 
 		$this->prepared    = [];
 		$this->tables      = [];
+		$this->rows        = [];
 		$this->counts      = [];
 		$this->profile_row = null;
 		$this->meta        = [];
@@ -113,6 +121,10 @@ class UserServiceTest extends TestCase {
 				}
 				if ( false !== strpos( $sql, 'COUNT(*)' ) ) {
 					return $this->counts[ $args[0] ?? '' ] ?? null;
+				}
+				if ( false !== strpos( $sql, 'SELECT 1 FROM' ) ) {
+					// The footprint probe: any row at all, whatever its status.
+					return ( (int) ( $this->rows[ $args[0] ?? '' ] ?? 0 ) ) > 0 ? '1' : null;
 				}
 				return null;
 			}
@@ -431,24 +443,73 @@ class UserServiceTest extends TestCase {
 	// user_has_ffc_data
 	// ==================================================================
 
-	public function test_user_has_ffc_data_returns_false_when_all_stats_zero(): void {
-		$this->counts['wp_ffc_submissions'] = '0';
+	public function test_user_has_ffc_data_is_false_when_no_table_holds_a_row(): void {
+		$this->tables = array(
+			'wp_ffc_self_scheduling_appointments',
+			'wp_ffc_activity_log',
+			'wp_ffc_audience_members',
+			'wp_ffc_audience_booking_users',
+			'wp_ffc_audience_schedule_permissions',
+			'wp_ffc_user_profiles',
+		);
 
-		$this->assertFalse(UserService::user_has_ffc_data(42));
+		$this->assertFalse( UserService::user_has_ffc_data( 42 ) );
 	}
 
-	public function test_user_has_ffc_data_returns_true_when_certificates_exist(): void {
-		$this->counts['wp_ffc_submissions'] = '3';
-
-		$this->assertTrue(UserService::user_has_ffc_data(42));
+	/**
+	 * Every table the deletion cleanup touches, each alone (#2246).
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public static function footprint_tables(): array {
+		return array(
+			'a trashed certificate counts'     => array( 'wp_ffc_submissions' ),
+			'a cancelled appointment counts'   => array( 'wp_ffc_self_scheduling_appointments' ),
+			'an activity-log row counts'       => array( 'wp_ffc_activity_log' ),
+			'an audience membership counts'    => array( 'wp_ffc_audience_members' ),
+			'a booking counts'                 => array( 'wp_ffc_audience_booking_users' ),
+			'a schedule permission counts'     => array( 'wp_ffc_audience_schedule_permissions' ),
+			'a profile row counts'             => array( 'wp_ffc_user_profiles' ),
+		);
 	}
 
-	public function test_user_has_ffc_data_returns_true_when_appointments_exist(): void {
-		$this->counts['wp_ffc_submissions']                  = '0';
-		$this->tables[]                                      = 'wp_ffc_self_scheduling_appointments';
-		$this->counts['wp_ffc_self_scheduling_appointments'] = '1';
+	/**
+	 * @dataProvider footprint_tables
+	 */
+	public function test_user_has_ffc_data_sees_a_row_in_each_table_the_cleanup_touches( string $table ): void {
+		$this->tables = array(
+			'wp_ffc_self_scheduling_appointments',
+			'wp_ffc_activity_log',
+			'wp_ffc_audience_members',
+			'wp_ffc_audience_booking_users',
+			'wp_ffc_audience_schedule_permissions',
+			'wp_ffc_user_profiles',
+		);
+		// The status the dashboard counts hides it; the probe must not.
+		$this->counts[ $table ] = '0';
+		$this->rows[ $table ]   = 1;
 
-		$this->assertTrue(UserService::user_has_ffc_data(42));
+		$this->assertTrue( UserService::user_has_ffc_data( 42 ) );
+	}
+
+	public function test_user_has_ffc_data_reads_no_status_filter(): void {
+		$this->tables = array( 'wp_ffc_self_scheduling_appointments' );
+
+		UserService::user_has_ffc_data( 42 );
+
+		$probes = array_filter( $this->prepared, static fn ( $p ) => false !== strpos( $p[0], 'SELECT 1 FROM' ) );
+		$this->assertCount( 2, $probes, 'Submissions plus the one optional table that exists.' );
+		foreach ( $probes as $probe ) {
+			$this->assertStringNotContainsString( 'status', $probe[0] );
+			$this->assertSame( 42, $probe[1][1] );
+		}
+	}
+
+	public function test_user_has_ffc_data_skips_a_table_that_does_not_exist(): void {
+		// Only submissions exists; a row counted for a missing table is never read.
+		$this->rows['wp_ffc_audience_members'] = 1;
+
+		$this->assertFalse( UserService::user_has_ffc_data( 42 ) );
 	}
 
 	// ==================================================================

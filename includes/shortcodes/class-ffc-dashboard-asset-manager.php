@@ -355,7 +355,7 @@ class DashboardAssetManager {
 					'requestDeletion'          => __( 'Request Data Deletion', 'ffcertificate' ),
 					'exportDataDesc'           => __( 'Request a copy of all your personal data stored in the system.', 'ffcertificate' ),
 					'deletionDataDesc'         => __( 'Request deletion of your personal data. An administrator will review your request.', 'ffcertificate' ),
-					'privacyRequestSent'       => __( 'Request sent! The administrator will review it.', 'ffcertificate' ),
+					'privacyRequestSent'       => __( 'Check your e-mail to confirm the request. Nothing happens until you confirm it.', 'ffcertificate' ),
 					'privacyRequestError'      => __( 'Error sending request', 'ffcertificate' ),
 					'confirmDeletion'          => __( 'Are you sure you want to request deletion of your personal data? This will be reviewed by an administrator.', 'ffcertificate' ),
 					// Audience self-join.

@@ -179,7 +179,7 @@ class PrivacyExporters {
              FROM %i t
              LEFT JOIN %i p ON t.form_id = p.ID
              WHERE {$owns} AND t.status != 'trash'
-             ORDER BY t.submission_date DESC
+             ORDER BY t.submission_date DESC, t.id DESC
              LIMIT %d OFFSET %d",
 				$table,
 				$wpdb->posts,
@@ -279,7 +279,7 @@ class PrivacyExporters {
              FROM %i t
              LEFT JOIN %i p ON t.calendar_id = p.ID
              WHERE {$owns}
-             ORDER BY t.appointment_date DESC
+             ORDER BY t.appointment_date DESC, t.id DESC
              LIMIT %d OFFSET %d",
 				$table,
 				$wpdb->posts,
@@ -472,7 +472,7 @@ class PrivacyExporters {
              INNER JOIN %i b ON b.id = bu.booking_id
              LEFT JOIN %i e ON e.id = b.environment_id
              WHERE bu.user_id = %d
-             ORDER BY b.booking_date DESC
+             ORDER BY b.booking_date DESC, b.id DESC
              LIMIT %d OFFSET %d',
 				$booking_users_table,
 				$bookings_table,
@@ -592,6 +592,160 @@ class PrivacyExporters {
 					array(
 						'name'  => __( 'Times sent', 'ffcertificate' ),
 						'value' => (string) (int) $row['send_count'],
+					),
+				),
+			);
+		}
+
+		return array(
+			'data' => $export_items,
+			'done' => count( $rows ) < self::ITEMS_PER_PAGE,
+		);
+	}
+
+	/**
+	 * Export the activity-log entries recorded against a user (#2246).
+	 *
+	 * Each entry names what happened, when, its level and, when one was
+	 * stored, the client address it came from, decrypted, since that address
+	 * is the person's own data. The context is left out on purpose: it is the
+	 * operator-facing detail of the event and can name other people, the
+	 * operator who acted among them, which an export to this person must not
+	 * hand over.
+	 *
+	 * @param string $email_address User email.
+	 * @param int    $page          Page number.
+	 * @return array<string, mixed>
+	 */
+	public static function export_activity_log( string $email_address, int $page = 1 ): array {
+		global $wpdb;
+		$user  = get_user_by( 'email', $email_address );
+		$table = $wpdb->prefix . 'ffc_activity_log';
+		if ( ! $user || ! self::table_exists( $table ) ) {
+			return array(
+				'data' => array(),
+				'done' => true,
+			);
+		}
+
+		$with_ip = self::column_exists( $table, 'user_ip_encrypted' );
+		$columns = $with_ip ? 'id, action, level, created_at, user_ip_encrypted' : 'id, action, level, created_at';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- One-shot export of live rows; $columns is one of two literal lists chosen above.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT {$columns} FROM %i WHERE user_id = %d ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
+				$table,
+				$user->ID,
+				self::ITEMS_PER_PAGE,
+				( $page - 1 ) * self::ITEMS_PER_PAGE
+			),
+			ARRAY_A
+		);
+
+		$export_items = array();
+		foreach ( $rows as $row ) {
+			$data = array(
+				array(
+					'name'  => __( 'Action', 'ffcertificate' ),
+					'value' => (string) ( $row['action'] ?? '' ),
+				),
+				array(
+					'name'  => __( 'Level', 'ffcertificate' ),
+					'value' => (string) ( $row['level'] ?? '' ),
+				),
+				array(
+					'name'  => __( 'Date', 'ffcertificate' ),
+					'value' => (string) ( $row['created_at'] ?? '' ),
+				),
+			);
+
+			$ip = '';
+			if ( $with_ip && ! empty( $row['user_ip_encrypted'] ) && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
+				$plain = \FreeFormCertificate\Core\Encryption::decrypt( (string) $row['user_ip_encrypted'] );
+				$ip    = is_string( $plain ) ? $plain : '';
+			}
+			if ( '' !== $ip ) {
+				$data[] = array(
+					'name'  => __( 'IP Address', 'ffcertificate' ),
+					'value' => $ip,
+				);
+			}
+
+			$export_items[] = array(
+				'group_id'    => 'ffc-activity-log',
+				'group_label' => __( 'FFC Activity Log', 'ffcertificate' ),
+				'item_id'     => 'ffc-activity-' . $row['id'],
+				'data'        => $data,
+			);
+		}
+
+		return array(
+			'data' => $export_items,
+			'done' => count( $rows ) < self::ITEMS_PER_PAGE,
+		);
+	}
+
+	/**
+	 * Export the date messages sent to a user (#2246).
+	 *
+	 * One item per delivery: the rule's name, the date it was about and when
+	 * it was handed to the mailer. The tables are named here rather than read
+	 * from the Date Messages activator so the privacy module takes no
+	 * dependency on that module, which may be switched off.
+	 *
+	 * @param string $email_address User email.
+	 * @param int    $page          Page number.
+	 * @return array<string, mixed>
+	 */
+	public static function export_date_message_log( string $email_address, int $page = 1 ): array {
+		global $wpdb;
+		$user      = get_user_by( 'email', $email_address );
+		$log_table = $wpdb->prefix . 'ffc_date_message_log';
+		if ( ! $user || ! self::table_exists( $log_table ) ) {
+			return array(
+				'data' => array(),
+				'done' => true,
+			);
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT l.id, l.occurrence_key, l.sent_at, r.name AS rule_name
+             FROM %i l
+             LEFT JOIN %i r ON r.id = l.rule_id
+             WHERE l.user_id = %d
+             ORDER BY l.sent_at DESC, l.id DESC
+             LIMIT %d OFFSET %d',
+				$log_table,
+				$wpdb->prefix . 'ffc_date_message_rules',
+				$user->ID,
+				self::ITEMS_PER_PAGE,
+				( $page - 1 ) * self::ITEMS_PER_PAGE
+			),
+			ARRAY_A
+		);
+
+		$export_items = array();
+		foreach ( $rows as $row ) {
+			$sent_at        = (int) ( $row['sent_at'] ?? 0 );
+			$export_items[] = array(
+				'group_id'    => 'ffc-date-messages',
+				'group_label' => __( 'FFC Date Messages', 'ffcertificate' ),
+				'item_id'     => 'ffc-date-message-' . $row['id'],
+				'data'        => array(
+					array(
+						'name'  => __( 'Message', 'ffcertificate' ),
+						'value' => (string) ( $row['rule_name'] ?? '' ),
+					),
+					array(
+						'name'  => __( 'Date it was about', 'ffcertificate' ),
+						'value' => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) ( $row['occurrence_key'] ?? '' ) ),
+					),
+					array(
+						'name'  => __( 'Sent', 'ffcertificate' ),
+						'value' => $sent_at > 0 ? \FreeFormCertificate\Core\DateFormatter::format_datetime( $sent_at ) : '',
 					),
 				),
 			);
